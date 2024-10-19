@@ -237,7 +237,8 @@ io.on("connection", (socket) => {
       userSessions.delete(socketId);
     }
     if (socketStore.has(socketId)) {
-      socketStore.get(socketId).disconnect();
+      const socket = socketStore.get(socketId);
+      socket.disconnect(true); // Forcefully disconnect the socket
       socketStore.delete(socketId);
     }
     if (workers.has(socketId)) {
