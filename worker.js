@@ -5,16 +5,16 @@ const axios = require('axios');
 const chalk = require('chalk');
 
 const bambisleepChalk = {
-  primary: chalk.hex('#112727'),
-  primaryAlt: chalk.hex('#216969'),
-  secondary: chalk.hex('#1f0117'),
-  tertiary: chalk.hex('#f2f2f2'),
-  button: chalk.hex('#d4046c'),
-  buttonAlt: chalk.hex('#110000'),
-  error: chalk.hex('#d4046c').bold,
-  success: chalk.hex('#216969').bold,
-  info: chalk.hex('#017c8a').bold,
-  warning: chalk.hex('#112727').bold
+  primary: chalk.rgb(17, 39, 39).alpha(0.75),
+  primaryAlt: chalk.rgb(33, 105, 105).alpha(0.75),
+  secondary: chalk.rgb(31, 1, 23).alpha(0.75),
+  tertiary: chalk.rgb(242, 242, 242).alpha(0.75),
+  button: chalk.rgb(212, 4, 108).alpha(0.75),
+  buttonAlt: chalk.rgb(17, 0, 0).alpha(0.75),
+  error: chalk.rgb(212, 4, 108).alpha(0.75).bold,
+  success: chalk.rgb(33, 105, 105).alpha(0.75).bold,
+  info: chalk.rgb(1, 124, 138).alpha(0.75).bold,
+  warning: chalk.rgb(17, 39, 39).alpha(0.75).bold
 };
 
 let sessionHistories = {}; // Initialize sessionHistories as an empty object
@@ -169,9 +169,10 @@ parentPort.on("message", async (msg) => {
   } else if (msg.type === "message") {
     await handleMessage(msg.data, msg.socketId);
   } else if (msg.type === "save") {
-    await saveSessionHistories(msg.data, msg.socketId);
+    await saveSessionHistories(msg.socketId);
   } else if (msg.type === "terminate") {
     parentPort.postMessage({ type: "terminate", socketId: msg.socketId });
+    Worker.terminate();
   }
 });
 
@@ -182,7 +183,7 @@ async function handleResponse(response, socketId) {
     socketId: socketId
   });
 }
-
+/*
 async function sendSessionHistories(socketId) {
   if (sessionHistories && sessionHistories[socketId]) {
     parentPort.postMessage({
@@ -193,7 +194,7 @@ async function sendSessionHistories(socketId) {
     console.log(bambisleepChalk.info(`Session histories sent to client: ${socketId}`));
   }
 }
-
+*/
 async function saveSessionHistoryToFile(socketId) {
   if (sessionHistories && sessionHistories[socketId]) {
     const historyFolder = path.join(__dirname, 'history');
@@ -214,7 +215,7 @@ async function saveSessionHistoryToFile(socketId) {
             console.error(bambisleepChalk.error('Error saving session history:'), err);
           }
         } else {
-          console.log(bambisleepChalk.info(`Session history saved for socketId: ${socketId}`));
+          console.log(bambisleepChalk.success(`Session history saved for socketId: ${socketId}`));
         }
       });
     } catch (err) {

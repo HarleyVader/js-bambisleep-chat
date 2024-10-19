@@ -204,9 +204,9 @@ io.on("connection", (socket) => {
     worker.postMessage({ type: "triggers", triggers });
   });
 
-  socket.on("disconnect", async () => {
-    worker.postMessage({ type: "disconnect", socketId: socket.id });
-    //terminator(socket.id);
+  socket.on("disconnect", () => {
+    worker.postMessage({ type: "terminate", socketId: socket.id });
+    terminator(socket);
   });
 
   worker.on('info', () => {
@@ -249,6 +249,8 @@ rl.on("line", async (line) => {
     for (const socketId of userSessions) {
       await workersSessionHistories(socketId);
     }
+  } else if (line === "terminate") {
+    terminator(socket);
   } else {
     console.log(bambisleepChalk.error("Invalid command! Use 'update', 'normal', or 'save'"));
   }

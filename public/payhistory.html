@@ -1,0 +1,92 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BambiSleep AI GF</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+</head>
+
+<body>
+    <!--Navbar-->
+    <script type="module" src="mjs/main.mjs"></script>
+    <section id="metamask">
+        <button onclick="connect()">Connect</button>
+        <button onclick="addEthereumChain()">ADD ETHEREUM CHAIN</button>
+    </section>
+    <section id="sessionHistories" style="display: none;">
+        <div class="container">
+            <h1>Chat History</h1>
+            <ul id="chatHistoryList">
+                <!-- Chat history will be populated here -->
+            </ul>
+        </div>
+    </section>
+    <script src="/node_modules/@metamask/sdk/dist/browser/iife/metamask-sdk.js"></script>
+    <script>
+        const sdk = new MetaMaskSDK.MetaMaskSDK({
+            logging: {
+                developerMode: true,
+                enableDebug: true,
+            },
+            dappMetadata: {
+                name: "BambiSleep AIGF - Chat History Usage",
+                url: "https://bambisleep.chat/payhistory.html",
+                base64Icon: "data:image/png;base64,...",
+            },
+            
+        });
+        
+
+
+        async function connect() {
+            try {
+                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                console.log('Connected:', accounts[0]);
+                checkPayment(accounts[0]);
+            } catch (error) {
+                console.error('Error connecting:', error);
+            }
+        }
+
+        async function checkPayment(account) {
+            const response = await fetch(`/check-payment?account=${account}`);
+            const data = await response.json();
+            if (data.paid) {
+                document.getElementById('sessionHistories').style.display = 'block';
+                loadChatHistory();
+            } else {
+                alert('Please make a payment to access the chat history.');
+            }
+        }
+
+        async function loadChatHistory() {
+            const response = await fetch('/chat-history');
+            const chatHistory = await response.json();
+            const chatHistoryList = document.getElementById('chatHistoryList');
+            chatHistory.forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <p>${entry.message}</p>
+                    <button onclick="vote(${index}, 'up')">👍</button>
+                    <button onclick="vote(${index}, 'down')">👎</button>
+                    <span>Votes: ${entry.votes}</span>
+                `;
+                chatHistoryList.appendChild(li);
+            });
+        }
+
+        async function vote(index, type) {
+            const response = await fetch(`/vote/${index}/${type}`, { method: 'POST' });
+            const data = await response.json();
+            document.querySelectorAll('li')[index].querySelector('span').innerText = `Votes: ${data.votes}`;
+        }
+    </script>
+</body>
+
+</html>
