@@ -71,7 +71,7 @@ if (!fs.existsSync(sessionHistoriesDir)) {
 }
 
 // Ensure the chat history file exists
-const chatHistoryPath = path.join(__dirname, 'history', 'chatHistory.json');
+const chatHistoryPath = path.join(__dirname, 'public', 'chatHistory.json');
 const chatHistoryDir = path.dirname(chatHistoryPath);
 
 if (!fs.existsSync(chatHistoryDir)) {
