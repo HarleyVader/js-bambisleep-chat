@@ -224,23 +224,30 @@ io.on("connection", (socket) => {
       const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
       io.to(msg.socketId).emit("response", responseData);
     } else if (msg.type === 'terminate') {
-      worker.terminate(msg.socketId);
+      terminator(msg.socketId);
     }
   });
 
-  function terminator(socketId) {
-    userSessions.delete(socketId);
-    const worker = workers.get(socketId);
-    if (worker) {
-      worker.terminate();
-    }
-    workers.delete(socketId);
-    socketStore.delete(socketId);
-    console.log(bambisleepChalk.error(`Client disconnected: ${socketId} clients: ${userSessions.size} sockets: ${socketStore.size} workers: ${workers.size}`));
-  }
-
-  
+  worker.on("exit", (code) => {
+    console.log(bambisleepChalk.warning(`Worker stopped with exit code ${code}`));
+  });
 });
+
+
+function terminator(socketId) {
+  if (userSessions.has(socketId)) {
+    userSessions.delete(socketId);
+  }
+  if (socketStore.has(socketId)) {
+    socketStore.get(socketId).disconnect();
+    socketStore.delete(socketId);
+  }
+  if (workers.has(socketId)) {
+    workers.get(socketId).terminate();
+    workers.delete(socketId);
+  }
+  console.log(bambisleepChalk.warning(`Client disconnected: ${socketId} clients: ${userSessions.size} sockets: ${socketStore.size} workers: ${workers.size}`));
+}
 
 rl.on("line", async (line) => {
   if (line === "update") {
@@ -254,7 +261,7 @@ rl.on("line", async (line) => {
       await workersSessionHistories(socketId);
     }
   } else if (line === "terminate") {
-    terminator(socket);
+    terminator(socket.id);
   } else {
     console.log(bambisleepChalk.error("Invalid command! Use 'update', 'normal', 'save', 'tertminate'"));
   }
