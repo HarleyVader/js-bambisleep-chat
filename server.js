@@ -231,41 +231,45 @@ io.on("connection", (socket) => {
   worker.on("exit", (code) => {
     console.log(bambisleepChalk.warning(`Worker stopped with exit code ${code}`));
   });
-});
 
-
-function terminator(socketId) {
-  if (userSessions.has(socketId)) {
-    userSessions.delete(socketId);
-  }
-  if (socketStore.has(socketId)) {
-    socketStore.get(socketId).disconnect();
-    socketStore.delete(socketId);
-  }
-  if (workers.has(socketId)) {
-    workers.get(socketId).terminate();
-    workers.delete(socketId);
-  }
-  console.log(bambisleepChalk.warning(`Client disconnected: ${socketId} clients: ${userSessions.size} sockets: ${socketStore.size} workers: ${workers.size}`));
-}
-
-rl.on("line", async (line) => {
-  if (line === "update") {
-    console.log(bambisleepChalk.success("Update mode"));
-    io.emit("update");
-  } else if (line === "normal") {
-    io.emit("update");
-    console.log(bambisleepChalk.success("Normal mode"));
-  } else if (line === "save") {
-    for (const socketId of userSessions) {
-      await workersSessionHistories(socketId);
+  function terminator(socketId) {
+    if (userSessions.has(socketId)) {
+      userSessions.delete(socketId);
     }
-  } else if (line === "terminate") {
-    terminator(socket.id);
-  } else {
-    console.log(bambisleepChalk.error("Invalid command! Use 'update', 'normal', 'save', 'tertminate'"));
+    if (socketStore.has(socketId)) {
+      socketStore.get(socketId).disconnect();
+      socketStore.delete(socketId);
+    }
+    if (workers.has(socketId)) {
+      workers.get(socketId).terminate();
+      workers.delete(socketId);
+    }
+    console.log(bambisleepChalk.warning(`Client disconnected: ${socketId} clients: ${userSessions.size} sockets: ${socketStore.size} workers: ${workers.size}`));
   }
+  
+  rl.on("line", async (line) => {
+    if (line === "update") {
+      console.log(bambisleepChalk.success("Update mode"));
+      io.emit("update");
+    } else if (line === "normal") {
+      io.emit("update");
+      console.log(bambisleepChalk.success("Normal mode"));
+    } else if (line === "save") {
+      for (const socketId of userSessions) {
+        await workersSessionHistories(socketId);
+      }
+    } else if (line === "terminate") {
+      for (const socketId of userSessions) {
+        terminator(socketId);
+      }
+    } else {
+      console.log(bambisleepChalk.error("Invalid command! Use 'update', 'normal', 'save', 'terminate'"));
+    }
+  });
 });
+
+
+
 
 app.use("/api/tts", (req, res) => {
   const text = req.query.text;
