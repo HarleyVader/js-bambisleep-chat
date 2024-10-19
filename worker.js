@@ -5,16 +5,16 @@ const axios = require('axios');
 const chalk = require('chalk');
 
 const bambisleepChalk = {
-  primary: chalk.rgb(17, 39, 39).alpha(0.75),
-  primaryAlt: chalk.rgb(33, 105, 105).alpha(0.75),
-  secondary: chalk.rgb(31, 1, 23).alpha(0.75),
-  tertiary: chalk.rgb(242, 242, 242).alpha(0.75),
-  button: chalk.rgb(212, 4, 108).alpha(0.75),
-  buttonAlt: chalk.rgb(17, 0, 0).alpha(0.75),
-  error: chalk.rgb(212, 4, 108).alpha(0.75).bold,
-  success: chalk.rgb(33, 105, 105).alpha(0.75).bold,
-  info: chalk.rgb(1, 124, 138).alpha(0.75).bold,
-  warning: chalk.rgb(17, 39, 39).alpha(0.75).bold
+  primary: chalk.rgb(17, 39, 39),
+  primaryAlt: chalk.rgb(33, 105, 105),
+  secondary: chalk.rgb(31, 1, 23),
+  tertiary: chalk.rgb(242, 242, 242),
+  button: chalk.rgb(212, 4, 108),
+  buttonAlt: chalk.rgb(17, 0, 0),
+  error: chalk.rgb(212, 4, 108).bold,
+  success: chalk.rgb(33, 105, 105).bold,
+  info: chalk.rgb(1, 124, 138).bold,
+  warning: chalk.rgb(17, 39, 39).bold
 };
 
 let sessionHistories = {}; // Initialize sessionHistories as an empty object
