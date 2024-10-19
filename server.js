@@ -206,7 +206,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     worker.postMessage({ type: "terminate", socketId: socket.id });
-    terminator(socket);
+    terminator(socket.id);
   });
 
   worker.on('info', () => {
@@ -223,6 +223,8 @@ io.on("connection", (socket) => {
     } else if (msg.type === 'response') {
       const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
       io.to(msg.socketId).emit("response", responseData);
+    } else if (msg.type === 'terminate') {
+      worker.terminate(msg.socketId);
     }
   });
 
@@ -236,6 +238,8 @@ io.on("connection", (socket) => {
     socketStore.delete(socketId);
     console.log(bambisleepChalk.error(`Client disconnected: ${socketId} clients: ${userSessions.size} sockets: ${socketStore.size} workers: ${workers.size}`));
   }
+
+  
 });
 
 rl.on("line", async (line) => {
@@ -252,7 +256,7 @@ rl.on("line", async (line) => {
   } else if (line === "terminate") {
     terminator(socket);
   } else {
-    console.log(bambisleepChalk.error("Invalid command! Use 'update', 'normal', or 'save'"));
+    console.log(bambisleepChalk.error("Invalid command! Use 'update', 'normal', 'save', 'tertminate'"));
   }
 });
 

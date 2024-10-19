@@ -170,7 +170,7 @@ parentPort.on("message", async (msg) => {
     await handleMessage(msg.data, msg.socketId);
   } else if (msg.type === "save") {
     await saveSessionHistories(msg.socketId);
-  } else if (msg.type === "terminate") {
+  } else if(msg.type === "terminate") {
     parentPort.postMessage({ type: "terminate", socketId: msg.socketId });
     Worker.terminate();
   }
