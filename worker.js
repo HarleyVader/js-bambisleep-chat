@@ -113,7 +113,6 @@ async function handleMessage(userPrompt, socketId) {
     messages: await getMessages(socketId), // Await the messages
     temperature: 0.7,
     max_tokens: 256,
-    
     stream: true,
   };
 
