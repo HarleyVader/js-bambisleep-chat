@@ -20,6 +20,7 @@ function arrayShift(_audioArray) {
     console.log("currentURL ", _currentURL);
     return _currentURL;
   }
+  return null;
 }
 
 async function do_tts(_audioArray) {
@@ -27,6 +28,12 @@ async function do_tts(_audioArray) {
   document.querySelector("#message").textContent = "Synthesizing...";
 
   let currentURL = arrayShift(_audioArray);
+  if (!currentURL) {
+    console.error("No audio URL available");
+    //document.querySelector("#message").textContent = "Error: No audio URL available.";
+    return;
+  }
+
   audio.src = currentURL;
   console.log("audio.src ", audio.src);
   audio.load();
@@ -39,10 +46,9 @@ async function do_tts(_audioArray) {
   audio.onended = function () {
     console.log("audio ended");
     document.querySelector("#message").textContent = "Finished!";
-    
   };
   audio.onerror = function (e) {
     console.error("Error playing audio:", e);
     document.querySelector("#message").textContent = "Error playing audio.";
   };
-};
+}
