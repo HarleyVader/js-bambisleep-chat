@@ -8,7 +8,7 @@ const { Server } = require("socket.io");
 const readline = require("readline");
 const cors = require('cors');
 const axios = require("axios");
-const chalk = require('chalk');
+const chalk = require('chalk').default;
 
 const bambisleepChalk = {
   primary: chalk.rgb(17, 39, 39),
