@@ -94,7 +94,7 @@
         function handleClick() {
             const message = textarea.value.trim();
             console.log('Message:', message);
-            
+
             if (message === '') {
                 alert('Message cannot be empty');
                 return;
@@ -147,16 +147,12 @@
         function handleAudioEnded() {
             if (_textArray.length > 0 || (audio.currentTime === 0 && _textArray.length > 0)) {
                 text = _textArray.shift();
-                playingAudio();
+                arrayPush(_audioArray, text);
+                do_tts(_audioArray);
             } else if (audio.currentTime === 0 && _textArray.length === 0) {
                 state = true;
                 audio.src = "";
             }
-        }
-
-        function playingAudio() {
-            arrayPush(_audioArray, text);
-            do_tts(_audioArray);
         }
 
         function handleAudioPlay() {
