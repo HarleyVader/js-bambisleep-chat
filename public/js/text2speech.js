@@ -19,8 +19,6 @@ function arrayShift(_audioArray) {
     let _currentURL = _audioArray.shift();
     console.log("currentURL ", _currentURL);
     return _currentURL;
-  } else if (_audioArray.length === 0) {
-    _currentURL = "";
   }
 }
 
@@ -41,8 +39,6 @@ async function do_tts(_audioArray) {
   audio.onended = function () {
     console.log("audio ended");
     document.querySelector("#message").textContent = "Finished!";
-    audio.pause();
-    
   };
   audio.onerror = function (e) {
     console.error("Error playing audio:", e);
