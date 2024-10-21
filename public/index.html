@@ -153,9 +153,9 @@
 
         function handleAudioEnded() {
             if (_textArray.length > 0 || audio.currentTime === 0 && _textArray.length > 0) {
-                let text = _textArray.shift();
+                text = _textArray.shift();
                 console.log('Text:', text);
-            } else {
+            } else if (_textArray.length === 0) {
                 state = true;
                 console.log("No more text in _textArray");
             }
