@@ -150,7 +150,10 @@
 
         function handleAudioEnded() {
             if (_textArray.length > 0 || audio.currentTime === 0 && _textArray.length > 0) {
-            text = _textArray.shift();
+                text = _textArray.shift();
+            } else if (_textArray.length === 0) {
+                text = '';
+                state = true;
             }
             arrayPush(_audioArray, text);
             do_tts(_audioArray);
@@ -167,9 +170,9 @@
             sendMessageToDiscord(socket.id + " bambi: " + messageElement.textContent);
 
             if (response.firstChild) {
-            response.insertBefore(messageElement, response.firstChild);
+                response.insertBefore(messageElement, response.firstChild);
             } else {
-            response.appendChild(messageElement);
+                response.appendChild(messageElement);
             }
         }
 
