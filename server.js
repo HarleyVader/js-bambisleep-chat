@@ -269,9 +269,6 @@ io.on("connection", (socket) => {
   });
 });
 
-
-
-
 app.use("/api/tts", (req, res) => {
   const text = req.query.text;
   if (typeof text !== "string") {
