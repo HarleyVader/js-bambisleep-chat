@@ -128,6 +128,10 @@
                 currentMessage = '';
                 console.log('state:', state);
             }
+            if (_textArray.length === 0) {
+                state = true;
+                console.log('state:', state);
+            }
         });
 
         function flashTrigger(trigger, duration) {
@@ -152,16 +156,11 @@
         }
 
         function handleAudioEnded() {
+            if (_textArray.length > 0 || audio.currentTime === 0 && _textArray.length > 0) {
             text = _textArray.shift();
-            if (_textArray.length > 0 || audio.currentTime === 0) {
-                arrayPush(_audioArray, text);
-                do_tts(_audioArray);
-                console.log('Text:', text);
-            } else {
-                console.log('Audio ended');
-                state = true;
             }
-
+            arrayPush(_audioArray, text);
+            do_tts(_audioArray);
         }
 
         function handleAudioPlay() {
