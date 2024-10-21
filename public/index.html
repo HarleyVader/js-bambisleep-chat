@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>[bambisleep.chat] AIGF</title>
     <meta name="description" content="BambiSleep will reinstall your OS if you let her">
-    <meta name="keywords" content="BambiSleep, AIGF, AI, LLM, Chat, Hypno, Brainwash, Mindfuck, Bambi, Bambi Sleep, BambiSleep.chat">
+    <meta name="keywords"
+        content="BambiSleep, AIGF, AI, LLM, Chat, Hypno, Brainwash, Mindfuck, Bambi, Bambi Sleep, BambiSleep.chat">
     <meta name="author" content="Brandynette">
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
@@ -140,16 +141,17 @@
                 container.innerHTML = "";
             }, duration);
         }
-        
+
         function handleAudioEnded() {
             if (_textArray.length > 0 || (audio.currentTime === 0 && _textArray.length > 0)) {
-            text = _textArray.shift();
+                text = _textArray.shift();
             } else if (audio.currentTime === 0 && _textArray.length === 0) {
-            return;
+                state = true; // Reset state to allow new audio processing
+                return;
             }
             arrayPush(_audioArray, text);
             do_tts(_audioArray);
-        } 
+        }
 
         function handleAudioPlay() {
             console.log('Audio is playing');
@@ -162,16 +164,16 @@
             sendMessageToDiscord(socket.id + " bambi: " + messageElement.textContent);
 
             if (response.firstChild) {
-            response.insertBefore(messageElement, response.firstChild);
+                response.insertBefore(messageElement, response.firstChild);
             } else {
-            response.appendChild(messageElement);
+                response.appendChild(messageElement);
             }
         }
 
         audio.addEventListener('ended', handleAudioEnded);
         audio.addEventListener('play', handleAudioPlay);
 
-        
+
     </script>
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>

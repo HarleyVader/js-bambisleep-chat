@@ -113,6 +113,10 @@ body {
     /* Center the text inside the div */
 }
 
+#message {
+    padding-top: 0.2rem;
+}
+
 #trigger-toggles {
     display: flex;
     flex-wrap: wrap;
