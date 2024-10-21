@@ -274,7 +274,7 @@ io.on("connection", (socket) => {
       console.log(bambisleepChalk.success("Normal mode"));
     } else if (line === "save") {
       for (const socketId of userSessions) {
-        await workersSessionHistories(socketId);
+        workers.get(socketId).postMessage({ type: "save" });
       }
     } else if (line === "terminate") {
       for (const socketId of userSessions) {

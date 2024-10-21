@@ -93,6 +93,27 @@
             }, 200);
         });
 
+        function flashTrigger(trigger, duration) {
+            const container = document.getElementById("eye");
+            container.innerHTML = "";
+            const span = document.createElement("span");
+            span.textContent = trigger;
+            span.style.display = "flex";
+            span.style.justifyContent = "center";
+            span.style.alignItems = "center";
+            span.style.fontSize = "48px";
+            span.style.fontWeight = "bold";
+            span.style.color = "pink";
+            span.style.marginRight = "0";
+            container.appendChild(span);
+
+            setTimeout(() => {
+                requestAnimationFrame(() => {
+                    container.innerHTML = "";
+                });
+            }, duration);
+        }
+
         function handleClick() {
             const message = textarea.value.trim();
             console.log('Message:', message);
@@ -127,31 +148,12 @@
             }
         });
 
-        function flashTrigger(trigger, duration) {
-            const container = document.getElementById("eye");
-            container.innerHTML = "";
-            const span = document.createElement("span");
-            span.textContent = trigger;
-            span.style.display = "flex";
-            span.style.justifyContent = "center";
-            span.style.alignItems = "center";
-            span.style.fontSize = "48px";
-            span.style.fontWeight = "bold";
-            span.style.color = "pink";
-            span.style.marginRight = "0";
-            container.appendChild(span);
-
-            setTimeout(() => {
-                requestAnimationFrame(() => {
-                    container.innerHTML = "";
-                });
-            }, duration);
-        }
-
         function handleAudioEnded() {
-            while (_textArray.length > 0 || audio.currentTime === 0 && _textArray.length > 0) {
+            if (_textArray.length > 0 || audio !== null) {
                 text = _textArray.shift();
-            } 
+            } else {
+                text = _textArray[0];
+            }
             arrayPush(_audioArray, text);
             do_tts(_audioArray);
         }
