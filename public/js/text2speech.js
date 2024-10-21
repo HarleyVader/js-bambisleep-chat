@@ -39,10 +39,14 @@ async function do_tts(_audioArray) {
   audio.onended = function () {
     console.log("audio ended");
     document.querySelector("#message").textContent = "Finished!";
-    currentURL = '';
+    if (_textArray.length === 0) {
+      audio.pause();
+      state = true;
+    }
   };
   audio.onerror = function (e) {
     console.error("Error playing audio:", e);
     document.querySelector("#message").textContent = "Error playing audio.";
+    state = true;
   };
 };
