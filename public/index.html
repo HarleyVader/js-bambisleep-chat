@@ -149,11 +149,9 @@
         }
 
         function handleAudioEnded() {
-            if (_textArray.length > 0 || audio.currentTime === 0 && _textArray.length > 0) {
+            while (_textArray.length > 0 || audio.currentTime === 0 && _textArray.length > 0) {
                 text = _textArray.shift();
-            } else if (_textArray.length === 0) {
-                state = true;
-            }
+            } 
             arrayPush(_audioArray, text);
             do_tts(_audioArray);
         }
