@@ -19,6 +19,8 @@ function arrayShift(_audioArray) {
     let _currentURL = _audioArray.shift();
     console.log("currentURL ", _currentURL);
     return _currentURL;
+  } else if (_audioArray.length === 0) {
+    _currentURL = "";
   }
 }
 
