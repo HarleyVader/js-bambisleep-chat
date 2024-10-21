@@ -120,6 +120,9 @@
                 }
                 currentMessage = '';
             }
+            if (_textArray.length === 0) {
+                state = true;
+            }
         });
 
         function flashTrigger(trigger, duration) {
@@ -140,8 +143,9 @@
                 container.innerHTML = "";
             }, duration);
         }
+        
         function handleAudioEnded() {
-            if (_textArray.length > 0 || audio.currentTime === 0) {
+            if (_textArray.length > 0 || audio.currentTime === 0 && _textArray.length > 0) {
             text = _textArray.shift();
             }
             arrayPush(_audioArray, text);

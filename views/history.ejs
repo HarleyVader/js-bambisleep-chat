@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>bambisleep.chat - Vote for History</title>
+    <meta name="description" content="Vote On bambisleep.chat history">
     <link rel="stylesheet" href="/css/style.css">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -20,48 +21,5 @@
             </li>
         <% }); %>
     </ul>
-    <button id="connectButton">Connect to MetaMask</button>
-    <button id="payButton" disabled>Pay with BNB</button>
-    <script>
-        const connectButton = document.getElementById('connectButton');
-        const payButton = document.getElementById('payButton');
-        let userAccount;
-
-        connectButton.addEventListener('click', async () => {
-            if (window.ethereum) {
-                try {
-                    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-                    userAccount = accounts[0];
-                    payButton.disabled = false;
-                    alert('Connected to MetaMask');
-                } catch (error) {
-                    console.error('Error connecting to MetaMask:', error);
-                }
-            } else {
-                alert('MetaMask is not installed');
-            }
-        });
-
-        payButton.addEventListener('click', async () => {
-            if (userAccount) {
-                const transactionParameters = {
-                    to: 'YOUR_BINANCE_SMART_CHAIN_ADDRESS', // Replace with your BSC address
-                    from: userAccount,
-                    value: '0xDE0B6B3A7640000', // 1 BNB in wei (adjust as needed)
-                    chainId: '0x38', // BSC Mainnet chain ID
-                };
-
-                try {
-                    const txHash = await ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [transactionParameters],
-                    });
-                    alert('Transaction sent! TxHash: ' + txHash);
-                } catch (error) {
-                    console.error('Error sending transaction:', error);
-                }
-            }
-        });
-    </script>
 </body>
 </html>
