@@ -114,23 +114,19 @@
             currentMessage += message;
 
             const triggerFound = listOfTriggers.some(trigger => currentMessage.includes(trigger));
-            //console.log('Trigger found:', triggerFound);
+            console.log('Trigger found:', triggerFound);
 
-            if ((currentMessage.match(/[,.!?:]/) && !currentMessage.match(/\d+\./)) ||
-                (triggerFound && currentMessage.match(/[,.!?:-]/)) ||
-                (currentMessage.match(/\*.*?\*/) && !currentMessage.match(/[,.!?:-]/))) {
+            if ((currentMessage.match(/[,.!?:-]/) && !currentMessage.match(/\d+\./)) || (triggerFound === true && currentMessage.match(/[,.!?:-]/)) || currentMessage.match(/\*.*?\*/) && !currentMessage.match(/[,.!?:-]/)) {
                 _textArray.push(currentMessage);
 
                 console.log('Text array:', _textArray);
                 if (state) {
-                    handleAudioEnded();
+                    handleAudioEnded()
                 }
                 currentMessage = '';
-                console.log('state:', state);
             }
             if (_textArray.length === 0) {
                 state = true;
-                console.log('state:', state);
             }
         });
 
@@ -158,7 +154,7 @@
         function handleAudioEnded() {
             if (_textArray.length > 0 || audio.currentTime === 0 && _textArray.length > 0) {
             text = _textArray.shift();
-            } 
+            }
             arrayPush(_audioArray, text);
             do_tts(_audioArray);
         }
