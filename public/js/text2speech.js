@@ -9,15 +9,15 @@ function arrayPush(_audioArray, e) {
   let URL = `https://bambisleep.chat/api/tts?text=${encodeURIComponent(e)}`;
   _audioArray.push(URL);
 
-  console.log("audioArray ", _audioArray);
-  console.log("length ", _audioArray.length);
+  //console.log("audioArray ", _audioArray);
+  //console.log("length ", _audioArray.length);
   return _audioArray;
 }
 
 function arrayShift(_audioArray) {
   if (_audioArray.length > 0 && audio !== null) {
     let _currentURL = _audioArray.shift();
-    console.log("currentURL ", _currentURL);
+    //console.log("currentURL ", _currentURL);
     return _currentURL;
   }
   return null;
@@ -50,6 +50,7 @@ async function do_tts(_audioArray) {
       do_tts(_audioArray);
     } else {
       document.querySelector("#message").textContent = "Finished!"
+
     }
   };
   audio.onerror = function (e) {

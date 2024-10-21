@@ -126,20 +126,3 @@ function flashTriggers(trigger) {
   container.appendChild(span);
 
 }
-/*
-function toggleTriggers() {
-  let cunter = 0;
-  setTimeout(() => {
-    cunter++;
-    scanTriggers();
-    if (cunter > 10) {
-      return;
-    }
-  }, 350);
-  cunter = 0;
-}
-/*
-setInterval(() => {
-  toggleTriggers();
-}, 450);
-*/
