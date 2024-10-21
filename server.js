@@ -64,23 +64,8 @@ app.use(express.static(path.join(__dirname, "public")));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Ensure the directory for session histories exists
-const sessionHistoriesDir = path.join(__dirname, 'history');
-if (!fs.existsSync(sessionHistoriesDir)) {
-  fs.mkdirSync(sessionHistoriesDir, { recursive: true });
-}
-
-// Ensure the chat history file exists
+// Path to chat history file
 const chatHistoryPath = path.join(__dirname, 'public', 'chatHistory.json');
-const chatHistoryDir = path.dirname(chatHistoryPath);
-
-if (!fs.existsSync(chatHistoryDir)) {
-  fs.mkdirSync(chatHistoryDir, { recursive: true });
-}
-
-if (!fs.existsSync(chatHistoryPath)) {
-  fs.writeFileSync(chatHistoryPath, JSON.stringify([]), 'utf8');
-}
 
 // Function to update chat history
 function updateChatHistory(index, type, callback) {
@@ -113,6 +98,39 @@ function updateChatHistory(index, type, callback) {
     });
   });
 }
+
+app.get('/history', (req, res) => {
+  fs.readFile(chatHistoryPath, 'utf8', (err, data) => {
+    if (err) {
+      console.error(bambisleepChalk.error('Error reading chat history:'), err);
+      res.status(500).send('Error reading chat history');
+      return;
+    }
+
+    let chatHistory;
+    try {
+      chatHistory = data ? JSON.parse(data) : [];
+    } catch (parseErr) {
+      console.error(bambisleepChalk.error('Error parsing chat history JSON:'), parseErr);
+      chatHistory = [];
+    }
+
+    res.render('history', { chatHistory });
+  });
+});
+
+app.post('/vote/:index/:type', (req, res) => {
+  const index = req.params.index;
+  const type = req.params.type;
+
+  updateChatHistory(index, type, (err, votes) => {
+    if (err) {
+      res.status(500).send('Error updating chat history');
+    } else {
+      res.json({ votes });
+    }
+  });
+});
 
 // Handle connection
 io.on("connection", (socket) => {
@@ -206,7 +224,6 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     worker.postMessage({ type: "terminate", socketId: socket.id });
-    terminator(socket.id);
   });
 
   worker.on('info', () => {

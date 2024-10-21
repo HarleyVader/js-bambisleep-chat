@@ -17,32 +17,32 @@
     <!--Navbar-->
     <script type="module" src="mjs/main.mjs"></script>
     <section id="sessionHistories">
-    <div class="container">
-        <h1>Chat History</h1>
-        <ul>
-            <% chatHistory.forEach((entry, index)=> { %>
-                <li>
-                    <p>
-                        <%= entry.message %>
-                    </p>
-                    <button onclick="vote(<%= index %>, 'up')">👍</button>
-                    <button onclick="vote(<%= index %>, 'down')">👎</button>
-                    <span>Votes: <%= entry.votes %></span>
-                </li>
+        <div class="container">
+            <h1>Chat History</h1>
+            <ul>
+                <% chatHistory.forEach((entry, index) => { %>
+                    <li>
+                        <p>
+                            <%= entry.message %>
+                        </p>
+                        <button onclick="vote(<%= index %>, 'up')">👍</button>
+                        <button onclick="vote(<%= index %>, 'down')">👎</button>
+                        <span>Votes: <%= entry.votes %></span>
+                    </li>
                 <% }) %>
-        </ul>
-    </div>
-    <script>
-        function vote(index, type) {
-            fetch(`/vote/${index}/${type}`, { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    // Update the UI with the new vote count
-                    document.querySelectorAll('li')[index].querySelector('span').innerText = `Votes: ${data.votes}`;
-                })
-                .catch(error => console.error('Error:', error));
-        }
-    </script>
+            </ul>
+        </div>
+        <script>
+            function vote(index, type) {
+                fetch(`/vote/${index}/${type}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update the UI with the new vote count
+                        document.querySelectorAll('li')[index].querySelector('span').innerText = `Votes: ${data.votes}`;
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        </script>
     </section>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="js/bootstrap.min.js"></script>
