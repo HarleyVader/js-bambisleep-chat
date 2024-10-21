@@ -61,6 +61,7 @@
     <script src="js/responsive.js"></script>
     <script src="js/triggers.js"></script>
     <script src="js/webhook.js"></script>
+    
     <script>
         const _textArray = [];
 
@@ -82,6 +83,14 @@
 
         socket.on("update", (message) => {
             unhideUpdateElement();
+        });
+
+        let debounceTimeout;
+        submit.addEventListener('click', () => {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                handleClick();
+            }, 200);
         });
 
         function handleClick() {
