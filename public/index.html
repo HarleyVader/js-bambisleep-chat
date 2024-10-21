@@ -85,7 +85,6 @@
             unhideUpdateElement();
         });
 
-        
 
         function flashTrigger(trigger, duration) {
             const container = document.getElementById("eye");
@@ -108,14 +107,6 @@
             }, duration);
         }
 
-        let debounceTimeout;
-        submit.addEventListener('click', () => {
-            clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(() => {
-                handleClick();
-            }, 200);
-        });
-
         function handleClick() {
             const message = textarea.value.trim();
             console.log('Message:', message);
@@ -125,13 +116,9 @@
                 return;
             }
             userPrompt.textContent = message;
-
-            // Defer non-critical tasks
-            requestAnimationFrame(() => {
-                sendTriggers();
-                socket.emit('message', message);
-                sendMessageToDiscord(`${socket.id} user: ${message}`);
-            });
+            sendTriggers();
+            socket.emit('message', message);
+            sendMessageToDiscord(`${socket.id} user: ${message}`);
 
             textarea.value = '';
             textarea.style.height = 'inherit';
