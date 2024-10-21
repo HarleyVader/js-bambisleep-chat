@@ -85,6 +85,13 @@
             unhideUpdateElement();
         });
 
+        let debounceTimeout;
+        submit.addEventListener('click', () => {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                handleClick();
+            }, 200);
+        });
 
         function flashTrigger(trigger, duration) {
             const container = document.getElementById("eye");
