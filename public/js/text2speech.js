@@ -24,8 +24,6 @@ function arrayShift(_audioArray) {
 }
 
 async function do_tts(_audioArray) {
-  if (!state) return;
-
   state = false;
   document.querySelector("#message").textContent = "Synthesizing...";
 
@@ -52,7 +50,7 @@ async function do_tts(_audioArray) {
       do_tts(_audioArray);
     } else {
       document.querySelector("#message").textContent = "Finished!";
-      state = true;
+      
     }
   };
   audio.onerror = function (e) {
