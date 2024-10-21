@@ -146,7 +146,8 @@
             if (_textArray.length > 0 || (audio.currentTime === 0 && _textArray.length > 0)) {
                 text = _textArray.shift();
             } else if (audio.currentTime === 0 && _textArray.length === 0) {
-                state = true; // Reset state to allow new audio processing
+                state = true;
+                audio.src = "";
                 return;
             }
             arrayPush(_audioArray, text);
