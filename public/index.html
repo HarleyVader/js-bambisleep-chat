@@ -150,11 +150,14 @@
         function handleAudioEnded() {
             if (_textArray.length > 0 || (audio.currentTime === 0 && _textArray.length > 0)) {
                 text = _textArray.shift();
-            } else if (audio.currentTime === 0 && _textArray.length === 0) {
-                state = true;
-                
-                audio.src = "";
+            } else {
+                return;
             }
+
+            if (_textArray[_textArray.length - 1] === text) {
+                _textArray.pop();
+            }
+            
             arrayPush(_audioArray, text);
             do_tts(_audioArray);
         }
