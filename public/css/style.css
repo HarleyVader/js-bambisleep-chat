@@ -7,6 +7,11 @@
 
     --button-color: #d4046c;
     --button-alt: #110000;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 html,
@@ -22,7 +27,6 @@ body {
     height: 97.3vh;
     border: ridge 3px var(--button-color);
     border-radius: 8px;
-
 }
 
 #user-input {
@@ -86,7 +90,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Arial', sans-serif;
+    font-family: "Arial", sans-serif;
     font-size: 48px;
     font-weight: bold;
     color: rgb(252, 72, 186);
@@ -119,7 +123,6 @@ body {
     border-top: 1px solid var(--button-color);
     border-bottom: 1px solid var(--button-color);
     margin-bottom: 1em;
-
 }
 
 /* Style the toggle input */
@@ -146,18 +149,17 @@ body {
     display: none;
 }
 
-.toggle-input:checked+.toggle-label {
+.toggle-input:checked + .toggle-label {
     background-color: var(--secondary-color);
     color: var(--button-color);
 }
 
-
-.toggle-input:disabled+.toggle-label {
+.toggle-input:disabled + .toggle-label {
     background-color: var(--secondary-color);
     color: var(--primary-color);
 }
 
-.toggle-input:disabled+.toggle-label::before {
+.toggle-input:disabled + .toggle-label::before {
     content: "";
 }
 
