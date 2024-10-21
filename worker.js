@@ -112,7 +112,8 @@ async function handleMessage(userPrompt, socketId) {
     model: modelId, // Use the first model ID
     messages: await getMessages(socketId), // Await the messages
     temperature: 0.7,
-    max_tokens: 2048,
+    max_tokens: 256,
+    
     stream: true,
   };
 
