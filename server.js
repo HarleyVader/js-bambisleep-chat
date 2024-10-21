@@ -8,19 +8,19 @@ const { Server } = require("socket.io");
 const readline = require("readline");
 const cors = require('cors');
 const axios = require("axios");
-const chalk = require('chalk').default;
+const chalk = require('chalk');
 
 const bambisleepChalk = {
-  primary: chalk.rgb(17, 39, 39),
-  primaryAlt: chalk.rgb(33, 105, 105),
-  secondary: chalk.rgb(31, 1, 23),
-  tertiary: chalk.rgb(242, 242, 242),
-  button: chalk.rgb(212, 4, 108),
-  buttonAlt: chalk.rgb(17, 0, 0),
-  error: chalk.rgb(212, 4, 108).bold,
-  success: chalk.rgb(33, 105, 105).bold,
-  info: chalk.rgb(1, 124, 138).bold,
-  warning: chalk.rgb(17, 39, 39).bold
+  primary: chalk.hex('#112727'),
+  primaryAlt: chalk.hex('#216969'),
+  secondary: chalk.hex('#1F0117'),
+  tertiary: chalk.hex('#F2F2F2'),
+  button: chalk.hex('#D4046C'),
+  buttonAlt: chalk.hex('#110000'),
+  error: chalk.hex('#D4046C').bold,
+  success: chalk.hex('#216969').bold,
+  info: chalk.hex('#017C8A').bold,
+  warning: chalk.hex('#112727').bold
 };
 
 const PORT = 6969;
