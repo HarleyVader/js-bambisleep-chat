@@ -149,10 +149,13 @@
         });
 
         function handleAudioEnded() {
-            if (_textArray.length > 0 || audio !== null) {
+            while (_textArray.length > 0 ) {
                 text = _textArray.shift();
-            } else {
-                text = _textArray[0];
+            } 
+            if (_textArray[0] === undefined) {
+                state = true;
+                audio.stop();
+                return;
             }
             arrayPush(_audioArray, text);
             do_tts(_audioArray);
