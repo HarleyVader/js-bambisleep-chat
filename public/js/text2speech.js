@@ -1,10 +1,10 @@
 let state = true;
 let _audioArray = [];
 let duration = 0;
-const audio = document.getElementById('audio');
+const audioElement = document.getElementById('audioElement'); // Renamed to audioElement
 
 function arrayPush(_audioArray, e) {
-  document.querySelector("#audio").hidden = true;
+  document.querySelector("#audioElement").hidden = true;
 
   let URL = `https://bambisleep.chat/api/tts?text=${encodeURIComponent(e)}`;
   _audioArray.push(URL);
@@ -15,7 +15,7 @@ function arrayPush(_audioArray, e) {
 }
 
 function arrayShift(_audioArray) {
-  if (_audioArray.length > 0 && audio !== null) {
+  if (_audioArray.length > 0 && audioElement !== null) {
     let _currentURL = _audioArray.shift();
     console.log("currentURL ", _currentURL);
     return _currentURL;
@@ -27,20 +27,20 @@ async function do_tts(_audioArray) {
   document.querySelector("#message").textContent = "Synthesizing...";
 
   let currentURL = arrayShift(_audioArray);
-  audio.src = currentURL;
-  console.log("audio.src ", audio.src);
-  audio.load();
-  audio.onloadedmetadata = function () {
-    console.log("audio ", audio);
-    console.log("audio.duration ", audio.duration);
+  audioElement.src = currentURL;
+  console.log("audioElement.src ", audioElement.src);
+  audioElement.load();
+  audioElement.onloadedmetadata = function () {
+    console.log("audioElement ", audioElement);
+    console.log("audioElement.duration ", audioElement.duration);
     document.querySelector("#message").textContent = "Playing...";
-    audio.play();
+    audioElement.play();
   };
-  audio.onended = function () {
-    console.log("audio ended");
+  audioElement.onended = function () {
+    console.log("audioElement ended");
     document.querySelector("#message").textContent = "Finished!";
   };
-  audio.onerror = function (e) {
+  audioElement.onerror = function (e) {
     console.error("Error playing audio:", e);
     document.querySelector("#message").textContent = "Error playing audio.";
   };
