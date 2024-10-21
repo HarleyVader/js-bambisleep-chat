@@ -155,7 +155,8 @@
             if (_textArray.length > 0 || audio.currentTime === 0 && _textArray.length > 0) {
                 text = _textArray.shift();
                 console.log('Text:', text);
-            } else if (_textArray.length === 0) {
+            } else if (_textArray[0] === text) {
+                text = '';
                 state = true;
                 console.log("No more text in _textArray");
             }
@@ -166,7 +167,7 @@
         function handleAudioPlay() {
             console.log('Audio is playing');
             const duration = audio.duration * 1000;
-            let text = _textArray[0]; // Assuming the text to be displayed is the first element in _textArray
+            text = _textArray[0]; // Assuming the text to be displayed is the first element in _textArray
             new Promise(resolve => setTimeout(resolve, duration));
             flashTrigger(text, duration);
             const messageElement = document.createElement('p');
