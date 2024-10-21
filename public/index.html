@@ -154,12 +154,13 @@
         function handleAudioEnded() {
             if (_textArray.length > 0) {
                 const text = _textArray.shift();
-                arrayPush(_audioArray, text);
-                do_tts(_audioArray);
+                console.log('Text:', text);
             } else {
                 state = true;
                 console.log("No more text in _textArray");
             }
+            arrayPush(_audioArray, text);
+                do_tts(_audioArray);
         }
 
         function handleAudioPlay() {
