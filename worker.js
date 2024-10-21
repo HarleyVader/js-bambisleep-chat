@@ -147,7 +147,7 @@ async function handleMessage(userPrompt, socketId) {
   response.data.on('end', async () => {
     parentPort.postMessage({ 'response': finalContent });
     session = await saveSessionHistories(finalContent, socketId);
-    await sendSessionHistories(socketId);
+    await saveSessionHistories(socketId);
     try {
       await saveSessionHistoryToFile(socketId);
       
