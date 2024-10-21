@@ -107,7 +107,7 @@
                 });
             }, duration);
         }
-        
+
         let debounceTimeout;
         submit.addEventListener('click', () => {
             clearTimeout(debounceTimeout);
@@ -158,9 +158,8 @@
             while (_textArray.length > 0) {
                 text = _textArray.shift();
             }
-            if (_textArray[0] === undefined) {
+            if (_textArray.length === 0) {
                 state = true;
-                audio.pause();
                 return;
             }
             arrayPush(_audioArray, text);
