@@ -85,13 +85,7 @@
             unhideUpdateElement();
         });
 
-        let debounceTimeout;
-        submit.addEventListener('click', () => {
-            clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(() => {
-                handleClick();
-            }, 200);
-        });
+        
 
         function flashTrigger(trigger, duration) {
             const container = document.getElementById("eye");
@@ -113,6 +107,14 @@
                 });
             }, duration);
         }
+        
+        let debounceTimeout;
+        submit.addEventListener('click', () => {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                handleClick();
+            }, 200);
+        });
 
         function handleClick() {
             const message = textarea.value.trim();
@@ -123,9 +125,13 @@
                 return;
             }
             userPrompt.textContent = message;
-            sendTriggers();
-            socket.emit('message', message);
-            sendMessageToDiscord(`${socket.id} user: ${message}`);
+
+            // Defer non-critical tasks
+            requestAnimationFrame(() => {
+                sendTriggers();
+                socket.emit('message', message);
+                sendMessageToDiscord(`${socket.id} user: ${message}`);
+            });
 
             textarea.value = '';
             textarea.style.height = 'inherit';
@@ -149,9 +155,9 @@
         });
 
         function handleAudioEnded() {
-            while (_textArray.length > 0 ) {
+            while (_textArray.length > 0) {
                 text = _textArray.shift();
-            } 
+            }
             if (_textArray[0] === undefined) {
                 state = true;
                 audio.pause();
