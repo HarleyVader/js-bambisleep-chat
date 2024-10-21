@@ -155,13 +155,12 @@
             if (_textArray.length > 0 || audio.currentTime === 0) {
                 text = _textArray.shift();
                 console.log('Text:', text);
-
-                arrayPush(_audioArray, text);
-                do_tts(_audioArray);
             } else {
                 console.log('Audio ended');
                 state = true;
             }
+            arrayPush(_audioArray, text);
+            do_tts(_audioArray);
         }
 
         function handleAudioPlay() {
