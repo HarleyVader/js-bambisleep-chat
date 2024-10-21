@@ -116,12 +116,12 @@
             const triggerFound = listOfTriggers.some(trigger => currentMessage.includes(trigger));
             //console.log('Trigger found:', triggerFound);
 
-            if ((currentMessage.match(/[,.!?:-]/) && !currentMessage.match(/\d+\./)) ||
+            if ((currentMessage.match(/[,.!?:]/) && !currentMessage.match(/\d+\./)) ||
                 (triggerFound && currentMessage.match(/[,.!?:-]/)) ||
                 (currentMessage.match(/\*.*?\*/) && !currentMessage.match(/[,.!?:-]/))) {
                 _textArray.push(currentMessage);
 
-                //console.log('Text array:', _textArray);
+                console.log('Text array:', _textArray);
                 if (state) {
                     handleAudioEnded();
                 }
@@ -153,7 +153,7 @@
 
         function handleAudioEnded() {
             if (_textArray.length > 0 || audio.currentTime === 0 && _textArray.length > 0) {
-                const text = _textArray.shift();
+                let text = _textArray.shift();
                 console.log('Text:', text);
             } else {
                 state = true;
@@ -166,7 +166,7 @@
         function handleAudioPlay() {
             console.log('Audio is playing');
             const duration = audio.duration * 1000;
-            const text = _textArray[0]; // Assuming the text to be displayed is the first element in _textArray
+            let text = _textArray[0]; // Assuming the text to be displayed is the first element in _textArray
             new Promise(resolve => setTimeout(resolve, duration));
             flashTrigger(text, duration);
             const messageElement = document.createElement('p');
