@@ -49,8 +49,7 @@ async function do_tts(_audioArray) {
     if (_audioArray.length > 0) {
       do_tts(_audioArray);
     } else {
-      document.querySelector("#message").textContent = "Finished!";
-      
+      document.querySelector("#message").textContent = "Finished!"
     }
   };
   audio.onerror = function (e) {
