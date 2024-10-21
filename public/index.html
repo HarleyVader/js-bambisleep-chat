@@ -122,6 +122,7 @@
                     handleAudioEnded()
                 }
                 currentMessage = '';
+                console.log('state:', state);
             }
         });
 
@@ -140,19 +141,22 @@
             container.appendChild(span);
 
             setTimeout(() => {
-                container.innerHTML = "";
+                requestAnimationFrame(() => {
+                    container.innerHTML = "";
+                });
             }, duration);
         }
 
         function handleAudioEnded() {
             if (_textArray.length > 0 || (audio.currentTime === 0 && _textArray.length > 0)) {
                 text = _textArray.shift();
-                arrayPush(_audioArray, text);
-                do_tts(_audioArray);
             } else if (audio.currentTime === 0 && _textArray.length === 0) {
                 state = true;
+                
                 audio.src = "";
             }
+            arrayPush(_audioArray, text);
+            do_tts(_audioArray);
         }
 
         function handleAudioPlay() {
