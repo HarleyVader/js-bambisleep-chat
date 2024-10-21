@@ -9,6 +9,7 @@ const readline = require("readline");
 const cors = require('cors');
 const axios = require("axios");
 const chalk = require('chalk').default;
+const rateLimit = require('express-rate-limit');
 
 const bambisleepChalk = {
   primary: chalk.hex('#112727'),
@@ -123,6 +124,13 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
+// Rate limiter middleware specifically for the root route
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: "Too many refresh requests from this IP, please try again after 15 minutes"
+});
+
 // Handle connection
 io.on("connection", (socket) => {
   userSessions.add(socket.id);
@@ -138,10 +146,10 @@ io.on("connection", (socket) => {
   // Ensure socket.request.app is defined
   socket.request.app = app;
 
-  // Handle HTTP requests within the socket connection
-  app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-  });
+  // Apply the refresh limiter to the root route
+app.get("/", refreshLimiter, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
   app.get('/history', (req, res) => {
     fs.readFile(chatHistoryPath, 'utf8', (err, data) => {
