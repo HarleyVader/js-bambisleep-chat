@@ -15,16 +15,12 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
 </head>
 
 <body>
     <script type="module" src="mjs/main.mjs"></script>
     <div id="chat-container">
-        <div id="user-input" class="animateLeft">
+        <div id="user-input">
             <h1>BambiSleep AIGF 👁️ </h1>
             <textarea id="textarea" oninput="autoExpand(this)" placeholder="Talk to BambiSleep"></textarea>
             <div>
@@ -50,7 +46,7 @@
             </div>
         </div>
         <div id="response-container">
-            <div id="response" class="animateUp"></div>
+            <div id="response"></div>
             <div id="eyeCursor">
                 <div id="eye">
 
@@ -141,7 +137,7 @@
             const triggerFound = listOfTriggers.some(trigger => currentMessage.includes(trigger));
             console.log('Trigger found:', triggerFound);
 
-            if ((currentMessage.match(/[,.!?:-]/) && !currentMessage.match(/\d+\./)) || (triggerFound === true && currentMessage.match(/[,.!?:-]/)) || currentMessage.match(/"([^"]*)"/)) {
+            if ((currentMessage.match(/[,.!?:-]/) && !currentMessage.match(/\d+\./)) || (triggerFound === true && currentMessage.match(/[,.!?:-]/)) || currentMessage.match(/\*.*?\*/) && !currentMessage.match(/[,.!?:-]/)) {
                 _textArray.push(currentMessage);
 
                 console.log('Text array:', _textArray);
@@ -156,12 +152,14 @@
             if (_textArray.length > 0) {
                 state = false;
                 text = _textArray.shift();
+
             } else if (_textArray.length === 0) {
                 state = true;
                 return;
             }
             arrayPush(_audioArray, text);
             do_tts(_audioArray);
+
         }
 
         function handleAudioPlay() {
