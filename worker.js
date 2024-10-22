@@ -99,8 +99,9 @@ async function handleMessage(userPrompt, socketId) {
   collarText += collar;
 
   let finalContent = ''; // Declare finalContent at the beginning
-
-  sessionHistories[socketId] = await getSessionHistories(collarText, userPrompt, socketId);
+  if (!sessionHistories) {
+    sessionHistories[socketId] = await getSessionHistories(collarText, userPrompt, socketId);
+  } 
 
   const modelId = await getLoadedModels(); // Await the model loading and get the first model ID
   if (!modelId) {
