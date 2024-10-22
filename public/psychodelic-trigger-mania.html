@@ -12,83 +12,13 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <style>
-    :root {
-        --primary-color: #112727;
-        --primary-alt: #216969;
-
-        --secondary-color: #1f0117;
-        --tertiary-color: #f2f2f2;
-
-        --button-color: #d4046c;
-        --button-alt: #110000;
-    }
-
-    html,
-    body {
-        background-color: #000;
-        font-family: 'Arial', sans-serif;
-
-    }
-
-    #response-container {
-        display: flex;
-        flex-direction: column;
-        width: 99%;
-    }
-
-    #response {
-        flex-direction: column;
-        display: flex;
-        padding: 1em;
-        overflow-y: auto;
-        position: relative;
-        border-left: 1px solid #000;
-        background-color: var(--primary-color);
-        color: var(--primary-alt);
-        height: 40%;
-    }
-
-    #eye {
-        position: absolute;
-        top: 50%;
-        /* Center vertically */
-        left: 50%;
-        /* Center horizontally */
-        transform: translate(-50%, -50%);
-        /* Adjust to perfectly center */
-        text-align: center;
-        /* Center the text inside the div */
-    }
-
     #eyeCursor {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: 'Arial', sans-serif;
-        font-size: 48px;
-        font-weight: bold;
-        color: rgb(252, 72, 186);
-        text-shadow: 10px 10px 10px rgb(238, 93, 249);
-        text-align: center;
-        margin-top: 1%;
-        background-color: transparent;
-        position: relative;
-        height: 59%;
-    }
-
-    nav {
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        background-color: var(--primary-color);
-        color: var(--tertiary-color);
-        padding: 0.1em;
-        border: var(--button-color) 1px;
-        border-style: ridge;
-        font-weight: bold;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
     }
 </style>
-
 <body>
     <script type="module" src="mjs/main.mjs"></script>
     <div id="chat-container">

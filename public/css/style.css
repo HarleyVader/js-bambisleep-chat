@@ -112,7 +112,7 @@ body {
     justify-content: center;
     font-size: 4vw; /* Use viewport width to make it responsive */
     font-weight: bold;
-    color: rgb(252, 72, 186);
+    color: var(--primary-alt);
     text-shadow: 10px 10px 10px rgb(238, 93, 249);
     text-align: center;
     background-color: transparent;
