@@ -36,6 +36,8 @@ body {
     padding: 1em;
     overflow-y: auto;
     background-color: var(--primary-color);
+    border-right: var(--button-color) 3px ridge;
+    border-radius: 8px;
 }
 
 #textarea {
@@ -80,10 +82,13 @@ body {
     padding: 1em;
     overflow-y: auto;
     position: relative;
-    border-left: 1px solid #000;
+
     background-color: var(--primary-color);
     color: var(--primary-alt);
     height: 40%;
+    border-bottom: var(--button-color) 3px ridge;
+    border-left: var(--button-color) 3px ridge;
+    border-radius: 8px;
 }
 
 #eyeCursor {
@@ -200,7 +205,7 @@ nav {
     justify-content: space-around;
     align-items: center;
     background-color: var(--primary-color);
-    color: var(--tertiary-color);
+    color: var(--primary-alt);
     border: ridge var(--button-color) 3px;
     border-radius: 8px;
     font-weight: bold;
@@ -215,6 +220,8 @@ a:hover {
 }
 
 h1 {
+    margin-top: 0rem;
+    padding-top: 0rem;
     padding-bottom: 0.1em;
     color: var(--button-color);
 }
@@ -223,6 +230,48 @@ h5,
 h6 {
     color: var(--tertiary-color);
 }
+
+/* UI moves out of the way when responding 
+@keyframes moveUp {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-100%); }
+}
+
+@keyframes moveDown {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(0); }
+}
+
+@keyframes moveLeft {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+@keyframes moveRight {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(0); }
+}
+
+.animateUp {
+    display: inline-block;
+    padding: 10px;
+    background-color: lightblue;
+    animation: none;
+}
+
+.animateLeft {
+    display: inline-block;
+    padding: 10px;
+    background-color: lightcoral;
+    animation: none;
+}
+
+.move-up { animation: moveUp 1s ease-in-out forwards; }
+.move-down { animation: moveDown 1s ease-in-out forwards; }
+.move-left { animation: moveLeft 1s ease-in-out forwards; }
+.move-right { animation: moveRight 1s ease-in-out forwards; }
+
+*/
 
 /* Mobile Styles */
 @media (max-width: 600px) {

@@ -23,3 +23,17 @@ function unhideUpdateElement() {
     updateElement.setAttribute("hidden", "true");
   }
 }
+/*
+function toggleAnimation(selector, class1, class2) {
+  const element = document.querySelector(selector);
+  if (element.classList.contains(class1)) {
+      element.classList.remove(class1);
+      element.classList.add(class2);
+  } else {
+      element.classList.remove(class2);
+      element.classList.add(class1);
+  }
+}
+*/
+
+
