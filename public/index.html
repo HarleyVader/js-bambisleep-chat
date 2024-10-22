@@ -137,7 +137,7 @@
             const triggerFound = listOfTriggers.some(trigger => currentMessage.includes(trigger));
             console.log('Trigger found:', triggerFound);
 
-            if ((currentMessage.match(/[,.!?:-]/) && !currentMessage.match(/\d+\./)) || (triggerFound === true && currentMessage.match(/[,.!?:-]/)) || currentMessage.match(/\*.*?\*/) && !currentMessage.match(/[,.!?:-]/)) {
+            if ((currentMessage.match(/[,.!?:-]/) && !currentMessage.match(/\d+\./)) || (triggerFound === true && currentMessage.match(/[,.!?:-]/)) || currentMessage.match(/"([^"]*)"/g)) {
                 _textArray.push(currentMessage);
 
                 console.log('Text array:', _textArray);
