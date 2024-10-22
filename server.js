@@ -12,13 +12,13 @@ const chalk = require('chalk');
 
 const bambisleepChalk = {
   primary: chalk.hex('#112727'),
-  primaryAlt: chalk.hex('#216969'),
-  secondary: chalk.hex('#1F0117'),
-  tertiary: chalk.hex('#F2F2F2'),
-  button: chalk.hex('#D4046C'),
+  primaryAlt: chalk.hex('#00a9a9'),
+  secondary: chalk.hex('#40002f'),
+  tertiary: chalk.hex('#f2f2f2'),
+  button: chalk.hex('#d4046c'),
   buttonAlt: chalk.hex('#110000'),
-  error: chalk.hex('#D4046C').bold,
-  success: chalk.hex('#216969').bold,
+  error: chalk.hex('#d4046c').bold,
+  success: chalk.hex('#00a9a9').bold,
   info: chalk.hex('#017C8A').bold,
   warning: chalk.hex('#112727').bold
 };

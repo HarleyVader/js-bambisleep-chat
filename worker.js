@@ -5,16 +5,16 @@ const axios = require('axios');
 const chalk = require('chalk');
 
 const bambisleepChalk = {
-  primary: chalk.rgb(17, 39, 39),
-  primaryAlt: chalk.rgb(33, 105, 105),
-  secondary: chalk.rgb(31, 1, 23),
-  tertiary: chalk.rgb(242, 242, 242),
-  button: chalk.rgb(212, 4, 108),
-  buttonAlt: chalk.rgb(17, 0, 0),
-  error: chalk.rgb(212, 4, 108).bold,
-  success: chalk.rgb(33, 105, 105).bold,
-  info: chalk.rgb(1, 124, 138).bold,
-  warning: chalk.rgb(17, 39, 39).bold
+  primary: chalk.hex('#112727'),
+  primaryAlt: chalk.hex('#00a9a9'),
+  secondary: chalk.hex('#40002f'),
+  tertiary: chalk.hex('#f2f2f2'),
+  button: chalk.hex('#d4046c'),
+  buttonAlt: chalk.hex('#110000'),
+  error: chalk.hex('#d4046c').bold,
+  success: chalk.hex('#00a9a9').bold,
+  info: chalk.hex('#017C8A').bold,
+  warning: chalk.hex('#112727').bold
 };
 
 let sessionHistories = {}; // Initialize sessionHistories as an empty object
@@ -60,7 +60,7 @@ async function getSessionHistories(collarText, userPrompt, socketId) {
   return sessionHistories[socketId];
 }
 
-async function saveSessionHistories(finalContent, socketId) {
+async function saveSessionHistories(userPrompt, finalContent, socketId) {
   if (!sessionHistories) {
     sessionHistories = {};
   }
@@ -71,6 +71,7 @@ async function saveSessionHistories(finalContent, socketId) {
 
   if (sessionHistories[socketId].length !== 0) {
     sessionHistories[socketId].push(
+      { role: "user", content: userPrompt },
       { role: "assistant", content: finalContent }
     );
   }
@@ -160,7 +161,7 @@ async function handleMessage(userPrompt, socketId) {
 
     response.data.on('end', async () => {
       parentPort.postMessage({ 'response': finalContent });
-      session = await saveSessionHistories(finalContent, socketId);
+      session = await saveSessionHistories(userPrompt, finalContent, socketId);
       await saveSessionHistories(socketId);
       try {
         await saveSessionHistoryToFile(socketId);
