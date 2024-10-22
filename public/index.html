@@ -150,6 +150,7 @@
 
         function handleAudioEnded() {
             if (_textArray.length > 0) {
+                state = false;
                 text = _textArray.shift();
 
             } else if (_textArray.length === 0) {
