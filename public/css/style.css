@@ -1,14 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
 
 :root {
-    --primary-color: #112727;
-    --primary-alt: #00a9a9;
+    --primary-color: #0c2a2ac9;
+    --primary-alt: #15aab5ec;
 
     --secondary-color: #40002f;
-    --tertiary-color: #d9026eb1;
+    --tertiary-color: #cc0174;
 
-    --button-color: #d4046c;
+    --button-color: #df0471;
     --button-alt: #110000;
+
+    --nav-color: #0a2626;
+    --nav-alt: #17dbd8;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -100,6 +103,11 @@ body {
     border-bottom: var(--button-color) 3px ridge;
     border-left: var(--button-color) 3px ridge;
     border-radius: 8px;
+    padding-bottom: 1rem;
+}
+
+#response p:first-child {
+    color: var(--nav-alt);
 }
 
 #response p {
@@ -138,6 +146,7 @@ body {
 
 #message {
     padding-top: 0.2rem;
+    color: var(--tertiary-color);
 }
 
 #trigger-toggles {
@@ -147,10 +156,14 @@ body {
     align-items: auto;
     background-color: var(--primary-color);
     color: var(--primary-alt);
-    border-top: 1px solid var(--button-color);
-    border-bottom: 1px solid var(--button-color);
+    border-top: 3px groove var(--button-color);
+    border-bottom: 3px groove var(--button-color);
+    border-left: 3px solid var(--button-alt);
+    border-right: 3px solid var(--button-alt);
+    border-radius: 6px;
     margin-bottom: 1em;
     font-size: 1rem;
+    padding: 0.4rem;
 }
 
 /* Style the toggle input */
@@ -216,7 +229,6 @@ body::-webkit-scrollbar-thumb {
     background: var(--primary-color); /* Color of the scrollbar thumb */
 }
 
-
 #textarea {
     display: flex;
     flex-direction: column;
@@ -228,8 +240,6 @@ body::-webkit-scrollbar-thumb {
     border-top: var(--button-color) 2px ridge;
     border-bottom: var(--button-color) 2px ridge;
 }
-
-
 
 textarea {
     border-radius: 4px;
@@ -254,7 +264,7 @@ textarea {
 button {
     color: var(--secondary-color);
     margin-top: 10px;
-    border-radius: 2rem;
+    border-radius: 1rem;
     border-style: groove 3px;
     font-size: 16px;
     font-weight: bold;
@@ -268,14 +278,9 @@ button:hover {
 }
 
 button:active {
-    background-color: var(--button-alt);
+    background-color: var(--secondary-color);
     color: var(--secondary-color);
-    border: var(--button-color) 3px ridge;
-}
-
-form {
-    color: var(--button-color);
-    text-shadow: #ff00ff;
+    border-color: var(--button-color);
 }
 
 p {
@@ -287,23 +292,22 @@ nav {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    background-color: var(--primary-color);
-    color: var(--primary-alt);
-    border: ridge var(--button-color) 3px;
+    background-color: var(--nav-color);
+    color: var(--nav-alt);
+    border: ridge var(--tertiary-color) 3px;
     border-radius: 8px;
-    font-weight: bold;
-    
+    font-size: 14px;
+    text-shadow: var(--secondary-color) 6px 6px 6px;
 }
 
 a {
-    color: var(--primary-alt);
-    text-shadow: var(--secondary-color) 2px 2px 2px;
+    color: var(--nav-alt);
     text-decoration: underline;
     padding-bottom: 0.15em;
 }
 
 a:hover {
-    color: var(--button-color);
+    color: var(--tertiary-color);
     text-shadow: var(--secondary-color) 4px 4px 4px;
 }
 
@@ -314,6 +318,7 @@ h1 {
     color: var(--button-color);
     text-align: center;
     font-size: 3rem;
+    text-transform: uppercase;
     text-shadow: var(--secondary-color) 3px 3px 3px;
 }
 
