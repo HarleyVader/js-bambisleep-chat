@@ -25,7 +25,6 @@ const listOfTriggers = [
   "FACE LOCK",
   "LIPS LOCK",
   "THROAT LOCK",
-  "POSTURE LOCK",
 ];
 let currentMessage = '';
 

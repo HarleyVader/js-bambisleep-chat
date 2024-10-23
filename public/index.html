@@ -62,7 +62,7 @@
     <script src="js/responsive.js"></script>
     <script src="js/triggers.js"></script>
     <script src="js/webhook.js"></script>
-
+    <script src="js/regex.js"></script>
     <script>
         const _textArray = [];
 
@@ -70,8 +70,6 @@
         const submit = document.getElementById('submit');
         const response = document.getElementById('response');
         const userPrompt = document.getElementById('user-prompt');
-
-
 
         socket.on('disconnect', () => {
             console.log('Disconnected');
@@ -132,13 +130,20 @@
             textarea.style.height = 'inherit';
         }
 
+
+
         socket.on('response', async (message) => {
             currentMessage += message;
 
-            const triggerFound = listOfTriggers.some(trigger => currentMessage.includes(trigger));
-            console.log('Trigger found:', triggerFound);
+            const hasPunctuation = /[.,\/#!?$%\^&\;:{}=\_~]/g.test(currentMessage);
+            const hasQuotes = /"([^"]*)"/g.test(currentMessage);
+            const hasAsterisk = /\*([^*]*)\*/g.test(currentMessage);
+            const quotesWithPunctuation = hasQuotes && hasPunctuation;
+            const asteriskWithPunctuation = hasAsterisk && hasPunctuation;
+            const isNumberedList = /^\d+\./g.test(currentMessage);
+            const isPunctuationPlusLetter = /[.,\/#!$%\^&\*;:{}=\-`_~()a-zA-Z0-9]/g.test(currentMessage);
 
-            if ((currentMessage.match(/[,.!?:-]/) && !currentMessage.match(/\d+\./)) || (triggerFound === true && currentMessage.match(/[,.!?:-]/)) || currentMessage.match(/\*.*?\*/) && !currentMessage.match(/[,.!?:-]/)) {
+            if (((quotesWithPunctuation || asteriskWithPunctuation) && !isPunctuationPlusLetter ) || (hasPunctuation && !(quotesWithPunctuation || asteriskWithPunctuation) && !isNumberedList && isPunctuationPlusLetter)) {
                 _textArray.push(currentMessage);
 
                 console.log('Text array:', _textArray);

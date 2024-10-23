@@ -108,6 +108,7 @@ body {
 
 #response p:first-child {
     color: var(--nav-alt);
+    text-transform: uppercase;
 }
 
 #response p {
@@ -147,6 +148,12 @@ body {
 #message {
     padding-top: 0.2rem;
     color: var(--tertiary-color);
+}
+
+#audiomessage {
+    padding-top: 0.2rem;
+    color: var(--tertiary-color);
+    text-shadow: var(--secondary-color) 2px 2px 2px;
 }
 
 #trigger-toggles {
