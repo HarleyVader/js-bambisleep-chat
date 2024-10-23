@@ -24,15 +24,23 @@ let collarText;
 let finalContent;
 let role;
 
+async function getLoadedModels() {
+  const response = await axios.get('http://192.168.0.178:1234/v1/models');
+  const modelIds = response.data.data.map(model => model.id); // Corrected the path to access models
+  const firstModelId = modelIds.length > 0 ? modelIds[0] : null; // Assign the first model ID to a variable
+  return firstModelId;
+}
+
 async function checkTriggers(triggers) {
   if (!triggers) {
+    triggers = 'BAMBI SLEEP';
     return triggers;
   } else {
     return triggers;
   }
 }
 
-if (!role) {
+async function checkRole() {
   fs.readFile(path.join(__dirname, 'role.json'), 'utf8', (err, data) => {
     if (err) {
       console.error(bambisleepChalk.error('Error reading role.json:'), err);
@@ -41,28 +49,10 @@ if (!role) {
     const roleData = JSON.parse(data);
     role = roleData.role;
   });
+  return role;
 }
 
-async function getSessionHistories(collarText, userPrompt, socketId) {
-  if (!sessionHistories) {
-    sessionHistories = {};
-  }
-
-  if (!sessionHistories[socketId]) {
-    sessionHistories[socketId] = [];
-  }
-
-  if (sessionHistories[socketId] === 0) {
-    sessionHistories[socketId].push(
-      { role: "system", content: collarText },
-      { role: "user", content: userPrompt }
-    );
-  }
-
-  return sessionHistories[socketId];
-}
-
-async function saveSessionHistories(userPrompt, collarText, finalContent, socketId) {
+async function saveSessionHistories(collarText, userPrompt, finalContent, socketId) {
   if (!sessionHistories) {
     sessionHistories = {};
   }
@@ -82,16 +72,7 @@ async function saveSessionHistories(userPrompt, collarText, finalContent, socket
   return sessionHistories[socketId];
 }
 
-async function getLoadedModels() {
-  const response = await axios.get('http://192.168.0.178:1234/v1/models');
-  //console.info(bambisleepChalk.info('Model loading response:'), response.data);
-  const modelIds = response.data.data.map(model => model.id); // Corrected the path to access models
-  const firstModelId = modelIds.length > 0 ? modelIds[0] : null; // Assign the first model ID to a variable
-  //console.info(bambisleepChalk.info('First model ID:'), firstModelId);
-  return firstModelId;
-}
-
-async function getMessages(collarText, userPrompt, socketId) {
+async function getMessages(collarText, userPrompt, finalContent, socketId) {
   if (!sessionHistories || !sessionHistories[socketId]) {
     sessionHistories = {};
     sessionHistories[socketId] = [];
@@ -103,7 +84,7 @@ async function getMessages(collarText, userPrompt, socketId) {
     sessionHistories[socketId].push(
       { role: "system", content: collarText },
       { role: "user", content: userPrompt },
-      { role: "assistant", content: '' }
+      { role: "assistant", content: finalContent }
     );
   }
   return sessionHistories[socketId];
@@ -115,31 +96,32 @@ async function handleMessage(userPrompt, socketId) {
     return;
   }
 
-  const modelId = await getLoadedModels(); // Await the model loading and get the first model ID
+  const modelId = await getLoadedModels();
   if (!modelId) {
     console.error(bambisleepChalk.error('Model loading failed'));
     return;
   }
-  
+  role = await checkRole();
   collar = await checkTriggers(triggers);
-  collarText = (role + collar);
-  //console.info(bambisleepChalk.info('Collar text success:', collarText));
-  
-  if (!finalContent) {
-    finalContent = '';
+  if (collarText) {
+    collarText = '';
+    collarText = (role + collar);
   } else {
+    collarText = (role + collar);
+  }
+  if (!finalContent) {
     finalContent = '';
   }
 
-  const messages = await getMessages(collarText, userPrompt, socketId); // Await the messages
-  //console.info(bambisleepChalk.info('Messages found for socketId:', socketId), messages); // Log the messages
+  const messages = await getMessages(collarText, userPrompt, finalContent, socketId); // Await the messages
+  console.info(bambisleepChalk.info('Messages found for socketId:'), bambisleepChalk.tertiary(socketId), bambisleepChalk.tertiary(messages)); // Log the messages
   if (messages.length === 0) {
-    console.error(bambisleepChalk.error('No messages found for socketId:', socketId));
+    console.error(bambisleepChalk.error('No messages found for socketId:'), bambisleepChalk.tertiary(socketId));
     return;
   }
 
   const requestData = {
-    model: modelId, // Use the first model ID
+    model: modelId, 
     messages: messages,
     max_tokens: 360,
     temperature: 0.95,
@@ -211,7 +193,7 @@ parentPort.on("message", async (msg) => {
     } catch (err) {
       console.error(bambisleepChalk.error('Error saving session history:'), err);
     } finally {
-      console.info(bambisleepChalk.success(`Session history written to file: ${socketId}`));
+      console.info(bambisleepChalk.success(`Session history written to file: ${bambisleepChalk.tertiary(socketId)}`));
     }
     process.exit(0);
   }
@@ -224,18 +206,7 @@ async function handleResponse(response, socketId) {
     socketId: socketId
   });
 }
-/*
-async function sendSessionHistories(socketId) {
-  if (sessionHistories && sessionHistories[socketId]) {
-    parentPort.postMessage({
-      type: "messageHistory",
-      data: sessionHistories[socketId],
-      socketId: socketId,
-    });
-    console.log(bambisleepChalk.info(`Session histories sent to client: ${socketId}`));
-  }
-}
-*/
+
 async function saveSessionHistoryToFile(socketId) {
   if (sessionHistories && sessionHistories[socketId]) {
     const historyFolder = path.join(__dirname, 'history');
@@ -256,13 +227,13 @@ async function saveSessionHistoryToFile(socketId) {
             console.error(bambisleepChalk.error('Error saving session history:'), err);
           }
         } else {
-          console.log(bambisleepChalk.success(`Session history saved for socketId: ${socketId}`));
+          console.log(bambisleepChalk.success(`Session history saved for socketId: ${bambisleepChalk.tertiary(socketId)}`));
         }
       });
     } catch (err) {
       console.error(bambisleepChalk.error('Unexpected error occurred while saving session history:'), err);
     }
   } else {
-    console.log(bambisleepChalk.warn(`No session history found for socketId: ${socketId}`));
+    console.log(bambisleepChalk.warning(`No session history found for socketId: ${bambisleepChalk.tertiary(socketId)}`));
   }
 }
