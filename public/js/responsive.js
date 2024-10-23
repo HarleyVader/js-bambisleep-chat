@@ -35,5 +35,14 @@ function toggleAnimation(selector, class1, class2) {
   }
 }
 */
+function applyUppercaseStyle() {
+  const responseParagraphs = document.querySelectorAll('#response p');
+  responseParagraphs.forEach(paragraph => {
+      const text = paragraph.textContent;
+      const styledText = text.replace(/([A-Z])/g, '<span class="uppercase-char">$1</span>');
+      paragraph.innerHTML = styledText;
+  });
+}
+
 
 

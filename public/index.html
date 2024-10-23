@@ -47,7 +47,7 @@
             </div>
         </div>
         <div id="response-container">
-            <div id="response"></div>
+            <div id="response" class="uppercase-char"></div>
             <div id="eyeCursor">
                 <div id="eye">
 
@@ -97,13 +97,6 @@
             container.innerHTML = "";
             const span = document.createElement("span");
             span.textContent = trigger;
-            span.style.display = "flex";
-            span.style.justifyContent = "center";
-            span.style.alignItems = "center";
-            span.style.fontSize = "48px";
-            span.style.fontWeight = "bold";
-            span.style.color = "pink";
-            span.style.marginRight = "0";
             container.appendChild(span);
 
             setTimeout(() => {
@@ -130,8 +123,6 @@
             textarea.style.height = 'inherit';
         }
 
-
-
         socket.on('response', async (message) => {
             currentMessage += message;
 
@@ -141,9 +132,9 @@
             const quotesWithPunctuation = hasQuotes && hasPunctuation;
             const asteriskWithPunctuation = hasAsterisk && hasPunctuation;
             const isNumberedList = /^\d+\./g.test(currentMessage);
-            const isPunctuationPlusLetter = /[.,\/#!$%\^&\*;:{}=\-`_~()a-zA-Z0-9]/g.test(currentMessage);
+            const isPunctuationPlusLetter = /[.,\/#!?$%\^&\*;:{}=\-`_~()a-zA-Z0-9]/g.test(currentMessage);
 
-            if (((quotesWithPunctuation || asteriskWithPunctuation) && !isPunctuationPlusLetter ) || (hasPunctuation && !(quotesWithPunctuation || asteriskWithPunctuation) && !isNumberedList && isPunctuationPlusLetter)) {
+            if (((quotesWithPunctuation || asteriskWithPunctuation) && (isPunctuationPlusLetter || hasPunctuation)) || (hasPunctuation && !(quotesWithPunctuation || asteriskWithPunctuation) && !isNumberedList && isPunctuationPlusLetter)) {
                 _textArray.push(currentMessage);
 
                 console.log('Text array:', _textArray);
@@ -183,6 +174,9 @@
             } else {
                 response.appendChild(messageElement);
             }
+
+            // Call the function after new response is added
+            applyUppercaseStyle();
         }
 
         audio.addEventListener('ended', handleAudioEnded);

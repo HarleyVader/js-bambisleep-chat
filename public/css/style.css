@@ -5,13 +5,18 @@
     --primary-alt: #15aab5ec;
 
     --secondary-color: #40002f;
+    --secondary-alt: #005d46;
+
     --tertiary-color: #cc0174;
+    --tertiary-alt: #01c69eae;
 
     --button-color: #df0471;
     --button-alt: #110000;
 
     --nav-color: #0a2626;
     --nav-alt: #17dbd8;
+
+    --transparent: #ffffff00;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -118,6 +123,10 @@ body {
     text-shadow: var(--secondary-color) 2px 2px 2px;
 }
 
+.uppercase-char {
+    color: var(--nav-alt);
+}
+
 #eyeCursor {
     display: flex;
     align-items: center;
@@ -127,7 +136,7 @@ body {
     color: var(--primary-alt);
     text-shadow: 10px 10px 10px var(--secondary-color);
     text-align: center;
-    background-color: transparent;
+    background-color: var(--transparent);
     position: relative;
     height: 59.9%;
 
@@ -143,7 +152,19 @@ body {
     /* Adjust to perfectly center */
     text-align: center;
     /* Center the text inside the div */
+    text-shadow: var(--secondary-alt) 5px 5px 5px;
 }
+
+#eye span {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 0;
+    font-size: 0.9em;
+    color: var(--tertiary-alt);
+    
+}
+
 
 #message {
     padding-top: 0.2rem;

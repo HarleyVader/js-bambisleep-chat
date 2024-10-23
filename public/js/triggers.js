@@ -115,13 +115,6 @@ function flashTriggers(trigger) {
   container.innerHTML = "";
   const span = document.createElement("span");
   span.textContent = trigger;
-  span.style.display = "flex";
-  span.style.justifyContent = "center";
-  span.style.alignItems = "center";
-  span.style.fontSize = "48px";
-  span.style.fontWeight = "bold";
-  span.style.color = "pink";
-  span.style.marginRight = "0";
   container.appendChild(span);
 
 }

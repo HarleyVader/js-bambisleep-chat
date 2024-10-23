@@ -19,8 +19,10 @@ const bambisleepChalk = {
 
 let sessionHistories = {}; // Initialize sessionHistories as an empty object
 let triggers;
+let collar;
 let collarText;
 let finalContent;
+let role;
 
 async function checkTriggers(triggers) {
   if (!triggers) {
@@ -30,14 +32,14 @@ async function checkTriggers(triggers) {
   }
 }
 
-if (!collarText) {
+if (!role) {
   fs.readFile(path.join(__dirname, 'role.json'), 'utf8', (err, data) => {
     if (err) {
       console.error(bambisleepChalk.error('Error reading role.json:'), err);
       return;
     }
     const roleData = JSON.parse(data);
-    collarText = roleData.role;
+    role = roleData.role;
   });
 }
 
@@ -50,7 +52,7 @@ async function getSessionHistories(collarText, userPrompt, socketId) {
     sessionHistories[socketId] = [];
   }
 
-  if (sessionHistories[socketId].length === 0) {
+  if (sessionHistories[socketId] === 0) {
     sessionHistories[socketId].push(
       { role: "system", content: collarText },
       { role: "user", content: userPrompt }
@@ -60,7 +62,7 @@ async function getSessionHistories(collarText, userPrompt, socketId) {
   return sessionHistories[socketId];
 }
 
-async function saveSessionHistories(userPrompt, finalContent, socketId) {
+async function saveSessionHistories(userPrompt, collarText, finalContent, socketId) {
   if (!sessionHistories) {
     sessionHistories = {};
   }
@@ -71,6 +73,7 @@ async function saveSessionHistories(userPrompt, finalContent, socketId) {
 
   if (sessionHistories[socketId].length !== 0) {
     sessionHistories[socketId].push(
+      { role: "system", content: collarText },
       { role: "user", content: userPrompt },
       { role: "assistant", content: finalContent }
     );
@@ -88,35 +91,48 @@ async function getLoadedModels() {
   return firstModelId;
 }
 
-async function getMessages(socketId) {
+async function getMessages(collarText, userPrompt, socketId) {
   if (!sessionHistories || !sessionHistories[socketId]) {
-    return [];
+    sessionHistories = {};
+    sessionHistories[socketId] = [];
+    sessionHistories[socketId].push(
+      { role: "system", content: collarText },
+      { role: "user", content: userPrompt }
+    );
+  } else {
+    sessionHistories[socketId].push(
+      { role: "system", content: collarText },
+      { role: "user", content: userPrompt },
+      { role: "assistant", content: '' }
+    );
   }
   return sessionHistories[socketId];
 }
 
 async function handleMessage(userPrompt, socketId) {
-  let collar = await checkTriggers(triggers);
-  collarText += collar;
-
   if (!userPrompt) {
     console.error(bambisleepChalk.error('No user prompt provided'));
     return;
   }
 
-  if (!finalContent) {
-    finalContent = '';
-  } 
-  
-  sessionHistories[socketId] = await getSessionHistories(collarText, userPrompt, socketId);
-  
   const modelId = await getLoadedModels(); // Await the model loading and get the first model ID
   if (!modelId) {
     console.error(bambisleepChalk.error('Model loading failed'));
     return;
   }
+  
+  collar = await checkTriggers(triggers);
+  collarText = (role + collar);
+  //console.info(bambisleepChalk.info('Collar text success:', collarText));
+  
+  if (!finalContent) {
+    finalContent = '';
+  } else {
+    finalContent = '';
+  }
 
-  const messages = await getMessages(socketId); // Await the messages
+  const messages = await getMessages(collarText, userPrompt, socketId); // Await the messages
+  //console.info(bambisleepChalk.info('Messages found for socketId:', socketId), messages); // Log the messages
   if (messages.length === 0) {
     console.error(bambisleepChalk.error('No messages found for socketId:', socketId));
     return;
@@ -125,8 +141,12 @@ async function handleMessage(userPrompt, socketId) {
   const requestData = {
     model: modelId, // Use the first model ID
     messages: messages,
-    temperature: 0.7,
-    max_tokens: 256,
+    max_tokens: 360,
+    temperature: 0.95,
+    top_p: 0.95,
+    frequency_penalty: 0,
+    presence_penalty: 0,
+    top_k: 40,
     stream: true,
   };
 
@@ -161,15 +181,8 @@ async function handleMessage(userPrompt, socketId) {
 
     response.data.on('end', async () => {
       parentPort.postMessage({ 'response': finalContent });
-      session = await saveSessionHistories(userPrompt, finalContent, socketId);
-      await saveSessionHistories(socketId);
-      try {
-        await saveSessionHistoryToFile(socketId);
-      } catch (err) {
-        console.error(bambisleepChalk.error('Error saving session history:'), err);
-      } finally {
-        console.info(bambisleepChalk.success(`Session history written to file: ${socketId}`));
-      }
+      console.info(bambisleepChalk.success('Response data stream ended'));
+      await saveSessionHistories(collarText, userPrompt, finalContent, socketId);
     });
 
     response.data.on('error', (err) => {
@@ -193,6 +206,13 @@ parentPort.on("message", async (msg) => {
     await saveSessionHistories(msg.socketId);
   } else if (msg.type === "terminate") {
     parentPort.postMessage({ type: "terminate", socketId: msg.socketId });
+    try {
+      await saveSessionHistoryToFile(socketId);
+    } catch (err) {
+      console.error(bambisleepChalk.error('Error saving session history:'), err);
+    } finally {
+      console.info(bambisleepChalk.success(`Session history written to file: ${socketId}`));
+    }
     process.exit(0);
   }
 });
