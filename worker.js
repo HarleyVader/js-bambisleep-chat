@@ -114,7 +114,7 @@ async function handleMessage(userPrompt, socketId) {
   }
 
   const messages = await getMessages(collarText, userPrompt, finalContent, socketId); // Await the messages
-  console.info(bambisleepChalk.info('Messages found for socketId:'), bambisleepChalk.tertiary(socketId), bambisleepChalk.tertiary(messages)); // Log the messages
+  //console.info(bambisleepChalk.info('Messages found for socketId:'), bambisleepChalk.tertiary(socketId), bambisleepChalk.tertiary(messages)); // Log the messages
   if (messages.length === 0) {
     console.error(bambisleepChalk.error('No messages found for socketId:'), bambisleepChalk.tertiary(socketId));
     return;
