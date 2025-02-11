@@ -1,0 +1,9 @@
+node_modules
+.env*
+.vscode
+worker.test.js
+nodemon.json
+package-lock.json
+workers/history
+*.test.js
+.mocharc.js

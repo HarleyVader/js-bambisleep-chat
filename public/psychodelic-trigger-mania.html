@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bambi Sleep AIGF</title>
+    <meta name="description" content="BambiSleep will reinstall your OS if you let her">
+    <meta name="keywords" content="BambiSleep, AIGF, AI, LLM, Chat, Hypno, Brainwash, Mindfuck, Bambi, Bambi Sleep, BambiSleep.chat">
+    <meta name="author" content="Brandynette">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<style>
+    #eyeCursor {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<body>
+    <script type="module" src="mjs/main.mjs"></script>
+    <div id="chat-container">
+        <div id="response-container">
+            <div id="eyeCursor">
+                <div id="eye">
+
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <script src="./js/psychodelic-trigger-mania.js"></script>
+    <script>
+        function flashTriggers(triggers) {
+            const container = document.getElementById('eye');
+            container.innerHTML = "";
+
+            // Create a span for the trigger word
+            const span = document.createElement("span");
+            span.textContent = triggers;
+            span.style.fontSize = "48px";
+            span.style.fontWeight = "bold";
+            span.style.color = "pink";
+            span.style.marginRight = "0";
+            container.appendChild(span);
+        }
+
+        let listOfTriggers = [];
+
+        fetch('listOfTriggers.json')
+            .then(response => response.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    listOfTriggers = data;
+                } else if (data.listOfTriggers && Array.isArray(data.listOfTriggers)) {
+                    listOfTriggers = data.listOfTriggers;
+                }
+            }).catch(error => {
+                console.error('Error fetching triggers:', error);
+            });
+
+        setInterval(() => {
+            if (listOfTriggers.length > 0) {
+                flashTriggers(listOfTriggers[Math.floor(Math.random() * listOfTriggers.length)]);
+            }
+        }, 2500);
+    </script>
+    <!-- jQuery(necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js"></script>
+</body>
+
+</html>

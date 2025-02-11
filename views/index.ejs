@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../views/partials/head') %>
+  <title>BambiSleep.Chat AIGF</title>
+
+  <body>
+    <%- include('../views/partials/nav.ejs') %>
+      <div id="chat-container">
+        <div id="user-input">
+          <h1>BambiSleep AIGF 👁️</h1>
+          <div id="llm">
+            <form id="llm-form">
+              <textarea id="textarea" oninput="autoExpand(this)" placeholder="Prompt my AIGF"></textarea>
+              <button id="submit" type="submit">Send</button>
+            </form>
+            <div id="user-prompt"></div>
+            <div id="audiomessage">
+              <audio id="audio" hidden controls></audio>
+              <p id="message"></p>
+            </div>
+          </div>
+          <br>
+          <div id="system-controls-container">
+            <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
+          </div>
+        </div>
+        <div id="response-container">
+          <div id="response-chat-wrapper">
+            <div id="response"></div>
+            <div id="chat">
+              <form id="chat-form">
+                <textarea id="textarea-chat" oninput="autoExpand(this)" placeholder="Send in Chat"></textarea>
+                <button id="send" type="submit" class="send-btn">Chat</button>
+              </form>
+              <ul id="chat-response"></ul>
+            </div>
+          </div>
+          <div id="eyeCursor">
+            <div id="eye" aria-label="Eye Cursor"></div>
+          </div>
+        </div>
+      </div>
+      <%- include('../views/partials/footer.ejs') %>
+        <script src="js/psychodelic-trigger-mania.js"></script>
+        <script src="js/text2speech.js"></script>
+        <script src="js/responsive.js"></script>
+        <script src="js/triggers.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="js/aigf-core.js"></script>
+        <script>
+          document.addEventListener("DOMContentLoaded", () => {
+            socket.on("chat message", (msg) => {
+              const item = document.createElement("li");
+              const timestamp = new Date(msg.timestamp).toLocaleTimeString();
+              item.textContent = `${timestamp} - ${msg.username}: ${msg.data}`;
+              if (timestamp && window.username) {
+                item.classList.add("neon-glow");
+              }
+              document.getElementById("chat-response").appendChild(item);
+            });
+
+            document.getElementById("chat-form").addEventListener("submit", (event) => {
+              event.preventDefault();
+              const message = document.getElementById("textarea-chat").value;
+              if (message) {
+                socket.emit("chat message", { data: message, username: window.username });
+                document.getElementById("textarea-chat").value = "";
+              }
+            });
+
+            const collarForm = document.getElementById('collar-form');
+            if (collarForm) {
+              collarForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const message = document.getElementById('textarea-collar').value.trim();
+                if (message) {
+                  socket.emit('collar', { data: message, socketId: socket.id });
+                  const userCollar = document.getElementById('user-collar');
+                  const messageElement = document.createElement('p');
+                  messageElement.textContent = message;
+                  userCollar.appendChild(messageElement);
+                }
+              });
+            }
+
+            socket.on('collar', (message) => {
+              const collarResponse = document.getElementById('textarea-collar-response');
+              const messageElement = document.createElement('p');
+              messageElement.textContent = message;
+              if (collarResponse.firstChild) {
+                collarResponse.insertBefore(messageElement, collarResponse.firstChild);
+              } else {
+                collarResponse.appendChild(messageElement);
+              }
+              applyUppercaseStyle();
+            });
+          });
+        </script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+  </body>
+
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+  <h1>Account</h1>
+  <div id="accountInfo">
+    <p>Loading account information...</p>
+  </div>
+  <script>
+    async function fetchAccountInfo() {
+      try {
+        const response = await fetch('/account');
+        const data = await response.json();
+        if (response.ok) {
+          document.getElementById('accountInfo').innerHTML = `
+            <p>Email: ${data.email}</p>
+            <p>Patreon ID: ${data.patreonId}</p>
+            <p>Tier: ${data.tier}</p>
+            <p>Patreon User: ${JSON.stringify(data.patreonUser)}</p>
+          `;
+        } else {
+          document.getElementById('accountInfo').innerHTML = `<p>Error: ${data.error}</p>`;
+        }
+      } catch (error) {
+        document.getElementById('accountInfo').innerHTML = `<p>An error occurred: ${error.message}</p>`;
+      }
+    }
+
+    fetchAccountInfo();
+  </script>
+</body>
+
+</html>

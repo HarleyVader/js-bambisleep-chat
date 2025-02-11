@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../views/partials/head.ejs') %>
+
+  <body>
+    <%- include('../views/partials/nav.ejs') %>
+      <div class="chat-container">
+        <div class="chat-header">
+          <h1>Bambi Sleep Chat</h1>
+        </div>
+        <div id="chat">
+          <ul id="messages"></ul>
+          <form id="chat-form" class="chat-form">
+            <input id="chat-input" placeholder="Type your message..." autocomplete="off" />
+            <div class="chat-controls">
+              <button type="submit" class="send-btn">Send</button>
+              <button type="button" class="clear-btn">Clear</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <%- include('../views/partials/footer.ejs') %>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+          const socket = io();
+
+          document.addEventListener("DOMContentLoaded", () => {
+            const chatForm = document.getElementById("chat-form");
+            const chatInput = document.getElementById("chat-input");
+            const messages = document.getElementById("messages");
+
+            socket.on("chat message", (msg) => {
+              const item = document.createElement("li");
+              item.textContent = `${msg.timestamp} - ${msg.username}: ${msg.data}`;
+              messages.appendChild(item);
+              window.scrollTo(0, document.body.scrollHeight);
+            });
+
+            chatForm.addEventListener("submit", (event) => {
+              event.preventDefault();
+              const message = chatInput.value;
+              if (message) {
+                socket.emit("chat message", { data: message });
+                chatInput.value = "";
+              }
+            });
+
+            document.querySelector('.clear-btn').addEventListener('click', () => {
+              messages.innerHTML = '';
+            });
+          });
+        </script>
+  </body>
+
+</html>

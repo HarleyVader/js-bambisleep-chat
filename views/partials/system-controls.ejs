@@ -1,0 +1,102 @@
+<div id="buttons">
+  <% if (validConstantsCount >= 1) { %>
+    <button id="triggers">Triggers</button>
+  <% } %>
+  <% if (validConstantsCount>= 2) { %>
+    <button id="toggle-collar">Collar</button>
+  <% } %>
+  <% if (validConstantsCount>= 3) { %>
+    <button id="spirals">Spirals</button>
+  <% } %>
+  <% if (validConstantsCount>= 4) { %>
+    <button id="hypnosis">Hypnosis</button>
+  <% } %>
+</div>
+<div id="console">
+  <% if (validConstantsCount>= 1) { %>
+    <div id="trigger-toggles" style="display: none;">
+      <button id="activate-all">Toggle All</button>
+    </div>
+  <% } %>
+  <% if (validConstantsCount>= 2) { %>
+    <form id="collar-form" style="display: none;">
+      <textarea id="textarea-collar" placeholder="System Collar for my AIGF"></textarea>
+      <button id="collar" type="submit">Collar</button>
+      <div id="user-collar"></div>
+      <div id="textarea-collar-response"></div>
+    </form>
+  <% } %>
+  <% if (validConstantsCount>= 3) { %>
+    <div id="spirals-template" style="display: none;">
+  <% } %>
+  <p>More controls will be available soon!</p>
+  <% if (validConstantsCount>= 4) { %>
+    <div id="multiplier-controls">
+      <label for="multiplierA1">Multiplier A1: </label>
+      <input type="range" id="multiplierA1" min="-5" max="5" value="1" step="0.1">
+      <br>
+      <label for="multiplierA2">Multiplier A2: </label>
+      <input type="range" id="multiplierA2" min="-5" max="5" value="1" step="0.1">
+      <br>
+      <label for="multiplierB1">Multiplier B1: </label>
+      <input type="range" id="multiplierB1" min="-5" max="5" value="1" step="0.1">
+      <br>
+      <label for="multiplierB2">Multiplier B2: </label>
+      <input type="range" id="multiplierB2" min="-5" max="5" value="1" step="0.1">
+      <br>
+      <label for="operation">Operation: </label>
+      <select id="operation">
+        <option value="add">Add</option>
+        <option value="subtract">Subtract</option>
+        <option value="multiply">Multiply</option>
+        <option value="divide">Divide</option>
+      </select>
+    </div>
+  </div>
+  <% } %>
+</div>
+<% if (validConstantsCount>= 5) { %>
+  <div id="hypnosis-template" style="display: none;">
+    <p>More Controls will come when more patron my AIGF!</p>
+  </div>
+<% } %>
+<script>
+  function toggleButton(button, target) {
+    var element = document.getElementById(target);
+    if (element) {
+      var isVisible = element.style.display === 'none' ? 'block' : 'none';
+      element.style.display = isVisible;
+      button.classList.toggle('active-button', isVisible === 'block');
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const triggersButton = document.getElementById('triggers');
+    if (triggersButton) {
+      triggersButton.addEventListener('click', function () {
+        toggleButton(this, 'trigger-toggles');
+      });
+    }
+
+    const toggleCollarButton = document.getElementById('toggle-collar');
+    if (toggleCollarButton) {
+      toggleCollarButton.addEventListener('click', function () {
+        toggleButton(this, 'collar-form');
+      });
+    }
+
+    const spiralsButton = document.getElementById('spirals');
+    if (spiralsButton) {
+      spiralsButton.addEventListener('click', function () {
+        toggleButton(this, 'spirals-template');
+      });
+    }
+
+    const hypnosisButton = document.getElementById('hypnosis');
+    if (hypnosisButton) {
+      hypnosisButton.addEventListener('click', function () {
+        toggleButton(this, 'hypnosis-template');
+      });
+    }
+  });
+</script>

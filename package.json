@@ -1,0 +1,46 @@
+{
+  "name": "js-bambisleep-chat",
+  "version": "3.2.0",
+  "description": "melk",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "bcrypt": "^5.1.1",
+    "chalk": "^4.1.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "mongoose": "^8.9.1",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "eslint": "^9.17.0",
+    "nodemon": "^3.1.9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HarleyVader/js-bambisleep-chat.git"
+  },
+  "keywords": [
+    "express",
+    "mongoose",
+    "patreon",
+    "lmstudio",
+    "oauth2"
+  ],
+  "author": "melkanea",
+  "license": "Unlicense",
+  "bugs": {
+    "url": "https://github.com/HarleyVader/js-bambisleep-chat/issues"
+  },
+  "homepage": "https://github.com/HarleyVader/js-bambisleep-chat#readme"
+}
