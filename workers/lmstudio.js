@@ -2,7 +2,6 @@ import { parentPort } from 'worker_threads';
 import { promises as fs } from 'fs';
 import path from 'path';
 import axios from 'axios';
-import bambisleepChalk from '../middleware/bambisleepChalk';
 
 import dotenv from 'dotenv';
 dotenv.config();
