@@ -75,24 +75,36 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 });
 
 async function fetchTTS(text) {
-  try {
-    const response = await axios.get('http://192.168.0.178:5002/api/tts', {
-      params: { text },
-      responseType: 'arraybuffer',
-      timeout: 10000,
-      speaker_wav: 'bambi.wav'
-    });
-    return response;
-  } catch (error) {
-    console.error(patterns.server.error('Error fetching TTS audio:', error));
-    throw error;
+  const url = `http://${process.env.TTS_HOST}:${process.env.TTS_PORT}/api/tts`;
+  const params = { text };
+  const options = {
+    responseType: 'arraybuffer',
+    timeout: 10000,
+    headers: {
+      'Accept': 'application/json, text/plain, */*',
+      'User-Agent': 'axios/1.7.9',
+      'Accept-Encoding': 'gzip, compress, deflate, br'
+    }
+  };
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await axios.get(url, { params, ...options });
+      return response;
+    } catch (error) {
+      if (attempt < 3 && error.code === 'ECONNRESET') {
+        console.warn(`Attempt ${attempt} failed. Retrying...`);
+        continue;
+      }
+      throw error;
+    }
   }
 }
 
 app.use('/api/tts', async (req, res, next) => {
   const text = req.query.text;
   if (typeof text !== 'string' || text.trim() === '') {
-    return res.status(400).send('Invalid input: text must be a non-empty string');
+    res.status(400).send('Invalid text parameter');
   } else {
     try {
       const response = await fetchTTS(text);
