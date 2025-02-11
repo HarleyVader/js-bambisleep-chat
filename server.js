@@ -135,7 +135,6 @@ const routes = [
   { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
   { path: '/chat', handler: chatRoutes },
   { path: '/help', handler: helpRoute },
-  { path: '/ultravox', handler: ultravoxRouter }
 ];
 
 function setupRoutes() {
@@ -173,9 +172,6 @@ function setupSockets() {
 
         const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
         adjustMaxListeners(lmstudio);
-
-        const ultravoxWorker = new Worker(path.join(__dirname, 'workers/ultravox.js'));
-        adjustMaxListeners(ultravoxWorker);
 
         socketStore.set(socket.id, { socket, worker: lmstudio });
         console.log(patterns.server.success(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
@@ -256,14 +252,6 @@ function setupSockets() {
           } catch (error) {
             console.error(patterns.server.error('Error in collar handler:', error));
           }
-        });
-
-        socket.on('ultravox', (message) => {
-          ultravoxWorker.postMessage(message);
-        });
-
-        ultravoxWorker.on('message', (message) => {
-          socket.emit(message.type, message);
         });
 
         lmstudio.on("message", async (msg) => {
