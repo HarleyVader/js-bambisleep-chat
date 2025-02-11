@@ -2,8 +2,9 @@ import { parentPort } from 'worker_threads';
 import { promises as fs } from 'fs';
 import path from 'path';
 import axios from 'axios';
-
 import dotenv from 'dotenv';
+import { patterns } from '../middleware/bambisleepChalk.js';
+
 dotenv.config();
 
 const sessionHistories = {};
