@@ -87,15 +87,25 @@ const footerConfig = {
     },
     {
       label: "Bambi Subliminals Patreon",
-      url: "https://www.patreon.com/BambiSubliminals/posts",
+      url: "https://www.patreon.com/c/BambiSubliminals/posts",
       external: true
     },
     {
       label: "Bambi Beats Patreon",
       url: "https://www.patreon.com/c/BambiBeats/posts",
       external: true
+    },
+    {
+      label: "Sleepy Crown Patreon",
+      url: "https://www.patreon.com/c/thesleepycrown/posts",
+      external: true
+    },
+    {
+      label: "Tom Tame's Patreon",
+      url: "https://www.patreon.com/c/TomTame/posts",
+      external: true
     }
   ]
 };
 
-module.exports = footerConfig;
+export default footerConfig;

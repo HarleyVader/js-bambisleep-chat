@@ -7,3 +7,4 @@ package-lock.json
 workers/history
 *.test.js
 .mocharc.js
+darkside

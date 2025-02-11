@@ -1,33 +1,39 @@
-require('dotenv').config();
-const express = require('express');
-const session = require('express-session');
-const http = require('http');
-const os = require('os');
-const path = require('path');
-const { Worker } = require('worker_threads');
-const { Server } = require('socket.io');
-const cors = require('cors');
-const axios = require('axios');
-const mongoose = require('mongoose');
+import dotenv from 'dotenv';
+import express from 'express';
+import http from 'http';
+import os from 'os';
+import path from 'path';
+import { Worker } from 'worker_threads';
+import { Server } from 'socket.io';
+import cors from 'cors';
+import axios from 'axios';
+import { readFile } from 'fs/promises';
+import { fileURLToPath } from 'url';
 
-// Import routes
-const indexRoute = require('./routes/index');
-const psychodelicTriggerManiaRouter = require('./routes/psychodelic-trigger-mania');
-const chatRoutes = require('./routes/chat');
-const helpRoute = require('./routes/help');
+//routes
+import indexRoute from './routes/index.js';
+import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
+import chatRoutes from './routes/chat.js';
+import helpRoute from './routes/help.js';
+import ultravoxRouter from './routes/ultravox.js';
 
-// Import middleware
-const errorHandler = require('./middleware/error');
-const { patterns } = require('./middleware/bambisleepChalk');
+//configs
+import errorHandler from './middleware/error.js';
+import { patterns } from './middleware/bambisleepChalk.js';
+import footerConfig from './config/footer.config.js';
 
-// Import configurations
-const config = require('./config/config');
-const filteredWords = require('./filteredWords.json');
-const footerConfig = require('./config/footer.config.js');
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
+//filteredwords
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const data = await readFile(path.join(__dirname, 'filteredWords.json'), 'utf8');
+const filteredWords = JSON.parse(data);
 
 console.log(patterns.server.info('Loading environment variables...'));
 
@@ -49,7 +55,7 @@ function adjustMaxListeners(worker) {
       worker.setMaxListeners(currentMaxListeners);
     }
   } catch (error) {
-    console.error('Error in adjustMaxListeners:', error);
+    console.error(patterns.server.error('Error in adjustMaxListeners:', error));
   }
 }
 
@@ -63,13 +69,7 @@ console.log(patterns.server.info('Initializing server components...'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your_secret_key',
-  resave: false,
-  saveUninitialized: true,
-  cookie: { secure: true } // Set to false if not using HTTPS
-}));
+app.use('/workers', express.static(path.join(__dirname, 'workers')));
 
 app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
@@ -85,7 +85,7 @@ async function fetchTTS(text) {
     });
     return response;
   } catch (error) {
-    console.error('Error fetching TTS audio:', error);
+    console.error(patterns.server.error('Error fetching TTS audio:', error));
     throw error;
   }
 }
@@ -119,6 +119,15 @@ app.use('/api/tts', async (req, res, next) => {
   }
 });
 
+app.get('/api/fetch-calls', async (req, res) => {
+  try {
+    const data = await ultravoxService.fetchCalls();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.locals.footer = footerConfig;
 
 const routes = [
@@ -126,6 +135,7 @@ const routes = [
   { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
   { path: '/chat', handler: chatRoutes },
   { path: '/help', handler: helpRoute },
+  { path: '/ultravox', handler: ultravoxRouter }
 ];
 
 function setupRoutes() {
@@ -139,8 +149,13 @@ function setupRoutes() {
       res.render('index', { validConstantsCount: validConstantsCount });
     });
 
+    app.get('/ultravox', (req, res) => {
+      const apiKey = process.env.API_KEY; // Ensure you have the API key in your environment variables
+      res.render('ultravox', { apiKey });
+    });
+
   } catch (error) {
-    console.error('Error in setupRoutes:', error);
+    console.error(patterns.server.error('Error in setupRoutes:', error));
   }
 }
 
@@ -153,11 +168,14 @@ function setupSockets() {
 
     io.on('connection', (socket) => {
       try {
-        console.log('Cookies received in handshake:', socket.handshake.headers.cookie);
+        console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
         userSessions.add(socket.id);
 
         const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
         adjustMaxListeners(lmstudio);
+
+        const ultravoxWorker = new Worker(path.join(__dirname, 'workers/ultravox.js'));
+        adjustMaxListeners(ultravoxWorker);
 
         socketStore.set(socket.id, { socket, worker: lmstudio });
         console.log(patterns.server.success(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
@@ -165,12 +183,12 @@ function setupSockets() {
         // Prompt for bambiname username
         const cookies = socket.handshake.headers.cookie
           ? socket.handshake.headers.cookie
-              .split(';')
-              .map(cookie => cookie.trim().split('='))
-              .reduce((acc, [key, value]) => {
-                acc[key] = value;
-                return acc;
-              }, {})
+            .split(';')
+            .map(cookie => cookie.trim().split('='))
+            .reduce((acc, [key, value]) => {
+              acc[key] = value;
+              return acc;
+            }, {})
           : {};
         let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
         if (username === 'anonBambi') {
@@ -186,7 +204,7 @@ function setupSockets() {
               username: username,
             });
           } catch (error) {
-            console.error('Error in chat message handler:', error);
+            console.error(patterns.server.error('Error in chat message handler:', error));
           }
         });
 
@@ -195,9 +213,9 @@ function setupSockets() {
             const encodedUsername = encodeURIComponent(username);
             socket.handshake.headers.cookie = `bambiname=${encodedUsername}; path=/`;
             socket.emit('username set', username);
-            console.log('Username set:', username);
+            console.log(patterns.server.info('Username set:', username));
           } catch (error) {
-            console.error('Error in set username handler:', error);
+            console.error(patterns.server.error('Error in set username handler:', error));
           }
         });
 
@@ -214,7 +232,7 @@ function setupSockets() {
               username: username
             });
           } catch (error) {
-            console.error('Error in message handler:', error);
+            console.error(patterns.server.error('Error in message handler:', error));
           }
         });
 
@@ -222,7 +240,7 @@ function setupSockets() {
           try {
             lmstudio.postMessage({ type: "triggers", triggers });
           } catch (error) {
-            console.error('Error in triggers handler:', error);
+            console.error(patterns.server.error('Error in triggers handler:', error));
           }
         });
 
@@ -236,20 +254,28 @@ function setupSockets() {
             });
             io.to(collarData.socketId).emit('collar', filteredCollar);
           } catch (error) {
-            console.error('Error in collar handler:', error);
+            console.error(patterns.server.error('Error in collar handler:', error));
           }
+        });
+
+        socket.on('ultravox', (message) => {
+          ultravoxWorker.postMessage(message);
+        });
+
+        ultravoxWorker.on('message', (message) => {
+          socket.emit(message.type, message);
         });
 
         lmstudio.on("message", async (msg) => {
           try {
             if (msg.type === "log") {
-              console.log(bambisleepChalk.info(msg.data, msg.socketId));
+              console.log(patterns.server.info(msg.data, msg.socketId));
             } else if (msg.type === 'response') {
               const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
               io.to(msg.socketId).emit("response", responseData);
             }
           } catch (error) {
-            console.error('Error in lmstudio message handler:', error);
+            console.error(patterns.server.error('Error in lmstudio message handler:', error));
           }
         });
 
@@ -257,7 +283,7 @@ function setupSockets() {
           try {
             console.info(patterns.server.info('Worker info:'), info);
           } catch (error) {
-            console.error('Error in lmstudio info handler:', error);
+            console.error(patterns.server.error('Error in lmstudio info handler:', error));
           }
         });
 
@@ -265,7 +291,7 @@ function setupSockets() {
           try {
             console.error(patterns.server.error('Worker error:'), err);
           } catch (error) {
-            console.error('Error in lmstudio error handler:', error);
+            console.error(patterns.server.error('Error in lmstudio error handler:', error));
           }
         });
 
@@ -278,16 +304,19 @@ function setupSockets() {
             console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
             worker.terminate();
             adjustMaxListeners(worker);
+            if (ultravoxWorker) {
+              ultravoxWorker.terminate();
+            }
           } catch (error) {
-            console.error('Error in disconnect handler:', error);
+            console.error(patterns.server.error('Error in disconnect handler:', error));
           }
         });
       } catch (error) {
-        console.error('Error in connection handler:', error);
+        console.error(patterns.server.error('Error in connection handler:', error));
       }
     });
   } catch (error) {
-    console.error('Error in setupSockets:', error);
+    console.error(patterns.server.error('Error in setupSockets:', error));
   }
 }
 
@@ -314,7 +343,7 @@ function setupErrorHandlers() {
       }
     });
   } catch (error) {
-    console.error('Error in setupErrorHandlers:', error);
+    console.error(patterns.server.error('Error in setupErrorHandlers:', error));
   }
 }
 
@@ -330,7 +359,7 @@ function getServerAddress() {
     }
     return '127.0.0.1';
   } catch (error) {
-    console.error('Error in getServerAddress:', error);
+    console.error(patterns.server.error('Error in getServerAddress:', error));
   }
 }
 
@@ -347,7 +376,7 @@ function filter(message) {
       .join(' ')
       .trim();
   } catch (error) {
-    console.error('Error in filter:', error);
+    console.error(patterns.server.error('Error in filter:', error));
   }
 }
 
@@ -364,20 +393,9 @@ function gracefulShutdown(signal, server) {
       process.exit(1);
     }, 1000);
   } catch (error) {
-    console.error('Error in gracefulShutdown:', error);
+    console.error(patterns.server.error('Error in gracefulShutdown:', error));
   }
 }
-
-mongoose.set('bufferCommands', false);
-mongoose.set('bufferTimeoutMS', 20000); // 20 seconds
-
-mongoose.connect(process.env.MONGODB_URI, {
-  serverSelectionTimeoutMS: 20000 // 20 seconds
-}).then(() => {
-  console.log('Database connections established');
-}).catch(err => {
-  console.error('Database connection error:', err);
-});
 
 let serverInstance;
 
@@ -393,18 +411,34 @@ async function initializeServer() {
     app.use(errorHandler);
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
-    process.on('uncaughtException', (err) => {
-      console.error(patterns.server.error('Uncaught exception:'), err);
-      gracefulShutdown('uncaughtException', server);
+    process.on('uncaughtException', async (err) => {
+      console.error('Uncaught Exception:', err);
+      try {
+        await new Promise((resolve) => {
+          console.log('Received uncaughtException. Shutting down gracefully...');
+          // Give existing connections time to close
+          setTimeout(resolve, 1000);
+        });
+      } catch (error) {
+        console.error('Error during shutdown:', error);
+      } finally {
+        process.exit(1);
+      }
     });
     const PORT = process.env.PORT || 6969;
     console.log(patterns.server.info('Starting server...'));
-    serverInstance = server.listen(PORT, () => {
+    serverInstance = server.listen(PORT, async () => {
       console.log(patterns.server.success(`Server running on http://${getServerAddress()}:${PORT}`));
+      try {
+        const session = await ultravoxService.initializeSession();
+        console.log('Ultravox session initialized:', session);
+      } catch (error) {
+        console.error('Failed to initialize Ultravox session:', error.message);
+      }
     });
     console.log(patterns.server.success('Server initialization complete'));
   } catch (err) {
-    console.error('Error in initializeServer:', err);
+    console.error(patterns.server.error('Error in initializeServer:', err));
     process.exit(1);
   }
 }

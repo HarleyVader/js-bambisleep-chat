@@ -339,28 +339,28 @@ textarea:focus {
 button {
     color: var(--secondary-color);
     border-radius: 1rem;
-    font-size: 13px;
     background-color: var(--button-color);
     text-shadow: var(--tertiary-color) 3px 3px 3px;
     border: var(--secondary-color) outset 3px;
-    margin: 0.07vw; /* Reduced by 30% */
-    padding: 0.07vw; /* Reduced by 30% */
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
 }
 
 button:hover {
     color: var(--button-color);
     border-radius: 1rem;
-    font-size: 13px;
+    font-size: 1rem;
     background-color: var(--secondary-color);
     text-shadow: var(--nav-color) 3px 3px 3px;
     border: var(--button-color) 3px inset;
-    margin: 0.07vw; /* Reduced by 30% */
-    padding: 0.07vw; /* Reduced by 30% */
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
 }
 
 button:active {
     background-color: var(--tertiary-alt);
-    color: var (--nav-alt);
+    color: var(--nav-alt);
     border-color: var(--primary-alt);
 }
 
@@ -522,11 +522,6 @@ a:hover {
     nav {
         flex-direction: column;
         padding: 0.5em;
-    }
-
-    button {
-        width: 100%;
-        margin-top: 3.5px; /* Reduced by 30% */
     }
 
     p {
@@ -883,4 +878,49 @@ a:hover {
 .neon-glow {
     color: var(--tertiary-color);
     text-shadow: 0 0 5px var(--secondary-color), 0 0 10px var(--secondary-alt), 0 0 20px var(--button-color), 0 0 40px var(--secondary-alt), 0 0 80px var(--secondary-color);
+}
+
+.input-container {
+    margin: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+label {
+    color: var(--primary-alt);
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+input[type="text"],
+select {
+    width: 100%;
+    padding: 0.5rem;
+    border: var(--secondary-alt) 2px solid;
+    border-radius: 4px;
+    background-color: var(--nav-color);
+    color: var(--primary-alt);
+    font-size: 1rem;
+    text-shadow: var(--secondary-color) 2px 2px 2px;
+}
+
+audio {
+    margin-top: 1rem;
+    width: 100%;
+}
+
+.controls {
+    border: var(--button-color) 3px ridge;
+    border-radius: 8px;
+}
+
+.status {
+    border: var(--button-color) 3px ridge;
+    border-radius: 8px;
+}
+
+.transcription {
+    border: var(--button-color) 3px ridge;
+    border-radius: 8px;
 }

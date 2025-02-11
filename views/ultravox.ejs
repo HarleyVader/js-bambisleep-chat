@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BambiSleep.Chat Ultravox</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <%- include('../views/partials/head') %>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <%- include('../views/partials/nav.ejs') %>
+        <div class="controls">
+            <button id="startBtn" class="button">Start Conversation</button>
+            <button id="stopBtn" class="button" disabled>Stop Conversation</button>
+            <button id="recordBtn" class="button" disabled>Start Recording</button>
+            <button id="fetchCallsBtn" class="button">Fetch Calls</button>
+        </div>
+
+        <div class="status" id="status">Not connected</div>
+        <div id="transcription" class="transcription"></div>
+        <%- include('../views/partials/footer.ejs') %>
+            <script>
+                const socket = io();
+                const startBtn = document.getElementById('startBtn');
+                const stopBtn = document.getElementById('stopBtn');
+                const recordBtn = document.getElementById('recordBtn');
+                const fetchCallsBtn = document.getElementById('fetchCallsBtn');
+                const status = document.getElementById('status');
+                const transcription = document.getElementById('transcription');
+
+                let mediaRecorder;
+                let audioChunks = [];
+
+                socket.on('connect', () => {
+                    status.textContent = 'Connected';
+                });
+
+                socket.on('conversationStarted', () => {
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    recordBtn.disabled = false;
+                    status.textContent = 'Conversation active';
+                });
+
+                socket.on('conversationStopped', () => {
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    recordBtn.disabled = true;
+                    status.textContent = 'Conversation ended';
+                });
+
+                socket.on('transcription', (data) => {
+                    transcription.textContent = data.text;
+                });
+
+                startBtn.addEventListener('click', () => {
+                    socket.emit('ultravox', { type: 'start' });
+                });
+
+                stopBtn.addEventListener('click', () => {
+                    socket.emit('ultravox', { type: 'stop' });
+                });
+
+                recordBtn.addEventListener('click', async () => {
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                        recordBtn.textContent = 'Start Recording';
+                        status.textContent = 'Processing...';
+                    } else {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
+                        audioChunks = [];
+
+                        mediaRecorder.ondataavailable = (event) => {
+                            audioChunks.push(event.data);
+                        };
+
+                        mediaRecorder.onstop = async () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            socket.emit('ultravox', {
+                                type: 'transcribe',
+                                audio: await audioBlob.arrayBuffer()
+                            });
+                        };
+
+                        mediaRecorder.start();
+                        recordBtn.textContent = 'Stop Recording';
+                        status.textContent = 'Recording...';
+                    }
+                });
+
+                fetchCallsBtn.addEventListener('click', async () => {
+                    try {
+                        const response = await fetch('https://api.ultravox.ai/api/calls', {
+                            method: 'GET',
+                            headers: {
+                                'X-API-Key': '<%= apiKey %>'
+                            }
+                        });
+                        const data = await response.json();
+                        console.log(data);
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                });
+
+                fetch('/some-endpoint', {
+                    method: 'GET',
+                    headers: {
+                        'X-API-Key': '<%= apiKey %>'
+                    }
+                });
+            </script>
+</body>
+
+</html>

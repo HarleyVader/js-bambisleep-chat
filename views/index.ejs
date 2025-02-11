@@ -6,6 +6,15 @@
   <body>
     <%- include('../views/partials/nav.ejs') %>
       <div id="chat-container">
+        <!-- Add modal for username prompt -->
+        <div id="username-modal" class="modal">
+          <div class="modal-content">
+            <h2>Welcome to BambiSleep Chat!</h2>
+            <p>Please enter your preferred username:</p>
+            <input type="text" id="username-input" placeholder="Enter username">
+            <button id="username-submit">Submit</button>
+          </div>
+        </div>
         <div id="user-input">
           <h1>BambiSleep AIGF 👁️</h1>
           <div id="llm">
@@ -49,6 +58,81 @@
         <script src="js/aigf-core.js"></script>
         <script>
           document.addEventListener("DOMContentLoaded", () => {
+            const socket = io();
+            const modal = document.getElementById('username-modal');
+            let username = '';
+
+            // Check for existing username cookie
+            function getCookie(name) {
+              const value = `; ${document.cookie}`;
+              const parts = value.split(`; ${name}=`);
+              if (parts.length === 2) return parts.pop().split(';').shift();
+            }
+
+            username = getCookie('bambiname');
+            if (!username) {
+              modal.style.display = 'block';
+            }
+
+            // Handle username submission
+            document.getElementById('username-submit').addEventListener('click', () => {
+              const input = document.getElementById('username-input');
+              const newUsername = input.value.trim();
+              if (newUsername) {
+                username = newUsername;
+                document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
+                socket.emit('set username', username);
+                modal.style.display = 'none';
+                window.username = username;
+              }
+            });
+
+            // Add the following CSS to your existing styles
+            const style = document.createElement('style');
+            style.textContent = `
+              .modal {
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.5);
+              }
+              .modal-content {
+                background-color: #1a1a1a;
+                color: #fff;
+                margin: 15% auto;
+                padding: 20px;
+                border: 1px solid #888;
+                width: 80%;
+                max-width: 500px;
+                border-radius: 5px;
+              }
+              #username-input {
+                width: 100%;
+                padding: 8px;
+                margin: 10px 0;
+                background-color: #333;
+                color: #fff;
+                border: 1px solid #555;
+                border-radius: 3px;
+              }
+              #username-submit {
+                padding: 8px 16px;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;
+              }
+              #username-submit:hover {
+                background-color: #45a049;
+              }
+            `;
+            document.head.appendChild(style);
+
             socket.on("chat message", (msg) => {
               const item = document.createElement("li");
               const timestamp = new Date(msg.timestamp).toLocaleTimeString();

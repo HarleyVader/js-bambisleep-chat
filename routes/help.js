@@ -1,9 +1,9 @@
-const express = require('express');
+import express from 'express';
+import footerConfig from '../config/footer.config.js';
 const router = express.Router();
-const footerConfig = require('../config/footer.config');
 
 router.get('/', (req, res) => {
   res.render('help', { footer: footerConfig });
 });
 
-module.exports = router;
+export default router;

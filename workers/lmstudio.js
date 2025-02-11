@@ -1,12 +1,11 @@
-const { parentPort } = require('worker_threads');
-const fs = require('fs').promises;
-const path = require('path');
-const axios = require('axios');
-const mongoose = require('mongoose');
-const dbFunctions = require('../middleware/dbFunctions');
-const { patterns } = require('../middleware/bambisleepChalk');
+import { parentPort } from 'worker_threads';
+import { promises as fs } from 'fs';
+import path from 'path';
+import axios from 'axios';
+import bambisleepChalk from '../middleware/bambisleepChalk';
 
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
 
 const sessionHistories = {};
 let triggers;
@@ -17,18 +16,6 @@ let finalContent;
 
 console.log(patterns.server.info('Starting lmstudio worker...'));
 
-async function initializeDB() {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log(patterns.database.success('Database connections established'));
-  } catch (error) {
-    console.error(patterns.database.error('Failed to establish database connections:', error));
-  }
-}
-
-initializeDB();
-console.log(patterns.server.success('Database initialized'));
-
 parentPort.on('message', async (msg) => {
   try {
     switch (msg.type) {
@@ -37,11 +24,7 @@ parentPort.on('message', async (msg) => {
         break;
       case 'message':
         console.log(patterns.server.info('Received message event'));
-        await handleMessage(msg.data, msg.socketId, msg.email, msg.username); // Pass email to handleMessage
-        break;
-      case 'save':
-        console.log(patterns.server.info('Received save event'));
-        await saveSessionHistories(msg.collarText, msg.data, msg.finalContent, msg.socketId);
+        await handleMessage(msg.data, msg.socketId, msg.username);
         break;
       case 'collar':
         collar = msg.data || 'default role';
@@ -66,7 +49,8 @@ function handleResponse(response, socketId) {
   });
 }
 
-async function saveSessionHistories(collarText, userPrompt, finalContent, socketId, email) {
+// Keep in-memory session history
+function updateSessionHistory(socketId, collarText, userPrompt, finalContent) {
   if (!sessionHistories[socketId]) {
     sessionHistories[socketId] = [];
   }
@@ -75,22 +59,6 @@ async function saveSessionHistories(collarText, userPrompt, finalContent, socket
     { role: 'user', content: userPrompt },
     { role: 'assistant', content: finalContent }
   );
-
-  const user = await dbFunctions.getUserByEmail(email); // Fetch user data using email
-  if (!user) {
-    console.error('User not found for email:', email);
-    return;
-  }
-
-  const sessionHistory = {
-    email: user.email, // Use email from user data
-    timestamp: new Date(),
-    history: JSON.stringify(sessionHistories[socketId]),
-    socketId: socketId // Add socketId here
-  };
-
-  await dbFunctions.saveSessionHistory(user.email, sessionHistory);
-
   return sessionHistories[socketId];
 }
 
@@ -152,7 +120,7 @@ async function pushMessages(collarText, userPrompt, finalContent, socketId) {
   return sessionHistories[socketId];
 }
 
-async function handleMessage(userPrompt, socketId, email, username) {
+async function handleMessage(userPrompt, socketId, username) {
   try {
     const modelName = 'llama-3.1-8b-lexi-uncensored-v2@q4';
     const modelId = await selectLoadedModels(modelName);
@@ -160,17 +128,17 @@ async function handleMessage(userPrompt, socketId, email, username) {
       throw new Error('No models loaded');
     }
 
-    collarText = await createCollarText(collar, triggers, username); // Ensure createCollarText is awaited
+    collarText = await createCollarText(collar, triggers, username);
 
-    const messages = await pushMessages(collarText, userPrompt, finalContent, socketId);
+    const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
     if (messages.length === 0) {
-      console.error(bambisleepChalk.error('No messages found for socketId:'), bambisleepChalk.tertiary(socketId));
+      console.error(patterns.server.error('No messages found for socketId:', socketId));
       return;
     }
 
     const requestData = {
       model: modelId,
-      messages: messages.map(msg => ({ role: msg.role, content: msg.content })), // Ensure messages are in the correct format
+      messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
       max_tokens: 1024,
       temperature: 0.87,
       top_p: 0.85,
@@ -186,10 +154,7 @@ async function handleMessage(userPrompt, socketId, email, username) {
       let responseData = response.data.choices[0].message.content;
       finalContent = responseData;
       handleResponse(finalContent, socketId);
-
-      await saveSessionHistories(collarText, userPrompt, finalContent, socketId, email); // Pass email to saveSessionHistories
-
-      finalContent = ''; // Reset finalContent after processing
+      finalContent = '';
     } catch (error) {
       if (error.response) {
         console.error(patterns.server.error('Error response data:'), error.response.data);

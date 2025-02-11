@@ -4,6 +4,7 @@ const listOfTriggers = [
   "BAMBI SLEEP",
   "BAMBI FREEZE",
   "ZAP COCK DRAIN OBEY",
+  "BAMBI ALWAYS WINS",
   "BAMBI RESET",
   "I-Q DROP",
   "I-Q LOCK",

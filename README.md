@@ -1,6 +1,19 @@
-# 🧠 BambiSleep Chat 👁️
-
 <div align="center">
+
+# 🧠 BambiSleep Chat 👁️ 
+by:
+```
+ _____ ______   _______   ___       ___  __    ________  ________   _______   ________     
+|\   _ \  _   \|\  ___ \ |\  \     |\  \|\__\ |\   __  \|\   ___  \|\  ___ \ |\   __  \    
+\ \ \ \ \_\ \  \ \   __/|\ \  \    \ \  \/__/ \ \  \|\  \ \ \ \ \  \ \   __/|\ \  \|\  \   
+ \ \ \ \|__| \  \ \  \_|/_\ \  \    \ \   __\  \ \   __  \ \ \ \ \  \ \  \_|/_\ \   __  \  
+  \ \  \    \ \  \ \  \_|\ \ \  \____\ \ \__|\  \ \  \ \  \ \ \ \ \  \ \  \_|\ \ \  \ \  \ 
+   \ \__\    \ \__\ \_______\ \_______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_______\ \__\ \__\ 
+    \|__|     \|__|\|_______|\|_______|\|__| \|__|\|__|\|__|\|__| \|__|\|_______|\|__|\|___|
+```
+
+
+
 
 ![GitHub stars](https://img.shields.io/github/stars/HarleyVader/js-bambisleep-chat?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-UNLICENSE-pink?style=for-the-badge)
@@ -34,21 +47,8 @@
    npm install
    ```
 4. **Start the server**
-
    ```sh
    npm start
-   ```
-
-   ## X-Text2Speech
-   ```
-   git clone https://github.com/daswer123/xtts-api-server
-   ```
-
-   build the docker image with the following commands:
-   ```sh
-   mkdir xtts-api-server
-   cd xtts-api-server
-   docker run -d daswer123/xtts-api-server
    ```
 
 ## 🌟 Core Features
@@ -65,26 +65,26 @@
 
 ```mermaid
 graph TD
-A[Client] -->|WebSocket| B[Server]
-B -->|Worker Threads| C[AI Module]
-B -->|REST API| D[Database]
-B -->|REST API| E[Auth Service]
-C -->|Text-to-Speech| F[Audio Service]
-D -->|Data Storage| G[MongoDB]
-E -->|KYC Verification| H[Verification Service]
-B -->|Session Management| I[Session Service]
-B -->|Error Logging| J[Logging Service]
-B -->|Trigger System| K[Trigger Module]
-I -->|Session Data| G
-J -->|Log Data| G
-K -->|Event Handling| C
-B -->|Chat Message Handling| L[Chat Service]
-L -->|Store Messages| G
-B -->|User Management| M[User Service]
-M -->|User Data| G
-B -->|Notification Service| N[Notification Module]
-N -->|Send Notifications| A
-````
+   A[Client] -->|WebSocket| B[Server]
+   B -->|Worker Threads| C[AI Module]
+   B -->|REST API| D[Database]
+   B -->|REST API| E[Auth Service]
+   C -->|Text-to-Speech| F[Audio Service]
+   D -->|Data Storage| G[MongoDB]
+   E -->|KYC Verification| H[Verification Service]
+   B -->|Session Management| I[Session Service]
+   B -->|Error Logging| J[Logging Service]
+   B -->|Trigger System| K[Trigger Module]
+   I -->|Session Data| G
+   J -->|Log Data| G
+   K -->|Event Handling| C
+   B -->|Chat Message Handling| L[Chat Service]
+   L -->|Store Messages| G
+   B -->|User Management| M[User Service]
+   M -->|User Data| G
+   B -->|Notification Service| N[Notification Module]
+   N -->|Send Notifications| A
+```
 
 ## 🛠️ Tech Stack
 
@@ -106,7 +106,7 @@ N -->|Send Notifications| A
 
 ## 🗂️ Folder Structure
 
-```
+```                                                                                                                                                                                                                                                          
 ├── config
 │   ├── config.js
 │   └── footer.config.js

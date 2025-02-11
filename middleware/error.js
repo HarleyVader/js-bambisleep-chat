@@ -1,6 +1,4 @@
-const { patterns } = require('./bambisleepChalk');
-
-module.exports = (err, req, res, next) => {
-  console.error(patterns.server.error('Error:', err));
-  res.status(500).send('Internal Server Error');
-};
+export default function errorHandler(err, req, res, next) {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+}
