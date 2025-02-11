@@ -150,11 +150,6 @@ function setupRoutes() {
       res.render('index', { validConstantsCount: validConstantsCount });
     });
 
-    app.get('/ultravox', (req, res) => {
-      const apiKey = process.env.API_KEY; // Ensure you have the API key in your environment variables
-      res.render('ultravox', { apiKey });
-    });
-
   } catch (error) {
     console.error(patterns.server.error('Error in setupRoutes:', error));
   }

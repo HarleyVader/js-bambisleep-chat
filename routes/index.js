@@ -19,9 +19,4 @@ router.get('/', (req, res) => {
   }
 });
 
-router.get('/ultravox', function(req, res, next) {
-    const apiKey = process.env.API_KEY; // or however you obtain the API key
-    res.render('ultravox', { apiKey: apiKey });
-});
-
 export default router;
