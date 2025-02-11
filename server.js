@@ -404,12 +404,6 @@ async function initializeServer() {
     console.log(patterns.server.info('Starting server...'));
     serverInstance = server.listen(PORT, async () => {
       console.log(patterns.server.success(`Server running on http://${getServerAddress()}:${PORT}`));
-      try {
-        const session = await ultravoxService.initializeSession();
-        console.log('Ultravox session initialized:', session);
-      } catch (error) {
-        console.error('Failed to initialize Ultravox session:', error.message);
-      }
     });
     console.log(patterns.server.success('Server initialization complete'));
   } catch (err) {
