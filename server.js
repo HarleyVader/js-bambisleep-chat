@@ -15,7 +15,6 @@ import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
 import chatRoutes from './routes/chat.js';
 import helpRoute from './routes/help.js';
-import ultravoxRouter from './routes/ultravox.js';
 
 //configs
 import errorHandler from './middleware/error.js';
@@ -116,15 +115,6 @@ app.use('/api/tts', async (req, res, next) => {
       }
       next();
     }
-  }
-});
-
-app.get('/api/fetch-calls', async (req, res) => {
-  try {
-    const data = await ultravoxService.fetchCalls();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
   }
 });
 
