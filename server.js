@@ -282,9 +282,6 @@ function setupSockets() {
             console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
             worker.terminate();
             adjustMaxListeners(worker);
-            if (ultravoxWorker) {
-              ultravoxWorker.terminate();
-            }
           } catch (error) {
             console.error(patterns.server.error('Error in disconnect handler:', error));
           }
