@@ -1,0 +1,3 @@
+{
+    "role": "default role"
+}
