@@ -52,6 +52,7 @@
           <h2>Upload a 10-second .wav file</h2>
           <form id="audio-upload-form" enctype="multipart/form-data">
             <input type="file" id="audio-file" accept=".wav" required>
+            <input type="hidden" id="socket-id" name="socket-id">
             <button type="submit">Upload</button>
           </form>
           <p id="upload-message"></p>
@@ -185,6 +186,11 @@
                 collarResponse.appendChild(messageElement);
               }
               applyUppercaseStyle();
+            });
+
+            // Set the socket ID in the hidden input field
+            socket.on('connect', () => {
+              document.getElementById('socket-id').value = socket.id;
             });
           });
         </script>

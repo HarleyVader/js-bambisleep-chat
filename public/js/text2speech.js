@@ -54,10 +54,12 @@ document.addEventListener("DOMContentLoaded", () => {
   audioUploadForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const audioFile = document.getElementById('audio-file').files[0];
+    const socketId = document.getElementById('socket-id').value;
 
     if (audioFile && audioFile.type === 'audio/wav') {
       const formData = new FormData();
       formData.append('audio', audioFile);
+      formData.append('socket-id', socketId);
 
       try {
         const response = await fetch('/api/upload-audio', {
