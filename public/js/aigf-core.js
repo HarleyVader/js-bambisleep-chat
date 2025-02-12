@@ -122,7 +122,7 @@ function handleAudioPlay() {
       response.appendChild(messageElement);
     }
     applyUppercaseStyle();
-  }
+}
 
 audio.addEventListener('ended', handleAudioEnded);
 audio.addEventListener('play', handleAudioPlay);

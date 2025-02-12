@@ -89,6 +89,10 @@ async function fetchTTS(text, speakerWav, language) {
       outputFilePath
     ]);
 
+    pythonProcess.stderr.on('data', (data) => {
+      console.error(patterns.server.error(`Python stderr: ${data}`));
+    });
+
     pythonProcess.on('close', (code) => {
       if (code === 0) {
         console.log(patterns.server.success('TTS fetch successful.'));
