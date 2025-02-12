@@ -1,3 +1,4 @@
+import fs from 'fs';
 import dotenv from 'dotenv';
 import express from 'express';
 import http from 'http';
@@ -131,6 +132,13 @@ app.post('/api/upload-audio', upload.single('audio'), (req, res) => {
   const filePath = path.join(__dirname, 'uploads', req.file.filename);
   console.log('File uploaded to:', filePath);
 
+  // Store the uploaded file path in the socketStore
+  const socketId = req.headers['socket-id'];
+  if (socketId && socketStore.has(socketId)) {
+    const { files } = socketStore.get(socketId);
+    files.push(filePath);
+  }
+
   res.json({ filePath });
 });
 
@@ -174,7 +182,7 @@ function setupSockets() {
         const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
         adjustMaxListeners(lmstudio);
 
-        socketStore.set(socket.id, { socket, worker: lmstudio });
+        socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
         console.log(patterns.server.success(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
 
         // Prompt for bambiname username
@@ -288,11 +296,22 @@ function setupSockets() {
           try {
             console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
             userSessions.delete(socket.id);
-            const { worker } = socketStore.get(socket.id);
+            const { worker, files } = socketStore.get(socket.id);
             socketStore.delete(socket.id);
             console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
             worker.terminate();
             adjustMaxListeners(worker);
+
+            // Remove the uploaded files
+            files.forEach(filePath => {
+              fs.unlink(filePath, (err) => {
+                if (err) {
+                  console.error(patterns.server.error('Error deleting file:', filePath, err));
+                } else {
+                  console.log(patterns.server.success('Deleted file:', filePath));
+                }
+              });
+            });
           } catch (error) {
             console.error(patterns.server.error('Error in disconnect handler:', error));
           }
