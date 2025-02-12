@@ -6,10 +6,11 @@ import path from 'path';
 import { Worker } from 'worker_threads';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import axios from 'axios';
+
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
+import multer from 'multer';
 
 //routes
 import indexRoute from './routes/index.js';
@@ -118,6 +119,19 @@ app.use('/api/tts', async (req, res, next) => {
       next();
     }
   }
+});
+
+const upload = multer({ dest: 'uploads/' });
+
+app.post('/api/upload-audio', upload.single('audio'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No file uploaded.');
+  }
+
+  const filePath = path.join(__dirname, 'uploads', req.file.filename);
+  console.log('File uploaded to:', filePath);
+
+  res.json({ filePath });
 });
 
 app.locals.footer = footerConfig;

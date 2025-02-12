@@ -48,6 +48,14 @@
             <div id="eye" aria-label="Eye Cursor"></div>
           </div>
         </div>
+        <div id="audio-upload-container">
+          <h2>Upload a 10-second .wav file</h2>
+          <form id="audio-upload-form" enctype="multipart/form-data">
+            <input type="file" id="audio-file" accept=".wav" required>
+            <button type="submit">Upload</button>
+          </form>
+          <p id="upload-message"></p>
+        </div>
       </div>
       <%- include('../views/partials/footer.ejs') %>
         <script src="js/psychodelic-trigger-mania.js"></script>

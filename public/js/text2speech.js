@@ -6,7 +6,10 @@ const audio = document.getElementById('audio');
 function arrayPush(_audioArray, e) {
   document.querySelector("#audio").hidden = true;
 
-  let URL = `https://bambisleep.chat/api/tts?text=${encodeURIComponent(e)}`;
+  const speakerWav = '../bambi.wav';
+  const language = 'en';
+
+  let URL = `https://bambisleep.chat/api/tts?text=${encodeURIComponent(e)}&speakerWav=${encodeURIComponent(speakerWav)}&language=${encodeURIComponent(language)}`;
   _audioArray.push(URL);
 
   return _audioArray;
@@ -42,3 +45,38 @@ async function do_tts(_audioArray) {
     document.querySelector("#message").textContent = "Error playing audio." + e;
   };
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  const audioUploadForm = document.getElementById('audio-upload-form');
+  const uploadMessage = document.getElementById('upload-message');
+
+  audioUploadForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const audioFile = document.getElementById('audio-file').files[0];
+
+    if (audioFile && audioFile.type === 'audio/wav') {
+      const formData = new FormData();
+      formData.append('audio', audioFile);
+
+      try {
+        const response = await fetch('/api/upload-audio', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          uploadMessage.textContent = 'Upload successful!';
+          console.log('Uploaded file path:', result.filePath);
+        } else {
+          uploadMessage.textContent = 'Upload failed. Please try again.';
+        }
+      } catch (error) {
+        console.error('Error uploading audio file:', error);
+        uploadMessage.textContent = 'Error uploading audio file.';
+      }
+    } else {
+      uploadMessage.textContent = 'Please upload a valid .wav file.';
+    }
+  });
+});
