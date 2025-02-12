@@ -119,8 +119,8 @@ app.use('/api/tts', async (req, res, next) => {
       const outputFilePath = await fetchTTS(text, speakerWav, language);
       res.sendFile(outputFilePath);
     } catch (error) {
-      console.error(patterns.server.error('Error fetching TTS audio:'), error);
-      res.status(500).send('Error fetching TTS audio');
+      console.error(patterns.server.error('Error fetching TTS audio:', error));
+      res.status(500).json({ error: 'Error fetching TTS audio', details: error.message });
       next();
     }
   }
