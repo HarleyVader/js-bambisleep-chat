@@ -9,6 +9,7 @@ import cors from 'cors';
 import axios from 'axios';
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
 
 //routes
 import indexRoute from './routes/index.js';
@@ -74,57 +75,42 @@ app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
 });
 
-async function fetchTTS(text) {
-  const url = `http://${process.env.TTS_HOST}:${process.env.TTS_PORT}/api/tts`;
-  const params = { text };
-  const options = {
-    responseType: 'arraybuffer',
-    timeout: 10000,
-    headers: {
-      'Accept': 'application/json, text/plain, */*',
-      'User-Agent': 'axios/1.7.9',
-      'Accept-Encoding': 'gzip, compress, deflate, br'
-    }
-  };
+async function fetchTTS(text, speakerWav, language) {
+  return new Promise((resolve, reject) => {
+    const outputFilePath = path.join(__dirname, 'output.wav');
+    const pythonProcess = spawn('python3', [
+      path.join(__dirname, 'python/tts.py'),
+      text,
+      speakerWav,
+      language,
+      outputFilePath
+    ]);
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const response = await axios.get(url, { params, ...options });
-      return response;
-    } catch (error) {
-      if (attempt < 3 && error.code === 'ECONNRESET') {
-        console.warn(`Attempt ${attempt} failed. Retrying...`);
-        continue;
+    pythonProcess.on('close', (code) => {
+      if (code === 0) {
+        resolve(outputFilePath);
+      } else {
+        reject(new Error(`Python process exited with code ${code}`));
       }
-      throw error;
-    }
-  }
+    });
+
+    pythonProcess.on('error', (error) => {
+      reject(error);
+    });
+  });
 }
 
 app.use('/api/tts', async (req, res, next) => {
-  const text = req.query.text;
-  if (typeof text !== 'string' || text.trim() === '') {
-    res.status(400).send('Invalid text parameter');
+  const { text, speakerWav, language } = req.query;
+  if (typeof text !== 'string' || text.trim() === '' || !speakerWav || !language) {
+    res.status(400).send('Invalid parameters');
   } else {
     try {
-      const response = await fetchTTS(text);
-      res.setHeader('Content-Type', 'audio/wav');
-      res.setHeader('Content-Length', response.data.length);
-      res.send(response.data);
+      const outputFilePath = await fetchTTS(text, speakerWav, language);
+      res.sendFile(outputFilePath);
     } catch (error) {
       console.error(patterns.server.error('Error fetching TTS audio:'), error);
-      if (error.response) {
-        if (error.response.status === 401) {
-          console.error(patterns.server.error('Unauthorized access - invalid token'));
-          res.status(401).send('Unauthorized access');
-        } else {
-          console.error(patterns.server.error('Error details:'), error.response.data.toString());
-          res.status(500).send('Error fetching TTS audio');
-        }
-      } else {
-        console.error(patterns.server.error('Error details:'), error.message);
-        res.status(500).send('Error fetching TTS audio');
-      }
+      res.status(500).send('Error fetching TTS audio');
       next();
     }
   }
