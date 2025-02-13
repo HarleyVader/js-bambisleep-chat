@@ -7,7 +7,7 @@ import os from 'os';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let cacheDir = path.join(__dirname, 'cache');
+let cacheDir = path.join(__dirname, 'a-cache');
 
 // Ensure the cache directory exists
 try {
