@@ -1,7 +1,7 @@
 import sys
-import requests
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
+from TTS.api import TTS
 
 def main():
     if len(sys.argv) < 5:
@@ -22,24 +22,12 @@ def main():
         # Load environment variables from .env file
         load_dotenv(dotenv_path='/f:/js-bambisleep-chat-MK-VIII/.env')
 
-        # Fetch the Python port from the .env file
-        python_port = os.getenv('PYTHON_PORT', '5002')
+        # Initialize TTS
+        tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False, gpu=False)
 
-        # Connect to the remote host for TTS processing
-        remote_host = f"http://192.168.0.178:{python_port}/tts"
-        response = requests.post(remote_host, json={
-            "text": text,
-            "speaker_wav": speaker_wav,
-            "language": language
-        })
-
-        if response.status_code == 200:
-            with open(output_file, 'wb') as f:
-                f.write(response.content)
-            print("TTS synthesis completed successfully.")
-        else:
-            print(f"Error during TTS synthesis: {response.text}")
-            exit(1)
+        # Synthesize speech
+        tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=output_file)
+        print("TTS synthesis completed successfully.")
     except Exception as e:
         print(f"Error during TTS synthesis: {e}")
         exit(1)

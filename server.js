@@ -82,11 +82,10 @@ async function fetchTTS(text, speakerWav, language) {
 
   // Check if required Python modules are installed
   try {
-    execSync('python3 -c "import requests"');
-    execSync('python3 -c "import dotenv"');
+    execSync('python3 -c "import TTS"');
   } catch (error) {
-    console.error(patterns.server.error("Required Python modules are not installed. Please install them by running 'pip install requests python-dotenv'."));
-    throw new Error("Required Python modules are not installed. Please install them by running 'pip install requests python-dotenv'.");
+    console.error(patterns.server.error("Required Python modules are not installed. Please install them by running 'pip install TTS'.")); 
+    throw new Error("Required Python modules are not installed. Please install them by running 'pip install TTS'.");
   }
 
   return new Promise((resolve, reject) => {
