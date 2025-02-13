@@ -80,12 +80,13 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 async function fetchTTS(text, speakerWav, language) {
   console.log(patterns.server.info('Starting TTS fetch...'));
 
-  // Check if torch is installed
+  // Check if required Python modules are installed
   try {
     execSync('python3 -c "import requests"');
+    execSync('python3 -c "import dotenv"');
   } catch (error) {
-    console.error(patterns.server.error("The 'requests' module is not installed. Please install it by running 'pip install requests'.")); 
-    throw new Error("The 'requests' module is not installed. Please install it by running 'pip install requests'.");
+    console.error(patterns.server.error("Required Python modules are not installed. Please install them by running 'pip install requests python-dotenv'."));
+    throw new Error("Required Python modules are not installed. Please install them by running 'pip install requests python-dotenv'.");
   }
 
   return new Promise((resolve, reject) => {
