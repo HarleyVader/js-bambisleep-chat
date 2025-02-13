@@ -22,11 +22,11 @@ def main():
         # Load environment variables from .env file
         load_dotenv(dotenv_path='/f:/js-bambisleep-chat-MK-VIII/.env')
 
-        # Fetch the port from the .env file
-        port = os.getenv('LMS_PORT', '5000')
+        # Fetch the Python port from the .env file
+        python_port = os.getenv('PYTHON_PORT', '5002')
 
         # Connect to the remote host for TTS processing
-        remote_host = f"http://192.168.0.178:{port}/tts"
+        remote_host = f"http://192.168.0.178:{python_port}/tts"
         response = requests.post(remote_host, json={
             "text": text,
             "speaker_wav": speaker_wav,
