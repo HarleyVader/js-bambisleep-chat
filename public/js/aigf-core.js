@@ -18,6 +18,11 @@ socket.on('connect', () => {
     console.log('Connected to BambiSleep chat server! Socket ID:', socket.id);
 });
 
+socket.on('connect_error', (error) => {
+    console.error('Connection error:', error);
+    alert('Connection error. Please check your network and try again.');
+});
+
 let debounceTimeout;
 submit.addEventListener('click', (event) => {
     event.preventDefault();
