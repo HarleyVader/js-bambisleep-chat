@@ -6,13 +6,27 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const cacheDir = path.join(__dirname, 'cache');
+let cacheDir = path.join(__dirname, 'cache');
 
 // Ensure the cache directory exists
 try {
     await fs.access(cacheDir);
-} catch {
-    await fs.mkdir(cacheDir);
+} catch (error) {
+    console.error(`[TTS WORKER ERROR] Access to cache directory failed: ${error.message}`);
+    try {
+        await fs.mkdir(cacheDir);
+        console.log(`[TTS WORKER] Cache directory created: ${cacheDir}`);
+    } catch (mkdirError) {
+        console.error(`[TTS WORKER ERROR] Failed to create cache directory: ${mkdirError.message}`);
+        // Fallback to a different directory
+        cacheDir = path.join(os.tmpdir(), 'tts_cache');
+        try {
+            await fs.access(cacheDir);
+        } catch {
+            await fs.mkdir(cacheDir);
+        }
+        console.log(`[TTS WORKER] Fallback cache directory created: ${cacheDir}`);
+    }
 }
 
 async function generateTTS(text, speakerWav, language) {
