@@ -3,6 +3,12 @@ let _audioArray = [];
 let duration = 0;
 const audio = document.getElementById('audio');
 
+function displayErrorMessage(message) {
+  const errorMessageElement = document.getElementById('error-message');
+  errorMessageElement.textContent = message;
+  errorMessageElement.style.display = 'block';
+}
+
 function arrayPush(_audioArray, e, speakerWav = 'bambi.wav') {
   document.querySelector("#audio").hidden = true;
 
@@ -43,7 +49,7 @@ async function do_tts(_audioArray) {
   audio.onerror = function (e) {
     console.error("Error playing audio:", e);
     document.querySelector("#message").textContent = "Error playing audio. Please try again later.";
-    alert("Error playing audio. Please try again later.");
+    displayErrorMessage("Error playing audio. Please try again later.");
     if (e.target.error.code === e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED) {
       console.error("Audio source not supported. Please check the URL.");
     }
