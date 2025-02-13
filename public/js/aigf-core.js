@@ -7,9 +7,7 @@ const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
 let currentMessage = '';
 
-const socket = io('https://bambisleep.chat', {
-  transports: ['websocket', 'polling']
-});
+const socket = io();
 
 socket.on('disconnect', () => {
     console.log('Disconnected');

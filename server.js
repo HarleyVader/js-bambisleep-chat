@@ -28,14 +28,7 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: ['https://bambisleep.chat', 'https://fickdichselber.com'],
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true
-  }
-});
+const io = new Server(server);
 
 //filteredwords
 const __filename = fileURLToPath(import.meta.url);
