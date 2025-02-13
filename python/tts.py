@@ -21,7 +21,7 @@ def main():
 
     try:
         # Load environment variables from .env file
-        load_dotenv(dotenv_path='/f:/js-bambisleep-chat-MK-VIII/.env')
+        load_dotenv(dotenv_path='/mnt/f/js-bambisleep-chat-MK-VIII/.env')
 
         # Initialize TTS
         tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False, gpu=False)

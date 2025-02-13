@@ -85,14 +85,9 @@ if (!fs.existsSync(cacheDir)) {
   fs.mkdirSync(cacheDir);
 }
 
+const { generateTTS, deleteFile } = require('./workers/tts_worker.js');
+
 async function fetchTTS(text, speakerWav, language) {
-  const cacheFile = path.join(cacheDir, `${encodeURIComponent(text)}_${speakerWav}_${language}.wav`);
-
-  // Check if the file is already cached
-  if (fs.existsSync(cacheFile)) {
-    return cacheFile;
-  }
-
   console.log(patterns.server.info('Starting TTS fetch...'));
   console.log(patterns.server.info(`Request parameters: text=${text}, speakerWav=${speakerWav}, language=${language}`));
 
@@ -101,20 +96,12 @@ async function fetchTTS(text, speakerWav, language) {
 
   while (attempt < maxRetries) {
     try {
-      const response = await axios.get('https://bambisleep.chat/api/tts', {
-        params: { text, speakerWav, language },
-        responseType: 'arraybuffer'
-      });
-
-      console.log(patterns.server.info(`TTS API response status: ${response.status}`));
-
-      // Save the fetched TTS audio to the cache directory
-      fs.writeFileSync(cacheFile, response.data);
+      const ttsFile = await generateTTS(text, speakerWav, language);
       console.log(patterns.server.success('TTS fetch successful.'));
-      return cacheFile;
+      return ttsFile;
     } catch (error) {
       attempt++;
-      console.error(patterns.server.error(`[BACKEND ERROR] Attempt ${attempt} - Error fetching TTS audio:`, error.response ? error.response.data : error.message));
+      console.error(patterns.server.error(`[BACKEND ERROR] Attempt ${attempt} - Error fetching TTS audio:`, error.message));
 
       if (attempt >= maxRetries) {
         throw new Error('Error fetching TTS audio after multiple attempts');
@@ -128,7 +115,16 @@ app.get('/api/tts', async (req, res) => {
 
   try {
     const ttsFile = await fetchTTS(text, speakerWav, language);
-    res.sendFile(ttsFile);
+    res.sendFile(ttsFile, (err) => {
+      if (err) {
+        console.error(patterns.server.error('[BACKEND ERROR] Error sending TTS file:', err.message));
+        res.status(500).send('Internal Server Error');
+      } else {
+        deleteFile(ttsFile).catch((deleteErr) => {
+          console.error(patterns.server.error('[BACKEND ERROR] Error deleting TTS file:', deleteErr.message));
+        });
+      }
+    });
   } catch (error) {
     console.error(patterns.server.error('[BACKEND ERROR] /api/tts route:', error.message));
     res.status(500).send('Internal Server Error');
