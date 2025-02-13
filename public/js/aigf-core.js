@@ -107,8 +107,8 @@ function handleAudioEnded() {
         text = _textArray.shift();
     } else if (_textArray.length === 0) {
         state = true;
-        return;
-    }
+    return;
+    } 
     arrayPush(_audioArray, text);
     do_tts(_audioArray);
 }

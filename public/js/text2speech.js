@@ -45,6 +45,7 @@ async function do_tts(_audioArray) {
   audio.onended = function () {
     console.log("audio ended");
     document.querySelector("#message").textContent = "Finished!";
+    handleAudioEnded();
   };
   audio.onerror = function (e) {
     console.error("Error playing audio:", e);

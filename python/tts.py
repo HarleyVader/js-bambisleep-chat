@@ -24,7 +24,7 @@ def main():
         load_dotenv(dotenv_path='/f:/js-bambisleep-chat-MK-VIII/.env')
 
         # Initialize TTS
-        tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False, gpu=False)
+        tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC_ph", progress_bar=False, gpu=False)
 
         # Synthesize speech
         tts.tts_to_file(text=text, speaker_wav=speaker_wav, file_path=output_file)
