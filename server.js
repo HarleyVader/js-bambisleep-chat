@@ -10,7 +10,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
-import axios from 'axios'; // Add this line
+import axios from 'axios'; 
 
 //routes
 import indexRoute from './routes/index.js';
@@ -24,7 +24,8 @@ import { patterns } from './middleware/bambisleepChalk.js';
 import footerConfig from './config/footer.config.js';
 
 //workers
-import { deleteFile } from './workers/python/tts_worker.js'; // Remove generateTTS import
+import { deleteFile } from './workers/python/tts_worker.js';
+const upload = multer({ dest: 'a-uploads/' });
 
 dotenv.config();
 
@@ -32,7 +33,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-//filteredwords
+//filteredWords
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -79,7 +80,7 @@ app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
 });
 
-const cacheDir = path.join(__dirname, '.cache');
+const cacheDir = path.join(__dirname, 'a-cache');
 
 try {
   await fsPromises.access(cacheDir);
@@ -147,7 +148,7 @@ app.get('/api/tts', async (req, res) => {
   }
 });
 
-const upload = multer({ dest: '.uploads/' });
+
 
 app.post('/api/upload-audio', upload.single('audio'), (req, res) => {
   if (!req.file) {
