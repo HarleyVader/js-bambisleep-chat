@@ -81,8 +81,12 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 const cacheDir = path.join(__dirname, 'cache');
 
 // Ensure the cache directory exists
-if (!await fsPromises.access(cacheDir).catch(() => true)) {
-  await fsPromises.mkdir(cacheDir);
+try {
+  await fsPromises.access(cacheDir);
+} catch {
+  if (error.code !== 'EEXIST') {
+    await fsPromises.mkdir(cacheDir);
+  }
 }
 
 async function fetchTTS(text, speakerWav, language) {
