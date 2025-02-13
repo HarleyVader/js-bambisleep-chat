@@ -85,8 +85,6 @@ if (!await fsPromises.access(cacheDir).catch(() => true)) {
   await fsPromises.mkdir(cacheDir);
 }
 
-
-
 async function fetchTTS(text, speakerWav, language) {
   console.log(patterns.server.info('Starting TTS fetch...'));
   console.log(patterns.server.info(`Request parameters: text=${text}, speakerWav=${speakerWav}, language=${language}`));
@@ -452,33 +450,3 @@ async function initializeServer() {
 }
 
 initializeServer();
-
-// filepath: /public/js/text2speech.js
-async function do_tts(_audioArray) {
-  document.querySelector("#message").textContent = "Synthesizing...";
-
-  let currentURL = arrayShift(_audioArray);
-  audio.src = currentURL;
-  console.log("audio.src ", audio.src);
-  audio.load();
-  audio.onloadedmetadata = function () {
-    console.log("audio ", audio);
-    console.log("audio.duration ", audio.duration);
-    document.querySelector("#message").textContent = "Playing...";
-    audio.play();
-  };
-  audio.onended = function () {
-    console.log("audio ended");
-    document.querySelector("#message").textContent = "Finished!";
-    handleAudioEnded();
-  };
-  audio.onerror = function (e) {
-    console.error("Error playing audio:", e);
-    console.error("Audio source URL:", audio.src);
-    document.querySelector("#message").textContent = "Error playing audio. Please try again later.";
-    displayErrorMessage("Error playing audio. Please try again later.");
-    if (e.target.error.code === e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED) {
-      console.error("Audio source not supported. Please check the URL.");
-    }
-  };
-}

@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,18 +19,26 @@ try {
 async function generateTTS(text, speakerWav, language) {
     const cacheFile = path.join(cacheDir, `${encodeURIComponent(text)}_${speakerWav}_${language}.wav`);
 
-    return new Promise((resolve, reject) => {
-        const command = `wsl python3 /mnt/f/js-bambisleep-chat-MK-VIII/python/tts.py "${text}" "${speakerWav}" "${language}" "${cacheFile}"`;
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`[BACKEND WORKER ERROR] Error generating TTS: ${stderr}`);
-                reject(error);
-            } else {
-                console.log(`[BACKEND WORKER] TTS generated successfully: ${stdout}`);
-                resolve(cacheFile);
-            }
+    try {
+        const pythonPort = process.env.PYTHON_PORT || 5002;
+        const pythonHost = process.env.PYTHON_HOST || '192.168.0.178';
+        const response = await fetch(`http://${pythonHost}:${pythonPort}/generate-tts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, speaker: speakerWav, language })
         });
-    });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error);
+        }
+
+        const data = await response.json();
+        return data.audio_file;
+    } catch (error) {
+        console.error(`[BACKEND WORKER ERROR] Error generating TTS: ${error.message}`);
+        throw error;
+    }
 }
 
 async function deleteFile(filePath) {
