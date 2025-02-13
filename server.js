@@ -79,7 +79,7 @@ app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
 });
 
-const cacheDir = path.join(__dirname, 'cache');
+const cacheDir = path.join(__dirname, '.cache');
 
 try {
   await fsPromises.access(cacheDir);
@@ -88,7 +88,6 @@ try {
     await fsPromises.mkdir(cacheDir);
   }
 }
-
 
 async function fetchTTS(text, speakerWav, language) {
   console.log(patterns.server.info('Starting TTS fetch...'));
@@ -113,6 +112,7 @@ async function fetchTTS(text, speakerWav, language) {
         console.log(patterns.server.success('TTS fetch successful.'));
         return ttsFile;
       } else {
+        console.error(patterns.server.error(`Failed to fetch TTS audio: ${response.status} - ${response.statusText}`));
         throw new Error('Failed to fetch TTS audio');
       }
     } catch (error) {
@@ -143,7 +143,7 @@ app.get('/api/tts', async (req, res) => {
     });
   } catch (error) {
     console.error(patterns.server.error('[BACKEND ERROR] /api/tts route:', error.message));
-    res.status(500).send('Internal Server Error');
+    res.status(500).json({ error: 'Error fetching TTS audio after multiple attempts' });
   }
 });
 
