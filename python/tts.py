@@ -1,10 +1,7 @@
 import sys
-try:
-    import torch
-except ImportError as e:
-    print("Error: The 'torch' module is not installed. Please install it by running 'pip install torch'.")
-    exit(1)
-from TTS.api import TTS
+import requests
+from dotenv import load_dotenv
+import os
 
 def main():
     if len(sys.argv) < 5:
@@ -22,10 +19,27 @@ def main():
     print(f"Output File: {output_file}")
 
     try:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
-        tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=output_file)
-        print("TTS synthesis completed successfully.")
+        # Load environment variables from .env file
+        load_dotenv(dotenv_path='/f:/js-bambisleep-chat-MK-VIII/.env')
+
+        # Fetch the port from the .env file
+        port = os.getenv('LMS_PORT', '5000')
+
+        # Connect to the remote host for TTS processing
+        remote_host = f"http://192.168.0.178:{port}/tts"
+        response = requests.post(remote_host, json={
+            "text": text,
+            "speaker_wav": speaker_wav,
+            "language": language
+        })
+
+        if response.status_code == 200:
+            with open(output_file, 'wb') as f:
+                f.write(response.content)
+            print("TTS synthesis completed successfully.")
+        else:
+            print(f"Error during TTS synthesis: {response.text}")
+            exit(1)
     except Exception as e:
         print(f"Error during TTS synthesis: {e}")
         exit(1)

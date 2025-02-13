@@ -82,10 +82,10 @@ async function fetchTTS(text, speakerWav, language) {
 
   // Check if torch is installed
   try {
-    execSync('python3 -c "import torch"');
+    execSync('python3 -c "import requests"');
   } catch (error) {
-    console.error(patterns.server.error("The 'torch' module is not installed. Please install it by running 'pip install torch'."));
-    throw new Error("The 'torch' module is not installed. Please install it by running 'pip install torch'.");
+    console.error(patterns.server.error("The 'requests' module is not installed. Please install it by running 'pip install requests'.")); 
+    throw new Error("The 'requests' module is not installed. Please install it by running 'pip install requests'.");
   }
 
   return new Promise((resolve, reject) => {
