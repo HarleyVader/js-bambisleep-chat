@@ -94,7 +94,7 @@ async function fetchTTS(text, speakerWav, language) {
 
     console.log(patterns.server.info(`TTS API response status: ${response.status}`));
 
-    const outputFilePath = path.join(__dirname, 'bambi.wav');
+    const outputFilePath = path.join(__dirname, 'public', 'bambi.wav');
     fs.writeFileSync(outputFilePath, response.data);
     console.log(patterns.server.success('TTS fetch successful.'));
     return outputFilePath;
