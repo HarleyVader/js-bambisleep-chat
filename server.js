@@ -24,7 +24,7 @@ import { patterns } from './middleware/bambisleepChalk.js';
 import footerConfig from './config/footer.config.js';
 
 //workers
-import { deleteFile } from './workers/tts_worker.js'; // Remove generateTTS import
+import { deleteFile } from './workers/python/tts_worker.js'; // Remove generateTTS import
 
 dotenv.config();
 
@@ -147,7 +147,7 @@ app.get('/api/tts', async (req, res) => {
   }
 });
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: '.uploads/' });
 
 app.post('/api/upload-audio', upload.single('audio'), (req, res) => {
   if (!req.file) {
