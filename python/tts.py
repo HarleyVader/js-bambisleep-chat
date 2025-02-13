@@ -27,7 +27,7 @@ def main():
         tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False, gpu=False)
 
         # Synthesize speech
-        tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=output_file)
+        tts.tts_to_file(text=text, speaker_wav=speaker_wav, file_path=output_file)
         print("TTS synthesis completed successfully.")
     except Exception as e:
         logging.error("Error during TTS synthesis", exc_info=True)
