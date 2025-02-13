@@ -1,5 +1,9 @@
 import sys
-import torch
+try:
+    import torch
+except ImportError as e:
+    print("Error: The 'torch' module is not installed. Please install it by running 'pip install torch'.")
+    exit(1)
 from TTS.api import TTS
 
 def main():
