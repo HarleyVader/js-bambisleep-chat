@@ -10,25 +10,30 @@ const __dirname = path.dirname(__filename);
 let cacheDir = path.join(__dirname, 'a-cache');
 
 // Ensure the cache directory exists
-try {
-    await fs.access(cacheDir);
-} catch (error) {
-    console.error(`[TTS WORKER ERROR] Access to cache directory failed: ${error.message}`);
+async function ensureCacheDir() {
     try {
-        await fs.mkdir(cacheDir);
-        console.log(`[TTS WORKER] Cache directory created: ${cacheDir}`);
-    } catch (mkdirError) {
-        console.error(`[TTS WORKER ERROR] Failed to create cache directory: ${mkdirError.message}`);
-        // Fallback to a different directory
-        cacheDir = path.join(os.tmpdir(), 'tts_cache');
+        await fs.access(cacheDir);
+    } catch (error) {
+        console.error(`[TTS WORKER ERROR] Access to cache directory failed: ${error.message}`);
         try {
-            await fs.access(cacheDir);
-        } catch {
             await fs.mkdir(cacheDir);
+            console.log(`[TTS WORKER] Cache directory created: ${cacheDir}`);
+        } catch (mkdirError) {
+            console.error(`[TTS WORKER ERROR] Failed to create cache directory: ${mkdirError.message}`);
+            // Fallback to a different directory
+            cacheDir = path.join(os.tmpdir(), 'tts_cache');
+            try {
+                await fs.access(cacheDir);
+            } catch {
+                await fs.mkdir(cacheDir);
+            }
+            console.log(`[TTS WORKER] Fallback cache directory created: ${cacheDir}`);
         }
-        console.log(`[TTS WORKER] Fallback cache directory created: ${cacheDir}`);
     }
 }
+
+// Call the function to ensure the cache directory exists
+await ensureCacheDir();
 
 async function generateTTS(text, speakerWav, language) {
     const outputFile = path.join(cacheDir, `${speakerWav}_${language}_${text.slice(0, 10)}.wav`);
