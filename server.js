@@ -80,6 +80,7 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 
 async function fetchTTS(text, speakerWav, language) {
   console.log(patterns.server.info('Starting TTS fetch...'));
+  console.log(patterns.server.info(`Request parameters: text=${text}, speakerWav=${speakerWav}, language=${language}`));
 
   try {
     const response = await axios.get(`http://192.168.0.178:5002/api/tts`, {
@@ -90,6 +91,8 @@ async function fetchTTS(text, speakerWav, language) {
       },
       responseType: 'arraybuffer'
     });
+
+    console.log(patterns.server.info(`TTS API response status: ${response.status}`));
 
     const outputFilePath = path.join(__dirname, 'bambi.wav');
     fs.writeFileSync(outputFilePath, response.data);
