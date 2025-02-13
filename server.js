@@ -102,10 +102,10 @@ async function fetchTTS(text, speakerWav, language) {
     try {
       const pythonPort = process.env.TTS_PORT || 5002;
       const pythonHost = process.env.HOST || '192.168.0.178';
-      console.log(patterns.server.info(`Attempt ${attempt + 1}: Sending request to TTS server at http://${pythonHost}:${pythonPort}/generate-tts`));
-      const response = await axios.post(`http://${pythonHost}:${pythonPort}/generate-tts`, {
+      console.log(patterns.server.info(`Attempt ${attempt + 1}: Sending request to TTS server at http://${pythonHost}:${pythonPort}/api/tts`));
+      const response = await axios.post(`http://${pythonHost}:${pythonPort}/api/tts`, {
         text,
-        speaker: speakerWav,
+        speaker_wav: speakerWav,
         language,
         use_cuda: true
       });
