@@ -26,6 +26,7 @@ import footerConfig from './config/footer.config.js';
 //workers
 import { deleteFile } from './workers/python/tts_worker.js';
 const upload = multer({ dest: 'a-uploads/' });
+const cacheDir = path.join(__dirname, 'a-cache');
 
 dotenv.config();
 
@@ -80,7 +81,7 @@ app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
 });
 
-const cacheDir = path.join(__dirname, 'a-cache');
+
 
 try {
   await fsPromises.access(cacheDir);
