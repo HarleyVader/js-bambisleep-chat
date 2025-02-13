@@ -31,6 +31,13 @@ def main():
         print("TTS synthesis completed successfully.")
     except Exception as e:
         logging.error("Error during TTS synthesis", exc_info=True)
+        logging.error(f"Text: {text}")
+        logging.error(f"Speaker WAV: {speaker_wav}")
+        logging.error(f"Language: {language}")
+        logging.error(f"Output File: {output_file}")
+        logging.error(f"Exception: {e}")
+        logging.error("Exception type: %s", type(e))
+        logging.error("Exception args: %s", e.args)
         exit(1)
 
 if __name__ == "__main__":

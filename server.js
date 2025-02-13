@@ -96,7 +96,7 @@ async function fetchTTS(text, speakerWav, language) {
     console.log(patterns.server.success('TTS fetch successful.'));
     return outputFilePath;
   } catch (error) {
-    console.error(patterns.server.error('Error fetching TTS audio:', error));
+    console.error(patterns.server.error('Error fetching TTS audio:', error.response ? error.response.data : error.message));
     throw new Error('Error fetching TTS audio');
   }
 }
