@@ -9,7 +9,9 @@ const __dirname = path.dirname(__filename);
 const cacheDir = path.join(__dirname, 'cache');
 
 // Ensure the cache directory exists
-if (!await fs.access(cacheDir).catch(() => true)) {
+try {
+    await fs.access(cacheDir);
+} catch {
     await fs.mkdir(cacheDir);
 }
 
