@@ -1,5 +1,5 @@
 node_modules
-.env*
+.env
 .vscode
 worker.test.js
 nodemon.json
