@@ -56,7 +56,7 @@ async function do_tts(_audioArray) {
       console.error("[FRONTEND ERROR] Audio source not supported. Please check the URL.");
     }
   };
-};
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const audioUploadForm = document.getElementById('audio-upload-form');

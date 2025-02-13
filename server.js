@@ -82,7 +82,7 @@ const cacheDir = path.join(__dirname, 'cache');
 
 // Ensure the cache directory exists
 if (!fs.existsSync(cacheDir)) {
-    fs.mkdirSync(cacheDir);
+  fs.mkdirSync(cacheDir);
 }
 
 async function fetchTTS(text, speakerWav, language) {
@@ -90,44 +90,49 @@ async function fetchTTS(text, speakerWav, language) {
 
   // Check if the file is already cached
   if (fs.existsSync(cacheFile)) {
-      return cacheFile;
+    return cacheFile;
   }
 
   console.log(patterns.server.info('Starting TTS fetch...'));
   console.log(patterns.server.info(`Request parameters: text=${text}, speakerWav=${speakerWav}, language=${language}`));
 
-  try {
-    const response = await axios.get(`http://192.168.0.178:5002/api/tts`, {
-      params: {
-        text: text,
-        speakerWav: speakerWav,
-        language: language
-      },
-      responseType: 'arraybuffer'
-    });
+  const maxRetries = 3;
+  let attempt = 0;
 
-    console.log(patterns.server.info(`TTS API response status: ${response.status}`));
+  while (attempt < maxRetries) {
+    try {
+      const response = await axios.get('https://bambisleep.chat/api/tts', {
+        params: { text, speakerWav, language },
+        responseType: 'arraybuffer'
+      });
 
-    const outputFilePath = path.join(__dirname, 'public', 'bambi.wav');
-    fs.writeFileSync(outputFilePath, response.data);
-    console.log(patterns.server.success('TTS fetch successful.'));
-    return outputFilePath;
-  } catch (error) {
-    console.error(patterns.server.error('[BACKEND ERROR] Error fetching TTS audio:', error.response ? error.response.data : error.message));
-    throw new Error('Error fetching TTS audio');
+      console.log(patterns.server.info(`TTS API response status: ${response.status}`));
+
+      // Save the fetched TTS audio to the cache directory
+      fs.writeFileSync(cacheFile, response.data);
+      console.log(patterns.server.success('TTS fetch successful.'));
+      return cacheFile;
+    } catch (error) {
+      attempt++;
+      console.error(patterns.server.error(`[BACKEND ERROR] Attempt ${attempt} - Error fetching TTS audio:`, error.response ? error.response.data : error.message));
+
+      if (attempt >= maxRetries) {
+        throw new Error('Error fetching TTS audio after multiple attempts');
+      }
+    }
   }
 }
 
 app.get('/api/tts', async (req, res) => {
-    const { text, speakerWav, language } = req.query;
+  const { text, speakerWav, language } = req.query;
 
-    try {
-        const ttsFile = await fetchTTS(text, speakerWav, language);
-        res.sendFile(ttsFile);
-    } catch (error) {
-        console.error(patterns.server.error('[BACKEND ERROR] /api/tts route:', error.message));
-        res.status(500).send('Internal Server Error');
-    }
+  try {
+    const ttsFile = await fetchTTS(text, speakerWav, language);
+    res.sendFile(ttsFile);
+  } catch (error) {
+    console.error(patterns.server.error('[BACKEND ERROR] /api/tts route:', error.message));
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 const upload = multer({ dest: 'uploads/' });
