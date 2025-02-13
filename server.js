@@ -83,7 +83,7 @@ const cacheDir = path.join(__dirname, 'cache');
 // Ensure the cache directory exists
 try {
   await fsPromises.access(cacheDir);
-} catch {
+} catch (error) {
   if (error.code !== 'EEXIST') {
     await fsPromises.mkdir(cacheDir);
   }
