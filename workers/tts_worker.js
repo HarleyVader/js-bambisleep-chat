@@ -17,8 +17,6 @@ try {
 }
 
 async function generateTTS(text, speakerWav, language) {
-    const cacheFile = path.join(cacheDir, `${encodeURIComponent(text)}_${speakerWav}_${language}.wav`);
-
     try {
         const pythonPort = process.env.PYTHON_PORT || 5002;
         const pythonHost = process.env.PYTHON_HOST || '192.168.0.178';
