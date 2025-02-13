@@ -99,7 +99,9 @@ async function fetchTTS(text, speakerWav, language) {
 
   while (attempt < maxRetries) {
     try {
-      const response = await axios.post(`http://${process.env.HOST}:${process.env.PYTHON_PORT}/generate-tts`, {
+      const pythonPort = process.env.TTS_PORT || 5002;
+      const pythonHost = process.env.HOST || '192.168.0.178';
+      const response = await axios.post(`http://${pythonHost}:${pythonPort}/generate-tts`, {
         text,
         speaker: speakerWav,
         language,
