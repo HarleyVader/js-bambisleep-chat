@@ -78,7 +78,21 @@ app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
 });
 
+const cacheDir = path.join(__dirname, 'cache');
+
+// Ensure the cache directory exists
+if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir);
+}
+
 async function fetchTTS(text, speakerWav, language) {
+  const cacheFile = path.join(cacheDir, `${encodeURIComponent(text)}_${speakerWav}_${language}.wav`);
+
+  // Check if the file is already cached
+  if (fs.existsSync(cacheFile)) {
+      return cacheFile;
+  }
+
   console.log(patterns.server.info('Starting TTS fetch...'));
   console.log(patterns.server.info(`Request parameters: text=${text}, speakerWav=${speakerWav}, language=${language}`));
 
@@ -97,33 +111,22 @@ async function fetchTTS(text, speakerWav, language) {
     const outputFilePath = path.join(__dirname, 'public', 'bambi.wav');
     fs.writeFileSync(outputFilePath, response.data);
     console.log(patterns.server.success('TTS fetch successful.'));
-    return outputFilePath;
+    return cacheFile;
   } catch (error) {
     console.error(patterns.server.error('Error fetching TTS audio:', error.response ? error.response.data : error.message));
     throw new Error('Error fetching TTS audio');
   }
 }
 
-app.use('/api/tts', async (req, res, next) => {
-  const { text, speakerWav, language } = req.query;
-  if (typeof text !== 'string' || text.trim() === '' || !speakerWav || !language) {
-    res.status(400).send('Invalid parameters');
-  } else {
+app.get('/api/tts', async (req, res) => {
+    const { text, speakerWav, language } = req.query;
+
     try {
-      const outputFilePath = await fetchTTS(text, speakerWav, language);
-      console.log(patterns.server.info(`Sending file: ${outputFilePath}`));
-      res.sendFile(outputFilePath, (err) => {
-        if (err) {
-          console.error(patterns.server.error('Error sending file:', err));
-          res.status(500).send('Error sending file');
-        }
-      });
+        const ttsFile = await fetchTTS(text, speakerWav, language);
+        res.sendFile(ttsFile);
     } catch (error) {
-      console.error(patterns.server.error('Error fetching TTS audio:', error));
-      res.status(500).json({ error: 'Error fetching TTS audio', details: error.message });
-      next();
+        res.status(500).send('Internal Server Error');
     }
-  }
 });
 
 const upload = multer({ dest: 'uploads/' });
