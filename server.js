@@ -207,7 +207,7 @@ function setupSockets() {
         console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
         userSessions.add(socket.id);
 
-        const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
+        const lmstudio = new Worker(path.join(__dirname, 'workers/js/lmstudio.js'));
         adjustMaxListeners(lmstudio);
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
