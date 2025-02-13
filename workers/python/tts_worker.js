@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
+import { colors, patterns } from '../middleware/bambisleepChalk.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,12 +15,12 @@ async function ensureCacheDir() {
     try {
         await fs.access(cacheDir);
     } catch (error) {
-        console.error(`[TTS WORKER ERROR] Access to cache directory failed: ${error.message}`);
+        console.error(patterns.server.error(`[TTS WORKER ERROR] Access to a-cache directory failed: ${error.message}`));
         try {
             await fs.mkdir(cacheDir, { recursive: true });
-            console.log(`[TTS WORKER] Cache directory created: ${cacheDir}`);
+            console.log(colors.primary(`[TTS WORKER] Cache directory created: ${cacheDir}`));
         } catch (mkdirError) {
-            console.error(`[TTS WORKER ERROR] Failed to create cache directory: ${mkdirError.message}`);
+            console.error(patterns.server.error(`[TTS WORKER ERROR] Failed to create cache directory: ${mkdirError.message}`));
             // Fallback to a different directory
             cacheDir = path.join(os.tmpdir(), 'tts_cache');
             try {
@@ -27,7 +28,7 @@ async function ensureCacheDir() {
             } catch {
                 await fs.mkdir(cacheDir, { recursive: true });
             }
-            console.log(`[TTS WORKER] Fallback cache directory created: ${cacheDir}`);
+            console.log(colors.primary(`[TTS WORKER] Fallback cache directory created: ${cacheDir}`));
         }
     }
 }
@@ -50,19 +51,19 @@ async function generateTTS(text, speakerWav, language) {
         ]);
 
         pythonProcess.stdout.on('data', (data) => {
-            console.log(`[TTS WORKER] stdout: ${data}`);
+            console.log(colors.primaryAlt(`[TTS WORKER] stdout: ${data}`));
         });
 
         pythonProcess.stderr.on('data', (data) => {
-            console.error(`[TTS WORKER ERROR] stderr: ${data}`);
+            console.error(patterns.server.error(`[TTS WORKER ERROR] stderr: ${data}`));
         });
 
         pythonProcess.on('close', (code) => {
             if (code === 0) {
-                console.log(`[TTS WORKER] TTS generation successful, output file: ${outputFile}`);
+                console.log(colors.secondary(`[TTS WORKER] TTS generation successful, output file: ${outputFile}`));
                 resolve(outputFile);
             } else {
-                reject(new Error(`[TTS WORKER ERROR] TTS generation failed with exit code ${code}`));
+                reject(new Error(patterns.server.error(`[TTS WORKER ERROR] TTS generation failed with exit code ${code}`)));
             }
         });
     });
@@ -71,9 +72,9 @@ async function generateTTS(text, speakerWav, language) {
 async function deleteFile(filePath) {
     try {
         await fs.unlink(filePath);
-        console.log(`[BACKEND WORKER] File deleted successfully: ${filePath}`);
+        console.log(colors.tertiary(`[BACKEND WORKER] File deleted successfully: ${filePath}`));
     } catch (err) {
-        console.error(`[BACKEND WORKER ERROR] Error deleting file: ${filePath}`, err);
+        console.error(patterns.server.error(`[BACKEND WORKER ERROR] Error deleting file: ${filePath}`), err);
         throw err;
     }
 }
