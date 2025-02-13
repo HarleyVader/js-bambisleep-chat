@@ -7,7 +7,7 @@ const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
 let currentMessage = '';
 
-const socket = io('https://bambisleep.chat', 'https://fickdichselber.com', {
+const socket = io('https://bambisleep.chat', {
   transports: ['websocket', 'polling']
 });
 
