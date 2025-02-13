@@ -1,6 +1,6 @@
 {
   "name": "js-bambisleep-chat",
-  "version": "3.2.0",
+  "version": "1.2.7",
   "description": "BambiSleep Themed AIGF, spirals, triggers, collars, speech, chat all to bambi bambis bambing bambis for bambisleep",
   "main": "server.js",
   "type": "module",
