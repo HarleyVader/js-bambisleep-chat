@@ -60,7 +60,7 @@ async function generateTTS(text, speakerWav, language) {
 
         pythonProcess.on('close', (code) => {
             if (code === 0) {
-                console.log(colors.secondary(`[TTS WORKER] TTS generation successful, output file: ${outputFile}`));
+                console.log(colors.primary(`[TTS WORKER] TTS generation successful, output file: ${outputFile}`));
                 resolve(outputFile);
             } else {
                 reject(new Error(patterns.server.error(`[TTS WORKER ERROR] TTS generation failed with exit code ${code}`)));

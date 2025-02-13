@@ -102,6 +102,7 @@ async function fetchTTS(text, speakerWav, language) {
     try {
       const pythonPort = process.env.TTS_PORT || 5002;
       const pythonHost = process.env.HOST || '192.168.0.178';
+      console.log(patterns.server.info(`Attempt ${attempt + 1}: Sending request to TTS server at http://${pythonHost}:${pythonPort}/generate-tts`));
       const response = await axios.post(`http://${pythonHost}:${pythonPort}/generate-tts`, {
         text,
         speaker: speakerWav,
@@ -109,17 +110,19 @@ async function fetchTTS(text, speakerWav, language) {
         use_cuda: true
       });
 
+      console.log(patterns.server.info(`Attempt ${attempt + 1}: Received response with status ${response.status}`));
       if (response.status === 200) {
         const ttsFile = response.data.audio_file;
         console.log(patterns.server.success('TTS fetch successful.'));
         return ttsFile;
       } else {
-        console.error(patterns.server.error(`Failed to fetch TTS audio: ${response.status} - ${response.statusText}`));
+        console.error(patterns.server.error(`Attempt ${attempt + 1}: Failed to fetch TTS audio: ${response.status} - ${response.statusText}`));
         throw new Error('Failed to fetch TTS audio');
       }
     } catch (error) {
       attempt++;
       console.error(patterns.server.error(`[BACKEND ERROR] Attempt ${attempt} - Error fetching TTS audio:`, error.message));
+      console.error(patterns.server.error(`[BACKEND ERROR] Full error:`, error));
 
       if (attempt >= maxRetries) {
         throw new Error('Error fetching TTS audio after multiple attempts');
