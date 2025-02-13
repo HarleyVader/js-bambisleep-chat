@@ -9,6 +9,7 @@ function arrayPush(_audioArray, e, speakerWav = 'bambi.wav') {
   const language = 'en';
 
   let URL = `/api/tts?text=${encodeURIComponent(e)}&speakerWav=${encodeURIComponent(speakerWav)}&language=${encodeURIComponent(language)}`;
+  console.log("Generated TTS URL:", URL);
   _audioArray.push(URL);
 
   return _audioArray;

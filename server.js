@@ -98,10 +98,13 @@ async function fetchTTS(text, speakerWav, language) {
 
   return new Promise((resolve, reject) => {
     const outputFilePath = path.join(__dirname, 'bambi.wav');
+    const speakerWavPath = speakerWav || path.join(__dirname, 'bambi.wav'); // Use default audio file if none is provided
+    console.log(patterns.server.info(`Using speaker WAV file: ${speakerWavPath}`));
+
     const pythonProcess = spawn('python3', [
       path.join(__dirname, 'python/tts.py'),
       text,
-      speakerWav || path.join(__dirname, 'bambi.wav'), // Use default audio file if none is provided
+      speakerWavPath,
       language,
       outputFilePath
     ]);
