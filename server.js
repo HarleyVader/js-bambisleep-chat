@@ -10,7 +10,7 @@ import cors from 'cors';
 
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import multer from 'multer';
 
 //routes
@@ -79,6 +79,15 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 
 async function fetchTTS(text, speakerWav, language) {
   console.log(patterns.server.info('Starting TTS fetch...'));
+
+  // Check if torch is installed
+  try {
+    execSync('python3 -c "import torch"');
+  } catch (error) {
+    console.error(patterns.server.error("The 'torch' module is not installed. Please install it by running 'pip install torch'."));
+    throw new Error("The 'torch' module is not installed. Please install it by running 'pip install torch'.");
+  }
+
   return new Promise((resolve, reject) => {
     const outputFilePath = path.join(__dirname, 'bambi.wav');
     const pythonProcess = spawn('python3', [
