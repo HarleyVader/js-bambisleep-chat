@@ -26,6 +26,7 @@
             <div id="audiomessage">
               <audio id="audio" hidden controls></audio>
               <p id="message"></p>
+              <p id="error-message" style="display: none; color: red;"></p>
             </div>
           </div>
           <br>
@@ -56,10 +57,9 @@
             <button type="submit">Upload</button>
           </form>
           <p id="upload-message"></p>
+          <p id="error-message" style="display: none; color: red;"></p>
         </div>
       </div>
-      <%- include('../views/partials/footer.ejs') %>
-        <script src="js/psychodelic-trigger-mania.js"></script>
         <script src="js/text2speech.js"></script>
         <script src="js/responsive.js"></script>
         <script src="js/triggers.js"></script>
