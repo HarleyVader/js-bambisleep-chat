@@ -122,9 +122,9 @@ function handleAudioPlay() {
     messageElement.textContent = text;
     console.log('Text reply: ', messageElement.textContent);
     if (response.firstChild) {
-        response.insertBefore(messageElement, response.firstChild);
+      response.insertBefore(messageElement, response.firstChild);
     } else {
-        response.appendChild(messageElement);
+      response.appendChild(messageElement);
     }
     applyUppercaseStyle();
 }
