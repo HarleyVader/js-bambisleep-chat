@@ -39,7 +39,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 //filteredWords
-const data = await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8');
+const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
 
 console.log(patterns.server.info('Loading environment variables...'));
 
