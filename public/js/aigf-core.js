@@ -107,8 +107,8 @@ function handleAudioEnded() {
         text = _textArray.shift();
     } else if (_textArray.length === 0) {
         state = true;
-    return;
-    } 
+        return;
+    }
     arrayPush(_audioArray, text);
     do_tts(_audioArray);
 }
@@ -122,9 +122,9 @@ function handleAudioPlay() {
     messageElement.textContent = text;
     console.log('Text reply: ', messageElement.textContent);
     if (response.firstChild) {
-      response.insertBefore(messageElement, response.firstChild);
+        response.insertBefore(messageElement, response.firstChild);
     } else {
-      response.appendChild(messageElement);
+        response.appendChild(messageElement);
     }
     applyUppercaseStyle();
 }
