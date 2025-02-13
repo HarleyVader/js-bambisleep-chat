@@ -48,6 +48,7 @@ async function do_tts(_audioArray) {
   };
   audio.onerror = function (e) {
     console.error("Error playing audio:", e);
+    console.error("Audio source URL:", audio.src);
     document.querySelector("#message").textContent = "Error playing audio. Please try again later.";
     displayErrorMessage("Error playing audio. Please try again later.");
     if (e.target.error.code === e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED) {
