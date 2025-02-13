@@ -7,7 +7,7 @@ except ImportError as e:
 from TTS.api import TTS
 
 def main():
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 5:
         print("Usage: python tts.py <text> <speaker_wav> <language> <output_file>")
         return
 
@@ -16,9 +16,19 @@ def main():
     language = sys.argv[3]
     output_file = sys.argv[4]
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
-    tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=output_file)
+    print(f"Text: {text}")
+    print(f"Speaker WAV: {speaker_wav}")
+    print(f"Language: {language}")
+    print(f"Output File: {output_file}")
+
+    try:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
+        tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=output_file)
+        print("TTS synthesis completed successfully.")
+    except Exception as e:
+        print(f"Error during TTS synthesis: {e}")
+        exit(1)
 
 if __name__ == "__main__":
     main()
