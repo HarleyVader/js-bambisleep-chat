@@ -25,6 +25,10 @@ import footerConfig from './config/footer.config.js';
 
 //workers
 import { deleteFile } from './workers/python/tts_worker.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const upload = multer({ dest: 'a-uploads/' });
 const cacheDir = path.join(__dirname, 'a-cache');
 
@@ -35,9 +39,6 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 //filteredWords
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const data = await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8');
 const filteredWords = JSON.parse(data);
 

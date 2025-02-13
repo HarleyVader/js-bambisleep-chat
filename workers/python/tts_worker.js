@@ -16,7 +16,7 @@ async function ensureCacheDir() {
     } catch (error) {
         console.error(`[TTS WORKER ERROR] Access to cache directory failed: ${error.message}`);
         try {
-            await fs.mkdir(cacheDir);
+            await fs.mkdir(cacheDir, { recursive: true });
             console.log(`[TTS WORKER] Cache directory created: ${cacheDir}`);
         } catch (mkdirError) {
             console.error(`[TTS WORKER ERROR] Failed to create cache directory: ${mkdirError.message}`);
@@ -25,7 +25,7 @@ async function ensureCacheDir() {
             try {
                 await fs.access(cacheDir);
             } catch {
-                await fs.mkdir(cacheDir);
+                await fs.mkdir(cacheDir, { recursive: true });
             }
             console.log(`[TTS WORKER] Fallback cache directory created: ${cacheDir}`);
         }
