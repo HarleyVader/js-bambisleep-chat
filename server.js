@@ -10,6 +10,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import axios from 'axios'; // Add this line
 
 //routes
 import indexRoute from './routes/index.js';
@@ -23,7 +24,7 @@ import { patterns } from './middleware/bambisleepChalk.js';
 import footerConfig from './config/footer.config.js';
 
 //workers
-import { generateTTS, deleteFile } from './workers/tts_worker.js';
+import { deleteFile } from './workers/tts_worker.js'; // Remove generateTTS import
 
 dotenv.config();
 
@@ -98,9 +99,20 @@ async function fetchTTS(text, speakerWav, language) {
 
   while (attempt < maxRetries) {
     try {
-      const ttsFile = await generateTTS(text, speakerWav, language);
-      console.log(patterns.server.success('TTS fetch successful.'));
-      return ttsFile;
+      const response = await axios.post(`http://${process.env.HOST}:${process.env.PYTHON_PORT}/generate-tts`, {
+        text,
+        speaker: speakerWav,
+        language,
+        use_cuda: true
+      });
+
+      if (response.status === 200) {
+        const ttsFile = response.data.audio_file;
+        console.log(patterns.server.success('TTS fetch successful.'));
+        return ttsFile;
+      } else {
+        throw new Error('Failed to fetch TTS audio');
+      }
     } catch (error) {
       attempt++;
       console.error(patterns.server.error(`[BACKEND ERROR] Attempt ${attempt} - Error fetching TTS audio:`, error.message));
