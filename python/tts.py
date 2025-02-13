@@ -1,5 +1,6 @@
 import sys
 import os
+import logging
 from dotenv import load_dotenv
 from TTS.api import TTS
 
@@ -29,8 +30,9 @@ def main():
         tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=output_file)
         print("TTS synthesis completed successfully.")
     except Exception as e:
-        print(f"Error during TTS synthesis: {e}")
+        logging.error("Error during TTS synthesis", exc_info=True)
         exit(1)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.ERROR)
     main()
