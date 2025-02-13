@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { promises as fsPromises } from 'fs';
 import dotenv from 'dotenv';
 import express from 'express';
 import http from 'http';
@@ -7,12 +8,8 @@ import path from 'path';
 import { Worker } from 'worker_threads';
 import { Server } from 'socket.io';
 import cors from 'cors';
-
-import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
-import { spawn, execSync } from 'child_process';
 import multer from 'multer';
-import axios from 'axios';
 
 //routes
 import indexRoute from './routes/index.js';
@@ -25,6 +22,9 @@ import errorHandler from './middleware/error.js';
 import { patterns } from './middleware/bambisleepChalk.js';
 import footerConfig from './config/footer.config.js';
 
+//workers
+import { generateTTS, deleteFile } from './workers/tts_worker.js';
+
 dotenv.config();
 
 const app = express();
@@ -35,7 +35,7 @@ const io = new Server(server);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const data = await readFile(path.join(__dirname, 'filteredWords.json'), 'utf8');
+const data = await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8');
 const filteredWords = JSON.parse(data);
 
 console.log(patterns.server.info('Loading environment variables...'));
@@ -81,11 +81,11 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 const cacheDir = path.join(__dirname, 'cache');
 
 // Ensure the cache directory exists
-if (!fs.existsSync(cacheDir)) {
-  fs.mkdirSync(cacheDir);
+if (!await fsPromises.access(cacheDir).catch(() => true)) {
+  await fsPromises.mkdir(cacheDir);
 }
 
-const { generateTTS, deleteFile } = require('./workers/tts_worker.js');
+
 
 async function fetchTTS(text, speakerWav, language) {
   console.log(patterns.server.info('Starting TTS fetch...'));

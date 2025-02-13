@@ -1,11 +1,12 @@
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { exec } from 'child_process';
+import { promises as fs } from 'fs';
+import path from 'path';
+
 const cacheDir = path.join(__dirname, 'cache');
 
 // Ensure the cache directory exists
-if (!fs.existsSync(cacheDir)) {
-    fs.mkdirSync(cacheDir);
+if (!await fs.access(cacheDir).catch(() => true)) {
+    await fs.mkdir(cacheDir);
 }
 
 async function generateTTS(text, speakerWav, language) {
@@ -26,17 +27,13 @@ async function generateTTS(text, speakerWav, language) {
 }
 
 async function deleteFile(filePath) {
-    return new Promise((resolve, reject) => {
-        fs.unlink(filePath, (err) => {
-            if (err) {
-                console.error(`[BACKEND WORKER ERROR] Error deleting file: ${filePath}`, err);
-                reject(err);
-            } else {
-                console.log(`[BACKEND WORKER] File deleted successfully: ${filePath}`);
-                resolve();
-            }
-        });
-    });
+    try {
+        await fs.unlink(filePath);
+        console.log(`[BACKEND WORKER] File deleted successfully: ${filePath}`);
+    } catch (err) {
+        console.error(`[BACKEND WORKER ERROR] Error deleting file: ${filePath}`, err);
+        throw err;
+    }
 }
 
-module.exports = { generateTTS, deleteFile };
+export { generateTTS, deleteFile };
