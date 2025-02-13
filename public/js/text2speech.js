@@ -48,12 +48,12 @@ async function do_tts(_audioArray) {
     handleAudioEnded();
   };
   audio.onerror = function (e) {
-    console.error("Error playing audio:", e);
-    console.error("Audio source URL:", audio.src);
+    console.error("[FRONTEND ERROR] Error playing audio:", e);
+    console.error("[FRONTEND ERROR] Audio source URL:", audio.src);
     document.querySelector("#message").textContent = "Error playing audio. Please try again later.";
     displayErrorMessage("Error playing audio. Please try again later.");
     if (e.target.error.code === e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED) {
-      console.error("Audio source not supported. Please check the URL.");
+      console.error("[FRONTEND ERROR] Audio source not supported. Please check the URL.");
     }
   };
 };

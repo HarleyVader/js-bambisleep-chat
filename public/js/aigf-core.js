@@ -134,7 +134,7 @@ audio.addEventListener('play', handleAudioPlay);
 
 // Add error handling for audio playback
 audio.addEventListener('error', (event) => {
-    console.error('Error playing audio:', event);
+    console.error('[FRONTEND ERROR] Error playing audio:', event);
     const errorMessage = document.getElementById('error-message');
     errorMessage.textContent = 'Error playing audio. Please check the URL.';
     errorMessage.style.display = 'block';

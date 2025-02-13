@@ -111,9 +111,9 @@ async function fetchTTS(text, speakerWav, language) {
     const outputFilePath = path.join(__dirname, 'public', 'bambi.wav');
     fs.writeFileSync(outputFilePath, response.data);
     console.log(patterns.server.success('TTS fetch successful.'));
-    return cacheFile;
+    return outputFilePath;
   } catch (error) {
-    console.error(patterns.server.error('Error fetching TTS audio:', error.response ? error.response.data : error.message));
+    console.error(patterns.server.error('[BACKEND ERROR] Error fetching TTS audio:', error.response ? error.response.data : error.message));
     throw new Error('Error fetching TTS audio');
   }
 }
@@ -125,6 +125,7 @@ app.get('/api/tts', async (req, res) => {
         const ttsFile = await fetchTTS(text, speakerWav, language);
         res.sendFile(ttsFile);
     } catch (error) {
+        console.error(patterns.server.error('[BACKEND ERROR] /api/tts route:', error.message));
         res.status(500).send('Internal Server Error');
     }
 });
@@ -450,3 +451,33 @@ async function initializeServer() {
 }
 
 initializeServer();
+
+// filepath: /public/js/text2speech.js
+async function do_tts(_audioArray) {
+  document.querySelector("#message").textContent = "Synthesizing...";
+
+  let currentURL = arrayShift(_audioArray);
+  audio.src = currentURL;
+  console.log("audio.src ", audio.src);
+  audio.load();
+  audio.onloadedmetadata = function () {
+    console.log("audio ", audio);
+    console.log("audio.duration ", audio.duration);
+    document.querySelector("#message").textContent = "Playing...";
+    audio.play();
+  };
+  audio.onended = function () {
+    console.log("audio ended");
+    document.querySelector("#message").textContent = "Finished!";
+    handleAudioEnded();
+  };
+  audio.onerror = function (e) {
+    console.error("Error playing audio:", e);
+    console.error("Audio source URL:", audio.src);
+    document.querySelector("#message").textContent = "Error playing audio. Please try again later.";
+    displayErrorMessage("Error playing audio. Please try again later.");
+    if (e.target.error.code === e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+      console.error("Audio source not supported. Please check the URL.");
+    }
+  };
+}
