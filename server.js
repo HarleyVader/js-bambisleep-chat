@@ -12,6 +12,7 @@ import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { spawn, execSync } from 'child_process';
 import multer from 'multer';
+import axios from 'axios';
 
 //routes
 import indexRoute from './routes/index.js';
@@ -80,50 +81,24 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 async function fetchTTS(text, speakerWav, language) {
   console.log(patterns.server.info('Starting TTS fetch...'));
 
-  // Check if required Python modules are installed
   try {
-    execSync('python3 -c "import TTS"');
-  } catch (error) {
-    console.error(patterns.server.error("Required Python modules are not installed. Please install them by running 'pip install TTS'.")); 
-    throw new Error("Required Python modules are not installed. Please install them by running 'pip install TTS'.");
-  }
+    const response = await axios.get(`http://192.168.0.178:5002/api/tts`, {
+      params: {
+        text: text,
+        speakerWav: speakerWav,
+        language: language
+      },
+      responseType: 'arraybuffer'
+    });
 
-  return new Promise((resolve, reject) => {
     const outputFilePath = path.join(__dirname, 'bambi.wav');
-    const speakerWavPath = speakerWav || path.join(__dirname, 'bambi.wav'); // Use default audio file if none is provided
-    console.log(patterns.server.info(`Using speaker WAV file: ${speakerWavPath}`));
-
-    const pythonProcess = spawn('python3', [
-      path.join(__dirname, 'python/tts.py'),
-      text,
-      speakerWavPath,
-      language,
-      outputFilePath
-    ]);
-
-    pythonProcess.stderr.on('data', (data) => {
-      console.error(patterns.server.error(`Python stderr: ${data}`));
-    });
-
-    pythonProcess.stdout.on('data', (data) => {
-      console.log(patterns.server.info(`Python stdout: ${data}`));
-    });
-
-    pythonProcess.on('close', (code) => {
-      if (code === 0) {
-        console.log(patterns.server.success('TTS fetch successful.'));
-        resolve(outputFilePath);
-      } else {
-        console.error(patterns.server.error(`Python process exited with code ${code}`));
-        reject(new Error(`Python process exited with code ${code}`));
-      }
-    });
-
-    pythonProcess.on('error', (error) => {
-      console.error(patterns.server.error('Error in Python process:', error));
-      reject(error);
-    });
-  });
+    fs.writeFileSync(outputFilePath, response.data);
+    console.log(patterns.server.success('TTS fetch successful.'));
+    return outputFilePath;
+  } catch (error) {
+    console.error(patterns.server.error('Error fetching TTS audio:', error));
+    throw new Error('Error fetching TTS audio');
+  }
 }
 
 app.use('/api/tts', async (req, res, next) => {
