@@ -3,13 +3,12 @@ let _audioArray = [];
 let duration = 0;
 const audio = document.getElementById('audio');
 
-function arrayPush(_audioArray, e) {
+function arrayPush(_audioArray, e, speakerWav = 'bambi.wav') {
   document.querySelector("#audio").hidden = true;
 
-  const speakerWav = '../bambi.wav';
   const language = 'en';
 
-  let URL = `https://bambisleep.chat/api/tts?text=${encodeURIComponent(e)}&speakerWav=${encodeURIComponent(speakerWav)}&language=${encodeURIComponent(language)}`;
+  let URL = `/api/tts?text=${encodeURIComponent(e)}&speakerWav=${encodeURIComponent(speakerWav)}&language=${encodeURIComponent(language)}`;
   _audioArray.push(URL);
 
   return _audioArray;

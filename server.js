@@ -101,7 +101,7 @@ async function fetchTTS(text, speakerWav, language) {
     const pythonProcess = spawn('python3', [
       path.join(__dirname, 'python/tts.py'),
       text,
-      speakerWav,
+      speakerWav || path.join(__dirname, 'bambi.wav'), // Use default audio file if none is provided
       language,
       outputFilePath
     ]);
