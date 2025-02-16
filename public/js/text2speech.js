@@ -33,6 +33,13 @@ async function do_tts(_audioArray) {
   document.querySelector("#message").textContent = "Synthesizing...";
 
   let currentURL = arrayShift(_audioArray);
+  if (!currentURL) {
+    console.error("[FRONTEND ERROR] No URL found in the audio array.");
+    document.querySelector("#message").textContent = "Error: No audio URL found.";
+    displayErrorMessage("Error: No audio URL found.");
+    return;
+  }
+
   audio.src = currentURL;
   console.log("audio.src ", audio.src);
   audio.load();
@@ -50,10 +57,24 @@ async function do_tts(_audioArray) {
   audio.onerror = function (e) {
     console.error("[FRONTEND ERROR] Error playing audio:", e);
     console.error("[FRONTEND ERROR] Audio source URL:", audio.src);
+    console.error("[FRONTEND ERROR] Audio element state:", {
+      src: audio.src,
+      currentTime: audio.currentTime,
+      duration: audio.duration,
+      networkState: audio.networkState,
+      readyState: audio.readyState,
+      error: audio.error
+    });
     document.querySelector("#message").textContent = "Error playing audio. Please try again later.";
     displayErrorMessage("Error playing audio. Please try again later.");
     if (e.target.error.code === e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED) {
       console.error("[FRONTEND ERROR] Audio source not supported. Please check the URL.");
+    } else if (e.target.error.code === e.target.error.MEDIA_ERR_NETWORK) {
+      console.error("[FRONTEND ERROR] Network error occurred while fetching the audio.");
+    } else if (e.target.error.code === e.target.error.MEDIA_ERR_DECODE) {
+      console.error("[FRONTEND ERROR] Error decoding the audio file.");
+    } else if (e.target.error.code === e.target.error.MEDIA_ERR_ABORTED) {
+      console.error("[FRONTEND ERROR] Audio playback was aborted.");
     }
   };
 }
