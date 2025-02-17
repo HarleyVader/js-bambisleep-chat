@@ -24,7 +24,7 @@ import { patterns } from './middleware/bambisleepChalk.js';
 import footerConfig from './config/footer.config.js';
 
 //workers
-import { deleteFile } from './workers/python/tts_worker.js';
+import { deleteFile } from './workers/js/tts_worker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

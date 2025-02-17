@@ -42,7 +42,7 @@ async function generateTTS(text, speakerWav, language) {
 
     return new Promise((resolve, reject) => {
         const pythonProcess = spawn('python', [
-            path.join(__dirname, 'tts.py'),
+            path.join(__dirname, '../python/tts.py'),
             text,
             speakerWav,
             language,
