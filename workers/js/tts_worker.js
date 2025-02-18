@@ -10,28 +10,75 @@ const __dirname = path.dirname(__filename);
 
 let cacheDir = path.join(__dirname, 'a-cache');
 
-// Ensure the cache directory exists
-async function ensureCacheDir() {
-    try {
-        await fs.access(cacheDir);
-    } catch (error) {
-        console.error(patterns.server.error(`[TTS WORKER ERROR] Access to a-cache directory failed: ${error.message}`));
-        try {
-            await fs.mkdir(cacheDir, { recursive: true });
-            console.log(colors.primary(`[TTS WORKER] Cache directory created: ${cacheDir}`));
-        } catch (mkdirError) {
-            console.error(patterns.server.error(`[TTS WORKER ERROR] Failed to create cache directory: ${mkdirError.message}`));
-            // Fallback to a different directory
-            cacheDir = path.join(os.tmpdir(), 'tts_cache');
-            try {
-                await fs.access(cacheDir);
-            } catch {
-                await fs.mkdir(cacheDir, { recursive: true });
-            }
-            console.log(colors.primary(`[TTS WORKER] Fallback cache directory created: ${cacheDir}`));
-        }
+
+try {
+    await fsPromises.access(cacheDir);
+  } catch (error) {
+    if (error.code !== 'EEXIST') {
+      await fsPromises.mkdir(cacheDir);
     }
-}
+  }
+  
+  async function fetchTTS(text, speakerWav, language) {
+    console.log(patterns.server.info('Starting TTS fetch...'));
+    console.log(patterns.server.info(`Request parameters: text=${text}, speakerWav=${speakerWav}, language=${language}`));
+  
+    const maxRetries = 3;
+    let attempt = 0;
+  
+    while (attempt < maxRetries) {
+      try {
+        const pythonPort = process.env.TTS_PORT || 5002;
+        const pythonHost = process.env.HOST || '192.168.0.178';
+        console.log(patterns.server.info(`Attempt ${attempt + 1}: Sending request to TTS server at http://${pythonHost}:${pythonPort}/api/tts`));
+        const response = await axios.post(`http://${pythonHost}:${pythonPort}/api/tts`, {
+          text,
+          speaker: speakerWav,
+          language,
+          use_cuda: true
+        });
+  
+        console.log(patterns.server.info(`Attempt ${attempt + 1}: Received response with status ${response.status}`));
+        if (response.status === 200) {
+          const ttsFile = response.data.audio_file;
+          console.log(patterns.server.success('TTS fetch successful.'));
+          return ttsFile;
+        } else {
+          console.error(patterns.server.error(`Attempt ${attempt + 1}: Failed to fetch TTS audio: ${response.status} - ${response.statusText}`));
+          throw new Error('Failed to fetch TTS audio');
+        }
+      } catch (error) {
+        attempt++;
+        console.error(patterns.server.error(`[BACKEND ERROR] Attempt ${attempt} - Error fetching TTS audio:`, error.message));
+        console.error(patterns.server.error(`[BACKEND ERROR] Full error:`, error));
+  
+        if (attempt >= maxRetries) {
+          throw new Error('Error fetching TTS audio after multiple attempts');
+        }
+      }
+    }
+  }
+  
+  app.get('/api/tts', async (req, res) => {
+    const { text, speakerWav, language } = req.query;
+  
+    try {
+      const ttsFile = await fetchTTS(text, speakerWav, language);
+      res.sendFile(ttsFile, (err) => {
+        if (err) {
+          console.error(patterns.server.error('[BACKEND ERROR] Error sending TTS file:', err.message));
+          res.status(500).send('Internal Server Error');
+        } else {
+          deleteFile(ttsFile).catch((deleteErr) => {
+            console.error(patterns.server.error('[BACKEND ERROR] Error deleting TTS file:', deleteErr.message));
+          });
+        }
+      });
+    } catch (error) {
+      console.error(patterns.server.error('[BACKEND ERROR] /api/tts route:', error.message));
+      res.status(500).json({ error: 'Error fetching TTS audio after multiple attempts' });
+    }
+  });
 
 // Call the function to ensure the cache directory exists
 await ensureCacheDir();

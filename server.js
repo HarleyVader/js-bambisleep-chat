@@ -82,94 +82,6 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 });
 
 
-
-try {
-  await fsPromises.access(cacheDir);
-} catch (error) {
-  if (error.code !== 'EEXIST') {
-    await fsPromises.mkdir(cacheDir);
-  }
-}
-
-async function fetchTTS(text, speakerWav, language) {
-  console.log(patterns.server.info('Starting TTS fetch...'));
-  console.log(patterns.server.info(`Request parameters: text=${text}, speakerWav=${speakerWav}, language=${language}`));
-
-  const maxRetries = 3;
-  let attempt = 0;
-
-  while (attempt < maxRetries) {
-    try {
-      const pythonPort = process.env.TTS_PORT || 5002;
-      const pythonHost = process.env.HOST || '192.168.0.178';
-      console.log(patterns.server.info(`Attempt ${attempt + 1}: Sending request to TTS server at http://${pythonHost}:${pythonPort}/api/tts`));
-      const response = await axios.post(`http://${pythonHost}:${pythonPort}/api/tts`, {
-        text,
-        speaker: speakerWav,
-        language,
-        use_cuda: true
-      });
-
-      console.log(patterns.server.info(`Attempt ${attempt + 1}: Received response with status ${response.status}`));
-      if (response.status === 200) {
-        const ttsFile = response.data.audio_file;
-        console.log(patterns.server.success('TTS fetch successful.'));
-        return ttsFile;
-      } else {
-        console.error(patterns.server.error(`Attempt ${attempt + 1}: Failed to fetch TTS audio: ${response.status} - ${response.statusText}`));
-        throw new Error('Failed to fetch TTS audio');
-      }
-    } catch (error) {
-      attempt++;
-      console.error(patterns.server.error(`[BACKEND ERROR] Attempt ${attempt} - Error fetching TTS audio:`, error.message));
-      console.error(patterns.server.error(`[BACKEND ERROR] Full error:`, error));
-
-      if (attempt >= maxRetries) {
-        throw new Error('Error fetching TTS audio after multiple attempts');
-      }
-    }
-  }
-}
-
-app.get('/api/tts', async (req, res) => {
-  const { text, speakerWav, language } = req.query;
-
-  try {
-    const ttsFile = await fetchTTS(text, speakerWav, language);
-    res.sendFile(ttsFile, (err) => {
-      if (err) {
-        console.error(patterns.server.error('[BACKEND ERROR] Error sending TTS file:', err.message));
-        res.status(500).send('Internal Server Error');
-      } else {
-        deleteFile(ttsFile).catch((deleteErr) => {
-          console.error(patterns.server.error('[BACKEND ERROR] Error deleting TTS file:', deleteErr.message));
-        });
-      }
-    });
-  } catch (error) {
-    console.error(patterns.server.error('[BACKEND ERROR] /api/tts route:', error.message));
-    res.status(500).json({ error: 'Error fetching TTS audio after multiple attempts' });
-  }
-});
-
-app.post('/api/upload-audio', upload.single('audio'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No file uploaded.');
-  }
-
-  const filePath = path.join(__dirname, 'uploads', req.file.filename);
-  console.log('File uploaded to:', filePath);
-
-  // Store the uploaded file path in the socketStore
-  const socketId = req.headers['socket-id'];
-  if (socketId && socketStore.has(socketId)) {
-    const { files } = socketStore.get(socketId);
-    files.push(filePath);
-  }
-
-  res.json({ filePath });
-});
-
 app.locals.footer = footerConfig;
 
 const routes = [
@@ -469,5 +381,40 @@ async function initializeServer() {
     process.exit(1);
   }
 }
+
+app.post('/generate-tts', upload.single('speaker_wav'), async (req, res) => {
+  try {
+    const { text, language, use_cuda } = req.body;
+    const speaker_wav = req.file.path;
+    const output_file = path.join(cacheDir, `${Date.now()}_output.wav`);
+
+    const worker = new Worker(path.join(__dirname, 'workers/python/tts-worker.js'), {
+      workerData: { text, speaker_wav, language, output_file, use_cuda }
+    });
+
+    worker.on('message', (message) => {
+      if (message.type === 'success') {
+        res.sendFile(output_file);
+      } else if (message.type === 'error') {
+        res.status(500).json({ error: message.error });
+      }
+    });
+
+    worker.on('error', (error) => {
+      console.error('Worker error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    });
+
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        console.error(`Worker stopped with exit code ${code}`);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+  } catch (error) {
+    console.error('Error in /generate-tts:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 initializeServer();
