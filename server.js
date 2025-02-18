@@ -24,7 +24,7 @@ import { patterns } from './middleware/bambisleepChalk.js';
 import footerConfig from './config/footer.config.js';
 
 //workers
-import { deleteFile } from './workers/js/tts_worker.js';
+import { fetchTTS, generateTTS, deleteFile } from './workers/js/tts_worker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -119,7 +119,7 @@ function setupSockets() {
         console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
         userSessions.add(socket.id);
 
-        const lmstudio = new Worker(path.join(__dirname, 'workers/js/lmstudio.js'));
+        const lmstudio = new Worker(path.join(__dirname, 'workers/mstudio.js'));
         adjustMaxListeners(lmstudio);
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
@@ -201,6 +201,31 @@ function setupSockets() {
           } catch (error) {
             console.error(patterns.server.error('Error in collar handler:', error));
           }
+        });
+
+        socket.on('generate tts', (data) => {
+          const ttsWorker = new Worker(path.join(__dirname, 'workers/tts-worker.js'));
+          adjustMaxListeners(ttsWorker);
+      
+          ttsWorker.postMessage(data);
+      
+          ttsWorker.on('message', (message) => {
+            if (message.error) {
+              socket.emit('tts error', message.error);
+            } else {
+              socket.emit('tts success', message.success);
+            }
+          });
+      
+          ttsWorker.on('error', (error) => {
+            socket.emit('tts error', error.message);
+          });
+      
+          ttsWorker.on('exit', (code) => {
+            if (code !== 0) {
+              socket.emit('tts error', `Worker stopped with exit code ${code}`);
+            }
+          });
         });
 
         lmstudio.on("message", async (msg) => {
@@ -381,40 +406,5 @@ async function initializeServer() {
     process.exit(1);
   }
 }
-
-app.post('/generate-tts', upload.single('speaker_wav'), async (req, res) => {
-  try {
-    const { text, language, use_cuda } = req.body;
-    const speaker_wav = req.file.path;
-    const output_file = path.join(cacheDir, `${Date.now()}_output.wav`);
-
-    const worker = new Worker(path.join(__dirname, 'workers/python/tts-worker.js'), {
-      workerData: { text, speaker_wav, language, output_file, use_cuda }
-    });
-
-    worker.on('message', (message) => {
-      if (message.type === 'success') {
-        res.sendFile(output_file);
-      } else if (message.type === 'error') {
-        res.status(500).json({ error: message.error });
-      }
-    });
-
-    worker.on('error', (error) => {
-      console.error('Worker error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    });
-
-    worker.on('exit', (code) => {
-      if (code !== 0) {
-        console.error(`Worker stopped with exit code ${code}`);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    });
-  } catch (error) {
-    console.error('Error in /generate-tts:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 initializeServer();

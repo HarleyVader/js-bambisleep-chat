@@ -59,6 +59,17 @@
           <p id="upload-message"></p>
           <p id="error-message" style="display: none; color: red;"></p>
         </div>
+        <!-- Add TTS generation form -->
+        <div id="tts-container">
+          <h2>Generate TTS</h2>
+          <form id="tts-form">
+            <textarea id="tts-text" placeholder="Enter text for TTS"></textarea>
+            <input type="text" id="tts-speaker-wav" placeholder="Enter speaker WAV file name">
+            <input type="text" id="tts-language" placeholder="Enter language">
+            <button type="submit">Generate TTS</button>
+          </form>
+          <p id="tts-message"></p>
+        </div>
       </div>
       <%- include('../views/partials/footer.ejs') %>
         <script src="js/ptm.js"></script>
@@ -193,6 +204,27 @@
             // Set the socket ID in the hidden input field
             socket.on('connect', () => {
               document.getElementById('socket-id').value = socket.id;
+            });
+
+            // Handle TTS form submission
+            document.getElementById('tts-form').addEventListener('submit', (event) => {
+              event.preventDefault();
+              const text = document.getElementById('tts-text').value;
+              const speakerWav = document.getElementById('tts-speaker-wav').value;
+              const language = document.getElementById('tts-language').value;
+              const useCuda = true; // Set this based on your requirements
+
+              socket.emit('generate tts', { text, speaker_wav: speakerWav, language, output_file: 'output.wav', use_cuda: useCuda });
+            });
+
+            socket.on('tts success', (message) => {
+              document.getElementById('tts-message').textContent = 'TTS generation successful!';
+              console.log('TTS generation successful:', message);
+            });
+
+            socket.on('tts error', (error) => {
+              document.getElementById('tts-message').textContent = `TTS generation failed: ${error}`;
+              console.error('TTS generation failed:', error);
             });
           });
         </script>

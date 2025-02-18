@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
-import { patterns } from '../../middleware/bambisleepChalk.js';
+import { patterns } from '../middleware/bambisleepChalk.js';
 import { fileURLToPath } from 'url';
 
 dotenv.config();

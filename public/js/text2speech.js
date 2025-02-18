@@ -115,4 +115,29 @@ document.addEventListener("DOMContentLoaded", () => {
       uploadMessage.textContent = 'Please upload a valid .wav file.';
     }
   });
+
+  // Handle TTS form submission
+  document.getElementById('tts-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const text = document.getElementById('tts-text').value;
+    const speakerWav = document.getElementById('tts-speaker-wav').value;
+    const language = document.getElementById('tts-language').value;
+    const useCuda = true; // Set this based on your requirements
+
+    socket.emit('generate tts', { text, speaker_wav: speakerWav, language, output_file: 'output.wav', use_cuda: useCuda });
+  });
+
+  socket.on('tts success', (message) => {
+    document.getElementById('tts-message').textContent = 'TTS generation successful!';
+    console.log('TTS generation successful:', message);
+    // Play the generated TTS audio
+    audio.src = 'output.wav';
+    audio.load();
+    audio.play();
+  });
+
+  socket.on('tts error', (error) => {
+    document.getElementById('tts-message').textContent = `TTS generation failed: ${error}`;
+    console.error('TTS generation failed:', error);
+  });
 });
