@@ -1,4 +1,6 @@
-import fs from 'fs';
+import ttsWorker from './workers/tts-worker.js';import ttsWorker from './workers/tts-worker.js';import fs from 'fs';
+
+
 import { promises as fsPromises } from 'fs';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -9,8 +11,6 @@ import { Worker } from 'worker_threads';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
-import multer from 'multer';
-import axios from 'axios'; 
 
 //routes
 import indexRoute from './routes/index.js';
@@ -23,14 +23,8 @@ import errorHandler from './middleware/error.js';
 import { patterns } from './middleware/bambisleepChalk.js';
 import footerConfig from './config/footer.config.js';
 
-//workers
-import { fetchTTS, generateTTS, deleteFile } from './workers/js/tts_worker.js';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const upload = multer({ dest: 'a-uploads/' });
-const cacheDir = path.join(__dirname, 'a-cache');
 
 dotenv.config();
 
@@ -81,6 +75,48 @@ app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
 });
 
+async function fetchTTS(text) {
+  try {
+    const response = await axios.get('http://192.168.0.178:5002/tts', {
+      params: { text },
+      responseType: 'arraybuffer',
+      timeout: 10000,
+    });
+    return response;
+  } catch (error) {
+    console.error(patterns.server.error('Error fetching TTS audio:', error));
+    throw error;
+  }
+}
+
+app.use('/tts', async (req, res, next) => {
+  const text = req.query.text;
+  if (typeof text !== 'string' || text.trim() === '') {
+    return res.status(400).send('Invalid input: text must be a non-empty string');
+  } else {
+    try {
+      const response = await fetchTTS(text);
+      res.setHeader('Content-Type', 'audio/wav');
+      res.setHeader('Content-Length', response.data.length);
+      res.send(response.data);
+    } catch (error) {
+      console.error(patterns.server.error('Error fetching TTS audio:'), error);
+      if (error.response) {
+        if (error.response.status === 401) {
+          console.error(patterns.server.error('Unauthorized access - invalid token'));
+          res.status(401).send('Unauthorized access');
+        } else {
+          console.error(patterns.server.error('Error details:'), error.response.data.toString());
+          res.status(500).send('Error fetching TTS audio');
+        }
+      } else {
+        console.error(patterns.server.error('Error details:'), error.message);
+        res.status(500).send('Error fetching TTS audio');
+      }
+      next();
+    }
+  }
+});
 
 app.locals.footer = footerConfig;
 
@@ -201,31 +237,6 @@ function setupSockets() {
           } catch (error) {
             console.error(patterns.server.error('Error in collar handler:', error));
           }
-        });
-
-        socket.on('generate tts', (data) => {
-          const ttsWorker = new Worker(path.join(__dirname, 'workers/tts-worker.js'));
-          adjustMaxListeners(ttsWorker);
-      
-          ttsWorker.postMessage(data);
-      
-          ttsWorker.on('message', (message) => {
-            if (message.error) {
-              socket.emit('tts error', message.error);
-            } else {
-              socket.emit('tts success', message.success);
-            }
-          });
-      
-          ttsWorker.on('error', (error) => {
-            socket.emit('tts error', error.message);
-          });
-      
-          ttsWorker.on('exit', (code) => {
-            if (code !== 0) {
-              socket.emit('tts error', `Worker stopped with exit code ${code}`);
-            }
-          });
         });
 
         lmstudio.on("message", async (msg) => {
