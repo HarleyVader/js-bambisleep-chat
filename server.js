@@ -78,7 +78,7 @@ async function fetchTTS(text) {
     const response = await axios.get('http://192.168.0.178:5002/tts', {
       params: { text },
       responseType: 'arraybuffer',
-      timeout: 10000,
+      timeout: 20000, // Increase timeout to 20 seconds
     });
     return response;
   } catch (error) {
