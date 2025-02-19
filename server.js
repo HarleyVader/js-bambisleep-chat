@@ -73,6 +73,8 @@ app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
 });
 
+const axios = require('axios');
+
 async function fetchTTS(text) {
   try {
     const response = await axios.get('http://192.168.0.178:5002/tts', {
@@ -82,7 +84,18 @@ async function fetchTTS(text) {
     });
     return response;
   } catch (error) {
-    console.error(patterns.server.error('Error fetching TTS audio:', error));
+    if (error.response) {
+      // Server responded with a status other than 200 range
+      console.error(`Error fetching TTS audio: ${error.response.status} - ${error.response.statusText}`);
+      console.error(`Response data: ${error.response.data}`);
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error('Error fetching TTS audio: No response received');
+      console.error(error.request);
+    } else {
+      // Something else happened while setting up the request
+      console.error('Error fetching TTS audio:', error.message);
+    }
     throw error;
   }
 }
