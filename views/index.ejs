@@ -49,27 +49,6 @@
             <div id="eye" aria-label="Eye Cursor"></div>
           </div>
         </div>
-        <div id="audio-upload-container">
-          <h2>Upload a 10-second .wav file</h2>
-          <form id="audio-upload-form" enctype="multipart/form-data">
-            <input type="file" id="audio-file" accept=".wav" required>
-            <input type="hidden" id="socket-id" name="socket-id">
-            <button type="submit">Upload</button>
-          </form>
-          <p id="upload-message"></p>
-          <p id="error-message" style="display: none; color: red;"></p>
-        </div>
-        <!-- Add TTS generation form -->
-        <div id="tts-container">
-          <h2>Generate TTS</h2>
-          <form id="tts-form">
-            <textarea id="tts-text" placeholder="Enter text for TTS"></textarea>
-            <input type="text" id="tts-speaker-wav" placeholder="Enter speaker WAV file name">
-            <input type="text" id="tts-language" placeholder="Enter language">
-            <button type="submit">Generate TTS</button>
-          </form>
-          <p id="tts-message"></p>
-        </div>
       </div>
       <%- include('../views/partials/footer.ejs') %>
         <script src="js/ptm.js"></script>
