@@ -1,6 +1,3 @@
-import ttsWorker from './workers/tts-worker.js';import ttsWorker from './workers/tts-worker.js';import fs from 'fs';
-
-
 import { promises as fsPromises } from 'fs';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -155,7 +152,7 @@ function setupSockets() {
         console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
         userSessions.add(socket.id);
 
-        const lmstudio = new Worker(path.join(__dirname, 'workers/mstudio.js'));
+        const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
         adjustMaxListeners(lmstudio);
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
