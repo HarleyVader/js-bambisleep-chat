@@ -73,8 +73,6 @@ app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
 });
 
-const axios = require('axios');
-
 async function fetchTTS(text) {
   try {
     const response = await axios.get('http://192.168.0.178:5002/tts', {
