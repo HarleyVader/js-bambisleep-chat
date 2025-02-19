@@ -8,6 +8,7 @@ import { Worker } from 'worker_threads';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
+import axios from 'axios'; 
 
 //routes
 import indexRoute from './routes/index.js';
