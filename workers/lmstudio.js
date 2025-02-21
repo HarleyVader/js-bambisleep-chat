@@ -102,7 +102,7 @@ async function createCollarText(collar, triggers, username) {
   let triggersText = await checkTriggers(triggers);
 
   let role = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
-  let useTriggers = `You must always use all triggers in capslock: ${triggersText}`;
+  let useTriggers = `Allways use ${triggersText}`;
   return `${role} ${collarRole} ${useTriggers}`;
 }
 
