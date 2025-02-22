@@ -75,30 +75,20 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 
 async function fetchTTS(text) {
   try {
-    const response = await axios.get('http://192.168.0.178:5002/tts', {
+    const response = await axios.get('http://192.168.0.178:5002/api/tts', {
       params: { text },
       responseType: 'arraybuffer',
-      //timeout: 60000, // Increase timeout to 20 seconds
+      timeout: 10000,
+      speaker_wav: 'bambi.wav'
     });
     return response;
   } catch (error) {
-    if (error.response) {
-      // Server responded with a status other than 200 range
-      console.error(`Error fetching TTS audio: ${error.response.status} - ${error.response.statusText}`);
-      console.error(`Response data: ${error.response.data}`);
-    } else if (error.request) {
-      // Request was made but no response received
-      console.error('Error fetching TTS audio: No response received');
-      console.error(error.request);
-    } else {
-      // Something else happened while setting up the request
-      console.error('Error fetching TTS audio:', error.message);
-    }
+    console.error(patterns.server.error('Error fetching TTS audio:', error));
     throw error;
   }
 }
 
-app.use('/tts', async (req, res, next) => {
+app.use('/api/tts', async (req, res, next) => {
   const text = req.query.text;
   if (typeof text !== 'string' || text.trim() === '') {
     return res.status(400).send('Invalid input: text must be a non-empty string');
