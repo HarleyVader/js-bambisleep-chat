@@ -18,11 +18,6 @@ socket.on('connect', () => {
     console.log('Connected to BambiSleep chat server! Socket ID:', socket.id);
 });
 
-socket.on('connect_error', (error) => {
-    console.error('Connection error:', error);
-    alert('Connection error. Please check your network and try again.');
-});
-
 let debounceTimeout;
 submit.addEventListener('click', (event) => {
     event.preventDefault();
@@ -45,27 +40,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     console.log("Username:", username);
     window.username = username;
-
-    // Handle TTS form submission
-    document.getElementById('tts-form').addEventListener('submit', (event) => {
-        event.preventDefault();
-        const text = document.getElementById('tts-text').value;
-        const speakerWav = document.getElementById('tts-speaker-wav').value;
-        const language = document.getElementById('tts-language').value;
-        const useCuda = true; // Set this based on your requirements
-
-        socket.emit('generate tts', { text, speaker_wav: speakerWav, language, output_file: 'output.wav', use_cuda: useCuda });
-    });
-
-    socket.on('tts success', (message) => {
-        document.getElementById('tts-message').textContent = 'TTS generation successful!';
-        console.log('TTS generation successful:', message);
-    });
-
-    socket.on('tts error', (error) => {
-        document.getElementById('tts-message').textContent = `TTS generation failed: ${error}`;
-        console.error('TTS generation failed:', error);
-    });
 });
 
 socket.on('username set', () => {
@@ -148,15 +122,7 @@ function handleAudioPlay() {
       response.appendChild(messageElement);
     }
     applyUppercaseStyle();
-}
+  }
 
 audio.addEventListener('ended', handleAudioEnded);
 audio.addEventListener('play', handleAudioPlay);
-
-// Add error handling for audio playback
-audio.addEventListener('error', (event) => {
-    console.error('[FRONTEND ERROR] Error playing audio:', event);
-    const errorMessage = document.getElementById('error-message');
-    errorMessage.textContent = 'Error playing audio. Please check the URL.';
-    errorMessage.style.display = 'block';
-});
