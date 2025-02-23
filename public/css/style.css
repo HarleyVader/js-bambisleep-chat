@@ -389,7 +389,7 @@ h1 {
 h5,
 h6 {
     font-size: 1rem;
-    color: var (--tertiary-color);
+    color: var(--tertiary-color);
 }
 
 ul {
