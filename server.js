@@ -75,11 +75,12 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 
 async function fetchTTS(text) {
   try {
-    const response = await axios.get('http://192.168.0.178:5002/api/tts', {
-      params: { text },
-      responseType: 'arraybuffer',
-      timeout: 20000,
+    const response = await axios.post('http://192.168.0.178:5002/api/tts', {
+      text: text,
       speaker_wav: 'bambi.wav'
+    }, {
+      responseType: 'arraybuffer',
+      timeout: 20000
     });
     return response;
   } catch (error) {
