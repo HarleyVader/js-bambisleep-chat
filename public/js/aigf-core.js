@@ -48,11 +48,6 @@ socket.on('username set', () => {
     socket.emit('set username', username);
 });
 
-socket.on('username set', (username) => {
-    window.username = username;
-    console.log("Username set:", username);
-});
-
 function flashTrigger(trigger, duration) {
     const container = document.getElementById("eye");
     container.innerHTML = "";
