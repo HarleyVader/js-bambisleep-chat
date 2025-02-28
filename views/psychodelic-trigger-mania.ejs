@@ -56,7 +56,7 @@
             });
 
             function processText(text) {
-                const sentences = text.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
+                let sentences = text.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
                 for (let sentence of sentences) {
                     _textArray.push(sentence);
                     console.log('Text array:', _textArray);
@@ -71,7 +71,7 @@
             function handleAudioEnded() {
                 if (_textArray.length > 0) {
                     state = false;
-                    text = _textArray.shift();
+                    let _text = _textArray.shift();
                 } else if (_textArray.length === 0) {
                     state = true;
                     return;
