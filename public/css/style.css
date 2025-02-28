@@ -1029,7 +1029,7 @@ audio {
 }
 
 .modal textarea:active,
-textarea:focus {
+.modal textarea:focus {
     border: var(--nav-alt) 4px ridge;
     border-color: var(--tertiary-color);
     text-shadow: var(--nav-alt) 2px 2px 2px;
