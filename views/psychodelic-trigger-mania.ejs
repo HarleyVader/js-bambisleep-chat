@@ -40,10 +40,24 @@
             const audio = document.createElement('audio');
             document.body.appendChild(audio);
             let _audioArray = [];
+            let _textArray = [];
+            let state = true;
+            let text = '';
 
-            socket.on('response', async (message) => {
-                const messageText = message;
-                const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
+            document.getElementById('upload-file').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const fileContent = e.target.result;
+                        processText(fileContent);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+
+            function processText(text) {
+                const sentences = text.split(/(?<=[:;,.!?]["']?)\s+/g);
                 for (let sentence of sentences) {
                     _textArray.push(sentence);
                     console.log('Text array:', _textArray);
@@ -53,6 +67,10 @@
                     sentence = '';
                 }
                 applyUppercaseStyle();
+            }
+
+            socket.on('response', async (message) => {
+                processText(message);
             });
 
             function handleAudioEnded() {
