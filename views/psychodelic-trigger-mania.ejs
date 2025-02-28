@@ -54,8 +54,8 @@
                 }
             });
 
-            function processText(text) {
-                let sentences = text.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
+            function processText(_text) {
+                let sentences = _text.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
                 for (let sentence of sentences) {
                     _textArray.push(sentence);
                     console.log('Text array:', _textArray);
@@ -70,12 +70,12 @@
             function handleAudioEnded() {
                 if (_textArray.length > 0) {
                     state = false;
-                    let _text = _textArray.shift();
+                    let text = _textArray.shift();
                 } else if (_textArray.length === 0) {
                     state = true;
                     return;
                 }
-                arrayPushToo(_audioArray, _text);
+                arrayPushToo(_audioArray, text);
                 do_tts(_audioArray);
             }
 
