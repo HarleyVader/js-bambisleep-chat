@@ -925,19 +925,6 @@ audio {
     border-radius: 8px;
 }
 
---primary-color: #0c2a2ac9;
-    --primary-alt: #15aab5ec;
-    --secondary-color: #40002f;
-    --secondary-alt: #005d46;
-    --tertiary-color: #cc0174;
-    --tertiary-alt: #01c69eae;
-    --button-color: #df0471;
-    --button-alt: #110000;
-    --nav-color: #0a2626;
-    --nav-alt: #17dbd8;
-    --transparent: #124141ce;
-    --transparent-alt: #ffffff00;
-
 /* Modal styles */
 .modal {
     display: none;
