@@ -19,7 +19,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 
-    --hypno-giphy: url("<div style="width:100%;height:0;padding-bottom:100%;position:relative;"><iframe src="" width="100%" height="100%" style="position:absolute" frameBorder="0" class="giphy-embed" allowFullScreen></iframe></div><p><a href="" https://giphy.com/embed/10l8fc00NMNJNm >via GIPHY</a></p>");
+    --hypno-giphy: url("<div style=" width:100%; height:0; padding-bottom:100%; position:relative; "><iframe src=" " width=" 100%" height=" 100%" style=" position:absolute" frameBorder=" 0" class=" giphy-embed" allowFullScreen></iframe></div><p><a href=" " https://giphy.com/embed/10l8fc00NMNJNm >via GIPHY</a></p>");
 }
 
 html,
@@ -37,7 +37,8 @@ body {
 
 #chat-container {
     display: flex;
-    height: calc(99.4vh - 3vh); /* Adjusted to be full browser height minus the navbar */
+    height: calc(99.4vh - 3vh);
+    /* Adjusted to be full browser height minus the navbar */
     border: ridge 3px var(--button-color);
     border-radius: 8px;
 }
@@ -45,23 +46,33 @@ body {
 #user-input {
     display: flex;
     flex-direction: column;
-    width: 35vw; /* Updated from 35% */
-    padding: 0.35vh; /* Reduced by 30% */
+    width: 35vw;
+    /* Updated from 35% */
+    padding: 0.35vh;
+    /* Reduced by 30% */
     overflow-y: auto;
-    background-color: var(--transparent); /* Changed to transparent */
-    border-top: var(--button-color) 3px ridge; /* Added to match response & chat */
-    border-bottom: var(--button-color) 3px ridge; /* Added to match response & chat */
-    border-left: var(--secondary-alt) 1px groove; /* Added to match response & chat */
-    border-right: var(--secondary-alt) 1px groove; /* Added to match response & chat */
+    background-color: var(--transparent);
+    /* Changed to transparent */
+    border-top: var(--button-color) 3px ridge;
+    /* Added to match response & chat */
+    border-bottom: var(--button-color) 3px ridge;
+    /* Added to match response & chat */
+    border-left: var(--secondary-alt) 1px groove;
+    /* Added to match response & chat */
+    border-right: var(--secondary-alt) 1px groove;
+    /* Added to match response & chat */
     border-radius: 8px;
-    box-shadow: 0 0 1vh var(--button-color); /* Added to match response & chat */
-    margin: 0.28vw; /* Reduced by 30% */
+    box-shadow: 0 0 1vh var(--button-color);
+    /* Added to match response & chat */
+    margin: 0.28vw;
+    /* Reduced by 30% */
 }
 
-#user-prompt, #user-collar {
+#user-prompt,
+#user-collar {
     width: 100%;
     margin: 1.4px;
-    padding: 1.4px; 
+    padding: 1.4px;
     border-left: var(--button-alt) 2px solid;
     border-right: var(--button-alt) 2px solid;
     border-top: var(--button-color) 2px ridge;
@@ -86,16 +97,16 @@ body {
 
 #response-container {
     display: flex;
-    flex-direction: column; 
+    flex-direction: column;
     width: 100%;
-    height: calc(99.4vh - 3vh); 
-    background-color: var(--transparent-alt); 
+    height: calc(99.4vh - 3vh);
+    background-color: var(--transparent-alt);
 }
 
 #response-chat-wrapper {
     display: flex;
-    flex-direction: row; 
-    height: calc(99.4vh - 56%); 
+    flex-direction: row;
+    height: calc(99.4vh - 56%);
     width: 100%;
 }
 
@@ -104,28 +115,34 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 0.08vw; /* Reduced by 30% */
-    margin: 0.08vw; /* Reduced by 30% */
+    padding: 0.08vw;
+    /* Reduced by 30% */
+    margin: 0.08vw;
+    /* Reduced by 30% */
     overflow-y: auto;
-    background-color: var(--transparent); 
+    background-color: var(--transparent);
     border-top: var(--button-color) 3px ridge;
     border-bottom: var(--button-color) 3px ridge;
     border-left: var(--secondary-alt) 1px groove;
     border-right: var(--secondary-alt) 1px groove;
     border-radius: 8px;
     box-shadow: 0 0 10px var(--button-color);
-    margin: 0.28vw; /* Reduced by 30% */
+    margin: 0.28vw;
+    /* Reduced by 30% */
 }
 
 #response {
-    height: auto; /* Adjust height as needed */
+    height: auto;
+    /* Adjust height as needed */
     height: 100%;
 }
 
 #chat {
-    height: auto; /* Adjust height as needed */
+    height: auto;
+    /* Adjust height as needed */
     flex-direction: column-reverse;
-    padding: 0.7em; /* Reduced by 30% */
+    padding: 0.7em;
+    /* Reduced by 30% */
     height: 100%;
     width: 100%;
 }
@@ -145,7 +162,8 @@ body {
 #chat textarea-chat {
     width: 100%;
     background-color: var(--nav-color);
-    color: var(--primary-alt); /* Changed to primary-alt */
+    color: var(--primary-alt);
+    /* Changed to primary-alt */
     border: var(--secondary-alt) 4px ridge;
     text-shadow: var(--secondary-color) 2px 2px 2px;
     font-size: 12px;
@@ -241,8 +259,10 @@ body {
     border: var(--secondary-color) 3px ridge;
     border-radius: 0.5rem;
     cursor: pointer;
-    margin: 0.105rem; /* Reduced by 30% */
-    padding: 0.35rem 0.7rem; /* Reduced by 30% */
+    margin: 0.105rem;
+    /* Reduced by 30% */
+    padding: 0.35rem 0.7rem;
+    /* Reduced by 30% */
     font-size: 13px;
     text-shadow: var(--secondary-color) 2px 2px 2px;
 }
@@ -251,8 +271,10 @@ body {
     background-color: var(--primary-alt);
     color: var(--secondary-color);
     text-shadow: none;
-    margin: 0.105rem; /* Reduced by 30% */
-    padding: 0.35rem 0.7rem; /* Reduced by 30% */
+    margin: 0.105rem;
+    /* Reduced by 30% */
+    padding: 0.35rem 0.7rem;
+    /* Reduced by 30% */
 }
 
 .toggle-input {
@@ -305,7 +327,8 @@ textarea {
     border-radius: 4px;
     resize: none;
     height: 50px;
-    padding: 7px; /* Reduced by 30% */
+    padding: 7px;
+    /* Reduced by 30% */
     font-size: 16px;
     font-family:
         system-ui,
@@ -319,13 +342,16 @@ textarea {
         "Open Sans",
         "Helvetica Neue",
         sans-serif;
-    color: var(--primary-alt); /* Changed to primary-alt */
+    color: var(--primary-alt);
+    /* Changed to primary-alt */
     background-color: var(--nav-color);
     border: var(--tertiary-alt) 4px ridge;
     border-radius: 6px;
     text-shadow: var(--secondary-color) 2px 2px 2px;
-    margin-top: 0.7em; /* Reduced by 30% */
-    margin-bottom: 0.7em; /* Reduced by 30% */
+    margin-top: 0.7em;
+    /* Reduced by 30% */
+    margin-bottom: 0.7em;
+    /* Reduced by 30% */
     width: 90%;
 }
 
@@ -371,14 +397,16 @@ button.active-button {
 }
 
 p {
-    margin-left: 0.7%; /* Reduced by 30% */
+    margin-left: 0.7%;
+    /* Reduced by 30% */
     color: var(--button-color);
 }
 
 h1 {
     margin-top: 0rem;
     padding-top: 0rem;
-    padding-bottom: 0.07em; /* Reduced by 30% */
+    padding-bottom: 0.07em;
+    /* Reduced by 30% */
     color: var(--button-color);
     text-align: center;
     font-size: 3rem;
@@ -399,8 +427,10 @@ ul {
 }
 
 ul li {
-    padding: 2.1px; /* Reduced by 30% */
-    margin-bottom: 1.4px; /* Reduced by 30% */
+    padding: 2.1px;
+    /* Reduced by 30% */
+    margin-bottom: 1.4px;
+    /* Reduced by 30% */
     background: var(--nav-color);
 }
 
@@ -501,7 +531,8 @@ a:hover {
 
     #user-input {
         width: 100%;
-        padding: 0.35em; /* Reduced by 30% */
+        padding: 0.35em;
+        /* Reduced by 30% */
     }
 
     #response-container {
@@ -510,7 +541,8 @@ a:hover {
 
     #response {
         height: auto;
-        padding: 0.35em; /* Reduced by 30% */
+        padding: 0.35em;
+        /* Reduced by 30% */
     }
 
     #eyeCursor {
@@ -525,17 +557,21 @@ a:hover {
     }
 
     p {
-        margin-left: 0.35%; /* Reduced by 30% */
+        margin-left: 0.35%;
+        /* Reduced by 30% */
     }
 
     .toggle-label {
-        padding: 0.175rem 0.35rem; /* Reduced by 30% */
-        margin: 0.035rem; /* Reduced by 30% */
+        padding: 0.175rem 0.35rem;
+        /* Reduced by 30% */
+        margin: 0.035rem;
+        /* Reduced by 30% */
     }
 
     textarea {
         height: 40px;
-        padding: 3.5px; /* Reduced by 30% */
+        padding: 3.5px;
+        /* Reduced by 30% */
     }
 }
 
@@ -554,7 +590,8 @@ a:hover {
 
     #user-input {
         width: 100%;
-        padding: 0.7em; /* Reduced by 30% */
+        padding: 0.7em;
+        /* Reduced by 30% */
     }
 
     #response-container {
@@ -563,7 +600,8 @@ a:hover {
 
     #response {
         height: auto;
-        padding: 0.7em; /* Reduced by 30% */
+        padding: 0.7em;
+        /* Reduced by 30% */
     }
 
     #eyeCursor {
@@ -579,21 +617,26 @@ a:hover {
 
     button {
         width: 100%;
-        margin-top: 7px; /* Reduced by 30% */
+        margin-top: 7px;
+        /* Reduced by 30% */
     }
 
     p {
-        margin-left: 0.7%; /* Reduced by 30% */
+        margin-left: 0.7%;
+        /* Reduced by 30% */
     }
 
     .toggle-label {
-        padding: 0.35rem 0.7rem; /* Reduced by 30% */
-        margin: 0.07rem; /* Reduced by 30% */
+        padding: 0.35rem 0.7rem;
+        /* Reduced by 30% */
+        margin: 0.07rem;
+        /* Reduced by 30% */
     }
 
     textarea {
         height: 50px;
-        padding: 7px; /* Reduced by 30% */
+        padding: 7px;
+        /* Reduced by 30% */
     }
 
     .login-container {
@@ -737,51 +780,51 @@ a:hover {
 
 /* Profile Link */
 .profile-link {
-  font-weight: bold;
-  color: var(--tertiary-alt);
-  text-shadow: var(--secondary-color) 2px 2px 2px;
+    font-weight: bold;
+    color: var(--tertiary-alt);
+    text-shadow: var(--secondary-color) 2px 2px 2px;
 }
 
 /* Profile Page */
 .profile-container {
-  background-color: var(--primary-color);
-  margin-top: 20px;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px var(--button-color);
-  width: 90%;
-  max-width: 800px;
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-  text-align: center;
-  margin: 0.1vw auto;
+    background-color: var(--primary-color);
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px var(--button-color);
+    width: 90%;
+    max-width: 800px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    text-align: center;
+    margin: 0.1vw auto;
 }
 
 .profile-container img {
-  border-radius: 50%;
-  width: 150px;
-  height: 150px;
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
 }
 
 .profile-section {
-  margin-top: 20px;
-  text-align: left;
+    margin-top: 20px;
+    text-align: left;
 }
 
 .membership-bubble {
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background-color: var(--secondary-alt);
-  border-radius: 6px;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: var(--secondary-alt);
+    border-radius: 6px;
 }
 
 .profile-container h1,
 .profile-container h2 {
-  margin: 10px 0;
+    margin: 10px 0;
 }
 
 .profile-container p {
-  margin: 5px 0;
+    margin: 5px 0;
 }
 
 #chat-form {
@@ -813,66 +856,70 @@ a:hover {
 }
 
 .profile-container {
-  background-color: var(--transparent);
-  border-top: var(--button-color) 3px ridge;
-  border-bottom: var(--button-color) 3px ridge;
-  border-left: var(--secondary-alt) 1px groove;
-  border-right: var(--secondary-alt) 1px groove;
-  border-radius: 8px;
-  box-shadow: 0 0 5px var(--button-color); /* Reduced by 50% */
-  padding: 0.175vh; /* Reduced by 50% */
-  margin: 0.14vw; /* Reduced by 50% */
-  width: 99%; /* Use the width of the parent element */
-  overflow-y: auto;
+    background-color: var(--transparent);
+    border-top: var(--button-color) 3px ridge;
+    border-bottom: var(--button-color) 3px ridge;
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
+    border-radius: 8px;
+    box-shadow: 0 0 5px var(--button-color);
+    /* Reduced by 50% */
+    padding: 0.175vh;
+    /* Reduced by 50% */
+    margin: 0.14vw;
+    /* Reduced by 50% */
+    width: 99%;
+    /* Use the width of the parent element */
+    overflow-y: auto;
 }
 
 #session-histories,
 #session-details {
-  background-color: var(--transparent);
-  border-top: var(--button-color) 3px ridge;
-  border-bottom: var(--button-color) 3px ridge;
-  border-left: var(--secondary-alt) 1px groove;
-  border-right: var(--secondary-alt) 1px groove;
-  border-radius: 8px;
-  box-shadow: 0 0 10px var(--button-color);
-  padding: 0.35vh;
-  margin: 0.28vw;
-  width: 35vw;
-  overflow-y: auto;
+    background-color: var(--transparent);
+    border-top: var(--button-color) 3px ridge;
+    border-bottom: var(--button-color) 3px ridge;
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
+    border-radius: 8px;
+    box-shadow: 0 0 10px var(--button-color);
+    padding: 0.35vh;
+    margin: 0.28vw;
+    width: 35vw;
+    overflow-y: auto;
 }
 
 #session-history-list li {
-  margin: 0.35vh 0;
+    margin: 0.35vh 0;
 }
 
 #session-history-list a {
-  color: var(--primary-alt);
-  text-decoration: none;
+    color: var(--primary-alt);
+    text-decoration: none;
 }
 
 #session-history-list a:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 
 #session-content {
-  white-space: pre-wrap;
-  color: var(--primary-alt);
-  text-shadow: var(--secondary-color) 2px 2px 2px;
+    white-space: pre-wrap;
+    color: var(--primary-alt);
+    text-shadow: var(--secondary-color) 2px 2px 2px;
 }
 
 #profile {
     display: flex;
     flex-direction: column;
     padding: 0.35vh;
-    margin: 0.28vw; 
+    margin: 0.28vw;
     overflow-y: auto;
-    background-color: var(--transparent); 
-    border-top: var(--button-color) 3px ridge; 
+    background-color: var(--transparent);
+    border-top: var(--button-color) 3px ridge;
     border-bottom: var(--button-color) 3px ridge;
-    border-left: var(--secondary-alt) 1px groove; 
-    border-right: var(--secondary-alt) 1px groove; 
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
     border-radius: 8px;
-    box-shadow: 0 0 10px var(--button-color); 
+    box-shadow: 0 0 10px var(--button-color);
 }
 
 .neon-glow {
@@ -979,4 +1026,11 @@ audio {
     color: var(--primary-alt);
     border: 1px solid var(--secondary-color);
     border-radius: 3px;
+}
+
+.modal textarea:active,
+textarea:focus {
+    border: var(--nav-alt) 4px ridge;
+    border-color: var(--tertiary-color);
+    text-shadow: var(--nav-alt) 2px 2px 2px;
 }
