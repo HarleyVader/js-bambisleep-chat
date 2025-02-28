@@ -51,7 +51,7 @@
         </div>
       </div>
       <%- include('../views/partials/footer.ejs') %>
-        <script src="js/ptm.js"></script>
+        <script src="js/psychodelic-trigger-mania.js"></script>
         <script src="js/text2speech.js"></script>
         <script src="js/responsive.js"></script>
         <script src="js/triggers.js"></script>
@@ -63,7 +63,7 @@
             const modal = document.getElementById('username-modal');
             let username = '';
 
-            // Check for existing username cookie
+            // ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪
             function getCookie(name) {
               const value = `; ${document.cookie}`;
               const parts = value.split(`; ${name}=`);
@@ -75,7 +75,6 @@
               modal.style.display = 'block';
             }
 
-            // Handle username submission
             document.getElementById('username-submit').addEventListener('click', () => {
               const input = document.getElementById('username-input');
               const newUsername = input.value.trim();
@@ -88,7 +87,6 @@
               }
             });
 
-            // Add the following CSS to your existing styles
             const style = document.createElement('style');
             document.head.appendChild(style);
 
