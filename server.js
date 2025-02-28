@@ -237,6 +237,15 @@ function setupSockets() {
           }
         });
 
+        socket.on('upload file', async (fileContent) => {
+          try {
+            const response = await fetchTTS(fileContent);
+            socket.emit('tts response', response.data);
+          } catch (error) {
+            console.error(patterns.server.error('Error processing uploaded file:', error));
+          }
+        });
+
         lmstudio.on("message", async (msg) => {
           try {
             if (msg.type === "log") {
@@ -276,16 +285,7 @@ function setupSockets() {
             worker.terminate();
             adjustMaxListeners(worker);
 
-            // Remove the uploaded files
-            files.forEach(filePath => {
-              fs.unlink(filePath, (err) => {
-                if (err) {
-                  console.error(patterns.server.error('Error deleting file:', filePath, err));
-                } else {
-                  console.log(patterns.server.success('Deleted file:', filePath));
-                }
-              });
-            });
+          
           } catch (error) {
             console.error(patterns.server.error('Error in disconnect handler:', error));
           }
