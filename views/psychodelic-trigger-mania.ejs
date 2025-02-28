@@ -69,10 +69,6 @@
                 applyUppercaseStyle();
             }
 
-            socket.on('response', async (message) => {
-                processText(message);
-            });
-
             function handleAudioEnded() {
                 if (_textArray.length > 0) {
                     state = false;
