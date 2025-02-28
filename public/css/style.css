@@ -970,3 +970,13 @@ audio {
 #username-submit:hover {
     background-color: var(--tertiary-color);
 }
+
+.modal textarea {
+    width: 100%;
+    padding: 8px;
+    margin: 10px 0;
+    background-color: var(--secondary-alt);
+    color: var(--primary-alt);
+    border: 1px solid var(--secondary-color);
+    border-radius: 3px;
+}
