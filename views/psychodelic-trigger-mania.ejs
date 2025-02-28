@@ -60,7 +60,7 @@
                 _urlArray = _textArray.map(sentence => `/api/tts?text=${encodeURIComponent(sentence)}`);
                     console.log('URL array:', _urlArray);
                     if (state) {
-                        do_tts(_urlArray);
+                        handleAudioEnded();
                 }
             }
 
