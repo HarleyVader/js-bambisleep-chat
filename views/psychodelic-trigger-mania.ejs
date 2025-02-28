@@ -40,7 +40,6 @@
             const audio = document.createElement('audio');
             document.body.appendChild(audio);
             let _audioArray = [];
-            let _textArray = [];
             let state = true;
             let text = '';
 
@@ -57,7 +56,7 @@
             });
 
             function processText(text) {
-                const sentences = text.split(/(?<=[:;,.!?]["']?)\s+/g);
+                const sentences = text.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
                 for (let sentence of sentences) {
                     _textArray.push(sentence);
                     console.log('Text array:', _textArray);
