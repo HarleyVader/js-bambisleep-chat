@@ -35,7 +35,6 @@
         <script src="./js/bootstrap.min.js"></script>
         <script src="/socket.io/socket.io.js"></script>
         <script src="./js/responsive.js"></script>
-        <script src="./js/text2speech.js"></script>
         <script>
             const audio = document.createElement('audio');
             document.body.appendChild(audio);
@@ -76,7 +75,7 @@
                     state = true;
                     return;
                 }
-                arrayPush(_audioArray, _text);
+                arrayPushToo(_audioArray, _text);
                 do_tts(_audioArray);
             }
 
@@ -94,6 +93,54 @@
                     response.appendChild(messageElement);
                 }
                 applyUppercaseStyle();
+            }
+
+            function arrayPushToo(array, text) {
+                const parts = splitArray(text, 1);
+                parts.forEach(part => {
+                    fetch(`/api/tts?text=${encodeURIComponent(part.join(' '))}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            array.push(data);
+                        });
+                });
+            }
+
+            function splitArray(array, partSize) {
+                let result = [];
+                for (let i = 0; i < array.length; i += partSize) {
+                    result.push(array.slice(i, i + partSize));
+                }
+                return result;
+            }
+
+            async function do_tts(_audioArray) {
+                document.querySelector("#message").textContent = "Synthesizing...";
+
+                while (_audioArray.length > 0) {
+                    let currentURL = _audioArray.shift();
+                    audio.src = currentURL;
+                    console.log("audio.src ", audio.src);
+                    audio.load();
+                    await new Promise((resolve, reject) => {
+                        audio.onloadedmetadata = function () {
+                            console.log("audio ", audio);
+                            console.log("audio.duration ", audio.duration);
+                            document.querySelector("#message").textContent = "Playing...";
+                            audio.play();
+                        };
+                        audio.onended = function () {
+                            console.log("audio ended");
+                            document.querySelector("#message").textContent = "Finished!";
+                            resolve();
+                        };
+                        audio.onerror = function (e) {
+                            console.error("Error playing audio:", e);
+                            document.querySelector("#message").textContent = "Error playing audio." + e;
+                            reject(e);
+                        };
+                    });
+                }
             }
 
             audio.addEventListener('ended', handleAudioEnded);
