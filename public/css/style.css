@@ -938,7 +938,7 @@ audio {
     margin: 15vh auto;
     padding: 2vh;
     border: 0.1vh solid var(--secondary-color);
-    width: 65vw;
+    width: 80vw;
     max-width: 40vw;
     border-radius: 0.5vh;
 }
