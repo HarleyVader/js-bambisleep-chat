@@ -35,13 +35,14 @@
         <script src="./js/bootstrap.min.js"></script>
         <script src="/socket.io/socket.io.js"></script>
         <script src="./js/responsive.js"></script>
+        <script src="./js/triggers.js"></script>
         <script>
             const audio = document.createElement('audio');
             document.body.appendChild(audio);
-            let _audioArray = [];
+            let _textArray = [];
+            let _urlArray = [];
             let state = true;
-            let text = '';
-
+            
             document.getElementById('upload-file').addEventListener('change', function(event) {
                 const file = event.target.files[0];
                 if (file) {
@@ -55,70 +56,19 @@
             });
 
             function processText(_text) {
-                let sentences = _text.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
-                for (let sentence of sentences) {
-                    _textArray.push(sentence);
-                    console.log('Text array:', _textArray);
+                _textArray = _text.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
+                _urlArray = _textArray.map(sentence => `/api/tts?text=${encodeURIComponent(sentence)}`);
+                    console.log('URL array:', _urlArray);
                     if (state) {
-                        handleAudioEnded();
-                    }
-                    sentence = '';
+                        do_tts(_urlArray);
                 }
-                applyUppercaseStyle();
             }
 
-            function handleAudioEnded() {
-                if (_textArray.length > 0) {
-                    state = false;
-                    let text = _textArray.shift();
-                } else if (_textArray.length === 0) {
-                    state = true;
-                    return;
-                }
-                arrayPushToo(_audioArray, text);
-                do_tts(_audioArray);
-            }
-
-            function handleAudioPlay() {
-                console.log('Audio is playing');
-                const duration = audio.duration * 1000;
-                new Promise(resolve => setTimeout(resolve, duration));
-                flashTrigger(text, duration);
-                const messageElement = document.createElement('p');
-                messageElement.textContent = text;
-                console.log('Text reply: ', messageElement.textContent);
-                if (response.firstChild) {
-                    response.insertBefore(messageElement, response.firstChild);
-                } else {
-                    response.appendChild(messageElement);
-                }
-                applyUppercaseStyle();
-            }
-
-            function arrayPushToo(array, text) {
-                const parts = splitArray(text, 1);
-                parts.forEach(part => {
-                    fetch(`/api/tts?text=${encodeURIComponent(part.join(' '))}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            array.push(data);
-                        });
-                });
-            }
-
-            function splitArray(array, partSize) {
-                let result = [];
-                for (let i = 0; i < array.length; i += partSize) {
-                    result.push(array.slice(i, i + partSize));
-                }
-                return result;
-            }
-
-            async function do_tts(_audioArray) {
+            async function do_tts(_urlArray) {
                 document.querySelector("#message").textContent = "Synthesizing...";
 
-                while (_audioArray.length > 0) {
-                    let currentURL = _audioArray.shift();
+                while (_urlArray.length > 0) {
+                    let currentURL = _urlArray.shift();
                     audio.src = currentURL;
                     console.log("audio.src ", audio.src);
                     audio.load();
@@ -143,6 +93,21 @@
                 }
             }
 
+            function handleAudioPlay() {
+                console.log('Audio is playing');
+                const duration = audio.duration * 1000;
+                new Promise(resolve => setTimeout(resolve, duration));
+                flashTrigger(text, duration);
+                applyUppercaseStyle();
+            }
+
+            function handleAudioEnded() {
+                console.log('Audio has ended');
+                if (_urlArray.length > 0) {
+                    do_tts(_urlArray);
+                }
+            }
+           
             audio.addEventListener('ended', handleAudioEnded);
             audio.addEventListener('play', handleAudioPlay);
         </script>
