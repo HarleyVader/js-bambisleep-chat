@@ -3,90 +3,91 @@
 
 <head>
     <%- include('partials/head') %>
-    <title>Psychodelic Trigger Mania</title>
-    <style>
-        #eyeCursor {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-        }
-    </style>
+        <title>Psychodelic Trigger Mania</title>
+        <style>
+            #eyeCursor {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+            }
+        </style>
 </head>
 
 <body>
     <%- include('partials/nav') %>
-    <h1>Psychodelic Trigger Mania</h1>
-    <input type="file" id="upload-file" accept=".txt">
-    <div id="chat-container">
-        <div id="response-container">
-            <div id="eyeCursor">
-                <div id="eye" aria-label="Eye Cursor"></div>
+        <h1>Psychodelic Trigger Mania</h1>
+        <input type="file" id="upload-file" accept=".txt">
+        <div id="chat-container">
+            <div id="response-container">
+                <div id="eyeCursor">
+                    <div id="eye" aria-label="Eye Cursor"></div>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <script src="./js/psychodelic-trigger-mania.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
-    <script src="js/bootstrap.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const audio = document.createElement('audio');
-        document.body.appendChild(audio);
-        let _audioArray = [];
 
-        document.getElementById('upload-file').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const content = e.target.result;
-                    const sentences = content.split(/(?<=[:;,.!?]["']?)\s+/g);
-                    sentences.forEach(sentence => {
-                        _audioArray = arrayPush(_audioArray, sentence);
-                    });
-                    do_tts(_audioArray);
-                };
-                reader.readAsText(file);
-            }
-        });
+        <script src="./js/psychodelic-trigger-mania.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            const audio = document.createElement('audio');
+            document.body.appendChild(audio);
+            let _audioArray = [];
 
-        function arrayPush(_audioArray, e) {
-            let URL = `https://bambisleep.chat/api/tts?text=${encodeURIComponent(e)}`;
-            _audioArray.push(URL);
-            return _audioArray;
-        }
-
-        function arrayShift(_audioArray) {
-            if (_audioArray.length > 0 && audio !== null) {
-                let _currentURL = _audioArray.shift();
-                console.log("currentURL ", _currentURL);
-                return _currentURL;
-            }
-        }
-
-        async function do_tts(_audioArray) {
-            let currentURL = arrayShift(_audioArray);
-            audio.src = currentURL;
-            console.log("audio.src ", audio.src);
-            audio.load();
-            audio.onloadedmetadata = function () {
-                console.log("audio ", audio);
-                console.log("audio.duration ", audio.duration);
-                audio.play();
-            };
-            audio.onended = function () {
-                console.log("audio ended");
-                if (_audioArray.length > 0) {
-                    do_tts(_audioArray);
+            document.getElementById('upload-file').addEventListener('change', function (event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const content = e.target.result;
+                        const sentences = content.split(/(?<=[:;,.!?]["']?)\s+/g);
+                        sentences.forEach(sentence => {
+                            _audioArray = arrayPush(_audioArray, sentence);
+                        });
+                        do_tts();
+                    };
+                    reader.readAsText(file);
                 }
-            };
-            audio.onerror = function (e) {
-                console.error("Error playing audio:", e);
-            };
-        }
-    </script>
+            });
+
+            function arrayPush(_audioArray, e) {
+                let URL = `https://bambisleep.chat/api/tts?text=${encodeURIComponent(e)}`;
+                _audioArray.push(URL);
+                return _audioArray;
+            }
+
+            function arrayShift(_audioArray) {
+                if (_audioArray.length > 0 && audio !== null) {
+                    let _currentURL = _audioArray.shift();
+                    console.log("currentURL ", _currentURL);
+                    return _currentURL;
+                }
+            }
+
+            async function do_tts() {
+                if (_audioArray.length === 0) return;
+                let currentURL = arrayShift(_audioArray);
+                audio.src = currentURL;
+                console.log("audio.src ", audio.src);
+                audio.load();
+                audio.onloadedmetadata = function () {
+                    console.log("audio ", audio);
+                    console.log("audio.duration ", audio.duration);
+                    audio.play();
+                };
+                audio.onended = function () {
+                    console.log("audio ended");
+                    if (_audioArray.length > 0) {
+                        do_tts();
+                    }
+                };
+                audio.onerror = function (e) {
+                    console.error("Error playing audio:", e);
+                };
+            }
+        </script>
 </body>
 
 </html>
