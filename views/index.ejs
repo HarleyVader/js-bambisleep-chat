@@ -9,8 +9,8 @@
         <!-- Add modal for username prompt -->
         <div id="username-modal" class="modal">
           <div class="modal-content">
-            <h2>Welcome to BambiSleep Chat!</h2>
-            <p>Please enter your preferred username:</p>
+            <h2>BambiSleep.Chat!</h2>
+            <p>enter your bambi name:</p>
             <input type="text" id="username-input" placeholder="Enter username">
             <button id="username-submit">Submit</button>
           </div>
@@ -136,7 +136,6 @@
               applyUppercaseStyle();
             });
 
-            // Set the socket ID in the hidden input field
             socket.on('connect', () => {
               document.getElementById('socket-id').value = socket.id;
             });
