@@ -269,7 +269,7 @@ body {
 
 .toggle-label:hover {
     background-color: var(--primary-alt);
-    color: var(--secondary-color);
+    color: var (--secondary-color);
     text-shadow: none;
     margin: 0.105rem;
     /* Reduced by 30% */
@@ -778,55 +778,7 @@ a:hover {
     z-index: 1000;
 }
 
-/* Profile Link */
-.profile-link {
-    font-weight: bold;
-    color: var(--tertiary-alt);
-    text-shadow: var(--secondary-color) 2px 2px 2px;
-}
-
-/* Profile Page */
-.profile-container {
-    background-color: var(--primary-color);
-    margin-top: 20px;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px var(--button-color);
-    width: 90%;
-    max-width: 800px;
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
-    text-align: center;
-    margin: 0.1vw auto;
-}
-
-.profile-container img {
-    border-radius: 50%;
-    width: 150px;
-    height: 150px;
-}
-
-.profile-section {
-    margin-top: 20px;
-    text-align: left;
-}
-
-.membership-bubble {
-    margin-bottom: 1rem;
-    padding: 1rem;
-    background-color: var(--secondary-alt);
-    border-radius: 6px;
-}
-
-.profile-container h1,
-.profile-container h2 {
-    margin: 10px 0;
-}
-
-.profile-container p {
-    margin: 5px 0;
-}
-
+/* Chat */
 #chat-form {
     display: flex;
     align-items: center;
@@ -863,13 +815,9 @@ a:hover {
     border-right: var(--secondary-alt) 1px groove;
     border-radius: 8px;
     box-shadow: 0 0 5px var(--button-color);
-    /* Reduced by 50% */
     padding: 0.175vh;
-    /* Reduced by 50% */
     margin: 0.14vw;
-    /* Reduced by 50% */
     width: 99%;
-    /* Use the width of the parent element */
     overflow-y: auto;
 }
 
@@ -979,38 +927,38 @@ audio {
     z-index: 1000;
     left: 0;
     top: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal-content {
     background-color: var(--nav-color);
     color: var(--primary-alt);
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid var(--secondary-color);
-    width: 80%;
-    max-width: 500px;
-    border-radius: 5px;
+    margin: 15vh auto;
+    padding: 2vh;
+    border: 0.1vh solid var(--secondary-color);
+    width: 80vw;
+    max-width: 50vw;
+    border-radius: 0.5vh;
 }
 
 #username-input {
     width: 100%;
-    padding: 8px;
-    margin: 10px 0;
+    padding: 0.8vh;
+    margin: 1vh 0;
     background-color: var(--nav-color);
     color: var(--primary-alt);
-    border: 1px solid var(--secondary-color);
-    border-radius: 3px;
+    border: 0.1vh solid var(--secondary-color);
+    border-radius: 0.3vh;
 }
 
 #username-submit {
-    padding: 8px 16px;
+    padding: 0.8vh 1.6vw;
     background-color: var(--button-color);
     color: var(--primary-alt);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.3vh;
     cursor: pointer;
 }
 
@@ -1020,17 +968,22 @@ audio {
 
 .modal textarea {
     width: 100%;
-    padding: 8px;
-    margin: 10px 0;
+    padding: 0.8vh;
+    margin: 1vh 0;
     background-color: var(--secondary-alt);
     color: var(--primary-alt);
-    border: 1px solid var(--secondary-color);
-    border-radius: 3px;
+    border: 0.1vh solid var(--secondary-color);
+    border-radius: 0.3vh;
+}
+
+.modal textarea:hover {
+    background-color: var(--primary-alt);
+    color: var(--secondary-color);
 }
 
 .modal textarea:active,
 .modal textarea:focus {
-    border: var(--nav-alt) 4px ridge;
+    border: 0.4vh ridge var(--nav-alt);
     border-color: var(--tertiary-color);
-    text-shadow: var(--nav-alt) 2px 2px 2px;
+    text-shadow: 0.2vh 0.2vh 0.2vh var(--nav-alt);
 }
