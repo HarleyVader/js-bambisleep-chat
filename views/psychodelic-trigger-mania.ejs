@@ -16,8 +16,11 @@
 
 <body>
     <%- include('partials/nav') %>
-        <h1>Psychodelic Trigger Mania</h1>
-        <input type="file" id="upload-file" accept=".txt">
+        <div>
+            <h1>Psychodelic Trigger Mania</h1>
+            <input type="file" id="upload-file" accept=".txt">
+            <p id="message"></p>
+        </div>
         <div id="chat-container">
             <div id="response-container">
                 <div id="eyeCursor">
@@ -52,9 +55,14 @@
                 }
             });
 
+            let duration = 0;
+
             function arrayPush(_audioArray, e) {
+                document.querySelector("#audio").hidden = true;
+
                 let URL = `https://bambisleep.chat/api/tts?text=${encodeURIComponent(e)}`;
                 _audioArray.push(URL);
+
                 return _audioArray;
             }
 
@@ -66,8 +74,9 @@
                 }
             }
 
-            async function do_tts() {
-                if (_audioArray.length === 0) return;
+            async function do_tts(_audioArray) {
+                document.querySelector("#message").textContent = "Synthesizing...";
+
                 let currentURL = arrayShift(_audioArray);
                 audio.src = currentURL;
                 console.log("audio.src ", audio.src);
@@ -75,16 +84,16 @@
                 audio.onloadedmetadata = function () {
                     console.log("audio ", audio);
                     console.log("audio.duration ", audio.duration);
+                    document.querySelector("#message").textContent = "Playing...";
                     audio.play();
                 };
                 audio.onended = function () {
                     console.log("audio ended");
-                    if (_audioArray.length > 0) {
-                        do_tts();
-                    }
+                    document.querySelector("#message").textContent = "Finished!";
                 };
                 audio.onerror = function (e) {
                     console.error("Error playing audio:", e);
+                    document.querySelector("#message").textContent = "Error playing audio." + e;
                 };
             }
         </script>
