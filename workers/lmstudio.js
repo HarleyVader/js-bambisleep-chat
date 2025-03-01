@@ -99,7 +99,7 @@ async function createCollarText(collar, triggers, username) {
   collarRole = await checkRole(collar, username);
   let triggersText = await checkTriggers(triggers);
   let useTriggers = `Allways use ${triggersText}`;
-  return `${role} ${collarRole} ${useTriggers}`;
+  return `${collarRole} ${useTriggers}`;
 }
 
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
