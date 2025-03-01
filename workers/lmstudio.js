@@ -8,7 +8,7 @@ dotenv.config();
 const sessionHistories = {};
 let collarText;
 let finalContent;
-let collar;
+let collar = false;
 let triggers;
 
 console.log(patterns.server.info('Starting lmstudio worker...'));
@@ -112,6 +112,7 @@ async function handleMessage(userPrompt, socketId, username) {
     }
 
     collarText = await createCollarText(username);
+    console.log(patterns.server.info(`Collar text: ${collarText}`));
 
     const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
     if (messages.length === 0) {
