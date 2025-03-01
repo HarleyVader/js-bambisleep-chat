@@ -102,75 +102,78 @@ async function checkRole(collar) {
 }
 
 async function createCollarText(collar, triggers, username) {
-  collarRole = await checkRole(collar);
+  let collarRole = await checkRole(collar);
   let triggersText = await checkTriggers(triggers);
 
   let role = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
   let useTriggers = `Allways use ${triggersText}`;
-  return `${role} ${collarRole} ${useTriggers}`;
-}
-
-async function pushMessages(collarText, userPrompt, finalContent, socketId) {
-  if (!sessionHistories[socketId]) {
-    sessionHistories[socketId] = [];
-    sessionHistories[socketId].push(
-      { role: 'system', content: collarText },
-      { role: 'user', content: userPrompt }
-    );
+  if (collarRole && state) {
+    return `${collarRole} ${useTriggers}`;
   } else {
-    sessionHistories[socketId].push(
-      { role: 'user', content: userPrompt },
-      { role: 'assistant', content: finalContent }
-    );
+    return `${role} ${collarRole} ${useTriggers}`;
   }
-  finalContent = '';
-  userPrompt = '';
-  return sessionHistories[socketId];
-}
 
-async function handleMessage(userPrompt, socketId, username) {
-  try {
-    const modelName = 'llama-3.1-8b-lexi-uncensored-v2@q4';
-    const modelId = await selectLoadedModels(modelName);
-    if (!modelId) {
-      throw new Error('No models loaded');
+  async function pushMessages(collarText, userPrompt, finalContent, socketId) {
+    if (!sessionHistories[socketId]) {
+      sessionHistories[socketId] = [];
+      sessionHistories[socketId].push(
+        { role: 'system', content: collarText },
+        { role: 'user', content: userPrompt }
+      );
+    } else {
+      sessionHistories[socketId].push(
+        { role: 'user', content: userPrompt },
+        { role: 'assistant', content: finalContent }
+      );
     }
+    finalContent = '';
+    userPrompt = '';
+    return sessionHistories[socketId];
+  }
 
-    collarText = await createCollarText(collar, triggers, username);
-
-    const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
-    if (messages.length === 0) {
-      console.error(patterns.server.error('No messages found for socketId:', socketId));
-      return;
-    }
-
-    const requestData = {
-      model: modelId,
-      messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
-      max_tokens: 1024,
-      temperature: 0.87,
-      top_p: 0.85,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      top_k: 40,
-      stream: false,
-    };
-
+  async function handleMessage(userPrompt, socketId, username) {
     try {
-      const response = await axios.post(`http://${process.env.HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
-
-      let responseData = response.data.choices[0].message.content;
-      finalContent = responseData;
-      handleResponse(finalContent, socketId);
-      finalContent = '';
-    } catch (error) {
-      if (error.response) {
-        console.error(patterns.server.error('Error response data:'), error.response.data);
-      } else {
-        console.error(patterns.server.error('Error in request:'), error.message);
+      const modelName = 'llama-3.1-8b-lexi-uncensored-v2@q4';
+      const modelId = await selectLoadedModels(modelName);
+      if (!modelId) {
+        throw new Error('No models loaded');
       }
+
+      collarText = await createCollarText(collar, triggers, username);
+
+      const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
+      if (messages.length === 0) {
+        console.error(patterns.server.error('No messages found for socketId:', socketId));
+        return;
+      }
+
+      const requestData = {
+        model: modelId,
+        messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
+        max_tokens: 1024,
+        temperature: 0.87,
+        top_p: 0.85,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        top_k: 40,
+        stream: false,
+      };
+
+      try {
+        const response = await axios.post(`http://${process.env.HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
+
+        let responseData = response.data.choices[0].message.content;
+        finalContent = responseData;
+        handleResponse(finalContent, socketId);
+        finalContent = '';
+      } catch (error) {
+        if (error.response) {
+          console.error(patterns.server.error('Error response data:'), error.response.data);
+        } else {
+          console.error(patterns.server.error('Error in request:'), error.message);
+        }
+      }
+    } catch (error) {
+      console.error(patterns.server.error('Error in handleMessage:', error));
     }
-  } catch (error) {
-    console.error(patterns.server.error('Error in handleMessage:', error));
   }
-}
