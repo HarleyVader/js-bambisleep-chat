@@ -58,10 +58,8 @@
             function processText(_text) {
                 _textArray = _text.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
                 _urlArray = _textArray.map(sentence => `/api/tts?text=${encodeURIComponent(sentence)}`);
-                    console.log('URL array:', _urlArray);
-                    if (state) {
-                        handleAudioEnded();
-                }
+                console.log('URL array:', _urlArray);
+                return _urlArray;
             }
 
             async function do_tts(_urlArray) {

@@ -17,6 +17,8 @@ let collar;
 let collarRole;
 let collarText;
 let finalContent;
+let state = false;
+let _collar;
 
 console.log(patterns.server.info('Starting lmstudio worker...'));
 
@@ -31,7 +33,8 @@ parentPort.on('message', async (msg) => {
         await handleMessage(msg.data, msg.socketId, msg.username);
         break;
       case 'collar':
-        collar = msg.data || 'default role';
+        _collar = msg.data || 'default role';
+        state = true;
         break;
       case 'shutdown':
         console.log(patterns.server.info('Shutting down lmstudio worker...'));
@@ -88,11 +91,12 @@ async function checkTriggers(currentTriggers) {
 }
 
 async function checkRole(collar) {
-  if (collar) {
-    return collar;
+  if (_collar && state) {
+    return _collar;
   } else {
     const data = await fs.readFile(path.join(__dirname, 'role.json'), 'utf8');
     const roleData = JSON.parse(data);
+    !state;
     return roleData.role;
   }
 }
