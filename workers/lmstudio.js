@@ -109,7 +109,7 @@ async function createCollarText(collar, triggers, username) {
     return `${role} ${collarRole} ${useTriggers}`;
   }
 }
-
+/*
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
   if (!sessionHistories[socketId]) {
     sessionHistories[socketId] = [];
@@ -127,7 +127,7 @@ async function pushMessages(collarText, userPrompt, finalContent, socketId) {
   userPrompt = '';
   return sessionHistories[socketId];
 }
-
+*/
 async function handleMessage(userPrompt, socketId, username) {
   try {
     const modelName = 'llama-3.1-8b-lexi-uncensored-v2@q4';
