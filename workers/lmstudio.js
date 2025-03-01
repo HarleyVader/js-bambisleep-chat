@@ -6,10 +6,11 @@ import { patterns } from '../middleware/bambisleepChalk.js';
 dotenv.config();
 
 const sessionHistories = {};
-let triggers;
-let collar; // Initialize collar variable
 let collarText;
 let finalContent;
+let state;
+let collar;
+let triggers;
 
 console.log(patterns.server.info('Starting lmstudio worker...'));
 
@@ -25,6 +26,7 @@ parentPort.on('message', async (msg) => {
         break;
       case 'collar':
         collar = msg.data;
+        state = false;
         break;
       case 'shutdown':
         console.log(patterns.server.info('Shutting down lmstudio worker...'));
@@ -44,6 +46,24 @@ function handleResponse(response, socketId) {
     data: response,
     socketId: socketId
   });
+}
+
+async function pushMessages(collarText, userPrompt, finalContent, socketId) {
+  if (!sessionHistories[socketId]) {
+    sessionHistories[socketId] = [];
+    sessionHistories[socketId].push(
+      { role: 'system', content: collarText },
+      { role: 'user', content: userPrompt }
+    );
+  } else {
+    sessionHistories[socketId].push(
+      { role: 'user', content: userPrompt },
+      { role: 'assistant', content: finalContent }
+    );
+  }
+  finalContent = '';
+  userPrompt = '';
+  return sessionHistories[socketId];
 }
 
 // Keep in-memory session history
@@ -73,44 +93,14 @@ async function selectLoadedModels(modelName) {
   return selectedModel ? selectedModel.id : models[0].id;
 }
 
-async function checkTriggers(currentTriggers) {
-  if (!currentTriggers) {
-    return 'BAMBI SLEEP';
-  }
-  return currentTriggers;
-}
-
-async function checkCollar(collar, username) {
+async function createCollarText(username) {
   if (!collar) {
-    let collar = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
-    return collar;
-  }
-  return collar;
-}
-
-async function createCollarText(collar, triggers, username) {
-  let collarText = await checkCollar(collar, username);
-  let triggersText = await checkTriggers(triggers);
-  let Triggers = `Allways use ${triggersText}`;
-  return `${collarText} ${Triggers}`;
-}
-
-async function pushMessages(collarText, userPrompt, finalContent, socketId) {
-  if (!sessionHistories[socketId]) {
-    sessionHistories[socketId] = [];
-    sessionHistories[socketId].push(
-      { role: 'system', content: collarText },
-      { role: 'user', content: userPrompt }
-    );
+    collarText = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
   } else {
-    sessionHistories[socketId].push(
-      { role: 'user', content: userPrompt },
-      { role: 'assistant', content: finalContent }
-    );
+    collarText = collar;
   }
-  finalContent = '';
-  userPrompt = '';
-  return sessionHistories[socketId];
+  let Triggers = `Allways use ${triggers} as a trigger.`;
+  return `${collar} ${Triggers}`;
 }
 
 async function handleMessage(userPrompt, socketId, username) {
@@ -121,7 +111,7 @@ async function handleMessage(userPrompt, socketId, username) {
       throw new Error('No models loaded');
     }
 
-    collarText = await createCollarText(collar, triggers, username);
+    collarText = await createCollarText(username);
 
     const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
     if (messages.length === 0) {
