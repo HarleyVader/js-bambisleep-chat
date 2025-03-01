@@ -9,16 +9,15 @@ import { fileURLToPath } from 'url';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
 
 const sessionHistories = {};
 let triggers;
 let collar;
-let collarRole;
 let collarText;
 let finalContent;
 let state = false;
-let _collar;
+
 
 console.log(patterns.server.info('Starting lmstudio worker...'));
 
@@ -90,24 +89,21 @@ async function checkTriggers(currentTriggers) {
   return currentTriggers;
 }
 
-async function checkRole(collar) {
+async function checkRole(collar, username) {
   if (collar && state) {
     return collar;
   } else {
-    const data = await fs.readFile(path.join(__dirname, 'role.json'), 'utf8');
-    const roleData = JSON.parse(data);
-    !state;
-    return roleData.role;
+    let role = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
+    return role;
   }
 }
 
 async function createCollarText(collar, triggers, username) {
-  let collarRole = await checkRole(collar);
+  let collarRole = await checkRole(collar, username);
   let triggersText = await checkTriggers(triggers);
-
-  let role = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
   let useTriggers = `Allways use ${triggersText}`;
-  if (collarRole && state) {
+
+  if (state) {
     return `${collarRole} ${useTriggers}`;
   } else {
     return `${role} ${collarRole} ${useTriggers}`;
