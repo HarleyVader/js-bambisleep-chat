@@ -33,7 +33,7 @@ parentPort.on('message', async (msg) => {
         await handleMessage(msg.data, msg.socketId, msg.username);
         break;
       case 'collar':
-        _collar = msg.data || 'default role';
+        collar = msg.data;
         state = true;
         break;
       case 'shutdown':
@@ -91,8 +91,8 @@ async function checkTriggers(currentTriggers) {
 }
 
 async function checkRole(collar) {
-  if (_collar && state) {
-    return _collar;
+  if (collar && state) {
+    return collar;
   } else {
     const data = await fs.readFile(path.join(__dirname, 'role.json'), 'utf8');
     const roleData = JSON.parse(data);
@@ -112,68 +112,69 @@ async function createCollarText(collar, triggers, username) {
   } else {
     return `${role} ${collarRole} ${useTriggers}`;
   }
+}
 
-  async function pushMessages(collarText, userPrompt, finalContent, socketId) {
-    if (!sessionHistories[socketId]) {
-      sessionHistories[socketId] = [];
-      sessionHistories[socketId].push(
-        { role: 'system', content: collarText },
-        { role: 'user', content: userPrompt }
-      );
-    } else {
-      sessionHistories[socketId].push(
-        { role: 'user', content: userPrompt },
-        { role: 'assistant', content: finalContent }
-      );
-    }
-    finalContent = '';
-    userPrompt = '';
-    return sessionHistories[socketId];
+async function pushMessages(collarText, userPrompt, finalContent, socketId) {
+  if (!sessionHistories[socketId]) {
+    sessionHistories[socketId] = [];
+    sessionHistories[socketId].push(
+      { role: 'system', content: collarText },
+      { role: 'user', content: userPrompt }
+    );
+  } else {
+    sessionHistories[socketId].push(
+      { role: 'user', content: userPrompt },
+      { role: 'assistant', content: finalContent }
+    );
   }
+  finalContent = '';
+  userPrompt = '';
+  return sessionHistories[socketId];
+}
 
-  async function handleMessage(userPrompt, socketId, username) {
+async function handleMessage(userPrompt, socketId, username) {
+  try {
+    const modelName = 'llama-3.1-8b-lexi-uncensored-v2@q4';
+    const modelId = await selectLoadedModels(modelName);
+    if (!modelId) {
+      throw new Error('No models loaded');
+    }
+
+    collarText = await createCollarText(collar, triggers, username);
+
+    const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
+    if (messages.length === 0) {
+      console.error(patterns.server.error('No messages found for socketId:', socketId));
+      return;
+    }
+
+    const requestData = {
+      model: modelId,
+      messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
+      max_tokens: 1024,
+      temperature: 0.87,
+      top_p: 0.85,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+      top_k: 40,
+      stream: false,
+    };
+
     try {
-      const modelName = 'llama-3.1-8b-lexi-uncensored-v2@q4';
-      const modelId = await selectLoadedModels(modelName);
-      if (!modelId) {
-        throw new Error('No models loaded');
-      }
+      const response = await axios.post(`http://${process.env.HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
 
-      collarText = await createCollarText(collar, triggers, username);
-
-      const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
-      if (messages.length === 0) {
-        console.error(patterns.server.error('No messages found for socketId:', socketId));
-        return;
-      }
-
-      const requestData = {
-        model: modelId,
-        messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
-        max_tokens: 1024,
-        temperature: 0.87,
-        top_p: 0.85,
-        frequency_penalty: 0,
-        presence_penalty: 0,
-        top_k: 40,
-        stream: false,
-      };
-
-      try {
-        const response = await axios.post(`http://${process.env.HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
-
-        let responseData = response.data.choices[0].message.content;
-        finalContent = responseData;
-        handleResponse(finalContent, socketId);
-        finalContent = '';
-      } catch (error) {
-        if (error.response) {
-          console.error(patterns.server.error('Error response data:'), error.response.data);
-        } else {
-          console.error(patterns.server.error('Error in request:'), error.message);
-        }
-      }
+      let responseData = response.data.choices[0].message.content;
+      finalContent = responseData;
+      handleResponse(finalContent, socketId);
+      finalContent = '';
     } catch (error) {
-      console.error(patterns.server.error('Error in handleMessage:', error));
+      if (error.response) {
+        console.error(patterns.server.error('Error response data:'), error.response.data);
+      } else {
+        console.error(patterns.server.error('Error in request:'), error.message);
+      }
     }
+  } catch (error) {
+    console.error(patterns.server.error('Error in handleMessage:', error));
   }
+}
