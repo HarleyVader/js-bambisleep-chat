@@ -1,20 +1,12 @@
 import { parentPort } from 'worker_threads';
-import { promises as fs } from 'fs';
-import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { patterns } from '../middleware/bambisleepChalk.js';
-import { fileURLToPath } from 'url';
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const sessionHistories = {};
 let triggers;
-let collar;
-let collarRole;
 let collarText;
 let finalContent;
 
@@ -24,14 +16,14 @@ parentPort.on('message', async (msg) => {
   try {
     switch (msg.type) {
       case 'triggers':
-        triggers = msg.triggers || 'BAMBI SLEEP';
+        triggers = msg.triggers;
         break;
       case 'message':
         console.log(patterns.server.info('Received message event'));
         await handleMessage(msg.data, msg.socketId, msg.username);
         break;
       case 'collar':
-        collar = msg.data || 'default role';
+        collar = msg.data;
         break;
       case 'shutdown':
         console.log(patterns.server.info('Shutting down lmstudio worker...'));
@@ -87,23 +79,19 @@ async function checkTriggers(currentTriggers) {
   return currentTriggers;
 }
 
-async function checkRole(collar) {
-  if (collar) {
+async function checkCollar(collar, username) {
+  if (!collar) {
+    let collar = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
     return collar;
-  } else {
-    const data = await fs.readFile(path.join(__dirname, 'role.json'), 'utf8');
-    const roleData = JSON.parse(data);
-    return roleData.role;
   }
+  return collar;
 }
 
 async function createCollarText(collar, triggers, username) {
-  collarRole = await checkRole(collar);
+  let collarText = await checkCollar(collar, username);
   let triggersText = await checkTriggers(triggers);
-
-  let role = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
-  let useTriggers = `Allways use ${triggersText}`;
-  return `${role} ${collarRole} ${useTriggers}`;
+  let Triggers = `Allways use ${triggersText}`;
+  return `${collarText} ${Triggers}`;
 }
 
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
