@@ -7,6 +7,7 @@ dotenv.config();
 
 const sessionHistories = {};
 let triggers;
+let collar; // Initialize collar variable
 let collarText;
 let finalContent;
 
