@@ -1,15 +1,9 @@
 import { parentPort } from 'worker_threads';
-import { promises as fs } from 'fs';
-import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { patterns } from '../middleware/bambisleepChalk.js';
-import { fileURLToPath } from 'url';
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-
 
 const sessionHistories = {};
 let triggers;
@@ -17,7 +11,6 @@ let collar;
 let collarText;
 let finalContent;
 let state = false;
-let role;
 
 
 console.log(patterns.server.info('Starting lmstudio worker...'));
@@ -91,10 +84,10 @@ async function checkTriggers(currentTriggers) {
 }
 
 async function checkRole(collar, username) {
-  if (collar && state) {
+  if (state) {
     return collar;
   } else if (!state) {
-    role = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
+    const role = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
     return role;
   }
 }
@@ -103,13 +96,9 @@ async function createCollarText(collar, triggers, username) {
   let collarRole = await checkRole(collar, username);
   let triggersText = await checkTriggers(triggers);
   let useTriggers = `Allways use ${triggersText}`;
-
-  if (state) {
-    return `${collarRole} ${useTriggers}`;
-  } else {
-    return `${collarRole} ${useTriggers}`;
-  }
+  return `${collarRole} ${useTriggers}`;
 }
+
 /*
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
   if (!sessionHistories[socketId]) {
