@@ -17,6 +17,7 @@ let collar;
 let collarText;
 let finalContent;
 let state = false;
+let role;
 
 
 console.log(patterns.server.info('Starting lmstudio worker...'));
