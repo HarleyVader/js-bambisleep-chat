@@ -8,7 +8,6 @@ dotenv.config();
 const sessionHistories = {};
 let collarText;
 let finalContent;
-let state;
 let collar;
 let triggers;
 
@@ -26,7 +25,8 @@ parentPort.on('message', async (msg) => {
         break;
       case 'collar':
         collar = msg.data;
-        state = false;
+        console.log(patterns.server.info(`Collar set to: ${msg.data}`));
+        console.log(patterns.server.info(`Collar value: ${collar}`));
         break;
       case 'shutdown':
         console.log(patterns.server.info('Shutting down lmstudio worker...'));
