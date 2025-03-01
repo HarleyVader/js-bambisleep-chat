@@ -1,15 +1,22 @@
 import { parentPort } from 'worker_threads';
+import { promises as fs } from 'fs';
+import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { patterns } from '../middleware/bambisleepChalk.js';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const sessionHistories = {};
+let triggers;
+let collar;
+let collarRole;
 let collarText;
 let finalContent;
-let collar = false;
-let triggers;
 
 console.log(patterns.server.info('Starting lmstudio worker...'));
 
@@ -17,16 +24,14 @@ parentPort.on('message', async (msg) => {
   try {
     switch (msg.type) {
       case 'triggers':
-        triggers = msg.triggers;
+        triggers = msg.triggers || 'BAMBI SLEEP';
         break;
       case 'message':
         console.log(patterns.server.info('Received message event'));
         await handleMessage(msg.data, msg.socketId, msg.username);
         break;
       case 'collar':
-        collar = msg.data;
-        console.log(patterns.server.info(`Collar set to: ${msg.data}`));
-        console.log(patterns.server.info(`Collar value: ${collar}`));
+        collar = msg.data || `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;;
         break;
       case 'shutdown':
         console.log(patterns.server.info('Shutting down lmstudio worker...'));
@@ -46,24 +51,6 @@ function handleResponse(response, socketId) {
     data: response,
     socketId: socketId
   });
-}
-
-async function pushMessages(collarText, userPrompt, finalContent, socketId) {
-  if (!sessionHistories[socketId]) {
-    sessionHistories[socketId] = [];
-    sessionHistories[socketId].push(
-      { role: 'system', content: collarText },
-      { role: 'user', content: userPrompt }
-    );
-  } else {
-    sessionHistories[socketId].push(
-      { role: 'user', content: userPrompt },
-      { role: 'assistant', content: finalContent }
-    );
-  }
-  finalContent = '';
-  userPrompt = '';
-  return sessionHistories[socketId];
 }
 
 // Keep in-memory session history
@@ -93,14 +80,44 @@ async function selectLoadedModels(modelName) {
   return selectedModel ? selectedModel.id : models[0].id;
 }
 
-async function createCollarText(username) {
-  if (!collar) {
-    collarText = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
-  } else {
-    collarText = collar;
+async function checkTriggers(currentTriggers) {
+  if (!currentTriggers) {
+    return 'BAMBI SLEEP';
   }
-  let Triggers = `Allways use ${triggers} as a trigger.`;
-  return `${collar} ${Triggers}`;
+  return currentTriggers;
+}
+
+async function checkRole(collar, username) {
+  if (collar) {
+    return collar;
+  } else {
+    return `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
+  }
+}
+
+async function createCollarText(collar, triggers, username) {
+  collarRole = await checkRole(collar, username);
+  let triggersText = await checkTriggers(triggers);
+  let useTriggers = `Allways use ${triggersText}`;
+  return `${role} ${collarRole} ${useTriggers}`;
+}
+
+async function pushMessages(collarText, userPrompt, finalContent, socketId) {
+  if (!sessionHistories[socketId]) {
+    sessionHistories[socketId] = [];
+    sessionHistories[socketId].push(
+      { role: 'system', content: collarText },
+      { role: 'user', content: userPrompt }
+    );
+  } else {
+    sessionHistories[socketId].push(
+      { role: 'user', content: userPrompt },
+      { role: 'assistant', content: finalContent }
+    );
+  }
+  finalContent = '';
+  userPrompt = '';
+  return sessionHistories[socketId];
 }
 
 async function handleMessage(userPrompt, socketId, username) {
@@ -111,8 +128,7 @@ async function handleMessage(userPrompt, socketId, username) {
       throw new Error('No models loaded');
     }
 
-    collarText = await createCollarText(username);
-    console.log(patterns.server.info(`Collar text: ${collarText}`));
+    collarText = await createCollarText(collar, triggers, username);
 
     const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
     if (messages.length === 0) {
