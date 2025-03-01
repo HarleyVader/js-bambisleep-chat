@@ -93,8 +93,8 @@ async function checkTriggers(currentTriggers) {
 async function checkRole(collar, username) {
   if (collar && state) {
     return collar;
-  } else {
-    let role = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
+  } else if (!state) {
+    role = `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
     return role;
   }
 }
