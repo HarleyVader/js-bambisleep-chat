@@ -107,7 +107,7 @@ async function createCollarText(collar, triggers, username) {
   if (state) {
     return `${collarRole} ${useTriggers}`;
   } else {
-    return `${role} ${collarRole} ${useTriggers}`;
+    return `${role} ${useTriggers}`;
   }
 }
 /*
