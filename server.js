@@ -18,7 +18,6 @@ import { v4 as uuidv4 } from 'uuid';
 //routes
 import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
-import chatRoutes from './routes/chat.js';
 import helpRoute from './routes/help.js';
 
 //configs
@@ -163,7 +162,6 @@ app.locals.footer = footerConfig;
 const routes = [
   { path: '/', handler: indexRoute },
   { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
-  { path: '/chat', handler: chatRoutes },
   { path: '/help', handler: helpRoute },
 ];
 
@@ -178,7 +176,7 @@ function setupRoutes() {
       res.render('index', { validConstantsCount: validConstantsCount });
     });
 
-    app.get('/', (req, res) => {
+    app.get('/zonos', (req, res) => {
       res.render('zonos', { audioPath: null, filename: null });
     });
 

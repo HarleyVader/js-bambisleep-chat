@@ -176,10 +176,10 @@ graph TD
 │           triggers.js
 │
 ├───routes
-│       chat.js
 │       help.js
 │       index.js
 │       psychodelic-trigger-mania.js
+|     
 │
 ├───schemas
 │       PatreonAuthSchema.js
@@ -357,19 +357,11 @@ apt install -y espeak-ng # For Ubuntu
 
 We highly recommend using a recent version of [uv](https://docs.astral.sh/uv/#installation) for installation. If you don't have uv installed, you can install it via pip: `pip install -U uv`.
 
-##### Installing into a new uv virtual environment (recommended)
+#### Creating a new python venv enviroment & activating it
 
 ```bash
-uv sync
-uv sync --extra compile # optional but needed to run the hybrid
-uv pip install -e .
-```
-
-##### Installing into the system/actived environment using uv
-
-```bash
-uv pip install -e .
-uv pip install -e .[compile] # optional but needed to run the hybrid
+python3 -m venv .zonos
+source .zonos/bin/activate
 ```
 
 ##### Installing into the system/actived environment using pip
