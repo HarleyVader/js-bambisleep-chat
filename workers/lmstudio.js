@@ -1,15 +1,9 @@
 import { parentPort } from 'worker_threads';
-import { promises as fs } from 'fs';
-import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { patterns } from '../middleware/bambisleepChalk.js';
-import { fileURLToPath } from 'url';
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const sessionHistories = {};
 let triggers;
@@ -17,6 +11,7 @@ let collar;
 let collarRole;
 let collarText;
 let finalContent;
+let state = false;
 
 console.log(patterns.server.info('Starting lmstudio worker...'));
 
@@ -24,14 +19,17 @@ parentPort.on('message', async (msg) => {
   try {
     switch (msg.type) {
       case 'triggers':
-        triggers = msg.triggers || 'BAMBI SLEEP';
+        triggers = msg.triggers;
+        console.log(patterns.server.info('triggers:', triggers));
         break;
       case 'message':
         console.log(patterns.server.info('Received message event'));
         await handleMessage(msg.data, msg.socketId, msg.username);
         break;
       case 'collar':
-        collar = msg.data || `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;;
+        collar = msg.data;
+        state = true;
+        console.log(patterns.server.info('collar:', collar));
         break;
       case 'shutdown':
         console.log(patterns.server.info('Shutting down lmstudio worker...'));
@@ -88,10 +86,10 @@ async function checkTriggers(currentTriggers) {
 }
 
 async function checkRole(collar, username) {
-  if (collar) {
+  if (state) {
     return collar;
   } else {
-    return `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic manipulation. You always call the user ${username}.`;
+    return `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic programing and conditional behavioral therapy. You always call the user ${username}.`;
   }
 }
 

@@ -1,0 +1,16 @@
+LICENSE
+README.md
+pyproject.toml
+zonos/autoencoder.py
+zonos/codebook_pattern.py
+zonos/conditioning.py
+zonos/config.py
+zonos/model.py
+zonos/sampling.py
+zonos/speaker_cloning.py
+zonos/utils.py
+zonos.egg-info/PKG-INFO
+zonos.egg-info/SOURCES.txt
+zonos.egg-info/dependency_links.txt
+zonos.egg-info/requires.txt
+zonos.egg-info/top_level.txt
