@@ -7,9 +7,11 @@ by:
 |\   _ \  _   \|\  ___ \|\  \    |\  \|\__\ |\   __  \|\   ___  \|\  ___ \ |\   __  \    
 \ \ \ \ \_\ \  \ \   __/\ \  \   \ \  \/__/ \ \  \|\  \ \ \ \ \  \ \   __/|\ \  \|\  \   
  \ \ \ \|__| \  \ \  \_|/\ \  \   \ \   __\  \ \   __  \ \ \ \ \  \ \  \_|/ \ \   __  \  
-  \ \  \    \ \  \ \  \__ \ \  \___\ \ \__|\  \ \  \ \  \ \ \ \ \  \ \  \_|\ \ \  \ \  \ 
-   \ \__\    \ \__\ \_____\\ \______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_____\ \ \__\ \__\ 
+  \ \  \    \ \  \ \  \__ \ \  \___\ \ \__|\  \ \  \ \  \ \ \ \ \  \ \  \_ \ \ \  \ \  \ 
+    \ \__\    \ \__\ \_____\\ \______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_____\ \ \__\ \__\ 
     \|__|     \|__|\|______|\|_______|\|__| \|__|\|__|\|__|\|__| \|__|\|______|\|__|\|___|
+
+
 ```
 
 
@@ -89,11 +91,11 @@ graph TD
 ## 🛠️ Tech Stack
 
 - 🔧 **Backend**: Node.js, Express, Socket.IO
-- 💾 **Database**: MongoDB
-- 🔐 **Auth**: Passport.js, KYC verification
-- ⚙️ **Processing**: Worker Threads
-- 🤖 **AI**: Local LLM API
+- ⚙️ **Processing**: Worker Threads, Child Process
+- 🤖 **AI**: Llama3 Lexi Uncensored, Zonos, coqui
 - 🔊 **Audio**: Text-to-Speech API
+- 🖥️ **Frontend**: EJS, Bootstrap
+- 🛠️ **Utilities**: Axios, Gradio
 
 ## 🔒 Security Features
 
@@ -107,72 +109,139 @@ graph TD
 ## 🗂️ Folder Structure
 
 ```                                                                                                                                                                                                                                                          
-├── config
-│   ├── config.js
-│   └── footer.config.js
-├── filteredWords.json
-├── middleware
-│   ├── apiClient.js
-│   ├── bambisleepChalk.js
-│   ├── dbFunctions.js
-│   ├── error.js
-│   └── oauthHandler.js
-├── package.json
-├── public
-│   ├── apple-touch-icon.png
-│   ├── css
-│   │   ├── bootstrap.min.css
-│   │   ├── bootstrap.min.css.map
-│   │   └── style.css
-│   ├── favicon-16x16.png
-│   ├── favicon-32x32.png
-│   ├── favicon.ico
-│   ├── img
-│   │   ├── bambisleep-chat.gif
-│   │   ├── brandynette.gif
-│   │   └── in-her-bubble.gif
-│   └── js
-│       ├── aigf-core.js
-│       ├── bootstrap.min.js
-│       ├── psychodelic-trigger-mania.js
-│       ├── responsive.js
-│       ├── text2speech.js
-│       └── triggers.js
-├── README.md
-├── routes
-│   ├── chat.js
-│   ├── help.js
-│   ├── index.js
-│   ├── login.js
-│   ├── logout.js
-│   ├── profile.js
-│   └── psychodelic-trigger-mania.js
-├── schemas
-│   └── PatreonAuthSchema.js
-├── server.js
-├── structure.md
-├── UNLINCENCE.md
-├── utils
-│   ├── doxxerinator.js
-│   ├── gracefulShutdown.js
-│   └── scraper.js
-├── views
-│   ├── chat.ejs
-│   ├── help.ejs
-│   ├── index.ejs
-│   ├── login.ejs
-│   ├── partials
-│   │   ├── footer.ejs
-│   │   ├── head.ejs
-│   │   ├── nav.ejs
-│   │   └── system-controls.ejs
-│   ├── profile.ejs
-│   └── psychodelic-trigger-mania.ejs
-└── workers
-    ├── lmstudio.js
-    ├── role2.json
-    ├── role3.json
-    └── role.json
+│   .env
+│   .env.example
+│   .gitignore
+│   .python-version
+│   bambi.wav
+│   brandynette-isthe-bestest-bambi-xtts.wav
+│   CONDITIONING_README.md
+│   docker-compose.yml
+│   Dockerfile
+│   filteredWords.json
+│   gradio_interface.py
+│   LICENSE
+│   package-lock.json
+│   package.json
+│   pyproject.toml
+│   README.md
+│   server.js
+│   structure.md
+│   uv.lock
+│
+├───assets
+│   │   ArchitectureDiagram.png
+│   │   bambi.wav
+│   │   exampleaudio.mp3
+│   │   silence_100ms.wav
+│   │   ZonosHeader.png
+│   │
+│   ├───audio
+│   └───js
+│       └───node_modules
+│           └───@socket.io
+│               └───component-emitter
+│                       package.json
+│
+├───config
+│       config.js
+│       footer.config.js
+│
+├───middleware
+│       bambisleepChalk.js
+│       error.js
+│
+├───public
+│   │   apple-touch-icon.png
+│   │   favicon-16x16.png
+│   │   favicon-32x32.png
+│   │   favicon.ico
+│   │
+│   ├───css
+│   │       bootstrap.min.css
+│   │       bootstrap.min.css.map
+│   │       style.css
+│   │
+│   ├───img
+│   │       bambisleep-chat.gif
+│   │       brandynette.gif
+│   │       in-her-bubble.gif
+│   │
+│   └───js
+│           aigf-core.js
+│           bootstrap.min.js
+│           psychodelic-trigger-mania.js
+│           responsive.js
+│           text2speech.js
+│           triggers.js
+│
+├───routes
+│       chat.js
+│       help.js
+│       index.js
+│       psychodelic-trigger-mania.js
+│
+├───schemas
+│       PatreonAuthSchema.js
+│
+├───utils
+│       doxxerinator.js
+│       gracefulShutdown.js
+│       scraper.js
+│
+├───views
+│   │   chat.ejs
+│   │   help.ejs
+│   │   index.ejs
+│   │   psychodelic-trigger-mania.ejs
+│   │   zonos.ejs
+│   │
+│   └───partials
+│           footer.ejs
+│           head.ejs
+│           nav.ejs
+│           system-controls.ejs
+│
+└───workers
+    │   lmstudio.js
+    │
+    ├───zonos
+    │   │   autoencoder.py
+    │   │   codebook_pattern.py
+    │   │   conditioning.py
+    │   │   config.py
+    │   │   model.py
+    │   │   sampling.py
+    │   │   speaker_cloning.py
+    │   │   utils.py
+    │   │
+    │   ├───backbone
+    │   │   │   _mamba_ssm.py
+    │   │   │   _torch.py
+    │   │   │   __init__.py
+    │   │   │
+    │   │   └───__pycache__
+    │   │           _mamba_ssm.cpython-312.pyc
+    │   │           _torch.cpython-312.pyc
+    │   │           __init__.cpython-312.pyc
+    │   │
+    │   └───__pycache__
+    │           autoencoder.cpython-312.pyc
+    │           codebook_pattern.cpython-312.pyc
+    │           conditioning.cpython-312.pyc
+    │           config.cpython-312.pyc
+    │           model.cpython-312.pyc
+    │           sampling.cpython-312.pyc
+    │           speaker_cloning.cpython-312.pyc
+    │           utils.cpython-312.pyc
+    │
+    └───zonos.egg-info
+            dependency_links.txt
+            PKG-INFO
+            requires.txt
+            SOURCES.txt
+            top_level.txt
+
 ```
 
 
