@@ -281,15 +281,6 @@ function setupSockets() {
           }
         });
 
-        socket.on('upload file', async (fileContent) => {
-          try {
-            const response = await fetchTTS(fileContent);
-            socket.emit('tts response', response.data);
-          } catch (error) {
-            console.error(patterns.server.error('Error processing uploaded file:', error));
-          }
-        });
-
         lmstudio.on("message", async (msg) => {
           try {
             if (msg.type === "log") {
@@ -323,7 +314,7 @@ function setupSockets() {
           try {
             console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
             userSessions.delete(socket.id);
-            const { worker, files } = socketStore.get(socket.id);
+            const { worker } = socketStore.get(socket.id);
             socketStore.delete(socket.id);
             console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
             worker.terminate();

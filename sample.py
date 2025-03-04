@@ -9,8 +9,8 @@ from zonos.utils import DEFAULT_DEVICE as device
 text = sys.argv[1] if len(sys.argv) > 1 else "Brandynette is the bestest bambi"
 filename = sys.argv[2] if len(sys.argv) > 2 else "sample.wav"
 
-model = Zonos.from_pretrained("Zyphra/Zonos-v0.1-hybrid", device=device)
-# model = Zonos.from_pretrained("Zyphra/Zonos-v0.1-transformer", device=device)
+# model = Zonos.from_pretrained("Zyphra/Zonos-v0.1-hybrid", device=device)
+model = Zonos.from_pretrained("Zyphra/Zonos-v0.1-transformer", device=device)
 
 wav_path = os.path.join(os.path.dirname(__file__), "assets/bambi.wav")
 wav, sampling_rate = torchaudio.load(wav_path)
