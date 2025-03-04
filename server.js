@@ -4,11 +4,16 @@ import express from 'express';
 import http from 'http';
 import os from 'os';
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+// modules
 import { Worker } from 'worker_threads';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { fileURLToPath } from 'url';
 import axios from 'axios'; 
+import { spawn } from 'child_process';
+import { v4 as uuidv4 } from 'uuid';
 
 //routes
 import indexRoute from './routes/index.js';
@@ -68,6 +73,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/workers', express.static(path.join(__dirname, 'workers')));
+app.use('/audio', express.static(path.join(__dirname, './assets/audio')));
 
 app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
@@ -116,6 +122,42 @@ app.use('/api/tts', async (req, res, next) => {
   }
 });
 
+app.post('/api/zonos', (req, res) => {
+  const text = req.body.text;
+  const sanitizedText = text.replace(/\s+/g, '-').toLowerCase();
+  const trimmedText = sanitizedText.length > 30 ? sanitizedText.substring(0, 20) : sanitizedText;
+  const uniqueId = uuidv4();
+  const filename = `${trimmedText}-${uniqueId}.wav`;
+  const samplePyPath = path.join(__dirname, 'sample.py');
+  const process = spawn('python3', [samplePyPath, text, filename]);
+
+  io.emit('status', 'Processing started');
+
+  process.stdout.on('data', (data) => {
+    console.log(`stdout: ${data}`);
+    io.emit('status', `stdout: ${data}`);
+  });
+
+  process.stderr.on('data', (data) => {
+    console.error(`stderr: ${data}`);
+    io.emit('status', `stderr: ${data}`);
+  });
+
+  process.on('close', (code) => {
+    console.log(`child process exited with code ${code}`);
+    io.emit('status', `Process exited with code ${code}`);
+    const audioPath = path.join(__dirname, `./assets/audio/${filename}`);
+    if (fs.existsSync(audioPath)) {
+      res.json({ audioPath: `/audio/${filename}` });
+      io.emit('status', 'Audio file generated successfully');
+    } else {
+      const errorMessage = 'Error: Audio file not found';
+      res.status(500).json({ error: errorMessage });
+      io.emit('status', errorMessage);
+    }
+  });
+});
+
 app.locals.footer = footerConfig;
 
 const routes = [
@@ -134,6 +176,10 @@ function setupRoutes() {
     app.get('/', (req, res) => {
       const validConstantsCount = 9; // Define the variable with an appropriate value
       res.render('index', { validConstantsCount: validConstantsCount });
+    });
+
+    app.get('/', (req, res) => {
+      res.render('zonos', { audioPath: null, filename: null });
     });
 
   } catch (error) {
