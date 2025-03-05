@@ -80,7 +80,7 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 
 async function fetchTTS(text) {
   try {
-    const response = await axios.get('http://192.168.0.178:5002/api/tts', {
+    const response = await axios.get('http://192.168.0.10:5002/api/tts', {
       params: { text },
       responseType: 'arraybuffer',
       timeout: 120000
@@ -121,16 +121,19 @@ app.use('/api/tts', async (req, res, next) => {
   }
 });
 
+// Load the model once
+const samplePyPath = path.join(__dirname, 'sample.py');
+
 app.post('/api/zonos', (req, res) => {
   const text = req.body.text;
   const sanitizedText = text.replace(/\s+/g, '-').toLowerCase();
   const trimmedText = sanitizedText.length > 30 ? sanitizedText.substring(0, 20) : sanitizedText;
   const uniqueId = uuidv4();
   const filename = `${trimmedText}-${uniqueId}.wav`;
-  const samplePyPath = path.join(__dirname, 'sample.py');
-  const process = spawn('python3', [samplePyPath, text, filename]);
 
   io.emit('status', 'Processing started');
+
+  const process = spawn('python3', [samplePyPath, text, filename]);
 
   process.stdout.on('data', (data) => {
     console.log(`stdout: ${data}`);

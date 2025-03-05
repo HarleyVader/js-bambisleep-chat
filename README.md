@@ -98,6 +98,14 @@ For experimental windows support check out [this fork](https://github.com/sdbds/
 
 See also [Docker Installation](#docker-installation)
 
+#### BambiSleep.Chat pre setup for stability & proper machine configuration
+
+
+```bash
+python3 -m venv .zonos
+source .zonos/bin/activate
+```
+
 #### System dependencies
 
 Zonos depends on the eSpeak library phonemization. You can install it on Ubuntu with the following command:
