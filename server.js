@@ -83,7 +83,6 @@ async function fetchTTS(text) {
     const response = await axios.get('http://192.168.0.10:5002/api/tts', {
       params: { text },
       responseType: 'arraybuffer',
-      timeout: 120000
     });
     return response;
   } catch (error) {
@@ -122,12 +121,12 @@ app.use('/api/tts', async (req, res, next) => {
 });
 
 // Load the model once
-const samplePyPath = path.join(__dirname, 'sample.py');
+const samplePyPath = path.join(__dirname, 'zonos.py');
 
 app.post('/api/zonos', (req, res) => {
   const text = req.body.text;
   const sanitizedText = text.replace(/\s+/g, '-').toLowerCase();
-  const trimmedText = sanitizedText.length > 30 ? sanitizedText.substring(0, 20) : sanitizedText;
+  const trimmedText = sanitizedText.length > 30 ? sanitizedText.substring(0, 30) : sanitizedText;
   const uniqueId = uuidv4();
   const filename = `${trimmedText}-${uniqueId}.wav`;
 

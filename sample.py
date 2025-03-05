@@ -4,7 +4,9 @@ import torch
 import torchaudio
 from zonos.model import Zonos
 from zonos.conditioning import make_cond_dict
-from zonos.utils import DEFAULT_DEVICE as device
+from zonos.utils import CUDA as device
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Load the model once
 model = Zonos.from_pretrained("Zyphra/Zonos-v0.1-transformer", device=device)
@@ -33,3 +35,5 @@ if __name__ == "__main__":
     text = sys.argv[1] if len(sys.argv) > 1 else "Brandynette is the bestest bambi"
     filename = sys.argv[2] if len(sys.argv) > 2 else "sample.wav"
     generate_audio(text, filename)
+
+    import torchaudio
