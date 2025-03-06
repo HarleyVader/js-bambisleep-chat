@@ -1,39 +1,25 @@
 import sys
-import os
 import torch
 import torchaudio
 from zonos.model import Zonos
 from zonos.conditioning import make_cond_dict
 from zonos.utils import DEFAULT_DEVICE as device
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-# Load the model once
+# model = Zonos.from_pretrained("Zyphra/Zonos-v0.1-hybrid", device=device)
 model = Zonos.from_pretrained("Zyphra/Zonos-v0.1-transformer", device=device)
 
-def generate_audio(text, filename):
-    wav_path = os.path.join(os.path.dirname(__file__), "assets/bambi.wav")
-    wav, sampling_rate = torchaudio.load(wav_path)
-    speaker = model.make_speaker_embedding(wav, sampling_rate)
+text = sys.argv[1] if len(sys.argv) > 1 else "Hello, world!"
+filename = sys.argv[2] if len(sys.argv) > 2 else "bambi.wav"
 
-    torch.manual_seed(421)
+wav, sampling_rate = torchaudio.load("assets/bambi.wav")
+speaker = model.make_speaker_embedding(wav, sampling_rate)
 
-    cond_dict = make_cond_dict(text=text, speaker=speaker, language="en-us")
-    conditioning = model.prepare_conditioning(cond_dict)
+torch.manual_seed(421)
 
-    codes = model.generate(conditioning)
+cond_dict = make_cond_dict(text=text, speaker=speaker, language="en-us")
+conditioning = model.prepare_conditioning(cond_dict)
 
-    wavs = model.autoencoder.decode(codes).cpu()
-    output_dir = os.path.join(os.path.dirname(__file__), 'assets/audio')
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, filename)
-    torchaudio.save(output_path, wavs[0], model.autoencoder.sampling_rate)
+codes = model.generate(conditioning)
 
-    print(filename)
-
-if __name__ == "__main__":
-    text = sys.argv[1] if len(sys.argv) > 1 else "Brandynette is the bestest bambi"
-    filename = sys.argv[2] if len(sys.argv) > 2 else "sample.wav"
-    generate_audio(text, filename)
-
-    import torchaudio
+wavs = model.autoencoder.decode(codes).cpu()
+torchaudio.save(f"assets/audio/{filename}", wavs[0], model.autoencoder.sampling_rate)
