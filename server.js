@@ -83,7 +83,7 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 
 async function fetchTTS(text) {
   try {
-    const response = await axios.get(`http://${process.env.SPEECH_HOST}:${process.env.SPEECH_PORT}/api/tts` || `http://$192.168.0.10:5002/api/tts`, {
+    const response = await axios.get(`http://192.168.0.10:5002/api/tts`, {
       params: { text },
       responseType: 'arraybuffer',
     });
