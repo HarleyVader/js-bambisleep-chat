@@ -137,7 +137,7 @@ async function handleMessage(userPrompt, socketId, username) {
     const requestData = {
       model: modelId,
       messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
-      max_tokens: 1024,
+      max_tokens: 256,
       temperature: 0.87,
       top_p: 0.85,
       frequency_penalty: 0,
@@ -147,7 +147,7 @@ async function handleMessage(userPrompt, socketId, username) {
     };
 
     try {
-      const response = await axios.post(`http://${process.env.HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
+      const response = await axios.post(`http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
 
       let responseData = response.data.choices[0].message.content;
       finalContent = responseData;
