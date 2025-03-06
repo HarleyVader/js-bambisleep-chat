@@ -289,6 +289,7 @@ Zonos follows a straightforward architecture: text normalization and phonemizati
 ### Python
 
 ```python
+import sys
 import torch
 import torchaudio
 from zonos.model import Zonos
@@ -298,26 +299,24 @@ from zonos.utils import DEFAULT_DEVICE as device
 # model = Zonos.from_pretrained("Zyphra/Zonos-v0.1-hybrid", device=device)
 model = Zonos.from_pretrained("Zyphra/Zonos-v0.1-transformer", device=device)
 
-wav, sampling_rate = torchaudio.load("assets/exampleaudio.mp3")
+text = sys.argv[1] if len(sys.argv) > 1 else "Hello, world!"
+filename = sys.argv[2] if len(sys.argv) > 2 else "bambi.wav"
+
+wav, sampling_rate = torchaudio.load("assets/bambi.wav")
 speaker = model.make_speaker_embedding(wav, sampling_rate)
 
-cond_dict = make_cond_dict(text="Hello, world!", speaker=speaker, language="en-us")
+torch.manual_seed(421)
+
+cond_dict = make_cond_dict(text=text, speaker=speaker, language="en-us")
 conditioning = model.prepare_conditioning(cond_dict)
 
 codes = model.generate(conditioning)
 
 wavs = model.autoencoder.decode(codes).cpu()
-torchaudio.save("sample.wav", wavs[0], model.autoencoder.sampling_rate)
+torchaudio.save(f"assets/audio/{filename}", wavs[0], model.autoencoder.sampling_rate)
 ```
 
-### Gradio interface (recommended)
 
-```bash
-uv run gradio_interface.py
-# python gradio_interface.py
-```
-
-This should produce a `sample.wav` file in your project root directory.
 
 _For repeated sampling we highly recommend using the gradio interface instead, as the minimal example needs to load the model every time it is run._
 
@@ -353,10 +352,6 @@ apt install -y espeak-ng # For Ubuntu
 # brew install espeak-ng # For MacOS
 ```
 
-#### Python dependencies
-
-We highly recommend using a recent version of [uv](https://docs.astral.sh/uv/#installation) for installation. If you don't have uv installed, you can install it via pip: `pip install -U uv`.
-
 #### Creating a new python venv enviroment & activating it
 
 ```bash
@@ -371,59 +366,16 @@ pip install -e .
 pip install --no-build-isolation -e .[compile] # optional but needed to run the hybrid
 ```
 
-#### Python dependencies
-
-We highly recommend using a recent version of [uv](https://docs.astral.sh/uv/#installation) for installation. If you don't have uv installed, you can install it via pip: `pip install -U uv`.
-
-##### Installing into a new uv virtual environment (recommended)
-
-```bash
-uv sync
-uv sync --extra compile # optional but needed to run the hybrid
-uv pip install -e .
-```
-
-##### Installing into the system/actived environment using uv
-
-```bash
-uv pip install -e .
-uv pip install -e .[compile] # optional but needed to run the hybrid
-```
-
-##### Installing into the system/actived environment using pip
-
-```bash
-pip install -e .
-pip install --no-build-isolation -e .[compile] # optional but needed to run the hybrid
-```
-
-##### Confirm that it's working
-
-For convenience we provide a minimal example to check that the installation works:
-
-```bash
-uv run sample.py
-# python sample.py
-```
-
 #### Install NodeJS Modules
 
 ```bash
 npm install
 ```
 
-## Docker installation
+##### Confirm that it's working
+
+This will initiate brandynette's AIGF bambisleep.chat
 
 ```bash
-git clone https://github.com/Zyphra/Zonos.git
-cd Zonos
-
-# For gradio
-docker compose up
-
-# Or for development you can do
-docker build -t zonos .
-docker run -it --gpus=all --net=host -v /path/to/Zonos:/Zonos -t zonos
-cd /Zonos
-python sample.py # this will generate a sample.wav in /Zonos
+npm run start
 ```
