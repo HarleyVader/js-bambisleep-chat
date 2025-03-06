@@ -32,7 +32,10 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  pingTimeout: 262626,
+  pingInterval: 25252,
+});
 
 //filteredWords
 const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
@@ -80,7 +83,7 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 
 async function fetchTTS(text) {
   try {
-    const response = await axios.get('http://192.168.0.10:5002/api/tts', {
+    const response = await axios.get(`http://${process.env.SPEECH_HOST}:${process.env.SPEECH_PORT}/api/tts`, {
       params: { text },
       responseType: 'arraybuffer',
     });
@@ -441,7 +444,7 @@ async function initializeServer() {
         process.exit(1);
       }
     });
-    const PORT = process.env.PORT || 6969;
+    const PORT = process.env.SERVER_PORT || 6969;
     console.log(patterns.server.info('Starting server...'));
     serverInstance = server.listen(PORT, async () => {
       console.log(patterns.server.success(`Server running on http://${getServerAddress()}:${PORT}`));

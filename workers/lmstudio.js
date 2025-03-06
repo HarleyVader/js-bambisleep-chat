@@ -65,14 +65,14 @@ function updateSessionHistory(socketId, collarText, userPrompt, finalContent) {
 }
 
 async function getLoadedModels() {
-  const response = await axios.get(`http://${process.env.HOST}:${process.env.LMS_PORT}/v1/models`);
+  const response = await axios.get(`http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/models`);
   const modelIds = response.data.data.map(model => model.id);
   const firstModelId = modelIds.length > 0 ? modelIds[0] : null;
   return firstModelId;
 }
 
 async function selectLoadedModels(modelName) {
-  const response = await axios.get(`http://${process.env.HOST}:${process.env.LMS_PORT}/v1/models`);
+  const response = await axios.get(`http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/models`);
   const models = response.data.data;
   const selectedModel = models.find(model => model.id.toLowerCase().includes(modelName.toLowerCase()));
   return selectedModel ? selectedModel.id : models[0].id;
