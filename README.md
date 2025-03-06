@@ -371,15 +371,6 @@ pip install -e .
 pip install --no-build-isolation -e .[compile] # optional but needed to run the hybrid
 ```
 
-#### System dependencies
-
-Zonos depends on the eSpeak library phonemization. You can install it on Ubuntu with the following command:
-
-```bash
-apt install -y espeak-ng # For Ubuntu
-# brew install espeak-ng # For MacOS
-```
-
 #### Python dependencies
 
 We highly recommend using a recent version of [uv](https://docs.astral.sh/uv/#installation) for installation. If you don't have uv installed, you can install it via pip: `pip install -U uv`.

@@ -123,9 +123,6 @@ app.use('/api/tts', async (req, res, next) => {
   }
 });
 
-// Load the model once
-const samplePyPath = path.join(__dirname, 'zonos.py');
-
 app.post('/api/zonos', (req, res) => {
   const text = req.body.text;
   const sanitizedText = text.replace(/\s+/g, '-').toLowerCase();
@@ -135,19 +132,19 @@ app.post('/api/zonos', (req, res) => {
 
   io.emit('status', 'Processing started');
 
-  const process = spawn('python3', ['sample.py', text, filename]);
+  const childProcess = spawn('python3', ['sample.py', text, filename]);
 
-  process.stdout.on('data', (data) => {
+  childProcess.stdout.on('data', (data) => {
     console.log(`stdout: ${data}`);
     io.emit('status', `stdout: ${data}`);
   });
 
-  process.stderr.on('data', (data) => {
+  childProcess.stderr.on('data', (data) => {
     console.error(`stderr: ${data}`);
     io.emit('status', `stderr: ${data}`);
   });
 
-  process.on('close', (code) => {
+  childProcess.on('close', (code) => {
     console.log(`child process exited with code ${code}`);
     io.emit('status', `Process exited with code ${code}`);
     const audioPath = path.join(__dirname, `./assets/audio/${filename}`);
