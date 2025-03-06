@@ -193,17 +193,22 @@ function setupRoutes() {
 function setupSockets() {
   try {
     console.log(patterns.server.info('Setting up socket middleware...'));
+
+    const userSessions = new Set();
     const socketStore = new Map();
 
     io.on('connection', (socket) => {
       try {
         console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
+        userSessions.add(socket.id);
+
         const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
         adjustMaxListeners(lmstudio);
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
-        console.log(patterns.server.success(`Client connected: ${socket.id} sockets: ${socketStore.size}`));
+        console.log(patterns.server.success(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
 
+        // Prompt for bambiname username
         const cookies = socket.handshake.headers.cookie
           ? socket.handshake.headers.cookie
             .split(';')
@@ -214,6 +219,7 @@ function setupSockets() {
             }, {})
           : {};
         let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
+        console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
         if (username === 'anonBambi') {
           socket.emit('prompt username');
         }
@@ -313,9 +319,10 @@ function setupSockets() {
         socket.on('disconnect', (reason) => {
           try {
             console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
+            userSessions.delete(socket.id);
             const { worker } = socketStore.get(socket.id);
             socketStore.delete(socket.id);
-            console.log(patterns.server.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`));
+            console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
             worker.terminate();
             adjustMaxListeners(worker);
           } catch (error) {
