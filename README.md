@@ -415,6 +415,12 @@ uv run sample.py
 # python sample.py
 ```
 
+#### Install NodeJS Modules
+
+```bash
+npm install
+```
+
 ## Docker installation
 
 ```bash
