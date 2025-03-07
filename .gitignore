@@ -28,4 +28,4 @@ wheels/
 .ipynb_checkpoints/
 
 # audios
-assets/audios/
+assets/audio/

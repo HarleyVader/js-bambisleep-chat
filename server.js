@@ -132,7 +132,7 @@ app.post('/api/zonos', (req, res) => {
 
   io.emit('status', 'Processing started');
 
-  const childProcess = spawn('python3', ['sample.py', text, filename]);
+  const childProcess = spawn('python3', ['zonos.py', text, filename]);
 
   childProcess.stdout.on('data', (data) => {
     console.log(`stdout: ${data}`);
