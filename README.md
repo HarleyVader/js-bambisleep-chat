@@ -39,6 +39,7 @@ graph TD
 A[webserver] -->|public| D[Bambi]
 B [LMStudio] -->|GPU| A
 C [Coqui] -->|GPU| A
+```
 
 #### System dependencies
 
