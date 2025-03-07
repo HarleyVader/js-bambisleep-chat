@@ -79,7 +79,7 @@ npm run start
 
 - ⚡ Global Chat
 - 🗣️ Audio message synthesis
-- 💾BBambi name Persistence
+- 💾 Bambi name Persistence
 - 🎮 Trigger system
 - 👑 Free for All Access
 - 📝 Custom Collar
