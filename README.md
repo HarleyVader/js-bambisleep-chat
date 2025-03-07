@@ -35,7 +35,7 @@ by:
 graph TD
     A[Webserver] -->|Connects to| B[LMStudio Machine with GPU]
     A -->|Connects to| C[Coqui Machine with GPU]
-    A -->|Sends Data to| D[User]
+    A -->|Sends Data to| D[User Frontend]
 ```
 
 #### System dependencies
