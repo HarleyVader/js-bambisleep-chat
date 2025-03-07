@@ -4,16 +4,20 @@ import express from 'express';
 import http from 'http';
 import os from 'os';
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+// modules
 import { Worker } from 'worker_threads';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { fileURLToPath } from 'url';
-import axios from 'axios'; 
+import axios from 'axios';
+import { spawn } from 'child_process';
+import { v4 as uuidv4 } from 'uuid';
 
 //routes
 import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
-import chatRoutes from './routes/chat.js';
 import helpRoute from './routes/help.js';
 
 //configs
@@ -28,7 +32,10 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  pingTimeout: 262626,
+  pingInterval: 25252,
+});
 
 //filteredWords
 const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
@@ -68,6 +75,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/workers', express.static(path.join(__dirname, 'workers')));
+app.use('/audio', express.static(path.join(__dirname, './assets/audio')));
 
 app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
@@ -75,10 +83,9 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 
 async function fetchTTS(text) {
   try {
-    const response = await axios.get('http://192.168.0.178:5002/api/tts', {
+    const response = await axios.get(`http://${process.env.SPEECH_HOST}:${process.env.SPEECH_PORT}/api/tts`, {
       params: { text },
       responseType: 'arraybuffer',
-      timeout: 120000
     });
     return response;
   } catch (error) {
@@ -116,12 +123,47 @@ app.use('/api/tts', async (req, res, next) => {
   }
 });
 
+app.post('/api/zonos', (req, res) => {
+  const text = req.body.text;
+  const sanitizedText = text.replace(/\s+/g, '-').toLowerCase();
+  const trimmedText = sanitizedText.length > 30 ? sanitizedText.substring(0, 30) : sanitizedText;
+  const uniqueId = uuidv4();
+  const filename = `${trimmedText}-${uniqueId}.wav`;
+
+  io.emit('status', 'Processing started');
+
+  const childProcess = spawn('python3', ['zonos.py', text, filename]);
+
+  childProcess.stdout.on('data', (data) => {
+    console.log(`stdout: ${data}`);
+    io.emit('status', `stdout: ${data}`);
+  });
+
+  childProcess.stderr.on('data', (data) => {
+    console.error(`stderr: ${data}`);
+    io.emit('status', `stderr: ${data}`);
+  });
+
+  childProcess.on('close', (code) => {
+    console.log(`child process exited with code ${code}`);
+    io.emit('status', `Process exited with code ${code}`);
+    const audioPath = path.join(__dirname, `./assets/audio/${filename}`);
+    if (fs.existsSync(audioPath)) {
+      res.json({ audioPath: `/audio/${filename}` });
+      io.emit('status', 'Audio file generated successfully');
+    } else {
+      const errorMessage = 'Error: Audio file not found';
+      res.status(500).json({ error: errorMessage });
+      io.emit('status', errorMessage);
+    }
+  });
+});
+
 app.locals.footer = footerConfig;
 
 const routes = [
   { path: '/', handler: indexRoute },
   { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
-  { path: '/chat', handler: chatRoutes },
   { path: '/help', handler: helpRoute },
 ];
 
@@ -134,6 +176,10 @@ function setupRoutes() {
     app.get('/', (req, res) => {
       const validConstantsCount = 9; // Define the variable with an appropriate value
       res.render('index', { validConstantsCount: validConstantsCount });
+    });
+
+    app.get('/zonos', (req, res) => {
+      res.render('zonos', { audioPath: null, filename: null });
     });
 
   } catch (error) {
@@ -170,6 +216,7 @@ function setupSockets() {
             }, {})
           : {};
         let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
+        console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
         if (username === 'anonBambi') {
           socket.emit('prompt username');
         }
@@ -237,15 +284,6 @@ function setupSockets() {
           }
         });
 
-        socket.on('upload file', async (fileContent) => {
-          try {
-            const response = await fetchTTS(fileContent);
-            socket.emit('tts response', response.data);
-          } catch (error) {
-            console.error(patterns.server.error('Error processing uploaded file:', error));
-          }
-        });
-
         lmstudio.on("message", async (msg) => {
           try {
             if (msg.type === "log") {
@@ -279,13 +317,11 @@ function setupSockets() {
           try {
             console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
             userSessions.delete(socket.id);
-            const { worker, files } = socketStore.get(socket.id);
+            const { worker } = socketStore.get(socket.id);
             socketStore.delete(socket.id);
             console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
             worker.terminate();
             adjustMaxListeners(worker);
-
-          
           } catch (error) {
             console.error(patterns.server.error('Error in disconnect handler:', error));
           }
@@ -404,7 +440,7 @@ async function initializeServer() {
         process.exit(1);
       }
     });
-    const PORT = process.env.PORT || 6969;
+    const PORT = process.env.SERVER_PORT || 6969;
     console.log(patterns.server.info('Starting server...'));
     serverInstance = server.listen(PORT, async () => {
       console.log(patterns.server.success(`Server running on http://${getServerAddress()}:${PORT}`));
