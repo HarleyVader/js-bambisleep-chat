@@ -36,7 +36,7 @@ by:
 ```mermaid
 graph TD
 
-A[webserver] -->|public| B[Bambi]
+A[webserver] -->|public| D[Bambi]
 B [LMStudio] -->|GPU| A
 C [Coqui] -->|GPU| A
 
