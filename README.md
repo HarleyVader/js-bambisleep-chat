@@ -36,9 +36,9 @@ by:
 ```mermaid
 graph TD
 
-A[webserver] --> [public] B[Bambi]
-B [LMStudio] [GPU] --> A
-C [Coqui] [GPU] --> A
+A[webserver] -->|public| B[Bambi]
+B [LMStudio] -->|GPU| A
+C [Coqui] -->|GPU| A
 
 #### System dependencies
 
