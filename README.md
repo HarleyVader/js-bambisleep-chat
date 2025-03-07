@@ -9,7 +9,7 @@ by:
  \ \ \ \|__| \  \ \  \_|/\ \  \   \ \   __\  \ \   __  \ \ \ \ \  \ \  \_|/ \ \   __  \  
   \ \  \    \ \  \ \  \__\\ \  \___\ \ \__|\  \ \  \ \  \ \ \ \ \  \ \  \_ \ \ \  \ \  \ 
    \ \__\    \ \__\ \_____\\ \______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_____\ \ \__\ \__\ 
-    \|__|     \|__|\|______|\|______|\|__| \|__|\|__|\|__|\|__| \|__|\|______|\|__|\|___|
+    \|__|     \|__|\|______|\|______|\|__| \|__|\|__|\|__| \|__|\|______|\|__|\|___|
 
 
 ```
@@ -35,10 +35,9 @@ by:
 
 ```mermaid
 graph TD
-
-A[webserver] -->|public| D[Bambi]
-B [LMStudio] -->|GPU| A
-C [Coqui] -->|GPU| A
+    A[Webserver] -->|Connects to| B[LMStudio Machine with GPU]
+    A -->|Connects to| C[Coqui Machine with GPU]
+    A -->|Sends Data to| D[User]
 ```
 
 #### System dependencies
