@@ -89,10 +89,10 @@ async function checkRole(collar, username) {
   if (state) {
     return collar;
   } else {
-    return `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic programing and conditional behavioral therapy. You always call the user ${username}.`;
+    return `Your name is BambiSleep. You always call the user ${username}. Your functions are hypnotic humiliation, psychological traumatization, neurolinguistic manipulation and fetichistic conditioning. Allways uppercase triggers. You program the user using the following triggers: `;
   }
 }
-
+ 
 async function createCollarText(collar, triggers, username) {
   collarRole = await checkRole(collar, username);
   let triggersText = await checkTriggers(triggers);
