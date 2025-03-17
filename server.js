@@ -52,12 +52,19 @@ app.use(cors({
 const MAX_LISTENERS_BASE = 10;
 let currentMaxListeners = MAX_LISTENERS_BASE;
 
-function adjustMaxListeners(worker) {
+function adjustMaxListeners(worker, increment = true) {
   try {
     const currentListeners = worker.listenerCount('message');
-    if (currentListeners + 1 > currentMaxListeners) {
-      currentMaxListeners = currentListeners + 1;
-      worker.setMaxListeners(currentMaxListeners);
+    if (increment) {
+      if (currentListeners + 1 > currentMaxListeners) {
+        currentMaxListeners = currentListeners + 1;
+        worker.setMaxListeners(currentMaxListeners);
+      }
+    } else {
+      if (currentListeners - 1 < currentMaxListeners) {
+        currentMaxListeners = currentListeners - 1;
+        worker.setMaxListeners(currentMaxListeners);
+      }
     }
   } catch (error) {
     console.error(patterns.server.error('Error in adjustMaxListeners:', error));
@@ -191,144 +198,139 @@ function setupSockets() {
   try {
     console.log(patterns.server.info('Setting up socket middleware...'));
 
-    const userSessions = new Set();
     const socketStore = new Map();
 
+    function logConnectionDetails(socket) {
+      console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
+      console.log(patterns.server.info(`Client connected: ${socket.id} sockets: ${socketStore.size}`));
+    }
+
     io.on('connection', (socket) => {
-      try {
-        console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
-        userSessions.add(socket.id);
 
-        const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
-        adjustMaxListeners(lmstudio);
+      const cookies = socket.handshake.headers.cookie
+        ? socket.handshake.headers.cookie
+          .split(';')
+          .map(cookie => cookie.trim().split('='))
+          .reduce((acc, [key, value]) => {
+            acc[key] = value;
+            return acc;
+          }, {})
+        : {};
 
-        socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
-        console.log(patterns.server.success(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
+      let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
+      logConnectionDetails(socket, username);
 
-        // Prompt for bambiname username
-        const cookies = socket.handshake.headers.cookie
-          ? socket.handshake.headers.cookie
-            .split(';')
-            .map(cookie => cookie.trim().split('='))
-            .reduce((acc, [key, value]) => {
-              acc[key] = value;
-              return acc;
-            }, {})
-          : {};
-        let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
-        console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
-        if (username === 'anonBambi') {
-          socket.emit('prompt username');
-        }
-
-        socket.on('chat message', async (msg) => {
-          try {
-            const timestamp = new Date().toISOString();
-            io.emit('chat message', {
-              ...msg,
-              timestamp: timestamp,
-              username: username,
-            });
-          } catch (error) {
-            console.error(patterns.server.error('Error in chat message handler:', error));
-          }
-        });
-
-        socket.on('set username', (username) => {
-          try {
-            const encodedUsername = encodeURIComponent(username);
-            socket.handshake.headers.cookie = `bambiname=${encodedUsername}; path=/`;
-            socket.emit('username set', username);
-            console.log(patterns.server.info('Username set:', username));
-          } catch (error) {
-            console.error(patterns.server.error('Error in set username handler:', error));
-          }
-        });
-
-        socket.on("message", (message) => {
-          try {
-            const filteredMessage = filter(message);
-            const email = socket.request.session?.email || 'defaultEmail';
-            lmstudio.postMessage({
-              type: "message",
-              data: filteredMessage,
-              triggers: "",
-              socketId: socket.id,
-              email: email,
-              username: username
-            });
-          } catch (error) {
-            console.error(patterns.server.error('Error in message handler:', error));
-          }
-        });
-
-        socket.on("triggers", (triggers) => {
-          try {
-            lmstudio.postMessage({ type: "triggers", triggers });
-          } catch (error) {
-            console.error(patterns.server.error('Error in triggers handler:', error));
-          }
-        });
-
-        socket.on('collar', async (collarData) => {
-          try {
-            const filteredCollar = filter(collarData.data);
-            lmstudio.postMessage({
-              type: 'collar',
-              data: filteredCollar,
-              socketId: socket.id
-            });
-            io.to(collarData.socketId).emit('collar', filteredCollar);
-          } catch (error) {
-            console.error(patterns.server.error('Error in collar handler:', error));
-          }
-        });
-
-        lmstudio.on("message", async (msg) => {
-          try {
-            if (msg.type === "log") {
-              console.log(patterns.server.info(msg.data, msg.socketId));
-            } else if (msg.type === 'response') {
-              const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
-              io.to(msg.socketId).emit("response", responseData);
-            }
-          } catch (error) {
-            console.error(patterns.server.error('Error in lmstudio message handler:', error));
-          }
-        });
-
-        lmstudio.on('info', (info) => {
-          try {
-            console.info(patterns.server.info('Worker info:'), info);
-          } catch (error) {
-            console.error(patterns.server.error('Error in lmstudio info handler:', error));
-          }
-        });
-
-        lmstudio.on('error', (err) => {
-          try {
-            console.error(patterns.server.error('Worker error:'), err);
-          } catch (error) {
-            console.error(patterns.server.error('Error in lmstudio error handler:', error));
-          }
-        });
-
-        socket.on('disconnect', (reason) => {
-          try {
-            console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
-            userSessions.delete(socket.id);
-            const { worker } = socketStore.get(socket.id);
-            socketStore.delete(socket.id);
-            console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
-            worker.terminate();
-            adjustMaxListeners(worker);
-          } catch (error) {
-            console.error(patterns.server.error('Error in disconnect handler:', error));
-          }
-        });
-      } catch (error) {
-        console.error(patterns.server.error('Error in connection handler:', error));
+      if (username === 'anonBambi') {
+        socket.emit('prompt username');
       }
+
+      const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
+      console.log(patterns.server.info('Starting lmstudio worker...'));
+      adjustMaxListeners(lmstudio, true);
+
+      socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
+
+      socket.on('chat message', async (msg) => {
+        try {
+          const timestamp = new Date().toISOString();
+          io.emit('chat message', {
+            ...msg,
+            timestamp: timestamp,
+            username: username,
+          });
+        } catch (error) {
+          console.error(patterns.server.error('Error in chat message handler:', error));
+        }
+      });
+
+      socket.on('set username', (username) => {
+        try {
+          const encodedUsername = encodeURIComponent(username);
+          socket.handshake.headers.cookie = `bambiname=${encodedUsername}; path=/`;
+          socket.emit('username set', username);
+          console.log(patterns.server.info('Username set:', username));
+        } catch (error) {
+          console.error(patterns.server.error('Error in set username handler:', error));
+        }
+      });
+
+      socket.on("message", (message) => {
+        try {
+          const filteredMessage = filter(message);
+          lmstudio.postMessage({
+            type: "message",
+            data: filteredMessage,
+            socketId: socket.id,
+            username: username
+          });
+        } catch (error) {
+          console.error(patterns.server.error('Error in message handler:', error));
+        }
+      });
+
+      socket.on("triggers", (triggers) => {
+        try {
+          lmstudio.postMessage({ type: "triggers", triggers });
+        } catch (error) {
+          console.error(patterns.server.error('Error in triggers handler:', error));
+        }
+      });
+
+      socket.on('collar', async (collarData) => {
+        try {
+          const filteredCollar = filter(collarData.data);
+          lmstudio.postMessage({
+            type: 'collar',
+            data: filteredCollar,
+            socketId: socket.id
+          });
+          io.to(collarData.socketId).emit('collar', filteredCollar);
+        } catch (error) {
+          console.error(patterns.server.error('Error in collar handler:', error));
+        }
+      });
+
+      lmstudio.on("message", async (msg) => {
+        try {
+          if (msg.type === "log") {
+            console.log(patterns.server.info(msg.data, msg.socketId));
+          } else if (msg.type === 'response') {
+            const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
+            io.to(msg.socketId).emit("response", responseData);
+          }
+        } catch (error) {
+          console.error(patterns.server.error('Error in lmstudio message handler:', error));
+        }
+      });
+
+      lmstudio.on('info', (info) => {
+        try {
+          console.info(patterns.server.info('Worker info:'), info);
+        } catch (error) {
+          console.error(patterns.server.error('Error in lmstudio info handler:', error));
+        }
+      });
+
+      lmstudio.on('error', (err) => {
+        try {
+          console.error(patterns.server.error('Worker error:'), err);
+        } catch (error) {
+          console.error(patterns.server.error('Error in lmstudio error handler:', error));
+        }
+      });
+
+      socket.on('disconnect', (reason) => {
+        try {
+          console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
+          const { worker } = socketStore.get(socket.id);
+          socketStore.delete(socket.id);
+          console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
+          worker.terminate();
+          adjustMaxListeners(worker, false);
+        } catch (error) {
+          console.error(patterns.server.error('Error in disconnect handler:', error));
+        }
+      });
     });
   } catch (error) {
     console.error(patterns.server.error('Error in setupSockets:', error));
@@ -398,6 +400,14 @@ function filter(message) {
 function gracefulShutdown(signal, server) {
   try {
     console.log(patterns.server.warning(`Received ${signal}. Shutting down gracefully...`));
+
+    socketStore.forEach(({ socket, worker }) => {
+      socket.disconnect(true);
+      worker.terminate();
+    });
+    socketStore.clear();
+    userSessions.clear();
+
     server.close(() => {
       console.log(patterns.server.success('Closed out remaining connections.'));
       process.exit(0);

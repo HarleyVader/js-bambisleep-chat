@@ -7,25 +7,17 @@ const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
 let currentMessage = '';
 
-const socket = io();
-
-socket.on('disconnect', () => {
-    console.log('Disconnected');
-    alert('Bambi disconnected!\nrefresh bambisleep.chat');
-});
-
-socket.on('connect', () => {
-    console.log('Connected to BambiSleep chat server! Socket ID:', socket.id);
-});
-
 let debounceTimeout;
-submit.addEventListener('click', (event) => {
-    event.preventDefault();
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => {
-        handleClick();
-    }, 200);
-});
+if (!submit.dataset.listenerAdded) {
+    submit.addEventListener('click', (event) => {
+        event.preventDefault();
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            handleClick();
+        }, 200);
+    });
+    submit.dataset.listenerAdded = true;
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     const cookies = document.cookie.split(";").reduce((acc, cookie) => {
@@ -41,6 +33,11 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("Username:", username);
     window.username = username;
 });
+
+if (typeof socket === 'undefined') {
+    const socket = io();
+    window.socket = socket;
+}
 
 socket.on('username set', () => {
     const username = prompt("What is your bambi name?") || 'anonBambi';

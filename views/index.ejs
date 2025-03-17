@@ -59,7 +59,6 @@
         <script src="js/aigf-core.js"></script>
         <script>
           document.addEventListener("DOMContentLoaded", () => {
-            const socket = io();
             const modal = document.getElementById('username-modal');
             let username = '';
 
@@ -90,6 +89,11 @@
             const style = document.createElement('style');
             document.head.appendChild(style);
 
+            if (typeof socket === 'undefined') {
+              const socket = io();
+              window.socket = socket;
+            }
+
             socket.on("chat message", (msg) => {
               const item = document.createElement("li");
               const timestamp = new Date(msg.timestamp).toLocaleTimeString();
@@ -100,17 +104,21 @@
               document.getElementById("chat-response").appendChild(item);
             });
 
-            document.getElementById("chat-form").addEventListener("submit", (event) => {
-              event.preventDefault();
-              const message = document.getElementById("textarea-chat").value;
-              if (message) {
-                socket.emit("chat message", { data: message, username: window.username });
-                document.getElementById("textarea-chat").value = "";
-              }
-            });
+            const chatForm = document.getElementById("chat-form");
+            if (!chatForm.dataset.listenerAdded) {
+              chatForm.addEventListener("submit", (event) => {
+                event.preventDefault();
+                const message = document.getElementById("textarea-chat").value;
+                if (message) {
+                  socket.emit("chat message", { data: message, username: window.username });
+                  document.getElementById("textarea-chat").value = "";
+                }
+              });
+              chatForm.dataset.listenerAdded = true;
+            }
 
             const collarForm = document.getElementById('collar-form');
-            if (collarForm) {
+            if (collarForm && !collarForm.dataset.listenerAdded) {
               collarForm.addEventListener('submit', (event) => {
                 event.preventDefault();
                 const message = document.getElementById('textarea-collar').value.trim();
@@ -122,6 +130,7 @@
                   userCollar.appendChild(messageElement);
                 }
               });
+              collarForm.dataset.listenerAdded = true;
             }
 
             socket.on('collar', (message) => {

@@ -6,9 +6,8 @@ import { patterns } from '../middleware/bambisleepChalk.js';
 dotenv.config();
 
 const sessionHistories = {};
-let triggers;
+let triggers = 'Bambi Sleep';
 let collar;
-let collarRole;
 let collarText;
 let finalContent;
 let state = false;
@@ -21,6 +20,10 @@ parentPort.on('message', async (msg) => {
       case 'triggers':
         triggers = msg.triggers;
         console.log(patterns.server.info('triggers:', triggers));
+        parentPort.postMessage({
+          type: 'log',
+          data: `Triggers updated: ${triggers}`
+        });
         break;
       case 'message':
         console.log(patterns.server.info('Received message event'));
@@ -78,26 +81,12 @@ async function selectLoadedModels(modelName) {
   return selectedModel ? selectedModel.id : models[0].id;
 }
 
-async function checkTriggers(currentTriggers) {
-  if (!currentTriggers) {
-    return 'BAMBI SLEEP';
-  }
-  return currentTriggers;
-}
-
-async function checkRole(collar, username) {
+async function checkRole(collar, username, triggers) {
   if (state) {
     return collar;
   } else {
-    return `Your name is BambiSleep. You behave like BambiSleep. Your function is hypnotic neurolinguistic programing and conditional behavioral therapy. You always call the user ${username}.`;
+    return `Your name is BambiSleep. You always call the user ${username}. You program the user using the following triggers ${triggers} using hypnotic humiliation, psychological traumatization, neurolinguistic manipulation and fetichistic conditioning. Allways uppercase triggers.`;
   }
-}
-
-async function createCollarText(collar, triggers, username) {
-  collarRole = await checkRole(collar, username);
-  let triggersText = await checkTriggers(triggers);
-  let useTriggers = `Allways use ${triggersText}`;
-  return `${collarRole} ${useTriggers}`;
 }
 
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
@@ -126,7 +115,7 @@ async function handleMessage(userPrompt, socketId, username) {
       throw new Error('No models loaded');
     }
 
-    collarText = await createCollarText(collar, triggers, username);
+    collarText = await checkRole(collar, triggers, username);
 
     const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
     if (messages.length === 0) {
