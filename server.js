@@ -194,10 +194,10 @@ function setupSockets() {
     const userSessions = new Map(); // Change from Set to Map to store socket IDs by username
     const socketStore = new Map();
 
-    function logConnectionDetails(socket, username) {
+    function logConnectionDetails(socket) {
       console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
       console.log(patterns.server.info(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
-      console.log(patterns.server.info('Starting lmstudio worker...'));
+      
     }
 
     io.on('connection', (socket) => {
@@ -220,11 +220,14 @@ function setupSockets() {
         if (userSessions.has(username)) {
           const existingSocketId = userSessions.get(username);
           const existingSocket = socketStore.get(existingSocketId).socket;
-          existingSocket.disconnect(true); // Disconnect the existing socket
+          console.log(patterns.server.info(`Disconnecting existing socket for user ${username}: ${existingSocketId}`));
+          existingSocket.disconnect(true);
+          socketStore.delete(existingSocketId);
         }
 
         userSessions.set(username, socket.id);
         const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
+        console.log(patterns.server.info('Starting lmstudio worker...'));
         adjustMaxListeners(lmstudio);
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
@@ -403,6 +406,14 @@ function filter(message) {
 function gracefulShutdown(signal, server) {
   try {
     console.log(patterns.server.warning(`Received ${signal}. Shutting down gracefully...`));
+    
+    socketStore.forEach(({ socket, worker }) => {
+      socket.disconnect(true);
+      worker.terminate();
+    });
+    socketStore.clear();
+    userSessions.clear();
+    
     server.close(() => {
       console.log(patterns.server.success('Closed out remaining connections.'));
       process.exit(0);
