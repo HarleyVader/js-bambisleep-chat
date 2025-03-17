@@ -196,16 +196,6 @@ function setupSockets() {
 
     io.on('connection', (socket) => {
       try {
-        console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
-        userSessions.add(socket.id);
-
-        const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
-        adjustMaxListeners(lmstudio);
-
-        socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
-        console.log(patterns.server.success(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
-
-        // Prompt for bambiname username
         const cookies = socket.handshake.headers.cookie
           ? socket.handshake.headers.cookie
             .split(';')
@@ -220,6 +210,13 @@ function setupSockets() {
         if (username === 'anonBambi') {
           socket.emit('prompt username');
         }
+
+        userSessions.add(socket.id);
+        const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
+        adjustMaxListeners(lmstudio);
+
+        socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
+        console.log(patterns.server.success(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
 
         socket.on('chat message', async (msg) => {
           try {
