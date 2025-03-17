@@ -194,6 +194,12 @@ function setupSockets() {
     const userSessions = new Set();
     const socketStore = new Map();
 
+    function logConnectionDetails(socket, username) {
+      console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
+      console.log(patterns.server.info(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
+      console.log(patterns.server.info('Starting lmstudio worker...'));
+    }
+
     io.on('connection', (socket) => {
       try {
         const cookies = socket.handshake.headers.cookie
@@ -206,7 +212,7 @@ function setupSockets() {
             }, {})
           : {};
         let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
-        console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
+        logConnectionDetails(socket, username);
         if (username === 'anonBambi') {
           socket.emit('prompt username');
         }
@@ -216,7 +222,6 @@ function setupSockets() {
         adjustMaxListeners(lmstudio);
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
-        console.log(patterns.server.success(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
 
         socket.on('chat message', async (msg) => {
           try {
@@ -245,13 +250,12 @@ function setupSockets() {
         socket.on("message", (message) => {
           try {
             const filteredMessage = filter(message);
-            const email = socket.request.session?.email || 'defaultEmail';
+           
             lmstudio.postMessage({
               type: "message",
               data: filteredMessage,
               triggers: "",
               socketId: socket.id,
-              email: email,
               username: username
             });
           } catch (error) {
