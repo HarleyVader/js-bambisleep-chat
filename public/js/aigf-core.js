@@ -19,13 +19,16 @@ socket.on('connect', () => {
 });
 
 let debounceTimeout;
-submit.addEventListener('click', (event) => {
-    event.preventDefault();
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => {
-        handleClick();
-    }, 200);
-});
+if (!submit.dataset.listenerAdded) {
+    submit.addEventListener('click', (event) => {
+        event.preventDefault();
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            handleClick();
+        }, 200);
+    });
+    submit.dataset.listenerAdded = true;
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     const cookies = document.cookie.split(";").reduce((acc, cookie) => {

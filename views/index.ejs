@@ -100,17 +100,21 @@
               document.getElementById("chat-response").appendChild(item);
             });
 
-            document.getElementById("chat-form").addEventListener("submit", (event) => {
-              event.preventDefault();
-              const message = document.getElementById("textarea-chat").value;
-              if (message) {
-                socket.emit("chat message", { data: message, username: window.username });
-                document.getElementById("textarea-chat").value = "";
-              }
-            });
+            const chatForm = document.getElementById("chat-form");
+            if (!chatForm.dataset.listenerAdded) {
+              chatForm.addEventListener("submit", (event) => {
+                event.preventDefault();
+                const message = document.getElementById("textarea-chat").value;
+                if (message) {
+                  socket.emit("chat message", { data: message, username: window.username });
+                  document.getElementById("textarea-chat").value = "";
+                }
+              });
+              chatForm.dataset.listenerAdded = true;
+            }
 
             const collarForm = document.getElementById('collar-form');
-            if (collarForm) {
+            if (collarForm && !collarForm.dataset.listenerAdded) {
               collarForm.addEventListener('submit', (event) => {
                 event.preventDefault();
                 const message = document.getElementById('textarea-collar').value.trim();
@@ -122,6 +126,7 @@
                   userCollar.appendChild(messageElement);
                 }
               });
+              collarForm.dataset.listenerAdded = true;
             }
 
             socket.on('collar', (message) => {
