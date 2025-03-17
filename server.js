@@ -250,11 +250,9 @@ function setupSockets() {
         socket.on("message", (message) => {
           try {
             const filteredMessage = filter(message);
-           
             lmstudio.postMessage({
               type: "message",
               data: filteredMessage,
-              triggers: "",
               socketId: socket.id,
               username: username
             });
