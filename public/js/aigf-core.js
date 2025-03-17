@@ -34,17 +34,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.username = username;
 });
 
-if (typeof socket === 'undefined') {
-    const socket = io();
-    window.socket = socket;
-}
-
-socket.on('username set', () => {
-    const username = 'anonBambi';
-    document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
-    socket.emit('set username', username);
-});
-
 function flashTrigger(trigger, duration) {
     const container = document.getElementById("eye");
     container.innerHTML = "";
