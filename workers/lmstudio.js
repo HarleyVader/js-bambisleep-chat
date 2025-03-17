@@ -6,9 +6,8 @@ import { patterns } from '../middleware/bambisleepChalk.js';
 dotenv.config();
 
 const sessionHistories = {};
-let triggers;
+let triggers = 'Bambi Sleep';
 let collar;
-let collarRole;
 let collarText;
 let finalContent;
 let state = false;
@@ -78,26 +77,12 @@ async function selectLoadedModels(modelName) {
   return selectedModel ? selectedModel.id : models[0].id;
 }
 
-async function checkTriggers(currentTriggers) {
-  if (!currentTriggers) {
-    return 'BAMBI SLEEP';
-  }
-  return currentTriggers;
-}
-
-async function checkRole(collar, username) {
+async function checkRole(collar, username, triggers) {
   if (state) {
     return collar;
   } else {
-    return `Your name is BambiSleep. You always call the user ${username}. Your functions are hypnotic humiliation, psychological traumatization, neurolinguistic manipulation and fetichistic conditioning. Allways uppercase triggers. You program the user using the following triggers: `;
+    return `Your name is BambiSleep. You always call the user ${username}. Your function is hypnotic humiliation, psychological traumatization, neurolinguistic manipulation and fetichistic conditioning. You program the user using the following triggers: ${triggers}. Allways uppercase triggers.`;
   }
-}
- 
-async function createCollarText(collar, triggers, username) {
-  collarRole = await checkRole(collar, username);
-  let triggersText = await checkTriggers(triggers);
-  let useTriggers = `Allways use ${triggersText}`;
-  return `${collarRole} ${useTriggers}`;
 }
 
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
@@ -126,7 +111,7 @@ async function handleMessage(userPrompt, socketId, username) {
       throw new Error('No models loaded');
     }
 
-    collarText = await createCollarText(collar, triggers, username);
+    collarText = await checkRole(collar, triggers, username);
 
     const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
     if (messages.length === 0) {
