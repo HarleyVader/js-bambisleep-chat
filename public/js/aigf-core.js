@@ -34,6 +34,11 @@ document.addEventListener("DOMContentLoaded", () => {
     window.username = username;
 });
 
+if (typeof socket === 'undefined') {
+    const socket = io();
+    window.socket = socket;
+}
+
 socket.on('username set', () => {
     const username = prompt("What is your bambi name?") || 'anonBambi';
     document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;

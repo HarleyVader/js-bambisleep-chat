@@ -90,7 +90,8 @@
             document.head.appendChild(style);
 
             if (typeof socket === 'undefined') {
-              var socket = io();
+              const socket = io();
+              window.socket = socket;
             }
 
             socket.on("chat message", (msg) => {

@@ -191,7 +191,7 @@ function setupSockets() {
   try {
     console.log(patterns.server.info('Setting up socket middleware...'));
 
-    const userSessions = new Set();
+    const userSessions = new Map(); // Change from Set to Map to store socket IDs by username
     const socketStore = new Map();
 
     function logConnectionDetails(socket, username) {
@@ -217,7 +217,13 @@ function setupSockets() {
           socket.emit('prompt username');
         }
 
-        userSessions.add(socket.id);
+        if (userSessions.has(username)) {
+          const existingSocketId = userSessions.get(username);
+          const existingSocket = socketStore.get(existingSocketId).socket;
+          existingSocket.disconnect(true); // Disconnect the existing socket
+        }
+
+        userSessions.set(username, socket.id);
         const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
         adjustMaxListeners(lmstudio);
 
@@ -315,7 +321,7 @@ function setupSockets() {
         socket.on('disconnect', (reason) => {
           try {
             console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
-            userSessions.delete(socket.id);
+            userSessions.delete(username);
             const { worker } = socketStore.get(socket.id);
             socketStore.delete(socket.id);
             console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
