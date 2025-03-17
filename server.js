@@ -406,7 +406,6 @@ function gracefulShutdown(signal, server) {
       worker.terminate();
     });
     socketStore.clear();
-    userSessions.clear();
 
     server.close(() => {
       console.log(patterns.server.success('Closed out remaining connections.'));
