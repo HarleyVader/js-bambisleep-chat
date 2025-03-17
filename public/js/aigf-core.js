@@ -7,8 +7,6 @@ const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
 let currentMessage = '';
 
-
-
 let debounceTimeout;
 if (!submit.dataset.listenerAdded) {
     submit.addEventListener('click', (event) => {
@@ -20,6 +18,27 @@ if (!submit.dataset.listenerAdded) {
     });
     submit.dataset.listenerAdded = true;
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    const cookies = document.cookie.split(";").reduce((acc, cookie) => {
+        const [name, value] = cookie.split("=").map(c => c.trim());
+        acc[name] = value;
+        return acc;
+    }, {});
+    console.log("Site Cookies:", cookies);
+    let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
+    if (username === 'anonBambi') {
+        socket.emit('username set');
+    }
+    console.log("Username:", username);
+    window.username = username;
+});
+
+socket.on('username set', () => {
+    const username = prompt("What is your bambi name?") || 'anonBambi';
+    document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
+    socket.emit('set username', username);
+});
 
 function flashTrigger(trigger, duration) {
     const container = document.getElementById("eye");
