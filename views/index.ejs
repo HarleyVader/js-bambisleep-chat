@@ -58,6 +58,7 @@
         <script src="/socket.io/socket.io.js"></script>
         <script src="js/aigf-core.js"></script>
         <script>
+
           document.addEventListener("DOMContentLoaded", () => {
             const modal = document.getElementById('username-modal');
             let username = '';
@@ -88,11 +89,6 @@
 
             const style = document.createElement('style');
             document.head.appendChild(style);
-
-            if (typeof socket === 'undefined') {
-              const socket = io();
-              window.socket = socket;
-            }
 
             socket.on("chat message", (msg) => {
               const item = document.createElement("li");
