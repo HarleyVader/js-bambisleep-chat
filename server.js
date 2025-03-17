@@ -323,13 +323,6 @@ function setupSockets() {
             console.error(patterns.server.error('Error in disconnect handler:', error));
           }
         });
-
-        socket.on('username set', () => {
-          const username = 'anonBambi';
-          document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
-          socket.emit('set username', username);
-        });
-
       } catch (error) {
         console.error(patterns.server.error('Error in connection handler:', error));
       }
