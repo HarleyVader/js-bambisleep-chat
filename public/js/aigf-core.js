@@ -7,17 +7,25 @@ const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
 let currentMessage = '';
 
+const socket = io();
+
+socket.on('disconnect', () => {
+    console.log('Disconnected');
+    alert('Bambi disconnected!\nrefresh bambisleep.chat');
+});
+
+socket.on('connect', () => {
+    console.log('Connected to BambiSleep chat server! Socket ID:', socket.id);
+});
+
 let debounceTimeout;
-if (!submit.dataset.listenerAdded) {
-    submit.addEventListener('click', (event) => {
-        event.preventDefault();
-        clearTimeout(debounceTimeout);
-        debounceTimeout = setTimeout(() => {
-            handleClick();
-        }, 200);
-    });
-    submit.dataset.listenerAdded = true;
-}
+submit.addEventListener('click', (event) => {
+    event.preventDefault();
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+        handleClick();
+    }, 200);
+});
 
 document.addEventListener("DOMContentLoaded", () => {
     const cookies = document.cookie.split(";").reduce((acc, cookie) => {
