@@ -33,8 +33,8 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  pingTimeout: 262626,
-  pingInterval: 25252,
+  pingTimeout: 2626262,
+  pingInterval: 252525,
 });
 
 //filteredWords
