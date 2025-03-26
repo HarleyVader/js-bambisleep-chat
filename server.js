@@ -209,7 +209,7 @@ function setupSockets() {
           socket.emit('prompt username');
         }
 
-        adjustMaxListeners(lmstudio, true); // Increment listeners on connection
+        adjustMaxListeners(lmstudio, true);
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
         console.log(patterns.server.success(`Client connected: ${socket.id} sockets: ${socketStore.size}`));
@@ -420,7 +420,6 @@ async function initializeServer() {
       try {
         await new Promise((resolve) => {
           console.log('Received uncaughtException. Shutting down gracefully...');
-          // Give existing connections time to close
           setTimeout(resolve, 1000);
         });
       } catch (error) {

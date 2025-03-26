@@ -79,6 +79,7 @@ function sendTriggers() {
     return;
   }
   socket.emit("triggers", triggers);
+  console.log("Triggers sent:", triggers);
 }
 
 function scanTriggers() {
