@@ -314,7 +314,7 @@ function setupSockets() {
             console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
             const { worker } = socketStore.get(socket.id);
             socketStore.delete(socket.id);
-            console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
+            console.log(patterns.server.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`));
             worker.terminate();
             adjustMaxListeners(worker, false);
           } catch (error) {
