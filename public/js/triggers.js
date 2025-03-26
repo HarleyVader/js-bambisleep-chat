@@ -25,7 +25,10 @@ const listOfTriggers = [
   "LIMBS LOCK",
   "FACE LOCK",
   "LIPS LOCK",
-  "THROAT LOCK"
+  "THROAT LOCK",
+  "HIPS LOCK",
+  "CUNT LOCK",
+  "CUM & COLAPSE"
 ];
 
 
