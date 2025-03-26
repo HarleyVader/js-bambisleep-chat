@@ -20,10 +20,10 @@ parentPort.on('message', async (msg) => {
       case 'triggers':
         triggers = msg.triggers;
         console.log(patterns.server.info('triggers:', triggers));
-        parentPort.postMessage({
+        /*parentPort.postMessage({
           type: 'info',
           data: `Triggers updated: ${triggers}`
-        });
+        });*/
         break;
       case 'message':
         console.log(patterns.server.info('Received message event'));
