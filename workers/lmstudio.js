@@ -104,7 +104,7 @@ async function pushMessages(collarText, userPrompt, finalContent, socketId) {
 
 async function handleMessage(userPrompt, socketId, username) {
   try {
-    const modelName = 'L3-SthenoMaidBlackroot-8B-V1';
+    const modelName = 'L3-SthenoMaidBlackroot-8B-V1@q2_k';
     const modelId = await selectLoadedModels(modelName);
     if (!modelId) {
       throw new Error('No models loaded');
