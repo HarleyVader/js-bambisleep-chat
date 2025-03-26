@@ -43,7 +43,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 socket.on('username set', () => {
-    const username = prompt("What is your bambi name?") || 'anonBambi';
     document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
     socket.emit('set username', username);
 });
