@@ -175,7 +175,7 @@ function setupRoutes() {
     });
 
     app.get('/', (req, res) => {
-      const validConstantsCount = 9; // Define the variable with an appropriate value
+      const validConstantsCount = 9;
       res.render('index', { validConstantsCount: validConstantsCount });
     });
 
@@ -192,7 +192,6 @@ function setupSockets() {
   try {
     console.log(patterns.server.info('Setting up socket middleware...'));
 
-    const userSessions = new Set();
     const socketStore = new Map();
 
     io.on('connection', (socket) => {
@@ -212,8 +211,6 @@ function setupSockets() {
           socket.emit('prompt username');
         }
 
-        userSessions.add(socket.id);
-        const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
         adjustMaxListeners(lmstudio, true); // Increment listeners on connection
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
@@ -314,12 +311,11 @@ function setupSockets() {
         socket.on('disconnect', (reason) => {
           try {
             console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
-            userSessions.delete(socket.id);
             const { worker } = socketStore.get(socket.id);
             socketStore.delete(socket.id);
-            console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
+            console.log(patterns.server.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`));
             worker.terminate();
-            adjustMaxListeners(worker, false); // Decrement listeners on disconnection
+            adjustMaxListeners(worker, false);
           } catch (error) {
             console.error(patterns.server.error('Error in disconnect handler:', error));
           }
