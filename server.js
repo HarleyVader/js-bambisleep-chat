@@ -32,10 +32,7 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  pingTimeout: 2626262,
-  pingInterval: 252525,
-});
+const io = new Server(server);
 
 //filteredWords
 const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
@@ -244,13 +241,10 @@ function setupSockets() {
         socket.on("message", (message) => {
           try {
             const filteredMessage = filter(message);
-            const email = socket.request.session?.email || 'defaultEmail';
             lmstudio.postMessage({
               type: "message",
               data: filteredMessage,
-              triggers: "",
               socketId: socket.id,
-              email: email,
               username: username
             });
           } catch (error) {
