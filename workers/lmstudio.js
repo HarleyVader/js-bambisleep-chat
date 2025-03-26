@@ -21,7 +21,7 @@ parentPort.on('message', async (msg) => {
         triggers = msg.triggers;
         console.log(patterns.server.info('triggers:', triggers));
         parentPort.postMessage({
-          type: 'log',
+          type: 'info',
           data: `Triggers updated: ${triggers}`
         });
         break;
@@ -127,8 +127,8 @@ async function handleMessage(userPrompt, socketId, username) {
       model: modelId,
       messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
       max_tokens: 256,
-      temperature: 0.87,
-      top_p: 0.85,
+      temperature: 0.95,
+      top_p: 0.95,
       frequency_penalty: 0,
       presence_penalty: 0,
       top_k: 40,
