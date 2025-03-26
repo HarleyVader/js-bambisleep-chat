@@ -82,10 +82,10 @@ async function selectLoadedModels(modelName) {
 }
 
 async function checkRole(collar, username, triggers) {
-  if (state) {
-    return collar;
+  if (!state) {
+    return `Your name is BambiSleep. You always call the user ${username}. Using hypnotic humiliation, psychological traumatization, neurolinguistic manipulation and fetichistic conditioning you brainwash the ${username} with following triggers: ${triggers} `;
   } else {
-    return `Your name is BambiSleep. You always call the user ${username}. You brainwash the ${username} with following triggers ${triggers} using hypnotic humiliation, psychological traumatization, neurolinguistic manipulation and fetichistic conditioning.`;
+    return collar;
   }
 }
 
