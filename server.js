@@ -215,7 +215,7 @@ function setupSockets() {
         adjustMaxListeners(lmstudio, true); // Increment listeners on connection
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
-        console.log(patterns.server.success(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
+        console.log(patterns.server.success(`Client connected: ${socket.id} sockets: ${socketStore.size}`));
 
         socket.on('chat message', async (msg) => {
           try {
