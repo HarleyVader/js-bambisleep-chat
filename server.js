@@ -32,7 +32,10 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  pingTimeout: 2626262,
+  pingInterval: 252525,
+});
 
 //filteredWords
 const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
@@ -172,7 +175,7 @@ function setupRoutes() {
     });
 
     app.get('/', (req, res) => {
-      const validConstantsCount = 9;
+      const validConstantsCount = 9; // Define the variable with an appropriate value
       res.render('index', { validConstantsCount: validConstantsCount });
     });
 
@@ -189,8 +192,8 @@ function setupSockets() {
   try {
     console.log(patterns.server.info('Setting up socket middleware...'));
 
+
     const socketStore = new Map();
-    const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
 
     io.on('connection', (socket) => {
       try {
@@ -209,7 +212,8 @@ function setupSockets() {
           socket.emit('prompt username');
         }
 
-        adjustMaxListeners(lmstudio, true);
+        const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
+        adjustMaxListeners(lmstudio, true); // Increment listeners on connection
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
         console.log(patterns.server.success(`Client connected: ${socket.id} sockets: ${socketStore.size}`));
@@ -310,7 +314,7 @@ function setupSockets() {
             socketStore.delete(socket.id);
             console.log(patterns.server.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`));
             worker.terminate();
-            adjustMaxListeners(worker, false);
+            adjustMaxListeners(worker, false); // Decrement listeners on disconnection
           } catch (error) {
             console.error(patterns.server.error('Error in disconnect handler:', error));
           }
@@ -420,6 +424,7 @@ async function initializeServer() {
       try {
         await new Promise((resolve) => {
           console.log('Received uncaughtException. Shutting down gracefully...');
+          // Give existing connections time to close
           setTimeout(resolve, 1000);
         });
       } catch (error) {
