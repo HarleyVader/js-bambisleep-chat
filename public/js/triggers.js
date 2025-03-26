@@ -28,7 +28,7 @@ const listOfTriggers = [
   "THROAT LOCK",
   "HIPS LOCK",
   "CUNT LOCK",
-  "CUM & COLAPSE"
+  "BAMBI CUM & COLAPSE"
 ];
 
 
