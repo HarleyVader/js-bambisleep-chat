@@ -193,6 +193,7 @@ function setupSockets() {
     console.log(patterns.server.info('Setting up socket middleware...'));
 
     const socketStore = new Map();
+    const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
 
     io.on('connection', (socket) => {
       try {
@@ -313,7 +314,7 @@ function setupSockets() {
             console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
             const { worker } = socketStore.get(socket.id);
             socketStore.delete(socket.id);
-            console.log(patterns.server.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`));
+            console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
             worker.terminate();
             adjustMaxListeners(worker, false);
           } catch (error) {
