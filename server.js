@@ -52,11 +52,12 @@ app.use(cors({
 const MAX_LISTENERS_BASE = 10;
 let currentMaxListeners = MAX_LISTENERS_BASE;
 
-function adjustMaxListeners(worker) {
+function adjustMaxListeners(worker, increment = true) {
   try {
+    const adjustment = increment ? 1 : -1;
     const currentListeners = worker.listenerCount('message');
-    if (currentListeners + 1 > currentMaxListeners) {
-      currentMaxListeners = currentListeners + 1;
+    if (currentListeners + adjustment > currentMaxListeners) {
+      currentMaxListeners = currentListeners + adjustment;
       worker.setMaxListeners(currentMaxListeners);
     }
   } catch (error) {
@@ -213,7 +214,7 @@ function setupSockets() {
 
         userSessions.add(socket.id);
         const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
-        adjustMaxListeners(lmstudio);
+        adjustMaxListeners(lmstudio, true); // Increment listeners on connection
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
         console.log(patterns.server.success(`Client connected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
@@ -318,7 +319,7 @@ function setupSockets() {
             socketStore.delete(socket.id);
             console.log(patterns.server.info(`Client disconnected: ${socket.id} clients: ${userSessions.size} sockets: ${socketStore.size}`));
             worker.terminate();
-            adjustMaxListeners(worker);
+            adjustMaxListeners(worker, false); // Decrement listeners on disconnection
           } catch (error) {
             console.error(patterns.server.error('Error in disconnect handler:', error));
           }
