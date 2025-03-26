@@ -32,7 +32,7 @@ const listOfTriggers = [
 function createToggleButtons() {
   const container = document.getElementById("trigger-toggles");
   if (!container) return;
-  
+
   listOfTriggers.forEach((trigger, index) => {
     const toggle = document.createElement("input");
     toggle.type = "checkbox";
@@ -56,7 +56,7 @@ function toggleAllToggles() {
   }
 }
 
-window.onload = function() {
+window.onload = function () {
   createToggleButtons();
   const activateAllButton = document.getElementById("activate-all");
   if (activateAllButton) {
@@ -81,6 +81,10 @@ function sendTriggers() {
   socket.emit("triggers", triggers);
   console.log("Triggers sent:", triggers);
 }
+
+setInterval(() => {
+  sendTriggers();
+}, 3000);
 
 function scanTriggers() {
   let enabledToggleButtons = getEnabledToggleButtons();
