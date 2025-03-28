@@ -33,8 +33,8 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  pingTimeout: 2626262,
-  pingInterval: 252525,
+  pingTimeout: 30000, // 30 seconds
+  pingInterval: 25000, // 25 seconds
 });
 
 //filteredWords
@@ -192,7 +192,6 @@ function setupSockets() {
   try {
     console.log(patterns.server.info('Setting up socket middleware...'));
 
-
     const socketStore = new Map();
 
     io.on('connection', (socket) => {
@@ -213,7 +212,7 @@ function setupSockets() {
         }
 
         const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
-        adjustMaxListeners(lmstudio, true); // Increment listeners on connection
+        adjustMaxListeners(lmstudio, true);
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
         console.log(patterns.server.success(`Client connected: ${socket.id} sockets: ${socketStore.size}`));
@@ -308,15 +307,21 @@ function setupSockets() {
         });
 
         socket.on('disconnect', (reason) => {
+          console.log(`Client disconnected: ${socket.id}, Reason: ${reason}`);
+          if (reason === 'transport error') {
+            console.error('Transport error occurred. Possible network or configuration issue.');
+          }
           try {
-            console.log(patterns.server.info('Client disconnected:', socket.id, 'Reason:', reason));
             const { worker } = socketStore.get(socket.id);
-            socketStore.delete(socket.id);
+            if (worker) {
+
+              worker.terminate();
+              adjustMaxListeners(worker, false);
+            }
             console.log(patterns.server.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`));
-            worker.terminate();
-            adjustMaxListeners(worker, false); // Decrement listeners on disconnection
+            socketStore.delete(socket.id);
           } catch (error) {
-            console.error(patterns.server.error('Error in disconnect handler:', error));
+            console.error('Error during disconnect cleanup:', error);
           }
         });
       } catch (error) {
