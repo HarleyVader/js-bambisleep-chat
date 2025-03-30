@@ -160,4 +160,4 @@ function setRandomInterval(callback, min, max) {
   }, randomDelay);
 }
 
-setRandomInterval(scanTriggers(), 1000, 5000);
+setRandomInterval(scanTriggers, 1000, 5000);
