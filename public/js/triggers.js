@@ -106,22 +106,43 @@ function triggerTriggers(triggers) {
     console.error("No valid triggers found");
     return;
   }
-
+  let duration = Math.floor(Math.random() * 1000) + 500;
   let trigger = triggers[Math.floor(Math.random() * triggers.length)];
-  flashTriggers(trigger);
+  flashTriggers(trigger, duration);
   console.log("Triggered:", trigger);
 }
 
 function flashTriggers(trigger, duration) {
-  const container = document.querySelector("#eyeCursorText #eyeCursorText2 #eyeCursorText3 #eyeCursorText4 #eye");
-  container.innerHTML = "";
+  // Define a list of possible elements
+  const textElements = [
+      document.getElementById("eyeCursorText"),
+      document.getElementById("eyeCursorText2"),
+      document.getElementById("eyeCursorText3"),
+      document.getElementById("eyeCursorText4")
+  ];
+
+  // Filter out any null elements (in case some are missing in the DOM)
+  const validElements = textElements.filter(element => element !== null);
+
+  // Choose a random element from the valid ones
+  const randomElement = validElements[Math.floor(Math.random() * validElements.length)];
+
+  // Check if a valid random element was found
+  if (!randomElement) {
+      console.error("No valid eyeCursorText elements found in the DOM.");
+      return;
+  }
+
+  // Clear the selected random element and set the trigger text
+  randomElement.innerHTML = "";
   const span = document.createElement("span");
   span.textContent = trigger;
-  container.appendChild(span);
+  randomElement.appendChild(span);
 
+  // Clear the text after the specified duration
   setTimeout(() => {
       requestAnimationFrame(() => {
-          container.innerHTML = "";
+          randomElement.innerHTML = "";
       });
   }, duration);
 }
