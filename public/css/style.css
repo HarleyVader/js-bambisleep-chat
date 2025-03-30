@@ -180,8 +180,8 @@ body {
 
 #eyeCursorContainer {
     position: relative;
-    width: 60vw;  
-    height: 60vw;
+    width: 100%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
