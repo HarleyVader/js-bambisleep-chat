@@ -120,12 +120,13 @@ const triggerElements = [
 ];
 
 function flashTriggers(trigger, duration) {
+  container.innerHTML = "";
   const container = triggerElements[Math.floor(Math.random() * triggerElements.length)];
   if (!container) {
     console.error("No valid trigger element found");
     return;
   }
-  container.innerHTML = "";
+  
   const span = document.createElement("span");
   span.textContent = trigger;
   container.appendChild(span);
