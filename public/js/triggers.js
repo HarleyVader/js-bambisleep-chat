@@ -121,26 +121,33 @@ function triggerTriggers(triggers) {
 }
 
 function flashTrigger(trigger, duration) {
-   // Elements to fade in and out
-   const triggerElements = [
+  // Elements to fade in and out
+  const triggerElements = [
     document.getElementById("eyeCursorText"),
     document.getElementById("eyeCursorText2"),
     document.getElementById("eyeCursorText3"),
     document.getElementById("eyeCursorText4"),
   ];
 
-  const container = triggerElements[Math.floor(Math.random() * triggerElements.length)];
-  if (!container) return;
-  container.innerHTML = "";
-  const span = document.createElement("span");
-  span.textContent = trigger;
-  container.appendChild(span);
+  // Iterate through the triggerElements array
+  triggerElements.forEach((container, index) => {
+    if (!container) return;
 
-  setTimeout(() => {
-    requestAnimationFrame(() => {
+    // Clear the container and set the trigger text
+    setTimeout(() => {
       container.innerHTML = "";
-    });
-  }, duration);
+      const span = document.createElement("span");
+      span.textContent = trigger;
+      container.appendChild(span);
+
+      // Fade out after the specified duration
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          container.innerHTML = "";
+        });
+      }, duration);
+    }, index * duration); // Stagger each element by the duration
+  });
 }
 
 
