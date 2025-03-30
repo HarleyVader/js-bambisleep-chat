@@ -436,8 +436,7 @@ button {
     background-color: var(--button-color);
     text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
     border: var(--secondary-color) outset 0.3vw;
-    margin-top: 0.1vw;
-    padding: 0.5vw;
+    padding: 0.1vw;
     font-size: 0.5vw;
     border-radius: 0.6vw;
 }
@@ -447,8 +446,7 @@ button:hover {
     background-color: var(--secondary-color);
     text-shadow: var(--nav-color) 0.3vw 0.3vw 0.3vw;
     border: var(--button-color) 0.3vw inset;
-    margin-top: 0.1vw;
-    padding: 0.5vw;
+    padding: 0.1vw;
     font-size: 0.5vw;
     border-radius: 0.6vw;
 }
