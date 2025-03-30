@@ -100,40 +100,6 @@ function getEnabledToggleButtons() {
   return enabledToggleButtons;
 }
 
-function scanTriggers() {
-  let enabledToggleButtons = getEnabledToggleButtons();
-  if (!Array.isArray(enabledToggleButtons)) {
-    enabledToggleButtons = [];
-  }
-
-  const triggers = enabledToggleButtons.map(
-    (buttonId) => listOfTriggers[parseInt(buttonId.split("-")[1])]
-  );
-  if (typeof currentMessage === "undefined") {
-    console.error("currentMessage is not defined");
-    return;
-  }
-
-  triggers.forEach((trigger) => {
-    if (currentMessage.includes(trigger)) {
-      flashTriggers(trigger);
-    }
-  });
-}
-
-function flashTriggers(trigger) {
-  const container = document.getElementById("eye");
-  if (!container) return;
-
-  // Clear existing content
-  container.innerHTML = "";
-
-  // Create and append the trigger text
-  const span = document.createElement("span");
-  span.textContent = trigger;
-  container.appendChild(span);
-}
-
 function triggerTriggers() {
   // Get the enabled toggle buttons
   const enabledToggleButtons = getEnabledToggleButtons();
@@ -141,6 +107,7 @@ function triggerTriggers() {
     console.error("No triggers selected");
     return;
   }
+
   // Map the enabled toggle buttons to their corresponding trigger names
   const triggers = enabledToggleButtons.map(
     (buttonId) => listOfTriggers[parseInt(buttonId.split("-")[1])]
@@ -149,24 +116,24 @@ function triggerTriggers() {
   // Function to handle fading in and out for a specific element
   function fadeElement(element, trigger) {
     if (!element) return;
-    // Clear all elements' content
-    elementsToFade.forEach((element) => {
-      if (element) element.textContent = "";
-    });
+
     // Set the trigger text and fade in
     element.textContent = trigger;
     element.style.opacity = "1";
+
     // Fade out after 1 second
-
-    element.style.opacity = "0";
-    // Schedule the next fade with a random delay
-    const randomDelay = Math.floor(Math.random() * 6000) + 3000 // Random delay between 2-5
     setTimeout(() => {
-      const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
-      fadeElement(element, randomTrigger); // Recursively fade with a new random trigger
-    }, randomDelay);
+      element.style.opacity = "0";
 
+      // Schedule the next fade with a random delay
+      const randomDelay = Math.floor(Math.random() * 3000) + 1000; // Random delay between 1-4 seconds
+      setTimeout(() => {
+        const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
+        fadeElement(element, randomTrigger); // Recursively fade with a new random trigger
+      }, randomDelay);
+    }, 1000);
   }
+
   // Elements to fade in and out
   const elementsToFade = [
     document.getElementById("eyeCursorText"),
@@ -174,6 +141,7 @@ function triggerTriggers() {
     document.getElementById("eyeCursorText3"),
     document.getElementById("eyeCursorText4"),
   ];
+
   // Start fading for one element at a time
   elementsToFade.forEach((element, index) => {
     setTimeout(() => {
@@ -181,6 +149,16 @@ function triggerTriggers() {
       fadeElement(element, randomTrigger);
     }, index * 1500); // Stagger the start time for each element
   });
+
+  // Fade out all elements when the function completes
+  setTimeout(() => {
+    elementsToFade.forEach((element) => {
+      if (element) {
+        element.style.opacity = "0"; // Ensure all elements fade out
+        element.textContent = ""; // Clear the content
+      }
+    });
+  }, triggers.length * 1500 + 2000); // Adjust timing to ensure all triggers finish before fading out
 
   console.log("Triggered:", triggers);
 }
