@@ -82,6 +82,7 @@ function sendTriggers() {
     return;
   }
   socket.emit("triggers", triggers);
+  triggerTriggers(triggers); // Call the function to trigger the flash
   console.log("Triggers sent:", triggers);
 }
 
@@ -102,27 +103,11 @@ function getEnabledToggleButtons() {
 
 let activeTimers = []; // Array to store active timer IDs
 
-function triggerTriggers() {
-  // Clear any existing timers
-  activeTimers.forEach((timerId) => clearTimeout(timerId));
-  activeTimers = []; // Reset the timers array
-
-  // Get the enabled toggle buttons
-  const enabledToggleButtons = getEnabledToggleButtons();
-  if (!Array.isArray(enabledToggleButtons) || enabledToggleButtons.length === 0) {
-    console.error("No triggers selected");
-    return;
-  }
-
-  // Map the enabled toggle buttons to their corresponding trigger names
-  const triggers = enabledToggleButtons.map(
-    (buttonId) => listOfTriggers[parseInt(buttonId.split("-")[1])]
-  );
+function triggerTriggers(triggers) {
   if (triggers.length === 0) {
     console.error("No valid triggers found");
     return;
   }
- 
   let duration = Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000;
   // Randomly select a trigger from the list
   const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
@@ -161,4 +146,4 @@ function flashTrigger(trigger, duration) {
 
 
 
-  triggerTriggers();
+
