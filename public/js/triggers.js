@@ -31,10 +31,19 @@ const listOfTriggers = [
   "BAMBI CUM & COLAPSE"
 ];
 
+const textElements = [
+  document.getElementById("eyeCursorText"),
+  document.getElementById("eyeCursorText2"),
+  document.getElementById("eyeCursorText3"),
+  document.getElementById("eyeCursorText4")
+].filter(element => element !== null);
 
 function createToggleButtons() {
   const container = document.getElementById("trigger-toggles");
-  if (!container) return;
+  if (!container) {
+    console.error("Container with id 'trigger-toggles' not found.");
+    return;
+  }
 
   listOfTriggers.forEach((trigger, index) => {
     const toggle = document.createElement("input");
@@ -68,6 +77,11 @@ window.onload = function () {
 };
 
 function sendTriggers() {
+  if (typeof socket === "undefined" || !socket.connected) {
+    console.error("Socket is not initialized or connected.");
+    return;
+  }
+
   const enabledToggleButtons = getEnabledToggleButtons();
   if (!Array.isArray(enabledToggleButtons)) {
     console.error("No triggers selected");
@@ -81,6 +95,7 @@ function sendTriggers() {
     console.error("No valid triggers found");
     return;
   }
+
   socket.emit("triggers", triggers);
   triggerTriggers(triggers); // Call the function to trigger the flash
   console.log("Triggers sent:", triggers);
@@ -112,34 +127,24 @@ function triggerTriggers(triggers) {
   console.log("Triggered:", trigger);
 }
 
-
-  // Define a list of possible elements
-  const textElements = [
-      document.getElementById("eyeCursorText"),
-      document.getElementById("eyeCursorText2"),
-      document.getElementById("eyeCursorText3"),
-      document.getElementById("eyeCursorText4")
-  ];
-
-  function flashTriggers(trigger, duration) {
-      // Select a random element from the list
-      const randomElement = textElements[Math.floor(Math.random() * textElements.length)];
-      console.log("Random element selected:", randomElement); 
-      if (!randomElement) return; // Ensure the element exists
-
-      // Clear previous content
-      randomElement.innerHTML = "";
-
-      // Create a span element to hold the trigger text
-      const span = document.createElement("span");
-      span.textContent = trigger;
-      randomElement.appendChild(span);
-
-      // Set a timeout to clear the content after the specified duration
-      setTimeout(() => {
-          requestAnimationFrame(() => {
-              randomElement.innerHTML = "";
-          });
-      }, duration);
+function flashTriggers(trigger, duration) {
+  if (textElements.length === 0) {
+    console.error("No valid text elements found to display triggers.");
+    return;
   }
-  
+
+  const randomElement = textElements[Math.floor(Math.random() * textElements.length)];
+  console.log("Random element selected:", randomElement);
+
+  randomElement.innerHTML = "";
+
+  const span = document.createElement("span");
+  span.textContent = trigger;
+  randomElement.appendChild(span);
+
+  setTimeout(() => {
+    requestAnimationFrame(() => {
+      randomElement.innerHTML = "";
+    });
+  }, duration);
+}
