@@ -141,6 +141,7 @@ function flashTriggers(trigger, duration) {
   const span = document.createElement("span");
   span.textContent = trigger;
   randomElement.appendChild(span);
+  console.log("Span created with trigger:", span.textContent);
 
   setTimeout(() => {
     requestAnimationFrame(() => {
