@@ -112,7 +112,7 @@ function triggerTriggers(triggers) {
   console.log("Triggered:", trigger);
 }
 
-function flashTriggers(trigger, duration) {
+
   // Define a list of possible elements
   const textElements = [
       document.getElementById("eyeCursorText"),
@@ -121,28 +121,25 @@ function flashTriggers(trigger, duration) {
       document.getElementById("eyeCursorText4")
   ];
 
-  // Filter out any null elements (in case some are missing in the DOM)
-  const validElements = textElements.filter(element => element !== null);
+  function flashTriggers(trigger, duration) {
+      // Select a random element from the list
+      const randomElement = textElements[Math.floor(Math.random() * textElements.length)];
+      logger("Random element selected:", randomElement); 
+      if (!randomElement) return; // Ensure the element exists
 
-  // Choose a random element from the valid ones
-  const randomElement = validElements[Math.floor(Math.random() * validElements.length)];
+      // Clear previous content
+      randomElement.innerHTML = "";
 
-  // Check if a valid random element was found
-  if (!randomElement) {
-      console.error("No valid eyeCursorText elements found in the DOM.");
-      return;
+      // Create a span element to hold the trigger text
+      const span = document.createElement("span");
+      span.textContent = trigger;
+      randomElement.appendChild(span);
+
+      // Set a timeout to clear the content after the specified duration
+      setTimeout(() => {
+          requestAnimationFrame(() => {
+              randomElement.innerHTML = "";
+          });
+      }, duration);
   }
-
-  // Clear the selected random element and set the trigger text
-  randomElement.innerHTML = "";
-  const span = document.createElement("span");
-  span.textContent = trigger;
-  randomElement.appendChild(span);
-
-  // Clear the text after the specified duration
-  setTimeout(() => {
-      requestAnimationFrame(() => {
-          randomElement.innerHTML = "";
-      });
-  }, duration);
-}
+  
