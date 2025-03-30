@@ -106,13 +106,10 @@ function triggerTriggers(triggers) {
     console.error("No valid triggers found");
     return;
   }
-
   let duration = Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000;
   let randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
-  
-  flashTriggers(randomTrigger, duration, selectedElement);
-
-  console.log("Triggered:", randomTrigger, "in element:", selectedElement.id);
+  flashTriggers(randomTrigger, duration);
+  console.log("Triggered:", randomTrigger);
 }
 
 function flashTriggers(trigger, duration) {
