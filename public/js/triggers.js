@@ -113,12 +113,7 @@ function triggerTriggers(triggers) {
 }
 
 function flashTriggers(trigger, duration) {
-  const triggerElements = [
-    document.getElementById("eyeCursorText"),
-    document.getElementById("eyeCursorText2"),
-    document.getElementById("eyeCursorText3"),
-    document.getElementById("eyeCursorText4"),
-  ];
+  
 
   let selectedElement = Math.floor(Math.random() * triggerElements.length);
   selectedElement.innerHTML = "";
@@ -129,6 +124,38 @@ function flashTriggers(trigger, duration) {
   setTimeout(() => {
       requestAnimationFrame(() => {
         selectedElement.innerHTML = "";
+      });
+  }, duration);
+}
+function flashTriggers(trigger, duration) {
+  // Define a list of possible trigger element IDs
+  const triggerElements = [
+    document.getElementById("eyeCursorText"),
+    document.getElementById("eyeCursorText2"),
+    document.getElementById("eyeCursorText3"),
+    document.getElementById("eyeCursorText4"),
+  ];// Add more IDs as needed
+
+  // Choose a random element from the list
+  const randomIndex = Math.floor(Math.random() * triggerElements.length);
+  const container = document.getElementById(triggerElements[randomIndex]);
+
+  // Check if the container exists
+  if (!container) {
+      console.error(`Element with id "${triggerElements[randomIndex]}" not found in the DOM.`);
+      return;
+  }
+
+  // Clear the container and add the trigger
+  container.innerHTML = "";
+  const span = document.createElement("span");
+  span.textContent = trigger;
+  container.appendChild(span);
+
+  // Clear the container after the specified duration
+  setTimeout(() => {
+      requestAnimationFrame(() => {
+          container.innerHTML = "";
       });
   }, duration);
 }
