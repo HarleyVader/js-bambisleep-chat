@@ -123,13 +123,7 @@ async function triggerTriggers(triggers) {
   }
 
   while (true) {
-    // Shuffle the triggers array for random iteration
-    const shuffledTriggers = triggers
-      .map((trigger) => ({ trigger, sort: Math.random() }))
-      .sort((a, b) => a.sort - b.sort)
-      .map(({ trigger }) => trigger);
-
-    for (const trigger of shuffledTriggers) {
+    for (const trigger of triggers) {
       for (const element of textElements) {
         if (!element) continue;
 
