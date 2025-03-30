@@ -33,7 +33,7 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  pingTimeout: 30000, // 30 seconds
+  pingTimeout: 300000, // 30 seconds
   pingInterval: 25000, // 25 seconds
 });
 
@@ -84,10 +84,18 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 
 async function fetchTTS(text) {
   try {
-    const response = await axios.get(`http://${process.env.SPEECH_HOST}:${process.env.SPEECH_PORT}/api/tts`, {
-      params: { text },
-      responseType: 'arraybuffer',
-    });
+    const response = await axios.post(
+      `http://${process.env.SPEECH_HOST}:${process.env.SPEECH_PORT}/api/tts`,
+      {
+        text: text,
+        voice: 'bambi', // Identifier for the cloned voice
+        voice_file: path.join(__dirname, 'bambi.wav'), // Path to the voice cloning file
+        speed: parseFloat(process.env.SPEECH_SPEED || 1.0), // Optional: Adjust speed
+      },
+      {
+        responseType: 'arraybuffer',
+      }
+    );
     return response;
   } catch (error) {
     console.error(patterns.server.error('Error fetching TTS audio:', error));
@@ -314,7 +322,6 @@ function setupSockets() {
           try {
             const { worker } = socketStore.get(socket.id);
             if (worker) {
-
               worker.terminate();
               adjustMaxListeners(worker, false);
             }

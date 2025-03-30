@@ -7,7 +7,12 @@ const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
 let currentMessage = '';
 
-const socket = io();
+const socket = io({
+    reconnection: true,
+    reconnectionAttempts: 10, // Number of attempts before giving up
+    reconnectionDelay: 1000, // Initial delay between attempts (in ms)
+    reconnectionDelayMax: 5000, // Maximum delay between attempts (in ms)
+});
 
 socket.on('disconnect', () => {
     console.log('Disconnected');
@@ -16,6 +21,18 @@ socket.on('disconnect', () => {
 
 socket.on('connect', () => {
     console.log('Connected to BambiSleep chat server! Socket ID:', socket.id);
+});
+
+socket.on('reconnect_attempt', () => {
+    console.log('Attempting to reconnect...');
+});
+
+socket.on('reconnect', () => {
+    console.log('Reconnected to server');
+});
+
+socket.on('reconnect_failed', () => {
+    console.error('Failed to reconnect to server');
 });
 
 let debounceTimeout;
@@ -106,12 +123,12 @@ function handleAudioPlay() {
     messageElement.textContent = text;
     console.log('Text reply: ', messageElement.textContent);
     if (response.firstChild) {
-      response.insertBefore(messageElement, response.firstChild);
+        response.insertBefore(messageElement, response.firstChild);
     } else {
-      response.appendChild(messageElement);
+        response.appendChild(messageElement);
     }
     applyUppercaseStyle();
-  }
+}
 
 audio.addEventListener('ended', handleAudioEnded);
 audio.addEventListener('play', handleAudioPlay);

@@ -70,7 +70,7 @@ body {
 
 #user-prompt,
 #user-collar {
-    width: 100%;
+    width: 98%;
     margin: 1.4px;
     padding: 1.4px;
     border-left: var(--button-alt) 2px solid;

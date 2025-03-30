@@ -121,7 +121,7 @@ async function handleMessage(userPrompt, socketId, username) {
     const requestData = {
       model: modelId,
       messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
-      max_tokens: 256,
+      max_tokens: 180,
       temperature: 0.95,
       top_p: 0.95,
       frequency_penalty: 0,
