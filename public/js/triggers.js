@@ -87,7 +87,6 @@ function sendTriggers() {
 
 setInterval(() => {
   sendTriggers();
-  triggerTriggers();
 }, 3000);
 
 function getEnabledToggleButtons() {
@@ -101,7 +100,13 @@ function getEnabledToggleButtons() {
   return enabledToggleButtons;
 }
 
+let activeTimers = []; // Array to store active timer IDs
+
 function triggerTriggers() {
+  // Clear any existing timers
+  activeTimers.forEach((timerId) => clearTimeout(timerId));
+  activeTimers = []; // Reset the timers array
+
   // Get the enabled toggle buttons
   const enabledToggleButtons = getEnabledToggleButtons();
   if (!Array.isArray(enabledToggleButtons) || enabledToggleButtons.length === 0) {
@@ -130,7 +135,7 @@ function triggerTriggers() {
   triggers.forEach((trigger, index) => {
     const element = triggerElements[index % triggerElements.length]; // Cycle through elements
     if (element) {
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
         element.textContent = trigger; // Set the trigger text
         element.style.opacity = 0;
         element.style.transition = "opacity 1s ease-out";
@@ -142,14 +147,20 @@ function triggerTriggers() {
         });
 
         // Fade out after 2 seconds
-        setTimeout(() => {
+        const fadeOutTimerId = setTimeout(() => {
           element.style.opacity = 0;
           setTimeout(() => {
             element.style.display = "none"; // Hide the element after fade-out
             element.textContent = ""; // Clear the text
           }, 1000); // Wait for fade-out to complete
         }, 2000);
+
+        // Store the fade-out timer ID
+        activeTimers.push(fadeOutTimerId);
       }, index * 3000); // Stagger each trigger by 3 seconds
+
+      // Store the timer ID
+      activeTimers.push(timerId);
     }
   });
 
