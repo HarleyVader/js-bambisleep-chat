@@ -138,7 +138,7 @@ function triggerTriggers(triggers) {
 }
 
 function flashTriggers(trigger, duration, containerId) {
-  const container = document.getElementById(containerId);
+  const container = document.getElementById(`${containerId}`);
   container.innerHTML = "";
   const span = document.createElement("span");
   span.textContent = trigger;
