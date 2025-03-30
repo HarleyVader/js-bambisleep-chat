@@ -106,20 +106,22 @@ function triggerTriggers(triggers) {
     console.error("No valid triggers found");
     return;
   }
- 
+
   let trigger = triggers[Math.floor(Math.random() * triggers.length)];
   flashTriggers(trigger, 3000);
   console.log("Triggered:", trigger);
 }
 
-const triggerElements = [
-  "eyeCursorText",
-  "eyeCursorText2",
-  "eyeCursorText3",
-  "eyeCursorText4",
-];
+
 
 function flashTriggers(trigger, duration) {
+  const triggerElements = [
+    "eyeCursorText",
+    "eyeCursorText2",
+    "eyeCursorText3",
+    "eyeCursorText4",
+  ];
+  
   for (let i = 0; i < triggerElements.length; i++) {
     container = document.getElementById(triggerElements[i]);
     if (!element) {
@@ -127,15 +129,15 @@ function flashTriggers(trigger, duration) {
       continue;
     }
   }
-  
+
   const span = document.createElement("span");
   span.textContent = trigger;
   container.appendChild(span);
   console.log(container);
 
   setTimeout(() => {
-      requestAnimationFrame(() => {
-        container.innerHTML = "";
-      });
+    requestAnimationFrame(() => {
+      container.innerHTML = "";
+    });
   }, duration);
 }
