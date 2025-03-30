@@ -159,6 +159,9 @@ function triggerTriggers() {
   function fadeElement(element, trigger) {
     if (!element) return;
 
+    // Clear the element's content
+    element.textContent = "";
+
     // Set the trigger text and fade in
     element.textContent = trigger;
     element.style.opacity = "1";
@@ -173,7 +176,7 @@ function triggerTriggers() {
         const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
         fadeElement(element, randomTrigger); // Recursively fade with a new random trigger
       }, randomDelay);
-    }, 3000);
+    }, 1000);
   }
 
   // Start fading for one element at a time
@@ -181,7 +184,7 @@ function triggerTriggers() {
     setTimeout(() => {
       const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
       fadeElement(element, randomTrigger);
-    }, index * 2500); // Stagger the start time for each element
+    }, index * 1500); // Stagger the start time for each element
   });
 
   console.log("Triggered:", triggers);
