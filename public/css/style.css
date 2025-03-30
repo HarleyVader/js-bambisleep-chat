@@ -158,7 +158,7 @@ body {
 }
 
 #eyeCursor {
-    margin-top: .5vh;
+    margin-top: .1vh;
     flex: 1;
     font-size: 3vw;
     color: var(--primary-alt);
@@ -191,8 +191,8 @@ body {
 
 #eyeCursorText {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 15%;
+    left: 15%;
     font-size: 1.5vw;
     color: var(--primary-alt);
     text-shadow: var(--secondary-color) 2px 2px 2px;
@@ -200,8 +200,8 @@ body {
 
 #eyeCursorText2 {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 15%;
+    right: 15%;
     font-size: 1.5vw;
     color: var(--primary-alt);
     text-shadow: var(--secondary-color) 2px 2px 2px;
@@ -209,8 +209,8 @@ body {
 
 #eyeCursorText3 {
     position: absolute;
-    bottom: 0;
-    left: 0;
+    bottom: 15%;
+    left: 15%;
     font-size: 1.5vw;
     color: var(--primary-alt);
     text-shadow: var(--secondary-color) 2px 2px 2px;
@@ -218,8 +218,8 @@ body {
 
 #eyeCursorText4 {
     position: absolute;
-    bottom: 0;
-    right: 0;
+    bottom: 15%;
+    right: 15%;
     font-size: 1.5vw;
     color: var(--primary-alt);
     text-shadow: var(--secondary-color) 2px 2px 2px;
