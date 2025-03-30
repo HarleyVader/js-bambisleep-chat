@@ -148,7 +148,7 @@ body {
 }
 
 #eyeCursor {
-    margin-top: 0.5vh;
+    margin-top: .5vh;
     flex: 1;
     font-size: 3vw;
     color: var(--primary-alt);
@@ -157,9 +157,6 @@ body {
     background-color: var(--transparent-alt);
     height: 100%;
     width: 100%;
-    display: flex; /* Use flexbox for centering */
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
 }
 
 #chat textarea-chat {
@@ -169,17 +166,37 @@ body {
     /* Changed to primary-alt */
     border: var(--secondary-alt) 4px ridge;
     text-shadow: var(--secondary-color) 2px 2px 2px;
-    font-size: 12px;
+    font-size: 2vw
 }
 
 #eye {
     position: absolute;
-    top: 50%; /* Center vertically relative to #eyeCursor */
-    left: 50%; /* Center horizontally relative to #eyeCursor */
+    top: 72.5%;
+    left: 63.1%;
     transform: translate(-50%, -50%);
     text-shadow: var(--secondary-alt) 5px 5px 5px;
-    font-size: 2vw; /* Adjust font size for responsiveness */
-    color: var(--primary-alt);
+}
+
+/* Mobile-specific styles */
+@media (max-width: 600px) {
+    #eyeCursor {
+        font-size: 5vw; /* Increase font size for better visibility */
+        margin-top: 0.5em;
+        height: auto; /* Allow height to adjust dynamically */
+    }
+
+    #eye {
+        font-size: 4vw; /* Increase font size for smaller screens */
+    }
+}
+
+#eye span {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 0;
+    font-size: 0.9em;
+    color: var(--tertiary-alt);
 }
 
 #response p:first-child {
@@ -542,13 +559,9 @@ a:hover {
     }
 
     #eyeCursor {
-        font-size: 5vw; /* Adjust font size for better visibility */
+        font-size: 24px;
         margin-top: 0.5em;
         height: auto;
-    }
-
-    #eye {
-        font-size: 4vw; /* Increase font size for smaller screens */
     }
 
     nav {
