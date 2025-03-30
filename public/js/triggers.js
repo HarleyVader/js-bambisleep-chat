@@ -168,12 +168,12 @@ function triggerTriggers() {
       element.style.opacity = "0";
 
       // Schedule the next fade with a random delay
-      const randomDelay = Math.floor(Math.random() * 3000) + 1000; // Random delay between 1-4 seconds
+      const randomDelay = Math.floor(Math.random() * 3000) + 2000; // Random delay between 2-5 seconds
       setTimeout(() => {
         const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
         fadeElement(element, randomTrigger); // Recursively fade with a new random trigger
       }, randomDelay);
-    }, 1000);
+    }, 3000);
   }
 
   // Start fading for one element at a time
@@ -181,7 +181,7 @@ function triggerTriggers() {
     setTimeout(() => {
       const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
       fadeElement(element, randomTrigger);
-    }, index * 1500); // Stagger the start time for each element
+    }, index * 2500); // Stagger the start time for each element
   });
 
   console.log("Triggered:", triggers);
