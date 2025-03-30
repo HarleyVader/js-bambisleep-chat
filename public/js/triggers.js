@@ -166,3 +166,12 @@ function triggerTriggers() {
 
   console.log("Triggered:", triggers);
 }
+
+// Randomize interval between 3 to 7 seconds for triggering
+function getRandomInterval() {
+  return Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000; // Random value between 3000ms and 7000ms
+}
+
+setInterval(() => {
+  triggerTriggers();
+}, getRandomInterval());
