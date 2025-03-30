@@ -101,8 +101,6 @@ function getEnabledToggleButtons() {
   return enabledToggleButtons;
 }
 
-let activeTimers = []; // Array to store active timer IDs
-
 function triggerTriggers(triggers) {
   if (triggers.length === 0) {
     console.error("No valid triggers found");
@@ -117,28 +115,14 @@ function triggerTriggers(triggers) {
   ];
 
   let duration = Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000;
-
-  // Randomly select a trigger from the list
-  const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
-
-  // Select one of the triggerElements (cycling through them)
-  const elementIndex = Math.floor(Math.random() * triggerElements.length);
-  const selectedElement = triggerElements[elementIndex];
-
-  if (selectedElement) {
-    // Flash the trigger in the selected element
-    flashTriggers(randomTrigger, duration, selectedElement);
-  }
-
-  // Set a timeout to trigger the next flash
-  const timerId = setTimeout(() => triggerTriggers(triggers), duration);
-  activeTimers.push(timerId); // Store the timer ID
-
+  let randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
+  let selectedElement = Math.floor(Math.random() * triggerElements.length);
+  flashTriggers(randomTrigger, duration, selectedElement);
+  
   console.log("Triggered:", randomTrigger, "in element:", selectedElement.id);
 }
 
 function flashTriggers(trigger, duration, selectedElement) {
-  if (!selectedElement) return;
   selectedElement.innerHTML = ""; // Clear previous content
   const span = document.createElement("span");
   span.textContent = trigger;
