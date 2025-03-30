@@ -116,36 +116,35 @@ function getEnabledToggleButtons() {
   return enabledToggleButtons;
 }
 
-function triggerTriggers(triggers) {
-  if (triggers.length === 0) {
-    console.error("No valid triggers found");
-    return;
-  }
-  let duration = Math.floor(Math.random() * 1000) + 500;
-  let trigger = triggers[Math.floor(Math.random() * triggers.length)];
-  flashTriggers(trigger, duration);
-  console.log("Triggered:", trigger);
-}
-
-function flashTriggers(trigger, duration) {
-  if (textElements.length === 0) {
-    console.error("No valid text elements found to display triggers.");
+async function triggerTriggers(triggers) {
+  if (!Array.isArray(triggers) || triggers.length === 0) {
+    console.error("No triggers to display.");
     return;
   }
 
-  const randomElement = textElements[Math.floor(Math.random() * textElements.length)];
-  console.log("Random element selected:", randomElement);
+  while (true) {
+    for (const trigger of triggers) {
+      for (const element of textElements) {
+        if (!element) continue;
 
-  randomElement.innerHTML = "";
+        // Set the text content to the current trigger
+        element.textContent = trigger;
 
-  const span = document.createElement("span");
-  span.textContent = trigger;
-  randomElement.appendChild(span);
-  console.log("Span created with trigger:", span.textContent);
+        // Randomly determine the animation duration (2-4 seconds)
+        const duration = Math.random() * 2 + 2; // 2 to 4 seconds
+        element.style.transition = `opacity ${duration}s`;
+        element.style.opacity = 1; // Fade in
 
-  setTimeout(() => {
-    requestAnimationFrame(() => {
-      randomElement.innerHTML = "";
-    });
-  }, duration);
+        // Wait for the animation to finish
+        await new Promise((resolve) => setTimeout(resolve, duration * 1000));
+
+        // Fade out the element
+        element.style.opacity = 0;
+
+        // Wait for the fade-out animation to finish
+        await new Promise((resolve) => setTimeout(resolve, duration * 1000));
+      }
+    }
+  }
 }
+
