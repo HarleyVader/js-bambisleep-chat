@@ -137,26 +137,16 @@ function triggerTriggers(triggers) {
   console.log("Triggered:", randomTrigger, "in element:", selectedElement.id);
 }
 
-function flashTriggers(trigger, duration, container) {
-  if (!container) return;
+function flashTriggers(trigger, duration, containerId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  const span = document.createElement("span");
+  span.textContent = trigger;
+  container.appendChild(span);
 
-  // Clear the container and set the trigger text
   setTimeout(() => {
-    container.innerHTML = "";
-    const span = document.createElement("span");
-    span.textContent = trigger;
-    container.appendChild(span);
-
-    // Fade out after the specified duration
-    setTimeout(() => {
       requestAnimationFrame(() => {
-        container.innerHTML = "";
+          container.innerHTML = "";
       });
-    }, duration);
-  });
+  }, duration);
 }
-
-
-
-
-
