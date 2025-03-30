@@ -147,6 +147,16 @@ body {
     width: 100%;
 }
 
+#chat textarea-chat {
+    width: 100%;
+    background-color: var(--nav-color);
+    color: var(--primary-alt);
+    /* Changed to primary-alt */
+    border: var(--secondary-alt) 4px ridge;
+    text-shadow: var(--secondary-color) 2px 2px 2px;
+    font-size: 2vw
+}
+
 #eyeCursor {
     margin-top: .5vh;
     flex: 1;
@@ -159,16 +169,6 @@ body {
     width: 100%;
 }
 
-#chat textarea-chat {
-    width: 100%;
-    background-color: var(--nav-color);
-    color: var(--primary-alt);
-    /* Changed to primary-alt */
-    border: var(--secondary-alt) 4px ridge;
-    text-shadow: var(--secondary-color) 2px 2px 2px;
-    font-size: 2vw
-}
-
 #eye {
     position: absolute;
     top: 72.5%;
@@ -176,6 +176,51 @@ body {
     transform: translate(-50%, -50%);
     font-size: 2vw; 
     text-shadow: var(--secondary-alt) 5px 5px 5px;
+}
+
+#eyeCursorContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#eyeCursorText {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 1.5vw;
+    color: var(--primary-alt);
+    text-shadow: var(--secondary-color) 2px 2px 2px;
+}
+
+#eyeCursorText2 {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 1.5vw;
+    color: var(--primary-alt);
+    text-shadow: var(--secondary-color) 2px 2px 2px;
+}
+
+#eyeCursorText3 {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    font-size: 1.5vw;
+    color: var(--primary-alt);
+    text-shadow: var(--secondary-color) 2px 2px 2px;
+}
+
+#eyeCursorText4 {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    font-size: 1.5vw;
+    color: var(--primary-alt);
+    text-shadow: var(--secondary-color) 2px 2px 2px;
 }
 
 /* Mobile-specific styles */
