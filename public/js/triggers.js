@@ -52,16 +52,6 @@ function createToggleButtons() {
   });
 }
 
-// Add event listeners to toggle buttons
-function addToggleEventListeners() {
-  const toggleInputs = document.getElementsByClassName("toggle-input");
-  for (let i = 0; i < toggleInputs.length; i++) {
-    toggleInputs[i].addEventListener("change", () => {
-      triggerTriggers(); // Call triggerTriggers when a toggle button is pressed
-    });
-  }
-}
-
 function toggleAllToggles() {
   const toggleInputs = document.getElementsByClassName("toggle-input");
   for (let i = 0; i < toggleInputs.length; i++) {
@@ -69,10 +59,8 @@ function toggleAllToggles() {
   }
 }
 
-// Call this function after creating toggle buttons
 window.onload = function () {
   createToggleButtons();
-  addToggleEventListeners(); // Add event listeners to toggle buttons
   const activateAllButton = document.getElementById("activate-all");
   if (activateAllButton) {
     activateAllButton.addEventListener("click", toggleAllToggles);
@@ -162,22 +150,22 @@ function triggerTriggers() {
   function fadeElement(element, trigger) {
     if (!element) return;
     // Clear all elements' content
-    elementsToFade.forEach((el) => {
-      if (el) el.textContent = "";
+    elementsToFade.forEach((element) => {
+      if (element) element.textContent = "";
     });
     // Set the trigger text and fade in
     element.textContent = trigger;
     element.style.opacity = "1";
     // Fade out after 1 second
+
+    element.style.opacity = "0";
+    // Schedule the next fade with a random delay
+    const randomDelay = Math.floor(Math.random() * 6000) + 3000 // Random delay between 2-5
     setTimeout(() => {
-      element.style.opacity = "0";
-      // Schedule the next fade with a random delay
-      const randomDelay = Math.floor(Math.random() * 6000) + 3000 // Random delay between 2-5
-      setTimeout(() => {
-        const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
-        fadeElement(element, randomTrigger); // Recursively fade with a new random trigger
-      }, randomDelay);
-    }, 1000);
+      const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
+      fadeElement(element, randomTrigger); // Recursively fade with a new random trigger
+    }, randomDelay);
+
   }
   // Elements to fade in and out
   const elementsToFade = [
