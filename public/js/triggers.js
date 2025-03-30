@@ -138,8 +138,14 @@ function triggerTriggers(triggers) {
 }
 
 function flashTriggers(trigger, duration, containerId) {
-  const container = document.getElementById(`${containerId}`);
-  container.innerHTML = "";
+  const container = document.getElementById(containerId); 
+  if (!container) return;
+  container.innerHTML = ""; // Clear previous content
+  container.style.opacity = 1; // Reset opacity
+  container.style.transition = `opacity ${duration}ms`;
+  container.style.opacity = 0.5; // Fade effect
+  container.style.fontSize = "2em"; // Set font size
+  container.style.color = "red"; // Set colo
   const span = document.createElement("span");
   span.textContent = trigger;
   container.appendChild(span);
