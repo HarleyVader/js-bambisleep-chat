@@ -106,10 +106,10 @@ function triggerTriggers(triggers) {
     console.error("No valid triggers found");
     return;
   }
-  let duration = Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000;
-  let randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
-  flashTriggers(randomTrigger, duration);
-  console.log("Triggered:", randomTrigger);
+ 
+  let trigger = triggers[Math.floor(Math.random() * triggers.length)];
+  flashTriggers(trigger, 3000);
+  console.log("Triggered:", trigger);
 }
 
 const triggerElements = [
@@ -122,25 +122,19 @@ const triggerElements = [
 function flashTriggers(trigger, duration) {
   for (let i = 0; i < triggerElements.length; i++) {
     let element = document.getElementById(triggerElements[i]);
-    if (element) {
-      element.innerHTML = ""; // Clear the content of the element
+    if (!element) {
+      console.error(`No valid trigger element found for ${triggerElements[i]}`);
+      continue;
     }
-  }
-  
-  const container = element
-  container.innerHTML = "";
-  if (!container) {
-    console.error("No valid trigger element found");
-    return;
   }
   
   const span = document.createElement("span");
   span.textContent = trigger;
-  container.appendChild(span);
+  element.appendChild(span);
 
   setTimeout(() => {
       requestAnimationFrame(() => {
-          container.innerHTML = "";
+        element.innerHTML = "";
       });
   }, duration);
 }
