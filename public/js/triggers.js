@@ -113,15 +113,16 @@ function triggerTriggers(triggers) {
 }
 
 const triggerElements = [
-  document.getElementById("eyeCursorText"),
-  document.getElementById("eyeCursorText2"),
-  document.getElementById("eyeCursorText3"),
-  document.getElementById("eyeCursorText4"),
+  "eyeCursorText",
+  "eyeCursorText2",
+  "eyeCursorText3",
+  "eyeCursorText4",
 ];
 
 function flashTriggers(trigger, duration) {
+  
+  const container = getElementById(triggerElements[Math.floor(Math.random() * triggerElements.length)]);
   container.innerHTML = "";
-  const container = triggerElements[Math.floor(Math.random() * triggerElements.length)];
   if (!container) {
     console.error("No valid trigger element found");
     return;
