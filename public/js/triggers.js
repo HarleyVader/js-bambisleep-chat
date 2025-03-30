@@ -176,3 +176,7 @@ function triggerTriggers() {
 setInterval(() => {
   triggerTriggers();
 }, 1000);
+
+setInterval(() => {
+  flashTriggers();
+}, 1000);
