@@ -115,7 +115,7 @@ function triggerTriggers(triggers) {
   console.log("Triggered:", randomTrigger, "in element:", selectedElement.id);
 }
 
-function flashTrigger(trigger, duration) {
+function flashTriggers(trigger, duration) {
   const triggerElements = [
     document.getElementById("eyeCursorText"),
     document.getElementById("eyeCursorText2"),
