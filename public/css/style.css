@@ -148,7 +148,7 @@ body {
 }
 
 #eyeCursor {
-    margin-top: .5vh;
+    margin-top: 0.5vh;
     flex: 1;
     font-size: 3vw;
     color: var(--primary-alt);
@@ -157,6 +157,9 @@ body {
     background-color: var(--transparent-alt);
     height: 100%;
     width: 100%;
+    display: flex; /* Use flexbox for centering */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
 }
 
 #chat textarea-chat {
@@ -171,19 +174,12 @@ body {
 
 #eye {
     position: absolute;
-    top: 72.5%;
-    left: 63.1%;
+    top: 50%; /* Center vertically relative to #eyeCursor */
+    left: 50%; /* Center horizontally relative to #eyeCursor */
     transform: translate(-50%, -50%);
     text-shadow: var(--secondary-alt) 5px 5px 5px;
-}
-
-#eye span {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-right: 0;
-    font-size: 0.9em;
-    color: var(--tertiary-alt);
+    font-size: 2vw; /* Adjust font size for responsiveness */
+    color: var(--primary-alt);
 }
 
 #response p:first-child {
@@ -546,9 +542,13 @@ a:hover {
     }
 
     #eyeCursor {
-        font-size: 24px;
+        font-size: 5vw; /* Adjust font size for better visibility */
         margin-top: 0.5em;
         height: auto;
+    }
+
+    #eye {
+        font-size: 4vw; /* Increase font size for smaller screens */
     }
 
     nav {
