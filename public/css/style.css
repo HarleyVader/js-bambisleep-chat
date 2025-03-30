@@ -439,7 +439,7 @@ button {
     margin-top: 0.1vw;
     padding: 0.5vw;
     font-size: 0.5vw;
-    border-radius: 0.4vw;
+    border-radius: 0.6vw;
 }
 
 button:hover {
@@ -450,7 +450,7 @@ button:hover {
     margin-top: 0.1vw;
     padding: 0.5vw;
     font-size: 0.5vw;
-    border-radius: 0.4vw;
+    border-radius: 0.6vw;
 }
 button:active {
     background-color: var(--tertiary-alt);
