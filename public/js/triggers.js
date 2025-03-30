@@ -155,16 +155,31 @@ function triggerTriggers() {
     document.getElementById("eyeCursorText4"),
   ];
 
-  // Show and hide the triggers in the elements
-  triggers.forEach((trigger, index) => {
-    const element = elementsToFade[index % elementsToFade.length]; // Cycle through elements
-    if (element) {
-      element.textContent = trigger; // Set the trigger text
-      element.style.opacity = "1"; // Fade in
+  // Function to handle fading in and out for a specific element
+  function fadeElement(element, trigger) {
+    if (!element) return;
+
+    // Set the trigger text and fade in
+    element.textContent = trigger;
+    element.style.opacity = "1";
+
+    // Fade out after 1 second
+    setTimeout(() => {
+      element.style.opacity = "0";
+
+      // Schedule the next fade with a random delay
+      const randomDelay = Math.floor(Math.random() * 3000) + 1000; // Random delay between 1-4 seconds
       setTimeout(() => {
-        element.style.opacity = "0"; // Fade out after 1 second
-      }, 1000);
-    }
+        const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
+        fadeElement(element, randomTrigger); // Recursively fade with a new random trigger
+      }, randomDelay);
+    }, 1000);
+  }
+
+  // Start fading for each element
+  elementsToFade.forEach((element, index) => {
+    const initialTrigger = triggers[index % triggers.length]; // Cycle through triggers
+    fadeElement(element, initialTrigger);
   });
 
   console.log("Triggered:", triggers);
