@@ -121,10 +121,10 @@ function flashTriggers(trigger, duration) {
     "eyeCursorText3",
     "eyeCursorText4",
   ];
-  
+
   for (let i = 0; i < triggerElements.length; i++) {
     container = document.getElementById(triggerElements[i]);
-    if (!element) {
+    if (!container) {
       console.error(`No valid trigger element found for ${triggerElements[i]}`);
       continue;
     }
