@@ -127,18 +127,18 @@ function flashTriggers(trigger, duration) {
       });
   }, duration);
 }
-function flashTriggers(trigger, duration) {
-  // Define a list of possible trigger element IDs
-  const triggerElements = [
-    document.getElementById("eyeCursorText"),
-    document.getElementById("eyeCursorText2"),
-    document.getElementById("eyeCursorText3"),
-    document.getElementById("eyeCursorText4"),
-  ];// Add more IDs as needed
 
+const triggerElements = [
+  document.getElementById("eyeCursorText"),
+  document.getElementById("eyeCursorText2"),
+  document.getElementById("eyeCursorText3"),
+  document.getElementById("eyeCursorText4"),
+];
+
+function flashTriggers(trigger, duration) {
   // Choose a random element from the list
   const randomIndex = Math.floor(Math.random() * triggerElements.length);
-  const container = document.getElementById(triggerElements[randomIndex]);
+  const container = triggerElements[randomIndex];
 
   // Check if the container exists
   if (!container) {
