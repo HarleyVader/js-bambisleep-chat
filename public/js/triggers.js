@@ -127,11 +127,11 @@ function flashTriggers(trigger, duration, selectedElement) {
   container.innerHTML = "";
   const span = document.createElement("span");
   span.textContent = trigger;
-  selectedElement.appendChild(span);
+  container.appendChild(span);
 
   setTimeout(() => {
       requestAnimationFrame(() => {
-          selectedElement.innerHTML = "";
+          container.innerHTML = "";
       });
   }, duration);
 }
