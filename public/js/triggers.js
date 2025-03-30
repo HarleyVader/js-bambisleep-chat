@@ -115,29 +115,16 @@ function triggerTriggers(triggers) {
     document.getElementById("eyeCursorText3"),
     document.getElementById("eyeCursorText4"),
   ];
-
   let duration = Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000;
-
   // Randomly select a trigger from the list
   const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
-
   // Select one of the triggerElements (cycling through them)
   const elementIndex = Math.floor(Math.random() * triggerElements.length);
   const selectedElement = triggerElements[elementIndex];
-
-  if (selectedElement) {
-    // Flash the trigger in the selected element
-    flashTrigger(randomTrigger, duration, selectedElement);
-  }
-
   // Set a timeout to trigger the next flash
   const timerId = setTimeout(() => triggerTriggers(triggers), duration);
   activeTimers.push(timerId); // Store the timer ID
-
   console.log("Triggered:", randomTrigger, "in element:", selectedElement.id);
-}
-
-function flashTrigger(trigger, duration, container) {
   if (!container) return;
 
   // Clear the container and set the trigger text
@@ -155,8 +142,3 @@ function flashTrigger(trigger, duration, container) {
     }, duration);
   });
 }
-
-
-
-
-
