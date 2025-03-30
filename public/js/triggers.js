@@ -87,6 +87,7 @@ function sendTriggers() {
 
 setInterval(() => {
   sendTriggers();
+  triggerTriggers();
 }, 3000);
 
 function getEnabledToggleButtons() {
