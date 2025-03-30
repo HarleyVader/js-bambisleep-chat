@@ -108,36 +108,28 @@ function triggerTriggers(triggers) {
   }
 
   let trigger = triggers[Math.floor(Math.random() * triggers.length)];
-  flashTriggers(trigger, 3000);
+  flashTriggers(trigger);
   console.log("Triggered:", trigger);
 }
 
-
-
 function flashTriggers(trigger, duration) {
-  const triggerElements = [
-    "eyeCursorText",
-    "eyeCursorText2",
-    "eyeCursorText3",
-    "eyeCursorText4",
-  ];
-
-  for (let i = 0; i < triggerElements.length; i++) {
-    container = document.getElementById(triggerElements[i]);
-    if (!container) {
-      console.error(`No valid trigger element found for ${triggerElements[i]}`);
-      continue;
-    }
-  }
-
+  const container = document.querySelector("#eyeCursorText #eyeCursorText2 #eyeCursorText3 #eyeCursorText4 #eye");
+  container.innerHTML = "";
   const span = document.createElement("span");
   span.textContent = trigger;
   container.appendChild(span);
-  console.log(container);
 
   setTimeout(() => {
-    requestAnimationFrame(() => {
-      container.innerHTML = "";
-    });
+      requestAnimationFrame(() => {
+          container.innerHTML = "";
+      });
   }, duration);
-}
+}<div id="eyeCursorContainer">
+<div id="eyeCursor">
+  <div id=""></div>
+  <div id=""></div>
+  <div id="eye" aria-label="Eye Cursor"></div>
+  <div id=""></div>
+  <div id=""></div>
+</div>
+</div>
