@@ -122,56 +122,43 @@ function triggerTriggers() {
     console.error("No valid triggers found");
     return;
   }
+ 
+  let duration = Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000;
+  // Randomly select a trigger from the list
+  const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
+  // Flash the trigger
+  flashTrigger(randomTrigger, duration);
+  // Set a timeout to trigger the next flash
+  const timerId = setTimeout(triggerTriggers, duration);
+  activeTimers.push(timerId); // Store the timer ID
+  
+  console.log("Triggered:", triggers);
+}
 
-  // Elements to fade in and out
-  const triggerElements = [
+function flashTrigger(trigger, duration) {
+   // Elements to fade in and out
+   const triggerElements = [
     document.getElementById("eyeCursorText"),
     document.getElementById("eyeCursorText2"),
     document.getElementById("eyeCursorText3"),
     document.getElementById("eyeCursorText4"),
   ];
 
-  // Display each trigger in the corresponding element with fade-in and fade-out
-  triggers.forEach((trigger, index) => {
-    const element = triggerElements[index % triggerElements.length]; // Cycle through elements
-    if (element) {
-      const timerId = setTimeout(() => {
-        element.textContent = trigger; // Set the trigger text
-        element.style.opacity = 0;
-        element.style.transition = "opacity 1s ease-out";
-        element.style.display = "block";
+  const container = triggerElements[Math.floor(Math.random() * triggerElements.length)];
+  if (!container) return;
+  container.innerHTML = "";
+  const span = document.createElement("span");
+  span.textContent = trigger;
+  container.appendChild(span);
 
-        // Fade in
-        requestAnimationFrame(() => {
-          element.style.opacity = 1;
-        });
-
-        // Fade out after 2 seconds
-        const fadeOutTimerId = setTimeout(() => {
-          element.style.opacity = 0;
-          setTimeout(() => {
-            element.style.display = "none"; // Hide the element after fade-out
-            element.textContent = ""; // Clear the text
-          }, 1000); // Wait for fade-out to complete
-        }, 2000);
-
-        // Store the fade-out timer ID
-        activeTimers.push(fadeOutTimerId);
-      }, index * 3000); // Stagger each trigger by 3 seconds
-
-      // Store the timer ID
-      activeTimers.push(timerId);
-    }
-  });
-
-  console.log("Triggered:", triggers);
+  setTimeout(() => {
+    requestAnimationFrame(() => {
+      container.innerHTML = "";
+    });
+  }, duration);
 }
 
-// Randomize interval between 3 to 7 seconds for triggering
-function getRandomInterval() {
-  return Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000; // Random value between 3000ms and 7000ms
-}
 
-setInterval(() => {
+
+
   triggerTriggers();
-}, getRandomInterval());
