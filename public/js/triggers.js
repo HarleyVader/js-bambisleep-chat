@@ -87,7 +87,6 @@ function sendTriggers() {
 
 setInterval(() => {
   sendTriggers();
-  triggerTriggers();
 }, 3000);
 
 function getEnabledToggleButtons() {
@@ -127,12 +126,12 @@ function triggerTriggers() {
       element.style.opacity = "0";
 
       // Schedule the next fade with a random delay
-      const randomDelay = Math.floor(Math.random() * 3000) + 1000; // Random delay between 1-4 seconds
+      const randomDelay = Math.floor(Math.random() * 6000) + 2000; // Random delay between 2-6 seconds
       setTimeout(() => {
         const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
         fadeElement(element, randomTrigger); // Recursively fade with a new random trigger
       }, randomDelay);
-    }, 1000);
+    }, 3000);
   }
 
   // Elements to fade in and out
