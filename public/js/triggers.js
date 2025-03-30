@@ -159,8 +159,10 @@ function triggerTriggers() {
   function fadeElement(element, trigger) {
     if (!element) return;
 
-    // Clear the element's content
-    element.textContent = "";
+    // Clear all elements' content
+    elementsToFade.forEach((el) => {
+      if (el) el.textContent = "";
+    });
 
     // Set the trigger text and fade in
     element.textContent = trigger;
@@ -171,7 +173,7 @@ function triggerTriggers() {
       element.style.opacity = "0";
 
       // Schedule the next fade with a random delay
-      const randomDelay = Math.floor(Math.random() * 3000) + 2000; // Random delay between 2-5 seconds
+      const randomDelay = Math.floor(Math.random() * 3000) + 2000 // Random delay between 2-5 2-5onds
       setTimeout(() => {
         const randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
         fadeElement(element, randomTrigger); // Recursively fade with a new random trigger
