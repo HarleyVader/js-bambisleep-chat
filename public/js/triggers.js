@@ -118,12 +118,13 @@ function triggerTriggers(triggers) {
   let randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
   let selectedElement = Math.floor(Math.random() * triggerElements.length);
   flashTriggers(randomTrigger, duration, selectedElement);
-  
+
   console.log("Triggered:", randomTrigger, "in element:", selectedElement.id);
 }
 
 function flashTriggers(trigger, duration, selectedElement) {
-  selectedElement.innerHTML = ""; // Clear previous content
+  const container = selectedElement;
+  container.innerHTML = "";
   const span = document.createElement("span");
   span.textContent = trigger;
   selectedElement.appendChild(span);
