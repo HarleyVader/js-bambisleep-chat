@@ -124,12 +124,4 @@ function flashTriggers(trigger, duration) {
           container.innerHTML = "";
       });
   }, duration);
-}<div id="eyeCursorContainer">
-<div id="eyeCursor">
-  <div id=""></div>
-  <div id=""></div>
-  <div id="eye" aria-label="Eye Cursor"></div>
-  <div id=""></div>
-  <div id=""></div>
-</div>
-</div>
+}
