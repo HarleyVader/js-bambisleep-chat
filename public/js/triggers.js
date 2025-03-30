@@ -121,7 +121,7 @@ const triggerElements = [
 
 function flashTriggers(trigger, duration) {
   for (let i = 0; i < triggerElements.length; i++) {
-    let element = document.getElementById(triggerElements[i]);
+    container = document.getElementById(triggerElements[i]);
     if (!element) {
       console.error(`No valid trigger element found for ${triggerElements[i]}`);
       continue;
@@ -130,11 +130,12 @@ function flashTriggers(trigger, duration) {
   
   const span = document.createElement("span");
   span.textContent = trigger;
-  element.appendChild(span);
+  container.appendChild(span);
+  console.log(container);
 
   setTimeout(() => {
       requestAnimationFrame(() => {
-        element.innerHTML = "";
+        container.innerHTML = "";
       });
   }, duration);
 }
