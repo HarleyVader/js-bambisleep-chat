@@ -151,3 +151,13 @@ function flashTriggers(trigger) {
     }
   });
 }
+
+function setRandomInterval(callback, min, max) {
+  const randomDelay = Math.floor(Math.random() * (max - min + 1)) + min;
+  setTimeout(() => {
+    callback();
+    setRandomInterval(callback, min, max);
+  }, randomDelay);
+}
+
+setRandomInterval(scanTriggers(), 1000, 5000);
