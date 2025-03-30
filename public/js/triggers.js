@@ -120,8 +120,15 @@ const triggerElements = [
 ];
 
 function flashTriggers(trigger, duration) {
+  for (let i = 0; i < triggerElements.length; i++) {
+    const element = document.getElementById(triggerElements[i]);
+    if (element) {
+      element.innerHTML = ""; // Clear the content of the element
+    }
+    return element
+  }
   
-  const container = getElementById(triggerElements[Math.floor(Math.random() * triggerElements.length)]);
+  const container = element
   container.innerHTML = "";
   if (!container) {
     console.error("No valid trigger element found");
