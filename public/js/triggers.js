@@ -107,6 +107,15 @@ function triggerTriggers(triggers) {
     return;
   }
 
+  let duration = Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000;
+  let randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
+  
+  flashTriggers(randomTrigger, duration, selectedElement);
+
+  console.log("Triggered:", randomTrigger, "in element:", selectedElement.id);
+}
+
+function flashTrigger(trigger, duration) {
   const triggerElements = [
     document.getElementById("eyeCursorText"),
     document.getElementById("eyeCursorText2"),
@@ -114,24 +123,15 @@ function triggerTriggers(triggers) {
     document.getElementById("eyeCursorText4"),
   ];
 
-  let duration = Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000;
-  let randomTrigger = triggers[Math.floor(Math.random() * triggers.length)];
   let selectedElement = Math.floor(Math.random() * triggerElements.length);
-  flashTriggers(randomTrigger, duration, selectedElement);
-
-  console.log("Triggered:", randomTrigger, "in element:", selectedElement.id);
-}
-
-function flashTriggers(trigger, duration, selectedElement) {
-  const container = selectedElement;
-  container.innerHTML = "";
+  selectedElement.innerHTML = "";
   const span = document.createElement("span");
   span.textContent = trigger;
-  container.appendChild(span);
+  selectedElement.appendChild(span);
 
   setTimeout(() => {
       requestAnimationFrame(() => {
-          container.innerHTML = "";
+        selectedElement.innerHTML = "";
       });
   }, duration);
 }
