@@ -89,6 +89,17 @@ setInterval(() => {
   sendTriggers();
 }, 3000);
 
+function getEnabledToggleButtons() {
+  const enabledToggleButtons = [];
+  const toggleInputs = document.getElementsByClassName("toggle-input");
+  for (let i = 0; i < toggleInputs.length; i++) {
+    if (toggleInputs[i].checked) {
+      enabledToggleButtons.push(toggleInputs[i].id);
+    }
+  }
+  return enabledToggleButtons;
+}
+
 function scanTriggers() {
   let enabledToggleButtons = getEnabledToggleButtons();
   if (!Array.isArray(enabledToggleButtons)) {
@@ -110,22 +121,33 @@ function scanTriggers() {
   });
 }
 
-function getEnabledToggleButtons() {
-  const enabledToggleButtons = [];
-  const toggleInputs = document.getElementsByClassName("toggle-input");
-  for (let i = 0; i < toggleInputs.length; i++) {
-    if (toggleInputs[i].checked) {
-      enabledToggleButtons.push(toggleInputs[i].id);
-    }
-  }
-  return enabledToggleButtons;
-}
-
 function flashTriggers(trigger) {
   const container = document.getElementById("eye");
   if (!container) return;
+
+  // Clear existing content
   container.innerHTML = "";
+
+  // Create and append the trigger text
   const span = document.createElement("span");
   span.textContent = trigger;
   container.appendChild(span);
+
+  // Elements to fade in and out
+  const elementsToFade = [
+    document.getElementById("eyeCursorText"),
+    document.getElementById("eyeCursorText2"),
+    document.getElementById("eyeCursorText3"),
+    document.getElementById("eyeCursorText4"),
+  ];
+
+  // Apply fade-in and fade-out animation
+  elementsToFade.forEach((element) => {
+    if (element) {
+      element.style.opacity = "1"; // Fade in
+      setTimeout(() => {
+        element.style.opacity = "0"; // Fade out after 1 second
+      }, 1000);
+    }
+  });
 }

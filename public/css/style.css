@@ -196,6 +196,8 @@ body {
     font-size: 1.5vw;
     color: var(--primary-alt);
     text-shadow: var(--secondary-color) 2px 2px 2px;
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.5s ease-in-out; /* Smooth fade-in/out */
 }
 
 #eyeCursorText2 {
@@ -205,6 +207,8 @@ body {
     font-size: 1.5vw;
     color: var(--primary-alt);
     text-shadow: var(--secondary-color) 2px 2px 2px;
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.5s ease-in-out; /* Smooth fade-in/out */
 }
 
 #eyeCursorText3 {
@@ -214,6 +218,8 @@ body {
     font-size: 1.5vw;
     color: var(--primary-alt);
     text-shadow: var(--secondary-color) 2px 2px 2px;
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.5s ease-in-out; /* Smooth fade-in/out */
 }
 
 #eyeCursorText4 {
@@ -223,6 +229,8 @@ body {
     font-size: 1.5vw;
     color: var(--primary-alt);
     text-shadow: var(--secondary-color) 2px 2px 2px;
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.5s ease-in-out; /* Smooth fade-in/out */
 }
 
 /* Mobile-specific styles */
