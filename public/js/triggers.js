@@ -152,12 +152,27 @@ function flashTriggers(trigger) {
   });
 }
 
-function setRandomInterval(callback, min, max) {
-  const randomDelay = Math.floor(Math.random() * (max - min + 1)) + min;
-  setTimeout(() => {
-    callback();
-    setRandomInterval(callback, min, max);
-  }, randomDelay);
+function triggerTriggers() {
+  // Get the enabled toggle buttons
+  const enabledToggleButtons = getEnabledToggleButtons();
+  if (!Array.isArray(enabledToggleButtons) || enabledToggleButtons.length === 0) {
+    console.error("No triggers selected");
+    return;
+  }
+
+  // Map the enabled toggle buttons to their corresponding trigger names
+  const triggers = enabledToggleButtons.map(
+    (buttonId) => listOfTriggers[parseInt(buttonId.split("-")[1])]
+  );
+
+  // Show and hide the triggers
+  triggers.forEach((trigger) => {
+    flashTriggers(trigger); // Use the existing flashTriggers function to show/hide the trigger
+  });
+
+  console.log("Triggered:", triggers);
 }
 
-setRandomInterval(scanTriggers, 1000, 5000);
+setInterval(() => {
+  triggerTriggers();
+}, 1000);
