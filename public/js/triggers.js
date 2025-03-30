@@ -124,7 +124,7 @@ function triggerTriggers(triggers) {
   function flashTriggers(trigger, duration) {
       // Select a random element from the list
       const randomElement = textElements[Math.floor(Math.random() * textElements.length)];
-      logger("Random element selected:", randomElement); 
+      console.log("Random element selected:", randomElement); 
       if (!randomElement) return; // Ensure the element exists
 
       // Clear previous content
