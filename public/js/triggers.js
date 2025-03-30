@@ -131,25 +131,7 @@ function flashTriggers(trigger) {
   // Create and append the trigger text
   const span = document.createElement("span");
   span.textContent = trigger;
-  container.appendChild(span);
-
-  // Elements to fade in and out
-  const elementsToFade = [
-    document.getElementById("eyeCursorText"),
-    document.getElementById("eyeCursorText2"),
-    document.getElementById("eyeCursorText3"),
-    document.getElementById("eyeCursorText4"),
-  ];
-
-  // Apply fade-in and fade-out animation
-  elementsToFade.forEach((element) => {
-    if (element) {
-      element.style.opacity = "1"; // Fade in
-      setTimeout(() => {
-        element.style.opacity = "0"; // Fade out after 1 second
-      }, 1000);
-    }
-  });
+  container.appendChild(span);  
 }
 
 function triggerTriggers() {
@@ -165,9 +147,24 @@ function triggerTriggers() {
     (buttonId) => listOfTriggers[parseInt(buttonId.split("-")[1])]
   );
 
-  // Show and hide the triggers
-  triggers.forEach((trigger) => {
-    flashTriggers(trigger); // Use the existing flashTriggers function to show/hide the trigger
+  // Elements to fade in and out
+  const elementsToFade = [
+    document.getElementById("eyeCursorText"),
+    document.getElementById("eyeCursorText2"),
+    document.getElementById("eyeCursorText3"),
+    document.getElementById("eyeCursorText4"),
+  ];
+
+  // Show and hide the triggers in the elements
+  triggers.forEach((trigger, index) => {
+    const element = elementsToFade[index % elementsToFade.length]; // Cycle through elements
+    if (element) {
+      element.textContent = trigger; // Set the trigger text
+      element.style.opacity = "1"; // Fade in
+      setTimeout(() => {
+        element.style.opacity = "0"; // Fade out after 1 second
+      }, 1000);
+    }
   });
 
   console.log("Triggered:", triggers);
@@ -175,8 +172,4 @@ function triggerTriggers() {
 
 setInterval(() => {
   triggerTriggers();
-}, 1000);
-
-setInterval(() => {
-  flashTriggers();
 }, 1000);
