@@ -118,26 +118,6 @@ function triggerTriggers() {
     return;
   }
 
-  // Fade in the elements
-  elementsToFade.forEach((element, index) => {
-    if (element) {
-      setTimeout(() => {
-        element.style.display = "block";
-        element.style.opacity = 1;
-      }, 1000 + index * 500); // Fade in duration and staggered timing
-    }
-  });
-
-  // Fade out the elements  
-  elementsToFade.forEach((element) => {
-    if (element) {
-      element.style.opacity = 0;
-      setTimeout(() => {
-        element.style.display = "none";
-      }, 1000); // Fade out duration
-    }
-  });
-
   // Elements to fade in and out
   const elementsToFade = [
     document.getElementById("eyeCursorText"),
@@ -145,6 +125,30 @@ function triggerTriggers() {
     document.getElementById("eyeCursorText3"),
     document.getElementById("eyeCursorText4"),
   ];
+
+  // Fade in the elements
+  elementsToFade.forEach((element, index) => {
+    if (element) {
+      setTimeout(() => {
+        element.style.display = "block";
+        element.style.transition = "opacity 1s ease-out";
+        element.style.opacity = 1;
+      }, 2000 + index * 500); // Start fading in after 2 seconds, staggered
+    }
+  });
+
+  // Fade out the elements
+  elementsToFade.forEach((element, index) => {
+    if (element) {
+      setTimeout(() => {
+        element.style.transition = "opacity 1s ease-out";
+        element.style.opacity = 0;
+        setTimeout(() => {
+          element.style.display = "none";
+        }, 1000); // Ensure display is set to none after fade-out
+      }, 2000 + elementsToFade.length * 500 + index * 500); // Start fading out after all fade-ins
+    }
+  });
 
   console.log("Triggered:", triggers);
 }
