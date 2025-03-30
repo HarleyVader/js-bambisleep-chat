@@ -148,7 +148,7 @@ body {
 }
 
 #chat textarea-chat {
-    width: 100%;
+    width: 98%;
     background-color: var(--nav-color);
     color: var(--primary-alt);
     /* Changed to primary-alt */
@@ -180,8 +180,8 @@ body {
 
 #eyeCursorContainer {
     position: relative;
-    width: 100vw;  
-    height: 100vw;
+    width: 60vw;  
+    height: 60vw;
     display: flex;
     justify-content: center;
     align-items: center;
