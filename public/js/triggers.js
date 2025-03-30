@@ -137,22 +137,16 @@ function triggerTriggers(triggers) {
   console.log("Triggered:", randomTrigger, "in element:", selectedElement.id);
 }
 
-function flashTriggers(trigger, duration, containerId) {
-  const container = document.getElementById(containerId); 
-  if (!container) return;
-  container.innerHTML = ""; // Clear previous content
-  container.style.opacity = 1; // Reset opacity
-  container.style.transition = `opacity ${duration}ms`;
-  container.style.opacity = 0.5; // Fade effect
-  container.style.fontSize = "2em"; // Set font size
-  container.style.color = "red"; // Set colo
+function flashTriggers(trigger, duration, selectedElement) {
+  if (!selectedElement) return;
+  selectedElement.innerHTML = ""; // Clear previous content
   const span = document.createElement("span");
   span.textContent = trigger;
-  container.appendChild(span);
+  selectedElement.appendChild(span);
 
   setTimeout(() => {
       requestAnimationFrame(() => {
-          container.innerHTML = "";
+          selectedElement.innerHTML = "";
       });
   }, duration);
 }
