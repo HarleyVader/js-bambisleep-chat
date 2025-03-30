@@ -119,34 +119,37 @@ function triggerTriggers() {
   }
 
   // Elements to fade in and out
-  const elementsToFade = [
+  const triggerElements = [
     document.getElementById("eyeCursorText"),
     document.getElementById("eyeCursorText2"),
     document.getElementById("eyeCursorText3"),
     document.getElementById("eyeCursorText4"),
   ];
 
-  // Fade in the elements
-  elementsToFade.forEach((element, index) => {
+  // Display each trigger in the corresponding element with fade-in and fade-out
+  triggers.forEach((trigger, index) => {
+    const element = triggerElements[index % triggerElements.length]; // Cycle through elements
     if (element) {
       setTimeout(() => {
-        element.style.display = "block";
-        element.style.transition = "opacity 1s ease-out";
-        element.style.opacity = 1;
-      }, 2000 + index * 500); // Start fading in after 2 seconds, staggered
-    }
-  });
-
-  // Fade out the elements
-  elementsToFade.forEach((element, index) => {
-    if (element) {
-      setTimeout(() => {
-        element.style.transition = "opacity 1s ease-out";
+        element.textContent = trigger; // Set the trigger text
         element.style.opacity = 0;
+        element.style.transition = "opacity 1s ease-out";
+        element.style.display = "block";
+
+        // Fade in
+        requestAnimationFrame(() => {
+          element.style.opacity = 1;
+        });
+
+        // Fade out after 2 seconds
         setTimeout(() => {
-          element.style.display = "none";
-        }, 1000); // Ensure display is set to none after fade-out
-      }, 2000 + elementsToFade.length * 500 + index * 500); // Start fading out after all fade-ins
+          element.style.opacity = 0;
+          setTimeout(() => {
+            element.style.display = "none"; // Hide the element after fade-out
+            element.textContent = ""; // Clear the text
+          }, 1000); // Wait for fade-out to complete
+        }, 2000);
+      }, index * 3000); // Stagger each trigger by 3 seconds
     }
   });
 
