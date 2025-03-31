@@ -19,6 +19,9 @@
         <div>
             <h1>Psychodelic Trigger Mania</h1>
             <input type="file" id="upload-file" accept=".txt">
+            <div id="system-controls-container">
+                <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
+            </div>
             <p id="message"></p>
         </div>
         <div id="chat-container">
@@ -42,12 +45,12 @@
             let _textArray = [];
             let _urlArray = [];
             let state = true;
-            
-            document.getElementById('upload-file').addEventListener('change', function(event) {
+
+            document.getElementById('upload-file').addEventListener('change', function (event) {
                 const file = event.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = function(e) {
+                    reader.onload = function (e) {
                         const fileContent = e.target.result;
                         processText(fileContent);
                     };
@@ -105,7 +108,7 @@
                     do_tts(_urlArray);
                 }
             }
-           
+
             audio.addEventListener('ended', handleAudioEnded);
             audio.addEventListener('play', handleAudioPlay);
         </script>
