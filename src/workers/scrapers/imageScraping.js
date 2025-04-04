@@ -1,11 +1,10 @@
-// filepath: f:\js-bambisleep-chat\workers\scrapers\imageScraping.js
 import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
 import { parentPort } from 'worker_threads';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 
 dotenv.config();
 

@@ -1,10 +1,23 @@
-// filepath: f:\js-bambisleep-chat\workers\workerCoordinator.js
 import path from 'path';
 import { Worker } from 'worker_threads';
-import { selectLoadedModels } from './lmstudio.js'; // Import the selectLoadedModels function
+import axios from 'axios'; // Add axios import
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Create ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config();
+
+// Add the selectLoadedModels function directly in this file
+async function selectLoadedModels(modelName) {
+  const response = await axios.get(`http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/models`);
+  const models = response.data.data;
+  const selectedModel = models.find(model => model.id.toLowerCase().includes(modelName.toLowerCase()));
+  return selectedModel ? selectedModel.id : models[0].id;
+}
 
 class WorkerCoordinator {
   constructor() {
@@ -32,17 +45,17 @@ class WorkerCoordinator {
     }
 
     // Create and start text worker
-    this.workers.text = new Worker(path.join(__dirname, '../scrapers/textScraping.js'));
+    this.workers.text = new Worker(path.join(__dirname, 'scrapers/textScraping.js'));
     this.workers.text.on('message', this.handleWorkerMessage.bind(this));
     this.workers.text.on('error', this.handleWorkerError.bind(this));
     
     // Create and start image worker
-    this.workers.image = new Worker(path.join(__dirname, '../scrapers/imageScraping.js'));
+    this.workers.image = new Worker(path.join(__dirname, 'scrapers/imageScraping.js'));
     this.workers.image.on('message', this.handleWorkerMessage.bind(this));
     this.workers.image.on('error', this.handleWorkerError.bind(this));
     
     // Create and start video worker
-    this.workers.video = new Worker(path.join(__dirname, '../scrapers/videoScraping.js'));
+    this.workers.video = new Worker(path.join(__dirname, 'scrapers/videoScraping.js'));
     this.workers.video.on('message', this.handleWorkerMessage.bind(this));
     this.workers.video.on('error', this.handleWorkerError.bind(this));
     

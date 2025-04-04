@@ -1,4 +1,7 @@
 // filepath: f:\js-bambisleep-chat\workers\scrapers\textScraping.js
+
+import mongoose from 'mongoose';
+
 dotenv.config();
 
 // MongoDB Schema for BambiSleep content - now focused on text/documents

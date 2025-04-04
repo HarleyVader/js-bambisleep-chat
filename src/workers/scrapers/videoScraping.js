@@ -1,6 +1,6 @@
 // filepath: f:\js-bambisleep-chat\workers\scrapers\videoScraping.js
 import axios from 'axios';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import fs from 'fs/promises';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
