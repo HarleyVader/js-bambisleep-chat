@@ -330,7 +330,7 @@ torchaudio.save(f"assets/audio/{filename}", wavs[0], model.autoencoder.sampling_
 
 ## Overview
 
-The Lawfull Good Bambisleep Scrapers are designed to facilitate the scraping, processing, and analysis of content related to BambiSleep. It utilizes multiple worker threads to handle different content types, including text, images, and videos. The project is structured to allow for easy extension and integration of various models for enhanced performance and capabilities.
+The Lawful Good Bambisleep Scrapers are designed to facilitate the scraping, processing, and analysis of content related to BambiSleep. It utilizes multiple worker threads to handle different content types, including text, images, and videos. The project is structured to allow for easy extension and integration of various models for enhanced performance and capabilities.
 
 **Configure Environment Variables**
 Create a `.env` file in the root directory and add the necessary environment variables, such as database connection strings and API keys.
