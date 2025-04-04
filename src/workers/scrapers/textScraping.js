@@ -1,6 +1,27 @@
-// filepath: f:\js-bambisleep-chat\workers\scrapers\textScraping.js
-
+import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import { BaseWorker } from './baseWorker.js';
+import { parentPort } from 'worker_threads';
+import Logger from '../../utils/logger.js';
+import fs from 'fs/promises';
+import path from 'path';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+
+// Initialize logger
+const logger = new Logger('TextScraper');
+
+export class DataProcessingWorker extends BaseWorker {
+  constructor() {
+    super('DataProcessor');
+  }
+  
+  // Worker-specific methods
+  processData(data) {
+    this.logger.info('Processing data');
+    // Data processing logic
+  }
+}
 
 dotenv.config();
 
@@ -44,10 +65,10 @@ const ContentSchema = new mongoose.Schema({
 const setupMongoDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep');
-    console.log(patterns.server.success('MongoDB connected successfully'));
+    logger.success('MongoDB connected successfully');
     return mongoose.model('BambiContent', ContentSchema);
   } catch (error) {
-    console.error(patterns.server.error('MongoDB connection error:', error.message));
+    logger.error('MongoDB connection error:', error.message);
     throw error;
   }
 };
@@ -80,7 +101,7 @@ const parseContent = async (filePath, fileType) => {
     
     return parsedContent;
   } catch (error) {
-    console.error(patterns.server.error(`Error parsing ${fileType} content:`, error.message));
+    logger.error(`Error parsing ${fileType} content:`, error.message);
     return { raw: '', extracted: '' };
   }
 };
@@ -88,7 +109,7 @@ const parseContent = async (filePath, fileType) => {
 // Web scraper function - now focused on text only
 const scrapeWebContent = async (url, ContentModel) => {
   try {
-    console.log(patterns.server.info(`Scraping ${url} for bambisleep text content`));
+    logger.info(`Scraping ${url} for bambisleep text content`);
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36'
@@ -124,7 +145,7 @@ const scrapeWebContent = async (url, ContentModel) => {
       });
       
       await textContent.save();
-      console.log(patterns.server.success(`Saved bambisleep text content from ${url}`));
+      logger.success(`Saved bambisleep text content from ${url}`);
       
       return {
         success: true,
@@ -139,7 +160,7 @@ const scrapeWebContent = async (url, ContentModel) => {
       };
     }
   } catch (error) {
-    console.error(patterns.server.error(`Error scraping ${url}:`, error.message));
+    logger.error(`Error scraping ${url}:`, error.message);
     return {
       success: false,
       message: `Error scraping ${url}: ${error.message}`,
@@ -196,7 +217,7 @@ const scanDirectory = async (dirPath, ContentModel) => {
     
     return results;
   } catch (error) {
-    console.error(patterns.server.error(`Error scanning directory ${dirPath}:`, error.message));
+    logger.error(`Error scanning directory ${dirPath}:`, error.message);
     return [];
   }
 };
@@ -253,16 +274,16 @@ parentPort.on('message', async (msg) => {
         break;
         
       case 'shutdown':
-        console.log(patterns.server.info('Shutting down goodScraping worker...'));
+        logger.info('Shutting down goodScraping worker...');
         await mongoose.connection.close();
         process.exit(0);
         break;
         
       default:
-        console.warn(patterns.server.warning(`Unknown message type: ${msg.type}`));
+        logger.warning(`Unknown message type: ${msg.type}`);
     }
   } catch (error) {
-    console.error(patterns.server.error('Error handling message:', error));
+    logger.error('Error handling message:', error);
     parentPort.postMessage({
       type: 'error',
       data: error.message,
@@ -271,4 +292,4 @@ parentPort.on('message', async (msg) => {
   }
 });
 
-console.log(patterns.server.info('GoodScraping worker started and ready to receive messages'));
+logger.info('GoodScraping worker started and ready to receive messages');

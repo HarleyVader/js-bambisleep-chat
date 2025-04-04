@@ -2,6 +2,10 @@ import { parentPort } from 'worker_threads';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { patterns } from '../middleware/bambisleepChalk.js';
+import Logger from '../utils/logger.js';
+
+// Initialize logger
+const logger = new Logger('LMStudio');
 
 dotenv.config();
 
@@ -12,7 +16,7 @@ let collarText;
 let finalContent;
 let state = false;
 
-console.log(patterns.server.info('Starting lmstudio worker...'));
+logger.info('Starting lmstudio worker...');
 
 parentPort.on('message', async (msg) => {
   try {
@@ -21,23 +25,23 @@ parentPort.on('message', async (msg) => {
         triggers = msg.triggers;
         break;
       case 'message':
-        console.log(patterns.server.info('Received message event'));
+        logger.info('Received message event');
         await handleMessage(msg.data, msg.socketId, msg.username);
         break;
       case 'collar':
         collar = msg.data;
         state = true;
-        console.log(patterns.server.info('collar:', collar));
+        logger.info('Collar set:', collar);
         break;
       case 'shutdown':
-        console.log(patterns.server.info('Shutting down lmstudio worker...'));
+        logger.info('Shutting down lmstudio worker...');
         process.exit(0);
         break;
       default:
-        console.warn(patterns.server.warning(`Unknown message type: ${msg.type}`));
+        logger.warning(`Unknown message type: ${msg.type}`);
     }
   } catch (error) {
-    console.error(patterns.server.error('Error handling message:', error));
+    logger.error('Error handling message:', error);
   }
 });
 
@@ -117,7 +121,7 @@ async function handleMessage(userPrompt, socketId, username) {
 
     const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
     if (messages.length === 0) {
-      console.error(patterns.server.error('No messages found for socketId:', socketId));
+      logger.error('No messages found for socketId:', socketId);
       return;
     }
 
@@ -142,12 +146,12 @@ async function handleMessage(userPrompt, socketId, username) {
       finalContent = '';
     } catch (error) {
       if (error.response) {
-        console.error(patterns.server.error('Error response data:'), error.response.data);
+        logger.error('Error response data:', error.response.data);
       } else {
-        console.error(patterns.server.error('Error in request:'), error.message);
+        logger.error('Error in request:', error.message);
       }
     }
   } catch (error) {
-    console.error(patterns.server.error('Error in handleMessage:', error));
+    logger.error('Error in handleMessage:', error);
   }
 }

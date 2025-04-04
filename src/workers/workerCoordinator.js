@@ -1,13 +1,17 @@
 import path from 'path';
 import { Worker } from 'worker_threads';
-import axios from 'axios'; // Add axios import
+import axios from 'axios';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import Logger from '../utils/logger.js';
 
 // Create ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Initialize logger
+const logger = new Logger('WorkerCoordinator');
 
 dotenv.config();
 
@@ -59,7 +63,7 @@ class WorkerCoordinator {
     this.workers.video.on('message', this.handleWorkerMessage.bind(this));
     this.workers.video.on('error', this.handleWorkerError.bind(this));
     
-    console.log('All workers initialized and started');
+    logger.info('All workers initialized and started');
   }
 
   generateRequestId() {
@@ -70,7 +74,7 @@ class WorkerCoordinator {
     const { type, data, requestId, error } = message;
     
     if (error) {
-      console.error(`Worker error: ${error}`);
+      logger.error(`Worker error: ${error}`);
       if (this.pendingRequests.has(requestId)) {
         const { callback } = this.pendingRequests.get(requestId);
         callback(error, null);
@@ -85,7 +89,7 @@ class WorkerCoordinator {
   }
 
   handleWorkerError(error) {
-    console.error(`Worker error: ${error.message}`);
+    logger.error(`Worker error: ${error.message}`);
   }
 
   scrapeUrl(url, callback) {
@@ -100,7 +104,7 @@ class WorkerCoordinator {
     
     const handleResponse = (type, error, data) => {
       if (error) {
-        console.error(`Error in ${type} scraping: ${error}`);
+        logger.error(`Error in ${type} scraping: ${error}`);
       } else {
         results[type] = data;
       }
@@ -145,7 +149,7 @@ class WorkerCoordinator {
   }
 
   async shutdown() {
-    console.log('Shutting down all workers...');
+    logger.info('Shutting down all workers...');
     
     const shutdownPromises = Object.entries(this.workers).map(([type, worker]) => {
       return new Promise((resolve) => {
@@ -155,7 +159,7 @@ class WorkerCoordinator {
     });
     
     await Promise.all(shutdownPromises);
-    console.log('All workers shut down successfully');
+    logger.success('All workers shut down successfully');
   }
 }
 

@@ -1,11 +1,14 @@
-// filepath: f:\js-bambisleep-chat\workers\scrapers\videoScraping.js
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import fs from 'fs/promises';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { parentPort } from 'worker_threads';
-import patterns from '../../middleware/bambisleepChalk.js';
+import { patterns } from '../../middleware/bambisleepChalk.js';
+import Logger from '../../utils/logger.js';
+
+// Initialize logger
+const logger = new Logger('VideoScraper');
 
 dotenv.config();
 
@@ -34,10 +37,10 @@ const VideoContentSchema = new mongoose.Schema({
 const setupMongoDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep');
-    console.log(patterns.server.success('MongoDB connected successfully'));
+    logger.success('MongoDB connected successfully');
     return mongoose.model('BambiVideoContent', VideoContentSchema);
   } catch (error) {
-    console.error(patterns.server.error('MongoDB connection error:', error.message));
+    logger.error('MongoDB connection error:', error.message);
     throw error;
   }
 };
@@ -45,7 +48,7 @@ const setupMongoDB = async () => {
 // Scrape video content from a given URL
 const scrapeVideoContent = async (url, VideoContentModel) => {
   try {
-    console.log(patterns.server.info(`Scraping ${url} for BambiSleep video content`));
+    logger.info(`Scraping ${url} for BambiSleep video content`);
     const response = await axios.get(url);
     const html = response.data;
     const $ = cheerio.load(html);
@@ -69,7 +72,7 @@ const scrapeVideoContent = async (url, VideoContentModel) => {
     });
     
     await videoContent.save();
-    console.log(patterns.server.success(`Saved BambiSleep video content from ${url}`));
+    logger.success(`Saved BambiSleep video content from ${url}`);
     
     return {
       success: true,
@@ -77,7 +80,7 @@ const scrapeVideoContent = async (url, VideoContentModel) => {
       contentFound: true
     };
   } catch (error) {
-    console.error(patterns.server.error(`Error scraping ${url}:`, error.message));
+    logger.error(`Error scraping ${url}:`, error.message);
     return {
       success: false,
       message: `Error scraping ${url}: ${error.message}`,
@@ -99,7 +102,7 @@ parentPort.on('message', async (msg) => {
     }
     
     switch (msg.type) {
-      case 'scrape_video_url':
+      case 'scrape_videos':
         const urlResult = await scrapeVideoContent(msg.url, VideoContentModel);
         parentPort.postMessage({
           type: 'scrape_result',
@@ -109,16 +112,16 @@ parentPort.on('message', async (msg) => {
         break;
         
       case 'shutdown':
-        console.log(patterns.server.info('Shutting down video scraping worker...'));
+        logger.info('Shutting down video scraping worker...');
         await mongoose.connection.close();
         process.exit(0);
         break;
         
       default:
-        console.warn(patterns.server.warning(`Unknown message type: ${msg.type}`));
+        logger.warning(`Unknown message type: ${msg.type}`);
     }
   } catch (error) {
-    console.error(patterns.server.error('Error handling message:', error));
+    logger.error('Error handling message:', error);
     parentPort.postMessage({
       type: 'error',
       data: error.message,
@@ -127,4 +130,4 @@ parentPort.on('message', async (msg) => {
   }
 });
 
-console.log(patterns.server.info('Video scraping worker started and ready to receive messages'));
+logger.info('Video scraping worker started and ready to receive messages');

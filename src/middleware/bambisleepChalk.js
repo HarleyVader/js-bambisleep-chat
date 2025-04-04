@@ -16,10 +16,10 @@ const colors = {
 
 const patterns = {
   server: {
-    info: chalk.blue,
-    success: chalk.green,
-    warning: chalk.yellow,
-    error: chalk.red
+    info: chalk.hex('#005d46'),
+    success: chalk.hex('#15aab5ec'),
+    warning: chalk.hex('#cc0174'),
+    error: chalk.hex('#df0471'),
   }
 };
 

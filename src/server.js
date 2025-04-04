@@ -26,11 +26,14 @@ import workerCoordinator from './workers/workerCoordinator.js';
 import errorHandler from './middleware/error.js';
 import { patterns } from './middleware/bambisleepChalk.js';
 import footerConfig from './config/footer.config.js';
+import Logger from './utils/logger.js';
+
+// Initialize logger
+const logger = new Logger('Server');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
@@ -43,7 +46,7 @@ const io = new Server(server, {
 //filteredWords
 const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
 
-console.log(patterns.server.info('Loading environment variables...'));
+logger.info('Loading environment variables...');
 
 app.use(cors({
   origin: ['https://bambisleep.chat', 'https://fickdichselber.com'],
@@ -64,7 +67,7 @@ function adjustMaxListeners(worker, increment = true) {
       worker.setMaxListeners(currentMaxListeners);
     }
   } catch (error) {
-    console.error(patterns.server.error('Error in adjustMaxListeners:', error));
+    logger.error('Error in adjustMaxListeners:', error);
   }
 }
 
@@ -73,7 +76,7 @@ Worker.prototype.setMaxListeners(currentMaxListeners);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-console.log(patterns.server.info('Initializing server components...'));
+logger.info('Initializing server components...');
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -128,34 +131,34 @@ async function generateF5TTS(text, refAudio, refText = "") {
       }
 
       // Spawn F5-TTS process
-      console.log(patterns.server.info(`Generating speech with F5-TTS: ${text}`));
+      logger.info(`Generating speech with F5-TTS: ${text}`);
       const f5tts = spawn('f5-tts_infer-cli', args);
 
       let stderr = '';
 
       f5tts.stderr.on('data', (data) => {
         stderr += data.toString();
-        console.log(patterns.server.info(`F5-TTS stderr: ${data}`));
+        logger.info(`F5-TTS stderr: ${data}`);
       });
 
       f5tts.on('close', (code) => {
         if (code !== 0) {
-          console.error(patterns.server.error(`F5-TTS process exited with code ${code}`));
-          console.error(patterns.server.error(`Error: ${stderr}`));
+          logger.error(`F5-TTS process exited with code ${code}`);
+          logger.error(`Error: ${stderr}`);
           resolve({ audioPath: null, error: stderr || 'Error generating speech' });
         } else {
-          console.log(patterns.server.success('F5-TTS generation complete'));
+          logger.success('F5-TTS generation complete');
           resolve({ audioPath: outputPath, error: null });
         }
       });
 
       f5tts.on('error', (err) => {
-        console.error(patterns.server.error(`F5-TTS spawn error: ${err.message}`));
+        logger.error(`F5-TTS spawn error: ${err.message}`);
         resolve({ audioPath: null, error: err.message });
       });
 
     } catch (error) {
-      console.error(patterns.server.error(`Error in generateF5TTS: ${error.message}`));
+      logger.error(`Error in generateF5TTS: ${error.message}`);
       resolve({ audioPath: null, error: error.message });
     }
   });
@@ -187,18 +190,18 @@ app.post('/api/f5tts', async (req, res) => {
     // Send the audio file
     res.sendFile(audioPath, (err) => {
       if (err) {
-        console.error(patterns.server.error(`Error sending file: ${err}`));
+        logger.error(`Error sending file: ${err}`);
         res.status(500).json({ error: 'Error sending audio file' });
       }
 
       // Clean up temporary files after sending
       fs.unlink(audioPath, (unlinkErr) => {
-        if (unlinkErr) console.error(patterns.server.error(`Error deleting file: ${unlinkErr}`));
+        if (unlinkErr) logger.error(`Error deleting file: ${unlinkErr}`);
       });
     });
 
   } catch (error) {
-    console.error(patterns.server.error(`Error in /api/f5tts: ${error.message}`));
+    logger.error(`Error in /api/f5tts: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -212,7 +215,7 @@ async function fetchTTS(text) {
     });
     return response;
   } catch (error) {
-    console.error(patterns.server.error('Error fetching TTS audio:', error));
+    logger.error('Error fetching TTS audio:', error);
     throw error;
   }
 }
@@ -228,17 +231,17 @@ app.use('/api/tts', async (req, res, next) => {
       res.setHeader('Content-Length', response.data.length);
       res.send(response.data);
     } catch (error) {
-      console.error(patterns.server.error('Error fetching TTS audio:'), error);
+      logger.error('Error fetching TTS audio:', error);
       if (error.response) {
         if (error.response.status === 401) {
-          console.error(patterns.server.error('Unauthorized access - invalid token'));
+          logger.error('Unauthorized access - invalid token');
           res.status(401).send('Unauthorized access');
         } else {
-          console.error(patterns.server.error('Error details:'), error.response.data.toString());
+          logger.error('Error details:', error.response.data.toString());
           res.status(500).send('Error fetching TTS audio');
         }
       } else {
-        console.error(patterns.server.error('Error details:'), error.message);
+        logger.error('Error details:', error.message);
         res.status(500).send('Error fetching TTS audio');
       }
       next();
@@ -295,13 +298,13 @@ function setupRoutes() {
     });
 
   } catch (error) {
-    console.error(patterns.server.error('Error in setupRoutes:', error));
+    logger.error('Error in setupRoutes:', error);
   }
 }
 
 function setupSockets() {
   try {
-    console.log(patterns.server.info('Setting up socket middleware...'));
+    logger.info('Setting up socket middleware...');
 
     const socketStore = new Map();
 
@@ -317,7 +320,7 @@ function setupSockets() {
             }, {})
           : {};
         let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
-        console.log(patterns.server.info('Cookies received in handshake:', socket.handshake.headers.cookie));
+        logger.info('Cookies received in handshake:', socket.handshake.headers.cookie);
         if (username === 'anonBambi') {
           socket.emit('prompt username');
         }
@@ -326,7 +329,7 @@ function setupSockets() {
         adjustMaxListeners(lmstudio, true);
 
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
-        console.log(patterns.server.success(`Client connected: ${socket.id} sockets: ${socketStore.size}`));
+        logger.success(`Client connected: ${socket.id} sockets: ${socketStore.size}`);
 
         socket.on('chat message', async (msg) => {
           try {
@@ -337,7 +340,7 @@ function setupSockets() {
               username: username,
             });
           } catch (error) {
-            console.error(patterns.server.error('Error in chat message handler:', error));
+            logger.error('Error in chat message handler:', error);
           }
         });
 
@@ -346,9 +349,9 @@ function setupSockets() {
             const encodedUsername = encodeURIComponent(username);
             socket.handshake.headers.cookie = `bambiname=${encodedUsername}; path=/`;
             socket.emit('username set', username);
-            console.log(patterns.server.info('Username set:', username));
+            logger.info('Username set:', username);
           } catch (error) {
-            console.error(patterns.server.error('Error in set username handler:', error));
+            logger.error('Error in set username handler:', error);
           }
         });
 
@@ -362,7 +365,7 @@ function setupSockets() {
               username: username
             });
           } catch (error) {
-            console.error(patterns.server.error('Error in message handler:', error));
+            logger.error('Error in message handler:', error);
           }
         });
 
@@ -370,7 +373,7 @@ function setupSockets() {
           try {
             lmstudio.postMessage({ type: "triggers", triggers });
           } catch (error) {
-            console.error(patterns.server.error('Error in triggers handler:', error));
+            logger.error('Error in triggers handler:', error);
           }
         });
 
@@ -384,43 +387,43 @@ function setupSockets() {
             });
             io.to(collarData.socketId).emit('collar', filteredCollar);
           } catch (error) {
-            console.error(patterns.server.error('Error in collar handler:', error));
+            logger.error('Error in collar handler:', error);
           }
         });
 
         lmstudio.on("message", async (msg) => {
           try {
             if (msg.type === "log") {
-              console.log(patterns.server.info(msg.data, msg.socketId));
+              logger.info(msg.data, msg.socketId);
             } else if (msg.type === 'response') {
               const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
               io.to(msg.socketId).emit("response", responseData);
             }
           } catch (error) {
-            console.error(patterns.server.error('Error in lmstudio message handler:', error));
+            logger.error('Error in lmstudio message handler:', error);
           }
         });
 
         lmstudio.on('info', (info) => {
           try {
-            console.info(patterns.server.info('Worker info:'), info);
+            logger.info('Worker info:', info);
           } catch (error) {
-            console.error(patterns.server.error('Error in lmstudio info handler:', error));
+            logger.error('Error in lmstudio info handler:', error);
           }
         });
 
         lmstudio.on('error', (err) => {
           try {
-            console.error(patterns.server.error('Worker error:'), err);
+            logger.error('Worker error:', err);
           } catch (error) {
-            console.error(patterns.server.error('Error in lmstudio error handler:', error));
+            logger.error('Error in lmstudio error handler:', error);
           }
         });
 
         socket.on('disconnect', (reason) => {
-          console.log(`Client disconnected: ${socket.id}, Reason: ${reason}`);
+          logger.info(`Client disconnected: ${socket.id}, Reason: ${reason}`);
           if (reason === 'transport error') {
-            console.error('Transport error occurred. Possible network or configuration issue.');
+            logger.error('Transport error occurred. Possible network or configuration issue.');
           }
           try {
             const { worker } = socketStore.get(socket.id);
@@ -428,28 +431,28 @@ function setupSockets() {
               worker.terminate();
               adjustMaxListeners(worker, false);
             }
-            console.log(patterns.server.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`));
+            logger.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`);
             socketStore.delete(socket.id);
           } catch (error) {
-            console.error('Error during disconnect cleanup:', error);
+            logger.error('Error during disconnect cleanup:', error);
           }
         });
       } catch (error) {
-        console.error(patterns.server.error('Error in connection handler:', error));
+        logger.error('Error in connection handler:', error);
       }
     });
   } catch (error) {
-    console.error(patterns.server.error('Error in setupSockets:', error));
+    logger.error('Error in setupSockets:', error);
   }
 }
 
-console.log(patterns.server.success('Socket middleware setup complete'));
+logger.success('Socket middleware setup complete');
 
 function setupErrorHandlers() {
   try {
     app.use((err, req, res, next) => {
       const status = err.status || 500;
-      console.error(patterns.server.error(`[${status}] ${err.message}`));
+      logger.error(`[${status}] ${err.message}`);
       res.status(status).json({
         error:
           process.env.NODE_ENV === 'production'
@@ -466,7 +469,7 @@ function setupErrorHandlers() {
       }
     });
   } catch (error) {
-    console.error(patterns.server.error('Error in setupErrorHandlers:', error));
+    logger.error('Error in setupErrorHandlers:', error);
   }
 }
 
@@ -482,7 +485,7 @@ function getServerAddress() {
     }
     return '127.0.0.1';
   } catch (error) {
-    console.error(patterns.server.error('Error in getServerAddress:', error));
+    logger.error('Error in getServerAddress:', error);
   }
 }
 
@@ -499,24 +502,24 @@ function filter(message) {
       .join(' ')
       .trim();
   } catch (error) {
-    console.error(patterns.server.error('Error in filter:', error));
+    logger.error('Error in filter:', error);
   }
 }
 
 function gracefulShutdown(signal, server) {
   try {
-    console.log(patterns.server.warning(`Received ${signal}. Shutting down gracefully...`));
+    logger.warning(`Received ${signal}. Shutting down gracefully...`);
     server.close(() => {
-      console.log(patterns.server.success('Closed out remaining connections.'));
+      logger.success('Closed out remaining connections.');
       process.exit(0);
     });
 
     setTimeout(() => {
-      console.error(patterns.server.error('Could not close connections in time, forcefully shutting down'));
+      logger.error('Could not close connections in time, forcefully shutting down');
       process.exit(1);
     }, 1000);
   } catch (error) {
-    console.error(patterns.server.error('Error in gracefulShutdown:', error));
+    logger.error('Error in gracefulShutdown:', error);
   }
 }
 
@@ -525,7 +528,7 @@ let serverInstance;
 async function initializeServer() {
   try {
     if (serverInstance && serverInstance.listening) {
-      console.error(patterns.server.error('Server is already listening'));
+      logger.error('Server is already listening');
       return;
     }
     setupRoutes();
@@ -535,27 +538,27 @@ async function initializeServer() {
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
     process.on('uncaughtException', async (err) => {
-      console.error('Uncaught Exception:', err);
+      logger.error('Uncaught Exception:', err);
       try {
         await new Promise((resolve) => {
-          console.log('Received uncaughtException. Shutting down gracefully...');
+          logger.info('Received uncaughtException. Shutting down gracefully...');
           // Give existing connections time to close
           setTimeout(resolve, 1000);
         });
       } catch (error) {
-        console.error('Error during shutdown:', error);
+        logger.error('Error during shutdown:', error);
       } finally {
         process.exit(1);
       }
     });
     const PORT = process.env.SERVER_PORT || 6969;
-    console.log(patterns.server.info('Starting server...'));
+    logger.info('Starting server...');
     serverInstance = server.listen(PORT, async () => {
-      console.log(patterns.server.success(`Server running on http://${getServerAddress()}:${PORT}`));
+      logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
     });
-    console.log(patterns.server.success('Server initialization complete'));
+    logger.success('Server initialization complete');
   } catch (err) {
-    console.error(patterns.server.error('Error in initializeServer:', err));
+    logger.error('Error in initializeServer:', err);
     process.exit(1);
   }
 }

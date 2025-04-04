@@ -1,12 +1,16 @@
 import axios from 'axios';
-import fs from 'fs/promises';
-import path from 'path';
 import { parentPort } from 'worker_threads';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import * as cheerio from 'cheerio';
+import { BaseWorker } from './baseWorker.js';
+import { patterns } from '../../middleware/bambisleepChalk.js';
+import Logger from '../../utils/logger.js';
 
 dotenv.config();
+
+// Initialize logger
+const logger = new Logger('ImageScraper');
 
 // MongoDB Schema for BambiSleep image content
 const ImageContentSchema = new mongoose.Schema({
@@ -34,10 +38,10 @@ const ImageContentSchema = new mongoose.Schema({
 const setupMongoDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep');
-    console.log('MongoDB connected successfully');
+    logger.success('MongoDB connected successfully');
     return mongoose.model('BambiImageContent', ImageContentSchema);
   } catch (error) {
-    console.error('MongoDB connection error:', error.message);
+    logger.error('MongoDB connection error:', error.message);
     throw error;
   }
 };
@@ -45,7 +49,7 @@ const setupMongoDB = async () => {
 // Scrape image content from a web page
 const scrapeImageContent = async (url, ImageContentModel) => {
   try {
-    console.log(`Scraping ${url} for BambiSleep image content`);
+    logger.info(`Scraping ${url} for BambiSleep image content`);
     const response = await axios.get(url);
     const html = response.data;
     const $ = cheerio.load(html);
@@ -71,7 +75,7 @@ const scrapeImageContent = async (url, ImageContentModel) => {
         }
       });
       await imageContent.save();
-      console.log(`Saved image content from ${imgUrl}`);
+      logger.success(`Saved image content from ${imgUrl}`);
     }
 
     return {
@@ -80,7 +84,7 @@ const scrapeImageContent = async (url, ImageContentModel) => {
       contentFound: images.length > 0
     };
   } catch (error) {
-    console.error(`Error scraping ${url}:`, error.message);
+    logger.error(`Error scraping ${url}:`, error.message);
     return {
       success: false,
       message: `Error scraping ${url}: ${error.message}`,
@@ -112,16 +116,16 @@ parentPort.on('message', async (msg) => {
         break;
         
       case 'shutdown':
-        console.log('Shutting down image scraping worker...');
+        logger.info('Shutting down image scraping worker...');
         await mongoose.connection.close();
         process.exit(0);
         break;
         
       default:
-        console.warn(`Unknown message type: ${msg.type}`);
+        logger.warning(`Unknown message type: ${msg.type}`);
     }
   } catch (error) {
-    console.error('Error handling message:', error);
+    logger.error('Error handling message:', error);
     parentPort.postMessage({
       type: 'error',
       data: error.message,
@@ -130,4 +134,16 @@ parentPort.on('message', async (msg) => {
   }
 });
 
-console.log('Image scraping worker started and ready to receive messages');
+logger.info('Image scraping worker started and ready to receive messages');
+
+export class ImageScrapingWorker extends BaseWorker {
+  constructor() {
+    super('ImageScraper');
+  }
+  
+  // Worker-specific methods
+  processImage(url) {
+    this.logger.info(`Processing image from: ${url}`);
+    // Image processing logic
+  }
+}
