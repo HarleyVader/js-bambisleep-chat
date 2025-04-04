@@ -12,7 +12,7 @@ class ModelManager {
     try {
       const modelNames = [
         'llama-3.2-3b-claude-3.7-sonnet-reasoning-distilled@q4_0',
-        'another-model-name'
+        'another-model-name' // Replace with the second model name as needed
       ];
 
       for (const modelName of modelNames) {

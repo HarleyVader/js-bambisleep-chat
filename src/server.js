@@ -126,42 +126,6 @@ app.use('/api/tts', async (req, res, next) => {
   }
 });
 
-app.post('/api/zonos', (req, res) => {
-  const text = req.body.text;
-  const sanitizedText = text.replace(/\s+/g, '-').toLowerCase();
-  const trimmedText = sanitizedText.length > 30 ? sanitizedText.substring(0, 30) : sanitizedText;
-  const uniqueId = uuidv4();
-  const filename = `${trimmedText}-${uniqueId}.wav`;
-
-  io.emit('status', 'Processing started');
-
-  const childProcess = spawn('python3', ['zonos.py', text, filename]);
-
-  childProcess.stdout.on('data', (data) => {
-    console.log(`stdout: ${data}`);
-    io.emit('status', `stdout: ${data}`);
-  });
-
-  childProcess.stderr.on('data', (data) => {
-    console.error(`stderr: ${data}`);
-    io.emit('status', `stderr: ${data}`);
-  });
-
-  childProcess.on('close', (code) => {
-    console.log(`child process exited with code ${code}`);
-    io.emit('status', `Process exited with code ${code}`);
-    const audioPath = path.join(__dirname, `./assets/audio/${filename}`);
-    if (fs.existsSync(audioPath)) {
-      res.json({ audioPath: `/audio/${filename}` });
-      io.emit('status', 'Audio file generated successfully');
-    } else {
-      const errorMessage = 'Error: Audio file not found';
-      res.status(500).json({ error: errorMessage });
-      io.emit('status', errorMessage);
-    }
-  });
-});
-
 app.locals.footer = footerConfig;
 
 const routes = [
@@ -179,10 +143,6 @@ function setupRoutes() {
     app.get('/', (req, res) => {
       const validConstantsCount = 9; // Define the variable with an appropriate value
       res.render('index', { validConstantsCount: validConstantsCount });
-    });
-
-    app.get('/zonos', (req, res) => {
-      res.render('zonos', { audioPath: null, filename: null });
     });
 
     app.post('/scrape', (req, res) => {
