@@ -20,6 +20,8 @@ import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
 import helpRoute from './routes/help.js';
 
+import workerCoordinator from './workers/workerCoordinator.js';
+
 //configs
 import errorHandler from './middleware/error.js';
 import { patterns } from './middleware/bambisleepChalk.js';
@@ -181,6 +183,35 @@ function setupRoutes() {
 
     app.get('/zonos', (req, res) => {
       res.render('zonos', { audioPath: null, filename: null });
+    });
+
+    app.post('/scrape', (req, res) => {
+      const { url } = req.body;
+      if (!url) {
+        return res.status(400).json({ error: 'URL is required' });
+      }
+    
+      workerCoordinator.scrapeUrl(url, (error, results) => {
+        if (error) {
+          return res.status(500).json({ error: 'Error scraping content' });
+        }
+        res.json(results);
+      });
+    });
+    
+    // Example route to scan a directory
+    app.post('/scan', (req, res) => {
+      const { directory } = req.body;
+      if (!directory) {
+        return res.status(400).json({ error: 'Directory path is required' });
+      }
+    
+      workerCoordinator.scanDirectory(directory, (error, results) => {
+        if (error) {
+          return res.status(500).json({ error: 'Error scanning directory' });
+        }
+        res.json(results);
+      });
     });
 
   } catch (error) {

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { selectLoadedModels } from '../workers/lmstudio.js';
-import { modelCache } from '../models/modelCache.js';
+import { modelCache } from '../../models/modelCache.js';
 import { jsonSchemaGenerator } from '../utils/jsonSchemaGenerator.js';
 
 class ProcessingService {

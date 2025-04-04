@@ -1,7 +1,7 @@
 import { parentPort } from 'worker_threads';
 import axios from 'axios';
 import dotenv from 'dotenv';
-import { patterns } from '../middleware/bambisleepChalk.js';
+import { patterns } from '../../middleware/bambisleepChalk.js';
 
 dotenv.config();
 

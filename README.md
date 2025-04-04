@@ -86,20 +86,50 @@ npm run start
 
 ## 🏗️ Architecture
 
-```mermaid
-graph TD
-    A[Server] -->|Handles Requests| B[Routes]
-    A -->|Manages Connections| C[Socket.IO]
-    A -->|Serves Static Files| D[Public]
-    B -->|API Endpoints| E[Middleware]
-    B -->|Database Operations| F[Schemas]
-    C -->|Real-time Communication| G[Workers]
-    D -->|CSS, JS, Images| H[Assets]
-    E -->|Request Handling| I[Utils]
-    F -->|MongoDB Schemas| J[Database]
-    G -->|Background Processing| K[LMStudio]
-    I -->|Helper Functions| L[Graceful Shutdown]
 ```
+graph TD
+    Server[server.js] --> Routes
+    Server --> Middleware
+    Server --> Utils
+    Server --> Views
+    Server --> PublicAssets
+
+    Routes --> RouteChat[routes/chat.js]
+    Routes --> RouteHelp[routes/help.js]
+    Routes --> RouteIndex[routes/index.js]
+    Routes --> RouteLogin[routes/login.js]
+    Routes --> RouteLogout[routes/logout.js]
+    Routes --> RouteProfile[routes/profile.js]
+    Routes --> RoutePTM[routes/psychodelic-trigger-mania.js]
+
+    Middleware --> BambisleepChalk[bambisleepChalk.js]
+
+    Utils --> Doxxerinator[doxxerinator.js]
+    Utils --> GracefulShutdown[gracefulShutdown.js]
+    Utils --> Scraper[scraper.js]
+
+    Views --> ViewChat[chat.ejs]
+    Views --> ViewHelp[help.ejs] 
+    Views --> ViewIndex[index.ejs]
+
+    PublicAssets --> CSS[css/style.css]
+    PublicAssets --> JavaScript
+
+    JavaScript --> AIGFCore[aigf-core.js]
+    JavaScript --> Responsive[responsive.js]
+    JavaScript --> PTMScript[psychodelic-trigger-mania.js]
+    JavaScript --> Text2Speech[text2speech.js]
+    JavaScript --> Triggers[triggers.js]
+
+    PTMScript --> SpiralFunction[spiral function]
+    PTMScript --> DrawFunction[draw function]
+    
+    Server --> ExternalServices
+    ExternalServices --> LMStudio[LMStudio Machine]
+    ExternalServices --> Coqui[Coqui Machine]
+
+    Server --> PatreonAuth[PatreonAuthSchema.js]
+    ```
 
 ## 🛠️ Tech Stack
 
