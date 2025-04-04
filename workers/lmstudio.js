@@ -104,9 +104,12 @@ async function pushMessages(collarText, userPrompt, finalContent, socketId) {
 
 async function handleMessage(userPrompt, socketId, username) {
   try {
-    const modelName = 'L3-SthenoMaidBlackroot-8B-V1@q2_k';
-    const modelId = await selectLoadedModels(modelName);
-    if (!modelId) {
+    const modelNames = [
+      'L3-SthenoMaidBlackroot-8B-V1@q2_k'
+    ];
+    
+    const modelIds = await Promise.all(modelNames.map(name => selectLoadedModels(name)));
+    if (!modelIds || modelIds.length === 0) {
       throw new Error('No models loaded');
     }
 
@@ -119,7 +122,7 @@ async function handleMessage(userPrompt, socketId, username) {
     }
 
     const requestData = {
-      model: modelId,
+      model: modelIds[0], // Use the first model for the request
       messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
       max_tokens: 180,
       temperature: 0.95,

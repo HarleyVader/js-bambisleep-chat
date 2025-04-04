@@ -1,15 +1,16 @@
 <div align="center">
 
-# 🧠 BambiSleep Chat 👁️ 
-by:
-```
- ____ ______   _______   ___      ___  __    _______   ________   _______   ________     
-|\   _ \  _   \|\  ___ \|\  \    |\  \|\__\ |\   __  \|\   ___  \|\  ___ \ |\   __  \    
-\ \ \ \ \_\ \  \ \   __/\ \  \   \ \  \/__/ \ \  \|\  \ \ \ \ \  \ \   __/|\ \  \|\  \   
- \ \ \ \|__| \  \ \  \_|/\ \  \   \ \   __\  \ \   __  \ \ \ \ \  \ \  \_|/ \ \   __  \  
-  \ \  \    \ \  \ \  \__ \ \  \___\ \ \__|\  \ \  \ \  \ \ \ \ \  \ \  \_|\ \ \  \ \  \ 
-   \ \__\    \ \__\ \_____\\ \______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_____\ \ \__\ \__\ 
-    \|__|     \|__|\|______|\|_______|\|__| \|__|\|__|\|__|\|__| \|__|\|______|\|__|\|___|
+```markdown
+# Environment Variables
+
+---
+
+|\ _ \ _ \|\ **\_ \|\ \ |\ \|\_\_\ |\ ** \|\ **_ \|\ _** \ |\ ** \  
+\ \ \ \ \_\ \ \ \ **/\ \ \ \ \ \/**/ \ \ \|\ \ \ \ \ \ \ \ **/|\ \ \|\ \  
+ \ \ \ \|**| \ \ \ \_|/\ \ \ \ \ **\ \ \ ** \ \ \ \ \ \ \ \_|/ \ \ ** \  
+ \ \ \ \ \ \ \ \_\_ \ \ \_**\ \ \_\_|\ \ \ \ \ \ \ \ \ \ \ \ \_|\ \ \ \ \ \
+\ \_\_\ \ \_\_\ \_\_\_**\\ \_**\_**\ \_\ \ \_\_\ \_\_\ \_\_\ \_\ \ \_\_\ \_\_**\_\ \ \_\_\ \_\_\
+\|**| \|**|\|\_\_\_\_**|\|**\_\_\_**|\|**| \|**|\|**|\|**|\|**| \|**|\|**\_\_**|\|**|\|\_**|
 ```
 
 ![GitHub stars](https://img.shields.io/github/stars/HarleyVader/js-bambisleep-chat?style=for-the-badge)
@@ -104,7 +105,7 @@ graph TD
 
 - 🔧 **Backend**: Node.js, Express, Socket.IO
 - ⚙️ **Processing**: Worker Threads, Child Process
-- 🤖 **AI**: Llama3 Lexi Uncensored, 
+- 🤖 **AI**: Llama3 Lexi Uncensored,
 - 🔊 **Audio**: Zonos, coqui
 - 🖥️ **Frontend**: EJS, Express, Socket.io
 - 🛠️ **Utilities**: Axios
@@ -120,7 +121,7 @@ graph TD
 
 ## 🗂️ Folder Structure
 
-```                                                                                                                                                                                                                                                          
+```
 │   .env
 │   .env.example
 │   .gitignore
@@ -191,7 +192,7 @@ graph TD
 │       help.js
 │       index.js
 │       psychodelic-trigger-mania.js
-|     
+|
 │
 ├───schemas
 │       PatreonAuthSchema.js
@@ -255,7 +256,6 @@ graph TD
             top_level.txt
 
 ```
-
 
 # Zonos-v0.1
 
@@ -326,4 +326,23 @@ codes = model.generate(conditioning)
 
 wavs = model.autoencoder.decode(codes).cpu()
 torchaudio.save(f"assets/audio/{filename}", wavs[0], model.autoencoder.sampling_rate)
+```
+
+## Overview
+
+The Lawfull Good Bambisleep Scrapers are designed to facilitate the scraping, processing, and analysis of content related to BambiSleep. It utilizes multiple worker threads to handle different content types, including text, images, and videos. The project is structured to allow for easy extension and integration of various models for enhanced performance and capabilities.
+
+**Configure Environment Variables**
+Create a `.env` file in the root directory and add the necessary environment variables, such as database connection strings and API keys.
+
+```env
+LMS_HOST=localhost
+LMS_PORT=3000
+MONGODB_URI=mongodb://localhost:27017/bambisleep
+MODEL_1=llama-3.2-3b-claude-3.7-sonnet-reasoning-distilled@q4_0
+MODEL_2=L3-SthenoMaidBlackroot-8B-V1@q2_k
+CACHE_ENABLED=true
+CACHE_EXPIRY=3600
+API_KEY=your_api_key_here
+SECRET_KEY=your_secret_key_here
 ```

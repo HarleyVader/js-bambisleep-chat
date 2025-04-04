@@ -1,19 +1,11 @@
-import { parentPort } from 'worker_threads';
-import axios from 'axios';
-import cheerio from 'cheerio';
-import mongoose from 'mongoose';
-import fs from 'fs/promises';
-import path from 'path';
-import { patterns } from '../middleware/bambisleepChalk.js';
-import dotenv from 'dotenv';
-
+// filepath: f:\js-bambisleep-chat\workers\scrapers\textScraping.js
 dotenv.config();
 
-// MongoDB Schema for BambiSleep content
+// MongoDB Schema for BambiSleep content - now focused on text/documents
 const ContentSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['text', 'video', 'image', 'audio', 'document'],
+    enum: ['text', 'document'],
     required: true
   },
   fileType: {
@@ -28,22 +20,14 @@ const ContentSchema = new mongoose.Schema({
     keywords: [String],
     description: String,
     categories: [String],
-    created: Date,
-    duration: Number // for videos/audio
+    created: Date
   },
-  binaryData: Buffer,
   filePath: String,
-  // Supporting common file types
   mediaType: {
     type: String,
     enum: [
-      // Video types
-      'mp4', 'webm', 'avi', 'mov', 'wmv',
-      // Image types
-      'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'tiff', 'ico', 'heic',
       // Document types
       'pdf', 'doc', 'docx', 'txt', 'md', 'html', 'css', 'js', 'py', 'php',
-      // Other
       'unknown'
     ]
   },
@@ -98,10 +82,10 @@ const parseContent = async (filePath, fileType) => {
   }
 };
 
-// Web scraper function
+// Web scraper function - now focused on text only
 const scrapeWebContent = async (url, ContentModel) => {
   try {
-    console.log(patterns.server.info(`Scraping ${url} for bambisleep content`));
+    console.log(patterns.server.info(`Scraping ${url} for bambisleep text content`));
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36'
@@ -118,20 +102,6 @@ const scrapeWebContent = async (url, ContentModel) => {
       const title = $('title').text();
       const description = $('meta[name="description"]').attr('content') || '';
       const keywords = $('meta[name="keywords"]').attr('content')?.split(',').map(k => k.trim()) || [];
-      
-      // Find all images and videos
-      const images = [];
-      const videos = [];
-      
-      $('img').each((i, img) => {
-        const src = $(img).attr('src');
-        if (src) images.push(src);
-      });
-      
-      $('video, source').each((i, video) => {
-        const src = $(video).attr('src');
-        if (src) videos.push(src);
-      });
       
       // Store text content
       const textContent = new ContentModel({
@@ -153,54 +123,9 @@ const scrapeWebContent = async (url, ContentModel) => {
       await textContent.save();
       console.log(patterns.server.success(`Saved bambisleep text content from ${url}`));
       
-      // Process and store images
-      for (const imgUrl of images) {
-        try {
-          const fullImgUrl = new URL(imgUrl, url).href;
-          const response = await axios.get(fullImgUrl, { responseType: 'arraybuffer' });
-          const extension = path.extname(imgUrl).substring(1).toLowerCase() || 'unknown';
-          
-          const imageContent = new ContentModel({
-            type: 'image',
-            fileType: extension,
-            title: `Image from ${title}`,
-            url: fullImgUrl,
-            source: url,
-            binaryData: Buffer.from(response.data),
-            mediaType: extension
-          });
-          
-          await imageContent.save();
-        } catch (error) {
-          console.error(patterns.server.error(`Error processing image ${imgUrl}:`, error.message));
-        }
-      }
-      
-      // Process and store videos
-      for (const videoUrl of videos) {
-        try {
-          const fullVideoUrl = new URL(videoUrl, url).href;
-          const extension = path.extname(videoUrl).substring(1).toLowerCase() || 'unknown';
-          
-          // For videos, we just store the URL rather than downloading the entire file
-          const videoContent = new ContentModel({
-            type: 'video',
-            fileType: extension,
-            title: `Video from ${title}`,
-            url: fullVideoUrl,
-            source: url,
-            mediaType: extension
-          });
-          
-          await videoContent.save();
-        } catch (error) {
-          console.error(patterns.server.error(`Error processing video ${videoUrl}:`, error.message));
-        }
-      }
-      
       return {
         success: true,
-        message: `Found and stored bambisleep content from ${url}`,
+        message: `Found and stored bambisleep text content from ${url}`,
         contentFound: true
       };
     } else {
@@ -220,7 +145,7 @@ const scrapeWebContent = async (url, ContentModel) => {
   }
 };
 
-// Directory scanner to find local files
+// Directory scanner to find local text/document files
 const scanDirectory = async (dirPath, ContentModel) => {
   try {
     const files = await fs.readdir(dirPath, { withFileTypes: true });
@@ -237,54 +162,30 @@ const scanDirectory = async (dirPath, ContentModel) => {
         // Process file
         const extension = path.extname(file.name).substring(1).toLowerCase();
         
-        // Check if it's a file type we can parse
-        if (['md', 'txt', 'html', 'css', 'js', 'py', 'php'].includes(extension)) {
+        // Check if it's a file type we can parse (text/document only)
+        if (['md', 'txt', 'html', 'css', 'js', 'py', 'php', 'pdf', 'doc', 'docx'].includes(extension)) {
           const parsedContent = await parseContent(filePath, extension);
           
           // Check if content contains bambisleep references
           if (parsedContent.extracted.toLowerCase().includes('bambisleep') || 
               parsedContent.extracted.toLowerCase().includes('bambi sleep')) {
-            
-            const fileContent = new ContentModel({
-              type: 'document',
+            const textContent = new ContentModel({
+              type: 'text',
               fileType: extension,
-              title: file.name,
+              title: path.basename(file.name),
               content: parsedContent.extracted,
               filePath: filePath,
               source: 'local',
+              metadata: {
+                keywords: [],
+                description: '',
+                categories: ['local'],
+                created: new Date()
+              },
               mediaType: extension
             });
-            
-            await fileContent.save();
-            results.push({
-              file: file.name,
-              path: filePath,
-              contentFound: true
-            });
-          }
-        } else if (['jpg', 'jpeg', 'png', 'gif', 'mp4', 'webm', 'avi', 'mov'].includes(extension)) {
-          // For media files, we need to check the filename for now
-          if (file.name.toLowerCase().includes('bambisleep') || 
-              file.name.toLowerCase().includes('bambi sleep')) {
-            
-            const fileBuffer = await fs.readFile(filePath);
-            
-            const mediaContent = new ContentModel({
-              type: extension.match(/jpg|jpeg|png|gif/) ? 'image' : 'video',
-              fileType: extension,
-              title: file.name,
-              filePath: filePath,
-              source: 'local',
-              binaryData: fileBuffer,
-              mediaType: extension
-            });
-            
-            await mediaContent.save();
-            results.push({
-              file: file.name,
-              path: filePath,
-              contentFound: true
-            });
+            await textContent.save();
+            results.push(textContent);
           }
         }
       }
@@ -329,16 +230,17 @@ parentPort.on('message', async (msg) => {
         break;
         
       case 'search_content':
-        // Search for content in the database
+        // Search for text/document content in the database
         const query = new RegExp(msg.query, 'i');
         const searchResults = await ContentModel.find({
+          type: { $in: ['text', 'document'] },
           $or: [
             { content: query },
             { title: query },
             { 'metadata.description': query },
             { 'metadata.keywords': query }
           ]
-        }).select('-binaryData').limit(20);
+        }).limit(20);
         
         parentPort.postMessage({
           type: 'search_result',
