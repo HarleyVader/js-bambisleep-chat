@@ -276,22 +276,11 @@ docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,targ
 
 ```mermaid
 graph LR
-    %% Main Server Node in center
-    Server[server.js] --> Routes
-    Server --> Views
-    Server --> Middleware
-    Server --> Utils
-    Server --> PublicAssets
-    Server --> ExternalServices
-    Server --> PatreonAuth[PatreonAuthSchema.js]
-    Server --> Config
-    Server --> Models
-    Server --> Services
-    Server --> Workers
-    Server --> Database[MongoDB]
-
-    %% Top Row - Routes and Views
+    %% Column Layout with 4 distinct sections
+    
+    %% Left Column - Frontend Layer
     subgraph FrontendLayer["Frontend Layer"]
+        direction TB
         Routes --> RouteChat[routes/chat.js]
         Routes --> RouteHelp[routes/help.js] 
         Routes --> RouteIndex[routes/index.js]
@@ -309,8 +298,12 @@ graph LR
         Views --> ViewPartials[partials/]
     end
 
-    %% Middle Row - Assets, Config and Processing
+    %% Center Column - Server Node
+    Server[server.js]
+    
+    %% Center-Right Column - Assets and Processing
     subgraph AssetLayer["Asset and Processing Layer"]
+        direction TB
         PublicAssets --> CSS[css/style.css]
         PublicAssets --> JavaScript
         PublicAssets --> Images[img/]
@@ -336,8 +329,9 @@ graph LR
         Services --> ProcessingService[processingService.js]
     end
 
-    %% Bottom Row - Client-side JS, Workers and External Services
+    %% Right Column - Client Side and Services
     subgraph ClientLayer["Client Side and Services Layer"]
+        direction TB
         JavaScript --> AIGFCore[aigf-core.js]
         JavaScript --> Responsive[responsive.js]
         JavaScript --> PTMScript[psychodelic-trigger-mania.js]
@@ -357,6 +351,13 @@ graph LR
         Database --> PatreonData[Patreon Auth]
         Database --> ScraperData[Scraper Data]
     end
+
+    %% Connect Server to all components
+    Server --> FrontendLayer
+    Server --> AssetLayer
+    Server --> ClientLayer
+    Server --> PatreonAuth[PatreonAuthSchema.js]
+    Server --> Database[MongoDB]
 
     %% Define styles using CSS variables from style.css
     classDef serverNode fill:#0c2a2a,stroke:#15aab5,stroke-width:4px
