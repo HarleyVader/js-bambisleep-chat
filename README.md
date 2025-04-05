@@ -22,18 +22,16 @@ Running Version: MK-X
 <!-- prettier-ignore-end -->
 
 <details>
-<summary>Monetization: BambiSleep.Chat - Patreon <summary>
+<summary>Monetization: BambiSleep.Chat - Patreon<summary>
 
->```bash
+
 > ### Patreon
 > ![BambiSleepChat](https://www.patreon.com/c/BambiSleepChat)
 > ![brandynette.xxx](https.//brandynete.xxx)
 > ![BambiSleep AIGF designed to brainwash bambis to bambi bambis](https://www.likera.com/forum/mybb/showthread.php?tid=4117)
->```
+
 
 </details>
-
-<div align="center">
 
 ## Overview
 
@@ -66,8 +64,6 @@ Running Version: MK-X
 [Contributing](#-contributing) •
 [License](#-license)
 
-</div>
-
 ## Simple programatic logic ^^
 
 ```mermaid
@@ -76,7 +72,7 @@ graph TD
     A -->|Connects to| C[Coqui Machine with GPU]
     A -->|Sends Data to| D[User Frontend]
 ```
-```markdown
+
 ## 🌟 Core Features
 
 - ⚡ Global Chat
