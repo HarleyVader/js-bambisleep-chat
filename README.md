@@ -1,4 +1,14 @@
 # [BambiSleep.Chat](https://bambisleep.chat) - Bambisleep AIGF Hypno Experience
+
+<details>
+<summary>Lawfull Good Scrapers</summary>
+
+> The Lawful Good Bambisleep Scrapers are designed to facilitate the scraping, processing, and analysis of content related to BambiSleep. It utilizes multiple worker 
+> threads to handle different content types, including text, images, and videos. The project is structured to allow for easy extension and integration of various models 
+> for enhanced performance and capabilities.
+
+</details>
+
 ```js
 Running Version: MK-X
 
@@ -32,14 +42,7 @@ Running Version: MK-X
 
 ## Overview
 
-<details>
-<summary>Lawfull Good Scrapers</summary>
 
-> The Lawful Good Bambisleep Scrapers are designed to facilitate the scraping, processing, and analysis of content related to BambiSleep. It utilizes multiple worker 
-> threads to handle different content types, including text, images, and videos. The project is structured to allow for easy extension and integration of various models 
-> for enhanced performance and capabilities.
-
-</details>
 
 ![GitHub contributors](https://img.shields.io/github/contributors/HarleyVader/js-bambisleep-chat?style=for-the-badge)
 ![GitHub forks](https://img.shields.io/github/forks/HarleyVader/js-bambisleep-chat?style=for-the-badge)
