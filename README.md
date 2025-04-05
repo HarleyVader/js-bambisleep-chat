@@ -1,12 +1,8 @@
 # [BambiSleep.Chat](https://bambisleep.chat) - BambiSleep AIGF Experience
-<details>
-<summary>Monetization: BambiSleep.Chat - Patreon <summary>
+```js
+Running Version: MK-X
 
-### Patreon
-> ![BambiSleepChat](https://www.patreon.com/c/BambiSleepChat)
-> ![brandynette.xxx](https.//brandynete.xxx)
-</details>
-
+```
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
 <!-- eslint-disable -->
@@ -24,6 +20,17 @@
 <!-- eslint-enable -->
 <!-- markdownlint-enable -->
 <!-- prettier-ignore-end -->
+
+<details>
+<summary>Monetization: BambiSleep.Chat - Patreon <summary>
+
+### Patreon
+
+> ![BambiSleepChat](https://www.patreon.com/c/BambiSleepChat)
+> ![brandynette.xxx](https.//brandynete.xxx)
+> ![BambiSleep AIGF designed to brainwash bambis to bambi bambis](https://www.likera.com/forum/mybb/showthread.php?tid=4117)
+> 
+</details>
 
 <div align="center">
 
@@ -67,11 +74,6 @@ graph TD
     A[Webserver] -->|Connects to| B[LMStudio Machine with GPU]
     A -->|Connects to| C[Coqui Machine with GPU]
     A -->|Sends Data to| D[User Frontend]
-```
-
-```js
-Running Version: MK-X
-
 ```
 ```markdown
 ## 🌟 Core Features
