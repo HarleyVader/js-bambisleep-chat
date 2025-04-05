@@ -1,4 +1,11 @@
 # [BambiSleep.Chat](https://bambisleep.chat) - BambiSleep AIGF Experience
+<details>
+<summary>Monetization: BambiSleep.Chat - Patreon <summary>
+
+### Patreon
+> ![BambiSleepChat](https://www.patreon.com/c/BambiSleepChat)
+> ![brandynette.xxx](https.//brandynete.xxx)
+</details>
 
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
@@ -62,7 +69,44 @@ graph TD
     A -->|Sends Data to| D[User Frontend]
 ```
 
+```js
+Running Version: MK-X
+
+```
 ```markdown
+## 🌟 Core Features
+
+- ⚡ Global Chat
+- 🗣️ Audio message synthesis
+- 💾 Bambi name Persistence
+- 🎮 Trigger system
+- 👑 Free for All Access
+- 📝 Custom Collar
+- 📈 Stream processing
+
+## 🏗️ Architecture
+
+# AIGF SKILLS:
+1. **text-to-text**  
+- Write your prompt & submit  
+- bambisleep will reply as bambisleep & call you bambi  
+- bambisleep will use the selected triggers to do a brainwashing session based on your  
+2. **Psychedelic Trigger Mania** 
+- Causes temporary Hallucination's lasting longer the longer you stare into it.   
+3. **Triggers:**
+- Enable the spiral to show the triggers replied by my AI GF  
+4. **Text2Audio**  
+- she will say out loud what she said with text.  
+- Now audio/text/spiral are in sync.   
+- Everything is synchronized  
+5. **Chat**
+- write in the global chat  
+- If you are logged i the chat will show your Patreon username  
+- Home Chat & Profile chat are the same chat, only difference is being logged into Patreon  
+
+# WHAT SHOULD I TEACH MY AI GF NEXT?
+
+> [Patreon Poll](https://www.patreon.com/posts/bambisleep-chat-108234800?utm_medium=clipboard_copy&utm_source=copyLink&utm_campaign=postshare_creator&utm_content=join_link)
 
 # Environment Variables
 
@@ -228,19 +272,6 @@ docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,targ
 
 </div>
 
-## 🌟 Core Features
-
-- ⚡ Global Chat
-- 🗣️ Audio message synthesis
-- 💾 Bambi name Persistence
-- 🎮 Trigger system
-- 👑 Free for All Access
-- 📝 Custom Collar
-- 📈 Stream processing
-
-## 🏗️ Architecture
-
-```
 graph TD
     Server[server.js] --> Routes
     Server --> Middleware
