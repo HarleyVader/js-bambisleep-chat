@@ -273,6 +273,7 @@ docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,targ
 # Quickstart if you want to just run the web interface (not CLI)
 docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,target=/root/.cache/huggingface/hub/' -p 7860:7860 ghcr.io/swivid/f5-tts:main f5-tts_infer-gradio --host 0.0.0.0
 ```
+
 ```mermaid
 graph LR
     %% Main Server Node in center
@@ -285,7 +286,7 @@ graph LR
     Server --> PatreonAuth[PatreonAuthSchema.js]
 
     %% Top Row - Routes and Views
-    subgraph "Frontend Layer"
+    subgraph FrontendLayer["Frontend Layer"]
         Routes --> RouteChat[routes/chat.js]
         Routes --> RouteHelp[routes/help.js] 
         Routes --> RouteIndex[routes/index.js]
@@ -300,7 +301,7 @@ graph LR
     end
 
     %% Middle Row - Assets and Processing
-    subgraph "Asset and Processing Layer"
+    subgraph AssetLayer["Asset and Processing Layer"]
         PublicAssets --> CSS[css/style.css]
         PublicAssets --> JavaScript
 
@@ -312,7 +313,7 @@ graph LR
     end
 
     %% Bottom Row - Client-side JS and External Services
-    subgraph "Client Side and Services Layer"
+    subgraph ClientLayer["Client Side and Services Layer"]
         JavaScript --> AIGFCore[aigf-core.js]
         JavaScript --> Responsive[responsive.js]
         JavaScript --> PTMScript[psychodelic-trigger-mania.js]
@@ -326,14 +327,11 @@ graph LR
         ExternalServices --> Coqui[Coqui Machine]
     end
 
-    %% Define styles for better visualization
-    classDef serverNode fill:#f96,stroke:#333,stroke-width:2px;
-    classDef layer fill:#e6f3ff,stroke:#6699cc,stroke-width:1px;
+    classDef serverNode fill:#f96,stroke:#333,stroke-width:2px
+    classDef layerStyle fill:#e6f3ff,stroke:#6699cc,stroke-width:1px
     
-    class Server serverNode;
-    class "Frontend Layer" layer;
-    class "Asset and Processing Layer" layer;
-    class "Client Side and Services Layer" layer;
+    class Server serverNode
+    class FrontendLayer,AssetLayer,ClientLayer layerStyle
 ```
 
 ## 🛠️ Tech Stack
