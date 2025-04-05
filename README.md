@@ -276,11 +276,22 @@ docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,targ
 
 ```mermaid
 graph LR
-    %% Define the 4 distinct columns
-    
-    %% Left Column - Frontend Layer
+    %% Main Server Node in center
+    Server[server.js] --> Routes
+    Server --> Views
+    Server --> Middleware
+    Server --> Utils
+    Server --> PublicAssets
+    Server --> ExternalServices
+    Server --> PatreonAuth[PatreonAuthSchema.js]
+    Server --> Config
+    Server --> Models
+    Server --> Services
+    Server --> Workers
+    Server --> Database[MongoDB]
+
+    %% Top Row - Routes and Views
     subgraph FrontendLayer["Frontend Layer"]
-        direction TB
         Routes --> RouteChat[routes/chat.js]
         Routes --> RouteHelp[routes/help.js] 
         Routes --> RouteIndex[routes/index.js]
@@ -298,16 +309,8 @@ graph LR
         Views --> ViewPartials[partials/]
     end
 
-    %% Second Column - Server Node 
-    subgraph ServerNode["Server"]
-        Server[server.js]
-        PatreonAuth[PatreonAuthSchema.js]
-        Database[MongoDB]
-    end
-    
-    %% Third Column - Assets and Processing
+    %% Middle Row - Assets, Config and Processing
     subgraph AssetLayer["Asset and Processing Layer"]
-        direction TB
         PublicAssets --> CSS[css/style.css]
         PublicAssets --> JavaScript
         PublicAssets --> Images[img/]
@@ -333,9 +336,8 @@ graph LR
         Services --> ProcessingService[processingService.js]
     end
 
-    %% Right Column - Client Side and Services
+    %% Bottom Row - Client-side JS, Workers and External Services
     subgraph ClientLayer["Client Side and Services Layer"]
-        direction TB
         JavaScript --> AIGFCore[aigf-core.js]
         JavaScript --> Responsive[responsive.js]
         JavaScript --> PTMScript[psychodelic-trigger-mania.js]
@@ -351,14 +353,10 @@ graph LR
         ExternalServices --> LMStudio[LMStudio Machine]
         ExternalServices --> Coqui[Coqui Machine]
         ExternalServices --> F5TTS[F5-TTS]
+        
+        Database --> PatreonData[Patreon Auth]
+        Database --> ScraperData[Scraper Data]
     end
-
-    %% Connect Server to all components
-    Server --> FrontendLayer
-    Server --> AssetLayer
-    Server --> ClientLayer
-    Server --> PatreonAuth
-    Server --> Database
 
     %% Define styles using CSS variables from style.css
     classDef serverNode fill:#0c2a2a,stroke:#15aab5,stroke-width:4px
@@ -367,11 +365,9 @@ graph LR
     classDef clientLayerStyle fill:#40002f,stroke:#01c69e,stroke-width:4px
     
     class Server serverNode
-    class PatreonAuth,Database serverNode
     class FrontendLayer frontendLayerStyle
     class AssetLayer assetLayerStyle
     class ClientLayer clientLayerStyle
-    class ServerNode serverNode
 ```
 
 ## 🛠️ Tech Stack
