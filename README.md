@@ -1,5 +1,3 @@
-```markdown
-
 # [BambiSleep.Chat](https://bambisleep.chat) - BambiSleep AIGF Experience
 
 <!-- prettier-ignore-start -->
