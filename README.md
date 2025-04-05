@@ -276,7 +276,7 @@ docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,targ
 
 ```mermaid
 graph LR
-    %% Column Layout with 4 distinct sections
+    %% Define the 4 distinct columns
     
     %% Left Column - Frontend Layer
     subgraph FrontendLayer["Frontend Layer"]
@@ -298,10 +298,14 @@ graph LR
         Views --> ViewPartials[partials/]
     end
 
-    %% Center Column - Server Node
-    Server[server.js]
+    %% Second Column - Server Node 
+    subgraph ServerNode["Server"]
+        Server[server.js]
+        PatreonAuth[PatreonAuthSchema.js]
+        Database[MongoDB]
+    end
     
-    %% Center-Right Column - Assets and Processing
+    %% Third Column - Assets and Processing
     subgraph AssetLayer["Asset and Processing Layer"]
         direction TB
         PublicAssets --> CSS[css/style.css]
@@ -347,17 +351,14 @@ graph LR
         ExternalServices --> LMStudio[LMStudio Machine]
         ExternalServices --> Coqui[Coqui Machine]
         ExternalServices --> F5TTS[F5-TTS]
-        
-        Database --> PatreonData[Patreon Auth]
-        Database --> ScraperData[Scraper Data]
     end
 
     %% Connect Server to all components
     Server --> FrontendLayer
     Server --> AssetLayer
     Server --> ClientLayer
-    Server --> PatreonAuth[PatreonAuthSchema.js]
-    Server --> Database[MongoDB]
+    Server --> PatreonAuth
+    Server --> Database
 
     %% Define styles using CSS variables from style.css
     classDef serverNode fill:#0c2a2a,stroke:#15aab5,stroke-width:4px
@@ -366,9 +367,11 @@ graph LR
     classDef clientLayerStyle fill:#40002f,stroke:#01c69e,stroke-width:4px
     
     class Server serverNode
+    class PatreonAuth,Database serverNode
     class FrontendLayer frontendLayerStyle
     class AssetLayer assetLayerStyle
     class ClientLayer clientLayerStyle
+    class ServerNode serverNode
 ```
 
 ## 🛠️ Tech Stack
