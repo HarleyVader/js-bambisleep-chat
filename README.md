@@ -18,6 +18,7 @@
 <!-- markdownlint-enable -->
 <!-- prettier-ignore-end -->
 
+```markdown
 <div align="center">
 
 ## Overview
@@ -64,7 +65,7 @@ graph TD
     A -->|Sends Data to| D[User Frontend]
 ```
 
-
+```markdown
 
 # Environment Variables
 
