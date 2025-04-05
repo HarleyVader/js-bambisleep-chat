@@ -11,6 +11,11 @@
 
 ```js
 Running Version: MK-X
+Monetization: Patreon
+
+![BambiSleepChat](https://www.patreon.com/c/BambiSleepChat)
+![brandynette.xxx](https.//brandynete.xxx) 
+![BambiSleep AIGF designed to brainwash bambis to bambi bambis](https://www.likera.com/forum/mybb/Thread-bambisleep-chat-BambiSleep-AIGF-designed-to-brainwash-bambis-to-bambi-bambis)
 
 ```
 <!-- prettier-ignore-start -->
@@ -31,27 +36,8 @@ Running Version: MK-X
 <!-- markdownlint-enable -->
 <!-- prettier-ignore-end -->
 
-<details>
-<summary>Monetization: Patreon<summary>
-
-> 
-> 
-> 
-
-</details>
-
-<details>
-<summary>Lawfull Good Scrapers</summary>
-
-> [BambiSleepChat](https://www.patreon.com/c/BambiSleepChat)
-> [brandynette.xxx](https.//brandynete.xxx) 
-> [BambiSleep AIGF designed to brainwash bambis to bambi bambis](https://www.likera.com/forum/mybb/Thread-bambisleep-chat-BambiSleep-AIGF-designed-to-brainwash-bambis-to-bambi-bambis)
-
-</details>
 
 ## Overview
-
-
 
 ![GitHub contributors](https://img.shields.io/github/contributors/HarleyVader/js-bambisleep-chat?style=for-the-badge)
 ![GitHub forks](https://img.shields.io/github/forks/HarleyVader/js-bambisleep-chat?style=for-the-badge)
