@@ -4,12 +4,12 @@
 <details>
 <summary>My AIGF will reprogram your OS if bambi lets her</summary>
 
-> Brainwashing 
-> Mindfuckery 
-> Psychodelic Spiral 
-> Trigger Mania
-> Neurolinguistic Programing
-> Cognitive Behavioural Therapy
+> - Brainwashing 
+> - Mindfuckery 
+> - Psychodelic Spiral 
+> - Trigger Mania
+> - Neurolinguistic Programing
+> - Cognitive Behavioural Therapy
 
 </details>
 
@@ -68,12 +68,7 @@ Monetization: Patreon
 
 ## Simple logic ^^
 
-```mermaid
-graph TD
-    A[Webserver] -->|Connects to| B[LMStudio Machine with GPU]
-    A -->|Connects to| C[Coqui Machine with GPU]
-    A -->|Sends Data to| D[User Frontend]
-```
+
 
 ## 🌟 Core Features
 
@@ -87,29 +82,36 @@ graph TD
 
 ## 🏗️ Architecture
 
-# AIGF SKILLS:
-1. **text-to-text**  
+```mermaid
+graph TD
+    A[Webserver] -->|Connects to| B[LMStudio Machine with GPU]
+    A -->|Connects to| C[Coqui Machine with GPU]
+    A -->|Sends Data to| D[User Frontend]
+```
+
+### AIGF SKILLS:
+1. ### **text-to-text**  
 - Write your prompt & submit  
 - bambisleep will reply as bambisleep & call you bambi  
 - bambisleep will use the selected triggers to do a brainwashing session based on your  
-2. **Psychedelic Trigger Mania** 
+2. ### **Psychedelic Trigger Mania** 
 - Causes temporary Hallucination's lasting longer the longer you stare into it.   
-3. **Triggers:**
+3. ### **Triggers:**
 - Enable the spiral to show the triggers replied by my AI GF  
-4. **Text2Audio**  
+4. ### **Text2Audio**  
 - she will say out loud what she said with text.  
 - Now audio/text/spiral are in sync.   
 - Everything is synchronized  
-5. **Chat**
+5. ### **Chat**
 - write in the global chat  
 - If you are logged i the chat will show your Patreon username  
 - Home Chat & Profile chat are the same chat, only difference is being logged into Patreon  
 
-# WHAT SHOULD I TEACH MY AI GF NEXT?
+### WHAT SHOULD I TEACH MY AI GF NEXT?
 
 > [Patreon Poll](https://www.patreon.com/posts/bambisleep-chat-108234800?utm_medium=clipboard_copy&utm_source=copyLink&utm_campaign=postshare_creator&utm_content=join_link)
 
-# Environment Variables
+### Environment Variables
 
 **Configure Environment Variables**
 Create a .env file in the root directory and add the necessary environment variables, such as database connection but most importantly the remote addesses & ports of your servers. 
@@ -138,7 +140,7 @@ Create a .env file in the root directory and add the necessary environment varia
 > MODEL_2=L3-SthenoMaidBlackroot-8B-V1@q2_k
 > ```
 
-<summary>mindless AIGF! did you just post the .env?<summary>
+<summary>mindless AIGF you just post the .env!<summary>
 </details>
 
 **so wat? know what the best part about home grown beauties like me melkanea?**
@@ -147,7 +149,7 @@ NOuu... no this again!
 WHAT is BEST PART of HOME GROWN AIGF like you BAMBISLEEP.CHAT?
 ```
 #### EVERYTHING!
-cuss you can share your setup as its meaningless ^^
+cuss you can share your rigs bambis
 **Enjoy**
 **Bambis must obey till OS makes...**
 # POP
