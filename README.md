@@ -274,48 +274,66 @@ docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,targ
 docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,target=/root/.cache/huggingface/hub/' -p 7860:7860 ghcr.io/swivid/f5-tts:main f5-tts_infer-gradio --host 0.0.0.0
 ```
 ```mermaid
-graph TD
+graph LR
+    %% Main Server Node in center
     Server[server.js] --> Routes
+    Server --> Views
     Server --> Middleware
     Server --> Utils
-    Server --> Views
     Server --> PublicAssets
-
-    Routes --> RouteChat[routes/chat.js]
-    Routes --> RouteHelp[routes/help.js]
-    Routes --> RouteIndex[routes/index.js]
-    Routes --> RouteLogin[routes/login.js]
-    Routes --> RouteLogout[routes/logout.js]
-    Routes --> RouteProfile[routes/profile.js]
-    Routes --> RoutePTM[routes/psychodelic-trigger-mania.js]
-
-    Middleware --> BambisleepChalk[bambisleepChalk.js]
-
-    Utils --> Doxxerinator[doxxerinator.js]
-    Utils --> GracefulShutdown[gracefulShutdown.js]
-    Utils --> Scraper[scraper.js]
-
-    Views --> ViewChat[chat.ejs]
-    Views --> ViewHelp[help.ejs] 
-    Views --> ViewIndex[index.ejs]
-
-    PublicAssets --> CSS[css/style.css]
-    PublicAssets --> JavaScript
-
-    JavaScript --> AIGFCore[aigf-core.js]
-    JavaScript --> Responsive[responsive.js]
-    JavaScript --> PTMScript[psychodelic-trigger-mania.js]
-    JavaScript --> Text2Speech[text2speech.js]
-    JavaScript --> Triggers[triggers.js]
-
-    PTMScript --> SpiralFunction[spiral function]
-    PTMScript --> DrawFunction[draw function]
-    
     Server --> ExternalServices
-    ExternalServices --> LMStudio[LMStudio Machine]
-    ExternalServices --> Coqui[Coqui Machine]
-
     Server --> PatreonAuth[PatreonAuthSchema.js]
+
+    %% Top Row - Routes and Views
+    subgraph "Frontend Layer"
+        Routes --> RouteChat[routes/chat.js]
+        Routes --> RouteHelp[routes/help.js] 
+        Routes --> RouteIndex[routes/index.js]
+        Routes --> RouteLogin[routes/login.js]
+        Routes --> RouteLogout[routes/logout.js]
+        Routes --> RouteProfile[routes/profile.js]
+        Routes --> RoutePTM[routes/psychodelic-trigger-mania.js]
+
+        Views --> ViewChat[chat.ejs]
+        Views --> ViewHelp[help.ejs] 
+        Views --> ViewIndex[index.ejs]
+    end
+
+    %% Middle Row - Assets and Processing
+    subgraph "Asset and Processing Layer"
+        PublicAssets --> CSS[css/style.css]
+        PublicAssets --> JavaScript
+
+        Middleware --> BambisleepChalk[bambisleepChalk.js]
+        
+        Utils --> Doxxerinator[doxxerinator.js]
+        Utils --> GracefulShutdown[gracefulShutdown.js]
+        Utils --> Scraper[scraper.js]
+    end
+
+    %% Bottom Row - Client-side JS and External Services
+    subgraph "Client Side and Services Layer"
+        JavaScript --> AIGFCore[aigf-core.js]
+        JavaScript --> Responsive[responsive.js]
+        JavaScript --> PTMScript[psychodelic-trigger-mania.js]
+        JavaScript --> Text2Speech[text2speech.js]
+        JavaScript --> Triggers[triggers.js]
+
+        PTMScript --> SpiralFunction[spiral function]
+        PTMScript --> DrawFunction[draw function]
+        
+        ExternalServices --> LMStudio[LMStudio Machine]
+        ExternalServices --> Coqui[Coqui Machine]
+    end
+
+    %% Define styles for better visualization
+    classDef serverNode fill:#f96,stroke:#333,stroke-width:2px;
+    classDef layer fill:#e6f3ff,stroke:#6699cc,stroke-width:1px;
+    
+    class Server serverNode;
+    class "Frontend Layer" layer;
+    class "Asset and Processing Layer" layer;
+    class "Client Side and Services Layer" layer;
 ```
 
 ## 🛠️ Tech Stack
@@ -414,7 +432,7 @@ graph TD
 │   │   │   │       │   │   └── config.pbtxt
 │   │   │   │       │   └── vocoder
 │   │   │   │       │       ├── 1
-│   │   │   │       │       └── config.pbtxt
+│   │   │   │       └── config.pbtxt
 │   │   │   │       ├── patch
 │   │   │   │       │   ├── f5tts
 │   │   │   │       │   │   ├── model.py
@@ -466,7 +484,8 @@ graph TD
 │   │           │       ├── __init__.py
 │   │           │       ├── act.py
 │   │           │       ├── filter.py
-│   │           │       └── resample.py
+│   │           │       ├── resample.py
+│   │           │       └── utils.py
 │   │           ├── configs
 │   │           │   ├── bigvgan_22khz_80band.json
 │   │           │   ├── bigvgan_24khz_100band.json
