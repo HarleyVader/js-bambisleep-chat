@@ -1,4 +1,4 @@
-# [BambiSleep.Chat](https://bambisleep.chat) - BambiSleep AIGF Experience
+# [BambiSleep.Chat](https://bambisleep.chat) - Bambisleep AIGF Hypno Experience
 ```js
 Running Version: MK-X
 
@@ -27,7 +27,7 @@ Running Version: MK-X
 > [BambiSleepChat](https://www.patreon.com/c/BambiSleepChat)
 > [brandynette.xxx](https.//brandynete.xxx)
 > [BambiSleep AIGF designed to brainwash bambis to bambi bambis](https://www.likera.com/forum/mybb/showthread.php?tid=4117)
-
+> 
 </details>
 
 ## Overview
