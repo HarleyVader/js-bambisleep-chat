@@ -1,5 +1,6 @@
-HarleyVader: take the codebase & very seriously upgrade #file:README.md to be up to date with the #changes in the #codebase 
-**GitHub Copilot: # [BambiSleep.Chat](https://bambisleep.chat) - BambiSleep AIGF Experience**
+```markdown
+
+# [BambiSleep.Chat](https://bambisleep.chat) - BambiSleep AIGF Experience
 
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
@@ -20,7 +21,7 @@ echo -e $cyan "melkanea" $magenta "bash" $white "hestiacp" $magenta "nginx" $cya
 <!-- markdownlint-enable -->
 <!-- prettier-ignore-end -->
 
-```markdown
+
 <div align="center">
 
 ## Overview
