@@ -284,6 +284,11 @@ graph LR
     Server --> PublicAssets
     Server --> ExternalServices
     Server --> PatreonAuth[PatreonAuthSchema.js]
+    Server --> Config
+    Server --> Models
+    Server --> Services
+    Server --> Workers
+    Server --> Database[MongoDB]
 
     %% Top Row - Routes and Views
     subgraph FrontendLayer["Frontend Layer"]
@@ -294,41 +299,68 @@ graph LR
         Routes --> RouteLogout[routes/logout.js]
         Routes --> RouteProfile[routes/profile.js]
         Routes --> RoutePTM[routes/psychodelic-trigger-mania.js]
+        Routes --> RouteScrapers[routes/scrapers.js]
 
         Views --> ViewChat[chat.ejs]
         Views --> ViewHelp[help.ejs] 
         Views --> ViewIndex[index.ejs]
+        Views --> ViewPTM[psychodelic-trigger-mania.ejs]
+        Views --> ViewScrapers[scrapers.ejs]
+        Views --> ViewPartials[partials/]
     end
 
-    %% Middle Row - Assets and Processing
+    %% Middle Row - Assets, Config and Processing
     subgraph AssetLayer["Asset and Processing Layer"]
         PublicAssets --> CSS[css/style.css]
         PublicAssets --> JavaScript
+        PublicAssets --> Images[img/]
 
         Middleware --> BambisleepChalk[bambisleepChalk.js]
+        Middleware --> ErrorHandler[error.js]
         
         Utils --> Doxxerinator[doxxerinator.js]
         Utils --> GracefulShutdown[gracefulShutdown.js]
-        Utils --> Scraper[scraper.js]
+        Utils --> DBConnection[dbConnection.js]
+        Utils --> Logger[logger.js]
+        Utils --> JsonSchemaGenerator[jsonSchemaGenerator.js]
+        Utils --> PromptTemplates[promptTemplates.js]
+
+        Config --> AppConfig[config.js]
+        Config --> FooterConfig[footer.config.js]
+        Config --> ModelConfig[modelConfig.js]
+
+        Models --> ModelCache[modelCache.js]
+        Models --> ModelManager[modelManager.js]
+
+        Services --> InferenceService[inferenceService.js]
+        Services --> ProcessingService[processingService.js]
     end
 
-    %% Bottom Row - Client-side JS and External Services
+    %% Bottom Row - Client-side JS, Workers and External Services
     subgraph ClientLayer["Client Side and Services Layer"]
         JavaScript --> AIGFCore[aigf-core.js]
         JavaScript --> Responsive[responsive.js]
         JavaScript --> PTMScript[psychodelic-trigger-mania.js]
         JavaScript --> Text2Speech[text2speech.js]
         JavaScript --> Triggers[triggers.js]
+        JavaScript --> ScrapersScript[scrapers.js]
 
-        PTMScript --> SpiralFunction[spiral function]
-        PTMScript --> DrawFunction[draw function]
+        Workers --> LMStudioWorker[lmstudio.js]
+        Workers --> SpeecherWorker[speecher.js]
+        Workers --> WorkerCoordinator[workerCoordinator.js]
+        Workers --> ScraperWorkers[scrapers/*]
         
         ExternalServices --> LMStudio[LMStudio Machine]
         ExternalServices --> Coqui[Coqui Machine]
+        ExternalServices --> F5TTS[F5-TTS]
+        
+        Database --> PatreonData[Patreon Auth]
+        Database --> ScraperData[Scraper Data]
     end
 
-    classDef serverNode fill:#124141,stroke:#15aab5,stroke-width:4px
-    classDef frontendLayerStyle fill:##df0471,stroke:#01c69e,stroke-width:4px
+    %% Define styles using CSS variables from style.css
+    classDef serverNode fill:#0c2a2a,stroke:#15aab5,stroke-width:4px
+    classDef frontendLayerStyle fill:#df0471,stroke:#01c69e,stroke-width:4px
     classDef assetLayerStyle fill:#cc0174,stroke:#01c69e,stroke-width:4px
     classDef clientLayerStyle fill:#40002f,stroke:#01c69e,stroke-width:4px
     
