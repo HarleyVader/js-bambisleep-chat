@@ -327,10 +327,10 @@ graph LR
         ExternalServices --> Coqui[Coqui Machine]
     end
 
-    classDef serverNode fill:#f96,stroke:#333,stroke-width:2px
-    classDef frontendLayerStyle fill:#e6f3ff,stroke:#6699cc,stroke-width:1px
-    classDef assetLayerStyle fill:#b0c4de,stroke:#6699cc,stroke-width:1px
-    classDef clientLayerStyle fill:#8ca3c3,stroke:#6699cc,stroke-width:1px
+    classDef serverNode fill:#124141,stroke:#15aab5,stroke-width:4px
+    classDef frontendLayerStyle fill:##df0471,stroke:#01c69e,stroke-width:4px
+    classDef assetLayerStyle fill:#cc0174,stroke:#01c69e,stroke-width:4px
+    classDef clientLayerStyle fill:#40002f,stroke:#01c69e,stroke-width:4px
     
     class Server serverNode
     class FrontendLayer frontendLayerStyle
