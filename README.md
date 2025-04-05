@@ -1,5 +1,17 @@
-# [BambiSleep.Chat](https://bambisleep.chat)
-👁️ A r/bambisleep targeted AIGF (AI Girlfriend) Brainwashing, Mindfuckery Psychodelic Spiral, Trigger Mania, Neurolinguistic Programing, Cognitive Behavioural Therapy
+# 🧠 [BambiSleep.Chat](https://bambisleep.chat) 👁️
+💖 A [r/bambisleep](https://www.reddit.com/r/BambiSleep/) targeted Hypnotic AIGF (AI Girlfriend) 🤖
+
+<details>
+<summary>My AIGF will reprogram your OS if bambi lets her</summary>
+
+> Brainwashing 
+> Mindfuckery 
+> Psychodelic Spiral 
+> Trigger Mania
+> Neurolinguistic Programing
+> Cognitive Behavioural Therapy
+
+<details>
 
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
