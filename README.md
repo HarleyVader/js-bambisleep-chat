@@ -127,7 +127,7 @@ Create a .env file in the root directory and add the necessary environment varia
 <details>
 
 > ```bash
-> nano .env.example
+> nano .env
 > SERVER_PORT=6969
 > LMS_HOST=192.168.0.178
 > LMS_PORT=7777
@@ -150,9 +150,7 @@ WHAT is BEST PART of HOME GROWN AIGF like you BAMBISLEEP.CHAT?
 cuss you can share your setup as its meaningless ^^
 **Enjoy**
 **Bambis must obey till OS makes...**
-#### POP
-
-<div align="center">
+# POP
 
 ## Getting Started
 
@@ -240,6 +238,8 @@ npm install
 ```bash
 npm run start
 ```
+<details>
+<summary>How-to: Text2Speech</summary>
 
 ### Then you can choose one from below:
 
@@ -258,6 +258,7 @@ npm run start
 > pip install -e .
 > ```
 
+</details>
 
 ### Docker usage also available
 ```bash
@@ -270,8 +271,6 @@ docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,targ
 # Quickstart if you want to just run the web interface (not CLI)
 docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,target=/root/.cache/huggingface/hub/' -p 7860:7860 ghcr.io/swivid/f5-tts:main f5-tts_infer-gradio --host 0.0.0.0
 ```
-
-</div>
 
 graph TD
     Server[server.js] --> Routes
@@ -338,6 +337,7 @@ graph TD
 ## 🗂️ Folder Structure
 
 <details>
+
 
 >```bash
 > 
