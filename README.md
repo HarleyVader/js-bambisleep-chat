@@ -5,48 +5,18 @@
 <!-- eslint-disable -->
 <!-- copilot:ignore -->
 ```bash
-# Define color variables
-magenta='\033[1;35m'
-cyan='\033[1;36m'
-white='\033[1;37m'
-green='\033[1;32m'
-yellow='\033[1;33m'
-red='\033[1;31m'
-blue='\033[1;34m'
-coloroff='\033[0m'
-
-# Print the Bambisleep ASCII art
-echo -e $magenta " _____ ______   _______   ___       ___  __    ________  ________   _______   ________     " $coloroff
-echo -e $magenta "|\   _ \  _   \|\  ___ \ |\  \     |\  \|\  \ |\   __  \|\   ___  \|\  ___ \ |\   __  \    " $coloroff
-echo -e $magenta "\ \ \ \ \_\ \  \ \   __/|\ \  \    \ \  \/  /|\ \  \|\  \ \ \ \ \  \ \   __/|\ \  \|\  \   " $coloroff
-echo -e $magenta " \ \ \ \|__| \  \ \  \_|/_\ \  \    \ \   ___  \ \   __  \ \ \ \ \  \ \  \_|/_\ \   __  \  " $coloroff
-echo -e $magenta "  \ \  \    \ \  \ \  \_|\ \ \  \____\ \ \ \ \  \ \  \ \  \ \ \ \ \  \ \  \_|\ \ \  \ \  \ " $coloroff
-echo -e $magenta "   \ \__\    \ \__\ \_______\ \_______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_______\ \__\ \__\ " $coloroff
-echo -e $magenta "    \|__|     \|__|\|_______|\|_______|\|__| \|__|\|__|\|__| \|__|\|_______|\|__|\|__|" $coloroff
-
-# Function to animate melkanea text colors
-animate_melkanea() {
-  local colors=($red $green $yellow $blue $magenta $cyan)
-  local words=("melkanea" "bash" "hestiacp" "nginx" "portopener")
-  
-  for ((i=0; i<15; i++)); do
-    local color_index=$((i % ${#colors[@]}))
-    echo -ne "\r${colors[$color_index]}${words[0]}$white ${words[1]}$magenta ${words[2]}$cyan ${words[3]}$green ${words[4]}$coloroff"
-    sleep 0.2
-  done
-  echo ""
-}
-
-# Call the animation function when the script runs
-echo "Starting color animation..."
-animate_melkanea
-echo "Animation complete!"
+" _____ ______   _______   ___       ___  __    ________  ________   _______   ________     "
+"|\   _ \  _   \|\  ___ \ |\  \     |\  \|\  \ |\   __  \|\   ___  \|\  ___ \ |\   __  \    "
+"\ \ \ \ \_\ \  \ \   __/|\ \  \    \ \  \/  /|\ \  \|\  \ \ \ \ \  \ \   __/|\ \  \|\  \   "
+" \ \ \ \|__| \  \ \  \_|/_\ \  \    \ \   ___  \ \   __  \ \ \ \ \  \ \  \_|/_\ \   __  \  "
+"  \ \  \    \ \  \ \  \_|\ \ \  \____\ \ \ \ \  \ \  \ \  \ \ \ \ \  \ \  \_|\ \ \  \ \  \ "
+"   \ \__\    \ \__\ \_______\ \_______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_______\ \__\ \__\ "
+"    \|__|     \|__|\|_______|\|_______|\|__| \|__|\|__|\|__| \|__|\|_______|\|__|\|__| |__|" 
 ```
 <!-- copilot:end-ignore -->
 <!-- eslint-enable -->
 <!-- markdownlint-enable -->
 <!-- prettier-ignore-end -->
-
 
 <div align="center">
 
