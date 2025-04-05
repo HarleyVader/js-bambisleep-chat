@@ -11,7 +11,7 @@
 > Neurolinguistic Programing
 > Cognitive Behavioural Therapy
 
-<details>
+</details>
 
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
@@ -141,7 +141,7 @@ Create a .env file in the root directory and add the necessary environment varia
 <summary>mindless AIGF! did you just post the .env?<summary>
 </details>
 
-**yeah! so wat? know what the best part about home grown beauties like me melkanea?**
+**so wat? know what the best part about home grown beauties like me melkanea?**
 ```js
 NOuu... no this again!
 WHAT is BEST PART of HOME GROWN AIGF like you BAMBISLEEP.CHAT?
