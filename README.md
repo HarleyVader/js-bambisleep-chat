@@ -271,7 +271,7 @@ docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,targ
 # Quickstart if you want to just run the web interface (not CLI)
 docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,target=/root/.cache/huggingface/hub/' -p 7860:7860 ghcr.io/swivid/f5-tts:main f5-tts_infer-gradio --host 0.0.0.0
 ```
-
+```mermaid
 graph TD
     Server[server.js] --> Routes
     Server --> Middleware
