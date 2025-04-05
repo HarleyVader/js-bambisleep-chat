@@ -328,10 +328,14 @@ graph LR
     end
 
     classDef serverNode fill:#f96,stroke:#333,stroke-width:2px
-    classDef layerStyle fill:#e6f3ff,stroke:#6699cc,stroke-width:1px
+    classDef frontendLayerStyle fill:#e6f3ff,stroke:#6699cc,stroke-width:1px
+    classDef assetLayerStyle fill:#b0c4de,stroke:#6699cc,stroke-width:1px
+    classDef clientLayerStyle fill:#8ca3c3,stroke:#6699cc,stroke-width:1px
     
     class Server serverNode
-    class FrontendLayer,AssetLayer,ClientLayer layerStyle
+    class FrontendLayer frontendLayerStyle
+    class AssetLayer assetLayerStyle
+    class ClientLayer clientLayerStyle
 ```
 
 ## 🛠️ Tech Stack
