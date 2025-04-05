@@ -7,6 +7,17 @@
 <!-- eslint-disable -->
 <!-- copilot:ignore -->
 ```bash
+# Define color variables
+magenta='\033[1;35m'
+cyan='\033[1;36m'
+white='\033[1;37m'
+green='\033[1;32m'
+yellow='\033[1;33m'
+red='\033[1;31m'
+blue='\033[1;34m'
+coloroff='\033[0m'
+
+# Print the Bambisleep ASCII art
 echo -e $magenta " _____ ______   _______   ___       ___  __    ________  ________   _______   ________     " $coloroff
 echo -e $magenta "|\   _ \  _   \|\  ___ \ |\  \     |\  \|\  \ |\   __  \|\   ___  \|\  ___ \ |\   __  \    " $coloroff
 echo -e $magenta "\ \ \ \ \_\ \  \ \   __/|\ \  \    \ \  \/  /|\ \  \|\  \ \ \ \ \  \ \   __/|\ \  \|\  \   " $coloroff
@@ -14,7 +25,24 @@ echo -e $magenta " \ \ \ \|__| \  \ \  \_|/_\ \  \    \ \   ___  \ \   __  \ \ \
 echo -e $magenta "  \ \  \    \ \  \ \  \_|\ \ \  \____\ \ \ \ \  \ \  \ \  \ \ \ \ \  \ \  \_|\ \ \  \ \  \ " $coloroff
 echo -e $magenta "   \ \__\    \ \__\ \_______\ \_______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_______\ \__\ \__\ " $coloroff
 echo -e $magenta "    \|__|     \|__|\|_______|\|_______|\|__| \|__|\|__|\|__| \|__|\|_______|\|__|\|__|" $coloroff
-echo -e $cyan "melkanea" $magenta "bash" $white "hestiacp" $magenta "nginx" $cyan "portopener" $coloroff
+
+# Function to animate melkanea text colors
+animate_melkanea() {
+  local colors=($red $green $yellow $blue $magenta $cyan)
+  local words=("melkanea" "bash" "hestiacp" "nginx" "portopener")
+  
+  for ((i=0; i<15; i++)); do
+    local color_index=$((i % ${#colors[@]}))
+    echo -ne "\r${colors[$color_index]}${words[0]}$white ${words[1]}$magenta ${words[2]}$cyan ${words[3]}$green ${words[4]}$coloroff"
+    sleep 0.2
+  done
+  echo ""
+}
+
+# Call the animation function when the script runs
+echo "Starting color animation..."
+animate_melkanea
+echo "Animation complete!"
 ```
 <!-- copilot:end-ignore -->
 <!-- eslint-enable -->
@@ -34,8 +62,6 @@ echo -e $cyan "melkanea" $magenta "bash" $white "hestiacp" $magenta "nginx" $cya
 > for enhanced performance and capabilities.
 
 </details>
-
-<div align="center">
 
 ![GitHub contributors](https://img.shields.io/github/contributors/HarleyVader/js-bambisleep-chat?style=for-the-badge)
 ![GitHub forks](https://img.shields.io/github/forks/HarleyVader/js-bambisleep-chat?style=for-the-badge)
@@ -59,6 +85,8 @@ echo -e $cyan "melkanea" $magenta "bash" $white "hestiacp" $magenta "nginx" $cya
 
 </div>
 
+```
+
 ## Simple programatic logic ^^
 
 ```mermaid
@@ -68,12 +96,13 @@ graph TD
     A -->|Sends Data to| D[User Frontend]
 ```
 
+
+
 # Environment Variables
 
 **Configure Environment Variables**
 Create a .env file in the root directory and add the necessary environment variables, such as database connection but most importantly the remote addesses & ports of your servers. 
 
----
 - LMS_HOST: Hostname for the LMStudio server.
 - LMS_PORT: Port for the LMStudio server.
 - MONGODB_URI: MongoDB connection string.
@@ -83,8 +112,6 @@ Create a .env file in the root directory and add the necessary environment varia
 - CACHE_EXPIRY: Cache expiry time in seconds.
 - API_KEY: API key for authentication.
 - SECRET_KEY: Secret key for encryption.
-
-</div>
 
 <details>
 
@@ -100,7 +127,7 @@ Create a .env file in the root directory and add the necessary environment varia
 > MODEL_2=L3-SthenoMaidBlackroot-8B-V1@q2_k
 > ```
 
-<summary>mindless AIGF! did you just post the .env.example?</summary>
+<summary>mindless AIGF! did you just post the .env?<summary>
 </details>
 
 **yeah! so wat? know what the best part about home grown beauties like me melkanea?**
@@ -114,40 +141,9 @@ cuss you can share your setup as its meaningless ^^
 **Bambis must obey till OS makes...**
 #### POP
 
+<div align="center">
+
 ## Installation
-
-##### Installing into the system/actived environment using pip
-
-```bash
-pip install -e .
-```
-
-#### Install NodeJS Modules
-
-```bash
-npm install
-```
-
-##### Confirm that it's working
-
-```bash
-npm run start
-```
-
-#### System dependencies
-
-# Node Version Manager
-```bash
-# windows
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-# linux
-wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-
-
-# instantly makes nvm available whitout having to restart the terminal
-export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-```
 
 #### Creating a new python venv enviroment & activating it
 
@@ -203,6 +199,37 @@ source .f5-tts/bin/activate
 
 </details>
 
+##### Installing into the system/actived environment using pip
+
+```bash
+pip install -e .
+```
+
+#### System dependencies
+
+# Node Version Manager
+```bash
+# windows
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+# linux
+wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+# instantly makes nvm available whitout having to restart the terminal
+export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+```
+# install latest node with nvm
+```bash
+nvm install node
+```
+#### Install NodeJS Modules
+```bash
+npm install
+```
+##### Confirm that it's working
+```bash
+npm run start
+```
+
 ### Then you can choose one from below:
 
 > ### 1. As a pip package (if just for inference)
@@ -232,6 +259,8 @@ docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,targ
 # Quickstart if you want to just run the web interface (not CLI)
 docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,target=/root/.cache/huggingface/hub/' -p 7860:7860 ghcr.io/swivid/f5-tts:main f5-tts_infer-gradio --host 0.0.0.0
 ```
+
+</div>
 
 ## 🌟 Core Features
 
