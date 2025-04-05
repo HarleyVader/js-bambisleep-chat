@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('./partials/nav.ejs') %>
+    <title>Error - BambiSleep</title>
+    <style>
+        .error-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: var(--bg-color-secondary);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .error-status {
+            font-size: 4rem;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+        }
+        
+        .error-message {
+            margin-bottom: 30px;
+            font-size: 1.2rem;
+        }
+        
+        .error-stack {
+            text-align: left;
+            padding: 15px;
+            background-color: var(--bg-color);
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+        
+        .back-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .back-button:hover {
+            background-color: var(--accent-color-hover);
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-status"><%= error.status || 500 %></div>
+        <div class="error-message"><%= message %></div>
+        
+        <% if (error.status === 403) { %>
+            <p>You must set a BambiName in order to access this feature.</p>
+            <p>Return to the home page and set your BambiName by clicking the "Set BambiName" button.</p>
+        <% } else { %>
+            <p>Something went wrong. Please try again later.</p>
+        <% } %>
+        
+        <a href="/" class="back-button">Back to Home</a>
+        
+        <% if (error.stack && error.stack.length > 0) { %>
+            <div class="error-stack">
+                <pre><%= error.stack %></pre>
+            </div>
+        <% } %>
+    </div>
+</body>
+</html>

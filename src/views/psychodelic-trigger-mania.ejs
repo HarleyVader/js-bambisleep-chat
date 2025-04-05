@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include('partials/head') %>
+        <title>Psychodelic Trigger Mania</title>
+        <style>
+            #eyeCursor {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+</head>
+
+<body>
+    <%- include('partials/nav') %>
+        <div>
+            <h1>Psychodelic Trigger Mania</h1>
+            <input type="file" id="upload-file" accept=".txt">
+            <div id="system-controls-container">
+                <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
+            </div>
+            <p id="message"></p>
+        </div>
+        <div id="chat-container">
+            <div id="response-container">
+                <div id="eyeCursor">
+                    <div id="eye" aria-label="Eye Cursor"></div>
+                </div>
+            </div>
+        </div>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
+        <script src="js/psychodelic-trigger-mania.js"></script>
+        <script src="js/text2speech.js"></script>
+        <script src="js/responsive.js"></script>
+        <script src="js/triggers.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="js/aigf-core.js"></script>
+        <script>
+            const audio = document.createElement('audio');
+            document.body.appendChild(audio);
+            let _textArray = [];
+            let _urlArray = [];
+            let state = true;
+
+            document.getElementById('upload-file').addEventListener('change', function (event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const fileContent = e.target.result;
+                        processText(fileContent);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+
+            function processText(_text) {
+                _textArray = _text.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
+                _urlArray = _textArray.map(sentence => `/api/tts?text=${encodeURIComponent(sentence)}`);
+                console.log('URL array:', _urlArray);
+                return _urlArray;
+            }
+
+            async function do_tts(_urlArray) {
+                document.querySelector("#message").textContent = "Synthesizing...";
+
+                while (_urlArray.length > 0) {
+                    let currentURL = _urlArray.shift();
+                    audio.src = currentURL;
+                    console.log("audio.src ", audio.src);
+                    audio.load();
+                    await new Promise((resolve, reject) => {
+                        audio.onloadedmetadata = function () {
+                            console.log("audio ", audio);
+                            console.log("audio.duration ", audio.duration);
+                            document.querySelector("#message").textContent = "Playing...";
+                            audio.play();
+                        };
+                        audio.onended = function () {
+                            console.log("audio ended");
+                            document.querySelector("#message").textContent = "Finished!";
+                            resolve();
+                        };
+                        audio.onerror = function (e) {
+                            console.error("Error playing audio:", e);
+                            document.querySelector("#message").textContent = "Error playing audio." + e;
+                            reject(e);
+                        };
+                    });
+                }
+            }
+
+            function handleAudioPlay() {
+                console.log('Audio is playing');
+                const duration = audio.duration * 1000;
+                new Promise(resolve => setTimeout(resolve, duration));
+                flashTrigger(text, duration);
+                applyUppercaseStyle();
+            }
+
+            function handleAudioEnded() {
+                console.log('Audio has ended');
+                if (_urlArray.length > 0) {
+                    do_tts(_urlArray);
+                }
+            }
+
+            audio.addEventListener('ended', handleAudioEnded);
+            audio.addEventListener('play', handleAudioPlay);
+        </script>
+</body>
+
+</html>
