@@ -346,7 +346,6 @@ graph TD
 > tree -I "node_modules|.env|.vscode|package-lock.json|*.test.js|darkside|assets/audio|assets/text2speech|.f5-tts" --dirsfirst > folder-structure.md
 >```
 
-</details>
 
 ```bash
 .
@@ -620,3 +619,5 @@ graph TD
 
 59 directories, 209 files
 ```
+
+</details>
