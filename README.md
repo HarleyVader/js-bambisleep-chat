@@ -18,7 +18,6 @@
 <!-- markdownlint-enable -->
 <!-- prettier-ignore-end -->
 
-```markdown
 <div align="center">
 
 ## Overview
@@ -53,8 +52,6 @@
 [License](#-license)
 
 </div>
-
-```
 
 ## Simple programatic logic ^^
 
