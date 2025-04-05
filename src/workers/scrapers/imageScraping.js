@@ -4,8 +4,9 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import * as cheerio from 'cheerio';
 import { BaseWorker } from './baseWorker.js';
-import { patterns } from '../../middleware/bambisleepChalk.js';
 import Logger from '../../utils/logger.js';
+import connectToMongoDB from '../../utils/dbConnection.js';
+import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../gracefulShutdown.js';
 
 dotenv.config();
 
@@ -37,11 +38,11 @@ const ImageContentSchema = new mongoose.Schema({
 // Set up MongoDB connection
 const setupMongoDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep');
-    logger.success('MongoDB connected successfully');
+    await connectToMongoDB();
+    logger.success('Image scraper connected to MongoDB');
     return mongoose.model('BambiImageContent', ImageContentSchema);
   } catch (error) {
-    logger.error('MongoDB connection error:', error.message);
+    logger.error('Image scraper MongoDB setup error:', error.message);
     throw error;
   }
 };
@@ -97,6 +98,9 @@ const scrapeImageContent = async (url, ImageContentModel) => {
 let ImageContentModel;
 let isInitialized = false;
 
+// Set up shutdown handlers
+setupWorkerShutdownHandlers('ImageScraper');
+
 parentPort.on('message', async (msg) => {
   try {
     // Initialize MongoDB connection if not already done
@@ -116,9 +120,8 @@ parentPort.on('message', async (msg) => {
         break;
         
       case 'shutdown':
-        logger.info('Shutting down image scraping worker...');
-        await mongoose.connection.close();
-        process.exit(0);
+        logger.info('Received shutdown command from parent');
+        await workerGracefulShutdown('ImageScraper');
         break;
         
       default:

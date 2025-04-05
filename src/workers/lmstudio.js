@@ -1,8 +1,11 @@
 import { parentPort } from 'worker_threads';
 import axios from 'axios';
 import dotenv from 'dotenv';
-import { patterns } from '../middleware/bambisleepChalk.js';
 import Logger from '../utils/logger.js';
+// Add database connection import (if needed for future DB operations)
+import connectToMongoDB from '../utils/dbConnection.js';
+// Add this import near the top
+import workerGracefulShutdown, { setupWorkerShutdownHandlers } from './gracefulShutdown.js';
 
 // Initialize logger
 const logger = new Logger('LMStudio');
@@ -17,6 +20,9 @@ let finalContent;
 let state = false;
 
 logger.info('Starting lmstudio worker...');
+
+// Set up shutdown handlers
+setupWorkerShutdownHandlers('LMStudio');
 
 parentPort.on('message', async (msg) => {
   try {
@@ -35,7 +41,7 @@ parentPort.on('message', async (msg) => {
         break;
       case 'shutdown':
         logger.info('Shutting down lmstudio worker...');
-        process.exit(0);
+        await workerGracefulShutdown('LMStudio');
         break;
       default:
         logger.warning(`Unknown message type: ${msg.type}`);

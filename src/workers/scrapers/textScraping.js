@@ -7,6 +7,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import connectToMongoDB from '../../utils/dbConnection.js';
+import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../gracefulShutdown.js';
 
 // Initialize logger
 const logger = new Logger('TextScraper');
@@ -64,11 +66,11 @@ const ContentSchema = new mongoose.Schema({
 // Set up MongoDB connection
 const setupMongoDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep');
-    logger.success('MongoDB connected successfully');
+    await connectToMongoDB();
+    logger.success('Text scraper connected to MongoDB');
     return mongoose.model('BambiContent', ContentSchema);
   } catch (error) {
-    logger.error('MongoDB connection error:', error.message);
+    logger.error('Text scraper MongoDB setup error:', error.message);
     throw error;
   }
 };
@@ -226,6 +228,8 @@ const scanDirectory = async (dirPath, ContentModel) => {
 let ContentModel;
 let isInitialized = false;
 
+setupWorkerShutdownHandlers('TextScraper');
+
 parentPort.on('message', async (msg) => {
   try {
     // Initialize MongoDB connection if not already done
@@ -274,9 +278,8 @@ parentPort.on('message', async (msg) => {
         break;
         
       case 'shutdown':
-        logger.info('Shutting down goodScraping worker...');
-        await mongoose.connection.close();
-        process.exit(0);
+        logger.info('Received shutdown command from parent');
+        await workerGracefulShutdown('TextScraper');
         break;
         
       default:

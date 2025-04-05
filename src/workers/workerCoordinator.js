@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import Logger from '../utils/logger.js';
+import connectToMongoDB from '../utils/dbConnection.js';
 
 // Create ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -34,36 +35,57 @@ class WorkerCoordinator {
     this.pendingRequests = new Map();
     this.requestIdCounter = 0;
     this.models = []; // Array to hold loaded models
+    this.initialized = false;
   }
 
   async initialize() {
-    // Load models
-    const modelNames = [
-      'llama-3.2-3b-claude-3.7-sonnet-reasoning-distilled@q4_0',
-      'another-model-name' // Replace with the second model name as needed
-    ];
-    
-    for (const modelName of modelNames) {
-      const modelId = await selectLoadedModels(modelName);
-      this.models.push(modelId);
+    if (this.initialized) {
+      logger.info('Worker coordinator already initialized');
+      return true;
     }
+    
+    try {
+      // Ensure database connection is established first
+      await connectToMongoDB();
+      
+      // Load models
+      const modelNames = [
+        'llama-3.2-3b-claude-3.7-sonnet-reasoning-distilled@q4_0',
+        'another-model-name' // Replace with the second model name as needed
+      ];
+      
+      for (const modelName of modelNames) {
+        try {
+          const modelId = await selectLoadedModels(modelName);
+          this.models.push(modelId);
+        } catch (error) {
+          logger.error(`Error loading model ${modelName}:`, error);
+          // Continue with initialization even if model loading fails
+        }
+      }
 
-    // Create and start text worker
-    this.workers.text = new Worker(path.join(__dirname, 'scrapers/textScraping.js'));
-    this.workers.text.on('message', this.handleWorkerMessage.bind(this));
-    this.workers.text.on('error', this.handleWorkerError.bind(this));
-    
-    // Create and start image worker
-    this.workers.image = new Worker(path.join(__dirname, 'scrapers/imageScraping.js'));
-    this.workers.image.on('message', this.handleWorkerMessage.bind(this));
-    this.workers.image.on('error', this.handleWorkerError.bind(this));
-    
-    // Create and start video worker
-    this.workers.video = new Worker(path.join(__dirname, 'scrapers/videoScraping.js'));
-    this.workers.video.on('message', this.handleWorkerMessage.bind(this));
-    this.workers.video.on('error', this.handleWorkerError.bind(this));
-    
-    logger.info('All workers initialized and started');
+      // Create and start text worker
+      this.workers.text = new Worker(path.join(__dirname, 'scrapers/textScraping.js'));
+      this.workers.text.on('message', this.handleWorkerMessage.bind(this));
+      this.workers.text.on('error', this.handleWorkerError.bind(this));
+      
+      // Create and start image worker
+      this.workers.image = new Worker(path.join(__dirname, 'scrapers/imageScraping.js'));
+      this.workers.image.on('message', this.handleWorkerMessage.bind(this));
+      this.workers.image.on('error', this.handleWorkerError.bind(this));
+      
+      // Create and start video worker
+      this.workers.video = new Worker(path.join(__dirname, 'scrapers/videoScraping.js'));
+      this.workers.video.on('message', this.handleWorkerMessage.bind(this));
+      this.workers.video.on('error', this.handleWorkerError.bind(this));
+      
+      this.initialized = true;
+      logger.info('All workers initialized and started');
+      return true;
+    } catch (error) {
+      logger.error('Error initializing worker coordinator:', error);
+      return false;
+    }
   }
 
   generateRequestId() {
@@ -149,17 +171,21 @@ class WorkerCoordinator {
   }
 
   async shutdown() {
-    logger.info('Shutting down all workers...');
-    
-    const shutdownPromises = Object.entries(this.workers).map(([type, worker]) => {
-      return new Promise((resolve) => {
-        worker.on('exit', resolve);
-        worker.postMessage({ type: 'shutdown' });
-      });
-    });
-    
-    await Promise.all(shutdownPromises);
-    logger.success('All workers shut down successfully');
+    try {
+      logger.info('Shutting down worker coordinator...');
+      
+      // Shutdown all workers
+      for (const [type, worker] of Object.entries(this.workers)) {
+        if (worker) {
+          worker.postMessage({ type: 'shutdown' });
+          logger.info(`Sent shutdown signal to ${type} worker`);
+        }
+      }
+      
+      logger.success('Worker coordinator shutdown complete');
+    } catch (error) {
+      logger.error('Error shutting down worker coordinator:', error);
+    }
   }
 }
 

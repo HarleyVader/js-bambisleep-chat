@@ -1,11 +1,11 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import fs from 'fs/promises';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { parentPort } from 'worker_threads';
-import { patterns } from '../../middleware/bambisleepChalk.js';
 import Logger from '../../utils/logger.js';
+import connectToMongoDB from '../../utils/dbConnection.js';
+import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../gracefulShutdown.js';
 
 // Initialize logger
 const logger = new Logger('VideoScraper');
@@ -36,11 +36,11 @@ const VideoContentSchema = new mongoose.Schema({
 // Set up MongoDB connection
 const setupMongoDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep');
-    logger.success('MongoDB connected successfully');
+    await connectToMongoDB();
+    logger.success('Video scraper connected to MongoDB');
     return mongoose.model('BambiVideoContent', VideoContentSchema);
   } catch (error) {
-    logger.error('MongoDB connection error:', error.message);
+    logger.error('Video scraper MongoDB setup error:', error.message);
     throw error;
   }
 };
@@ -93,6 +93,8 @@ const scrapeVideoContent = async (url, VideoContentModel) => {
 let VideoContentModel;
 let isInitialized = false;
 
+setupWorkerShutdownHandlers('VideoScraper');
+
 parentPort.on('message', async (msg) => {
   try {
     // Initialize MongoDB connection if not already done
@@ -112,9 +114,8 @@ parentPort.on('message', async (msg) => {
         break;
         
       case 'shutdown':
-        logger.info('Shutting down video scraping worker...');
-        await mongoose.connection.close();
-        process.exit(0);
+        logger.info('Received shutdown command from parent');
+        await workerGracefulShutdown('VideoScraper');
         break;
         
       default:

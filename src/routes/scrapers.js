@@ -1,6 +1,5 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import { patterns } from '../middleware/bambisleepChalk.js';
 import Logger from '../utils/logger.js';
 import workerCoordinator from '../workers/workerCoordinator.js';
 
@@ -78,6 +77,14 @@ const requireBambiAuth = (req, res, next) => {
 // Route to render the scrapers dashboard
 router.get('/', requireBambiAuth, async (req, res) => {
   try {
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).render('error', {
+        message: 'Database connection unavailable. Please try again later.',
+        error: { status: 503, stack: '' }
+      });
+    }
+    
     // Fetch submissions for each type
     const textSubmissions = await SubmissionModel.find({ scrapeType: 'text' }).sort({ submittedAt: -1 }).limit(50);
     const imageSubmissions = await SubmissionModel.find({ scrapeType: 'image' }).sort({ submittedAt: -1 }).limit(50);
@@ -225,4 +232,28 @@ router.get('/detail/:id', requireBambiAuth, async (req, res) => {
   }
 });
 
+// Initialize the scrapers system
+const initializeScrapers = async () => {
+  try {
+    logger.info('Initializing scrapers system...');
+    
+    // Make sure MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      logger.warning('MongoDB not connected. Scrapers initialization waiting for database connection...');
+      return false;
+    }
+    
+    // Initialize worker coordinator for scrapers
+    await workerCoordinator.initialize();
+    
+    logger.success('Scrapers system initialized successfully');
+    return true;
+  } catch (error) {
+    logger.error('Failed to initialize scrapers system:', error);
+    return false;
+  }
+};
+
+// Export both the router and the initialization function
 export default router;
+export { initializeScrapers, SubmissionModel };
