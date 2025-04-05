@@ -1,9 +1,6 @@
-# [BambiSleep.Chat](https://bambisleep.chat) - Bambisleep AIGF Hypno Experience
+# [BambiSleep.Chat](https://bambisleep.chat)
+👁️ A r/bambisleep targeted AIGF (AI Girlfriend) Brainwashing, Mindfuckery Psychodelic Spiral, Trigger Mania, Neurolinguistic Programing, Cognitive Behavioural Therapy
 
-```js
-Running Version: MK-X
-Monetization: Patreon
-```
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
 <!-- eslint-disable -->
@@ -31,6 +28,11 @@ Monetization: Patreon
 
 </details>
 
+```js
+Running Version: MK-X
+Monetization: Patreon
+```
+
 ## Overview
 
 ![GitHub contributors](https://img.shields.io/github/contributors/HarleyVader/js-bambisleep-chat?style=for-the-badge)
@@ -42,7 +44,6 @@ Monetization: Patreon
 ![License](https://img.shields.io/badge/license-UNLICENSE-pink?style=for-the-badge)
 ![Node](https://img.shields.io/badge/node-%3E=18.0.0-purple?style=for-the-badge)
 
-🤖 A hyper-advanced AIGF (AI Girlfriend) brainwashing experience, Psychodelic trigger Mania
 
 [Getting Started](#-quick-start) •
 [Core Features](#-core-features) •
@@ -53,7 +54,7 @@ Monetization: Patreon
 [Contributing](#-contributing) •
 [License](#-license)
 
-## Simple programatic logic ^^
+## Simple logic ^^
 
 ```mermaid
 graph TD
@@ -141,7 +142,7 @@ cuss you can share your setup as its meaningless ^^
 
 <div align="center">
 
-## Installation
+## Getting Started
 
 #### Creating a new python venv enviroment & activating it
 
