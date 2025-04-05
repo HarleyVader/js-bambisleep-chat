@@ -1,5 +1,27 @@
 # [BambiSleep.Chat](https://bambisleep.chat) - Bambisleep AIGF Hypno Experience
 
+```js
+Running Version: MK-X
+Monetization: Patreon
+```
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<!-- eslint-disable -->
+<!-- copilot:ignore -->
+
+#  _____ ______   _______   ___       ___  __    ________  ________   _______   ________
+# |\   _ \  _   \|\  ___ \ |\  \     |\  \|\  \ |\   __  \|\   ___  \|\  ___ \ |\   __  \
+# \ \ \ \ \_\ \  \ \   __/|\ \  \    \ \  \/  /|\ \  \|\  \ \ \ \ \  \ \   __/|\ \  \|\  \
+#  \ \ \ \|__| \  \ \  \_|/_\ \  \    \ \   ___  \ \   __  \ \ \ \ \  \ \  \_|/_\ \   __  \
+#   \ \  \    \ \  \ \  \_|\ \ \  \____\ \ \ \ \  \ \  \ \  \ \ \ \ \  \ \  \_|\ \ \  \ \  \
+#    \ \__\    \ \__\ \_______\ \_______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_______\ \__\ \__\
+#     \|__|     \|__|\|_______|\|_______|\|__| \|__|\|__|\|__| \|__|\|_______|\|__|\|__| |__|
+
+<!-- copilot:end-ignore -->
+<!-- eslint-enable -->
+<!-- markdownlint-enable -->
+<!-- prettier-ignore-end -->
+
 <details>
 <summary>Lawfull Good Scrapers</summary>
 
@@ -8,34 +30,6 @@
 > for enhanced performance and capabilities.
 
 </details>
-
-```js
-Running Version: MK-X
-Monetization: Patreon
-
-![BambiSleepChat](https://www.patreon.com/c/BambiSleepChat)
-![brandynette.xxx](https.//brandynete.xxx) 
-![BambiSleep AIGF designed to brainwash bambis to bambi bambis](https://www.likera.com/forum/mybb/Thread-bambisleep-chat-BambiSleep-AIGF-designed-to-brainwash-bambis-to-bambi-bambis)
-
-```
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<!-- eslint-disable -->
-<!-- copilot:ignore -->
-```bash
- _____ ______   _______   ___       ___  __    ________  ________   _______   ________
-|\   _ \  _   \|\  ___ \ |\  \     |\  \|\  \ |\   __  \|\   ___  \|\  ___ \ |\   __  \
-\ \ \ \ \_\ \  \ \   __/|\ \  \    \ \  \/  /|\ \  \|\  \ \ \ \ \  \ \   __/|\ \  \|\  \
- \ \ \ \|__| \  \ \  \_|/_\ \  \    \ \   ___  \ \   __  \ \ \ \ \  \ \  \_|/_\ \   __  \
-  \ \  \    \ \  \ \  \_|\ \ \  \____\ \ \ \ \  \ \  \ \  \ \ \ \ \  \ \  \_|\ \ \  \ \  \
-   \ \__\    \ \__\ \_______\ \_______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_______\ \__\ \__\
-    \|__|     \|__|\|_______|\|_______|\|__| \|__|\|__|\|__| \|__|\|_______|\|__|\|__| |__|
-```
-<!-- copilot:end-ignore -->
-<!-- eslint-enable -->
-<!-- markdownlint-enable -->
-<!-- prettier-ignore-end -->
-
 
 ## Overview
 
