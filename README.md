@@ -34,8 +34,17 @@ Running Version: MK-X
 <details>
 <summary>Monetization: Patreon<summary>
 
+> 
+> 
+> 
+
+</details>
+
+<details>
+<summary>Lawfull Good Scrapers</summary>
+
 > [BambiSleepChat](https://www.patreon.com/c/BambiSleepChat)
-> [brandynette.xxx](https.//brandynete.xxx)
+> [brandynette.xxx](https.//brandynete.xxx) 
 > [BambiSleep AIGF designed to brainwash bambis to bambi bambis](https://www.likera.com/forum/mybb/Thread-bambisleep-chat-BambiSleep-AIGF-designed-to-brainwash-bambis-to-bambi-bambis)
 
 </details>
