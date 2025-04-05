@@ -1,6 +1,10 @@
 HarleyVader: take the codebase & very seriously upgrade #file:README.md to be up to date with the #changes in the #codebase 
 **GitHub Copilot: # [BambiSleep.Chat](https://bambisleep.chat) - BambiSleep AIGF Experience**
 
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<!-- eslint-disable -->
+<!-- copilot:ignore -->
 ```bash
 echo -e $magenta " _____ ______   _______   ___       ___  __    ________  ________   _______   ________     " $coloroff
 echo -e $magenta "|\   _ \  _   \|\  ___ \ |\  \     |\  \|\  \ |\   __  \|\   ___  \|\  ___ \ |\   __  \    " $coloroff
@@ -11,8 +15,10 @@ echo -e $magenta "   \ \__\    \ \__\ \_______\ \_______\ \_\ \ \__\ \__\ \__\ \
 echo -e $magenta "    \|__|     \|__|\|_______|\|_______|\|__| \|__|\|__|\|__| \|__|\|_______|\|__|\|__|" $coloroff
 echo -e $cyan "melkanea" $magenta "bash" $white "hestiacp" $magenta "nginx" $cyan "portopener" $coloroff
 ```
-
-
+<!-- copilot:end-ignore -->
+<!-- eslint-enable -->
+<!-- markdownlint-enable -->
+<!-- prettier-ignore-end -->
 
 ```markdown
 <div align="center">
@@ -27,6 +33,39 @@ echo -e $cyan "melkanea" $magenta "bash" $white "hestiacp" $magenta "nginx" $cya
 > for enhanced performance and capabilities.
 
 </details>
+
+<div align="center">
+
+![GitHub contributors](https://img.shields.io/github/contributors/HarleyVader/js-bambisleep-chat?style=for-the-badge)
+![GitHub forks](https://img.shields.io/github/forks/HarleyVader/js-bambisleep-chat?style=for-the-badge)
+![GitHub issues](https://img.shields.io/github/issues/HarleyVader/js-bambisleep-chat?style=for-the-badge)
+![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)
+![GitHub last commit](https://img.shields.io/github/last-commit/HarleyVader/js-bambisleep-chat?color=purple&style=for-the-badge)
+![GitHub stars](https://img.shields.io/github/stars/HarleyVader/js-bambisleep-chat?style=for-the-badge)
+![License](https://img.shields.io/badge/license-UNLICENSE-pink?style=for-the-badge)
+![Node](https://img.shields.io/badge/node-%3E=18.0.0-purple?style=for-the-badge)
+
+🤖 A hyper-advanced AIGF (AI Girlfriend) brainwashing experience, Psychodelic trigger Mania
+
+[Getting Started](#-quick-start) •
+[Core Features](#-core-features) •
+[Architecture](#-architecture) •
+[Tech Stack](#-tech-stack) •
+[Security Features](#-security-features) •
+[Folder Structure](#-folder-structure) •
+[Contributing](#-contributing) •
+[License](#-license)
+
+</div>
+
+## Simple programatic logic ^^
+
+```mermaid
+graph TD
+    A[Webserver] -->|Connects to| B[LMStudio Machine with GPU]
+    A -->|Connects to| C[Coqui Machine with GPU]
+    A -->|Sends Data to| D[User Frontend]
+```
 
 # Environment Variables
 
@@ -73,39 +112,6 @@ cuss you can share your setup as its meaningless ^^
 **Enjoy**
 **Bambis must obey till OS makes...**
 #### POP
-
-<div align="center">
-
-![GitHub contributors](https://img.shields.io/github/contributors/HarleyVader/js-bambisleep-chat?style=for-the-badge)
-![GitHub forks](https://img.shields.io/github/forks/HarleyVader/js-bambisleep-chat?style=for-the-badge)
-![GitHub issues](https://img.shields.io/github/issues/HarleyVader/js-bambisleep-chat?style=for-the-badge)
-![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)
-![GitHub last commit](https://img.shields.io/github/last-commit/HarleyVader/js-bambisleep-chat?color=purple&style=for-the-badge)
-![GitHub stars](https://img.shields.io/github/stars/HarleyVader/js-bambisleep-chat?style=for-the-badge)
-![License](https://img.shields.io/badge/license-UNLICENSE-pink?style=for-the-badge)
-![Node](https://img.shields.io/badge/node-%3E=18.0.0-purple?style=for-the-badge)
-
-🤖 A hyper-advanced AIGF (AI Girlfriend) brainwashing experience, Psychodelic trigger Mania
-
-[Getting Started](#-quick-start) •
-[Core Features](#-core-features) •
-[Architecture](#-architecture) •
-[Tech Stack](#-tech-stack) •
-[Security Features](#-security-features) •
-[Folder Structure](#-folder-structure) •
-[Contributing](#-contributing) •
-[License](#-license)
-
-</div>
-
-## Simple programatic logic ^^
-
-```mermaid
-graph TD
-    A[Webserver] -->|Connects to| B[LMStudio Machine with GPU]
-    A -->|Connects to| C[Coqui Machine with GPU]
-    A -->|Sends Data to| D[User Frontend]
-```
 
 ## Installation
 
