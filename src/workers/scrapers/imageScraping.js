@@ -6,7 +6,7 @@ import * as cheerio from 'cheerio';
 import { BaseWorker } from './baseWorker.js';
 import Logger from '../../utils/logger.js';
 import connectToMongoDB from '../../utils/dbConnection.js';
-import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../gracefulShutdown.js';
+import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
 
 dotenv.config();
 

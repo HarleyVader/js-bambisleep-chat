@@ -8,7 +8,7 @@ import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import connectToMongoDB from '../../utils/dbConnection.js';
-import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../gracefulShutdown.js';
+import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
 
 // Initialize logger
 const logger = new Logger('TextScraper');
