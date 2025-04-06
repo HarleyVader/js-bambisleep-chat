@@ -634,7 +634,8 @@
                 
                 // Function to display content based on type
                 function displayContent(data, contentType) {
-                    console.log('Response data:', data); // Add this for debugging
+                    // Remove debug log in production
+                    // console.log('Response data:', data);
                     
                     // Check if data was returned successfully
                     if (!data || !data.success) {
@@ -664,9 +665,18 @@
                         case 'image':
                             contentHtml = '<div class="image-content">';
                             if (Array.isArray(result.content)) {
-                                result.content.forEach(img => {
-                                    contentHtml += `<img src="${img.url}" alt="${img.alt || 'BambiSleep image'}" />`;
-                                });
+                                if (result.content.length === 0) {
+                                    contentHtml += '<p class="content-not-found">No images found</p>';
+                                } else {
+                                    result.content.forEach(img => {
+                                        contentHtml += `
+                                            <figure>
+                                                <img src="${img.url}" alt="${img.alt || 'BambiSleep image'}" />
+                                                ${img.caption ? `<figcaption>${img.caption}</figcaption>` : ''}
+                                            </figure>
+                                        `;
+                                    });
+                                }
                             } else {
                                 contentHtml += '<p>Image data has unexpected format</p>';
                             }
@@ -675,13 +685,27 @@
                         case 'video':
                             contentHtml = '<div class="video-content">';
                             if (Array.isArray(result.content)) {
-                                result.content.forEach(video => {
-                                    if (video.embedUrl) {
-                                        contentHtml += `<iframe src="${video.embedUrl}" frameborder="0" allowfullscreen></iframe>`;
-                                    } else if (video.url) {
-                                        contentHtml += `<video controls src="${video.url}"></video>`;
-                                    }
-                                });
+                                if (result.content.length === 0) {
+                                    contentHtml += '<p class="content-not-found">No videos found</p>';
+                                } else {
+                                    result.content.forEach(video => {
+                                        if (video.embedUrl) {
+                                            contentHtml += `
+                                                <div class="video-container">
+                                                    <iframe src="${video.embedUrl}" frameborder="0" allowfullscreen></iframe>
+                                                    ${video.title ? `<h4>${video.title}</h4>` : ''}
+                                                </div>
+                                            `;
+                                        } else if (video.url) {
+                                            contentHtml += `
+                                                <div class="video-container">
+                                                    <video controls src="${video.url}"></video>
+                                                    ${video.title ? `<h4>${video.title}</h4>` : ''}
+                                                </div>
+                                            `;
+                                        }
+                                    });
+                                }
                             } else {
                                 contentHtml += '<p>Video data has unexpected format</p>';
                             }
