@@ -225,31 +225,34 @@ header {
     margin-top: auto;
 }
 
-/* Action button styling */
+/* Action button styling - updated to fix hover/click issues */
 .vote-btn,
 .comment-btn,
 .view-content-btn,
 .share-btn {
     background: none;
-    border: none;
+    border: none !important; /* Force no border in all states */
     cursor: pointer;
     display: flex;
     align-items: center;
     color: var(--secondary-text-color);
     font-size: 0.95rem;
-    padding: 0;
-    margin: 0;
-    transition: transform 0.2s ease, color 0.3s ease;
+    padding: 0 !important; /* Force consistent padding */
+    margin: 0 !important; /* Force consistent margin */
+    transition: color 0.3s ease;
+    outline: none !important; /* Remove focus outline */
 }
 
+/* Keep consistent styling for spans to show counts always */
 .vote-btn span,
 .comment-btn span,
 .view-content-btn span,
 .share-btn span {
     margin-left: 4px;
+    display: inline-block !important; /* Always show */
 }
 
-/* Hover color changes */
+/* Hover color changes only - no size or border changes */
 .upvote:hover {
     color: #28a745;
 }
@@ -270,7 +273,7 @@ header {
     color: #007bff;
 }
 
-/* Click animation - scale down slightly when clicked */
+/* Remove transform animation and ensure consistent sizing */
 .vote-btn:active,
 .comment-btn:active,
 .view-content-btn:active,
