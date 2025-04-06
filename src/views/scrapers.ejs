@@ -328,7 +328,7 @@
     .image-content figure {
         margin: 1.5vh 0;
     }
-    
+
     .image-content figcaption {
         margin-top: 0.5vh;
         font-style: italic;
@@ -346,12 +346,12 @@
     .video-container {
         margin: 2vh 0;
     }
-    
+
     .video-container h4 {
         margin: 0.8vh 0;
         color: var(--accent-color);
     }
-    
+
     .video-container iframe,
     .video-container video {
         width: 100%;
@@ -374,6 +374,90 @@
 
         .scraper-column {
             margin-bottom: 20px;
+        }
+    }
+
+    /* Add this to your existing styles */
+    .share-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        color: var(--secondary-text-color);
+        font-size: 0.9rem;
+    }
+
+    .share-btn span {
+        margin-left: 4px;
+    }
+
+    .share-btn:hover {
+        color: #007bff;
+        /* Blue color for share button hover */
+    }
+
+    /* Share notification */
+    .share-notification {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 123, 255, 0.9);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 4px;
+        z-index: 1001;
+        font-weight: bold;
+        display: none;
+        animation: fadeInOut 2s ease-in-out;
+    }
+
+    @keyframes fadeInOut {
+        0% {
+            opacity: 0;
+        }
+
+        15% {
+            opacity: 1;
+        }
+
+        85% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: 0;
+        }
+    }
+
+    /* Loading spinner */
+    .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        font-size: 1.2rem;
+        color: var(--secondary-text-color);
+    }
+
+    .loading::before {
+        content: '';
+        border: 4px solid var(--accent-color);
+        border-top: 4px solid transparent;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
         }
     }
 </style>
@@ -432,7 +516,10 @@
                                                 <button class="comment-btn">💬 <span>
                                                         <%= submission.comments.length %>
                                                     </span></button>
-                                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View Content</span></button>
+                                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️
+                                                    <span>View</span></button>
+                                                <button class="share-btn" data-id="<%= submission._id %>"
+                                                    data-type="<%= submission.type %>">📤 <span>Share</span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -485,7 +572,8 @@
                                                 <button class="comment-btn">💬 <span>
                                                         <%= submission.comments.length %>
                                                     </span></button>
-                                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View Content</span></button>
+                                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️
+                                                    <span>View Content</span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -538,7 +626,8 @@
                                                 <button class="comment-btn">💬 <span>
                                                         <%= submission.comments.length %>
                                                     </span></button>
-                                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View Content</span></button>
+                                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️
+                                                    <span>View Content</span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -566,86 +655,79 @@
             <div id="content-modal" class="modal">
                 <div class="modal-content content-modal-content">
                     <span class="close-btn content-close-btn">&times;</span>
-                    <h3 id="content-modal-title">Scraped Content</h3>
-                    <div class="content-modal-header">
-                        <div id="content-url" class="content-url"></div>
-                        <div id="content-status" class="content-status"></div>
-                    </div>
-                    <div id="content-container" class="content-container">
-                        <!-- Content will be loaded here -->
-                    </div>
+                    <!-- Modal content here -->
                 </div>
             </div>
         </div>
 
         <%- include('../views/partials/footer.ejs') %>
-        <script src="/js/scrapers.js"></script>
-        <script>
-            // Content modal functionality
-            document.addEventListener('DOMContentLoaded', function() {
-                const contentModal = document.getElementById('content-modal');
-                const contentContainer = document.getElementById('content-container');
-                const contentTitle = document.getElementById('content-modal-title');
-                const contentUrl = document.getElementById('content-url');
-                const contentStatus = document.getElementById('content-status');
-                const closeContentBtn = document.querySelector('.content-close-btn');
-                
-                // Close modal when clicking the close button
-                closeContentBtn.addEventListener('click', function() {
-                    contentModal.style.display = 'none';
-                });
-                
-                // Close modal when clicking outside the modal
-                window.addEventListener('click', function(event) {
-                    if (event.target === contentModal) {
+            <script src="/js/scrapers.js"></script>
+            <script>
+                // Content modal functionality
+                document.addEventListener('DOMContentLoaded', function () {
+                    const contentModal = document.getElementById('content-modal');
+                    const contentContainer = document.getElementById('content-container');
+                    const contentTitle = document.getElementById('content-modal-title');
+                    const contentUrl = document.getElementById('content-url');
+                    const contentStatus = document.getElementById('content-status');
+                    const closeContentBtn = document.querySelector('.content-close-btn');
+
+                    // Close modal when clicking the close button
+                    closeContentBtn.addEventListener('click', function () {
                         contentModal.style.display = 'none';
-                    }
-                });
-                
-                // Add event listeners to view content buttons
-                document.querySelectorAll('.view-content-btn').forEach(button => {
-                    button.addEventListener('click', function() {
-                        const submissionCard = this.closest('.submission-card');
-                        const submissionId = submissionCard.dataset.id;
-                        const contentType = this.dataset.type;
-                        
-                        // Set modal title based on content type
-                        contentTitle.textContent = contentType.charAt(0).toUpperCase() + contentType.slice(1) + ' Content';
-                        
-                        // Set URL and status
-                        const urlElement = submissionCard.querySelector('.submission-url');
-                        const statusElement = submissionCard.querySelector('.submission-status');
-                        contentUrl.textContent = urlElement.textContent.trim();
-                        contentStatus.textContent = statusElement.textContent.trim();
-                        contentStatus.className = 'content-status ' + statusElement.classList[1];
-                        
-                        // Fetch and display content
-                        fetchScrapedContent(submissionId, contentType);
-                        
-                        // Show modal
-                        contentModal.style.display = 'block';
                     });
-                });
-                
-                // Function to fetch scraped content
-                function fetchScrapedContent(submissionId, contentType) {
-                    // Show loading state
-                    contentContainer.innerHTML = '<div class="loading">Loading content...</div>';
-                    
-                    // Fetch content from server - update the endpoint path to match your backend
-                    fetch(`/api/scraper/submission/${submissionId}`)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`Failed to load content (Status: ${response.status})`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            displayContent(data, contentType);
-                        })
-                        .catch(error => {
-                            contentContainer.innerHTML = 
-                                `<div class="error" style="color: #721c24; background-color: #f8d7da; padding: 1vh; border-radius: 0.4vw;">
+
+                    // Close modal when clicking outside the modal
+                    window.addEventListener('click', function (event) {
+                        if (event.target === contentModal) {
+                            contentModal.style.display = 'none';
+                        }
+                    });
+
+                    // Add event listeners to view content buttons
+                    document.querySelectorAll('.view-content-btn').forEach(button => {
+                        button.addEventListener('click', function () {
+                            const submissionCard = this.closest('.submission-card');
+                            const submissionId = submissionCard.dataset.id;
+                            const contentType = this.dataset.type;
+
+                            // Set modal title based on content type
+                            contentTitle.textContent = contentType.charAt(0).toUpperCase() + contentType.slice(1) + ' Content';
+
+                            // Set URL and status
+                            const urlElement = submissionCard.querySelector('.submission-url');
+                            const statusElement = submissionCard.querySelector('.submission-status');
+                            contentUrl.textContent = urlElement.textContent.trim();
+                            contentStatus.textContent = statusElement.textContent.trim();
+                            contentStatus.className = 'content-status ' + statusElement.classList[1];
+
+                            // Fetch and display content
+                            fetchScrapedContent(submissionId, contentType);
+
+                            // Show modal
+                            contentModal.style.display = 'block';
+                        });
+                    });
+
+                    // Function to fetch scraped content
+                    function fetchScrapedContent(submissionId, contentType) {
+                        // Show loading state
+                        contentContainer.innerHTML = '<div class="loading">Loading content...</div>';
+
+                        // Fetch content from server - update the endpoint path to match your backend
+                        fetch(`/api/scraper/submission/${submissionId}`)
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`Failed to load content (Status: ${response.status})`);
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                displayContent(data, contentType);
+                            })
+                            .catch(error => {
+                                contentContainer.innerHTML =
+                                    `<div class="error" style="color: #721c24; background-color: #f8d7da; padding: 1vh; border-radius: 0.4vw;">
                                     <p>${error.message}</p>
                                     <p>The API endpoint may not be configured correctly. Please check:</p>
                                     <ul style="margin-top: 1vh; margin-left: 2vw; text-align: left;">
@@ -654,108 +736,234 @@
                                         <li>You have permission to access this content</li>
                                     </ul>
                                 </div>`;
-                            console.error('Content loading error:', error);
-                        });
-                }
-                
-                // Function to display content based on type
-                function displayContent(data, contentType) {
-                    // Remove debug log in production
-                    // console.log('Response data:', data);
-                    
-                    // Check if data was returned successfully
-                    if (!data || !data.success) {
-                        contentContainer.innerHTML = '<div class="content-not-found">Failed to retrieve content</div>';
-                        return;
+                                console.error('Content loading error:', error);
+                            });
                     }
-                    
-                    // Check if results exist for the specified content type
-                    if (!data.results || !data.results[contentType]) {
-                        contentContainer.innerHTML = '<div class="content-not-found">No content available for this submission</div>';
-                        return;
-                    }
-                    
-                    const result = data.results[contentType];
-                    
-                    if (!result.contentFound) {
-                        contentContainer.innerHTML = '<div class="content-not-found">No BambiSleep content found on this page</div>';
-                        return;
-                    }
-                    
-                    let contentHtml = '';
-                    
-                    switch (contentType) {
-                        case 'text':
-                            contentHtml = `<div class="text-content">${formatTextContent(result.content)}</div>`;
-                            break;
-                        case 'image':
-                            contentHtml = '<div class="image-content">';
-                            if (Array.isArray(result.content)) {
-                                if (result.content.length === 0) {
-                                    contentHtml += '<p class="content-not-found">No images found</p>';
-                                } else {
-                                    result.content.forEach(img => {
-                                        contentHtml += `
+
+                    // Function to display content based on type
+                    function displayContent(data, contentType) {
+                        // Remove debug log in production
+                        // console.log('Response data:', data);
+
+                        // Check if data was returned successfully
+                        if (!data || !data.success) {
+                            contentContainer.innerHTML = '<div class="content-not-found">Failed to retrieve content</div>';
+                            return;
+                        }
+
+                        // Check if results exist for the specified content type
+                        if (!data.results || !data.results[contentType]) {
+                            contentContainer.innerHTML = '<div class="content-not-found">No content available for this submission</div>';
+                            return;
+                        }
+
+                        const result = data.results[contentType];
+
+                        if (!result.contentFound) {
+                            contentContainer.innerHTML = '<div class="content-not-found">No BambiSleep content found on this page</div>';
+                            return;
+                        }
+
+                        let contentHtml = '';
+
+                        switch (contentType) {
+                            case 'text':
+                                contentHtml = `<div class="text-content">${formatTextContent(result.content)}</div>`;
+                                break;
+                            case 'image':
+                                contentHtml = '<div class="image-content">';
+                                if (Array.isArray(result.content)) {
+                                    if (result.content.length === 0) {
+                                        contentHtml += '<p class="content-not-found">No images found</p>';
+                                    } else {
+                                        result.content.forEach(img => {
+                                            contentHtml += `
                                             <figure>
                                                 <img src="${img.url}" alt="${img.alt || 'BambiSleep image'}" />
                                                 ${img.caption ? `<figcaption>${img.caption}</figcaption>` : ''}
                                             </figure>
                                         `;
-                                    });
-                                }
-                            } else {
-                                contentHtml += '<p>Image data has unexpected format</p>';
-                            }
-                            contentHtml += '</div>';
-                            break;
-                        case 'video':
-                            contentHtml = '<div class="video-content">';
-                            if (Array.isArray(result.content)) {
-                                if (result.content.length === 0) {
-                                    contentHtml += '<p class="content-not-found">No videos found</p>';
+                                        });
+                                    }
                                 } else {
-                                    result.content.forEach(video => {
-                                        if (video.embedUrl) {
-                                            contentHtml += `
+                                    contentHtml += '<p>Image data has unexpected format</p>';
+                                }
+                                contentHtml += '</div>';
+                                break;
+                            case 'video':
+                                contentHtml = '<div class="video-content">';
+                                if (Array.isArray(result.content)) {
+                                    if (result.content.length === 0) {
+                                        contentHtml += '<p class="content-not-found">No videos found</p>';
+                                    } else {
+                                        result.content.forEach(video => {
+                                            if (video.embedUrl) {
+                                                contentHtml += `
                                                 <div class="video-container">
                                                     <iframe src="${video.embedUrl}" frameborder="0" allowfullscreen></iframe>
                                                     ${video.title ? `<h4>${video.title}</h4>` : ''}
                                                 </div>
                                             `;
-                                        } else if (video.url) {
-                                            contentHtml += `
+                                            } else if (video.url) {
+                                                contentHtml += `
                                                 <div class="video-container">
                                                     <video controls src="${video.url}"></video>
                                                     ${video.title ? `<h4>${video.title}</h4>` : ''}
                                                 </div>
                                             `;
-                                        }
-                                    });
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    contentHtml += '<p>Video data has unexpected format</p>';
                                 }
-                            } else {
-                                contentHtml += '<p>Video data has unexpected format</p>';
-                            }
-                            contentHtml += '</div>';
-                            break;
+                                contentHtml += '</div>';
+                                break;
+                        }
+
+                        contentContainer.innerHTML = contentHtml;
                     }
-                    
-                    contentContainer.innerHTML = contentHtml;
-                }
-                
-                // Format text content with proper escaping and line breaks
-                function formatTextContent(text) {
-                    const escaped = escapeHtml(text);
-                    return escaped.replace(/\n/g, '<br>');
-                }
-                
-                // Helper function to escape HTML
-                function escapeHtml(text) {
-                    const div = document.createElement('div');
-                    div.textContent = text;
-                    return div.innerHTML;
-                }
-            });
-        </script>
+
+                    // Format text content with proper escaping and line breaks
+                    function formatTextContent(text) {
+                        const escaped = escapeHtml(text);
+                        return escaped.replace(/\n/g, '<br>');
+                    }
+
+                    // Helper function to escape HTML
+                    function escapeHtml(text) {
+                        const div = document.createElement('div');
+                        div.textContent = text;
+                        return div.innerHTML;
+                    }
+
+                    // Share button functionality
+                    document.querySelectorAll('.share-btn').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const submissionId = this.dataset.id;
+                            const contentType = this.dataset.type;
+                            
+                            // Create a shareable URL
+                            const shareUrl = `${window.location.origin}/scrapers?view=${submissionId}&type=${contentType}`;
+                            
+                            // Attempt to use the Web Share API if available
+                            if (navigator.share) {
+                                navigator.share({
+                                    title: 'BambiSleep Content',
+                                    text: `Check out this ${contentType} content from BambiSleep!`,
+                                    url: shareUrl
+                                })
+                                .then(() => showShareNotification('Shared successfully!'))
+                                .catch(error => {
+                                    console.error('Error sharing:', error);
+                                    fallbackShare(shareUrl);
+                                });
+                            } else {
+                                fallbackShare(shareUrl);
+                            }
+                        });
+                    });
+
+                    // Fallback sharing method (copy to clipboard)
+                    function fallbackShare(url) {
+                        // Create a temporary input element
+                        const tempInput = document.createElement('input');
+                        tempInput.value = url;
+                        document.body.appendChild(tempInput);
+                        
+                        // Select and copy the URL
+                        tempInput.select();
+                        document.execCommand('copy');
+                        
+                        // Remove the temporary element
+                        document.body.removeChild(tempInput);
+                        
+                        // Show notification
+                        showShareNotification('Link copied to clipboard!');
+                    }
+
+                    // Function to show share notification
+                    function showShareNotification(message) {
+                        // Check if notification already exists
+                        let notification = document.querySelector('.share-notification');
+                        
+                        // Create notification if it doesn't exist
+                        if (!notification) {
+                            notification = document.createElement('div');
+                            notification.className = 'share-notification';
+                            document.body.appendChild(notification);
+                        }
+                        
+                        // Set message and show
+                        notification.textContent = message;
+                        notification.style.display = 'block';
+                        
+                        // Hide after 2 seconds
+                        setTimeout(() => {
+                            notification.style.display = 'none';
+                        }, 2000);
+                    }
+
+                    // Handle URL parameters for direct viewing
+                    function handleUrlParameters() {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const viewId = urlParams.get('view');
+                        const contentType = urlParams.get('type');
+                        
+                        if (viewId && contentType) {
+                            // Find the submission with matching ID
+                            const submissionCard = document.querySelector(`.submission-card[data-id="${viewId}"]`);
+                            
+                            if (submissionCard) {
+                                // Trigger view content button click
+                                submissionCard.querySelector('.view-content-btn').click();
+                            } else {
+                                // If card not found in current view, fetch and display content directly
+                                const modalContent = document.querySelector('.content-modal-content');
+                                const contentContainer = document.getElementById('content-container') || 
+                                    document.createElement('div');
+                                
+                                if (!document.getElementById('content-container')) {
+                                    contentContainer.id = 'content-container';
+                                    contentContainer.className = 'content-container';
+                                    modalContent.appendChild(contentContainer);
+                                }
+                                
+                                if (!document.getElementById('content-modal-title')) {
+                                    const contentTitle = document.createElement('h3');
+                                    contentTitle.id = 'content-modal-title';
+                                    contentTitle.textContent = contentType.charAt(0).toUpperCase() + contentType.slice(1) + ' Content';
+                                    modalContent.insertBefore(contentTitle, contentContainer);
+                                }
+                                
+                                // Show loading state
+                                contentContainer.innerHTML = '<div class="loading">Loading shared content...</div>';
+                                
+                                // Show the modal
+                                contentModal.style.display = 'block';
+                                
+                                // Fetch the content
+                                fetch(`/api/scraper/submission/${viewId}`)
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            throw new Error(`Failed to load content (Status: ${response.status})`);
+                                        }
+                                        return response.json();
+                                    })
+                                    .then(data => {
+                                        displayContent(data, contentType);
+                                    })
+                                    .catch(error => {
+                                        contentContainer.innerHTML = `<div class="error">Error loading shared content: ${error.message}</div>`;
+                                    });
+                            }
+                        }
+                    }
+
+                    // Call this function when the page loads
+                    handleUrlParameters();
+                });
+            </script>
 </body>
 
 </html>
