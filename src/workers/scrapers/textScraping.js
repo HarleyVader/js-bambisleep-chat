@@ -108,6 +108,42 @@ const parseContent = async (filePath, fileType) => {
   }
 };
 
+// A better approach for extracting text content from web pages
+
+function extractTextContent(htmlContent) {
+  // Create a DOM parser
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlContent, 'text/html');
+  
+  // Remove script tags, style tags, and other non-content elements
+  const elementsToRemove = [
+    'script', 'style', 'svg', 'iframe', 'nav', 'footer', 
+    'header', 'noscript', 'meta', 'link'
+  ];
+  
+  elementsToRemove.forEach(tag => {
+    const elements = doc.querySelectorAll(tag);
+    elements.forEach(el => el.remove());
+  });
+  
+  // Find the main content container (adjust selector based on site structure)
+  const mainContent = doc.querySelector('main') || 
+                     doc.querySelector('article') || 
+                     doc.querySelector('.content');
+  
+  if (mainContent) {
+    // Extract text from the main content area only
+    return mainContent.textContent
+      .replace(/\s+/g, ' ')  // Replace multiple spaces with a single space
+      .trim();               // Remove leading/trailing whitespace
+  } else {
+    // Fallback: get body text
+    return doc.body.textContent
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+}
+
 // Web scraper function - now focused on text only
 const scrapeWebContent = async (url, ContentModel, requestId) => {
   try {
@@ -120,7 +156,7 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
     
     const html = response.data;
     const $ = cheerio.load(html);
-    const pageText = $('body').text();
+    const pageText = extractTextContent(html);
     
     // Check if the page contains bambisleep-related content
     if (pageText.toLowerCase().includes('bambisleep') || pageText.toLowerCase().includes('bambi sleep')) {
