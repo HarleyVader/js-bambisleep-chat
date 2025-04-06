@@ -313,4 +313,15 @@ router.get('/api/check-username', async (req, res) => {
   }
 });
 
+// Example endpoint for activity feed
+router.get('/api/profile/:username/feed', async (req, res) => {
+  try {
+    const bambi = await Bambi.findOne({ username: req.params.username });
+    // Fetch activities from followed users
+    // ...
+  } catch (error) {
+    // Error handling
+  }
+});
+
 export default router;
