@@ -16,7 +16,7 @@ const SubmissionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  scrapeType: {
+  type: { // Changed from scrapeType to match frontend expectations
     type: String,
     enum: ['text', 'image', 'video'],
     required: true
@@ -86,9 +86,9 @@ router.get('/', requireBambiAuth, async (req, res) => {
     }
     
     // Fetch submissions for each type
-    const textSubmissions = await SubmissionModel.find({ scrapeType: 'text' }).sort({ submittedAt: -1 }).limit(50);
-    const imageSubmissions = await SubmissionModel.find({ scrapeType: 'image' }).sort({ submittedAt: -1 }).limit(50);
-    const videoSubmissions = await SubmissionModel.find({ scrapeType: 'video' }).sort({ submittedAt: -1 }).limit(50);
+    const textSubmissions = await SubmissionModel.find({ type: 'text' }).sort({ submittedAt: -1 }).limit(50);
+    const imageSubmissions = await SubmissionModel.find({ type: 'image' }).sort({ submittedAt: -1 }).limit(50);
+    const videoSubmissions = await SubmissionModel.find({ type: 'video' }).sort({ submittedAt: -1 }).limit(50);
     
     res.render('scrapers', {
       bambiname: req.bambiname,
@@ -122,7 +122,7 @@ router.post('/submit', requireBambiAuth, async (req, res) => {
     const submission = new SubmissionModel({
       url,
       bambiname: req.bambiname,
-      scrapeType,
+      type: scrapeType, // Changed to match schema
       status: 'pending'
     });
     
