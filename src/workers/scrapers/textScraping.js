@@ -108,17 +108,14 @@ const parseContent = async (filePath, fileType) => {
   }
 };
 
-// Replace the existing extractTextContent function with this:
-
 function extractTextContent(htmlContent) {
   try {
-    // Use cheerio instead of DOMParser (which is browser-specific)
+    // Use cheerio to load the HTML
     const $ = cheerio.load(htmlContent);
     
     // Remove script tags, style tags, and other non-content elements
     const elementsToRemove = [
-      'script', 'style', 'svg', 'iframe', 'nav', 'footer', 
-      'header', 'noscript', 'meta', 'link'
+      'script', 'style', 'svg', 'iframe', 'noscript', 'meta', 'link'
     ];
     
     elementsToRemove.forEach(tag => {
@@ -128,21 +125,99 @@ function extractTextContent(htmlContent) {
     // Find the main content container
     const mainContent = $('main').length ? $('main') : 
                        $('article').length ? $('article') : 
-                       $('.content').length ? $('.content') : null;
+                       $('.content').length ? $('.content') : 
+                       $('body');
     
-    let text = '';
-    if (mainContent) {
-      // Extract text from the main content area only
-      text = mainContent.text();
-    } else {
-      // Fallback: get body text
-      text = $('body').text();
+    let markdownContent = '';
+    
+    // Process title
+    const pageTitle = $('title').text().trim();
+    if (pageTitle) {
+      markdownContent += `# ${pageTitle}\n\n`;
     }
     
-    // Clean up the text
-    return text
-      .replace(/\s+/g, ' ')  // Replace multiple spaces with a single space
-      .trim();               // Remove leading/trailing whitespace
+    // Process headings
+    mainContent.find('h1, h2, h3, h4, h5, h6').each(function() {
+      const tagName = $(this).prop('tagName').toLowerCase();
+      const level = parseInt(tagName.replace('h', ''));
+      const headingText = $(this).text().trim();
+      
+      if (headingText) {
+        markdownContent += `${'#'.repeat(level)} ${headingText}\n\n`;
+      }
+    });
+    
+    // Process paragraphs
+    mainContent.find('p').each(function() {
+      const text = $(this).text().trim();
+      if (text) {
+        markdownContent += `${text}\n\n`;
+      }
+    });
+    
+    // Process lists
+    mainContent.find('ul, ol').each(function() {
+      const isOrdered = $(this).prop('tagName').toLowerCase() === 'ol';
+      
+      $(this).find('li').each(function(index) {
+        const text = $(this).text().trim();
+        if (text) {
+          markdownContent += isOrdered ? `${index + 1}. ${text}\n` : `- ${text}\n`;
+        }
+      });
+      
+      markdownContent += '\n';
+    });
+    
+    // Process links
+    mainContent.find('a').each(function() {
+      const text = $(this).text().trim();
+      const href = $(this).attr('href');
+      
+      if (text && href && !markdownContent.includes(`[${text}](${href})`)) {
+        // Replace plain text with markdown link
+        markdownContent = markdownContent.replace(
+          new RegExp(`\\b${text}\\b`, 'g'), 
+          `[${text}](${href})`
+        );
+      }
+    });
+    
+    // Process images
+    mainContent.find('img').each(function() {
+      const src = $(this).attr('src');
+      const alt = $(this).attr('alt') || 'Image';
+      
+      if (src) {
+        markdownContent += `![${alt}](${src})\n\n`;
+      }
+    });
+    
+    // Process blockquotes
+    mainContent.find('blockquote').each(function() {
+      const text = $(this).text().trim();
+      if (text) {
+        markdownContent += `> ${text}\n\n`;
+      }
+    });
+    
+    // Add any remaining text (not in structured elements)
+    const bodyText = mainContent.text().trim()
+      .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
+      .replace(/\n+/g, '\n'); // Replace multiple newlines with a single newline
+    
+    // Extract text that might not have been captured by specific elements
+    const allExtractedText = markdownContent.replace(/[#\-*\[\]\(\)\!>]/g, '').trim();
+    const remainingText = bodyText.replace(allExtractedText, '').trim();
+    
+    if (remainingText) {
+      markdownContent += remainingText + '\n\n';
+    }
+    
+    // Clean up the markdown
+    return markdownContent
+      .replace(/\n{3,}/g, '\n\n') // Replace three or more newlines with two
+      .trim();
   } catch (error) {
     logger.error('Error extracting text content:', error.message);
     return '';
@@ -161,22 +236,22 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
     });
     
     const html = response.data;
-    const $ = cheerio.load(html);
-    const pageText = extractTextContent(html);
+    const pageText = extractTextContent(html); // Now returns markdown-formatted content
     
     // Check if the page contains bambisleep-related content
     if (pageText.toLowerCase().includes('bambisleep') || pageText.toLowerCase().includes('bambi sleep')) {
       // Extract page metadata
+      const $ = cheerio.load(html);
       const title = $('title').text();
       const description = $('meta[name="description"]').attr('content') || '';
       const keywords = $('meta[name="keywords"]').attr('content')?.split(',').map(k => k.trim()) || [];
       
-      // Store text content
+      // Store text content with markdown formatting
       const textContent = new ContentModel({
         type: 'text',
-        fileType: 'html',
+        fileType: 'markdown', // Changed from 'html' to 'markdown'
         title: title,
-        content: pageText, // Ensure this is a string
+        content: pageText, // Now contains markdown
         url: url,
         source: 'web',
         metadata: {
@@ -185,7 +260,7 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
           categories: ['web'],
           created: new Date()
         },
-        mediaType: 'html'
+        mediaType: 'markdown' // Changed from 'html' to 'markdown'
       });
       
       await textContent.save();
@@ -196,7 +271,7 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
         data: {
           success: true,
           contentFound: true,
-          content: pageText // The extracted text content (as a string)
+          content: pageText // The extracted markdown content
         },
         requestId: requestId
       });
@@ -205,14 +280,14 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
         success: true,
         message: `Found and stored bambisleep text content from ${url}`,
         contentFound: true,
-        content: pageText // Ensure we're returning a string
+        content: pageText
       };
     } else {
       return {
         success: true,
         message: `No bambisleep content found at ${url}`,
         contentFound: false,
-        content: '' // Return empty string instead of undefined/null
+        content: '' 
       };
     }
   } catch (error) {
