@@ -138,15 +138,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to display content based on type
     function displayContent(data, contentType) {
+        console.log('Content data received:', data);
+        
         // Check if data was returned successfully
         if (!data || !data.success) {
             contentContainer.innerHTML = '<div class="content-not-found">Failed to retrieve content</div>';
             return;
         }
 
+        // Debug info display
+        if (data.debug) {
+            console.log('Debug info:', data.debug);
+        }
+
         // Check if results exist for the specified content type
         if (!data.results || !data.results[contentType]) {
-            contentContainer.innerHTML = '<div class="content-not-found">No content available for this submission</div>';
+            contentContainer.innerHTML = `
+                <div class="content-not-found">
+                    <p>No content available for this submission</p>
+                    <p class="debug-info">Type: ${contentType}, Status: ${data.debug?.status || 'unknown'}</p>
+                </div>`;
             return;
         }
 
