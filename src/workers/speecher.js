@@ -1,6 +1,38 @@
+import { parentPort } from 'worker_threads';
+import { promises as fsPromises } from 'fs';
+import fs from 'fs';
+import path from 'path';
+import { spawn } from 'child_process';
+import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+// Setup logging
+const logger = {
+  info: (message) => sendLog('info', message),
+  success: (message) => sendLog('success', message),
+  error: (message) => sendLog('error', message),
+  warning: (message) => sendLog('warning', message)
+};
+
+function sendLog(level, message) {
+  parentPort.postMessage({
+    type: 'log',
+    level,
+    data: message
+  });
+}
+
 // Create necessary directories if they don't exist
-const audioDir = path.join(__dirname, 'temp', 'audio');
+// Use path.resolve to get the absolute path to the project root
+const projectRoot = path.resolve(process.cwd());
+const audioDir = path.join(projectRoot, 'temp', 'audio');
+
 fs.mkdirSync(audioDir, { recursive: true });
+logger.info(`Audio directory: ${audioDir}`);
 
 /**
  * Generates speech using F5-TTS with voice cloning
@@ -74,87 +106,64 @@ async function generateF5TTS(text, refAudio, refText = "") {
   });
 }
 
-// API endpoint for F5-TTS voice cloning
-app.post('/api/f5tts', async (req, res) => {
+/**
+ * Generates standard TTS using external service
+ * @param {string} text - Text to convert to speech
+ * @returns {Promise<{audioPath: string, error: string|null}>}
+ */
+async function generateTTS(text) {
   try {
-    // Check if we have the required fields
-    const { text } = req.body;
-    if (!text || typeof text !== 'string' || text.trim() === '') {
-      return res.status(400).json({ error: 'Invalid input: text must be a non-empty string' });
-    }
+    const sessionId = uuidv4();
+    const outputPath = path.join(audioDir, `tts_${sessionId}.wav`);
 
-    // Check if reference audio was uploaded
-    if (!req.files || !req.files.refAudio) {
-      return res.status(400).json({ error: 'Reference audio file is required' });
-    }
-
-    const refAudio = req.files.refAudio.data;
-    const refText = req.body.refText || '';
-
-    const { audioPath, error } = await generateF5TTS(text, refAudio, refText);
-
-    if (error || !audioPath) {
-      return res.status(500).json({ error: error || 'Failed to generate speech' });
-    }
-
-    // Send the audio file
-    res.sendFile(audioPath, (err) => {
-      if (err) {
-        logger.error(`Error sending file: ${err}`);
-        res.status(500).json({ error: 'Error sending audio file' });
-      }
-
-      // Clean up temporary files after sending
-      fs.unlink(audioPath, (unlinkErr) => {
-        if (unlinkErr) logger.error(`Error deleting file: ${unlinkErr}`);
-      });
-    });
-
-  } catch (error) {
-    logger.error(`Error in /api/f5tts: ${error.message}`);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-async function fetchTTS(text) {
-  try {
+    logger.info(`Generating standard TTS: ${text}`);
+    
     const response = await axios.get(`http://${process.env.SPEECH_HOST}:${process.env.SPEECH_PORT}/api/tts`, {
       params: { text },
       responseType: 'arraybuffer',
     });
-    return response;
+    
+    await fsPromises.writeFile(outputPath, response.data);
+    logger.success('Standard TTS generation complete');
+    
+    return { audioPath: outputPath, error: null };
   } catch (error) {
-    logger.error('Error fetching TTS audio:', error);
-    throw error;
+    logger.error(`Error in generateTTS: ${error.message}`);
+    return { audioPath: null, error: error.message };
   }
 }
 
-app.use('/api/tts', async (req, res, next) => {
-  const text = req.query.text;
-  if (typeof text !== 'string' || text.trim() === '') {
-    return res.status(400).send('Invalid input: text must be a non-empty string');
-  } else {
-    try {
-      const response = await fetchTTS(text);
-      res.setHeader('Content-Type', 'audio/wav');
-      res.setHeader('Content-Length', response.data.length);
-      res.send(response.data);
-    } catch (error) {
-      logger.error('Error fetching TTS audio:', error);
-      if (error.response) {
-        if (error.response.status === 401) {
-          logger.error('Unauthorized access - invalid token');
-          res.status(401).send('Unauthorized access');
-        } else {
-          logger.error('Error details:', error.response.data.toString());
-          res.status(500).send('Error fetching TTS audio');
-        }
-      } else {
-        logger.error('Error details:', error.message);
-        res.status(500).send('Error fetching TTS audio');
-      }
-      next();
+// Handle messages from the main thread
+parentPort.on('message', async (message) => {
+  try {
+    const { type, id, text, refAudio, refText } = message;
+    
+    if (type === 'tts') {
+      // Standard TTS
+      const result = await generateTTS(text);
+      parentPort.postMessage({
+        id,
+        audioPath: result.audioPath,
+        error: result.error
+      });
+    } 
+    else if (type === 'f5tts') {
+      // Voice cloning with F5-TTS
+      const result = await generateF5TTS(text, refAudio, refText);
+      parentPort.postMessage({
+        id,
+        audioPath: result.audioPath,
+        error: result.error
+      });
     }
+  } catch (error) {
+    logger.error(`Worker error: ${error.message}`);
+    parentPort.postMessage({
+      id: message.id,
+      error: error.message
+    });
   }
 });
+
+// Notify that worker is ready
+parentPort.postMessage({ type: 'log', data: 'Speecher worker initialized' });

@@ -24,6 +24,9 @@ async function selectLoadedModels(modelName) {
   return selectedModel ? selectedModel.id : models[0].id;
 }
 
+// Helper function to create a delay between operations
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 class WorkerCoordinator {
   constructor() {
     this.workers = {
@@ -36,6 +39,7 @@ class WorkerCoordinator {
     this.requestIdCounter = 0;
     this.models = []; // Array to hold loaded models
     this.initialized = false;
+    this.initializing = false;
   }
 
   async initialize() {
@@ -44,45 +48,80 @@ class WorkerCoordinator {
       return true;
     }
     
+    if (this.initializing) {
+      logger.info('Worker coordinator initialization already in progress');
+      return new Promise(resolve => {
+        const checkInterval = setInterval(() => {
+          if (this.initialized) {
+            clearInterval(checkInterval);
+            resolve(true);
+          }
+        }, 300);
+      });
+    }
+    
+    this.initializing = true;
+    
     try {
-      // Ensure database connection is established first
-      await connectToMongoDB();
-      
-      // Load models
+      // Load models - staggered loading with status updates
       const modelNames = [
         'llama-3.2-3b-claude-3.7-sonnet-reasoning-distilled@q4_0',
         'another-model-name' // Replace with the second model name as needed
       ];
       
-      for (const modelName of modelNames) {
+      logger.info('Beginning model loading sequence...');
+      
+      for (let i = 0; i < modelNames.length; i++) {
+        const modelName = modelNames[i];
+        logger.info(`Loading model ${i+1}/${modelNames.length}: ${modelName}`);
+        
         try {
           const modelId = await selectLoadedModels(modelName);
           this.models.push(modelId);
+          logger.success(`Model ${i+1}/${modelNames.length} loaded: ${modelId}`);
         } catch (error) {
           logger.error(`Error loading model ${modelName}:`, error);
-          // Continue with initialization even if model loading fails
+        }
+        
+        // Small delay between model loading - reduced to 200ms
+        if (i < modelNames.length - 1) {
+          await delay(200);
         }
       }
 
+      // Staggered worker initialization with shorter delays
+      logger.info('Beginning worker initialization sequence...');
+      
       // Create and start text worker
+      logger.info('Initializing text scraper worker (1/3)...');
       this.workers.text = new Worker(path.join(__dirname, 'scrapers/textScraping.js'));
       this.workers.text.on('message', this.handleWorkerMessage.bind(this));
       this.workers.text.on('error', this.handleWorkerError.bind(this));
       
+      // Wait for first worker to initialize - reduced to 250ms
+      await delay(250);
+      
       // Create and start image worker
+      logger.info('Initializing image scraper worker (2/3)...');
       this.workers.image = new Worker(path.join(__dirname, 'scrapers/imageScraping.js'));
       this.workers.image.on('message', this.handleWorkerMessage.bind(this));
       this.workers.image.on('error', this.handleWorkerError.bind(this));
       
+      // Wait again - reduced to 250ms
+      await delay(250);
+      
       // Create and start video worker
+      logger.info('Initializing video scraper worker (3/3)...');
       this.workers.video = new Worker(path.join(__dirname, 'scrapers/videoScraping.js'));
       this.workers.video.on('message', this.handleWorkerMessage.bind(this));
       this.workers.video.on('error', this.handleWorkerError.bind(this));
       
       this.initialized = true;
-      logger.info('All workers initialized and started');
+      this.initializing = false;
+      logger.success('All workers initialized and ready for scraping tasks');
       return true;
     } catch (error) {
+      this.initializing = false;
       logger.error('Error initializing worker coordinator:', error);
       return false;
     }
@@ -115,6 +154,10 @@ class WorkerCoordinator {
   }
 
   scrapeUrl(url, callback) {
+    if (!this.initialized) {
+      return callback(new Error('Worker coordinator not initialized'), null);
+    }
+    
     const results = {
       text: null,
       image: null,
@@ -174,11 +217,17 @@ class WorkerCoordinator {
     try {
       logger.info('Shutting down worker coordinator...');
       
-      // Shutdown all workers
-      for (const [type, worker] of Object.entries(this.workers)) {
+      // Shutdown workers in sequence - reduced delays
+      const workerTypes = Object.keys(this.workers);
+      
+      for (let i = 0; i < workerTypes.length; i++) {
+        const type = workerTypes[i];
+        const worker = this.workers[type];
+        
         if (worker) {
+          logger.info(`Shutting down ${type} worker (${i+1}/${workerTypes.length})...`);
           worker.postMessage({ type: 'shutdown' });
-          logger.info(`Sent shutdown signal to ${type} worker`);
+          await delay(150); // Small delay between worker shutdowns
         }
       }
       
@@ -193,5 +242,5 @@ class WorkerCoordinator {
 const workerCoordinator = new WorkerCoordinator();
 export default workerCoordinator;
 
-// Initialize workers on application startup
-workerCoordinator.initialize();
+// Don't automatically initialize - let server.js control initialization
+// workerCoordinator.initialize();

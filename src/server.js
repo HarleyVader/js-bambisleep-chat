@@ -11,6 +11,8 @@ import { fileURLToPath } from 'url';
 import { Worker } from 'worker_threads';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import axios from 'axios';
+import fileUpload from 'express-fileupload';
 
 //routes
 import indexRoute from './routes/index.js';
@@ -43,6 +45,10 @@ const io = new Server(server, {
   pingInterval: 25000, // 25 seconds
 });
 
+// Create necessary directories for audio processing
+const audioDir = path.join(__dirname, 'temp', 'audio');
+fs.mkdirSync(audioDir, { recursive: true });
+
 //filteredWords
 const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
 
@@ -53,6 +59,12 @@ app.use(cors({
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type'],
   credentials: true
+}));
+
+// Add file upload middleware for audio files
+app.use(fileUpload({
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  abortOnLimit: true
 }));
 
 const MAX_LISTENERS_BASE = 10;
@@ -83,6 +95,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/workers', express.static(path.join(__dirname, 'workers')));
 app.use('/audio', express.static(path.join(__dirname, './assets/audio')));
+app.use('/temp/audio', express.static(path.join(__dirname, 'temp', 'audio')));
 
 app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
@@ -96,6 +109,114 @@ const routes = [
   { path: '/help', handler: helpRoute },
   { path: '/scrapers', handler: scrapersRoute },
 ];
+
+// Initialize Speecher worker
+let speecherWorker;
+
+function initializeSpeecherWorker() {
+  try {
+    speecherWorker = new Worker(path.join(__dirname, 'workers/speecher.js'));
+    adjustMaxListeners(speecherWorker, true);
+    
+    speecherWorker.on('message', (msg) => {
+      if (msg.type === 'log') {
+        logger.info(`[Speecher Worker] ${msg.data}`);
+      }
+    });
+    
+    speecherWorker.on('error', (err) => {
+      logger.error('Speecher Worker error:', err);
+      // Attempt to restart the worker
+      initializeSpeecherWorker();
+    });
+    
+    logger.success('Speecher Worker initialized');
+    return true;
+  } catch (error) {
+    logger.error('Error initializing Speecher Worker:', error);
+    return false;
+  }
+}
+
+app.get('/api/tts', async (req, res) => {
+  const text = req.query.text;
+  if (typeof text !== 'string' || text.trim() === '') {
+    return res.status(400).send('Invalid input: text must be a non-empty string');
+  }
+  
+  try {
+    if (!speecherWorker) {
+      const initialized = initializeSpeecherWorker();
+      if (!initialized) {
+        return res.status(500).send('TTS service unavailable');
+      }
+    }
+    
+    // Create a promise to handle the worker response
+    const ttsPromise = new Promise((resolve, reject) => {
+      const messageId = Date.now().toString();
+      
+      const responseHandler = (message) => {
+        if (message.id === messageId) {
+          speecherWorker.removeListener('message', responseHandler);
+          
+          if (message.error) {
+            reject(new Error(message.error));
+          } else {
+            resolve(message.audioPath);
+          }
+        }
+      };
+      
+      speecherWorker.on('message', responseHandler);
+      
+      // Send request to worker
+      speecherWorker.postMessage({
+        type: 'tts',
+        id: messageId,
+        text: text
+      });
+      
+      // Set timeout to avoid hanging requests
+      setTimeout(() => {
+        speecherWorker.removeListener('message', responseHandler);
+        reject(new Error('TTS request timed out'));
+      }, 30000); // 30 second timeout
+    });
+    
+    // Handle the TTS response
+    const audioPath = await ttsPromise;
+    
+    // FIX: Check if file exists before sending
+    if (!fs.existsSync(audioPath)) {
+      logger.error(`Audio file not found: ${audioPath}`);
+      return res.status(500).send('Audio file not found');
+    }
+    
+    // Set proper content type
+    res.setHeader('Content-Type', 'audio/wav');
+    
+    // FIX: Use the audioPath directly without trying to resolve it relative to __dirname
+    res.sendFile(audioPath, (err) => {
+      if (err) {
+        logger.error(`Error sending audio file: ${err}`);
+        if (!res.headersSent) {
+          res.status(500).send('Error sending audio file');
+        }
+      }
+      
+      // Clean up temp file after sending
+      fs.unlink(audioPath, (unlinkErr) => {
+        if (unlinkErr) logger.error(`Error cleaning up audio file: ${unlinkErr}`);
+      });
+    });
+  } catch (error) {
+    logger.error('Error generating TTS:', error);
+    if (!res.headersSent) {
+      res.status(500).send(`Error generating TTS: ${error.message}`);
+    }
+  }
+});
 
 function setupRoutes() {
   try {
@@ -348,31 +469,63 @@ function filter(message) {
 
 let serverInstance;
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function initializeServer() {
   try {
-    // Connect to MongoDB first
-    await connectToMongoDB();
+    logger.info('Starting server initialization sequence...');
     
+    // Step 1: Connect to MongoDB
+    logger.info('Step 1/6: Connecting to MongoDB...');
+    await connectToMongoDB();
+    logger.success('MongoDB connection established');
+    await delay(250);
+    
+    // Check if server is already running
     if (serverInstance && serverInstance.listening) {
       logger.error('Server is already listening');
       return;
     }
     
-    // Initialize scrapers system
+    // Step 2: Initialize scrapers system with staggered startup
+    logger.info('Step 2/6: Initializing scrapers system...');
+    await delay(150);
     const scrapersInitialized = await initializeScrapers();
     if (scrapersInitialized) {
-      logger.success('Scrapers system initialized');
+      logger.success('Scrapers system initialization successful');
     } else {
-      logger.warning('Scrapers system initialization failed or incomplete');
+      logger.warning('Scrapers system initialization incomplete - continuing startup');
     }
+    await delay(200);
     
-    // Rest of your initialization code
+    // Step 3: Initialize worker coordinator with staggered worker creation
+    logger.info('Step 3/6: Initializing worker coordinator...');
+    await delay(150);
+    await workerCoordinator.initialize();
+    await delay(200);
+    
+    // Step 4: Initialize the speecher worker
+    logger.info('Step 4/6: Initializing speech synthesis worker...');
+    await delay(150);
+    initializeSpeecherWorker();
+    await delay(200);
+    
+    // Step 5: Setup routes, sockets, and error handlers
+    logger.info('Step 5/6: Setting up server components...');
     setupRoutes();
+    await delay(150);
     setupSockets();
+    await delay(150);
     setupErrorHandlers();
     app.use(errorHandler);
+    await delay(200);
     
-    // Update signal handlers to use the imported function
+    // Step 6: Start listening on port
+    logger.info('Step 6/6: Starting HTTP server...');
+    
+    // Set up signal handlers for graceful shutdown
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
     process.on('uncaughtException', async (err) => {
@@ -386,13 +539,14 @@ async function initializeServer() {
     });
     
     const PORT = process.env.SERVER_PORT || 6969;
-    logger.info('Starting server...');
+    await delay(200);
+    
     serverInstance = server.listen(PORT, async () => {
       logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
+      logger.success('Server initialization sequence completed successfully');
     });
-    logger.success('Server initialization complete');
   } catch (err) {
-    logger.error('Error in initializeServer:', err);
+    logger.error('Error in server initialization sequence:', err);
     process.exit(1);
   }
 }
