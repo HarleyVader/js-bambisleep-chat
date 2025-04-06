@@ -486,10 +486,10 @@
           return;
         }
         
-        // Check file size (max 2MB)
-        const maxSize = 2 * 1024 * 1024; // 2MB
+        // Check file size (max 5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB
         if (file.size > maxSize) {
-          alert('File size must be less than 2MB');
+          alert('File size must be less than 5MB');
           this.value = '';
           isFileValid = false;
           return;
