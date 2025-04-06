@@ -61,21 +61,30 @@ document.addEventListener('DOMContentLoaded', function () {
             const submissionId = submissionCard.dataset.id;
             const contentType = this.dataset.type;
 
+            // Get fresh references to modal elements
+            const modalTitle = document.getElementById('content-modal-title');
+            const modalUrl = document.getElementById('content-url');
+            const modalStatus = document.getElementById('content-status');
+            const modal = document.getElementById('content-modal');
+
             // Set modal title based on content type
-            contentTitle.textContent = contentType.charAt(0).toUpperCase() + contentType.slice(1) + ' Content';
+            if (modalTitle) modalTitle.textContent = contentType.charAt(0).toUpperCase() + contentType.slice(1) + ' Content';
 
             // Set URL and status
             const urlElement = submissionCard.querySelector('.submission-url');
             const statusElement = submissionCard.querySelector('.submission-status');
-            contentUrl.textContent = urlElement.textContent.trim();
-            contentStatus.textContent = statusElement.textContent.trim();
-            contentStatus.className = 'content-status ' + statusElement.classList[1];
+            
+            if (modalUrl) modalUrl.textContent = urlElement.textContent.trim();
+            if (modalStatus) {
+                modalStatus.textContent = statusElement.textContent.trim();
+                modalStatus.className = 'content-status ' + statusElement.classList[1];
+            }
 
             // Fetch and display content
             fetchScrapedContent(submissionId, contentType);
 
             // Show modal
-            contentModal.style.display = 'block';
+            if (modal) modal.style.display = 'block';
         });
     });
 
