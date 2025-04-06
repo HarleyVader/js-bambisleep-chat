@@ -377,7 +377,59 @@
         }
     }
 
-    
+    /* Add this to your existing styles */
+    .share-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        color: var(--secondary-text-color);
+        font-size: 0.9rem;
+    }
+
+    .share-btn span {
+        margin-left: 4px;
+    }
+
+    .share-btn:hover {
+        color: #007bff;
+        /* Blue color for share button hover */
+    }
+
+    /* Share notification */
+    .share-notification {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 123, 255, 0.9);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 4px;
+        z-index: 1001;
+        font-weight: bold;
+        display: none;
+        animation: fadeInOut 2s ease-in-out;
+    }
+
+    @keyframes fadeInOut {
+        0% {
+            opacity: 0;
+        }
+
+        15% {
+            opacity: 1;
+        }
+
+        85% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: 0;
+        }
+    }
 </style>
 
 <body>
@@ -491,7 +543,9 @@
                                                         <%= submission.comments.length %>
                                                     </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️
-                                                    <span>View Content</span></button>
+                                                    <span>View</span></button>
+                                                <button class="share-btn" data-id="<%= submission._id %>"
+                                                    data-type="<%= submission.type %>">📤 <span>Share</span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -545,7 +599,9 @@
                                                         <%= submission.comments.length %>
                                                     </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️
-                                                    <span>View Content</span></button>
+                                                    <span>View</span></button>
+                                                <button class="share-btn" data-id="<%= submission._id %>"
+                                                    data-type="<%= submission.type %>">📤 <span>Share</span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -753,6 +809,87 @@
                         const div = document.createElement('div');
                         div.textContent = text;
                         return div.innerHTML;
+                    }
+
+                    // Share button functionality
+                    document.querySelectorAll('.share-btn').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const submissionId = this.dataset.id;
+                            const contentType = this.dataset.type;
+                            
+                            // Create a shareable URL
+                            const shareUrl = `${window.location.origin}/scrapers?view=${submissionId}&type=${contentType}`;
+                            
+                            // Create a temporary input element to copy to clipboard
+                            const tempInput = document.createElement('input');
+                            tempInput.value = shareUrl;
+                            document.body.appendChild(tempInput);
+                            
+                            // Select and copy the URL
+                            tempInput.select();
+                            document.execCommand('copy');
+                            
+                            // Clean up
+                            document.body.removeChild(tempInput);
+                            
+                            // Show notification
+                            showShareNotification('Link copied to clipboard!');
+                        });
+                    });
+
+                    // Function to show share notification
+                    function showShareNotification(message) {
+                        // Check if notification already exists
+                        let notification = document.querySelector('.share-notification');
+                        
+                        // Create notification if it doesn't exist
+                        if (!notification) {
+                            notification = document.createElement('div');
+                            notification.className = 'share-notification';
+                            document.body.appendChild(notification);
+                        }
+                        
+                        // Set message and show
+                        notification.textContent = message;
+                        notification.style.display = 'block';
+                        
+                        // Hide after 2 seconds
+                        setTimeout(() => {
+                            notification.style.display = 'none';
+                        }, 2000);
+                    }
+
+                    // Initialize content modal structure if needed
+                    if (!document.getElementById('content-modal-title')) {
+                        const titleEl = document.createElement('h3');
+                        titleEl.id = 'content-modal-title';
+                        titleEl.textContent = 'Content';
+                        document.querySelector('.content-modal-content').appendChild(titleEl);
+                    }
+
+                    if (!document.getElementById('content-url')) {
+                        const headerEl = document.createElement('div');
+                        headerEl.className = 'content-modal-header';
+                        
+                        const urlEl = document.createElement('div');
+                        urlEl.id = 'content-url';
+                        urlEl.className = 'content-url';
+                        
+                        const statusEl = document.createElement('div');
+                        statusEl.id = 'content-status';
+                        statusEl.className = 'content-status';
+                        
+                        headerEl.appendChild(urlEl);
+                        headerEl.appendChild(statusEl);
+                        
+                        document.querySelector('.content-modal-content').appendChild(headerEl);
+                    }
+
+                    if (!document.getElementById('content-container')) {
+                        const containerEl = document.createElement('div');
+                        containerEl.id = 'content-container';
+                        containerEl.className = 'content-container';
+                        document.querySelector('.content-modal-content').appendChild(containerEl);
                     }
                 });
             </script>
