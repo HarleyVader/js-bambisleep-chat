@@ -43,62 +43,85 @@ async function do_tts(_audioArray) {
   let currentURL = arrayShift(_audioArray);
   if (!currentURL) return;
   
-  try {
-    // Instead of directly setting audio.src, fetch the audio first
-    const response = await fetch(currentURL);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    
-    // Get audio data as blob
-    const audioBlob = await response.blob();
-    
-    // Create object URL from blob
-    const audioUrl = URL.createObjectURL(audioBlob);
-    
-    // Set audio source to blob URL
-    audio.src = audioUrl;
-    console.log("Audio source set:", audioUrl);
-    
-    audio.load();
-    
-    // Set up event handlers
-    audio.onloadedmetadata = function() {
-      console.log("Audio metadata loaded, duration:", audio.duration);
-      document.querySelector("#message").textContent = "Playing...";
-      audio.play().catch(e => {
-        console.error("Error playing audio:", e);
-        document.querySelector("#message").textContent = "Error playing audio: " + e.message;
-      });
-    };
-    
-    audio.onended = function() {
-      console.log("Audio playback ended");
-      document.querySelector("#message").textContent = "Finished!";
+  let retries = 2; // Number of retry attempts
+  
+  while (retries >= 0) {
+    try {
+      // Instead of directly setting audio.src, fetch the audio first
+      const response = await fetch(currentURL);
       
-      // Release the blob URL to free memory
-      URL.revokeObjectURL(audioUrl);
-      
-      // Process next item in queue if any
-      if (_audioArray.length > 0) {
-        do_tts(_audioArray);
+      if (!response.ok) {
+        if (retries > 0) {
+          console.log(`Retrying TTS request (${retries} attempts left)...`);
+          retries--;
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+          continue;
+        }
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
-    };
-    
-    audio.onerror = function(e) {
-      console.error("Audio error:", e);
-      console.error("Error code:", audio.error ? audio.error.code : "unknown");
-      console.error("Error message:", audio.error ? audio.error.message : "unknown");
-      document.querySelector("#message").textContent = "Error playing audio: " + 
-        (audio.error ? audio.error.message : "Unknown error");
       
-      // Release the blob URL on error
-      URL.revokeObjectURL(audioUrl);
-    };
-    
-  } catch (error) {
-    console.error("Fetch error:", error);
-    document.querySelector("#message").textContent = "Error fetching audio: " + error.message;
+      // Get audio data as blob
+      const audioBlob = await response.blob();
+      
+      // Create object URL from blob
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // Set audio source to blob URL
+      audio.src = audioUrl;
+      console.log("Audio source set:", audioUrl);
+      
+      audio.load();
+      
+      // Set up event handlers
+      audio.onloadedmetadata = function() {
+        console.log("Audio metadata loaded, duration:", audio.duration);
+        document.querySelector("#message").textContent = "Playing...";
+        audio.play().catch(e => {
+          console.error("Error playing audio:", e);
+          document.querySelector("#message").textContent = "Error playing audio: " + e.message;
+        });
+      };
+      
+      audio.onended = function() {
+        console.log("Audio playback ended");
+        document.querySelector("#message").textContent = "Finished!";
+        
+        // Release the blob URL to free memory
+        URL.revokeObjectURL(audioUrl);
+        
+        // Process next item in queue if any
+        if (_audioArray.length > 0) {
+          do_tts(_audioArray);
+        }
+      };
+      
+      audio.onerror = function(e) {
+        console.error("Audio error:", e);
+        console.error("Error code:", audio.error ? audio.error.code : "unknown");
+        console.error("Error message:", audio.error ? audio.error.message : "unknown");
+        document.querySelector("#message").textContent = "Error playing audio: " + 
+          (audio.error ? audio.error.message : "Unknown error");
+        
+        // Release the blob URL on error
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      break; // Exit the retry loop on success
+      
+    } catch (error) {
+      if (retries <= 0) {
+        console.error("Fetch error:", error);
+        document.querySelector("#message").textContent = "Error fetching audio: " + error.message;
+        
+        // Use a fallback if TTS fails completely
+        audio.src = "./silence_100ms.wav"; // Use a silent audio file as fallback
+        audio.onloadedmetadata = function() {
+          console.log("Using fallback audio");
+        };
+      } else {
+        retries--;
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+      }
+    }
   }
 }
