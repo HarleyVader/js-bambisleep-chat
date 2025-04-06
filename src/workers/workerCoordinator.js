@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import Logger from '../utils/logger.js';
 import connectToMongoDB from '../utils/dbConnection.js';
+import mongoose from 'mongoose';
 
 // Create ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -46,6 +47,12 @@ class WorkerCoordinator {
     if (this.initialized) {
       logger.info('Worker coordinator already initialized');
       return true;
+    }
+    
+    // Check MongoDB connection
+    if (mongoose.connection.readyState !== 1) {
+      logger.warning('MongoDB not connected. Worker initialization waiting for database connection...');
+      return false;
     }
     
     if (this.initializing) {

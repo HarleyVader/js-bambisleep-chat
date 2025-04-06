@@ -19,6 +19,7 @@ import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
 import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
+import scraperAPIRoutes from './routes/scraperRoutes.js';
 
 //wokers
 import workerCoordinator from './workers/workerCoordinator.js';
@@ -258,6 +259,8 @@ function setupRoutes() {
       });
     });
 
+    app.use('/api/scraper', scraperAPIRoutes);
+
   } catch (error) {
     logger.error('Error in setupRoutes:', error);
   }
@@ -475,18 +478,19 @@ function delay(ms) {
 
 async function initializeServer() {
   try {
-    logger.info('Starting server initialization sequence...');
-    
-    // Step 1: Connect to MongoDB
+    // Step 1: Connect to MongoDB ONCE
     logger.info('Step 1/6: Connecting to MongoDB...');
     await connectToMongoDB();
+    
     // Wait for mongoose connection to be fully established
     while (mongoose.connection.readyState !== 1) {
       logger.info('Waiting for MongoDB connection to be fully ready...');
-      await delay(500); // Poll every 500ms
+      await delay(500);
     }
     logger.success('MongoDB connection fully established and ready');
     
+    // Now the connection is ready for all components to use
+    // ...rest of initialization
     // Check if server is already running
     if (serverInstance && serverInstance.listening) {
       logger.error('Server is already listening');

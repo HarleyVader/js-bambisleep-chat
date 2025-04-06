@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
+import { SubmissionModel } from './scrapers.js';
 
 const router = express.Router();
 const logger = new Logger('ScraperRoutes');
@@ -18,11 +19,8 @@ router.get('/submission/:id', async (req, res) => {
             });
         }
         
-        // Get the correct Submission model name
-        const Submission = mongoose.model('ScraperSubmission'); // Changed from 'Submission'
-        
-        // Find submission with populated results
-        const submission = await Submission.findById(submissionId);
+        // Find submission with populated results - use imported model
+        const submission = await SubmissionModel.findById(submissionId);
         
         if (!submission) {
             return res.status(404).json({ 
