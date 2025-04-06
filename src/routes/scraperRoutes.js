@@ -193,9 +193,9 @@ router.post('/submit', async (req, res) => {
       // Update submission with results
       submission.status = result.success ? 'completed' : 'failed';
       submission.results = {
-        [type]: {
+        text: {
           contentFound: result.contentFound || false,
-          content: result.content || []
+          content: Array.isArray(result.content) ? result.content.join('\n') : result.content
         }
       };
       await submission.save();
