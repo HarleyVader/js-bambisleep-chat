@@ -1,259 +1,84 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
-import workerCoordinator from '../workers/workerCoordinator.js';
 
 const router = express.Router();
 const logger = new Logger('ScrapersRoute');
 
-// MongoDB Schema for scrape submissions
-const SubmissionSchema = new mongoose.Schema({
-  url: {
-    type: String,
-    required: true
-  },
-  bambiname: {
-    type: String,
-    required: true
-  },
-  type: { // Changed from scrapeType to match frontend expectations
-    type: String,
-    enum: ['text', 'image', 'video'],
-    required: true
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'completed', 'failed'],
-    default: 'pending'
-  },
-  results: Object,
-  upvotes: {
-    type: Number,
-    default: 0
-  },
-  downvotes: {
-    type: Number,
-    default: 0
-  },
-  comments: [{
-    bambiname: String,
-    comment: String,
-    date: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  submittedAt: {
-    type: Date,
-    default: Date.now
+// Get the model defined in scraperRoutes.js
+const getSubmissionModel = () => {
+  try {
+    return mongoose.model('ScraperSubmission');
+  } catch (error) {
+    logger.error('Error getting ScraperSubmission model:', error);
+    return null;
   }
-});
-
-// Create models from schemas
-const SubmissionModel = mongoose.model('ScraperSubmission', SubmissionSchema);
-
-// Auth middleware - Only allow access to users with bambiname cookie not set to anonBambi
-const requireBambiAuth = (req, res, next) => {
-  const cookies = req.headers.cookie?.split(';')
-    .map(cookie => cookie.trim().split('='))
-    .reduce((acc, [key, value]) => {
-      acc[key] = value;
-      return acc;
-    }, {}) || {};
-    
-  const bambiname = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
-  
-  if (bambiname === 'anonBambi') {
-    return res.status(403).render('error', {
-      message: 'You must set a bambi name to access the scrapers',
-      error: { status: 403, stack: '' }
-    });
-  }
-  
-  req.bambiname = bambiname;
-  next();
 };
 
-// Route to render the scrapers dashboard
-router.get('/', requireBambiAuth, async (req, res) => {
+// Initialize all scrapers (called from server.js)
+export const initializeScrapers = async () => {
   try {
-    // Check if MongoDB is connected
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).render('error', {
-        message: 'Database connection unavailable. Please try again later.',
-        error: { status: 503, stack: '' }
-      });
+    // This is just to ensure the model is defined
+    const SubmissionModel = getSubmissionModel();
+    if (!SubmissionModel) {
+      logger.warning('ScraperSubmission model not found - may be initialized later');
+      return false;
     }
     
-    // Fetch submissions for each type
-    const textSubmissions = await SubmissionModel.find({ type: 'text' }).sort({ submittedAt: -1 }).limit(50);
-    const imageSubmissions = await SubmissionModel.find({ type: 'image' }).sort({ submittedAt: -1 }).limit(50);
-    const videoSubmissions = await SubmissionModel.find({ type: 'video' }).sort({ submittedAt: -1 }).limit(50);
+    logger.success('Scrapers system initialized successfully');
+    return true;
+  } catch (error) {
+    logger.error('Error initializing scrapers:', error);
+    return false;
+  }
+};
+
+// Routes for scraper page
+router.get('/', async (req, res) => {
+  try {
+    // Get cookie for bambiname
+    const bambiname = req.cookies.bambiname 
+      ? decodeURIComponent(req.cookies.bambiname).replace(/%20/g, ' ') 
+      : 'Anonymous Bambi';
     
+    // Fetch latest submissions for each type
+    const SubmissionModel = getSubmissionModel();
+    
+    let textSubmissions = [];
+    let imageSubmissions = [];
+    let videoSubmissions = [];
+    
+    if (SubmissionModel) {
+      // Fetch recent submissions for each type
+      textSubmissions = await SubmissionModel.find({ type: 'text' })
+        .sort({ submittedAt: -1 })
+        .limit(10);
+        
+      imageSubmissions = await SubmissionModel.find({ type: 'image' })
+        .sort({ submittedAt: -1 })
+        .limit(10);
+        
+      videoSubmissions = await SubmissionModel.find({ type: 'video' })
+        .sort({ submittedAt: -1 })
+        .limit(10);
+    } else {
+      logger.warning('ScraperSubmission model not available, using empty arrays');
+    }
+    
+    // Render the scrapers page
     res.render('scrapers', {
-      bambiname: req.bambiname,
+      bambiname,
       textSubmissions,
       imageSubmissions,
       videoSubmissions
     });
   } catch (error) {
-    logger.error('Error fetching submissions:', error);
-    res.status(500).render('error', { 
-      message: 'Failed to load scraper dashboard', 
-      error: { status: 500, stack: process.env.NODE_ENV === 'development' ? error.stack : '' }
+    logger.error('Error in scrapers route:', error);
+    res.status(500).render('error', {
+      error: 'Failed to load scrapers page',
+      details: process.env.NODE_ENV === 'development' ? error.message : null
     });
   }
 });
 
-// Route to submit a URL for scraping
-router.post('/submit', requireBambiAuth, async (req, res) => {
-  try {
-    const { url, scrapeType } = req.body;
-    
-    if (!url || !scrapeType) {
-      return res.status(400).json({ error: 'URL and scrape type are required' });
-    }
-    
-    if (!['text', 'image', 'video'].includes(scrapeType)) {
-      return res.status(400).json({ error: 'Invalid scrape type' });
-    }
-    
-    // Create a new submission
-    const submission = new SubmissionModel({
-      url,
-      bambiname: req.bambiname,
-      type: scrapeType, // Changed to match schema
-      status: 'pending'
-    });
-    
-    await submission.save();
-    
-    // Start the scraping process
-    workerCoordinator.scrapeUrl(url, async (error, results) => {
-      try {
-        if (error) {
-          submission.status = 'failed';
-          submission.results = { error: error.message };
-          logger.error(`Error scraping ${url}:`, error);
-        } else {
-          submission.status = 'completed';
-          submission.results = results;
-          logger.success(`Successfully scraped ${url}`);
-        }
-        
-        await submission.save();
-      } catch (saveError) {
-        logger.error('Error saving scrape results:', saveError);
-      }
-    });
-    
-    res.json({ success: true, message: 'Scraping request submitted', submissionId: submission._id });
-  } catch (error) {
-    logger.error('Error submitting scraping request:', error);
-    res.status(500).json({ error: 'Failed to submit scraping request' });
-  }
-});
-
-// Route to vote on a submission
-router.post('/vote/:id', requireBambiAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { voteType } = req.body;
-    
-    if (!['upvote', 'downvote'].includes(voteType)) {
-      return res.status(400).json({ error: 'Invalid vote type' });
-    }
-    
-    const submission = await SubmissionModel.findById(id);
-    
-    if (!submission) {
-      return res.status(404).json({ error: 'Submission not found' });
-    }
-    
-    if (voteType === 'upvote') {
-      submission.upvotes += 1;
-    } else {
-      submission.downvotes += 1;
-    }
-    
-    await submission.save();
-    
-    res.json({ success: true, upvotes: submission.upvotes, downvotes: submission.downvotes });
-  } catch (error) {
-    logger.error('Error voting on submission:', error);
-    res.status(500).json({ error: 'Failed to register vote' });
-  }
-});
-
-// Route to add a comment to a submission
-router.post('/comment/:id', requireBambiAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { comment } = req.body;
-    
-    if (!comment) {
-      return res.status(400).json({ error: 'Comment text is required' });
-    }
-    
-    const submission = await SubmissionModel.findById(id);
-    
-    if (!submission) {
-      return res.status(404).json({ error: 'Submission not found' });
-    }
-    
-    submission.comments.push({
-      bambiname: req.bambiname,
-      comment
-    });
-    
-    await submission.save();
-    
-    res.json({ success: true, comments: submission.comments });
-  } catch (error) {
-    logger.error('Error adding comment:', error);
-    res.status(500).json({ error: 'Failed to add comment' });
-  }
-});
-
-// Route to get submission details
-router.get('/detail/:id', requireBambiAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const submission = await SubmissionModel.findById(id);
-    
-    if (!submission) {
-      return res.status(404).json({ error: 'Submission not found' });
-    }
-    
-    res.json(submission);
-  } catch (error) {
-    logger.error('Error fetching submission details:', error);
-    res.status(500).json({ error: 'Failed to fetch submission details' });
-  }
-});
-
-// Initialize the scrapers system
-const initializeScrapers = async () => {
-  try {
-    logger.info('Initializing scrapers system...');
-    
-    // Make sure MongoDB is connected
-    if (mongoose.connection.readyState !== 1) {
-      logger.warning('MongoDB not connected. Scrapers initialization waiting for database connection...');
-      return false;
-    }
-    
-    // Initialize worker coordinator for scrapers
-    await workerCoordinator.initialize();
-    
-    logger.success('Scrapers system initialized successfully');
-    return true;
-  } catch (error) {
-    logger.error('Failed to initialize scrapers system:', error);
-    return false;
-  }
-};
-
-// Export both the router and the initialization function
 export default router;
-export { initializeScrapers, SubmissionModel };
