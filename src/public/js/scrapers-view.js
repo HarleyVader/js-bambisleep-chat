@@ -268,10 +268,47 @@ document.addEventListener('DOMContentLoaded', function () {
         container.innerHTML = contentHtml;
     }
 
-    // Format text content with proper escaping and line breaks
+    // Format text content with proper markdown-to-HTML conversion
     function formatTextContent(text) {
-        const escaped = escapeHtml(text);
-        return escaped.replace(/\n/g, '<br>');
+        // First escape any HTML to prevent XSS
+        const escapedText = escapeHtml(text);
+        
+        // Simple markdown conversion for common elements
+        return escapedText
+            // Headers (h1 to h6)
+            .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+            .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+            .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+            .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+            .replace(/^##### (.+)$/gm, '<h5>$1</h5>')
+            .replace(/^###### (.+)$/gm, '<h6>$1</h6>')
+            
+            // Bold text
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            
+            // Italic text
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            
+            // Links
+            .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
+            
+            // Images
+            .replace(/!\[(.+?)\]\((.+?)\)/g, '<img src="$2" alt="$1">')
+            
+            // Unordered lists
+            .replace(/^- (.+)$/gm, '<li>$1</li>').replace(/(<li>.+<\/li>\n)+/g, '<ul>$&</ul>')
+            
+            // Ordered lists (simple implementation)
+            .replace(/^\d+\. (.+)$/gm, '<li>$1</li>').replace(/(<li>.+<\/li>\n)+/g, '<ol>$&</ol>')
+            
+            // Blockquotes
+            .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+            
+            // Paragraphs (any text followed by blank line)
+            .replace(/^([^\n<][^\n]+)(?:\n{2,})/gm, '<p>$1</p>')
+            
+            // Line breaks
+            .replace(/\n/g, '<br>');
     }
 
     // Helper function to escape HTML
