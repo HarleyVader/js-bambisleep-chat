@@ -489,16 +489,13 @@ async function initializeServer() {
     }
     logger.success('MongoDB connection fully established and ready');
     
-    // Now the connection is ready for all components to use
-    // ...rest of initialization
-    // Check if server is already running
-    if (serverInstance && serverInstance.listening) {
-      logger.error('Server is already listening');
-      return;
-    }
+    // Step 2: Setup routes first to ensure models are defined
+    logger.info('Step 2/6: Setting up server components...');
+    setupRoutes();
+    await delay(150);
     
-    // Step 2: Initialize scrapers system with staggered startup
-    logger.info('Step 2/6: Initializing scrapers system...');
+    // Step 3: Now initialize scrapers system
+    logger.info('Step 3/6: Initializing scrapers system...');
     await delay(150);
     const scrapersInitialized = await initializeScrapers();
     if (scrapersInitialized) {
@@ -508,20 +505,21 @@ async function initializeServer() {
     }
     await delay(200);
     
-    // Step 3: Initialize worker coordinator with staggered worker creation
-    logger.info('Step 3/6: Initializing worker coordinator...');
+    // Continue with the rest of initialization...
+    // Step 4: Initialize worker coordinator
+    logger.info('Step 4/6: Initializing worker coordinator...');
     await delay(150);
     await workerCoordinator.initialize();
     await delay(200);
     
-    // Step 4: Initialize the speecher worker
-    logger.info('Step 4/6: Initializing speech synthesis worker...');
+    // Step 5: Initialize the speecher worker
+    logger.info('Step 5/6: Initializing speech synthesis worker...');
     await delay(150);
     initializeSpeecherWorker();
     await delay(200);
     
-    // Step 5: Setup routes, sockets, and error handlers
-    logger.info('Step 5/6: Setting up server components...');
+    // Step 6: Setup routes, sockets, and error handlers
+    logger.info('Step 6/6: Setting up server components...');
     setupRoutes();
     await delay(150);
     setupSockets();
@@ -530,8 +528,8 @@ async function initializeServer() {
     app.use(errorHandler);
     await delay(200);
     
-    // Step 6: Start listening on port
-    logger.info('Step 6/6: Starting HTTP server...');
+    // Step 7: Start listening on port
+    logger.info('Step 7/7: Starting HTTP server...');
     
     // Set up signal handlers for graceful shutdown
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
