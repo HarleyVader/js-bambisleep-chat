@@ -377,89 +377,7 @@
         }
     }
 
-    /* Add this to your existing styles */
-    .share-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        color: var(--secondary-text-color);
-        font-size: 0.9rem;
-    }
-
-    .share-btn span {
-        margin-left: 4px;
-    }
-
-    .share-btn:hover {
-        color: #007bff;
-        /* Blue color for share button hover */
-    }
-
-    /* Share notification */
-    .share-notification {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: rgba(0, 123, 255, 0.9);
-        color: white;
-        padding: 10px 20px;
-        border-radius: 4px;
-        z-index: 1001;
-        font-weight: bold;
-        display: none;
-        animation: fadeInOut 2s ease-in-out;
-    }
-
-    @keyframes fadeInOut {
-        0% {
-            opacity: 0;
-        }
-
-        15% {
-            opacity: 1;
-        }
-
-        85% {
-            opacity: 1;
-        }
-
-        100% {
-            opacity: 0;
-        }
-    }
-
-    /* Loading spinner */
-    .loading {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100%;
-        font-size: 1.2rem;
-        color: var(--secondary-text-color);
-    }
-
-    .loading::before {
-        content: '';
-        border: 4px solid var(--accent-color);
-        border-top: 4px solid transparent;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
-
-        100% {
-            transform: rotate(360deg);
-        }
-    }
+    
 </style>
 
 <body>
@@ -573,9 +491,7 @@
                                                         <%= submission.comments.length %>
                                                     </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️
-                                                    <span></span></button>
-                                                <button class="share-btn" data-id="<%= submission._id %>"
-                                                    data-type="<%= submission.type %>">📤 <span></span></button>
+                                                    <span>View Content</span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -629,9 +545,7 @@
                                                         <%= submission.comments.length %>
                                                     </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️
-                                                    <span></span></button>
-                                                <button class="share-btn" data-id="<%= submission._id %>"
-                                                    data-type="<%= submission.type %>">📤 <span></span></button>
+                                                    <span>View Content</span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -840,132 +754,6 @@
                         div.textContent = text;
                         return div.innerHTML;
                     }
-
-                    // Share button functionality
-                    document.querySelectorAll('.share-btn').forEach(button => {
-                        button.addEventListener('click', function() {
-                            const submissionId = this.dataset.id;
-                            const contentType = this.dataset.type;
-                            
-                            // Create a shareable URL
-                            const shareUrl = `${window.location.origin}/scrapers?view=${submissionId}&type=${contentType}`;
-                            
-                            // Attempt to use the Web Share API if available
-                            if (navigator.share) {
-                                navigator.share({
-                                    title: 'BambiSleep Content',
-                                    text: `Check out this ${contentType} content from BambiSleep!`,
-                                    url: shareUrl
-                                })
-                                .then(() => showShareNotification('Shared successfully!'))
-                                .catch(error => {
-                                    console.error('Error sharing:', error);
-                                    fallbackShare(shareUrl);
-                                });
-                            } else {
-                                fallbackShare(shareUrl);
-                            }
-                        });
-                    });
-
-                    // Fallback sharing method (copy to clipboard)
-                    function fallbackShare(url) {
-                        // Create a temporary input element
-                        const tempInput = document.createElement('input');
-                        tempInput.value = url;
-                        document.body.appendChild(tempInput);
-                        
-                        // Select and copy the URL
-                        tempInput.select();
-                        document.execCommand('copy');
-                        
-                        // Remove the temporary element
-                        document.body.removeChild(tempInput);
-                        
-                        // Show notification
-                        showShareNotification('Link copied to clipboard!');
-                    }
-
-                    // Function to show share notification
-                    function showShareNotification(message) {
-                        // Check if notification already exists
-                        let notification = document.querySelector('.share-notification');
-                        
-                        // Create notification if it doesn't exist
-                        if (!notification) {
-                            notification = document.createElement('div');
-                            notification.className = 'share-notification';
-                            document.body.appendChild(notification);
-                        }
-                        
-                        // Set message and show
-                        notification.textContent = message;
-                        notification.style.display = 'block';
-                        
-                        // Hide after 2 seconds
-                        setTimeout(() => {
-                            notification.style.display = 'none';
-                        }, 2000);
-                    }
-
-                    // Handle URL parameters for direct viewing
-                    function handleUrlParameters() {
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const viewId = urlParams.get('view');
-                        const contentType = urlParams.get('type');
-                        
-                        if (viewId && contentType) {
-                            // Find the submission with matching ID
-                            const submissionCard = document.querySelector(`.submission-card[data-id="${viewId}"]`);
-                            
-                            if (submissionCard) {
-                                // Trigger view content button click
-                                submissionCard.querySelector('.view-content-btn').click();
-                            } else {
-                                // If card not found in current view, fetch and display content directly
-                                const modalContent = document.querySelector('.content-modal-content');
-                                const contentContainer = document.getElementById('content-container') || 
-                                    document.createElement('div');
-                                
-                                if (!document.getElementById('content-container')) {
-                                    contentContainer.id = 'content-container';
-                                    contentContainer.className = 'content-container';
-                                    modalContent.appendChild(contentContainer);
-                                }
-                                
-                                if (!document.getElementById('content-modal-title')) {
-                                    const contentTitle = document.createElement('h3');
-                                    contentTitle.id = 'content-modal-title';
-                                    contentTitle.textContent = contentType.charAt(0).toUpperCase() + contentType.slice(1) + ' Content';
-                                    modalContent.insertBefore(contentTitle, contentContainer);
-                                }
-                                
-                                // Show loading state
-                                contentContainer.innerHTML = '<div class="loading">Loading shared content...</div>';
-                                
-                                // Show the modal
-                                contentModal.style.display = 'block';
-                                
-                                // Fetch the content
-                                fetch(`/api/scraper/submission/${viewId}`)
-                                    .then(response => {
-                                        if (!response.ok) {
-                                            throw new Error(`Failed to load content (Status: ${response.status})`);
-                                        }
-                                        return response.json();
-                                    })
-                                    .then(data => {
-                                        displayContent(data, contentType);
-                                    })
-                                    .catch(error => {
-                                        contentContainer.innerHTML = `<div class="error">Error loading shared content: ${error.message}</div>`;
-                                    });
-                            }
-                        }
-                    }
-
-                    // Call this function when the page loads
-                    handleUrlParameters();
                 });
             </script>
 </body>
