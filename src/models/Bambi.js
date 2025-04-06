@@ -29,6 +29,10 @@ const BambiSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  experience: {
+    type: Number,
+    default: 0
+  },
   description: {
     type: String,
     default: '',
@@ -42,24 +46,6 @@ const BambiSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  experience: {
-    type: Number,
-    default: 0
-  },
-  lastActivity: {
-    type: Date,
-    default: Date.now
-  },
-  badges: [{
-    badge: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Badge'
-    },
-    awardedAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
   profileTheme: {
     primaryColor: {
       type: String,
@@ -78,6 +64,16 @@ const BambiSchema = new mongoose.Schema({
       default: ''
     }
   },
+  badges: [{
+    badge: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Badge'
+    },
+    awardedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   following: [{
     type: String,  // username of followed bambi
     since: {
@@ -91,13 +87,32 @@ const BambiSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
+  }],
+  activities: [{
+    type: {
+      type: String,
+      enum: ['file', 'level', 'badge', 'login', 'follow'],
+      required: true
+    },
+    description: {
+      type: String,
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    }
   }]
 }, { timestamps: true });
 
 // Create a text index for search functionality
 BambiSchema.index({ username: 'text', displayName: 'text', description: 'text' });
 
-// Add this method to the schema
+// Method to add experience and handle level ups
 BambiSchema.methods.addExperience = async function(amount) {
   this.experience += amount;
   
@@ -107,10 +122,38 @@ BambiSchema.methods.addExperience = async function(amount) {
   
   const leveledUp = newLevel > this.level;
   this.level = newLevel;
-  this.lastActivity = Date.now();
+  this.lastActive = Date.now();
+  
+  // Record level up activity if needed
+  if (leveledUp) {
+    this.activities.unshift({
+      type: 'level',
+      description: `Reached level ${newLevel}!`,
+      timestamp: Date.now()
+    });
+  }
   
   await this.save();
   return { leveledUp, newLevel, experience: this.experience };
+};
+
+// Method to add activity
+BambiSchema.methods.addActivity = async function(type, description, metadata = {}) {
+  this.activities.unshift({
+    type,
+    description,
+    timestamp: Date.now(),
+    metadata
+  });
+  
+  // Keep only the last 50 activities
+  if (this.activities.length > 50) {
+    this.activities = this.activities.slice(0, 50);
+  }
+  
+  this.lastActive = Date.now();
+  await this.save();
+  return this.activities[0];
 };
 
 export default mongoose.model('Bambi', BambiSchema);
