@@ -1,3 +1,42 @@
+import express from 'express';
+import Bambi from '../models/Bambi.js';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import Logger from '../utils/logger.js';
+
+const router = express.Router();
+const logger = new Logger('BambisRouter');
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Get all bambis (with pagination)
+router.get('/', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const skip = (page - 1) * limit;
+    
+    const bambis = await Bambi.find()
+      .sort({ lastActive: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Bambi.countDocuments();
+    
+    res.render('bambis', {
+      bambis,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      total
+    });
+  } catch (error) {
+    logger.error('Error fetching bambis:', error);
+    res.status(500).render('bambis', { error: 'Failed to fetch bambis' });
+  }
+});
+
 // Add to existing routes file
 
 // Add or remove favorite file
@@ -133,3 +172,5 @@ router.post('/api/profile/:username/follow', async (req, res) => {
     });
   }
 });
+
+export default router;

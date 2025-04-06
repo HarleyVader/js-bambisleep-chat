@@ -21,7 +21,7 @@ import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js
 import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
-import bambisRouter from './routes/bambis.js'; // Add this line
+import bambisRouter from './routes/bambRoutes.js';
 
 //wokers
 import workerCoordinator from './workers/workerCoordinator.js';
