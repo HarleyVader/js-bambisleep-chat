@@ -1,0 +1,375 @@
+views\bambiProfile.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= bambi.displayName || bambi.username %> | Bambisleep.chat</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .profile-container {
+      display: flex;
+      flex-direction: column;
+      max-width: 900px;
+      margin: 2rem auto;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+    }
+    
+    .profile-header {
+      position: relative;
+      height: 200px;
+      background: linear-gradient(135deg, #fa81ff 0%, #ff4fa2 100%);
+      color: white;
+    }
+    
+    .profile-avatar {
+      position: absolute;
+      bottom: -50px;
+      left: 50px;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: 5px solid var(--card-bg);
+      object-fit: cover;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .profile-details {
+      margin-top: 60px;
+      padding: 2rem;
+    }
+    
+    .profile-name {
+      margin-bottom: 0.5rem;
+      font-size: 2rem;
+    }
+    
+    .profile-username {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      font-size: 1.1rem;
+    }
+    
+    .profile-description {
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    
+    .profile-stats {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    
+    .profile-triggers {
+      margin-bottom: 2rem;
+    }
+    
+    .triggers-title {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+    
+    .trigger-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .trigger-tag {
+      padding: 0.5rem 1rem;
+      background-color: var(--accent-light);
+      color: var(--accent);
+      border-radius: 100px;
+      font-size: 0.85rem;
+    }
+    
+    .edit-profile-btn {
+      padding: 0.75rem 1.5rem;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+      margin-top: 1rem;
+      display: inline-block;
+    }
+    
+    .edit-profile-btn:hover {
+      background-color: var(--accent-hover);
+    }
+    
+    .edit-form {
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    
+    input, textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background-color: var(--input-bg);
+      color: var(--text-primary);
+    }
+    
+    input[type="file"] {
+      padding: 0.5rem 0;
+      background: none;
+      border: none;
+    }
+    
+    .triggers-input {
+      margin-top: 0.5rem;
+    }
+    
+    .trigger-pill {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      background-color: var(--accent-light);
+      color: var(--accent);
+      border-radius: 100px;
+      font-size: 0.85rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .trigger-pill span {
+      margin-left: 0.25rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/header') %>
+  
+  <main class="container">
+    <div class="profile-container">
+      <div class="profile-header">
+        <img src="<%= bambi.profilePicture %>" alt="<%= bambi.displayName || bambi.username %>" class="profile-avatar">
+      </div>
+      
+      <div class="profile-details">
+        <h1 class="profile-name"><%= bambi.displayName || bambi.username %></h1>
+        <div class="profile-username">@<%= bambi.username %></div>
+        
+        <div class="profile-description">
+          <%= bambi.description || 'No description provided' %>
+        </div>
+        
+        <div class="profile-stats">
+          <div class="stat">
+            <div class="stat-value"><%= bambi.level %></div>
+            <div class="stat-label">Level</div>
+          </div>
+          
+          <div class="stat">
+            <div class="stat-value"><%= bambi.triggers.length %></div>
+            <div class="stat-label">Triggers</div>
+          </div>
+          
+          <div class="stat">
+            <div class="stat-value"><%= bambi.favoriteFiles.length %></div>
+            <div class="stat-label">Favorite Files</div>
+          </div>
+        </div>
+        
+        <div class="profile-triggers">
+          <h3 class="triggers-title">Triggers</h3>
+          
+          <div class="trigger-tags">
+            <% if (bambi.triggers && bambi.triggers.length > 0) { %>
+              <% bambi.triggers.forEach(trigger => { %>
+                <div class="trigger-tag"><%= trigger %></div>
+              <% }) %>
+            <% } else { %>
+              <p>No triggers added yet</p>
+            <% } %>
+          </div>
+        </div>
+        
+        <button id="editProfileBtn" class="edit-profile-btn">Edit Profile</button>
+      </div>
+      
+      <div id="editForm" class="edit-form">
+        <h2>Edit Your Profile</h2>
+        <form id="profileEditForm">
+          <div class="form-group">
+            <label for="displayNameEdit">Display Name</label>
+            <input type="text" id="displayNameEdit" name="displayName" value="<%= bambi.displayName || '' %>" placeholder="Your display name">
+          </div>
+          
+          <div class="form-group">
+            <label for="descriptionEdit">About You</label>
+            <textarea id="descriptionEdit" name="description" rows="4" placeholder="Tell us about yourself..."><%= bambi.description || '' %></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="profilePictureEdit">Profile Picture</label>
+            <input type="file" id="profilePictureEdit" name="profilePicture" accept="image/*">
+          </div>
+          
+          <div class="form-group">
+            <label>Triggers</label>
+            <div id="triggersList" class="triggers-input">
+              <% if (bambi.triggers && bambi.triggers.length > 0) { %>
+                <% bambi.triggers.forEach(trigger => { %>
+                  <div class="trigger-pill" data-value="<%= trigger %>">
+                    <%= trigger %><span class="remove-trigger">×</span>
+                  </div>
+                <% }) %>
+              <% } %>
+            </div>
+            <input type="text" id="newTrigger" placeholder="Type a trigger and press Enter">
+          </div>
+          
+          <button type="submit" class="edit-profile-btn">Save Changes</button>
+        </form>
+      </div>
+    </div>
+  </main>
+  
+  <%- include('partials/footer') %>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const editProfileBtn = document.getElementById('editProfileBtn');
+      const editForm = document.getElementById('editForm');
+      const profileEditForm = document.getElementById('profileEditForm');
+      const newTriggerInput = document.getElementById('newTrigger');
+      const triggersList = document.getElementById('triggersList');
+      
+      // Toggle edit form visibility
+      editProfileBtn.addEventListener('click', function() {
+        if (editForm.style.display === 'block') {
+          editForm.style.display = 'none';
+        } else {
+          editForm.style.display = 'block';
+        }
+      });
+      
+      // Handle adding new triggers
+      newTriggerInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const triggerValue = this.value.trim();
+          
+          if (triggerValue) {
+            // Create new trigger pill
+            const triggerPill = document.createElement('div');
+            triggerPill.className = 'trigger-pill';
+            triggerPill.dataset.value = triggerValue;
+            triggerPill.innerHTML = `${triggerValue}<span class="remove-trigger">×</span>`;
+            
+            triggersList.appendChild(triggerPill);
+            this.value = '';
+            
+            // Add event listener to the new remove button
+            triggerPill.querySelector('.remove-trigger').addEventListener('click', function() {
+              triggerPill.remove();
+            });
+          }
+        }
+      });
+      
+      // Add event listeners to existing remove buttons
+      document.querySelectorAll('.remove-trigger').forEach(button => {
+        button.addEventListener('click', function() {
+          this.parentElement.remove();
+        });
+      });
+      
+      // Handle form submission
+      profileEditForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Collect all triggers
+        const triggers = Array.from(triggersList.querySelectorAll('.trigger-pill')).map(pill => pill.dataset.value);
+        
+        // First update profile data
+        const profileData = {
+          displayName: document.getElementById('displayNameEdit').value,
+          description: document.getElementById('descriptionEdit').value,
+          triggers
+        };
+        
+        try {
+          const response = await fetch(`/bambis/api/profile/<%= bambi.username %>`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(profileData)
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            // If there's a profile picture, upload it separately
+            const profilePictureInput = document.getElementById('profilePictureEdit');
+            
+            if (profilePictureInput.files.length > 0) {
+              const formData = new FormData();
+              formData.append('profilePicture', profilePictureInput.files[0]);
+              
+              const pictureResponse = await fetch(`/bambis/api/profile/<%= bambi.username %>/picture`, {
+                method: 'POST',
+                body: formData
+              });
+              
+              const pictureResult = await pictureResponse.json();
+              
+              if (pictureResult.success) {
+                // Reload page to show updates
+                window.location.reload();
+              } else {
+                alert(pictureResult.message || 'Failed to upload profile picture');
+              }
+            } else {
+              // Reload page to show updates if no picture was uploaded
+              window.location.reload();
+            }
+          } else {
+            alert(result.message || 'Failed to update profile');
+          }
+        } catch (error) {
+          console.error('Error updating profile:', error);
+          alert('An error occurred while updating your profile');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
