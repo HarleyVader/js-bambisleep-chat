@@ -109,7 +109,7 @@ const parseContent = async (filePath, fileType) => {
 };
 
 // Web scraper function - now focused on text only
-const scrapeWebContent = async (url, ContentModel) => {
+const scrapeWebContent = async (url, ContentModel, requestId) => {
   try {
     logger.info(`Scraping ${url} for bambisleep text content`);
     const response = await axios.get(url, {
@@ -156,7 +156,7 @@ const scrapeWebContent = async (url, ContentModel) => {
           contentFound: true,
           content: pageText // The extracted text content
         },
-        requestId: msg.requestId
+        requestId: requestId
       });
       
       return {
@@ -250,7 +250,7 @@ parentPort.on('message', async (msg) => {
     
     switch (msg.type) {
       case 'scrape_url':
-        const urlResult = await scrapeWebContent(msg.url, ContentModel);
+        const urlResult = await scrapeWebContent(msg.url, ContentModel, msg.requestId);
         parentPort.postMessage({
           type: 'scrape_result',
           data: urlResult,

@@ -478,11 +478,14 @@
                                         <% } %>
                                             <div class="submission-actions">
                                                 <button class="vote-btn upvote" data-vote="upvote">👍 <span>
-                                                </span></button>
+                                                        <%= submission.upvotes %>
+                                                    </span></button>
                                                 <button class="vote-btn downvote" data-vote="downvote">👎 <span>
-                                                </span></button>
+                                                        <%= submission.downvotes %>
+                                                    </span></button>
                                                 <button class="comment-btn">💬 <span>
-                                                </span></button>
+                                                        <%= submission.comments.length %>
+                                                    </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️
                                                     <span>View</span></button>
                                                 <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
@@ -530,11 +533,14 @@
                                         <% } %>
                                             <div class="submission-actions">
                                                 <button class="vote-btn upvote" data-vote="upvote">👍 <span>
-                                                </span></button>
+                                                        <%= submission.upvotes %>
+                                                    </span></button>
                                                 <button class="vote-btn downvote" data-vote="downvote">👎 <span>
-                                                </span></button>
+                                                        <%= submission.downvotes %>
+                                                    </span></button>
                                                 <button class="comment-btn">💬 <span>
-                                                </span></button>
+                                                        <%= submission.comments.length %>
+                                                    </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️
                                                     <span>View</span></button>
                                                 <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
@@ -582,11 +588,14 @@
                                         <% } %>
                                             <div class="submission-actions">
                                                 <button class="vote-btn upvote" data-vote="upvote">👍 <span>
-                                                </span></button>
+                                                        <%= submission.upvotes %>
+                                                    </span></button>
                                                 <button class="vote-btn downvote" data-vote="downvote">👎 <span>
-                                                </span></button>
+                                                        <%= submission.downvotes %>
+                                                    </span></button>
                                                 <button class="comment-btn">💬 <span>
-                                                </span></button>
+                                                        <%= submission.comments.length %>
+                                                    </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View</span></button>
                                                 <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
                                             </div>
@@ -751,31 +760,35 @@
                                 }
                                 contentHtml += '</div>';
                                 break;
-                            case 'video':
-                                contentHtml = '<div class="video-content">';
-                                if (Array.isArray(result.content)) {
-                                    if (result.content.length === 0) {
-                                        contentHtml += '<p class="content-not-found">No videos found</p>';
-                                    } else {
-                                        result.content.forEach(video => {
-                                            if (video.embedUrl) {
-                                                contentHtml += `
-                                                <div class="video-container">
-                                                </div>
-                                            `;
-                                            } else if (video.url) {
-                                                contentHtml += `
-                                                <div class="video-container">
-                                                </div>
-                                            `;
-                                            }
-                                        });
-                                    }
-                                } else {
-                                    contentHtml += '<p>Video data has unexpected format</p>';
-                                }
-                                contentHtml += '</div>';
-                                break;
+                                case 'video':
+    contentHtml = '<div class="video-content">';
+    if (Array.isArray(result.content)) {
+        if (result.content.length === 0) {
+            contentHtml += '<p class="content-not-found">No videos found</p>';
+        } else {
+            result.content.forEach(video => {
+                if (video.embedUrl) {
+                    contentHtml += `
+                        <div class="video-container">
+                            <iframe src="${video.embedUrl}" frameborder="0" allowfullscreen></iframe>
+                            ${video.title ? `<h4>${video.title}</h4>` : ''}
+                        </div>
+                    `;
+                } else if (video.url) {
+                    contentHtml += `
+                        <div class="video-container">
+                            <video controls src="${video.url}"></video>
+                            ${video.title ? `<h4>${video.title}</h4>` : ''}
+                        </div>
+                    `;
+                }
+            });
+        }
+    } else {
+        contentHtml += '<p>Video data has unexpected format</p>';
+    }
+    contentHtml += '</div>';
+    break;
                         }
 
                         contentContainer.innerHTML = contentHtml;
