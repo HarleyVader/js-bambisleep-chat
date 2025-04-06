@@ -1,11 +1,8 @@
 .ejs -->
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<%- include('../views/partials/head') %>
   <title>Bambi Profiles | Bambisleep.chat</title>
-  <link rel="stylesheet" href="/css/styles.css">
   <style>
     .profiles-container {
       display: grid;
@@ -135,9 +132,9 @@
       margin-bottom: 1rem;
     }
   </style>
-</head>
+
 <body>
-  <%- include('partials/header') %>
+  <%- include('../views/partials/nav.ejs') %>
   
   <main class="container">
     <h1>Bambi Profiles</h1>
@@ -214,7 +211,7 @@
     <% } %>
   </main>
   
-  <%- include('partials/footer') %>
+  <%- include('../views/partials/footer.ejs') %>
   
   <script>
     document.addEventListener('DOMContentLoaded', function() {

@@ -1,11 +1,8 @@
 views\bambiProfile.ejs -->
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<%- include('../views/partials/head') %>
   <title><%= bambi.displayName || bambi.username %> | Bambisleep.chat</title>
-  <link rel="stylesheet" href="/css/styles.css">
   <style>
     .profile-container {
       display: flex;
@@ -173,7 +170,7 @@ views\bambiProfile.ejs -->
   </style>
 </head>
 <body>
-  <%- include('partials/header') %>
+   <%- include('../views/partials/nav.ejs') %>
   
   <main class="container">
     <div class="profile-container">
@@ -261,7 +258,7 @@ views\bambiProfile.ejs -->
     </div>
   </main>
   
-  <%- include('partials/footer') %>
+  <%- include('../views/partials/footer.ejs') %>
   
   <script>
     document.addEventListener('DOMContentLoaded', function() {
