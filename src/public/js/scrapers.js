@@ -247,4 +247,123 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.removeChild(notification);
     }, 3000);
   }
+  
+  // Initialize stats refresh when DOM is loaded
+  setupStatsRefresh();
 });
+
+// Auto-refresh stats when votes change
+function setupStatsRefresh() {
+  // Listen for vote updates
+  const voteButtons = document.querySelectorAll('.vote-btn');
+  voteButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      // Set a timeout to refresh stats after vote is processed
+      setTimeout(refreshStats, 1000);
+    });
+  });
+  
+  // Set up periodic refresh every 60 seconds
+  setInterval(refreshStats, 60000);
+  
+  // Add refresh button to stats section
+  const statsHeader = document.querySelector('.stats-section h2');
+  if (statsHeader) {
+    const refreshButton = document.createElement('button');
+    refreshButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
+    refreshButton.className = 'stats-refresh-btn';
+    refreshButton.style.marginLeft = '10px';
+    refreshButton.style.background = 'none';
+    refreshButton.style.border = 'none';
+    refreshButton.style.color = 'inherit';
+    refreshButton.style.cursor = 'pointer';
+    refreshButton.title = 'Refresh statistics';
+    
+    refreshButton.addEventListener('click', function() {
+      refreshStats();
+      this.classList.add('rotating');
+      setTimeout(() => {
+        this.classList.remove('rotating');
+      }, 1000);
+    });
+    
+    statsHeader.appendChild(refreshButton);
+  }
+}
+
+// Function to refresh stats via AJAX
+function refreshStats() {
+  fetch('/api/scraper/stats')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        updateStatsDisplay(data.stats);
+      }
+    })
+    .catch(error => console.error('Error refreshing stats:', error));
+}
+
+// Function to update stats in the DOM
+function updateStatsDisplay(stats) {
+  // Update stat counts
+  document.querySelector('.stat-value.successful').textContent = stats.successful;
+  document.querySelector('.stat-value.failed').textContent = stats.failed;
+  document.querySelector('.stat-value.blocked').textContent = stats.blocked;
+  document.querySelector('.stat-value.upvotes').textContent = stats.totalUpvotes;
+  document.querySelector('.stat-value.downvotes').textContent = stats.totalDownvotes;
+  
+  // Update top upvoted list
+  updateTopList('.top-section:first-child .top-list', stats.topUpvoted, true);
+  
+  // Update top downvoted list
+  updateTopList('.top-section:last-child .top-list', stats.topDownvoted, false);
+}
+
+// Helper function to update a top list
+function updateTopList(selector, items, isUpvoted) {
+  const container = document.querySelector(selector);
+  if (!container) return;
+  
+  // Clear existing items
+  container.innerHTML = '';
+  
+  // Add new items
+  if (items && items.length > 0) {
+    items.forEach(item => {
+      const icon = isUpvoted ? 'fa-thumbs-up' : 'fa-thumbs-down';
+      const voteCount = isUpvoted ? item.upvotes : item.downvotes;
+      
+      const itemEl = document.createElement('div');
+      itemEl.className = 'top-item';
+      itemEl.innerHTML = `
+        <div class="top-url" title="${item.url}">
+          ${item.url.length > 50 ? item.url.substring(0, 50) + '...' : item.url}
+        </div>
+        <div class="top-votes">
+          <i class="fas ${icon}"></i> ${voteCount}
+        </div>
+        <a href="/scrapers?view=${item._id}&type=${item.type}" class="top-view-btn">View</a>
+      `;
+      container.appendChild(itemEl);
+    });
+  } else {
+    const noData = document.createElement('div');
+    noData.className = 'no-data';
+    noData.textContent = isUpvoted ? 'No upvoted submissions yet' : 'No downvoted submissions yet';
+    container.appendChild(noData);
+  }
+}
+
+// Add CSS for refresh button animation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  .rotating {
+    animation: rotate 1s linear;
+  }
+`;
+document.head.appendChild(style);

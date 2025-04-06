@@ -581,6 +581,11 @@
         const result = await response.json();
         
         if (result.success) {
+          // Apply new theme immediately
+          const profileHeader = document.querySelector('.profile-header');
+          profileHeader.style.background = `linear-gradient(135deg, ${profileData.profileTheme.primaryColor} 0%, ${profileData.profileTheme.secondaryColor} 100%)`;
+          profileHeader.style.color = profileData.profileTheme.textColor;
+          
           // If there's a profile picture, upload it separately
           const profilePictureInput = document.getElementById('profilePictureEdit');
           
@@ -723,6 +728,17 @@
 
     // Check heart status on page load
     checkHeartStatus();
+
+    // Apply profile theme to header
+    const profileHeader = document.querySelector('.profile-header');
+    const primaryColor = '<%= bambi.profileTheme?.primaryColor || "#fa81ff" %>';
+    const secondaryColor = '<%= bambi.profileTheme?.secondaryColor || "#ff4fa2" %>';
+    const textColor = '<%= bambi.profileTheme?.textColor || "#ffffff" %>';
+    
+    if (profileHeader) {
+      profileHeader.style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`;
+      profileHeader.style.color = textColor;
+    }
   });
 </script>
 </body>
