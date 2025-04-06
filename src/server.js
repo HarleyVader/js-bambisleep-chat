@@ -480,8 +480,12 @@ async function initializeServer() {
     // Step 1: Connect to MongoDB
     logger.info('Step 1/6: Connecting to MongoDB...');
     await connectToMongoDB();
-    logger.success('MongoDB connection established');
-    await delay(250);
+    // Wait for mongoose connection to be fully established
+    while (mongoose.connection.readyState !== 1) {
+      logger.info('Waiting for MongoDB connection to be fully ready...');
+      await delay(500); // Poll every 500ms
+    }
+    logger.success('MongoDB connection fully established and ready');
     
     // Check if server is already running
     if (serverInstance && serverInstance.listening) {
