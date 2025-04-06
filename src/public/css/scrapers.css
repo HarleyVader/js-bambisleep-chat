@@ -5,15 +5,15 @@
 
 /* Scrapers Page Styles */
 .container {
-    max-width: 95vw; /* Increased from 90vw */
+    max-width: 95vw;
     margin: 0 auto;
-    padding: 1vh 1vw; /* Reduced from 2vh 2vw */
+    padding: 1vh 1vw;
     font-family: "Audiowide", sans-serif;
 }
 
 header {
     text-align: center;
-    margin-bottom: 2vh; /* Reduced from 3vh */
+    margin-bottom: 2vh;
 }
 
 .bambi-name {
@@ -26,14 +26,14 @@ header {
 .scrapers-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1vw; /* Reduced from 2vw */
+    gap: 1vw;
 }
 
 /* Scraper Column Styles - Enhanced with shiny borders */
 .scraper-column {
-    background-color: rgba(12, 42, 42, 0.8); /* 80% transparent */
-    border-radius: 0.6vw; /* Reduced from 0.8vw */
-    padding: 1vh 1vw; /* Reduced from 1.5vh 1.5vw */
+    background-color: rgba(12, 42, 42, 0.8);
+    border-radius: 0.6vw;
+    padding: 1vh 1vw;
     box-shadow: 0 0 1vh var(--button-color);
     border-top: var(--button-color) 3px ridge;
     border-bottom: var(--button-color) 3px ridge;
@@ -45,34 +45,34 @@ header {
 .scraper-column h2 {
     text-align: center;
     color: var(--accent-color);
-    margin-bottom: 1vh; /* Reduced from 1.5vh */
+    margin-bottom: 1vh;
     border-bottom: 0.1vh solid var(--border-color);
-    padding-bottom: 0.5vh; /* Reduced from 1vh */
+    padding-bottom: 0.5vh;
     animation: flicker 5s infinite;
-    text-shadow: 0 0 6px var(--secondary-color); /* Properly aligned shadow */
+    text-shadow: 0 0 6px var(--secondary-color);
     font-family: "Audiowide", sans-serif;
-    font-size: 1.3rem; /* Increased size */
+    font-size: 1.3rem;
 }
 
 /* Form Styles - Reduced spacing */
 .submit-form {
-    margin-bottom: 1vh; /* Reduced from 2vh */
+    margin-bottom: 1vh;
 }
 
 .submit-form textarea {
     width: 100%;
-    height: 6vh; /* Reduced from 8vh */
-    padding: 0.5vh 0.5vw; /* Reduced from 1vh 1vw */
-    border-radius: 0.3vw; /* Reduced from 0.4vw */
+    height: 6vh;
+    padding: 0.5vh 0.5vw;
+    border-radius: 0.3vw;
     background-color: var(--nav-color);
     color: var(--primary-alt);
     resize: vertical;
-    margin-bottom: 6px; /* Reduced from 10px */
+    margin-bottom: 6px;
     border-left: var(--primary-alt) 2px ridge;
     border-right: var(--primary-alt) 2px ridge;
     border-top: var(--button-color) 2px ridge;
     border-bottom: var(--button-color) 2px ridge;
-    text-shadow: 0 0 2px var(--secondary-color); /* Properly aligned shadow */
+    text-shadow: 0 0 2px var(--secondary-color);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
@@ -85,31 +85,29 @@ header {
 
 .submit-form button {
     width: 100%;
-    padding: 8px; /* Reduced from 10px */
-    margin: 0; /* Consistent margin */
+    padding: 8px;
+    margin: 0;
     background-color: var(--button-color);
     color: var(--secondary-color);
-    border: var(--secondary-color) outset 0.2vw; /* Reduced from 0.3vw */
-    border-radius: 0.4vw; /* Reduced from 0.6vw */
+    border: var(--secondary-color) outset 0.2vw;
+    border-radius: 0.4vw;
     cursor: pointer;
     font-weight: bold;
-    text-shadow: 0 0 0.3vw var(--tertiary-color); /* Properly aligned shadow */
+    text-shadow: 0 0 0.3vw var(--tertiary-color);
     font-family: "Audiowide", sans-serif;
     transition: background-color 0.3s, color 0.3s, text-shadow 0.3s;
-    /* Fixed dimensions to prevent movement */
     box-sizing: border-box;
-    height: 38px; /* Reduced from 42px */
+    height: 38px;
     line-height: 1;
-    font-size: 1rem; /* Increased size */
+    font-size: 1rem;
 }
 
 .submit-form button:hover {
     background-color: var(--secondary-color);
     color: var(--button-color);
-    text-shadow: 0 0 0.3vw var(--nav-color); /* Properly aligned shadow */
-    border: var(--button-color) 0.2vw inset; /* Reduced from 0.3vw */
-    /* Same padding and margin as non-hover state */
-    padding: 8px; /* Reduced from 10px */
+    text-shadow: 0 0 0.3vw var(--nav-color);
+    border: var(--button-color) 0.2vw inset;
+    padding: 8px;
     margin: 0;
 }
 
@@ -117,23 +115,22 @@ header {
     background-color: var(--tertiary-alt);
     color: var(--nav-alt);
     border-color: var(--primary-alt);
-    /* Same padding and margin */
-    padding: 8px; /* Reduced from 10px */
+    padding: 8px;
     margin: 0;
 }
 
 /* Submissions List Styles */
 .submissions-list {
-    max-height: 650px; /* Increased from 600px */
+    max-height: 650px;
     overflow-y: auto;
 }
 
 .submissions-list h3 {
-    margin-bottom: 6px; /* Reduced from 10px */
+    margin-bottom: 6px;
     color: var(--nav-alt);
-    font-size: 1.1rem; /* Increased from 1rem */
+    font-size: 1.1rem;
     text-align: center;
-    text-shadow: 0 0 2px var(--secondary-color); /* Properly aligned shadow */
+    text-shadow: 0 0 2px var(--secondary-color);
     font-family: "Audiowide", sans-serif;
 }
 
@@ -145,10 +142,10 @@ header {
 
 /* Submission Card Styles - Larger independent items */
 .submission-card {
-    background-color: rgba(18, 65, 65, 0.8); /* 80% transparent */
-    border-radius: 5px; /* Reduced from 6px */
-    margin-bottom: 10px; /* Reduced from 15px */
-    padding: 8px; /* Reduced from 12px */
+    background-color: rgba(18, 65, 65, 0.8);
+    border-radius: 5px;
+    margin-bottom: 10px;
+    padding: 8px;
     box-shadow: 0 0 0.5vh var(--tertiary-color);
     border-top: var(--tertiary-color) 2px ridge;
     border-bottom: var(--tertiary-color) 2px ridge;
@@ -166,15 +163,15 @@ header {
 .submission-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 6px; /* Reduced from 8px */
+    margin-bottom: 6px;
 }
 
 .submission-url {
-    font-size: 0.95rem; /* Increased from 0.9rem */
+    font-size: 0.95rem;
     word-break: break-all;
     max-width: 80%;
     color: var(--primary-alt);
-    text-shadow: 0 0 1px var(--secondary-color); /* Properly aligned shadow */
+    text-shadow: 0 0 1px var(--secondary-color);
 }
 
 .submission-status {
@@ -203,20 +200,20 @@ header {
 .submission-info {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 6px; /* Reduced from 8px */
-    font-size: 0.85rem; /* Increased from 0.8rem */
+    margin-bottom: 6px;
+    font-size: 0.85rem;
     color: var(--nav-alt);
 }
 
 .content-found {
-    font-size: 0.95rem; /* Increased from 0.9rem */
+    font-size: 0.95rem;
     color: #155724;
     background-color: rgba(212, 237, 218, 0.7);
-    padding: 4px; /* Reduced from 5px */
-    border-radius: 3px; /* Reduced from 4px */
-    margin-bottom: 6px; /* Reduced from 8px */
+    padding: 4px;
+    border-radius: 3px;
+    margin-bottom: 6px;
     text-align: center;
-    text-shadow: 0 0 1px var(--secondary-color); /* Properly aligned shadow */
+    text-shadow: 0 0 1px var(--secondary-color);
     border: var(--tertiary-alt) 1px ridge;
 }
 
@@ -225,7 +222,7 @@ header {
     justify-content: space-around;
     align-items: center;
     padding: 5px 0;
-    margin-top: auto; /* Push to bottom of card */
+    margin-top: auto;
 }
 
 /* Action button styling */
@@ -239,463 +236,7 @@ header {
     display: flex;
     align-items: center;
     color: var(--secondary-text-color);
-    font-size: 0.95rem; /* Increased from 0.9rem */
-    padding: 0;
-    margin: 0;
-    transition: transform 0.2s ease, color 0.3s ease;
-}
-
-.vote-btn span,
-.comment-btn span,
-.view-content-btn span,
-.share-btn span {
-    margin-left: 4px;
-}
-
-/* Hover color changes */
-.upvote:hover {
-    color: #28a745;
-}
-
-.downvote:hover {
-    color: #dc3545;
-}
-
-.comment-btn:hover {
-    color: var(--accent-color);
-}
-
-.view-content-btn:hover {
-    color: var(--accent-color);
-}
-
-.share-btn:hover {
-    color: #007bff;
-}
-
-/* Click animation - scale down slightly when clicked */
-.vote-btn:active,
-.comment-btn:active,
-.view-content-btn:active,
-.share-btn:active {
-    transform: scale(0.9);
-    transition: transform 0.1s ease;
-}
-
-/* Form Styles - Reduced spacing */
-.submit-form {
-    margin-bottom: 1vh; /* Reduced from 2vh */
-}
-
-.submit-form textarea {
-    width: 100%;
-    height: 6vh; /* Reduced from 8vh */
-    padding: 0.5vh 0.5vw; /* Reduced from 1vh 1vw */
-    border-radius: 0.3vw; /* Reduced from 0.4vw */
-    background-color: var(--nav-color);
-    color: var(--primary-alt);
-    resize: vertical;
-    margin-bottom: 6px; /* Reduced from 10px */
-    border-left: var(--primary-alt) 2px ridge;
-    border-right: var(--primary-alt) 2px ridge;
-    border-top: var(--button-color) 2px ridge;
-    border-bottom: var(--button-color) 2px ridge;
-    text-shadow: 0 0 2px var(--secondary-color); /* Properly aligned shadow */
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-}
-
-.submit-form textarea:focus {
-    border: var(--nav-alt) 4px ridge;
-    border-color: var(--tertiary-color);
-    text-shadow: var(--nav-alt) 2px 2px 2px;
-    outline: none;
-}
-
-.submit-form button {
-    width: 100%;
-    padding: 8px; /* Reduced from 10px */
-    margin: 0; /* Consistent margin */
-    background-color: var(--button-color);
-    color: var(--secondary-color);
-    border: var(--secondary-color) outset 0.2vw; /* Reduced from 0.3vw */
-    border-radius: 0.4vw; /* Reduced from 0.6vw */
-    cursor: pointer;
-    font-weight: bold;
-    text-shadow: 0 0 0.3vw var(--tertiary-color); /* Properly aligned shadow */
-    font-family: "Audiowide", sans-serif;
-    transition: background-color 0.3s, color 0.3s, text-shadow 0.3s;
-    /* Fixed dimensions to prevent movement */
-    box-sizing: border-box;
-    height: 38px; /* Reduced from 42px */
-    line-height: 1;
-    font-size: 1rem; /* Increased size */
-}
-
-.submit-form button:hover {
-    background-color: var(--secondary-color);
-    color: var(--button-color);
-    text-shadow: 0 0 0.3vw var(--nav-color); /* Properly aligned shadow */
-    border: var(--button-color) 0.2vw inset; /* Reduced from 0.3vw */
-    /* Same padding and margin as non-hover state */
-    padding: 8px; /* Reduced from 10px */
-    margin: 0;
-}
-
-.submit-form button:active {
-    background-color: var(--tertiary-alt);
-    color: var(--nav-alt);
-    border-color: var(--primary-alt);
-    /* Same padding and margin */
-    padding: 8px; /* Reduced from 10px */
-    margin: 0;
-}
-
-/* Submissions List Styles */
-.submissions-list {
-    max-height: 650px; /* Increased from 600px */
-    overflow-y: auto;
-}
-
-.submissions-list h3 {
-    margin-bottom: 6px; /* Reduced from 10px */
-    color: var(--nav-alt);
-    font-size: 1.1rem; /* Increased from 1rem */
-    text-align: center;
-    text-shadow: 0 0 2px var(--secondary-color); /* Properly aligned shadow */
-    font-family: "Audiowide", sans-serif;
-}
-
-.no-submissions {
-    text-align: center;
-    color: var(--secondary-text-color);
-    font-style: italic;
-}
-
-/* Submission Card Styles - Larger independent items */
-.submission-card {
-    background-color: rgba(18, 65, 65, 0.8); /* 80% transparent */
-    border-radius: 5px; /* Reduced from 6px */
-    margin-bottom: 10px; /* Reduced from 15px */
-    padding: 8px; /* Reduced from 12px */
-    box-shadow: 0 0 0.5vh var(--tertiary-color);
-    border-top: var(--tertiary-color) 2px ridge;
-    border-bottom: var(--tertiary-color) 2px ridge;
-    border-left: var(--secondary-alt) 1px groove;
-    border-right: var(--secondary-alt) 1px groove;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-}
-
-.submission-card:hover {
-    box-shadow: 0 0 1vh var(--button-color);
-}
-
-.submission-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 6px; /* Reduced from 8px */
-}
-
-.submission-url {
-    font-size: 0.95rem; /* Increased from 0.9rem */
-    word-break: break-all;
-    max-width: 80%;
-    color: var(--primary-alt);
-    text-shadow: 0 0 1px var(--secondary-color); /* Properly aligned shadow */
-}
-
-.submission-status {
-    font-size: 0.8rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    text-transform: capitalize;
-    font-family: "Audiowide", sans-serif;
-}
-
-.pending {
-    background-color: #fff3cd;
-    color: #856404;
-}
-
-.completed {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.failed {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-.submission-info {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 6px; /* Reduced from 8px */
-    font-size: 0.85rem; /* Increased from 0.8rem */
-    color: var(--nav-alt);
-}
-
-.content-found {
-    font-size: 0.95rem; /* Increased from 0.9rem */
-    color: #155724;
-    background-color: rgba(212, 237, 218, 0.7);
-    padding: 4px; /* Reduced from 5px */
-    border-radius: 3px; /* Reduced from 4px */
-    margin-bottom: 6px; /* Reduced from 8px */
-    text-align: center;
-    text-shadow: 0 0 1px var(--secondary-color); /* Properly aligned shadow */
-    border: var(--tertiary-alt) 1px ridge;
-}
-
-.submission-actions {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 5px 0;
-    margin-top: auto; /* Push to bottom of card */
-}
-
-/* Action button styling */
-.vote-btn,
-.comment-btn,
-.view-content-btn,
-.share-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    color: var(--secondary-text-color);
-    font-size: 0.95rem; /* Increased from 0.9rem */
-    padding: 0;
-    margin: 0;
-    transition: transform 0.2s ease, color 0.3s ease;
-}
-
-.vote-btn span,
-.comment-btn span,
-.view-content-btn span,
-.share-btn span {
-    margin-left: 4px;
-}
-
-/* Hover color changes */
-.upvote:hover {
-    color: #28a745;
-}
-
-.downvote:hover {
-    color: #dc3545;
-}
-
-.comment-btn:hover {
-    color: var(--accent-color);
-}
-
-.view-content-btn:hover {
-    color: var(--accent-color);
-}
-
-.share-btn:hover {
-    color: #007bff;
-}
-
-/* Click animation - scale down slightly when clicked */
-.vote-btn:active,
-.comment-btn:active,
-.view-content-btn:active,
-.share-btn:active {
-    transform: scale(0.9);
-    transition: transform 0.1s ease;
-}
-
-/* Form Styles - Reduced spacing */
-.submit-form {
-    margin-bottom: 1vh; /* Reduced from 2vh */
-}
-
-.submit-form textarea {
-    width: 100%;
-    height: 6vh; /* Reduced from 8vh */
-    padding: 0.5vh 0.5vw; /* Reduced from 1vh 1vw */
-    border-radius: 0.3vw; /* Reduced from 0.4vw */
-    background-color: var(--nav-color);
-    color: var(--primary-alt);
-    resize: vertical;
-    margin-bottom: 6px; /* Reduced from 10px */
-    border-left: var(--primary-alt) 2px ridge;
-    border-right: var(--primary-alt) 2px ridge;
-    border-top: var(--button-color) 2px ridge;
-    border-bottom: var(--button-color) 2px ridge;
-    text-shadow: 0 0 2px var(--secondary-color); /* Properly aligned shadow */
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-}
-
-.submit-form textarea:focus {
-    border: var(--nav-alt) 4px ridge;
-    border-color: var(--tertiary-color);
-    text-shadow: var(--nav-alt) 2px 2px 2px;
-    outline: none;
-}
-
-.submit-form button {
-    width: 100%;
-    padding: 8px; /* Reduced from 10px */
-    margin: 0; /* Consistent margin */
-    background-color: var(--button-color);
-    color: var(--secondary-color);
-    border: var(--secondary-color) outset 0.2vw; /* Reduced from 0.3vw */
-    border-radius: 0.4vw; /* Reduced from 0.6vw */
-    cursor: pointer;
-    font-weight: bold;
-    text-shadow: 0 0 0.3vw var(--tertiary-color); /* Properly aligned shadow */
-    font-family: "Audiowide", sans-serif;
-    transition: background-color 0.3s, color 0.3s, text-shadow 0.3s;
-    /* Fixed dimensions to prevent movement */
-    box-sizing: border-box;
-    height: 38px; /* Reduced from 42px */
-    line-height: 1;
-    font-size: 1rem; /* Increased size */
-}
-
-.submit-form button:hover {
-    background-color: var(--secondary-color);
-    color: var(--button-color);
-    text-shadow: 0 0 0.3vw var(--nav-color); /* Properly aligned shadow */
-    border: var(--button-color) 0.2vw inset; /* Reduced from 0.3vw */
-    /* Same padding and margin as non-hover state */
-    padding: 8px; /* Reduced from 10px */
-    margin: 0;
-}
-
-.submit-form button:active {
-    background-color: var(--tertiary-alt);
-    color: var(--nav-alt);
-    border-color: var(--primary-alt);
-    /* Same padding and margin */
-    padding: 8px; /* Reduced from 10px */
-    margin: 0;
-}
-
-/* Submissions List Styles */
-.submissions-list {
-    max-height: 650px; /* Increased from 600px */
-    overflow-y: auto;
-}
-
-.submissions-list h3 {
-    margin-bottom: 6px; /* Reduced from 10px */
-    color: var(--nav-alt);
-    font-size: 1.1rem; /* Increased from 1rem */
-    text-align: center;
-    text-shadow: 0 0 2px var(--secondary-color); /* Properly aligned shadow */
-    font-family: "Audiowide", sans-serif;
-}
-
-.no-submissions {
-    text-align: center;
-    color: var(--secondary-text-color);
-    font-style: italic;
-}
-
-/* Submission Card Styles - Larger independent items */
-.submission-card {
-    background-color: rgba(18, 65, 65, 0.8); /* 80% transparent */
-    border-radius: 5px; /* Reduced from 6px */
-    margin-bottom: 10px; /* Reduced from 15px */
-    padding: 8px; /* Reduced from 12px */
-    box-shadow: 0 0 0.5vh var(--tertiary-color);
-    border-top: var(--tertiary-color) 2px ridge;
-    border-bottom: var(--tertiary-color) 2px ridge;
-    border-left: var(--secondary-alt) 1px groove;
-    border-right: var(--secondary-alt) 1px groove;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-}
-
-.submission-card:hover {
-    box-shadow: 0 0 1vh var(--button-color);
-}
-
-.submission-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 6px; /* Reduced from 8px */
-}
-
-.submission-url {
-    font-size: 0.95rem; /* Increased from 0.9rem */
-    word-break: break-all;
-    max-width: 80%;
-    color: var(--primary-alt);
-    text-shadow: 0 0 1px var(--secondary-color); /* Properly aligned shadow */
-}
-
-.submission-status {
-    font-size: 0.8rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    text-transform: capitalize;
-    font-family: "Audiowide", sans-serif;
-}
-
-.pending {
-    background-color: #fff3cd;
-    color: #856404;
-}
-
-.completed {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.failed {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-.submission-info {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 6px; /* Reduced from 8px */
-    font-size: 0.85rem; /* Increased from 0.8rem */
-    color: var(--nav-alt);
-}
-
-.content-found {
-    font-size: 0.95rem; /* Increased from 0.9rem */
-    color: #155724;
-    background-color: rgba(212, 237, 218, 0.7);
-    padding: 4px; /* Reduced from 5px */
-    border-radius: 3px; /* Reduced from 4px */
-    margin-bottom: 6px; /* Reduced from 8px */
-    text-align: center;
-    text-shadow: 0 0 1px var(--secondary-color); /* Properly aligned shadow */
-    border: var(--tertiary-alt) 1px ridge;
-}
-
-.submission-actions {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 5px 0;
-    margin-top: auto; /* Push to bottom of card */
-}
-
-/* Action button styling */
-.vote-btn,
-.comment-btn,
-.view-content-btn,
-.share-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    color: var(--secondary-text-color);
-    font-size: 0.95rem; /* Increased from 0.9rem */
+    font-size: 0.95rem;
     padding: 0;
     margin: 0;
     transition: transform 0.2s ease, color 0.3s ease;
@@ -752,11 +293,11 @@ header {
 
 .modal-content {
     background-color: var(--primary-color);
-    margin: 10% auto; /* Reduced from 15% */
-    padding: 15px; /* Reduced from 20px */
-    border-radius: 6px; /* Reduced from 8px */
-    width: 85%; /* Increased from 80% */
-    max-width: 700px; /* Increased from 600px */
+    margin: 10% auto;
+    padding: 15px;
+    border-radius: 6px;
+    width: 85%;
+    max-width: 700px;
     box-shadow: 0 0 10px var(--button-color);
     border-top: var(--button-color) 3px ridge;
     border-bottom: var(--button-color) 3px ridge;
@@ -777,16 +318,16 @@ header {
 }
 
 #comments-container {
-    max-height: 350px; /* Increased from 300px */
+    max-height: 350px;
     overflow-y: auto;
-    margin: 10px 0; /* Reduced from 15px 0 */
+    margin: 10px 0;
 }
 
 .comment-item {
-    padding: 8px; /* Reduced from 10px */
-    margin-bottom: 8px; /* Reduced from 10px */
-    background-color: rgba(12, 42, 42, 0.8); /* 80% transparent */
-    border-radius: 3px; /* Reduced from 4px */
+    padding: 8px;
+    margin-bottom: 8px;
+    background-color: rgba(12, 42, 42, 0.8);
+    border-radius: 3px;
     border-top: var(--tertiary-color) 1px ridge;
     border-bottom: var(--tertiary-color) 1px ridge;
     border-left: var(--secondary-alt) 1px groove;
@@ -802,7 +343,7 @@ header {
 }
 
 .comment-text {
-    font-size: 0.95rem; /* Increased from 0.9rem */
+    font-size: 0.95rem;
 }
 
 #comment-form textarea {
@@ -828,7 +369,6 @@ header {
     text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
     font-family: "Audiowide", sans-serif;
     transition: background-color 0.3s, color 0.3s;
-    /* Fixed dimensions */
     box-sizing: border-box;
     height: 42px;
 }
@@ -843,9 +383,9 @@ header {
 
 /* Content Modal Styles - Larger content view */
 .content-modal-content {
-    width: 90%; /* Increased from 85% */
-    max-width: 85vw; /* Increased from 80vw */
-    margin: 7vh auto; /* Reduced from 10vh */
+    width: 90%;
+    max-width: 85vw;
+    margin: 7vh auto;
 }
 
 .content-modal-header {
@@ -870,11 +410,11 @@ header {
 }
 
 .content-container {
-    max-height: 65vh; /* Increased from 60vh */
+    max-height: 65vh;
     overflow-y: auto;
-    padding: 0.8vh 0.8vw; /* Reduced from 1vh 1vw */
-    background-color: rgba(12, 42, 42, 0.8); /* 80% transparent */
-    border-radius: 0.3vw; /* Reduced from 0.4vw */
+    padding: 0.8vh 0.8vw;
+    background-color: rgba(12, 42, 42, 0.8);
+    border-radius: 0.3vw;
     border-top: var(--tertiary-color) 2px ridge;
     border-bottom: var(--tertiary-color) 2px ridge;
     border-left: var(--secondary-alt) 1px groove;
@@ -885,19 +425,19 @@ header {
 .text-content {
     white-space: pre-wrap;
     word-break: break-word;
-    font-size: 1.05rem; /* Increased size */
-    line-height: 1.4; /* Improved readability */
+    font-size: 1.05rem;
+    line-height: 1.4;
 }
 
 /* Image content styles */
 .image-content img {
     max-width: 100%;
-    margin: 0.8vh 0; /* Reduced from 1vh */
-    border-radius: 0.3vw; /* Reduced from 0.4vw */
+    margin: 0.8vh 0;
+    border-radius: 0.3vw;
 }
 
 .image-content figure {
-    margin: 1.2vh 0; /* Reduced from 1.5vh */
+    margin: 1.2vh 0;
 }
 
 .image-content figcaption {
@@ -982,24 +522,24 @@ header {
     }
 
     .scraper-column {
-        margin-bottom: 15px; /* Reduced from 20px */
+        margin-bottom: 15px;
     }
     
     .content-modal-content {
-        width: 98%; /* Increased from 95% */
-        max-width: 98vw; /* Increased from 95vw */
-        margin: 3vh auto; /* Reduced from 5vh */
+        width: 98%;
+        max-width: 98vw;
+        margin: 3vh auto;
     }
 }
 
-/* Add this to your scrapers.css file */
+/* Auto delete notice */
 .auto-delete-notice {
     background-color: rgba(255, 193, 7, 0.2);
     border-left: 4px solid #ffc107;
-    padding: 8px 12px; /* Reduced from 10px 15px */
-    margin: 8px 0 15px; /* Reduced from 10px 0 20px */
-    border-radius: 3px; /* Reduced from 4px */
-    font-size: 0.95rem; /* Increased from 0.9rem */
+    padding: 8px 12px;
+    margin: 8px 0 15px;
+    border-radius: 3px;
+    font-size: 0.95rem;
     color: #856404;
 }
 
