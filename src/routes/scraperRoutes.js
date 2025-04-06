@@ -252,9 +252,17 @@ router.get('/submission/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Submission not found' });
     }
     
+    // Add logging to check the structure
+    logger.info(`Fetched submission: ${id}`);
+    logger.info(`Results structure: ${JSON.stringify(submission.results || {})}`);
+    
     res.json({ 
       success: true, 
-      results: submission.results
+      results: submission.results || {},
+      debug: {
+        submissionType: submission.type,
+        status: submission.status
+      }
     });
   } catch (error) {
     logger.error('Error fetching submission:', error);
