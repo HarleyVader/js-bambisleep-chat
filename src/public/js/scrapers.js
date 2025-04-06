@@ -69,10 +69,20 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          // Update vote counts
-          submissionCard.querySelector('.upvote span').textContent = data.upvotes;
-          submissionCard.querySelector('.downvote span').textContent = data.downvotes;
-          showNotification('Vote recorded!', 'success');
+          if (data.deleted) {
+            // Remove the card with a fade out effect
+            submissionCard.style.opacity = '0';
+            submissionCard.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+              submissionCard.remove();
+            }, 500);
+            showNotification('Submission deleted due to 10 or more downvotes', 'info');
+          } else {
+            // Update vote counts
+            submissionCard.querySelector('.upvote span').textContent = data.upvotes;
+            submissionCard.querySelector('.downvote span').textContent = data.downvotes;
+            showNotification('Vote recorded!', 'success');
+          }
         } else {
           showNotification(`Error: ${data.message}`, 'error');
         }
@@ -226,6 +236,8 @@ document.addEventListener('DOMContentLoaded', function() {
       notification.style.backgroundColor = '#28a745';
     } else if (type === 'error') {
       notification.style.backgroundColor = '#dc3545';
+    } else if (type === 'info') {
+      notification.style.backgroundColor = '#17a2b8';
     } else {
       notification.style.backgroundColor = '#007bff';
     }

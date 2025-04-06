@@ -270,6 +270,8 @@ router.get('/submission/:id', async (req, res) => {
   }
 });
 
+// Update the vote route to check for 10 downvotes
+
 // Vote on submission
 router.post('/vote/:id', async (req, res) => {
   try {
@@ -290,6 +292,16 @@ router.post('/vote/:id', async (req, res) => {
       submission.upvotes += 1;
     } else {
       submission.downvotes += 1;
+      
+      // Check if downvotes reached 10, delete if so
+      if (submission.downvotes >= 10) {
+        await Submission.findByIdAndDelete(id);
+        return res.json({
+          success: true,
+          deleted: true,
+          message: 'Submission deleted due to receiving 10 or more downvotes'
+        });
+      }
     }
     
     await submission.save();
