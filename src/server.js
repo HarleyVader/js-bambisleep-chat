@@ -520,7 +520,6 @@ async function initializeServer() {
     
     // Step 6: Setup routes, sockets, and error handlers
     logger.info('Step 6/6: Setting up server components...');
-    setupRoutes();
     await delay(150);
     setupSockets();
     await delay(150);
