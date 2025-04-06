@@ -277,16 +277,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Trigger view content button click
                 submissionCard.querySelector('.view-content-btn').click();
             } else {
+                // Get fresh references to elements
+                const contentTitleEl = document.getElementById('content-modal-title');
+                const contentUrlEl = document.getElementById('content-url');
+                const contentStatusEl = document.getElementById('content-status');
+                const contentModalEl = document.getElementById('content-modal');
+                
                 // If card not found in current view, fetch and display content directly
-                if (contentTitle) contentTitle.textContent = contentType.charAt(0).toUpperCase() + contentType.slice(1) + ' Content';
-                if (contentUrl) contentUrl.textContent = 'Shared Content';
-                if (contentStatus) {
-                    contentStatus.textContent = 'shared';
-                    contentStatus.className = 'content-status';
+                if (contentTitleEl) contentTitleEl.textContent = contentType.charAt(0).toUpperCase() + contentType.slice(1) + ' Content';
+                if (contentUrlEl) contentUrlEl.textContent = 'Shared Content';
+                if (contentStatusEl) {
+                    contentStatusEl.textContent = 'shared';
+                    contentStatusEl.className = 'content-status';
                 }
                 
                 fetchScrapedContent(viewId, contentType);
-                contentModal.style.display = 'block';
+                if (contentModalEl) contentModalEl.style.display = 'block';
             }
         }
     }
