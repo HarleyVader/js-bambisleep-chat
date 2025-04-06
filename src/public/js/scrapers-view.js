@@ -116,8 +116,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to fetch scraped content
     function fetchScrapedContent(submissionId, contentType) {
+        // Get a fresh reference to the content container
+        const contentContainerEl = document.getElementById('content-container');
+        
+        // Create content container if it doesn't exist
+        if (!contentContainerEl) {
+            const containerEl = document.createElement('div');
+            containerEl.id = 'content-container';
+            containerEl.className = 'content-container';
+            document.querySelector('.content-modal-content').appendChild(containerEl);
+        }
+        
+        // Get a fresh reference again after possible creation
+        const container = document.getElementById('content-container');
+        
         // Show loading state
-        contentContainer.innerHTML = '<div class="loading">Loading content...</div>';
+        if (container) {
+            container.innerHTML = '<div class="loading">Loading content...</div>';
+        } else {
+            console.error('Content container not found even after attempting to create it');
+            return;
+        }
 
         // Fetch content from server
         fetch(`/api/scraper/submission/${submissionId}`)
@@ -131,8 +150,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 displayContent(data, contentType);
             })
             .catch(error => {
-                contentContainer.innerHTML =
-                    `<div class="error">
+                if (container) {
+                    container.innerHTML = `<div class="error">
                         <p>${error.message}</p>
                         <p>The API endpoint may not be configured correctly. Please check:</p>
                         <ul style="margin-top: 1vh; margin-left: 2vw; text-align: left;">
@@ -141,6 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <li>You have permission to access this content</li>
                         </ul>
                     </div>`;
+                }
                 console.error('Content loading error:', error);
             });
     }
@@ -149,9 +169,16 @@ document.addEventListener('DOMContentLoaded', function () {
     function displayContent(data, contentType) {
         console.log('Content data received:', data);
         
+        // Get fresh reference to content container
+        const container = document.getElementById('content-container');
+        if (!container) {
+            console.error('Content container not found in displayContent function');
+            return;
+        }
+        
         // Check if data was returned successfully
         if (!data || !data.success) {
-            contentContainer.innerHTML = '<div class="content-not-found">Failed to retrieve content</div>';
+            container.innerHTML = '<div class="content-not-found">Failed to retrieve content</div>';
             return;
         }
 
@@ -162,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Check if results exist for the specified content type
         if (!data.results || !data.results[contentType]) {
-            contentContainer.innerHTML = `
+            container.innerHTML = `
                 <div class="content-not-found">
                     <p>No content available for this submission</p>
                     <p class="debug-info">Type: ${contentType}, Status: ${data.debug?.status || 'unknown'}</p>
@@ -173,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const result = data.results[contentType];
 
         if (!result.contentFound) {
-            contentContainer.innerHTML = '<div class="content-not-found">No BambiSleep content found on this page</div>';
+            container.innerHTML = '<div class="content-not-found">No BambiSleep content found on this page</div>';
             return;
         }
 
@@ -234,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
         }
 
-        contentContainer.innerHTML = contentHtml;
+        container.innerHTML = contentHtml;
     }
 
     // Format text content with proper escaping and line breaks
