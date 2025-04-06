@@ -62,6 +62,15 @@ router.get('/', async (req, res) => {
     let textSubmissions = [];
     let imageSubmissions = [];
     let videoSubmissions = [];
+    let stats = {
+      successful: 0,
+      failed: 0,
+      blocked: 0,
+      totalUpvotes: 0,
+      totalDownvotes: 0,
+      topUpvoted: [],
+      topDownvoted: []
+    };
     
     if (SubmissionModel) {
       // Fetch recent submissions for each type
@@ -76,6 +85,55 @@ router.get('/', async (req, res) => {
       videoSubmissions = await SubmissionModel.find({ type: 'video' })
         .sort({ submittedAt: -1 })
         .limit(10);
+      
+      // Get statistics
+      stats.successful = await SubmissionModel.countDocuments({ 
+        status: 'completed',
+        'results.text.contentFound': true,
+        $or: [
+          { 'results.text.contentFound': true },
+          { 'results.image.contentFound': true },
+          { 'results.video.contentFound': true }
+        ]
+      });
+      
+      stats.failed = await SubmissionModel.countDocuments({ status: 'failed' });
+      
+      // Count as blocked if status is completed but no content found
+      stats.blocked = await SubmissionModel.countDocuments({
+        status: 'completed',
+        $and: [
+          { 'results.text.contentFound': { $ne: true } },
+          { 'results.image.contentFound': { $ne: true } },
+          { 'results.video.contentFound': { $ne: true } }
+        ]
+      });
+      
+      // Aggregate votes
+      const voteCounts = await SubmissionModel.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalUpvotes: { $sum: '$upvotes' },
+            totalDownvotes: { $sum: '$downvotes' }
+          }
+        }
+      ]);
+      
+      if (voteCounts.length > 0) {
+        stats.totalUpvotes = voteCounts[0].totalUpvotes;
+        stats.totalDownvotes = voteCounts[0].totalDownvotes;
+      }
+      
+      // Top 5 most upvoted
+      stats.topUpvoted = await SubmissionModel.find()
+        .sort({ upvotes: -1 })
+        .limit(5);
+      
+      // Top 5 most downvoted
+      stats.topDownvoted = await SubmissionModel.find({ downvotes: { $gt: 0 } })
+        .sort({ downvotes: -1 })
+        .limit(5);
     } else {
       logger.warning('ScraperSubmission model not available, using empty arrays');
     }
@@ -85,7 +143,8 @@ router.get('/', async (req, res) => {
       bambiname,
       textSubmissions,
       imageSubmissions,
-      videoSubmissions
+      videoSubmissions,
+      stats
     });
   } catch (error) {
     logger.error('Error in scrapers route:', error);

@@ -184,6 +184,98 @@ router.post('/api/profile/:username/picture', async (req, res) => {
   }
 });
 
+// Heart a bambi profile
+router.post('/api/profile/:username/heart', async (req, res) => {
+  try {
+    const { hearterUsername } = req.body;
+    
+    if (!hearterUsername) {
+      return res.status(400).json({ success: false, message: 'Username is required' });
+    }
+    
+    const bambi = await Bambi.findOne({ username: req.params.username });
+    if (!bambi) {
+      return res.status(404).json({ success: false, message: 'Bambi not found' });
+    }
+    
+    // Check if this user already hearted the profile
+    const alreadyHearted = bambi.hearts.users.some(user => user.username === hearterUsername);
+    
+    if (alreadyHearted) {
+      // Remove heart
+      bambi.hearts.users = bambi.hearts.users.filter(user => user.username !== hearterUsername);
+      bambi.hearts.count = Math.max(0, bambi.hearts.count - 1);
+      await bambi.save();
+      
+      return res.json({
+        success: true,
+        hearted: false,
+        heartCount: bambi.hearts.count,
+        message: 'Heart removed'
+      });
+    } else {
+      // Add heart
+      bambi.hearts.users.push({
+        username: hearterUsername,
+        timestamp: new Date()
+      });
+      bambi.hearts.count++;
+      
+      // Add an activity for receiving a heart
+      if (bambi.addActivity) {
+        await bambi.addActivity('heart', `Received a heart from ${hearterUsername}`);
+      }
+      
+      await bambi.save();
+      
+      return res.json({
+        success: true,
+        hearted: true,
+        heartCount: bambi.hearts.count,
+        message: 'Heart added'
+      });
+    }
+  } catch (error) {
+    logger.error('Error handling heart reaction:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process heart reaction',
+      error: error.message
+    });
+  }
+});
+
+// Get heart status for a bambi profile
+router.get('/api/profile/:username/heart-status', async (req, res) => {
+  try {
+    const { currentUser } = req.query;
+    
+    if (!currentUser) {
+      return res.status(400).json({ success: false, message: 'Current user is required' });
+    }
+    
+    const bambi = await Bambi.findOne({ username: req.params.username });
+    if (!bambi) {
+      return res.status(404).json({ success: false, message: 'Bambi not found' });
+    }
+    
+    const hearted = bambi.hearts.users.some(user => user.username === currentUser);
+    
+    res.json({
+      success: true,
+      hearted,
+      heartCount: bambi.hearts.count
+    });
+  } catch (error) {
+    logger.error('Error fetching heart status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch heart status',
+      error: error.message
+    });
+  }
+});
+
 // Check if username is available
 router.get('/api/check-username', async (req, res) => {
   try {

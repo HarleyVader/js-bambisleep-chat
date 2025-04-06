@@ -88,6 +88,19 @@ const BambiSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+  hearts: {
+    count: {
+      type: Number,
+      default: 0
+    },
+    users: [{
+      username: String,
+      timestamp: {
+        type: Date,
+        default: Date.now
+      }
+    }]
+  },
   activities: [{
     type: {
       type: String,

@@ -199,6 +199,40 @@
     .activity-details small {
       color: var(--text-muted);
     }
+
+    .heart-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .heart-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      font-size: 1.5rem;
+      color: #ccc;
+      transition: transform 0.2s, color 0.2s;
+    }
+
+    .heart-button:hover {
+      transform: scale(1.1);
+    }
+
+    .heart-button.active {
+      color: #ff4fa2;
+    }
+
+    .heart-button.active i {
+      animation: heartbeat 1s ease-in-out;
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
   </style>
 </head>
 <body>
@@ -232,6 +266,16 @@
           <div class="stat">
             <div class="stat-value"><%= bambi.favoriteFiles.length %></div>
             <div class="stat-label">Favorite Files</div>
+          </div>
+          
+          <div class="stat">
+            <div class="stat-value heart-container">
+              <span id="heartCount"><%= bambi.hearts ? bambi.hearts.count : 0 %></span>
+              <button id="heartButton" class="heart-button">
+                <i class="fas fa-heart"></i>
+              </button>
+            </div>
+            <div class="stat-label">Hearts</div>
           </div>
         </div>
         
@@ -602,6 +646,83 @@
     
     // Initial update
     updateThemePreview();
+
+    // Add heart functionality
+    const heartButton = document.getElementById('heartButton');
+    const heartCount = document.getElementById('heartCount');
+    let isHearted = false;
+
+    // Get cookie for current user
+    const bambiname = getCookie('bambiname') || 'Anonymous';
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+      return null;
+    }
+
+    // Check initial heart status
+    async function checkHeartStatus() {
+      try {
+        const response = await fetch(`/bambis/api/profile/<%= bambi.username %>/heart-status?currentUser=${encodeURIComponent(bambiname)}`);
+        const result = await response.json();
+        
+        if (result.success) {
+          isHearted = result.hearted;
+          heartCount.textContent = result.heartCount;
+          
+          if (isHearted) {
+            heartButton.classList.add('active');
+          } else {
+            heartButton.classList.remove('active');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking heart status:', error);
+      }
+    }
+
+    // Toggle heart when clicked
+    heartButton.addEventListener('click', async function() {
+      if (bambiname === 'Anonymous') {
+        alert('Please log in to heart this profile');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/bambis/api/profile/<%= bambi.username %>/heart`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            hearterUsername: bambiname
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          isHearted = result.hearted;
+          heartCount.textContent = result.heartCount;
+          
+          if (isHearted) {
+            heartButton.classList.add('active');
+          } else {
+            heartButton.classList.remove('active');
+          }
+        } else {
+          alert(result.message || 'Failed to update heart');
+        }
+      } catch (error) {
+        console.error('Error toggling heart:', error);
+        alert('An error occurred while updating heart');
+      }
+    });
+
+    // Check heart status on page load
+    checkHeartStatus();
   });
 </script>
 </body>
