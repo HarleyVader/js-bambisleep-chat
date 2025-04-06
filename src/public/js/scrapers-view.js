@@ -187,6 +187,24 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('Debug info:', data.debug);
         }
 
+        // Check if job failed
+        if (data.debug && data.debug.status === 'failed') {
+            container.innerHTML = `
+                <div class="content-not-found">
+                    <h3>Scraping job failed</h3>
+                    <p>The ${contentType} scraping job did not complete successfully.</p>
+                    <p>This could be due to:</p>
+                    <ul>
+                        <li>The website blocking scraping attempts</li>
+                        <li>Network connectivity issues</li>
+                        <li>Content requiring authentication</li>
+                        <li>Missing or invalid content on the target page</li>
+                    </ul>
+                    <p>You may want to try again or check the URL directly.</p>
+                </div>`;
+            return;
+        }
+
         // Check if results exist for the specified content type
         if (!data.results || !data.results[contentType]) {
             container.innerHTML = `
@@ -208,29 +226,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
         switch (contentType) {
             case 'text':
-                contentHtml = `<div class="text-content">${formatTextContent(result.content)}</div>`;
+                if (!result.content || result.content === '') {
+                    contentHtml = '<div class="content-not-found">No text content was extracted from this page</div>';
+                } else {
+                    contentHtml = `<div class="text-content">${formatTextContent(result.content)}</div>`;
+                }
                 break;
             case 'image':
                 contentHtml = '<div class="image-content">';
-                if (Array.isArray(result.content)) {
-                    if (result.content.length === 0) {
-                        contentHtml += '<p class="content-not-found">No images found</p>';
-                    } else {
-                        result.content.forEach(img => {
-                            if (typeof img === 'object') {
-                                contentHtml += `
-                                <figure>
-                                    <img src="${img.url}" alt="${img.metadata?.description || 'BambiSleep image'}" />
-                                    <figcaption>${img.metadata?.description || ''}</figcaption>
-                                </figure>`;
-                            } else {
-                                contentHtml += `<p>Invalid image data format</p>`;
-                            }
-                        });
-                    }
+                if (!Array.isArray(result.content) || result.content.length === 0) {
+                    contentHtml += '<p class="content-not-found">No images found</p>';
                 } else {
-                    contentHtml += '<p>Image data has unexpected format</p>';
-                    console.error('Unexpected image content format:', result.content);
+                    result.content.forEach(img => {
+                        if (typeof img === 'object' && img.url) {
+                            contentHtml += `
+                            <figure>
+                                <img src="${img.url}" alt="${img.metadata?.description || 'BambiSleep image'}" />
+                                <figcaption>${img.metadata?.description || ''}</figcaption>
+                            </figure>`;
+                        } else {
+                            contentHtml += `<p>Invalid image data format</p>`;
+                        }
+                    });
                 }
                 contentHtml += '</div>';
                 break;

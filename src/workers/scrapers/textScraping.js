@@ -224,34 +224,91 @@ function extractTextContent(htmlContent) {
   }
 }
 
-// Update the scrapeWebContent function:
+// Update the scrapeWebContent function with better error handling
 
 const scrapeWebContent = async (url, ContentModel, requestId) => {
   try {
     logger.info(`Scraping ${url} for bambisleep text content`);
+    
+    // Add timeout and better error handling for the HTTP request
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36'
-      }
+      },
+      timeout: 15000 // 15 second timeout
     });
     
     const html = response.data;
-    const pageText = extractTextContent(html); // Now returns markdown-formatted content
+    
+    // Check if we got valid HTML
+    if (!html || typeof html !== 'string' || html.trim() === '') {
+      logger.warning(`No valid HTML content found at ${url}`);
+      
+      parentPort.postMessage({
+        type: 'scrape_result',
+        data: {
+          success: true,
+          message: `No valid HTML content at ${url}`,
+          contentFound: false,
+          content: '',
+          error: 'Empty or invalid HTML response'
+        },
+        requestId: requestId
+      });
+      
+      return {
+        success: true,
+        message: `No valid HTML content at ${url}`,
+        contentFound: false,
+        content: '',
+        error: 'Empty or invalid HTML response'
+      };
+    }
+    
+    const pageText = extractTextContent(html);
+    
+    // If extraction produced empty text
+    if (!pageText || pageText.trim() === '') {
+      logger.warning(`No text content extracted from ${url}`);
+      
+      parentPort.postMessage({
+        type: 'scrape_result',
+        data: {
+          success: true,
+          message: `No text content extracted from ${url}`,
+          contentFound: false,
+          content: '',
+          error: 'No text content could be extracted'
+        },
+        requestId: requestId
+      });
+      
+      return {
+        success: true,
+        message: `No text content extracted from ${url}`,
+        contentFound: false,
+        content: '',
+        error: 'No text content could be extracted'
+      };
+    }
     
     // Check if the page contains bambisleep-related content
-    if (pageText.toLowerCase().includes('bambisleep') || pageText.toLowerCase().includes('bambi sleep')) {
+    if (pageText.toLowerCase().includes('bambisleep') || 
+        pageText.toLowerCase().includes('bambi sleep')) {
+      // Continue with the existing code for saving content...
+      
       // Extract page metadata
       const $ = cheerio.load(html);
       const title = $('title').text();
       const description = $('meta[name="description"]').attr('content') || '';
       const keywords = $('meta[name="keywords"]').attr('content')?.split(',').map(k => k.trim()) || [];
       
-      // Store text content with markdown formatting
+      // Store text content with HTML formatting instead of markdown
       const textContent = new ContentModel({
         type: 'text',
-        fileType: 'markdown', // Changed from 'html' to 'markdown'
+        fileType: 'html', // Changed from 'markdown' to 'html'
         title: title,
-        content: pageText, // Now contains markdown
+        content: pageText, // Still contains markdown formatted text
         url: url,
         source: 'web',
         metadata: {
@@ -260,7 +317,7 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
           categories: ['web'],
           created: new Date()
         },
-        mediaType: 'markdown' // Changed from 'html' to 'markdown'
+        mediaType: 'html' // Changed from 'markdown' to 'html'
       });
       
       await textContent.save();
@@ -283,20 +340,62 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
         content: pageText
       };
     } else {
+      logger.info(`No bambisleep content found at ${url}`);
+      
+      parentPort.postMessage({
+        type: 'scrape_result',
+        data: {
+          success: true,
+          message: `No bambisleep content found at ${url}`,
+          contentFound: false,
+          content: pageText, // Return the text anyway for debugging
+          error: 'No BambiSleep content detected'
+        },
+        requestId: requestId
+      });
+      
       return {
         success: true,
         message: `No bambisleep content found at ${url}`,
         contentFound: false,
-        content: '' 
+        content: pageText, // Return the text anyway for debugging
+        error: 'No BambiSleep content detected'
       };
     }
   } catch (error) {
-    logger.error(`Error scraping ${url}:`, error.message);
+    // Enhanced error handling with more specific error messages
+    const errorMessage = error.response ? 
+      `HTTP ${error.response.status}: ${error.response.statusText}` : 
+      error.message;
+    
+    const errorDetails = {
+      message: errorMessage,
+      isNetworkError: error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT',
+      isAccessError: error.response && (error.response.status === 403 || error.response.status === 401),
+      isTimeoutError: error.code === 'ETIMEDOUT' || error.code === 'ESOCKETTIMEDOUT',
+      isSSLError: error.code === 'EPROTO' || error.code === 'DEPTH_ZERO_SELF_SIGNED_CERT'
+    };
+    
+    logger.error(`Error scraping ${url}:`, errorMessage);
+    
+    parentPort.postMessage({
+      type: 'scrape_result',
+      data: {
+        success: false,
+        message: `Error scraping ${url}: ${errorMessage}`,
+        contentFound: false,
+        content: '',
+        error: errorDetails
+      },
+      requestId: requestId
+    });
+    
     return {
       success: false,
-      message: `Error scraping ${url}: ${error.message}`,
+      message: `Error scraping ${url}: ${errorMessage}`,
       contentFound: false,
-      content: '' // Always return content as a string
+      content: '',
+      error: errorDetails
     };
   }
 };
