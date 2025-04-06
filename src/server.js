@@ -1,6 +1,7 @@
 import { promises as fsPromises } from 'fs';
 import dotenv from 'dotenv';
 import express from 'express';
+import mongoose from 'mongoose';
 import http from 'http';
 import os from 'os';
 import path from 'path';
