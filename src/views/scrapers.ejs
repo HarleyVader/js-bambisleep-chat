@@ -478,18 +478,14 @@
                                         <% } %>
                                             <div class="submission-actions">
                                                 <button class="vote-btn upvote" data-vote="upvote">👍 <span>
-                                                        <%= submission.upvotes %>
-                                                    </span></button>
+                                                </span></button>
                                                 <button class="vote-btn downvote" data-vote="downvote">👎 <span>
-                                                        <%= submission.downvotes %>
-                                                    </span></button>
+                                                </span></button>
                                                 <button class="comment-btn">💬 <span>
-                                                        <%= submission.comments.length %>
-                                                    </span></button>
+                                                </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️
                                                     <span>View</span></button>
-                                                <button class="share-btn" data-id="<%= submission._id %>"
-                                                    data-type="<%= submission.type %>">📤 <span>Share</span></button>
+                                                <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -534,18 +530,14 @@
                                         <% } %>
                                             <div class="submission-actions">
                                                 <button class="vote-btn upvote" data-vote="upvote">👍 <span>
-                                                        <%= submission.upvotes %>
-                                                    </span></button>
+                                                </span></button>
                                                 <button class="vote-btn downvote" data-vote="downvote">👎 <span>
-                                                        <%= submission.downvotes %>
-                                                    </span></button>
+                                                </span></button>
                                                 <button class="comment-btn">💬 <span>
-                                                        <%= submission.comments.length %>
-                                                    </span></button>
+                                                </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️
                                                     <span>View</span></button>
-                                                <button class="share-btn" data-id="<%= submission._id %>"
-                                                    data-type="<%= submission.type %>">📤 <span>Share</span></button>
+                                                <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -590,18 +582,13 @@
                                         <% } %>
                                             <div class="submission-actions">
                                                 <button class="vote-btn upvote" data-vote="upvote">👍 <span>
-                                                        <%= submission.upvotes %>
-                                                    </span></button>
+                                                </span></button>
                                                 <button class="vote-btn downvote" data-vote="downvote">👎 <span>
-                                                        <%= submission.downvotes %>
-                                                    </span></button>
+                                                </span></button>
                                                 <button class="comment-btn">💬 <span>
-                                                        <%= submission.comments.length %>
-                                                    </span></button>
-                                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️
-                                                    <span>View</span></button>
-                                                <button class="share-btn" data-id="<%= submission._id %>"
-                                                    data-type="<%= submission.type %>">📤 <span>Share</span></button>
+                                                </span></button>
+                                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View</span></button>
+                                                <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -774,15 +761,11 @@
                                             if (video.embedUrl) {
                                                 contentHtml += `
                                                 <div class="video-container">
-                                                    <iframe src="${video.embedUrl}" frameborder="0" allowfullscreen></iframe>
-                                                    ${video.title ? `<h4>${video.title}</h4>` : ''}
                                                 </div>
                                             `;
                                             } else if (video.url) {
                                                 contentHtml += `
                                                 <div class="video-container">
-                                                    <video controls src="${video.url}"></video>
-                                                    ${video.title ? `<h4>${video.title}</h4>` : ''}
                                                 </div>
                                             `;
                                             }
@@ -813,25 +796,25 @@
 
                     // Share button functionality
                     document.querySelectorAll('.share-btn').forEach(button => {
-                        button.addEventListener('click', function() {
+                        button.addEventListener('click', function () {
                             const submissionId = this.dataset.id;
                             const contentType = this.dataset.type;
-                            
+
                             // Create a shareable URL
                             const shareUrl = `${window.location.origin}/scrapers?view=${submissionId}&type=${contentType}`;
-                            
+
                             // Create a temporary input element to copy to clipboard
                             const tempInput = document.createElement('input');
                             tempInput.value = shareUrl;
                             document.body.appendChild(tempInput);
-                            
+
                             // Select and copy the URL
                             tempInput.select();
                             document.execCommand('copy');
-                            
+
                             // Clean up
                             document.body.removeChild(tempInput);
-                            
+
                             // Show notification
                             showShareNotification('Link copied to clipboard!');
                         });
@@ -841,18 +824,18 @@
                     function showShareNotification(message) {
                         // Check if notification already exists
                         let notification = document.querySelector('.share-notification');
-                        
+
                         // Create notification if it doesn't exist
                         if (!notification) {
                             notification = document.createElement('div');
                             notification.className = 'share-notification';
                             document.body.appendChild(notification);
                         }
-                        
+
                         // Set message and show
                         notification.textContent = message;
                         notification.style.display = 'block';
-                        
+
                         // Hide after 2 seconds
                         setTimeout(() => {
                             notification.style.display = 'none';
@@ -870,18 +853,18 @@
                     if (!document.getElementById('content-url')) {
                         const headerEl = document.createElement('div');
                         headerEl.className = 'content-modal-header';
-                        
+
                         const urlEl = document.createElement('div');
                         urlEl.id = 'content-url';
                         urlEl.className = 'content-url';
-                        
+
                         const statusEl = document.createElement('div');
                         statusEl.id = 'content-status';
                         statusEl.className = 'content-status';
-                        
+
                         headerEl.appendChild(urlEl);
                         headerEl.appendChild(statusEl);
-                        
+
                         document.querySelector('.content-modal-content').appendChild(headerEl);
                     }
 
