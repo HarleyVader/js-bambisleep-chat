@@ -130,6 +130,39 @@
       border-radius: 4px;
       margin-bottom: 1rem;
     }
+
+    .validation-message {
+      margin-top: 0.25rem;
+      font-size: 0.8rem;
+    }
+
+    .validation-message.valid {
+      color: green;
+    }
+
+    .validation-message.invalid {
+      color: var(--error);
+    }
+
+    .char-counter {
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    input.invalid, textarea.invalid {
+      border-color: var(--error);
+    }
+
+    input.valid, textarea.valid {
+      border-color: green;
+    }
+
+    button[type="submit"]:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   </style>
 
 <body>
@@ -215,8 +248,17 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const form = document.getElementById('createProfileForm');
+      const usernameField = document.getElementById('username');
+      const displayNameField = document.getElementById('displayName');
       const descriptionField = document.getElementById('description');
       const charCounter = document.createElement('div');
+      const usernameMessage = document.createElement('div');
+      
+      // Add validation message containers
+      usernameMessage.className = 'validation-message';
+      usernameMessage.style.fontSize = '0.8rem';
+      usernameMessage.style.marginTop = '0.25rem';
+      usernameField.parentNode.appendChild(usernameMessage);
       
       // Add character counter
       charCounter.className = 'char-counter';
@@ -225,6 +267,74 @@
       charCounter.style.color = 'var(--text-muted)';
       descriptionField.parentNode.appendChild(charCounter);
       
+      // Validation flags
+      let isUsernameValid = false;
+      let isDescriptionValid = true;
+      
+      // Validate username format
+      function validateUsernameFormat(username) {
+        const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+        return usernameRegex.test(username);
+      }
+      
+      // Check username uniqueness via API
+      async function checkUsernameUniqueness(username) {
+        try {
+          const response = await fetch(`/bambis/api/check-username?username=${encodeURIComponent(username)}`);
+          const data = await response.json();
+          return data.available;
+        } catch (error) {
+          console.error('Error checking username:', error);
+          return false;
+        }
+      }
+      
+      // Validate username with debounce
+      let usernameTimer;
+      usernameField.addEventListener('input', function() {
+        clearTimeout(usernameTimer);
+        
+        const username = this.value.trim();
+        
+        // Reset validation
+        isUsernameValid = false;
+        
+        // Check basic format first
+        if (!validateUsernameFormat(username)) {
+          usernameMessage.textContent = 'Username must be 3-20 characters using only letters, numbers, and underscores';
+          usernameMessage.style.color = 'var(--error)';
+          return;
+        }
+        
+        usernameMessage.textContent = 'Checking username availability...';
+        usernameMessage.style.color = 'var(--text-muted)';
+        
+        // Debounce API call
+        usernameTimer = setTimeout(async () => {
+          const isAvailable = await checkUsernameUniqueness(username);
+          
+          if (isAvailable) {
+            usernameMessage.textContent = 'Username is available';
+            usernameMessage.style.color = 'green';
+            isUsernameValid = true;
+          } else {
+            usernameMessage.textContent = 'Username is already taken';
+            usernameMessage.style.color = 'var(--error)';
+            isUsernameValid = false;
+          }
+          
+          updateSubmitButton();
+        }, 500);
+      });
+      
+      // Validate display name
+      displayNameField.addEventListener('input', function() {
+        const displayName = this.value.trim();
+        if (displayName.length > 50) {
+          this.value = displayName.substring(0, 50);
+        }
+      });
+      
       // Update character count function
       function updateCharCount() {
         const remaining = 500 - descriptionField.value.length;
@@ -232,8 +342,25 @@
         
         if (remaining < 0) {
           charCounter.style.color = 'var(--error)';
+          isDescriptionValid = false;
         } else {
           charCounter.style.color = 'var(--text-muted)';
+          isDescriptionValid = true;
+        }
+        
+        updateSubmitButton();
+      }
+      
+      // Enable/disable submit button based on form validity
+      function updateSubmitButton() {
+        const submitButton = form.querySelector('button[type="submit"]');
+        
+        if (isUsernameValid && isDescriptionValid) {
+          submitButton.disabled = false;
+          submitButton.style.opacity = '1';
+        } else {
+          submitButton.disabled = true;
+          submitButton.style.opacity = '0.5';
         }
       }
       
@@ -241,19 +368,27 @@
       descriptionField.addEventListener('input', updateCharCount);
       updateCharCount(); // Initial count
       
+      // Update submit button state initially
+      updateSubmitButton();
+      
       form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // Validate description length
-        if (descriptionField.value.length > 500) {
+        // Final validation check
+        if (!isUsernameValid) {
+          alert('Please enter a valid username');
+          return;
+        }
+        
+        if (!isDescriptionValid) {
           alert('Description cannot exceed 500 characters');
           return;
         }
         
         const formData = {
-          username: document.getElementById('username').value,
-          displayName: document.getElementById('displayName').value,
-          description: descriptionField.value
+          username: usernameField.value.trim(),
+          displayName: displayNameField.value.trim(),
+          description: descriptionField.value.trim()
         };
         
         try {
