@@ -58,15 +58,22 @@ const scrapeImageContent = async (url, ImageContentModel) => {
     const images = [];
     $('img').each((index, element) => {
       const imgUrl = $(element).attr('src');
+      const alt = $(element).attr('alt') || '';
+      const caption = $(element).attr('title') || '';
+      
       if (imgUrl) {
-        images.push(imgUrl);
+        images.push({
+          url: imgUrl,
+          alt: alt,
+          caption: caption
+        });
       }
     });
 
-    for (const imgUrl of images) {
+    for (const img of images) {
       const imageContent = new ImageContentModel({
         type: 'image',
-        url: imgUrl,
+        url: img.url,
         source: url,
         metadata: {
           keywords: [],
@@ -76,13 +83,14 @@ const scrapeImageContent = async (url, ImageContentModel) => {
         }
       });
       await imageContent.save();
-      logger.success(`Saved image content from ${imgUrl}`);
+      logger.success(`Saved image content from ${img.url}`);
     }
 
     return {
       success: true,
       message: `Found and stored image content from ${url}`,
-      contentFound: images.length > 0
+      contentFound: images.length > 0,
+      content: images
     };
   } catch (error) {
     logger.error(`Error scraping ${url}:`, error.message);

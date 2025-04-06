@@ -58,6 +58,24 @@ const scrapeVideoContent = async (url, VideoContentModel) => {
     const description = $('meta[name="description"]').attr('content') || '';
     const keywords = $('meta[name="keywords"]').attr('content')?.split(',').map(k => k.trim()) || [];
     
+    // Look for video elements and iframes
+    const videos = [];
+    $('video, iframe').each((index, element) => {
+      if (element.name === 'iframe') {
+        const embedUrl = $(element).attr('src');
+        const title = $(element).attr('title') || '';
+        if (embedUrl) {
+          videos.push({ embedUrl, title });
+        }
+      } else {
+        const videoUrl = $(element).attr('src');
+        const title = $(element).attr('title') || '';
+        if (videoUrl) {
+          videos.push({ url: videoUrl, title });
+        }
+      }
+    });
+    
     // Store video content
     const videoContent = new VideoContentModel({
       type: 'video',
@@ -76,8 +94,9 @@ const scrapeVideoContent = async (url, VideoContentModel) => {
     
     return {
       success: true,
-      message: `Found and stored BambiSleep video content from ${url}`,
-      contentFound: true
+      message: `Found and stored video content from ${url}`,
+      contentFound: videos.length > 0,
+      content: videos
     };
   } catch (error) {
     logger.error(`Error scraping ${url}:`, error.message);

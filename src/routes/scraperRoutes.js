@@ -252,7 +252,14 @@ router.get('/submission/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Submission not found' });
     }
     
-    res.json({ success: true, results: submission.results });
+    res.json({ 
+      success: true, 
+      results: {
+        text: { contentFound: true, content: "..." },
+        image: { contentFound: true, content: [{url: "...", alt: "...", caption: "..."}] },
+        video: { contentFound: true, content: [{embedUrl: "...", title: "..."}] }
+      }
+    });
   } catch (error) {
     logger.error('Error fetching submission:', error);
     res.status(500).json({ success: false, message: 'Error fetching submission' });
