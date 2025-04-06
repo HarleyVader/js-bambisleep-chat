@@ -70,6 +70,7 @@ const scrapeImageContent = async (url, ImageContentModel) => {
       }
     });
 
+    const savedImages = [];
     for (const img of images) {
       const imageContent = new ImageContentModel({
         type: 'image',
@@ -77,12 +78,14 @@ const scrapeImageContent = async (url, ImageContentModel) => {
         source: url,
         metadata: {
           keywords: [],
-          description: '',
+          description: img.alt || img.caption || '',
           categories: ['web'],
           created: new Date()
         }
       });
-      await imageContent.save();
+      const savedImage = await imageContent.save();
+      // Convert Mongoose document to plain object and add to array
+      savedImages.push(savedImage.toObject ? savedImage.toObject() : savedImage);
       logger.success(`Saved image content from ${img.url}`);
     }
 
@@ -90,14 +93,15 @@ const scrapeImageContent = async (url, ImageContentModel) => {
       success: true,
       message: `Found and stored image content from ${url}`,
       contentFound: images.length > 0,
-      content: images
+      content: savedImages // Return the properly serializable array
     };
   } catch (error) {
     logger.error(`Error scraping ${url}:`, error.message);
     return {
       success: false,
       message: `Error scraping ${url}: ${error.message}`,
-      contentFound: false
+      contentFound: false,
+      content: [] // Always return an array even on error
     };
   }
 };
@@ -120,9 +124,10 @@ parentPort.on('message', async (msg) => {
     switch (msg.type) {
       case 'scrape_images':
         const imageResult = await scrapeImageContent(msg.url, ImageContentModel);
+        // Ensure we're sending serializable data
         parentPort.postMessage({
           type: 'scrape_result',
-          data: imageResult,
+          data: JSON.parse(JSON.stringify(imageResult)), // Ensure proper serialization
           requestId: msg.requestId
         });
         break;
