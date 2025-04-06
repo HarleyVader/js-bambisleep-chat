@@ -149,6 +149,16 @@ const scrapeWebContent = async (url, ContentModel) => {
       await textContent.save();
       logger.success(`Saved bambisleep text content from ${url}`);
       
+      parentPort.postMessage({
+        type: 'scrape_result',
+        data: {
+          success: true,
+          contentFound: true,
+          content: pageText // The extracted text content
+        },
+        requestId: msg.requestId
+      });
+      
       return {
         success: true,
         message: `Found and stored bambisleep text content from ${url}`,
