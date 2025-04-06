@@ -31,7 +31,7 @@ header {
 
 /* Scraper Column Styles - Enhanced with shiny borders */
 .scraper-column {
-    background-color: var(--primary-color);
+    background-color: rgba(12, 42, 42, 0.8); /* 80% transparent */
     border-radius: 0.8vw;
     padding: 1.5vh 1.5vw;
     box-shadow: 0 0 1vh var(--button-color);
@@ -85,6 +85,7 @@ header {
 .submit-form button {
     width: 100%;
     padding: 10px;
+    margin: 0; /* Consistent margin */
     background-color: var(--button-color);
     color: var(--secondary-color);
     border: var(--secondary-color) outset 0.3vw;
@@ -93,6 +94,11 @@ header {
     font-weight: bold;
     text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
     font-family: "Audiowide", sans-serif;
+    transition: background-color 0.3s, color 0.3s, text-shadow 0.3s;
+    /* Fixed dimensions to prevent movement */
+    box-sizing: border-box;
+    height: 42px; /* Fixed height */
+    line-height: 1;
 }
 
 .submit-form button:hover {
@@ -100,6 +106,18 @@ header {
     color: var(--button-color);
     text-shadow: var(--nav-color) 0.3vw 0.3vw 0.3vw;
     border: var(--button-color) 0.3vw inset;
+    /* Same padding and margin as non-hover state */
+    padding: 10px;
+    margin: 0;
+}
+
+.submit-form button:active {
+    background-color: var(--tertiary-alt);
+    color: var(--nav-alt);
+    border-color: var(--primary-alt);
+    /* Same padding and margin */
+    padding: 10px;
+    margin: 0;
 }
 
 /* Submissions List Styles */
@@ -125,7 +143,7 @@ header {
 
 /* Submission Card Styles - Enhanced with theme borders */
 .submission-card {
-    background-color: var(--transparent);
+    background-color: rgba(18, 65, 65, 0.8); /* 80% transparent */
     border-radius: 6px;
     margin-bottom: 15px;
     padding: 12px;
@@ -256,13 +274,17 @@ header {
 }
 
 .modal-content {
-    background-color: var(--bg-color);
+    background-color: var(--primary-color);
     margin: 15% auto;
     padding: 20px;
     border-radius: 8px;
     width: 80%;
     max-width: 600px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 10px var(--button-color);
+    border-top: var(--button-color) 3px ridge;
+    border-bottom: var(--button-color) 3px ridge;
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
 }
 
 .close-btn {
@@ -286,8 +308,12 @@ header {
 .comment-item {
     padding: 10px;
     margin-bottom: 10px;
-    background-color: var(--bg-color-secondary);
+    background-color: rgba(12, 42, 42, 0.8); /* 80% transparent */
     border-radius: 4px;
+    border-top: var(--tertiary-color) 1px ridge;
+    border-bottom: var(--tertiary-color) 1px ridge;
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
 }
 
 .comment-header {
@@ -316,16 +342,26 @@ header {
 
 #comment-form button {
     padding: 8px 16px;
-    background-color: var(--accent-color);
-    color: var(--bg-color);
-    border: none;
-    border-radius: 4px;
+    background-color: var(--button-color);
+    color: var(--secondary-color);
+    border: var(--secondary-color) outset 0.3vw;
+    border-radius: 0.6vw;
     cursor: pointer;
     font-weight: bold;
+    text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
+    font-family: "Audiowide", sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+    /* Fixed dimensions */
+    box-sizing: border-box;
+    height: 42px;
 }
 
 #comment-form button:hover {
-    background-color: var(--accent-color-hover);
+    background-color: var(--secondary-color);
+    color: var(--button-color);
+    text-shadow: var(--nav-color) 0.3vw 0.3vw 0.3vw;
+    border: var(--button-color) 0.3vw inset;
+    padding: 8px 16px;
 }
 
 /* Content Modal Styles */
@@ -360,8 +396,12 @@ header {
     max-height: 60vh;
     overflow-y: auto;
     padding: 1vh 1vw;
-    background-color: var(--bg-color-secondary);
+    background-color: rgba(12, 42, 42, 0.8); /* 80% transparent */
     border-radius: 0.4vw;
+    border-top: var(--tertiary-color) 2px ridge;
+    border-bottom: var(--tertiary-color) 2px ridge;
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
 }
 
 /* Text content styles */
