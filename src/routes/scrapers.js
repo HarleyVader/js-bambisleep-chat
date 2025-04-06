@@ -33,13 +33,28 @@ export const initializeScrapers = async () => {
   }
 };
 
+// Helper function to parse cookies from request header
+function getBambiNameFromCookies(req) {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return 'AnonBambi';
+  
+  const cookies = cookieHeader.split(';')
+    .map(cookie => cookie.trim().split('='))
+    .reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+  
+  return cookies['bambiname'] 
+    ? decodeURIComponent(cookies['bambiname']).replace(/%20/g, ' ') 
+    : 'AnonBambi';
+}
+
 // Routes for scraper page
 router.get('/', async (req, res) => {
   try {
-    // Get cookie for bambiname
-    const bambiname = req.cookies.bambiname 
-      ? decodeURIComponent(req.cookies.bambiname).replace(/%20/g, ' ') 
-      : 'Anonymous Bambi';
+    // Get cookie for bambiname using manual parsing
+    const bambiname = getBambiNameFromCookies(req);
     
     // Fetch latest submissions for each type
     const SubmissionModel = getSubmissionModel();
@@ -75,7 +90,11 @@ router.get('/', async (req, res) => {
   } catch (error) {
     logger.error('Error in scrapers route:', error);
     res.status(500).render('error', {
-      error: 'Failed to load scrapers page',
+      error: {
+        status: 500,
+        message: 'Failed to load scrapers page'
+      },
+      message: 'Failed to load scrapers page',
       details: process.env.NODE_ENV === 'development' ? error.message : null
     });
   }
