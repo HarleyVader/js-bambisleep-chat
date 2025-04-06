@@ -109,6 +109,10 @@ parentPort.on('message', async (msg) => {
       isInitialized = true;
     }
     
+    // Make scrapers wait for DB connection
+    await dbConnection.waitForConnection();
+    initializeScrapers();
+    
     switch (msg.type) {
       case 'scrape_images':
         const imageResult = await scrapeImageContent(msg.url, ImageContentModel);

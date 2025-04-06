@@ -1,9 +1,35 @@
 {
   "name": "js-bambisleep-chat",
-  "version": "3.1.3",
+  "version": "3.2.0",
   "description": "BambiSleep Themed AIGF, spirals, triggers, collars, speech, chat all to bambi bambis bambing bambis for bambisleep",
-  "main": "src/server.js",
+  "keywords": [
+    "express",
+    "mongodb",
+    "mongoose",
+    "socket.io",
+    "chat",
+    "scrape",
+    "lmstudio",
+    "f5-tts",
+    "bambisleep",
+    "llama3",
+    "bambisleep",
+    "bambi",
+    "r/bambisleep",
+    "bambisleepchat"
+  ],
+  "homepage": "https://github.com/HarleyVader/js-bambisleep-chat#readme",
+  "bugs": {
+    "url": "https://github.com/HarleyVader/js-bambisleep-chat/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HarleyVader/js-bambisleep-chat.git"
+  },
+  "license": "Apache-2.0",
+  "author": "melkanea",
   "type": "module",
+  "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
@@ -30,25 +56,5 @@
     "@typescript-eslint/parser": "^8.18.2",
     "eslint": "^9.17.0",
     "nodemon": "^3.1.9"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+ "
-  },
-  "keywords": [
-    "express",
-    "child-process",
-    "socket.io",
-    "lmstudio",
-    "zonos",
-    "llama3",
-    "bambisleep",
-    "python"
-  ],
-  "author": "melkanea",
-  "license": "Unlicense",
-  "bugs": {
-    "url": "https://github.com/HarleyVader/js-bambisleep-chat/issues"
-  },
-  "homepage": "https://github.com/HarleyVader/js-bambisleep-chat#readme"
+  }
 }

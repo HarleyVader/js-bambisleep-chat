@@ -11,7 +11,7 @@ class InferenceService {
     try {
       const modelNames = [
         'llama-3.2-3b-claude-3.7-sonnet-reasoning-distilled@q4_0',
-        'another-model-name' // Replace with the actual second model name
+        'l3-sthenomaidblackroot-8b-v1@q2_k'
       ];
       this.models = await Promise.all(modelNames.map(modelName => selectLoadedModels(modelName)));
     } catch (error) {
