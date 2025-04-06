@@ -64,11 +64,19 @@ router.post('/api/profile', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Username already taken' });
     }
     
+    // Check description length before creating
+    if (description && description.length > 500) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Description cannot exceed 500 characters' 
+      });
+    }
+    
     // Create new bambi profile
     const bambi = await Bambi.create({
       username,
       displayName: displayName || username,
-      description
+      description: description || ''
     });
     
     res.status(201).json({
@@ -77,9 +85,20 @@ router.post('/api/profile', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error creating bambi profile:', error);
-    res.status(500).json({
+    
+    // Improved error handling
+    let errorMessage = 'Failed to create bambi profile';
+    
+    if (error.name === 'ValidationError') {
+      // Extract validation error messages
+      errorMessage = Object.values(error.errors)
+        .map(err => err.message)
+        .join(', ');
+    }
+    
+    res.status(400).json({
       success: false,
-      message: 'Failed to create bambi profile',
+      message: errorMessage,
       error: error.message
     });
   }

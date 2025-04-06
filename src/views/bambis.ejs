@@ -1,4 +1,3 @@
-.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <%- include('../views/partials/head') %>
@@ -216,14 +215,45 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const form = document.getElementById('createProfileForm');
+      const descriptionField = document.getElementById('description');
+      const charCounter = document.createElement('div');
+      
+      // Add character counter
+      charCounter.className = 'char-counter';
+      charCounter.style.textAlign = 'right';
+      charCounter.style.fontSize = '0.8rem';
+      charCounter.style.color = 'var(--text-muted)';
+      descriptionField.parentNode.appendChild(charCounter);
+      
+      // Update character count function
+      function updateCharCount() {
+        const remaining = 500 - descriptionField.value.length;
+        charCounter.textContent = `${remaining} characters remaining`;
+        
+        if (remaining < 0) {
+          charCounter.style.color = 'var(--error)';
+        } else {
+          charCounter.style.color = 'var(--text-muted)';
+        }
+      }
+      
+      // Add event listeners
+      descriptionField.addEventListener('input', updateCharCount);
+      updateCharCount(); // Initial count
       
       form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        // Validate description length
+        if (descriptionField.value.length > 500) {
+          alert('Description cannot exceed 500 characters');
+          return;
+        }
+        
         const formData = {
           username: document.getElementById('username').value,
           displayName: document.getElementById('displayName').value,
-          description: document.getElementById('description').value
+          description: descriptionField.value
         };
         
         try {
