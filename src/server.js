@@ -21,6 +21,7 @@ import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js
 import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
+import bambisRouter from './routes/bambis.js'; // Add this line
 
 //wokers
 import workerCoordinator from './workers/workerCoordinator.js';
@@ -110,6 +111,7 @@ const routes = [
   { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
   { path: '/help', handler: helpRoute },
   { path: '/scrapers', handler: scrapersRoute },
+  { path: '/bambis', handler: bambisRouter }, // Add this line
 ];
 
 // Initialize Speecher worker
@@ -353,6 +355,38 @@ function setupSockets() {
             io.to(collarData.socketId).emit('collar', filteredCollar);
           } catch (error) {
             logger.error('Error in collar handler:', error);
+          }
+        });
+
+        // Add profile update event
+        socket.on('update profile', async (profileData) => {
+          try {
+            if (username === 'anonBambi') return;
+            
+            const { displayName, description, triggers } = profileData;
+            const Bambi = mongoose.model('Bambi');
+            
+            // Find or create profile
+            let bambi = await Bambi.findOne({ username });
+            
+            if (!bambi) {
+              bambi = new Bambi({ 
+                username,
+                displayName: displayName || username,
+                description,
+                triggers
+              });
+            } else {
+              bambi.displayName = displayName || bambi.displayName;
+              bambi.description = description || bambi.description;
+              bambi.triggers = triggers || bambi.triggers;
+              bambi.lastActive = Date.now();
+            }
+            
+            await bambi.save();
+            socket.emit('profile updated', bambi);
+          } catch (error) {
+            logger.error('Error updating profile via socket:', error);
           }
         });
 
