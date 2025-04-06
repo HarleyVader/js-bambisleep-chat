@@ -1,8 +1,14 @@
+/* Adding styles to match the main theme and enhance the visual appeal */
+
+/* Import the Audiowide font to match the main style */
+@import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
+
 /* Scrapers Page Styles */
 .container {
     max-width: 90vw;
     margin: 0 auto;
     padding: 2vh 2vw;
+    font-family: "Audiowide", sans-serif;
 }
 
 header {
@@ -13,6 +19,7 @@ header {
 .bambi-name {
     color: var(--accent-color);
     font-weight: bold;
+    text-shadow: var(--secondary-color) 2px 2px 2px;
 }
 
 /* Grid Layout */
@@ -22,23 +29,31 @@ header {
     gap: 2vw;
 }
 
-/* Scraper Column Styles */
+/* Scraper Column Styles - Enhanced with shiny borders */
 .scraper-column {
-    background-color: var(--bg-color-secondary);
+    background-color: var(--primary-color);
     border-radius: 0.8vw;
     padding: 1.5vh 1.5vw;
-    box-shadow: 0 0.2vh 0.8vw rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 1vh var(--button-color);
+    border-top: var(--button-color) 3px ridge;
+    border-bottom: var(--button-color) 3px ridge;
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
 }
 
+/* Apply flickering animation to h2 elements like the navbar */
 .scraper-column h2 {
     text-align: center;
     color: var(--accent-color);
     margin-bottom: 1.5vh;
     border-bottom: 0.1vh solid var(--border-color);
     padding-bottom: 1vh;
+    animation: flicker 5s infinite;
+    text-shadow: var(--secondary-color) 6px 6px 6px;
+    font-family: "Audiowide", sans-serif;
 }
 
-/* Form Styles */
+/* Form Styles - Enhanced textarea styling */
 .submit-form {
     margin-bottom: 2vh;
 }
@@ -48,26 +63,43 @@ header {
     height: 8vh;
     padding: 1vh 1vw;
     border-radius: 0.4vw;
-    border: 0.1vh solid var(--border-color);
-    background-color: var(--bg-color);
-    color: var(--text-color);
+    background-color: var(--nav-color);
+    color: var(--primary-alt);
     resize: vertical;
     margin-bottom: 10px;
+    border-left: var(--primary-alt) 2px ridge;
+    border-right: var(--primary-alt) 2px ridge;
+    border-top: var(--button-color) 2px ridge;
+    border-bottom: var(--button-color) 2px ridge;
+    text-shadow: var(--secondary-color) 2px 2px 2px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+.submit-form textarea:focus {
+    border: var(--nav-alt) 4px ridge;
+    border-color: var(--tertiary-color);
+    text-shadow: var(--nav-alt) 2px 2px 2px;
+    outline: none;
 }
 
 .submit-form button {
     width: 100%;
     padding: 10px;
-    background-color: var(--accent-color);
-    color: var(--bg-color);
-    border: none;
-    border-radius: 4px;
+    background-color: var(--button-color);
+    color: var(--secondary-color);
+    border: var(--secondary-color) outset 0.3vw;
+    border-radius: 0.6vw;
     cursor: pointer;
     font-weight: bold;
+    text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
+    font-family: "Audiowide", sans-serif;
 }
 
 .submit-form button:hover {
-    background-color: var(--accent-color-hover);
+    background-color: var(--secondary-color);
+    color: var(--button-color);
+    text-shadow: var(--nav-color) 0.3vw 0.3vw 0.3vw;
+    border: var(--button-color) 0.3vw inset;
 }
 
 /* Submissions List Styles */
@@ -78,9 +110,11 @@ header {
 
 .submissions-list h3 {
     margin-bottom: 10px;
-    color: var(--secondary-text-color);
+    color: var(--nav-alt);
     font-size: 1rem;
     text-align: center;
+    text-shadow: var(--secondary-color) 2px 2px 2px;
+    font-family: "Audiowide", sans-serif;
 }
 
 .no-submissions {
@@ -89,13 +123,22 @@ header {
     font-style: italic;
 }
 
-/* Submission Card Styles */
+/* Submission Card Styles - Enhanced with theme borders */
 .submission-card {
-    background-color: var(--bg-color);
+    background-color: var(--transparent);
     border-radius: 6px;
     margin-bottom: 15px;
     padding: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 0.5vh var(--tertiary-color);
+    border-top: var(--tertiary-color) 2px ridge;
+    border-bottom: var(--tertiary-color) 2px ridge;
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
+    transition: all 0.3s ease;
+}
+
+.submission-card:hover {
+    box-shadow: 0 0 1vh var(--button-color);
 }
 
 .submission-header {
@@ -108,6 +151,8 @@ header {
     font-size: 0.9rem;
     word-break: break-all;
     max-width: 80%;
+    color: var(--primary-alt);
+    text-shadow: var(--secondary-color) 1px 1px 1px;
 }
 
 .submission-status {
@@ -115,6 +160,7 @@ header {
     padding: 2px 6px;
     border-radius: 4px;
     text-transform: capitalize;
+    font-family: "Audiowide", sans-serif;
 }
 
 .pending {
@@ -137,17 +183,19 @@ header {
     justify-content: space-between;
     margin-bottom: 8px;
     font-size: 0.8rem;
-    color: var(--secondary-text-color);
+    color: var(--nav-alt);
 }
 
 .content-found {
     font-size: 0.9rem;
     color: #155724;
-    background-color: #d4edda;
+    background-color: rgba(212, 237, 218, 0.7);
     padding: 5px;
     border-radius: 4px;
     margin-bottom: 8px;
     text-align: center;
+    text-shadow: var(--secondary-color) 1px 1px 1px;
+    border: var(--tertiary-alt) 1px ridge;
 }
 
 .submission-actions {
@@ -423,4 +471,19 @@ header {
         max-width: 95vw;
         margin: 5vh auto;
     }
+}
+
+/* Add this to your scrapers.css file */
+.auto-delete-notice {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-left: 4px solid #ffc107;
+    padding: 10px 15px;
+    margin: 10px 0 20px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #856404;
+}
+
+.auto-delete-notice i {
+    margin-right: 5px;
 }
