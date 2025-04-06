@@ -103,10 +103,6 @@ parentPort.on('message', async (msg) => {
       isInitialized = true;
     }
     
-    // Make scrapers wait for DB connection
-    await dbConnection.waitForConnection();
-    initializeScrapers();
-    
     switch (msg.type) {
       case 'scrape_videos':
         const urlResult = await scrapeVideoContent(msg.url, VideoContentModel);
