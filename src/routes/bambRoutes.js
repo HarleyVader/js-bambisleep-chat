@@ -184,4 +184,41 @@ router.post('/api/profile/:username/picture', async (req, res) => {
   }
 });
 
+// Check if username is available
+router.get('/api/check-username', async (req, res) => {
+  try {
+    const { username } = req.query;
+    
+    if (!username || username.trim().length < 3) {
+      return res.status(400).json({ 
+        available: false, 
+        message: 'Username must be at least 3 characters' 
+      });
+    }
+    
+    // Check username format
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      return res.status(400).json({ 
+        available: false, 
+        message: 'Username must contain only letters, numbers, and underscores' 
+      });
+    }
+    
+    // Check if username already exists
+    const existingBambi = await Bambi.findOne({ username });
+    
+    res.json({
+      available: !existingBambi,
+      message: existingBambi ? 'Username is taken' : 'Username is available'
+    });
+  } catch (error) {
+    logger.error('Error checking username availability:', error);
+    res.status(500).json({
+      available: false,
+      message: 'Error checking username'
+    });
+  }
+});
+
 export default router;
