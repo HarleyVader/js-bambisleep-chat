@@ -396,6 +396,12 @@ views\bambiProfile.ejs -->
       profileEditForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        // Validate description length
+        if (descriptionEdit.value.length > 500) {
+          alert('Description cannot exceed 500 characters');
+          return;
+        }
+        
         // Collect all triggers
         const triggers = Array.from(triggersList.querySelectorAll('.trigger-pill')).map(pill => pill.dataset.value);
         
@@ -478,6 +484,33 @@ views\bambiProfile.ejs -->
       
       // Initial update
       updateThemePreview();
+      
+      // Add description validation
+      const descriptionEdit = document.getElementById('descriptionEdit');
+      const charCounter = document.createElement('div');
+      
+      // Add character counter to edit form
+      charCounter.className = 'char-counter';
+      charCounter.style.textAlign = 'right';
+      charCounter.style.fontSize = '0.8rem';
+      charCounter.style.color = 'var(--text-muted)';
+      descriptionEdit.parentNode.appendChild(charCounter);
+      
+      // Update character count function
+      function updateCharCount() {
+        const remaining = 500 - descriptionEdit.value.length;
+        charCounter.textContent = `${remaining} characters remaining`;
+        
+        if (remaining < 0) {
+          charCounter.style.color = 'var(--error)';
+        } else {
+          charCounter.style.color = 'var(--text-muted)';
+        }
+      }
+      
+      // Add event listeners
+      descriptionEdit.addEventListener('input', updateCharCount);
+      updateCharCount(); // Initial count
     });
   </script>
 </body>
