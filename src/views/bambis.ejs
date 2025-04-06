@@ -209,6 +209,10 @@
               <p class="profile-description"><%= bambi.description || 'No description provided' %></p>
               <div class="profile-details">
                 <span>Level: <%= bambi.level %></span>
+                <span>
+                  <i class="fas fa-heart" style="color: #ff4fa2;"></i> 
+                  <%= bambi.hearts ? bambi.hearts.count : 0 %>
+                </span>
                 <span>Triggers: <%= bambi.triggers.length %></span>
               </div>
             </div>

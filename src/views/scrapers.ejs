@@ -17,6 +17,78 @@
             </div>
         </header>
 
+        <div class="stats-dashboard">
+            <div class="stats-section">
+                <h2>Scraper Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-title">Successful Scrapes</div>
+                        <div class="stat-value successful"><%= stats.successful %></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Failed Scrapes</div>
+                        <div class="stat-value failed"><%= stats.failed %></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Blocked Scrapes</div>
+                        <div class="stat-value blocked"><%= stats.blocked %></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Total Upvotes</div>
+                        <div class="stat-value upvotes"><%= stats.totalUpvotes %></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Total Downvotes</div>
+                        <div class="stat-value downvotes"><%= stats.totalDownvotes %></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="top-submissions">
+                <div class="top-section">
+                    <h3>Most Upvoted Submissions</h3>
+                    <div class="top-list">
+                        <% if (stats.topUpvoted && stats.topUpvoted.length > 0) { %>
+                            <% stats.topUpvoted.forEach(submission => { %>
+                                <div class="top-item">
+                                    <div class="top-url" title="<%= submission.url %>">
+                                        <%= submission.url.length > 50 ? submission.url.substring(0, 50) + '...' : submission.url %>
+                                    </div>
+                                    <div class="top-votes">
+                                        <i class="fas fa-thumbs-up"></i> <%= submission.upvotes %>
+                                    </div>
+                                    <a href="/scrapers?view=<%= submission._id %>&type=<%= submission.type %>" class="top-view-btn">View</a>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="no-data">No upvoted submissions yet</div>
+                        <% } %>
+                    </div>
+                </div>
+                
+                <div class="top-section">
+                    <h3>Most Downvoted Submissions</h3>
+                    <div class="top-list">
+                        <% if (stats.topDownvoted && stats.topDownvoted.length > 0) { %>
+                            <% stats.topDownvoted.forEach(submission => { %>
+                                <div class="top-item">
+                                    <div class="top-url" title="<%= submission.url %>">
+                                        <%= submission.url.length > 50 ? submission.url.substring(0, 50) + '...' : submission.url %>
+                                    </div>
+                                    <div class="top-votes">
+                                        <i class="fas fa-thumbs-down"></i> <%= submission.downvotes %>
+                                    </div>
+                                    <a href="/scrapers?view=<%= submission._id %>&type=<%= submission.type %>" class="top-view-btn">View</a>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="no-data">No downvoted submissions yet</div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="scrapers-grid">
             <!-- Text Scraper Column -->
             <div class="scraper-column">
