@@ -399,4 +399,79 @@ router.get('/comments/:id', async (req, res) => {
   }
 });
 
+// Get scraper statistics
+router.get('/stats', async (req, res) => {
+  try {
+    const stats = {
+      successful: 0,
+      failed: 0,
+      blocked: 0,
+      totalUpvotes: 0,
+      totalDownvotes: 0,
+      topUpvoted: [],
+      topDownvoted: []
+    };
+    
+    // Get statistics
+    stats.successful = await Submission.countDocuments({ 
+      status: 'completed',
+      'results.text.contentFound': true,
+      $or: [
+        { 'results.text.contentFound': true },
+        { 'results.image.contentFound': true },
+        { 'results.video.contentFound': true }
+      ]
+    });
+    
+    stats.failed = await Submission.countDocuments({ status: 'failed' });
+    
+    // Count as blocked if status is completed but no content found
+    stats.blocked = await Submission.countDocuments({
+      status: 'completed',
+      $and: [
+        { 'results.text.contentFound': { $ne: true } },
+        { 'results.image.contentFound': { $ne: true } },
+        { 'results.video.contentFound': { $ne: true } }
+      ]
+    });
+    
+    // Aggregate votes
+    const voteCounts = await Submission.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalUpvotes: { $sum: '$upvotes' },
+          totalDownvotes: { $sum: '$downvotes' }
+        }
+      }
+    ]);
+    
+    if (voteCounts.length > 0) {
+      stats.totalUpvotes = voteCounts[0].totalUpvotes;
+      stats.totalDownvotes = voteCounts[0].totalDownvotes;
+    }
+    
+    // Top 5 most upvoted
+    stats.topUpvoted = await Submission.find()
+      .sort({ upvotes: -1 })
+      .limit(5);
+    
+    // Top 5 most downvoted
+    stats.topDownvoted = await Submission.find({ downvotes: { $gt: 0 } })
+      .sort({ downvotes: -1 })
+      .limit(5);
+    
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    logger.error('Error fetching scraper stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching scraper statistics'
+    });
+  }
+});
+
 export default router;
