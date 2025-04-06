@@ -573,7 +573,9 @@
                                                         <%= submission.comments.length %>
                                                     </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️
-                                                    <span>View Content</span></button>
+                                                    <span></span></button>
+                                                <button class="share-btn" data-id="<%= submission._id %>"
+                                                    data-type="<%= submission.type %>">📤 <span></span></button>
                                             </div>
                                 </div>
                                 <% }); %>
@@ -627,7 +629,9 @@
                                                         <%= submission.comments.length %>
                                                     </span></button>
                                                 <button class="view-content-btn" data-type="<%= submission.type %>">👁️
-                                                    <span>View Content</span></button>
+                                                    <span></span></button>
+                                                <button class="share-btn" data-id="<%= submission._id %>"
+                                                    data-type="<%= submission.type %>">📤 <span></span></button>
                                             </div>
                                 </div>
                                 <% }); %>
