@@ -38,7 +38,7 @@ const SubmissionSchema = new mongoose.Schema({
     },
     image: {
       contentFound: Boolean,
-      content: Array
+      content: Array // Store as array instead of trying to stringify
     },
     video: {
       contentFound: Boolean,
@@ -192,12 +192,37 @@ router.post('/submit', async (req, res) => {
       
       // Update submission with results
       submission.status = result.success ? 'completed' : 'failed';
-      submission.results = {
-        text: {
-          contentFound: result.contentFound || false,
-          content: Array.isArray(result.content) ? result.content.join('\n') : result.content
-        }
-      };
+      
+      // Handle different content types properly
+      if (type === 'text') {
+        submission.results = {
+          text: {
+            contentFound: result.contentFound || false,
+            content: Array.isArray(result.content) ? result.content.join('\n') : result.content
+          },
+          image: { content: [] },
+          video: { content: [] }
+        };
+      } else if (type === 'image') {
+        submission.results = {
+          text: { contentFound: false, content: '' },
+          image: {
+            contentFound: result.contentFound || false,
+            content: result.content || [] // Store the array directly
+          },
+          video: { content: [] }
+        };
+      } else if (type === 'video') {
+        submission.results = {
+          text: { contentFound: false, content: '' },
+          image: { content: [] },
+          video: {
+            contentFound: result.contentFound || false,
+            content: result.content || []
+          }
+        };
+      }
+      
       await submission.save();
       
       res.json({ 
@@ -254,11 +279,13 @@ router.get('/submission/:id', async (req, res) => {
     
     // Add logging to check the structure
     logger.info(`Fetched submission: ${id}`);
-    logger.info(`Results structure: ${JSON.stringify(submission.results || {})}`);
+    
+    // Ensure proper serialization of the results
+    const results = JSON.parse(JSON.stringify(submission.results || {}));
     
     res.json({ 
       success: true, 
-      results: submission.results || {},
+      results: results,
       debug: {
         submissionType: submission.type,
         status: submission.status

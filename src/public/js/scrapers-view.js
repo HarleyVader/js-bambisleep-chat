@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const result = data.results[contentType];
 
-        if (!result.contentFound) {
+        if (!result.contentFound && (!result.content || result.content.length === 0)) {
             container.innerHTML = '<div class="content-not-found">No BambiSleep content found on this page</div>';
             return;
         }
@@ -217,16 +217,20 @@ document.addEventListener('DOMContentLoaded', function () {
                         contentHtml += '<p class="content-not-found">No images found</p>';
                     } else {
                         result.content.forEach(img => {
-                            contentHtml += `
-                            <figure>
-                                <img src="${img.url}" alt="${img.alt || 'BambiSleep image'}" />
-                                ${img.caption ? `<figcaption>${img.caption}</figcaption>` : ''}
-                            </figure>
-                        `;
+                            if (typeof img === 'object') {
+                                contentHtml += `
+                                <figure>
+                                    <img src="${img.url}" alt="${img.metadata?.description || 'BambiSleep image'}" />
+                                    <figcaption>${img.metadata?.description || ''}</figcaption>
+                                </figure>`;
+                            } else {
+                                contentHtml += `<p>Invalid image data format</p>`;
+                            }
                         });
                     }
                 } else {
                     contentHtml += '<p>Image data has unexpected format</p>';
+                    console.error('Unexpected image content format:', result.content);
                 }
                 contentHtml += '</div>';
                 break;
