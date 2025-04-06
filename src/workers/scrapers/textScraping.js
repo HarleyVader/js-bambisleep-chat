@@ -108,43 +108,49 @@ const parseContent = async (filePath, fileType) => {
   }
 };
 
-// A better approach for extracting text content from web pages
+// Replace the existing extractTextContent function with this:
 
 function extractTextContent(htmlContent) {
-  // Create a DOM parser
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlContent, 'text/html');
-  
-  // Remove script tags, style tags, and other non-content elements
-  const elementsToRemove = [
-    'script', 'style', 'svg', 'iframe', 'nav', 'footer', 
-    'header', 'noscript', 'meta', 'link'
-  ];
-  
-  elementsToRemove.forEach(tag => {
-    const elements = doc.querySelectorAll(tag);
-    elements.forEach(el => el.remove());
-  });
-  
-  // Find the main content container (adjust selector based on site structure)
-  const mainContent = doc.querySelector('main') || 
-                     doc.querySelector('article') || 
-                     doc.querySelector('.content');
-  
-  if (mainContent) {
-    // Extract text from the main content area only
-    return mainContent.textContent
+  try {
+    // Use cheerio instead of DOMParser (which is browser-specific)
+    const $ = cheerio.load(htmlContent);
+    
+    // Remove script tags, style tags, and other non-content elements
+    const elementsToRemove = [
+      'script', 'style', 'svg', 'iframe', 'nav', 'footer', 
+      'header', 'noscript', 'meta', 'link'
+    ];
+    
+    elementsToRemove.forEach(tag => {
+      $(tag).remove();
+    });
+    
+    // Find the main content container
+    const mainContent = $('main').length ? $('main') : 
+                       $('article').length ? $('article') : 
+                       $('.content').length ? $('.content') : null;
+    
+    let text = '';
+    if (mainContent) {
+      // Extract text from the main content area only
+      text = mainContent.text();
+    } else {
+      // Fallback: get body text
+      text = $('body').text();
+    }
+    
+    // Clean up the text
+    return text
       .replace(/\s+/g, ' ')  // Replace multiple spaces with a single space
       .trim();               // Remove leading/trailing whitespace
-  } else {
-    // Fallback: get body text
-    return doc.body.textContent
-      .replace(/\s+/g, ' ')
-      .trim();
+  } catch (error) {
+    logger.error('Error extracting text content:', error.message);
+    return '';
   }
 }
 
-// Web scraper function - now focused on text only
+// Update the scrapeWebContent function:
+
 const scrapeWebContent = async (url, ContentModel, requestId) => {
   try {
     logger.info(`Scraping ${url} for bambisleep text content`);
@@ -170,7 +176,7 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
         type: 'text',
         fileType: 'html',
         title: title,
-        content: pageText,
+        content: pageText, // Ensure this is a string
         url: url,
         source: 'web',
         metadata: {
@@ -190,7 +196,7 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
         data: {
           success: true,
           contentFound: true,
-          content: pageText // The extracted text content
+          content: pageText // The extracted text content (as a string)
         },
         requestId: requestId
       });
@@ -198,13 +204,15 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
       return {
         success: true,
         message: `Found and stored bambisleep text content from ${url}`,
-        contentFound: true
+        contentFound: true,
+        content: pageText // Ensure we're returning a string
       };
     } else {
       return {
         success: true,
         message: `No bambisleep content found at ${url}`,
-        contentFound: false
+        contentFound: false,
+        content: '' // Return empty string instead of undefined/null
       };
     }
   } catch (error) {
@@ -212,7 +220,8 @@ const scrapeWebContent = async (url, ContentModel, requestId) => {
     return {
       success: false,
       message: `Error scraping ${url}: ${error.message}`,
-      contentFound: false
+      contentFound: false,
+      content: '' // Always return content as a string
     };
   }
 };
