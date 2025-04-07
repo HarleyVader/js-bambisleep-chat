@@ -175,57 +175,91 @@ function setupRoutes() {
         if (!text) {
           return res.status(400).json({ error: 'Text is required' });
         }
-
+    
         // Log TTS request
         logger.info(`TTS request: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
-
+    
         // Voice parameter (optional)
         const voice = req.query.voice || KOKORO_DEFAULT_VOICE;
-
+        
+        logger.info(`Using voice: ${voice} for TTS request`);
+    
         // Make request to Kokoro API (OpenAI-compatible endpoint)
-        const response = await axios({
-          method: 'post',
-          url: `${KOKORO_API_URL}/audio/speech`,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${KOKORO_API_KEY}`
-          },
-          data: {
-            model: "kokoro",
-            voice: voice,
-            input: text,
-            response_format: "mp3"
-          },
-          responseType: 'stream'
-        });
-
-        // Set appropriate headers
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Cache-Control', 'no-cache');
+        const requestData = {
+          model: "kokoro",
+          voice: voice,
+          input: text,
+          response_format: "mp3"
+        };
         
-        // Stream the audio data to the client
-        await pipeline(response.data, res);
+        logger.info(`Sending request to ${KOKORO_API_URL}/audio/speech`);
         
-      } catch (error) {
-        logger.error(`TTS API Error: ${error.message}`);
-        
-        // FIX: Safely extract error data without circular references
-        if (error.response) {
-          const safeErrorData = {
-            status: error.response.status,
-            statusText: error.response.statusText,
-            headers: error.response.headers,
-            data: typeof error.response.data === 'object' ? 
-              '(Object data - cannot be stringified)' : 
-              error.response.data
-          };
+        // First try to get the error message if any by making a json request
+        try {
+          const response = await axios({
+            method: 'post',
+            url: `${KOKORO_API_URL}/audio/speech`,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${KOKORO_API_KEY}`
+            },
+            data: requestData,
+            responseType: 'stream'
+          });
+    
+          // Set appropriate headers
+          res.setHeader('Content-Type', 'audio/mpeg');
+          res.setHeader('Cache-Control', 'no-cache');
           
-          logger.error(`Status: ${error.response.status}, Details: ${JSON.stringify(safeErrorData, null, 2)}`);
+          // Stream the audio data to the client
+          await pipeline(response.data, res);
+          
+        } catch (axiosError) {
+          // Handle Axios error with better error extraction
+          logger.error(`TTS API Error: ${axiosError.message}`);
+          
+          if (axiosError.response) {
+            // For streaming response, we need to gather the data differently
+            if (axiosError.response.data && axiosError.response.data.pipe) {
+              // It's a stream, collect it
+              const chunks = [];
+              axiosError.response.data.on('data', chunk => chunks.push(chunk));
+              
+              await new Promise((resolve) => {
+                axiosError.response.data.on('end', () => {
+                  try {
+                    const buffer = Buffer.concat(chunks);
+                    const errorText = buffer.toString('utf8');
+                    let errorJson;
+                    
+                    try {
+                      errorJson = JSON.parse(errorText);
+                      logger.error(`Kokoro API error details: ${JSON.stringify(errorJson)}`);
+                    } catch (e) {
+                      logger.error(`Raw error response: ${errorText.substring(0, 500)}`);
+                    }
+                  } catch (e) {
+                    logger.error(`Error parsing response: ${e.message}`);
+                  }
+                  resolve();
+                });
+              });
+            } else {
+              logger.error(`Status: ${axiosError.response.status}, StatusText: ${axiosError.response.statusText}`);
+            }
+          }
+          
+          res.status(500).json({ 
+            error: 'Error generating speech',
+            details: process.env.NODE_ENV === 'production' ? null : axiosError.message
+          });
         }
         
+      } catch (outerError) {
+        logger.error(`Unexpected TTS error: ${outerError.message}`);
         res.status(500).json({ 
-          error: 'Error generating speech',
-          details: process.env.NODE_ENV === 'production' ? null : error.message
+          error: 'Unexpected error in TTS service',
+          details: process.env.NODE_ENV === 'production' ? null : outerError.message
         });
       }
     });
