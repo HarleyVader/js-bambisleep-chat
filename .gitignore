@@ -6,6 +6,4 @@ package-lock.json
 darkside
 
 # audios
-.f5-tts
-F5-TTS
-f5-tts-inference-server
+.*
