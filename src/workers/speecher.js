@@ -1,169 +1,166 @@
 import { parentPort } from 'worker_threads';
-import { promises as fsPromises } from 'fs';
-import fs from 'fs';
+import { exec } from 'child_process';
+import fetch from 'node-fetch';
 import path from 'path';
-import { spawn } from 'child_process';
-import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
-import dotenv from 'dotenv';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-// Load environment variables
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Setup logging
-const logger = {
-  info: (message) => sendLog('info', message),
-  success: (message) => sendLog('success', message),
-  error: (message) => sendLog('error', message),
-  warning: (message) => sendLog('warning', message)
-};
+// F5-TTS Flask server configuration
+const TTS_SERVER_URL = 'http://172.22.78.155:5002';
+const OUTPUT_DIR = path.join(__dirname, '..', 'temp', 'audio');
 
-function sendLog(level, message) {
+// Ensure output directory exists
+fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
+function log(message) {
   parentPort.postMessage({
     type: 'log',
-    level,
     data: message
   });
 }
 
-// Create necessary directories if they don't exist
-// Use path.resolve to get the absolute path to the project root
-const projectRoot = path.resolve(process.cwd());
-const audioDir = path.join(projectRoot, 'temp', 'audio');
-
-fs.mkdirSync(audioDir, { recursive: true });
-logger.info(`Audio directory: ${audioDir}`);
-
-/**
- * Generates speech using F5-TTS with voice cloning
- * @param {string} text - Text to convert to speech
- * @param {Buffer|string} refAudio - Reference audio for voice cloning (Buffer or file path)
- * @param {string} refText - Optional transcription of reference audio
- * @returns {Promise<{audioPath: string, error: string|null}>}
- */
-async function generateF5TTS(text, refAudio, refText = "") {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const sessionId = uuidv4();
-      const refAudioPath = path.join(audioDir, `ref_${sessionId}.wav`);
-      const outputPath = path.join(audioDir, `output_${sessionId}.wav`);
-
-      // If refAudio is a Buffer, write it to a file
-      if (Buffer.isBuffer(refAudio)) {
-        await fsPromises.writeFile(refAudioPath, refAudio);
-      } else if (typeof refAudio === 'string') {
-        // If it's a path, copy it to our temp location
-        await fsPromises.copyFile(refAudio, refAudioPath);
-      } else {
-        return reject(new Error('Reference audio must be a Buffer or file path'));
-      }
-
-      // Prepare arguments for F5-TTS command
-      const args = [
-        '-m', 'F5TTS_v1_Base',
-        '--ref_audio', refAudioPath,
-        '--gen_text', text,
-        '--output_dir', audioDir,
-        '--output_name', `output_${sessionId}`
-      ];
-
-      // Add reference text if provided
-      if (refText && refText.trim() !== '') {
-        args.push('--ref_text', refText);
-      }
-
-      // Spawn F5-TTS process
-      logger.info(`Generating speech with F5-TTS: ${text}`);
-      const f5tts = spawn('f5-tts_infer-cli', args);
-
-      let stderr = '';
-
-      f5tts.stderr.on('data', (data) => {
-        stderr += data.toString();
-        logger.info(`F5-TTS stderr: ${data}`);
-      });
-
-      f5tts.on('close', (code) => {
-        if (code !== 0) {
-          logger.error(`F5-TTS process exited with code ${code}`);
-          logger.error(`Error: ${stderr}`);
-          resolve({ audioPath: null, error: stderr || 'Error generating speech' });
-        } else {
-          logger.success('F5-TTS generation complete');
-          resolve({ audioPath: outputPath, error: null });
-        }
-      });
-
-      f5tts.on('error', (err) => {
-        logger.error(`F5-TTS spawn error: ${err.message}`);
-        resolve({ audioPath: null, error: err.message });
-      });
-
-    } catch (error) {
-      logger.error(`Error in generateF5TTS: ${error.message}`);
-      resolve({ audioPath: null, error: error.message });
-    }
-  });
-}
-
-/**
- * Generates standard TTS using external service
- * @param {string} text - Text to convert to speech
- * @returns {Promise<{audioPath: string, error: string|null}>}
- */
-async function generateTTS(text) {
+// Start the F5-TTS Flask server
+async function startFlaskServer() {
   try {
-    const sessionId = uuidv4();
-    const outputPath = path.join(audioDir, `tts_${sessionId}.wav`);
+    // First check if server is already running
+    const serverRunning = await checkServerStatus();
+    if (serverRunning) {
+      log('F5-TTS server is already running');
+      return true;
+    }
 
-    logger.info(`Generating standard TTS: ${text}`);
+    // Get the path to the server script
+    const serverPath = path.join(__dirname, '..', '..', 'f5-tts-app', 'server.py');
     
-    const response = await axios.get(`http://${process.env.SPEECH_HOST}:${process.env.SPEECH_PORT}/api/tts`, {
-      params: { text },
-      responseType: 'arraybuffer',
+    if (!fs.existsSync(serverPath)) {
+      log(`F5-TTS server not found at: ${serverPath}`);
+      return false;
+    }
+    
+    log('Starting F5-TTS Flask server...');
+    
+    // Use different commands for Windows vs WSL
+    const isWindows = process.platform === 'win32';
+    const serverCommand = isWindows 
+      ? `python "${serverPath}" --port 5002`
+      : `python3 "${serverPath}" --port 5002`;
+    
+    // Start the server asynchronously
+    const process = exec(serverCommand);
+    
+    // Log stdout and stderr
+    process.stdout.on('data', (data) => {
+      log(`F5-TTS server: ${data.trim()}`);
     });
     
-    await fsPromises.writeFile(outputPath, response.data);
-    logger.success('Standard TTS generation complete');
+    process.stderr.on('data', (data) => {
+      log(`F5-TTS server error: ${data.trim()}`);
+    });
     
-    return { audioPath: outputPath, error: null };
+    // Wait for server to start accepting connections
+    let attempts = 0;
+    const maxAttempts = 20;
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const serverUp = await checkServerStatus();
+      if (serverUp) {
+        log('F5-TTS server started successfully');
+        return true;
+      }
+      attempts++;
+      log(`Waiting for F5-TTS server to start... (${attempts}/${maxAttempts})`);
+    }
+    
+    log('Failed to start F5-TTS server after multiple attempts');
+    return false;
   } catch (error) {
-    logger.error(`Error in generateTTS: ${error.message}`);
-    return { audioPath: null, error: error.message };
+    log(`Error starting F5-TTS server: ${error.message}`);
+    return false;
   }
 }
 
-// Handle messages from the main thread
-parentPort.on('message', async (message) => {
+// Check if the server is running
+async function checkServerStatus() {
   try {
-    const { type, id, text, refAudio, refText } = message;
-    
-    if (type === 'tts') {
-      // Standard TTS
-      const result = await generateTTS(text);
+    const response = await fetch(`${TTS_SERVER_URL}/health`, { timeout: 2000 });
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Generate TTS using the F5-TTS Flask server
+async function generateTTS(text, referenceAudio = null) {
+  // Check if server is running
+  let serverRunning = await checkServerStatus();
+  
+  // If server is not running, try to start it
+  if (!serverRunning) {
+    serverRunning = await startFlaskServer();
+    if (!serverRunning) {
+      throw new Error('Failed to start F5-TTS server');
+    }
+  }
+  
+  // Build the request URL
+  let url = `${TTS_SERVER_URL}/api/tts?text=${encodeURIComponent(text)}`;
+  if (referenceAudio) {
+    url += `&reference_audio=${encodeURIComponent(referenceAudio)}`;
+  }
+  
+  log(`Making TTS request: ${text}`);
+  
+  // Make the TTS request
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`TTS request failed: ${errorText}`);
+  }
+  
+  // Generate unique filename for the output
+  const outputFilename = `${Date.now()}_${Math.floor(Math.random() * 10000)}.wav`;
+  const outputPath = path.join(OUTPUT_DIR, outputFilename);
+  
+  // Save the audio file
+  const buffer = await response.buffer();
+  fs.writeFileSync(outputPath, buffer);
+  
+  log(`Generated audio saved to: ${outputPath}`);
+  return outputPath;
+}
+
+// Initialize worker
+log('Speecher worker initializing...');
+
+// Handle incoming messages
+parentPort.on('message', async (message) => {
+  if (message.type === 'tts') {
+    try {
+      const text = message.text;
+      const referenceAudio = message.referenceAudio;
+      
+      log(`Generating TTS for: ${text}`);
+      
+      // Generate the audio
+      const audioPath = await generateTTS(text, referenceAudio);
+      
+      // Send back the result
       parentPort.postMessage({
-        id,
-        audioPath: result.audioPath,
-        error: result.error
+        id: message.id,
+        audioPath: audioPath
       });
-    } 
-    else if (type === 'f5tts') {
-      // Voice cloning with F5-TTS
-      const result = await generateF5TTS(text, refAudio, refText);
+    } catch (error) {
+      log(`Error in TTS generation: ${error.message}`);
       parentPort.postMessage({
-        id,
-        audioPath: result.audioPath,
-        error: result.error
+        id: message.id,
+        error: `Failed to generate audio: ${error.message}`
       });
     }
-  } catch (error) {
-    logger.error(`Worker error: ${error.message}`);
-    parentPort.postMessage({
-      id: message.id,
-      error: error.message
-    });
   }
 });
 
-// Notify that worker is ready
-parentPort.postMessage({ type: 'log', data: 'Speecher worker initialized' });
+log('Speecher worker initialized and ready for TTS requests');
