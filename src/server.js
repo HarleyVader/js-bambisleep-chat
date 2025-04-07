@@ -209,9 +209,18 @@ function setupRoutes() {
       } catch (error) {
         logger.error(`TTS API Error: ${error.message}`);
         
-        // Send more detailed error for debugging
+        // FIX: Safely extract error data without circular references
         if (error.response) {
-          logger.error(`Status: ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`);
+          const safeErrorData = {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            headers: error.response.headers,
+            data: typeof error.response.data === 'object' ? 
+              '(Object data - cannot be stringified)' : 
+              error.response.data
+          };
+          
+          logger.error(`Status: ${error.response.status}, Details: ${JSON.stringify(safeErrorData, null, 2)}`);
         }
         
         res.status(500).json({ 
