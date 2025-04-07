@@ -5,10 +5,5 @@ package-lock.json
 *.test.js
 darkside
 
-
 # audios
-assets/audio/
-
-# text2speech
-assets/text2speech/
 .f5-tts

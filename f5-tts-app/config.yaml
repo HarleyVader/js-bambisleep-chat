@@ -1,7 +1,0 @@
-config_path: /mnt/f/js-bambisleep-chat/F5-TTS/src/f5_tts/configs/F5TTS_Small.yaml
-model_path: /mnt/f/js-bambisleep-chat/F5-TTS/models/f5tts_small.pt
-output_dir: output
-server:
-  debug: false
-  host: 0.0.0.0
-  port: 5002
