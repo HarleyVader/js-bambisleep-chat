@@ -117,10 +117,16 @@ const routes = [
   { path: '/bambis', handler: bambisRouter }, // Add this line
 ];
 
-// Configure Kokoro TTS API settings
-const KOKORO_API_URL = process.env.KOKORO_API_URL || 'http://localhost:8880/v1';
+// Configure Kokoro TTS API settings - updated to use KOKORO_HOST and KOKORO_PORT from .env
+const KOKORO_HOST = process.env.KOKORO_HOST || 'localhost';
+const KOKORO_PORT = process.env.KOKORO_PORT || 8880;
+const KOKORO_API_URL = process.env.KOKORO_API_URL || `http://${KOKORO_HOST}:${KOKORO_PORT}/v1`;
 const KOKORO_DEFAULT_VOICE = process.env.KOKORO_DEFAULT_VOICE || 'af_sky';
 const KOKORO_API_KEY = process.env.KOKORO_API_KEY || 'not-needed';
+
+// Log TTS configuration during startup
+logger.info(`Kokoro TTS API configured with URL: ${KOKORO_API_URL}`);
+logger.info(`Using default voice: ${KOKORO_DEFAULT_VOICE}`);
 
 function setupRoutes() {
   try {
