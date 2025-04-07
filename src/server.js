@@ -7,6 +7,9 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import stream from 'stream';
+import { promisify } from 'util';
+const pipeline = promisify(stream.pipeline);
 
 // modules
 import { Worker } from 'worker_threads';
@@ -114,116 +117,10 @@ const routes = [
   { path: '/bambis', handler: bambisRouter }, // Add this line
 ];
 
-// Initialize Speecher worker
-let speecherWorker;
-
-function initializeSpeecherWorker() {
-  try {
-    speecherWorker = new Worker(path.join(__dirname, 'workers/speecher.js'));
-    adjustMaxListeners(speecherWorker, true);
-    
-    speecherWorker.on('message', (msg) => {
-      if (msg.type === 'log') {
-        logger.info(`[Speecher Worker] ${msg.data}`);
-      }
-    });
-    
-    speecherWorker.on('error', (err) => {
-      logger.error('Speecher Worker error:', err);
-      // Attempt to restart the worker
-      initializeSpeecherWorker();
-    });
-    
-    logger.success('Speecher Worker initialized');
-    return true;
-  } catch (error) {
-    logger.error('Error initializing Speecher Worker:', error);
-    return false;
-  }
-}
-
-app.get('/api/tts', async (req, res) => {
-  const text = req.query.text;
-  const referenceAudio = req.query.referenceAudio; // Optional parameter
-  
-  if (typeof text !== 'string' || text.trim() === '') {
-    return res.status(400).send('Invalid input: text must be a non-empty string');
-  }
-  
-  try {
-    if (!speecherWorker) {
-      const initialized = initializeSpeecherWorker();
-      if (!initialized) {
-        return res.status(500).send('TTS service unavailable');
-      }
-    }
-    
-    // Create a promise to handle the worker response
-    const ttsPromise = new Promise((resolve, reject) => {
-      const messageId = Date.now().toString();
-      
-      const responseHandler = (message) => {
-        if (message.id === messageId) {
-          speecherWorker.removeListener('message', responseHandler);
-          
-          if (message.error) {
-            reject(new Error(message.error));
-          } else {
-            resolve(message.audioPath);
-          }
-        }
-      };
-      
-      speecherWorker.on('message', responseHandler);
-      
-      // Send request to worker with reference audio if provided
-      speecherWorker.postMessage({
-        type: 'tts',
-        id: messageId,
-        text: text,
-        referenceAudio: referenceAudio
-      });
-      
-      // Set timeout to avoid hanging requests
-      setTimeout(() => {
-        speecherWorker.removeListener('message', responseHandler);
-        reject(new Error('TTS request timed out'));
-      }, 30000); // 30 second timeout
-    });
-    
-    // Handle the TTS response
-    const audioPath = await ttsPromise;
-    
-    // Check if file exists before sending
-    if (!fs.existsSync(audioPath)) {
-      logger.error(`Audio file not found: ${audioPath}`);
-      return res.status(500).send('Audio file not found');
-    }
-    
-    // Set proper content type
-    res.setHeader('Content-Type', 'audio/wav');
-    
-    // Send the file
-    res.sendFile(audioPath, (err) => {
-      if (err) {
-        logger.error(`Error sending audio file: ${err}`);
-        if (!res.headersSent) {
-          res.status(500).send('Error sending audio file');
-        }
-      }
-      
-      // Clean up temp file after sending
-      fs.unlink(audioPath, (unlinkErr) => {
-        if (unlinkErr) logger.error(`Error cleaning up audio file: ${unlinkErr}`);
-      });
-    });
-  } catch (error) {
-    logger.error('Error generating TTS:', error);
-    if (!res.headersSent) {
-      res.status(500).send(`Error generating TTS: ${error.message}`);
-    }
-  }
-});
+// Configure Kokoro TTS API settings
+const KOKORO_API_URL = process.env.KOKORO_API_URL || 'http://localhost:8880/v1';
+const KOKORO_DEFAULT_VOICE = process.env.KOKORO_DEFAULT_VOICE || 'af_sky';
+const KOKORO_API_KEY = process.env.KOKORO_API_KEY || 'not-needed';
 
 function setupRoutes() {
   try {
@@ -263,6 +160,80 @@ function setupRoutes() {
         }
         res.json(results);
       });
+    });
+
+    // Add TTS route that uses Kokoro API
+    app.get('/api/tts', async (req, res) => {
+      try {
+        const text = req.query.text;
+        if (!text) {
+          return res.status(400).json({ error: 'Text is required' });
+        }
+
+        // Log TTS request
+        logger.info(`TTS request: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+
+        // Voice parameter (optional)
+        const voice = req.query.voice || KOKORO_DEFAULT_VOICE;
+
+        // Make request to Kokoro API (OpenAI-compatible endpoint)
+        const response = await axios({
+          method: 'post',
+          url: `${KOKORO_API_URL}/audio/speech`,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KOKORO_API_KEY}`
+          },
+          data: {
+            model: "kokoro",
+            voice: voice,
+            input: text,
+            response_format: "mp3"
+          },
+          responseType: 'stream'
+        });
+
+        // Set appropriate headers
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Cache-Control', 'no-cache');
+        
+        // Stream the audio data to the client
+        await pipeline(response.data, res);
+        
+      } catch (error) {
+        logger.error(`TTS API Error: ${error.message}`);
+        
+        // Send more detailed error for debugging
+        if (error.response) {
+          logger.error(`Status: ${error.response.status}, Data: ${JSON.stringify(error.response.data)}`);
+        }
+        
+        res.status(500).json({ 
+          error: 'Error generating speech',
+          details: process.env.NODE_ENV === 'production' ? null : error.message
+        });
+      }
+    });
+
+    // Add voice listing endpoint
+    app.get('/api/tts/voices', async (req, res) => {
+      try {
+        const response = await axios({
+          method: 'get',
+          url: `${KOKORO_API_URL}/voices`,
+          headers: {
+            'Authorization': `Bearer ${KOKORO_API_KEY}`
+          }
+        });
+        
+        res.json(response.data);
+      } catch (error) {
+        logger.error(`Voice listing error: ${error.message}`);
+        res.status(500).json({ 
+          error: 'Error fetching voice list',
+          details: process.env.NODE_ENV === 'production' ? null : error.message
+        });
+      }
     });
 
     app.use('/api/scraper', scraperAPIRoutes);
@@ -551,9 +522,8 @@ async function initializeServer() {
     await delay(200);
     
     // Step 5: Initialize the speecher worker
-    logger.info('Step 5/6: Initializing speech synthesis worker...');
+    logger.info('Step 5/6: Initializing speech synthesis worker and preloading model...');
     await delay(150);
-    initializeSpeecherWorker();
     await delay(200);
     
     // Step 6: Setup routes, sockets, and error handlers
