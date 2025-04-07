@@ -144,6 +144,8 @@ function initializeSpeecherWorker() {
 
 app.get('/api/tts', async (req, res) => {
   const text = req.query.text;
+  const referenceAudio = req.query.referenceAudio; // Optional parameter
+  
   if (typeof text !== 'string' || text.trim() === '') {
     return res.status(400).send('Invalid input: text must be a non-empty string');
   }
@@ -174,11 +176,12 @@ app.get('/api/tts', async (req, res) => {
       
       speecherWorker.on('message', responseHandler);
       
-      // Send request to worker
+      // Send request to worker with reference audio if provided
       speecherWorker.postMessage({
         type: 'tts',
         id: messageId,
-        text: text
+        text: text,
+        referenceAudio: referenceAudio
       });
       
       // Set timeout to avoid hanging requests
@@ -191,7 +194,7 @@ app.get('/api/tts', async (req, res) => {
     // Handle the TTS response
     const audioPath = await ttsPromise;
     
-    // FIX: Check if file exists before sending
+    // Check if file exists before sending
     if (!fs.existsSync(audioPath)) {
       logger.error(`Audio file not found: ${audioPath}`);
       return res.status(500).send('Audio file not found');
@@ -200,7 +203,7 @@ app.get('/api/tts', async (req, res) => {
     // Set proper content type
     res.setHeader('Content-Type', 'audio/wav');
     
-    // FIX: Use the audioPath directly without trying to resolve it relative to __dirname
+    // Send the file
     res.sendFile(audioPath, (err) => {
       if (err) {
         logger.error(`Error sending audio file: ${err}`);
