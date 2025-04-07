@@ -51,10 +51,6 @@ const io = new Server(server, {
   pingInterval: 25000, // 25 seconds
 });
 
-// Create necessary directories for audio processing
-const audioDir = path.join(__dirname, 'temp', 'audio');
-fs.mkdirSync(audioDir, { recursive: true });
-
 //filteredWords
 const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
 
@@ -101,7 +97,6 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/workers', express.static(path.join(__dirname, 'workers')));
 app.use('/audio', express.static(path.join(__dirname, './assets/audio')));
-app.use('/temp/audio', express.static(path.join(__dirname, 'temp', 'audio')));
 
 app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
