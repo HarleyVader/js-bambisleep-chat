@@ -1,0 +1,11 @@
+F5-TTS
+torch
+torchaudio
+numpy
+gradio
+huggingface-hub
+pydub
+soundfile
+scipy
+requests
+tensorflow  # Optional, if using TensorFlow for any additional processing
