@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
       const bambiObj = bambi.toObject();
       bambiObj.profilePictureUrl = bambi.profilePicture 
         ? `/bambis/${bambi.username}/avatar` 
-        : '/images/default-avatar.gif';
+        : '/bambis/default-avatar.gif';
       return bambiObj;
     });
     
@@ -74,14 +74,14 @@ router.get('/:username/avatar', async (req, res) => {
   try {
     const bambi = await Bambi.findOne({ username: req.params.username });
     if (!bambi || !bambi.profilePicture) {
-      return res.redirect('/images/default-avatar.gif');
+      return res.redirect('/bambis/default-avatar.gif');
     }
     
     res.set('Content-Type', bambi.profilePicture.contentType);
     res.send(bambi.profilePicture.buffer);
   } catch (error) {
     logger.error('Error serving avatar:', error.message);
-    res.redirect('/images/default-avatar.gif');
+    res.redirect('/bambis/default-avatar.gif');
   }
 });
 
@@ -103,7 +103,7 @@ router.get('/profile', async (req, res) => {
     
     // Convert Bambi object to match the profile.ejs template expectations
     const profile = {
-      avatar: bambi.profilePicture ? `${bambi.username}/avatar` : 'default-avatar.gif',
+      avatar: bambi.profilePicture ? `${bambi.username}/avatar` : '/bambis/default-avatar.gif',
       displayName: bambi.displayName,
       woodland: bambi.woodland || 'Sleepy Meadow',
       bio: bambi.description,
@@ -130,6 +130,41 @@ router.get('/profile', async (req, res) => {
     res.status(500).render('error', {
       error: 'Server Error',
       message: 'Error loading profile page'
+    });
+  }
+});
+
+// Edit profile page route
+router.get('/edit', async (req, res) => {
+  try {
+    const bambiname = getBambiNameFromCookies(req);
+    
+    if (!bambiname) {
+      return res.redirect('/login?redirect=/bambis/edit');
+    }
+    
+    // Find the bambi profile
+    const bambi = await Bambi.findOne({ username: bambiname });
+    
+    if (!bambi) {
+      return res.redirect('/register');
+    }
+    
+    // Add profilePictureUrl for display
+    bambi.profilePictureUrl = bambi.profilePicture 
+      ? `/bambis/${bambi.username}/avatar` 
+      : '/bambis/default-avatar.gif';
+    
+    // Render the edit profile page
+    res.render('bambis/bambi-edit', {
+      bambi,
+      error: null
+    });
+  } catch (error) {
+    logger.error('Error loading profile edit page:', error.message);
+    res.status(500).render('error', {
+      error: 'Server Error',
+      message: 'Error loading profile edit page'
     });
   }
 });
@@ -169,7 +204,7 @@ router.get('/:username', async (req, res) => {
     // Add profilePictureUrl for proper display
     bambi.profilePictureUrl = bambi.profilePicture 
       ? `/bambis/${bambi.username}/avatar` 
-      : '/images/default-avatar.gif';
+      : '/bambis/default-avatar.gif';
     
     // Detect if online (active in last 10 minutes)
     bambi.isOnline = (Date.now() - new Date(bambi.lastActive).getTime()) < (10 * 60 * 1000);
