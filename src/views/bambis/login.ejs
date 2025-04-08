@@ -1,36 +1,9 @@
-<%-- This is the login page for the Bambi Forest application. --%>
-<%-- It includes a form for users to enter their username and password. --%>
-<%-- If there is an error, it will be displayed above the form. --%>
-<%-- The page is styled with CSS and includes a link to the registration page. --%>
-<%-- The neon glow effect is applied to the title. --%>
-<%-- The form submits to the /login route with a POST request. --%>
-<%-- The socket.io library is included for real-time communication. --%>
-<%-- The error message is styled with a background color and text color defined in CSS variables. --%>
-<%-- The input fields are required and have labels for accessibility. --%>
-<%-- The button submits the form and has a label "Enter Forest". --%>
-<%-- The page is responsive and adjusts to different screen sizes. --%>
-<%-- The container class centers the content and adds padding. --%>
-<%-- The card class styles the form area with a white background and rounded corners. --%>
-<%-- The neon-glow class applies a glowing effect to the title. --%>
-<%-- The input-container class styles the input fields and labels. --%>
-<%-- The error-message class styles the error message with a red background and white text. --%>
-<%-- The button is styled with a hover effect and transitions. --%>
-<%-- The link to the registration page is styled with a color and hover effect. --%>
-<%-- The page is designed to be visually appealing and user-friendly. --%>
-<%-- The title "Bambi Forest" is displayed prominently at the top of the page. --%>
-<%-- The form includes input fields for username and password, both required. --%>
-<%-- The error message is conditionally displayed if there is an error. --%>
-<%-- The page includes a link to the registration page for new users. --%>
-<%-- The socket.io library is included for real-time communication. --%>
-<%-- The page is designed to be visually appealing and user-friendly. --%>
-<%-- The title "Bambi Forest" is displayed prominently at the top of the page. --%>
-<%-- The form includes input fields for username and password, both required. --%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bambi Forest - Login</title>
+  <title>BambiSleep.Chat - Login</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -38,7 +11,7 @@
     <h1 class="neon-glow">Bambi Forest</h1>
     
     <div class="card">
-      <h2>Enter the Woodland</h2>
+      <h2>Enter the realm of bambisleep</h2>
       
       <% if (error) { %>
         <div class="error-message" style="background-color: var(--error-bg); color: var(--error); padding: 10px; margin-bottom: 20px; border-radius: 4px;">
@@ -67,5 +40,22 @@
   </div>
   
   <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get redirect URL from query params
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectUrl = urlParams.get('redirect');
+      
+      if (redirectUrl) {
+        // Add hidden field to form for redirect
+        const form = document.querySelector('form');
+        const redirectInput = document.createElement('input');
+        redirectInput.type = 'hidden';
+        redirectInput.name = 'redirect';
+        redirectInput.value = redirectUrl;
+        form.appendChild(redirectInput);
+      }
+    });
+  </script>
 </body>
 </html>
