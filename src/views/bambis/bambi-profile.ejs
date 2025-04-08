@@ -226,43 +226,45 @@
         <h1 class="profile-name-large"><%= bambi.displayName || bambi.username %></h1>
         <div class="profile-username">@<%= bambi.username %></div>
         
+        <div class="profile-stats-triggers-container" style="margin-bottom: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+            <div class="profile-stats-detailed" style="flex: 1; min-width: 250px; max-width: 400px;">
+                <h3 class="section-title">Stats</h3>
+                <div class="stats-grid">
+                    <div class="stat">
+                        <div class="stat-value">LVL <%= bambi.level %></div>
+                        <div class="stat-label">Level</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value"><%= bambi.experience %></div>
+                        <div class="stat-label">Experience</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value"><%= bambi.hearts.count %></div>
+                        <div class="stat-label">Hearts</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value"><%= bambi.followers.length %></div>
+                        <div class="stat-label">Followers</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="triggers-section" style="flex: 1; min-width: 250px; max-width: 400px;">
+                <h3 class="triggers-title">Favorite Triggers</h3>
+                <div class="triggers-list">
+                    <% if (bambi.triggers && bambi.triggers.length > 0) { %>
+                        <% bambi.triggers.forEach(trigger => { %>
+                            <span class="trigger-tag"><%= trigger %></span>
+                        <% }); %>
+                    <% } else { %>
+                        <p>No favorite triggers set</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
         <div class="profile-content">
             <div class="profile-sidebar">
-                <div class="profile-stats-detailed">
-                    <h3 class="section-title">Stats</h3>
-                    <div class="stats-grid">
-                        <div class="stat">
-                            <div class="stat-value">LVL <%= bambi.level %></div>
-                            <div class="stat-label">Level</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-value"><%= bambi.experience %></div>
-                            <div class="stat-label">Experience</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-value"><%= bambi.hearts.count %></div>
-                            <div class="stat-label">Hearts</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-value"><%= bambi.followers.length %></div>
-                            <div class="stat-label">Followers</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="triggers-section">
-                    <h3 class="triggers-title">Favorite Triggers</h3>
-                    <div class="triggers-list">
-                        <% if (bambi.triggers && bambi.triggers.length > 0) { %>
-                            <% bambi.triggers.forEach(trigger => { %>
-                                <span class="trigger-tag"><%= trigger %></span>
-                            <% }); %>
-                        <% } else { %>
-                            <p>No favorite triggers set</p>
-                        <% } %>
-                    </div>
-                </div>
-                
                 <% if (!isOwnProfile) { %>
                     <button id="heart-button" class="heart-button <%= userHasLiked ? 'liked' : '' %>" data-username="<%= bambi.username %>">
                         <span>❤️</span>
