@@ -6,7 +6,7 @@
 <body>
   <%- include('../views/partials/nav.ejs') %>
   
-  <main class="container">
+  <main class="container" style="width: 95%; max-width: 95%;">
     <% if (locals.bambi) { %>
       <!-- SINGLE PROFILE VIEW -->
       <a href="/bambis" class="back-to-profiles"><i class="fas fa-arrow-left"></i> Back to Profiles</a>
@@ -17,38 +17,46 @@
         </div>
         
         <div class="profile-details">
-          <h1 class="profile-name"><%= bambi.displayName || bambi.username %></h1>
-          <div class="profile-username">@<%= bambi.username %></div>
+          <div class="profile-header-row">
+            <div class="profile-name-container">
+              <h1 class="profile-name"><%= bambi.displayName || bambi.username %></h1>
+              <div class="profile-username">@<%= bambi.username %></div>
+            </div>
+            
+            <div class="profile-stats">
+              <div class="stat">
+                <div class="stat-value"><%= bambi.level %></div>
+                <div class="stat-label">Level</div>
+              </div>
+              
+              <div class="stat">
+                <div class="stat-value"><%= bambi.triggers.length %></div>
+                <div class="stat-label">Triggers</div>
+              </div>
+              
+              <div class="stat">
+                <div class="stat-value"><%= bambi.favoriteFiles.length %></div>
+                <div class="stat-label">Favorite Files</div>
+              </div>
+              
+              <div class="stat">
+                <div class="stat-value heart-container">
+                  <span id="heartCount"><%= bambi.hearts ? bambi.hearts.count : 0 %></span>
+                  <button id="heartButton" class="heart-button">
+                    <i class="fas fa-heart"></i>
+                  </button>
+                </div>
+                <div class="stat-label">Hearts</div>
+              </div>
+              
+              <button id="shareProfileBtn" class="share-profile-btn">
+                <i class="fas fa-share-alt"></i> Share
+              </button>
+            </div>
+          </div>
           
           <div class="profile-description">
             <%= bambi.description || 'No description provided' %>
-          </div>
-          
-          <div class="profile-stats">
-            <div class="stat">
-              <div class="stat-value"><%= bambi.level %></div>
-              <div class="stat-label">Level</div>
-            </div>
-            
-            <div class="stat">
-              <div class="stat-value"><%= bambi.triggers.length %></div>
-              <div class="stat-label">Triggers</div>
-            </div>
-            
-            <div class="stat">
-              <div class="stat-value"><%= bambi.favoriteFiles.length %></div>
-              <div class="stat-label">Favorite Files</div>
-            </div>
-            
-            <div class="stat">
-              <div class="stat-value heart-container">
-                <span id="heartCount"><%= bambi.hearts ? bambi.hearts.count : 0 %></span>
-                <button id="heartButton" class="heart-button">
-                  <i class="fas fa-heart"></i>
-                </button>
-              </div>
-              <div class="stat-label">Hearts</div>
-            </div>
           </div>
           
           <div class="profile-triggers">
