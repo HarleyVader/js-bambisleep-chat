@@ -138,7 +138,7 @@ const BambiSchema = new mongoose.Schema({
 BambiSchema.index({ username: 'text', displayName: 'text', description: 'text' });
 
 // Virtual for profile picture URL
-BambiSchema.virtual('profilePicture').get(function() {
+BambiSchema.virtual('profilePictureUrl').get(function() {
   if (this.profileImageData && this.profileImageType) {
     return `/bambis/api/profile/${this.username}/picture`;
   }
@@ -189,4 +189,6 @@ BambiSchema.methods.addActivity = async function(type, description, metadata = {
   return this.activities[0];
 };
 
-export default mongoose.model('Bambi', BambiSchema);
+const Bambi = mongoose.model('Bambi', BambiSchema);
+
+export default Bambi;
