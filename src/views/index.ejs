@@ -2,148 +2,168 @@
 <html lang="en">
 <%- include('../views/partials/head') %>
   <title>BambiSleep.Chat AIGF</title>
-
-  <body>
+  
+  <body class="nw-bg">
     <%- include('../views/partials/nav.ejs') %>
-      <div id="chat-container">
-        <!-- Add modal for username prompt -->
-        <div id="username-modal" class="modal">
-          <div class="modal-content">
-            <p>give me your bambi name:</p>
-            <input type="text" id="username-input" placeholder="Enter username">
-            <button id="username-submit">Submit</button>
-          </div>
-        </div>
-        <div id="user-input">
-          <h1>BambiSleep AIGF 👁️</h1>
-          <div id="llm">
-            <form id="llm-form">
-              <textarea id="textarea" oninput="autoExpand(this)" placeholder="Prompt my AIGF"></textarea>
-              <button id="submit" type="submit">Send</button>
-            </form>
-            <div id="user-prompt"></div>
-            <div id="audiomessage">
-              <audio id="audio" hidden controls></audio>
-              <p id="message"></p>
-              <p id="error-message" style="display: none; color: red;"></p>
+      <div id="chat-container" class="nw-container nw-neon-border nw-my-3">
+        <!-- Username modal with NeonWave styling -->
+        <div id="username-modal" class="nw-modal">
+          <div class="nw-modal-content">
+            <div class="nw-modal-header">
+              <h4 class="nw-modal-title nw-text-glow">Welcome to BambiSleep</h4>
+            </div>
+            <div class="nw-modal-body">
+              <p class="nw-text-primary">give me your bambi name:</p>
+              <div class="nw-form-group">
+                <input type="text" id="username-input" class="nw-form-control" placeholder="Enter username">
+              </div>
+            </div>
+            <div class="nw-modal-footer">
+              <button id="username-submit" class="nw-btn nw-btn-primary">Submit</button>
             </div>
           </div>
-          <br>
-          <div id="system-controls-container">
-            <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
-          </div>
         </div>
-        <div id="response-container">
-          <div id="response-chat-wrapper">
-            <div id="response"></div>
-            <div id="chat">
-              <form id="chat-form">
-                <textarea id="textarea-chat" oninput="autoExpand(this)" placeholder="Send in Chat"></textarea>
-                <button id="send" type="submit" class="send-btn">Chat</button>
+
+        <div class="nw-row">
+          <!-- User input section -->
+          <div id="user-input" class="nw-col-lg-4 nw-transparent nw-neon-border nw-p-3">
+            <h1 class="nw-text-center nw-text-glow">BambiSleep AIGF 👁️</h1>
+            <div id="llm">
+              <form id="llm-form" class="nw-form-group">
+                <textarea id="textarea" class="nw-form-control" oninput="autoExpand(this)" placeholder="Prompt my AIGF"></textarea>
+                <button id="submit" type="submit" class="nw-btn nw-btn-primary nw-mt-2">Send</button>
               </form>
-              <ul id="chat-response"></ul>
+              <div id="user-prompt" class="nw-mt-3"></div>
+              <div id="audiomessage" class="nw-mt-2">
+                <audio id="audio" hidden controls></audio>
+                <p id="message" class="nw-text-primary"></p>
+                <p id="error-message" class="nw-text-danger" style="display: none;"></p>
+              </div>
+            </div>
+            <div class="nw-mt-3">
+              <div id="system-controls-container" class="nw-neon-border nw-p-2">
+                <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
+              </div>
             </div>
           </div>
-          <div id="eyeCursorContainer">
-            <div id="eyeCursor">
-              <div id="eyeCursorText"></div>
-              <div id="eyeCursorText2"></div>
-              <div id="eye" aria-label="Eye Cursor"></div>
-              <div id="eyeCursorText3"></div>
-              <div id="eyeCursorText4"></div>
+
+          <!-- Response container -->
+          <div id="response-container" class="nw-col-lg-8">
+            <div id="response-chat-wrapper" class="nw-row nw-mb-3">
+              <div id="response" class="nw-col-md-6 nw-transparent nw-neon-border nw-p-3"></div>
+              <div id="chat" class="nw-col-md-6 nw-transparent nw-neon-border nw-p-3">
+                <form id="chat-form" class="nw-d-flex nw-mb-3">
+                  <textarea id="textarea-chat" class="nw-form-control nw-me-2" oninput="autoExpand(this)" placeholder="Send in Chat"></textarea>
+                  <button id="send" type="submit" class="nw-btn nw-btn-secondary">Chat</button>
+                </form>
+                <ul id="chat-response" class="nw-list-unstyled"></ul>
+              </div>
+            </div>
+            
+            <div id="eyeCursorContainer" class="nw-neon-border nw-p-3 nw-position-relative">
+              <div id="eyeCursor" class="nw-text-center">
+                <div id="eyeCursorText" class="nw-text-primary"></div>
+                <div id="eyeCursorText2" class="nw-text-primary"></div>
+                <div id="eye" aria-label="Eye Cursor" class="nw-glow"></div>
+                <div id="eyeCursorText3" class="nw-text-primary"></div>
+                <div id="eyeCursorText4" class="nw-text-primary"></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <%- include('../views/partials/footer.ejs') %>
-        <script src="js/psychodelic-trigger-mania.js"></script>
-        <script src="js/text2speech.js"></script>
-        <script src="js/responsive.js"></script>
-        <script src="js/triggers.js"></script>
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="js/aigf-core.js"></script>
-        <script>
-          document.addEventListener("DOMContentLoaded", () => {
-            const modal = document.getElementById('username-modal');
-            let username = '';
+      
+      <footer class="nw-container nw-neon-border nw-p-3 nw-mt-4">
+        <%- include('../views/partials/footer.ejs') %>
+      </footer>
 
-            // ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪
-            function getCookie(name) {
-              const value = `; ${document.cookie}`;
-              const parts = value.split(`; ${name}=`);
-              if (parts.length === 2) return parts.pop().split(';').shift();
+      <script src="js/psychodelic-trigger-mania.js"></script>
+      <script src="js/text2speech.js"></script>
+      <script src="js/responsive.js"></script>
+      <script src="js/triggers.js"></script>
+      <script src="/socket.io/socket.io.js"></script>
+      <script src="js/aigf-core.js"></script>
+      <script>
+        document.addEventListener("DOMContentLoaded", () => {
+          const modal = document.getElementById('username-modal');
+          let username = '';
+
+          // ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪
+          function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+          }
+
+          username = getCookie('bambiname');
+          if (!username) {
+            modal.style.display = 'block';
+          }
+
+          document.getElementById('username-submit').addEventListener('click', () => {
+            const input = document.getElementById('username-input');
+            const newUsername = input.value.trim();
+            if (newUsername) {
+              username = newUsername;
+              document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
+              socket.emit('set username', username);
+              modal.style.display = 'none';
+              window.username = username;
             }
-
-            username = getCookie('bambiname');
-            if (!username) {
-              modal.style.display = 'block';
-            }
-
-            document.getElementById('username-submit').addEventListener('click', () => {
-              const input = document.getElementById('username-input');
-              const newUsername = input.value.trim();
-              if (newUsername) {
-                username = newUsername;
-                document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
-                socket.emit('set username', username);
-                modal.style.display = 'none';
-                window.username = username;
-              }
-            });
-
-            const style = document.createElement('style');
-            document.head.appendChild(style);
-
-            socket.on("chat message", (msg) => {
-              const item = document.createElement("li");
-              const timestamp = new Date(msg.timestamp).toLocaleTimeString();
-              item.textContent = `${timestamp} - ${msg.username}: ${msg.data}`;
-              if (timestamp && window.username) {
-                item.classList.add("neon-glow");
-              }
-              document.getElementById("chat-response").appendChild(item);
-            });
-
-            document.getElementById("chat-form").addEventListener("submit", (event) => {
-              event.preventDefault();
-              const message = document.getElementById("textarea-chat").value;
-              if (message) {
-                socket.emit("chat message", { data: message, username: window.username });
-                document.getElementById("textarea-chat").value = "";
-              }
-            });
-
-            const collarForm = document.getElementById('collar-form');
-            if (collarForm) {
-              collarForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                const message = document.getElementById('textarea-collar').value.trim();
-                if (message) {
-                  socket.emit('collar', { data: message, socketId: socket.id });
-                  const userCollar = document.getElementById('user-collar');
-                  const messageElement = document.createElement('p');
-                  messageElement.textContent = message;
-                  userCollar.appendChild(messageElement);
-                }
-              });
-            }
-
-            socket.on('collar', (message) => {
-              const collarResponse = document.getElementById('textarea-collar-response');
-              const messageElement = document.createElement('p');
-              messageElement.textContent = message;
-              if (collarResponse.firstChild) {
-                collarResponse.insertBefore(messageElement, collarResponse.firstChild);
-              } else {
-                collarResponse.appendChild(messageElement);
-              }
-              applyUppercaseStyle();
-            });
           });
-        </script>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
-        <script src="js/bootstrap.min.js"></script>
-  </body>
 
+          const style = document.createElement('style');
+          document.head.appendChild(style);
+
+          socket.on("chat message", (msg) => {
+            const item = document.createElement("li");
+            const timestamp = new Date(msg.timestamp).toLocaleTimeString();
+            item.textContent = `${timestamp} - ${msg.username}: ${msg.data}`;
+            if (timestamp && window.username) {
+              item.classList.add("nw-glow");
+            }
+            document.getElementById("chat-response").appendChild(item);
+          });
+
+          document.getElementById("chat-form").addEventListener("submit", (event) => {
+            event.preventDefault();
+            const message = document.getElementById("textarea-chat").value;
+            if (message) {
+              socket.emit("chat message", { data: message, username: window.username });
+              document.getElementById("textarea-chat").value = "";
+            }
+          });
+
+          const collarForm = document.getElementById('collar-form');
+          if (collarForm) {
+            collarForm.addEventListener('submit', (event) => {
+              event.preventDefault();
+              const message = document.getElementById('textarea-collar').value.trim();
+              if (message) {
+                socket.emit('collar', { data: message, socketId: socket.id });
+                const userCollar = document.getElementById('user-collar');
+                const messageElement = document.createElement('p');
+                messageElement.textContent = message;
+                userCollar.appendChild(messageElement);
+              }
+            });
+          }
+
+          socket.on('collar', (message) => {
+            const collarResponse = document.getElementById('textarea-collar-response');
+            const messageElement = document.createElement('p');
+            messageElement.textContent = message;
+            if (collarResponse.firstChild) {
+              collarResponse.insertBefore(messageElement, collarResponse.firstChild);
+            } else {
+              collarResponse.appendChild(messageElement);
+            }
+            applyUppercaseStyle();
+          });
+        });
+      </script>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
+      <script src="js/bootstrap.min.js"></script>
+  </body>
 </html>
