@@ -6,17 +6,28 @@ const BambiSchema = new mongoose.Schema({
     required: [true, 'Username is required'],
     unique: true,
     trim: true,
-    minlength: [3, 'Username must be at least 3 characters']
+    minlength: [3, 'Username must be at least 3 characters'],
+    maxlength: [20, 'Username cannot exceed 20 characters'],
+    match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores']
   },
   displayName: {
     type: String,
     trim: true,
+    maxlength: [50, 'Display name cannot exceed 50 characters'],
     default: ''
   },
   profilePicture: {
     type: String,
     default: '/images/default-profile.png'
   },
+  profileImageData: {
+    type: String, // Stores Base64 encoded image data
+  },
+  profileImageType: {
+    type: String, // Stores MIME type
+  },
+  profileImageName: String,
+  profileImageId: String,
   triggers: {
     type: [String],
     default: []
@@ -27,7 +38,7 @@ const BambiSchema = new mongoose.Schema({
   },
   level: {
     type: Number,
-    default: 0
+    default: 1
   },
   experience: {
     type: Number,
@@ -35,8 +46,9 @@ const BambiSchema = new mongoose.Schema({
   },
   description: {
     type: String,
+    trim: true,
     default: '',
-    maxlength: [500, 'Description cannot be more than 500 characters']
+    maxlength: [500, 'Description cannot exceed 500 characters']
   },
   createdAt: {
     type: Date,
@@ -104,7 +116,7 @@ const BambiSchema = new mongoose.Schema({
   activities: [{
     type: {
       type: String,
-      enum: ['file', 'level', 'badge', 'login', 'follow'],
+      enum: ['file', 'level', 'badge', 'heart', 'other'],
       required: true
     },
     description: {
@@ -124,6 +136,14 @@ const BambiSchema = new mongoose.Schema({
 
 // Create a text index for search functionality
 BambiSchema.index({ username: 'text', displayName: 'text', description: 'text' });
+
+// Virtual for profile picture URL
+BambiSchema.virtual('profilePicture').get(function() {
+  if (this.profileImageData && this.profileImageType) {
+    return `/bambis/api/profile/${this.username}/picture`;
+  }
+  return '/images/default-profile.png';
+});
 
 // Method to add experience and handle level ups
 BambiSchema.methods.addExperience = async function(amount) {
@@ -159,9 +179,9 @@ BambiSchema.methods.addActivity = async function(type, description, metadata = {
     metadata
   });
   
-  // Keep only the last 50 activities
-  if (this.activities.length > 50) {
-    this.activities = this.activities.slice(0, 50);
+  // Keep only the last 20 activities
+  if (this.activities.length > 20) {
+    this.activities = this.activities.slice(0, 20);
   }
   
   this.lastActive = Date.now();

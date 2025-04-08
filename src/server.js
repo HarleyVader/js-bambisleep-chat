@@ -24,7 +24,7 @@ import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js
 import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
-import bambisRouter from './routes/bambRoutes.js';
+import bambisRouter from './routes/bambis.js';
 
 //wokers
 import workerCoordinator from './workers/workerCoordinator.js';
@@ -96,6 +96,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/workers', express.static(path.join(__dirname, 'workers')));
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
