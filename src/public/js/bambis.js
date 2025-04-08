@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
   <% if (locals.bambi) { %>
     // SINGLE PROFILE VIEW JAVASCRIPT
@@ -332,6 +331,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (profileHeader) {
       profileHeader.style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`;
       profileHeader.style.color = textColor;
+    }
+
+    // Share profile functionality
+    const shareButton = document.getElementById('shareProfileBtn');
+    
+    if (shareButton) {
+      shareButton.addEventListener('click', function() {
+        if (navigator.share) {
+          const bambiName = document.querySelector('.profile-name').textContent;
+          const username = document.querySelector('.profile-username').textContent;
+          
+          navigator.share({
+            title: `${bambiName} on Bambisleep.chat`,
+            text: `Check out ${bambiName}'s profile on Bambisleep.chat!`,
+            url: window.location.href
+          })
+          .catch(error => console.log('Error sharing:', error));
+        } else {
+          // Fallback for browsers that don't support Web Share API
+          alert('Sharing not supported on this browser. You can copy the URL from the address bar instead.');
+        }
+      });
     }
 
   <% } else { %>
