@@ -1,4 +1,4 @@
-    /* Bambis Profiles styles */
+/* Bambis Profiles styles */
     .error-message {
       color: var(--error);
       padding: 1rem;
@@ -167,10 +167,16 @@
       flex-direction: column;
       max-width: 900px;
       margin: 2rem auto;
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
-      overflow: hidden;
+      background-color: var(--transparent);
+      border-top: var(--button-color) 3px ridge;
+      border-bottom: var(--button-color) 3px ridge;
+      border-left: var(--secondary-alt) 1px groove;
+      border-right: var(--secondary-alt) 1px groove;
+      border-radius: 8px;
+      box-shadow: 0 0 10px var(--button-color);
+      padding: 20px;
+      margin-bottom: 30px;
+      position: relative;
     }
     
     .profile-header {
@@ -200,23 +206,32 @@
     .profile-name {
       margin-bottom: 0.5rem;
       font-size: 2rem;
+      color: var(--button-color);
+      text-shadow: var(--secondary-color) 2px 2px 2px;
     }
     
     .profile-username {
-      color: var(--text-muted);
-      margin-bottom: 1.5rem;
+      color: var(--primary-alt);
+      margin-bottom: 15px;
       font-size: 1.1rem;
     }
     
     .profile-description {
-      margin-bottom: 2rem;
+      margin-bottom: 20px;
       line-height: 1.6;
+      color: var(--primary-alt);
+      text-shadow: var(--secondary-color) 1px 1px 1px;
     }
     
     .profile-stats {
       display: flex;
       gap: 2rem;
       margin-bottom: 2rem;
+      justify-content: space-around;
+      background-color: var(--transparent);
+      border-top: var(--button-color) 2px ridge;
+      padding-top: 15px;
+      margin-top: 30px;
     }
     
     .stat {
@@ -227,11 +242,12 @@
       font-size: 1.5rem;
       font-weight: bold;
       margin-bottom: 0.25rem;
+      color: var(--nav-alt);
     }
     
     .stat-label {
       font-size: 0.9rem;
-      color: var(--text-muted);
+      color: var(--primary-alt);
     }
     
     .profile-triggers {
@@ -242,6 +258,8 @@
       font-size: 1.2rem;
       margin-bottom: 1rem;
       font-weight: 500;
+      color: var(--tertiary-color);
+      text-shadow: var(--secondary-color) 2px 2px 2px;
     }
     
     .trigger-tags {
@@ -252,27 +270,41 @@
     
     .trigger-tag {
       padding: 0.5rem 1rem;
-      background-color: var(--accent-light);
-      color: var(--accent);
-      border-radius: 100px;
+      background-color: var(--nav-color);
+      color: var(--primary-alt);
+      border: 1px solid var(--tertiary-color);
+      border-radius: 15px;
+      padding: 5px 10px;
+      margin: 5px;
+      display: inline-block;
       font-size: 0.85rem;
     }
     
     .edit-profile-btn {
       padding: 0.75rem 1.5rem;
-      background-color: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 4px;
+      background-color: var(--button-color);
+      color: var(--secondary-color);
+      text-shadow: var(--tertiary-color) 2px 2px 2px;
+      border: var(--secondary-color) outset 3px;
+      font-size: 1rem;
+      border-radius: 8px;
       cursor: pointer;
-      font-weight: 500;
-      transition: background-color 0.2s ease;
+      transition: all 0.2s ease;
       margin-top: 1rem;
       display: inline-block;
     }
     
     .edit-profile-btn:hover {
-      background-color: var(--accent-hover);
+      background-color: var(--secondary-color);
+      color: var(--button-color);
+      text-shadow: var(--nav-color) 2px 2px 2px;
+      border: var(--button-color) 3px inset;
+    }
+    
+    .edit-profile-btn:active {
+      background-color: var(--tertiary-alt);
+      color: var(--nav-alt);
+      border-color: var(--primary-alt);
     }
     
     .edit-form {
@@ -321,6 +353,10 @@
       display: flex;
       gap: 1rem;
       align-items: center;
+      background-color: var(--transparent);
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
     }
     
     .activity-icon {
@@ -334,10 +370,11 @@
     
     .activity-details p {
       margin: 0;
+      color: var(--primary-alt);
     }
     
     .activity-details small {
-      color: var(--text-muted);
+      color: var(--tertiary-alt);
     }
 
     .heart-container {
@@ -349,15 +386,22 @@
 
     .heart-button {
       background: none;
-      border: none;
+      border: var(--secondary-color) outset 3px;
       cursor: pointer;
-      padding: 0;
+      padding: 8px 16px;
       font-size: 1.5rem;
-      color: #ccc;
-      transition: transform 0.2s, color 0.2s;
+      color: var(--secondary-color);
+      background-color: var(--button-color);
+      text-shadow: var(--tertiary-color) 2px 2px 2px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
     }
 
     .heart-button:hover {
+      color: var(--button-color);
+      background-color: var(--secondary-color);
+      text-shadow: var(--nav-color) 2px 2px 2px;
+      border: var(--button-color) 3px inset;
       transform: scale(1.1);
     }
 
@@ -377,10 +421,11 @@
     .back-to-profiles {
       display: inline-flex;
       align-items: center;
-      margin-bottom: 1rem;
-      color: var(--accent);
+      margin-bottom: 20px;
+      color: var(--nav-alt);
       text-decoration: none;
       font-weight: 500;
+      display: inline-block;
     }
 
     .back-to-profiles i {
@@ -389,4 +434,5 @@
 
     .back-to-profiles:hover {
       text-decoration: underline;
+      color: var(--tertiary-color);
     }
