@@ -1,15 +1,24 @@
-ejs
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs') %>
+<head>
+  <%- include('./head.ejs') %>
+  <% if (locals.title) { %>
+    <title><%= title %></title>
+  <% } %>
+  <% if (locals.styles) { %>
+    <% styles.forEach(style => { %>
+      <link rel="stylesheet" href="<%= style %>">
+    <% }) %>
+  <% } %>
+</head>
 <body>
-  <%- include('../partials/nav.ejs') %>
+  <%- include('./nav.ejs') %>
   
   <main class="container" style="width: 95%; max-width: 95%;">
     <%- content %>
   </main>
   
-  <%- include('../partials/footer.ejs') %>
+  <%- include('./footer.ejs') %>
   <% if (locals.scripts) { %>
     <% scripts.forEach(script => { %>
       <script src="<%= script %>"></script>
