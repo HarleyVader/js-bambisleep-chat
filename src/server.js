@@ -208,6 +208,7 @@ function setupRoutes() {
           // Stream the audio data to the client
           await pipeline(response.data, res);
           
+          return res.json({ success: true, audioUrl: result });
         } catch (axiosError) {
           // Handle Axios error with better error extraction
           logger.error(`TTS API Error: ${axiosError.message}`);
@@ -243,7 +244,7 @@ function setupRoutes() {
             }
           }
           
-          res.status(500).json({ 
+          return res.status(500).json({ 
             error: 'Error generating speech',
             details: process.env.NODE_ENV === 'production' ? null : axiosError.message
           });
@@ -251,7 +252,7 @@ function setupRoutes() {
         
       } catch (outerError) {
         logger.error(`Unexpected TTS error: ${outerError.message}`);
-        res.status(500).json({ 
+        return res.status(500).json({ 
           error: 'Unexpected error in TTS service',
           details: process.env.NODE_ENV === 'production' ? null : outerError.message
         });
