@@ -203,7 +203,7 @@
       <div class="profiles-container">
         <% bambis.forEach(bambi => { %>
           <div class="profile-card">
-            <img src="<%= bambi.profilePicture %>" alt="<%= bambi.displayName %>" class="profile-image">
+            <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>" class="profile-avatar">
             <div class="profile-info">
               <h3 class="profile-name"><a href="/bambis/<%= bambi.username %>"><%= bambi.displayName || bambi.username %></a></h3>
               <p class="profile-description"><%= bambi.description || 'No description provided' %></p>
