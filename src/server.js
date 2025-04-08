@@ -96,7 +96,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/workers', express.static(path.join(__dirname, 'workers')));
-app.use('/audio', express.static(path.join(__dirname, './assets/audio')));
 
 app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
