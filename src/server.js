@@ -7,9 +7,9 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import stream from 'stream';
-import { promisify } from 'util';
-const pipeline = promisify(stream.pipeline);
+//import stream from 'stream';
+//import { promisify } from 'util';
+//const pipeline = promisify(stream.pipeline);
 
 // modules
 import { Worker } from 'worker_threads';
