@@ -174,9 +174,10 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
           level: 1,
           experience: 0,
           followers: [],
+          following: [], // Add this line to initialize following array
           hearts: { count: 0, users: [] },
-          lastActive: Date.now(),
-          profilePictureUrl: '/bambis/api/profile/' + bambiname + '/picture'
+          lastActive: Date.now()
+          // Don't set profilePictureUrl here as it's a virtual field
         });
       } else {
         logger.info('Updating existing profile');
