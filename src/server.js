@@ -162,103 +162,6 @@ function setupRoutes() {
       });
     });
 
-    // Add TTS route that uses Kokoro API
-    app.get('/api/tts', async (req, res) => {
-      try {
-        const text = req.query.text;
-        if (!text) {
-          return res.status(400).json({ error: 'Text is required' });
-        }
-    
-        // Log TTS request
-        logger.info(`TTS request: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
-    
-        // Voice parameter (optional)
-        const voice = req.query.voice || KOKORO_DEFAULT_VOICE;
-        
-        logger.info(`Using voice: ${voice} for TTS request`);
-    
-        // Make request to Kokoro API (OpenAI-compatible endpoint)
-        const requestData = {
-          model: "kokoro",
-          voice: voice,
-          input: text,
-          response_format: "mp3"
-        };
-        
-        logger.info(`Sending request to ${KOKORO_API_URL}/audio/speech`);
-        
-        // First try to get the error message if any by making a json request
-        try {
-          const response = await axios({
-            method: 'post',
-            url: `${KOKORO_API_URL}/audio/speech`,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${KOKORO_API_KEY}`
-            },
-            data: requestData,
-            responseType: 'stream'
-          });
-    
-          // Set appropriate headers
-          res.setHeader('Content-Type', 'audio/mpeg');
-          res.setHeader('Cache-Control', 'no-cache');
-          
-          // Stream the audio data to the client
-          await pipeline(response.data, res);
-          
-          return res.json({ success: true, audioUrl: result });
-        } catch (axiosError) {
-          // Handle Axios error with better error extraction
-          logger.error(`TTS API Error: ${axiosError.message}`);
-          
-          if (axiosError.response) {
-            // For streaming response, we need to gather the data differently
-            if (axiosError.response.data && axiosError.response.data.pipe) {
-              // It's a stream, collect it
-              const chunks = [];
-              axiosError.response.data.on('data', chunk => chunks.push(chunk));
-              
-              await new Promise((resolve) => {
-                axiosError.response.data.on('end', () => {
-                  try {
-                    const buffer = Buffer.concat(chunks);
-                    const errorText = buffer.toString('utf8');
-                    let errorJson;
-                    
-                    try {
-                      errorJson = JSON.parse(errorText);
-                      logger.error(`Kokoro API error details: ${JSON.stringify(errorJson)}`);
-                    } catch (e) {
-                      logger.error(`Raw error response: ${errorText.substring(0, 500)}`);
-                    }
-                  } catch (e) {
-                    logger.error(`Error parsing response: ${e.message}`);
-                  }
-                  resolve();
-                });
-              });
-            } else {
-              logger.error(`Status: ${axiosError.response.status}, StatusText: ${axiosError.response.statusText}`);
-            }
-          }
-          
-          return res.status(500).json({ 
-            error: 'Error generating speech',
-            details: process.env.NODE_ENV === 'production' ? null : axiosError.message
-          });
-        }
-        
-      } catch (outerError) {
-        logger.error(`Unexpected TTS error: ${outerError.message}`);
-        return res.status(500).json({ 
-          error: 'Unexpected error in TTS service',
-          details: process.env.NODE_ENV === 'production' ? null : outerError.message
-        });
-      }
-    });
-
     // Add voice listing endpoint
     app.get('/api/tts/voices', async (req, res) => {
       try {
@@ -269,12 +172,56 @@ function setupRoutes() {
             'Authorization': `Bearer ${KOKORO_API_KEY}`
           }
         });
-        
+
         res.json(response.data);
       } catch (error) {
         logger.error(`Voice listing error: ${error.message}`);
-        res.status(500).json({ 
+        res.status(500).json({
           error: 'Error fetching voice list',
+          details: process.env.NODE_ENV === 'production' ? null : error.message
+        });
+      }
+    });
+
+    // Replace your existing TTS route with this middleware-style implementation
+    app.get('/api/tts', async (req, res, next) => {
+      const text = req.query.text;
+      const voice = req.query.voice || KOKORO_DEFAULT_VOICE;
+
+      if (typeof text !== 'string' || text.trim() === '') {
+        return res.status(400).json({ error: 'Invalid input: text must be a non-empty string' });
+      }
+
+      try {
+        const response = await fetchTTSFromKokoro(text, voice);
+
+        // Set appropriate headers
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Length', response.data.length);
+        res.setHeader('Cache-Control', 'no-cache');
+
+        // Send the audio data
+        res.send(response.data);
+      } catch (error) {
+        logger.error(`TTS API Error: ${error.message}`);
+
+        if (error.response) {
+          const status = error.response.status;
+
+          if (status === 401) {
+            logger.error('Unauthorized access to Kokoro API - invalid API key');
+            return res.status(401).json({ error: 'Unauthorized access' });
+          } else {
+            // For other error types
+            const errorDetails = process.env.NODE_ENV === 'production' ? null : error.message;
+            return res.status(status).json({
+              error: 'Error generating speech',
+              details: errorDetails
+            });
+          }
+        }
+        return res.status(500).json({
+          error: 'Unexpected error in TTS service',
           details: process.env.NODE_ENV === 'production' ? null : error.message
         });
       }
@@ -284,6 +231,37 @@ function setupRoutes() {
 
   } catch (error) {
     logger.error('Error in setupRoutes:', error);
+  }
+}
+
+// Add a dedicated fetchTTS function for Kokoro
+async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE) {
+  try {
+    logger.info(`Fetching TTS from Kokoro: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+
+    const requestData = {
+      model: "kokoro",
+      voice: voice,
+      input: text,
+      response_format: "mp3"
+    };
+
+    const response = await axios({
+      method: 'post',
+      url: `${KOKORO_API_URL}/audio/speech`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${KOKORO_API_KEY}`
+      },
+      data: requestData,
+      responseType: 'arraybuffer',
+      timeout: 30000
+    });
+
+    return response;
+  } catch (error) {
+    logger.error(`Error fetching TTS audio: ${error.message}`);
+    throw error;
   }
 }
 
@@ -380,15 +358,15 @@ function setupSockets() {
         socket.on('update profile', async (profileData) => {
           try {
             if (username === 'anonBambi') return;
-            
+
             const { displayName, description, triggers } = profileData;
             const Bambi = mongoose.model('Bambi');
-            
+
             // Find or create profile
             let bambi = await Bambi.findOne({ username });
-            
+
             if (!bambi) {
-              bambi = new Bambi({ 
+              bambi = new Bambi({
                 username,
                 displayName: displayName || username,
                 description,
@@ -400,7 +378,7 @@ function setupSockets() {
               bambi.triggers = triggers || bambi.triggers;
               bambi.lastActive = Date.now();
             }
-            
+
             await bambi.save();
             socket.emit('profile updated', bambi);
           } catch (error) {
@@ -534,19 +512,19 @@ async function initializeServer() {
     // Step 1: Connect to MongoDB ONCE
     logger.info('Step 1/6: Connecting to MongoDB...');
     await connectToMongoDB();
-    
+
     // Wait for mongoose connection to be fully established
     while (mongoose.connection.readyState !== 1) {
       logger.info('Waiting for MongoDB connection to be fully ready...');
       await delay(500);
     }
     logger.success('MongoDB connection fully established and ready');
-    
+
     // Step 2: Setup routes first to ensure models are defined
     logger.info('Step 2/6: Setting up server components...');
     setupRoutes();
     await delay(150);
-    
+
     // Step 3: Now initialize scrapers system
     logger.info('Step 3/6: Initializing scrapers system...');
     await delay(150);
@@ -557,19 +535,19 @@ async function initializeServer() {
       logger.warning('Scrapers system initialization incomplete - continuing startup');
     }
     await delay(200);
-    
+
     // Continue with the rest of initialization...
     // Step 4: Initialize worker coordinator
     logger.info('Step 4/6: Initializing worker coordinator...');
     await delay(150);
     await workerCoordinator.initialize();
     await delay(200);
-    
+
     // Step 5: Initialize the speecher worker
     logger.info('Step 5/6: Initializing speech synthesis worker and preloading model...');
     await delay(150);
     await delay(200);
-    
+
     // Step 6: Setup routes, sockets, and error handlers
     logger.info('Step 6/6: Setting up server components...');
     await delay(150);
@@ -578,10 +556,10 @@ async function initializeServer() {
     setupErrorHandlers();
     app.use(errorHandler);
     await delay(200);
-    
+
     // Step 7: Start listening on port
     logger.info('Step 7/7: Starting HTTP server...');
-    
+
     // Set up signal handlers for graceful shutdown
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
@@ -594,10 +572,10 @@ async function initializeServer() {
         process.exit(1);
       }
     });
-    
+
     const PORT = process.env.SERVER_PORT || 6969;
     await delay(200);
-    
+
     serverInstance = server.listen(PORT, async () => {
       logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
       logger.success('Server initialization sequence completed successfully');
