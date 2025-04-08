@@ -338,19 +338,24 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (shareButton) {
       shareButton.addEventListener('click', function() {
+        const bambiName = document.querySelector('.profile-name').textContent;
+        const shareUrl = window.location.href;
+        
         if (navigator.share) {
-          const bambiName = document.querySelector('.profile-name').textContent;
-          const username = document.querySelector('.profile-username').textContent;
-          
           navigator.share({
             title: `${bambiName} on Bambisleep.chat`,
             text: `Check out ${bambiName}'s profile on Bambisleep.chat!`,
-            url: window.location.href
+            url: shareUrl
           })
           .catch(error => console.log('Error sharing:', error));
         } else {
           // Fallback for browsers that don't support Web Share API
-          alert('Sharing not supported on this browser. You can copy the URL from the address bar instead.');
+          try {
+            navigator.clipboard.writeText(shareUrl);
+            alert('Profile URL copied to clipboard!');
+          } catch (err) {
+            alert('Copy this URL to share: ' + shareUrl);
+          }
         }
       });
     }
@@ -515,4 +520,33 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   <% } %>
+});
+
+// Share profile functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const shareButton = document.getElementById('shareProfileBtn');
+  
+  if (shareButton) {
+    shareButton.addEventListener('click', function() {
+      const bambiName = document.querySelector('.profile-name').textContent;
+      const shareUrl = window.location.href;
+      
+      if (navigator.share) {
+        navigator.share({
+          title: `${bambiName} on Bambisleep.chat`,
+          text: `Check out ${bambiName}'s profile on Bambisleep.chat!`,
+          url: shareUrl
+        })
+        .catch(error => console.log('Error sharing:', error));
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        try {
+          navigator.clipboard.writeText(shareUrl);
+          alert('Profile URL copied to clipboard!');
+        } catch (err) {
+          alert('Copy this URL to share: ' + shareUrl);
+        }
+      }
+    });
+  }
 });
