@@ -338,24 +338,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (shareButton) {
       shareButton.addEventListener('click', function() {
-        const bambiName = document.querySelector('.profile-name').textContent;
-        const shareUrl = window.location.href;
-        
         if (navigator.share) {
+          const bambiName = document.querySelector('.profile-name').textContent;
+          const username = document.querySelector('.profile-username').textContent;
+          
           navigator.share({
             title: `${bambiName} on Bambisleep.chat`,
             text: `Check out ${bambiName}'s profile on Bambisleep.chat!`,
-            url: shareUrl
+            url: window.location.href
           })
           .catch(error => console.log('Error sharing:', error));
         } else {
           // Fallback for browsers that don't support Web Share API
-          try {
-            navigator.clipboard.writeText(shareUrl);
-            alert('Profile URL copied to clipboard!');
-          } catch (err) {
-            alert('Copy this URL to share: ' + shareUrl);
-          }
+          alert('Sharing not supported on this browser. You can copy the URL from the address bar instead.');
         }
       });
     }
@@ -520,35 +515,4 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   <% } %>
-});
-
-// Share profile functionality
-document.addEventListener('DOMContentLoaded', function() {
-  const shareButton = document.getElementById('shareProfileBtn');
-  
-  if (shareButton) {
-    shareButton.addEventListener('click', function() {
-      const bambiName = document.querySelector('.profile-name').textContent;
-      const shareUrl = window.location.href;
-      
-      if (navigator.share) {
-        navigator.share({
-          title: `${bambiName} on Bambisleep.chat`,
-          text: `Check out ${bambiName}'s profile on Bambisleep.chat!`,
-          url: shareUrl
-        })
-        .catch(error => console.log('Error sharing:', error));
-      } else {
-        // Fallback for browsers that don't support Web Share API
-        try {
-          navigator.clipboard.writeText(shareUrl);
-          alert('Profile URL copied to clipboard!');
-        } catch (err) {
-          alert('Copy this URL to share: ' + shareUrl);
-        }
-      }
-    });
-  }
-  
-  // Add other existing bambis.js functionality here
 });
