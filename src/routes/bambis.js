@@ -187,9 +187,6 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
       bambi.displayName = req.body.displayName || bambiname;
       bambi.description = req.body.description || '';
       
-      // Always ensure profilePictureUrl is set properly
-      bambi.profilePictureUrl = '/bambis/api/profile/' + bambiname + '/picture';
-      
       // Update theme
       bambi.profileTheme = {
         primaryColor: req.body.primaryColor || '#fa81ff',
@@ -254,18 +251,10 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
       // If new profile, add activity and experience safely
       if (isNewProfile) {
         try {
-          // Check if these methods exist before calling them
-          if (typeof bambi.addActivity === 'function') {
-            await bambi.addActivity('other', 'Created their profile');
-          } else {
-            logger.warn('addActivity method not found on bambi model');
-          }
-          
-          if (typeof bambi.addExperience === 'function') {
-            await bambi.addExperience(50);
-          } else {
-            logger.warn('addExperience method not found on bambi model');
-          }
+          // Add activity using the method defined in BambiSchema
+          await bambi.addActivity('other', 'Created their profile');
+          // Add experience using the method defined in BambiSchema
+          await bambi.addExperience(50);
         } catch (activityError) {
           logger.error('Error adding activity/experience:', activityError.message);
           // Don't fail the whole request if just this part fails
