@@ -108,6 +108,34 @@
             margin-right: 10px;
         }
         
+        .join-community-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            background-color: var(--tertiary-color);
+            color: var(--secondary-color);
+            border: 3px outset var(--secondary-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+            text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
+        }
+        
+        .join-community-btn:hover {
+            transform: scale(1.05);
+            background-color: var(--secondary-color);
+            color: var(--tertiary-color);
+            border: 3px inset var(--tertiary-color);
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(204, 1, 116, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(204, 1, 116, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(204, 1, 116, 0); }
+        }
+        
         .heart-button {
             background-color: transparent;
             border: none;
@@ -131,6 +159,50 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.2); }
         }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        
+        .modal-content {
+            background-color: var(--primary-color);
+            margin: 15% auto;
+            padding: 20px;
+            border: 3px ridge var(--tertiary-color);
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 0 25px var(--button-color);
+            text-align: center;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        
+        .close {
+            color: var(--tertiary-color);
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: var(--button-color);
+        }
     </style>
 </head>
 <body>
@@ -141,12 +213,27 @@
         
         <div class="create-profile-section">
             <h2>Join Our Community</h2>
-            <p>Create your Bambi profile and connect with other Bambis</p>
+            <p>Connect with other Bambis and share your journey in the forest</p>
             
-            <form id="create-profile-form">
+            <button id="join-community-btn" class="join-community-btn">Join the Community</button>
+            
+            <div id="profile-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>How would you like to proceed?</h2>
+                    <div class="modal-buttons">
+                        <button id="login-btn">I Already Have a Profile</button>
+                        <button id="register-btn">Create New Profile</button>
+                    </div>
+                </div>
+            </div>
+            
+            <form id="create-profile-form" style="margin-top: 20px; display: none;">
                 <input type="text" id="bambiname-input" placeholder="Your BambiName" required>
                 <button type="submit">Create Profile</button>
             </form>
+            
+            <p style="margin-top: 10px;">Already have a BambiName? <a href="#" id="check-profile-link">Check if you have a profile</a></p>
         </div>
         
         <div class="bambis-grid">
@@ -200,10 +287,51 @@
             // Connect to Socket.io
             const socket = io();
             
-            // Handle profile creation
+            // Modal elements
+            const modal = document.getElementById('profile-modal');
+            const joinBtn = document.getElementById('join-community-btn');
+            const closeBtn = document.querySelector('.close');
+            const loginBtn = document.getElementById('login-btn');
+            const registerBtn = document.getElementById('register-btn');
+            const checkProfileLink = document.getElementById('check-profile-link');
             const createProfileForm = document.getElementById('create-profile-form');
             
-            createProfileForm.addEventListener('submit', function(e) {
+            // Show modal when join button is clicked
+            joinBtn.addEventListener('click', function() {
+                modal.style.display = 'block';
+            });
+            
+            // Close modal when X is clicked
+            closeBtn.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // Login button redirects to login page
+            loginBtn.addEventListener('click', function() {
+                window.location.href = '/login?redirect=' + encodeURIComponent('/bambis/profile');
+            });
+            
+            // Register button redirects to registration page
+            registerBtn.addEventListener('click', function() {
+                window.location.href = '/register';
+            });
+            
+            // Show profile check form
+            checkProfileLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                createProfileForm.style.display = 'flex';
+                joinBtn.style.display = 'none';
+            });
+            
+            // Handle profile check/creation
+            createProfileForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const bambiname = document.getElementById('bambiname-input').value.trim();
@@ -216,14 +344,29 @@
                     return;
                 }
                 
-                // Set cookie for bambiname
-                document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
-                
-                // Redirect to create profile page
-                window.location.href = `/bambis/create`;
+                try {
+                    // Check if profile exists
+                    const response = await fetch(`/bambis/api/check-profile/${encodeURIComponent(bambiname)}`);
+                    const data = await response.json();
+                    
+                    if (data.exists) {
+                        // Profile exists - set cookie and redirect to login
+                        document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
+                        window.location.href = `/login?redirect=${encodeURIComponent('/bambis/' + bambiname)}`;
+                    } else {
+                        // No profile - set cookie and redirect to profile creation
+                        document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
+                        window.location.href = '/bambis/create';
+                    }
+                } catch (error) {
+                    console.error('Error checking profile:', error);
+                    // Default to profile creation if check fails
+                    document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
+                    window.location.href = '/bambis/create';
+                }
             });
             
-            // Handle heart buttons
+            // Heart functionality
             document.querySelectorAll('.heart-button').forEach(button => {
                 button.addEventListener('click', async function(e) {
                     e.preventDefault();
@@ -236,6 +379,13 @@
                                 'Content-Type': 'application/json'
                             }
                         });
+                        
+                        if (response.status === 401) {
+                            // Not logged in - show login modal
+                            document.cookie = `pendingHeartAction=${username}; path=/`;
+                            modal.style.display = 'block';
+                            return;
+                        }
                         
                         const data = await response.json();
                         if (data.success) {
@@ -273,8 +423,7 @@
             
             // Listen for new profile creation
             socket.on('profile:created', data => {
-                // You could either refresh the page or dynamically add the new profile
-                // For simplicity, refresh the page
+                // Dynamically add the new profile or refresh the page
                 window.location.reload();
             });
         });

@@ -100,8 +100,8 @@ router.get('/create', (req, res) => {
         return res.redirect(`/bambis/${bambiname}`);
       }
       
-      // Use the bambi-create.ejs template for new profiles
-      res.render('bambis/bambi-create', { 
+      // Use the bambi.ejs template for new profiles
+      res.render('bambis/profile', { 
         bambiname
       });
     })
@@ -442,6 +442,24 @@ router.get('/api/connections/:username', async (req, res) => {
   } catch (error) {
     logger.error('Error fetching connections:', error.message);
     res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Add this route to check if a profile exists
+router.get('/api/check-profile/:username', async (req, res) => {
+  try {
+    const username = req.params.username;
+    const profile = await Bambi.findOne({ username });
+    
+    res.json({
+      exists: !!profile
+    });
+  } catch (error) {
+    logger.error('Error checking profile existence:', error.message);
+    res.status(500).json({ 
+      error: 'Server error',
+      exists: false
+    });
   }
 });
 
