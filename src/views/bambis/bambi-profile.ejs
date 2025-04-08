@@ -23,7 +23,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: url('<%= bambi.profileTheme?.customHeaderImage || "/images/bambisleep-chat.gif" %>') center/cover;
+            background: url('<%= bambi.profileTheme?.customHeaderImage || (process.env.BASE_URL || "") + "/images/bambisleep-chat.gif" %>') center/cover;
             opacity: 0.2;
             mix-blend-mode: overlay;
         }
