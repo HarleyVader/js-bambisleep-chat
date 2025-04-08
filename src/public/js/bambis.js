@@ -1,6 +1,5 @@
-// @ts-nocheck
+
 document.addEventListener('DOMContentLoaded', () => {
-  // @ts-ignore
   <% if (locals.bambi) { %>
     // SINGLE PROFILE VIEW JAVASCRIPT
     const editProfileBtn = document.getElementById('editProfileBtn');
