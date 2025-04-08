@@ -313,12 +313,12 @@
                 }
             });
             
-            // Login button redirects to login page
+            // Login button redirects to login.ejs
             loginBtn.addEventListener('click', function() {
                 window.location.href = '/login?redirect=' + encodeURIComponent('/bambis/profile');
             });
             
-            // Register button redirects to registration page
+            // Register button redirects to registration.ejs
             registerBtn.addEventListener('click', function() {
                 window.location.href = '/register';
             });
@@ -350,19 +350,19 @@
                     const data = await response.json();
                     
                     if (data.exists) {
-                        // Profile exists - set cookie and redirect to login
+                        // Profile exists - set cookie and redirect to login.ejs
                         document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
-                        window.location.href = `/login?redirect=${encodeURIComponent('/bambis/' + bambiname)}`;
+                        window.location.href = `/login?redirect=${encodeURIComponent('/bambis/profile')}`;
                     } else {
-                        // No profile - set cookie and redirect to profile creation
+                        // No profile - set cookie and redirect to registration.ejs
                         document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
-                        window.location.href = '/bambis/create';
+                        window.location.href = '/register';
                     }
                 } catch (error) {
                     console.error('Error checking profile:', error);
-                    // Default to profile creation if check fails
+                    // Default to registration if check fails
                     document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
-                    window.location.href = '/bambis/create';
+                    window.location.href = '/register';
                 }
             });
             
@@ -423,7 +423,7 @@
             
             // Listen for new profile creation
             socket.on('profile:created', data => {
-                // Dynamically add the new profile or refresh the page
+                // Refresh the page to show the new profile
                 window.location.reload();
             });
         });
