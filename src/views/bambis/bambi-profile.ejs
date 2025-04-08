@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../../views/partials/head.ejs') %>
+    <title><%= bambi.displayName || bambi.username %> | BambiSleep Profile</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('../../views/partials/nav.ejs') %>
+    
+    <div class="container">
+        <div class="profile-header" style="background-color: <%= bambi.profileTheme?.primaryColor || 'var(--transparent)' %>;">
+            <div class="profile-avatar">
+                <img src="/bambis/<%= bambi.username %>/avatar" alt="<%= bambi.displayName || bambi.username %>'s avatar">
+            </div>
+            
+            <h1 class="username" style="color: <%= bambi.profileTheme?.textColor || 'var(--button-color)' %>">
+                @<%= bambi.username %> <span class="online-indicator <%= bambi.isOnline ? 'online' : 'offline' %>">●</span>
+            </h1>
+            
+            <h2 style="color: <%= bambi.profileTheme?.textColor || 'var(--button-color)' %>">
+                <%= bambi.displayName %>
+            </h2>
+            
+            <% if (isOwnProfile) { %>
+                <a href="/bambis/edit" class="edit-profile-btn">Edit Profile</a>
+            <% } %>
+            
+            <div class="profile-stats">
+                <div class="stat">
+                    <div class="stat-value">LVL <%= bambi.level %></div>
+                    <div class="stat-label">Level</div>
+                </div>
+                <div class="stat heart-stat" data-username="<%= bambi.username %>">
+                    <button class="heart-button <%= userHasLiked ? 'active' : '' %>" data-username="<%= bambi.username %>">
+                        ❤️
+                    </button>
+                    <div class="stat-value heart-count"><%= bambi.hearts.count %></div>
+                    <div class="stat-label">Hearts</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value"><%= bambi.followers.length %></div>
+                    <div class="stat-label">Followers</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="profile-content">
+            <div class="profile-section">
+                <h3>About Me</h3>
+                <p id="description" class="editable-field" style="color: <%= bambi.profileTheme?.textColor || 'var(--primary-alt)' %>">
+                    <%= bambi.description || 'This Bambi hasn\'t written a description yet...' %>
+                </p>
+                <% if (isOwnProfile) { %>
+                    <button class="edit-btn" data-target="description">Edit</button>
+                <% } %>
+            </div>
+            
+            <div class="profile-section">
+                <h3>My Triggers</h3>
+                <div class="triggers-list">
+                    <% if (bambi.triggers && bambi.triggers.length > 0) { %>
+                        <% bambi.triggers.forEach(trigger => { %>
+                            <span class="season-tag"><%= trigger %></span>
+                        <% }); %>
+                    <% } else { %>
+                        <p>No triggers set yet.</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <% if (isOwnProfile) { %>
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Edit <span id="editing-field-name"></span></h3>
+            <div id="edit-field-container"></div>
+            <button id="save-changes-btn">Save Changes</button>
+        </div>
+    </div>
+    <% } %>
+    
+    <!-- Notification area -->
+    <div id="notification-area" class="notification-area" style="display: none;"></div>
+    
+    <%- include('../../views/partials/footer.ejs') %>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/profile.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+            
+            // Heart button functionality
+            const heartButton = document.querySelector('.heart-button');
+            if (heartButton) {
+                heartButton.addEventListener('click', async function() {
+                    const username = this.dataset.username;
+                    
+                    try {
+                        const response = await fetch(`/bambis/api/heart/${username}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            // Update UI
+                            this.classList.toggle('active', data.hearted);
+                            
+                            const heartCount = document.querySelector('.heart-count');
+                            heartCount.textContent = data.heartCount;
+                            
+                            // Emit socket event for real-time updates
+                            socket.emit('profile:heart', {
+                                username: username,
+                                count: data.heartCount,
+                                hearted: data.hearted
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                });
+            }
+            
+            // Listen for real-time updates
+            socket.on('profile:hearted', data => {
+                if (data.username === '<%= bambi.username %>') {
+                    const heartCount = document.querySelector('.heart-count');
+                    heartCount.textContent = data.count;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
