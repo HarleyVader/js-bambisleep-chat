@@ -2,7 +2,7 @@
 const footerConfig = {
   logo: {
     url: "https://brandynette.xxx/",
-    image: "public/img/bambisleep-chat.gif",
+    image: "images/bambisleep-chat.gif",
     alt: "Brandynette.xxx"
   },
   tagline: "Pimp of [bambisleep.chat] at r/BambiSleep for Like Ra with Bellmar",
