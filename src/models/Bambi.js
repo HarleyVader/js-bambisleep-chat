@@ -18,7 +18,7 @@ const BambiSchema = new mongoose.Schema({
   },
   profilePicture: {
     type: String,
-    default: '/images/default-profile.png'
+    default: '/images/in-her-bubble.gif'
   },
   profileImageData: {
     type: String, // Stores Base64 encoded image data
