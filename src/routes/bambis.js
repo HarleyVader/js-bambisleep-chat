@@ -212,10 +212,10 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
     bambi.displayName = req.body.displayName || bambiname;
     bambi.description = req.body.description || '';
     
-    // Handle profile picture upload
+    // Handle profile picture upload with appropriate content type
     if (req.file) {
       bambi.profilePicture = {
-        data: req.file.buffer,
+        buffer: req.file.buffer,
         contentType: req.file.mimetype
       };
     }
