@@ -32,6 +32,17 @@ import Logger from './utils/logger.js';
 import connectToMongoDB from './utils/dbConnection.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
 
+// sockets
+import { 
+  socketServer, 
+  socketRelay, 
+  nodeHandler, 
+  onlineUsers, 
+  setupSockets,
+  filter, 
+  adjustMaxListeners 
+} from './sockets.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -67,19 +78,6 @@ app.use(fileUpload({
 
 const MAX_LISTENERS_BASE = 10;
 let currentMaxListeners = MAX_LISTENERS_BASE;
-
-function adjustMaxListeners(worker, increment = true) {
-  try {
-    const adjustment = increment ? 1 : -1;
-    const currentListeners = worker.listenerCount('message');
-    if (currentListeners + adjustment > currentMaxListeners) {
-      currentMaxListeners = currentListeners + adjustment;
-      worker.setMaxListeners(currentMaxListeners);
-    }
-  } catch (error) {
-    logger.error('Error in adjustMaxListeners:', error);
-  }
-}
 
 Worker.prototype.setMaxListeners(currentMaxListeners);
 
@@ -262,210 +260,6 @@ async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE) {
   }
 }
 
-function setupSockets() {
-  try {
-    logger.info('Setting up socket middleware...');
-
-    const socketStore = new Map();
-
-    io.on('connection', (socket) => {
-      try {
-        const cookies = socket.handshake.headers.cookie
-          ? socket.handshake.headers.cookie
-            .split(';')
-            .map(cookie => cookie.trim().split('='))
-            .reduce((acc, [key, value]) => {
-              acc[key] = value;
-              return acc;
-            }, {})
-          : {};
-        let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
-        logger.info('Cookies received in handshake:', socket.handshake.headers.cookie);
-        
-        // IMPROVED USERNAME HANDLING
-        if (username === 'anonBambi') {
-          socket.emit('prompt username');
-        } else {
-          // Load user's Bambi profile if it exists
-          mongoose.model('Bambi').findOne({ username }).then(bambi => {
-            if (bambi) {
-              socket.bambiProfile = bambi;
-              socket.emit('profile loaded', {
-                username: bambi.username,
-                displayName: bambi.displayName,
-                level: bambi.level,
-                triggers: bambi.triggers
-              });
-              
-              // Update lastActive timestamp
-              bambi.lastActive = Date.now();
-              bambi.save().catch(err => logger.error('Error updating lastActive:', err));
-            }
-          }).catch(err => logger.error('Error loading Bambi profile:', err));
-        }
-
-        const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
-        adjustMaxListeners(lmstudio, true);
-
-        socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
-        logger.success(`Client connected: ${socket.id} sockets: ${socketStore.size}`);
-
-        socket.on('chat message', async (msg) => {
-          try {
-            const timestamp = new Date().toISOString();
-            io.emit('chat message', {
-              ...msg,
-              timestamp: timestamp,
-              username: username,
-            });
-          } catch (error) {
-            logger.error('Error in chat message handler:', error);
-          }
-        });
-
-        socket.on('set username', (username) => {
-          try {
-            const encodedUsername = encodeURIComponent(username);
-            socket.handshake.headers.cookie = `bambiname=${encodedUsername}; path=/`;
-            socket.emit('username set', username);
-            logger.info('Username set:', username);
-          } catch (error) {
-            logger.error('Error in set username handler:', error);
-          }
-        });
-
-        socket.on("message", (message) => {
-          try {
-            const filteredMessage = filter(message);
-            lmstudio.postMessage({
-              type: "message",
-              data: filteredMessage,
-              socketId: socket.id,
-              username: username
-            });
-          } catch (error) {
-            logger.error('Error in message handler:', error);
-          }
-        });
-
-        socket.on("triggers", (triggers) => {
-          try {
-            lmstudio.postMessage({ type: "triggers", triggers });
-          } catch (error) {
-            logger.error('Error in triggers handler:', error);
-          }
-        });
-
-        socket.on('collar', async (collarData) => {
-          try {
-            const filteredCollar = filter(collarData.data);
-            lmstudio.postMessage({
-              type: 'collar',
-              data: filteredCollar,
-              socketId: socket.id
-            });
-            io.to(collarData.socketId).emit('collar', filteredCollar);
-          } catch (error) {
-            logger.error('Error in collar handler:', error);
-          }
-        });
-
-        // Add profile update event
-        socket.on('update profile', async (profileData) => {
-          try {
-            if (username === 'anonBambi') {
-              socket.emit('profile error', 'You need to set a username first');
-              return;
-            }
-        
-            // Don't duplicate functionality from the HTTP API
-            // Instead, notify the user to use the profile editor
-            socket.emit('redirect to profile editor', {
-              message: 'Please use the profile editor to update your profile',
-              url: '/bambis/edit'
-            });
-            
-            // Optionally, we can still update simple things like triggers
-            if (profileData.triggers && Array.isArray(profileData.triggers)) {
-              try {
-                const Bambi = mongoose.model('Bambi');
-                let bambi = await Bambi.findOne({ username });
-                
-                if (bambi) {
-                  // Use the manageTriggers method
-                  const triggers = profileData.triggers.slice(0, 10); // Max 10
-                  bambi.triggers = triggers;
-                  await bambi.save();
-                  socket.emit('triggers updated', bambi.triggers);
-                }
-              } catch (error) {
-                logger.error('Error updating triggers via socket:', error);
-                socket.emit('profile error', 'Failed to update triggers');
-              }
-            }
-          } catch (error) {
-            logger.error('Error handling profile update via socket:', error);
-            socket.emit('profile error', 'Server error occurred');
-          }
-        });
-
-        lmstudio.on("message", async (msg) => {
-          try {
-            if (msg.type === "log") {
-              logger.info(msg.data, msg.socketId);
-            } else if (msg.type === 'response') {
-              const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
-              io.to(msg.socketId).emit("response", responseData);
-            }
-          } catch (error) {
-            logger.error('Error in lmstudio message handler:', error);
-          }
-        });
-
-        lmstudio.on('info', (info) => {
-          try {
-            logger.info('Worker info:', info);
-          } catch (error) {
-            logger.error('Error in lmstudio info handler:', error);
-          }
-        });
-
-        lmstudio.on('error', (err) => {
-          try {
-            logger.error('Worker error:', err);
-          } catch (error) {
-            logger.error('Error in lmstudio error handler:', error);
-          }
-        });
-
-        socket.on('disconnect', (reason) => {
-          logger.info(`Client disconnected: ${socket.id}, Reason: ${reason}`);
-          if (reason === 'transport error') {
-            logger.error('Transport error occurred. Possible network or configuration issue.');
-          }
-          try {
-            const { worker } = socketStore.get(socket.id);
-            if (worker) {
-              worker.terminate();
-              adjustMaxListeners(worker, false);
-            }
-            logger.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`);
-            socketStore.delete(socket.id);
-          } catch (error) {
-            logger.error('Error during disconnect cleanup:', error);
-          }
-        });
-      } catch (error) {
-        logger.error('Error in connection handler:', error);
-      }
-    });
-  } catch (error) {
-    logger.error('Error in setupSockets:', error);
-  }
-}
-
-logger.success('Socket middleware setup complete');
-
 function setupErrorHandlers() {
   try {
     app.use((err, req, res, next) => {
@@ -504,23 +298,6 @@ function getServerAddress() {
     return '127.0.0.1';
   } catch (error) {
     logger.error('Error in getServerAddress:', error);
-  }
-}
-
-function filter(message) {
-  try {
-    if (typeof message !== 'string') {
-      message = String(message);
-    }
-    return message
-      .split(' ')
-      .map((word) => {
-        return filteredWords.includes(word.toLowerCase()) ? '[filtered]' : word;
-      })
-      .join(' ')
-      .trim();
-  } catch (error) {
-    logger.error('Error in filter:', error);
   }
 }
 
@@ -574,7 +351,7 @@ async function initializeServer() {
     // Step 6: Setup routes, sockets, and error handlers
     logger.info('Step 6/6: Setting up server components...');
     await delay(150);
-    setupSockets();
+    setupSockets(filteredWords);
     await delay(150);
     setupErrorHandlers();
     app.use(errorHandler);

@@ -1,224 +1,102 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const BambiSchema = new mongoose.Schema({
+// User Schema (for authentication)
+const userSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: [true, 'Username is required'],
+    required: true,
     unique: true,
     trim: true,
-    minlength: [3, 'Username must be at least 3 characters'],
-    maxlength: [20, 'Username cannot exceed 20 characters'],
-    match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores']
+    minlength: 3,
+    maxlength: 30
   },
-  displayName: {
+  password: {
     type: String,
-    trim: true,
-    maxlength: [50, 'Display name cannot exceed 50 characters'],
-    default: ''
-  },
-  profilePicture: {
-    type: String,
-    default: '/images/in-her-bubble.gif'
-  },
-  profileImageData: {
-    type: String, // Stores Base64 encoded image data
-  },
-  profileImageType: {
-    type: String, // Stores MIME type
-  },
-  profileImageName: String,
-  profileImageId: String,
-  triggers: {
-    type: [String],
-    default: []
-  },
-  favoriteFiles: {
-    type: [String],
-    default: []
-  },
-  level: {
-    type: Number,
-    default: 1
-  },
-  experience: {
-    type: Number,
-    default: 0
-  },
-  description: {
-    type: String,
-    trim: true,
-    default: '',
-    maxlength: [500, 'Description cannot exceed 500 characters']
+    required: true
   },
   createdAt: {
     type: Date,
     default: Date.now
   },
-  lastActive: {
+  lastLogin: {
+    type: Date
+  }
+});
+
+// User Profile Schema (for profile data)
+const userProfileSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true
+  },
+  displayName: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 50
+  },
+  avatar: {
+    type: String,
+    default: 'default-avatar.png'
+  },
+  woodland: {
+    type: String,
+    default: 'Sleepy Meadow'
+  },
+  bio: {
+    type: String,
+    default: 'Just a sleepy Bambi in the forest...',
+    maxlength: 500
+  },
+  favoriteSeasons: {
+    type: [String],
+    enum: ['spring', 'summer', 'autumn', 'winter'],
+    default: ['spring']
+  },
+  friends: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'User',
+    default: []
+  },
+  notifications: [{
+    type: {
+      type: String,
+      enum: ['friend_request', 'profile_update', 'message'],
+      required: true
+    },
+    from: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    message: String,
+    read: {
+      type: Boolean,
+      default: false
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  createdAt: {
     type: Date,
     default: Date.now
   },
-  profileTheme: {
-    primaryColor: {
-      type: String,
-      default: '#fa81ff'
-    },
-    secondaryColor: {
-      type: String,
-      default: '#ff4fa2'
-    },
-    textColor: {
-      type: String,
-      default: '#ffffff'
-    },
-    customHeaderImage: {
-      type: String,
-      default: ''
-    }
-  },
-  badges: [{
-    badge: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Badge'
-    },
-    awardedAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  following: [{
-    type: String,  // username of followed bambi
-    since: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  followers: [{
-    type: String,  // username of follower
-    since: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  hearts: {
-    count: {
-      type: Number,
-      default: 0
-    },
-    users: [{
-      username: String,
-      timestamp: {
-        type: Date,
-        default: Date.now
-      }
-    }]
-  },
-  activities: [{
-    type: {
-      type: String,
-      enum: ['file', 'level', 'badge', 'heart', 'other'],
-      required: true
-    },
-    description: {
-      type: String,
-      required: true
-    },
-    timestamp: {
-      type: Date,
-      default: Date.now
-    },
-    metadata: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {}
-    }
-  }]
-}, { timestamps: true });
-
-// Create a text index for search functionality
-BambiSchema.index({ username: 'text', displayName: 'text', description: 'text' });
-
-// Virtual for profile picture URL
-BambiSchema.virtual('profilePictureUrl').get(function() {
-  if (this.profileImageData && this.profileImageType) {
-    return `/bambis/api/profile/${this.username}/picture`;
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
-  return '/images/default-profile.png';
 });
 
-// Method to add experience and handle level ups
-BambiSchema.methods.addExperience = async function(amount) {
-  this.experience += amount;
-  
-  // Calculate level based on experience 
-  // (simple formula: each level requires level*100 XP)
-  const newLevel = Math.floor(this.experience / 100);
-  
-  const leveledUp = newLevel > this.level;
-  this.level = newLevel;
-  this.lastActive = Date.now();
-  
-  // Record level up activity if needed
-  if (leveledUp) {
-    this.activities.unshift({
-      type: 'level',
-      description: `Reached level ${newLevel}!`,
-      timestamp: Date.now()
-    });
-  }
-  
-  await this.save();
-  return { leveledUp, newLevel, experience: this.experience };
-};
+// Pre-save hook to update the updatedAt field
+userProfileSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
 
-// Method to add activity
-BambiSchema.methods.addActivity = async function(type, description, metadata = {}) {
-  this.activities.unshift({
-    type,
-    description,
-    timestamp: Date.now(),
-    metadata
-  });
-  
-  // Keep only the last 20 activities
-  if (this.activities.length > 20) {
-    this.activities = this.activities.slice(0, 20);
-  }
-  
-  this.lastActive = Date.now();
-  await this.save();
-  return this.activities[0];
-};
+const User = mongoose.model('User', userSchema);
+const UserProfile = mongoose.model('UserProfile', userProfileSchema);
 
-// Method to manage triggers (add, remove, get)
-BambiSchema.methods.manageTriggers = function(action, triggerText) {
-  switch(action) {
-    case 'add':
-      // Only add if not already present and limit to 10
-      if (!this.triggers.includes(triggerText) && this.triggers.length < 10) {
-        this.triggers.push(triggerText);
-        return { success: true, message: 'Trigger added' };
-      } else if (this.triggers.length >= 10) {
-        return { success: false, message: 'Maximum of 10 triggers allowed' };
-      } else {
-        return { success: false, message: 'Trigger already exists' };
-      }
-    
-    case 'remove':
-      const index = this.triggers.indexOf(triggerText);
-      if (index !== -1) {
-        this.triggers.splice(index, 1);
-        return { success: true, message: 'Trigger removed' };
-      }
-      return { success: false, message: 'Trigger not found' };
-    
-    case 'get':
-      return { success: true, triggers: this.triggers };
-    
-    default:
-      return { success: false, message: 'Invalid action' };
-  }
-};
-
-const Bambi = mongoose.model('Bambi', BambiSchema);
-
-export default Bambi;
+module.exports = { User, UserProfile };
