@@ -1,0 +1,392 @@
+    /* Bambis Profiles styles */
+    .error-message {
+      color: var(--error);
+      padding: 1rem;
+      background-color: var(--error-bg);
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    
+    input, textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background-color: var(--input-bg);
+      color: var(--text-primary);
+    }
+    
+    button {
+      padding: 0.75rem 1.5rem;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+    }
+    
+    button:hover {
+      background-color: var(--accent-hover);
+    }
+
+    /* Profiles List View Styles */
+    .profiles-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    
+    .profile-card {
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      transition: transform 0.3s ease;
+      background-color: var(--card-bg);
+    }
+    
+    .profile-card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .profile-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+    
+    .profile-info {
+      padding: 1rem;
+    }
+    
+    .profile-name {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    
+    .profile-description {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      height: 60px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+    
+    .profile-details {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+    
+    .pagination a, .pagination span {
+      padding: 0.5rem 1rem;
+      margin: 0 0.25rem;
+      border-radius: 4px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+    
+    .pagination a:hover {
+      background-color: var(--accent-hover);
+    }
+    
+    .pagination .active {
+      background-color: var(--accent);
+      color: white;
+    }
+    
+    .create-profile-section {
+      margin: 2rem 0;
+      padding: 2rem;
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .validation-message {
+      margin-top: 0.25rem;
+      font-size: 0.8rem;
+    }
+
+    .validation-message.valid {
+      color: green;
+    }
+
+    .validation-message.invalid {
+      color: var(--error);
+    }
+
+    .char-counter {
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    input.invalid, textarea.invalid {
+      border-color: var(--error);
+    }
+
+    input.valid, textarea.valid {
+      border-color: green;
+    }
+
+    button[type="submit"]:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Single Profile View Styles */
+    .profile-container {
+      display: flex;
+      flex-direction: column;
+      max-width: 900px;
+      margin: 2rem auto;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+    }
+    
+    .profile-header {
+      position: relative;
+      height: 200px;
+      background: linear-gradient(135deg, #fa81ff 0%, #ff4fa2 100%);
+      color: white;
+    }
+    
+    .profile-avatar {
+      position: absolute;
+      bottom: -50px;
+      left: 50px;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: 5px solid var(--card-bg);
+      object-fit: cover;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .profile-details {
+      margin-top: 60px;
+      padding: 2rem;
+    }
+    
+    .profile-name {
+      margin-bottom: 0.5rem;
+      font-size: 2rem;
+    }
+    
+    .profile-username {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      font-size: 1.1rem;
+    }
+    
+    .profile-description {
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    
+    .profile-stats {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    
+    .profile-triggers {
+      margin-bottom: 2rem;
+    }
+    
+    .triggers-title {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+    
+    .trigger-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .trigger-tag {
+      padding: 0.5rem 1rem;
+      background-color: var(--accent-light);
+      color: var(--accent);
+      border-radius: 100px;
+      font-size: 0.85rem;
+    }
+    
+    .edit-profile-btn {
+      padding: 0.75rem 1.5rem;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+      margin-top: 1rem;
+      display: inline-block;
+    }
+    
+    .edit-profile-btn:hover {
+      background-color: var(--accent-hover);
+    }
+    
+    .edit-form {
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+    
+    input[type="file"] {
+      padding: 0.5rem 0;
+      background: none;
+      border: none;
+    }
+    
+    .triggers-input {
+      margin-top: 0.5rem;
+    }
+    
+    .trigger-pill {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      background-color: var(--accent-light);
+      color: var(--accent);
+      border-radius: 100px;
+      font-size: 0.85rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .trigger-pill span {
+      margin-left: 0.25rem;
+      cursor: pointer;
+    }
+    
+    .profile-activity {
+      margin-bottom: 2rem;
+    }
+    
+    .activity-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .activity-item {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    
+    .activity-icon {
+      font-size: 1.5rem;
+      color: var(--accent);
+    }
+    
+    .activity-details {
+      flex-grow: 1;
+    }
+    
+    .activity-details p {
+      margin: 0;
+    }
+    
+    .activity-details small {
+      color: var(--text-muted);
+    }
+
+    .heart-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .heart-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      font-size: 1.5rem;
+      color: #ccc;
+      transition: transform 0.2s, color 0.2s;
+    }
+
+    .heart-button:hover {
+      transform: scale(1.1);
+    }
+
+    .heart-button.active {
+      color: #ff4fa2;
+    }
+
+    .heart-button.active i {
+      animation: heartbeat 1s ease-in-out;
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    .back-to-profiles {
+      display: inline-flex;
+      align-items: center;
+      margin-bottom: 1rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .back-to-profiles i {
+      margin-right: 0.5rem;
+    }
+
+    .back-to-profiles:hover {
+      text-decoration: underline;
+    }
