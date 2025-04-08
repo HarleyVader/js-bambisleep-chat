@@ -85,56 +85,52 @@ router.get('/:username/avatar', async (req, res) => {
   }
 });
 
-// Create profile page route
-router.get('/create', (req, res) => {
-  const bambiname = getBambiNameFromCookies(req);
-  
-  if (!bambiname) {
-    return res.redirect('/bambis');
-  }
-  
-  // Check if profile already exists
-  Bambi.findOne({ username: bambiname })
-    .then(existingProfile => {
-      if (existingProfile) {
-        return res.redirect(`/bambis/${bambiname}`);
-      }
-      
-      // Use the bambi.ejs template for new profiles
-      res.render('bambis/profile', { 
-        bambiname
-      });
-    })
-    .catch(error => {
-      logger.error('Error checking for existing profile:', error.message);
-      res.status(500).send('Error checking profile');
-    });
-});
-
-// Edit profile page route
-router.get('/edit', async (req, res) => {
+// Route for profile page - use the existing profile.ejs instead
+router.get('/profile', async (req, res) => {
   try {
     const bambiname = getBambiNameFromCookies(req);
     
     if (!bambiname) {
-      return res.redirect('/bambis');
+      return res.redirect('/login?redirect=/bambis/profile');
     }
     
     // Find the bambi profile
-    let bambi = await Bambi.findOne({ username: bambiname });
+    const bambi = await Bambi.findOne({ username: bambiname });
     
     if (!bambi) {
-      return res.redirect('/bambis/create');
+      return res.redirect('/register');
     }
     
-    // Updated path to reflect the new folder structure
-    res.render('bambis/bambi-edit', { 
-      bambi,
-      newProfile: false
+    // Convert Bambi object to match the profile.ejs template expectations
+    const profile = {
+      avatar: bambi.profilePicture ? `${bambi.username}/avatar` : 'default-avatar.gif',
+      displayName: bambi.displayName,
+      woodland: bambi.woodland || 'Sleepy Meadow',
+      bio: bambi.description,
+      favoriteSeasons: bambi.favoriteSeasons || ['spring'],
+    };
+    
+    const user = {
+      username: bambi.username
+    };
+    
+    // Get friends if any
+    const friendProfiles = [];
+    const onlineUsers = [];
+    
+    // Render using the existing profile.ejs
+    res.render('bambis/profile', { 
+      user,
+      profile,
+      friendProfiles,
+      onlineUsers
     });
   } catch (error) {
-    logger.error('Error loading edit profile page:', error.message);
-    res.status(500).send('Error loading edit profile page');
+    logger.error('Error loading profile page:', error.message);
+    res.status(500).render('error', {
+      error: 'Server Error',
+      message: 'Error loading profile page'
+    });
   }
 });
 
@@ -160,15 +156,37 @@ router.get('/:username', async (req, res) => {
     // Is this the profile owner viewing?
     const isOwnProfile = currentBambiname === username;
     
+    if (isOwnProfile) {
+      // If it's the owner, redirect to the profile page
+      return res.redirect('/bambis/profile');
+    }
+    
     // Update last view time
     bambi.lastActive = Date.now();
     await bambi.save();
     
-    // Render the profile page
-    res.render('bambis/bambi-profile', {
-      bambi,
+    // Convert to profile.ejs format for viewing others
+    const profile = {
+      avatar: bambi.profilePicture ? `${bambi.username}/avatar` : 'default-avatar.gif',
+      displayName: bambi.displayName,
+      woodland: bambi.woodland || 'Sleepy Meadow',
+      bio: bambi.description,
+      favoriteSeasons: bambi.favoriteSeasons || ['spring'],
+    };
+    
+    const user = {
+      username: bambi.username
+    };
+    
+    // For viewing someone else's profile, use a viewer flag 
+    res.render('bambis/profile', {
+      user,
+      profile,
+      friendProfiles: [],
+      onlineUsers: [],
+      isViewer: true,
       userHasLiked,
-      isOwnProfile
+      hearts: bambi.hearts.count
     });
   } catch (error) {
     logger.error('Error fetching bambi profile:', error.message);
@@ -210,7 +228,19 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
     
     // Update basic info
     bambi.displayName = req.body.displayName || bambiname;
-    bambi.description = req.body.description || '';
+    bambi.description = req.body.bio || req.body.description || '';
+    
+    // Handle woodland field from profile.ejs
+    if (req.body.woodland) {
+      bambi.woodland = req.body.woodland;
+    }
+    
+    // Handle favorite seasons from profile.ejs
+    if (req.body.favoriteSeasons) {
+      bambi.favoriteSeasons = Array.isArray(req.body.favoriteSeasons) 
+        ? req.body.favoriteSeasons 
+        : JSON.parse(req.body.favoriteSeasons);
+    }
     
     // Handle profile picture upload with appropriate content type
     if (req.file) {
@@ -245,6 +275,8 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
         username: bambi.username,
         displayName: bambi.displayName,
         description: bambi.description,
+        woodland: bambi.woodland,
+        favoriteSeasons: bambi.favoriteSeasons,
         level: bambi.level,
         profileTheme: bambi.profileTheme
       }
@@ -296,34 +328,6 @@ router.post('/api/heart/:username', async (req, res) => {
   } catch (error) {
     logger.error('Error hearting profile:', error.message);
     res.status(500).json({ success: false, message: 'Error processing request' });
-  }
-});
-
-// API route to get profile image
-router.get('/api/profile/:username/picture', async (req, res) => {
-  try {
-    const { username } = req.params;
-    
-    // Find the bambi profile
-    const bambi = await Bambi.findOne({ username });
-    
-    if (!bambi || !bambi.profileImageData || !bambi.profileImageType) {
-      // Simple fallback instead of trying to use file system
-      return res.redirect('/images/default-profile.png');
-    }
-    
-    // Convert base64 to binary
-    const img = Buffer.from(bambi.profileImageData, 'base64');
-    
-    // Set appropriate content type and cache headers
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
-    res.setHeader('Content-Type', bambi.profileImageType);
-    
-    // Send the image
-    res.send(img);
-  } catch (error) {
-    logger.error('Error fetching profile picture:', error.message);
-    res.redirect('/images/default-profile.png');
   }
 });
 

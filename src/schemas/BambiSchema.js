@@ -22,7 +22,7 @@ const bambiSchema = new mongoose.Schema({
     maxlength: 500
   },
   profilePicture: {
-    type: Buffer,
+    buffer: Buffer,
     contentType: String
   },
   level: {
@@ -32,6 +32,15 @@ const bambiSchema = new mongoose.Schema({
   experience: {
     type: Number,
     default: 0
+  },
+  woodland: {
+    type: String,
+    default: 'Sleepy Meadow'
+  },
+  favoriteSeasons: {
+    type: [String],
+    enum: ['spring', 'summer', 'autumn', 'winter'],
+    default: ['spring']
   },
   profileTheme: {
     primaryColor: {
@@ -118,7 +127,7 @@ const userProfileSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: 'default-avatar.gif' // Changed from .png to .gif
+    default: 'default-avatar.gif'
   },
   woodland: {
     type: String,
