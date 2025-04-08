@@ -151,27 +151,25 @@ router.post('/api/profile/:username/picture', async (req, res) => {
     }
     
     const profilePicture = req.files.profilePicture;
-    const uploadDir = path.join(__dirname, '..', 'public', 'uploads', 'profiles');
     
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    // Convert image to Base64 for database storage
+    const imageData = profilePicture.data.toString('base64');
+    const imageType = profilePicture.mimetype;
     
-    const fileName = `${bambi.username}-${Date.now()}${path.extname(profilePicture.name)}`;
-    const filePath = path.join(uploadDir, fileName);
+    // Update bambi with image data directly in the database
+    bambi.profileImageData = imageData;
+    bambi.profileImageType = imageType;
+    bambi.profileImageName = profilePicture.name;
     
-    // Move file to upload directory
-    await profilePicture.mv(filePath);
+    // Optional: Save original filename or create a unique ID
+    bambi.profileImageId = `${bambi.username}-${Date.now()}`;
     
-    // Update profile with new image path
-    bambi.profilePicture = `/uploads/profiles/${fileName}`;
     await bambi.save();
     
     res.status(200).json({
       success: true,
       data: {
-        profilePicture: bambi.profilePicture
+        profilePicture: `data:${imageType};base64,${imageData.substring(0, 20)}...` // Preview only
       }
     });
   } catch (error) {
