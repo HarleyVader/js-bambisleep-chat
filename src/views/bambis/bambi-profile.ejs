@@ -324,7 +324,84 @@
                     .catch(error => console.error('Error:', error));
                 });
             }
+
+            const profileForm = document.getElementById('profile-form');
+            
+            profileForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                updateProfile(this);
+            });
         });
+
+        /**
+         * Function to update the profile
+         * @param {HTMLFormElement} form - The form element containing profile data
+         */
+        function updateProfile(form) {
+            // Create FormData object from the form
+            const formData = new FormData(form);
+            
+            // Get triggers from UI and add them to formData
+            const triggers = getTriggers(); // Implement this function to get triggers from UI
+            formData.append('triggers', JSON.stringify(triggers));
+            
+            // Check if we have an avatar file
+            const avatarInput = form.querySelector('input[type="file"]');
+            if (avatarInput.files.length > 0) {
+                // File is already added to FormData by passing the form
+                console.log('Avatar file detected');
+            }
+            
+            // Log what we're sending for debugging
+            console.log('Sending profile update with data:', {
+                displayName: formData.get('displayName'),
+                description: formData.get('description'),
+                primaryColor: formData.get('primaryColor'),
+                secondaryColor: formData.get('secondaryColor'),
+                textColor: formData.get('textColor'),
+                triggerCount: triggers.length,
+                hasAvatar: avatarInput.files.length > 0
+            });
+            
+            // Send data to server
+            fetch('/bambis/api/update-profile', {
+                method: 'POST',
+                body: formData,
+                // Don't set Content-Type header when using FormData
+                // The browser will automatically set it with the correct boundary
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(`Server error: ${err.message || response.statusText}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Profile updated successfully:', data);
+                
+                if (data.redirect) {
+                    // Redirect if specified in the response
+                    window.location.href = data.redirect;
+                } else {
+                    // Show success message
+                    showNotification(data.message, 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating profile:', error);
+                showNotification('Failed to update profile: ' + error.message, 'error');
+            });
+        }
+
+        /**
+         * Helper function to show notifications
+         */
+        function showNotification(message, type = 'info') {
+            // Implement notification display logic
+            alert(message); // Simple fallback
+        }
     </script>
 </body>
 </html>
