@@ -1,4 +1,83 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
+
+// Bambi Schema
+const bambiSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 30
+  },
+  displayName: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 50
+  },
+  description: {
+    type: String,
+    default: 'Just a sleepy Bambi in the forest...',
+    maxlength: 500
+  },
+  profilePicture: {
+    type: Buffer,
+    contentType: String
+  },
+  level: {
+    type: Number,
+    default: 1
+  },
+  experience: {
+    type: Number,
+    default: 0
+  },
+  profileTheme: {
+    primaryColor: {
+      type: String,
+      default: '#fa81ff'
+    },
+    secondaryColor: {
+      type: String,
+      default: '#ff4fa2'
+    },
+    textColor: {
+      type: String,
+      default: '#ffffff'
+    }
+  },
+  triggers: [String],
+  hearts: {
+    count: {
+      type: Number,
+      default: 0
+    },
+    users: [{
+      username: String,
+      timestamp: {
+        type: Date,
+        default: Date.now
+      }
+    }]
+  },
+  followers: [{
+    type: String,
+    ref: 'Bambi'
+  }],
+  following: [{
+    type: String,
+    ref: 'Bambi'
+  }],
+  lastActive: {
+    type: Date,
+    default: Date.now
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
 
 // User Schema (for authentication)
 const userSchema = new mongoose.Schema({
@@ -96,7 +175,7 @@ userProfileSchema.pre('save', function(next) {
   next();
 });
 
-const User = mongoose.model('User', userSchema);
-const UserProfile = mongoose.model('UserProfile', userProfileSchema);
-
-module.exports = { User, UserProfile };
+// Create the models
+export const Bambi = mongoose.model('Bambi', bambiSchema);
+export const User = mongoose.model('User', userSchema);
+export const UserProfile = mongoose.model('UserProfile', userProfileSchema);
