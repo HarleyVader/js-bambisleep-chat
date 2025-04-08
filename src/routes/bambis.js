@@ -9,10 +9,14 @@ const logger = new Logger('BambiRoutes');
 // Configure multer to use memory storage
 const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
+  // Updated to allow jpeg, jpg, png, and gif
+  if (file.mimetype === 'image/jpeg' || 
+      file.mimetype === 'image/jpg' || 
+      file.mimetype === 'image/png' || 
+      file.mimetype === 'image/gif') {
     cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed!'), false);
+    cb(new Error('Only image files (JPEG, JPG, PNG, GIF) are allowed!'), false);
   }
 };
 
@@ -51,7 +55,7 @@ router.get('/', async (req, res) => {
       const bambiObj = bambi.toObject();
       bambiObj.profilePictureUrl = bambi.profilePicture 
         ? `/bambis/${bambi.username}/avatar` 
-        : '/images/default-avatar.png';
+        : '/images/default-avatar.gif';
       return bambiObj;
     });
     
@@ -70,14 +74,14 @@ router.get('/:username/avatar', async (req, res) => {
   try {
     const bambi = await Bambi.findOne({ username: req.params.username });
     if (!bambi || !bambi.profilePicture) {
-      return res.redirect('/images/default-avatar.png');
+      return res.redirect('/images/default-avatar.gif');
     }
     
     res.set('Content-Type', bambi.profilePicture.contentType);
     res.send(bambi.profilePicture.buffer);
   } catch (error) {
     logger.error('Error serving avatar:', error.message);
-    res.redirect('/images/default-avatar.png');
+    res.redirect('/images/default-avatar.gif');
   }
 });
 

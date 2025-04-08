@@ -118,7 +118,7 @@ const userProfileSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: 'default-avatar.png'
+    default: 'default-avatar.gif' // Changed from .png to .gif
   },
   woodland: {
     type: String,
