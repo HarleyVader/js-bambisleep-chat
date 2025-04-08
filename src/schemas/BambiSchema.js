@@ -189,6 +189,36 @@ BambiSchema.methods.addActivity = async function(type, description, metadata = {
   return this.activities[0];
 };
 
+// Method to manage triggers (add, remove, get)
+BambiSchema.methods.manageTriggers = function(action, triggerText) {
+  switch(action) {
+    case 'add':
+      // Only add if not already present and limit to 10
+      if (!this.triggers.includes(triggerText) && this.triggers.length < 10) {
+        this.triggers.push(triggerText);
+        return { success: true, message: 'Trigger added' };
+      } else if (this.triggers.length >= 10) {
+        return { success: false, message: 'Maximum of 10 triggers allowed' };
+      } else {
+        return { success: false, message: 'Trigger already exists' };
+      }
+    
+    case 'remove':
+      const index = this.triggers.indexOf(triggerText);
+      if (index !== -1) {
+        this.triggers.splice(index, 1);
+        return { success: true, message: 'Trigger removed' };
+      }
+      return { success: false, message: 'Trigger not found' };
+    
+    case 'get':
+      return { success: true, triggers: this.triggers };
+    
+    default:
+      return { success: false, message: 'Invalid action' };
+  }
+};
+
 const Bambi = mongoose.model('Bambi', BambiSchema);
 
 export default Bambi;

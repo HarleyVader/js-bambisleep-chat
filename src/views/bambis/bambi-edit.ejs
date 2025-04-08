@@ -354,8 +354,8 @@
             });
             
             // Form submission
-            const editProfileForm = document.getElementById('edit-profile-form');
-            
+            const editProfileForm = document.getElementById('profile-form');
+
             editProfileForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
@@ -366,19 +366,23 @@
                 // Prepare form data
                 const formData = new FormData(this);
                 
-                // Get selected triggers
-                const selectedTriggers = [];
-                document.querySelectorAll('input[name="triggers[]"]:checked').forEach(checkbox => {
-                    selectedTriggers.push(checkbox.value);
-                });
-                formData.append('triggers', JSON.stringify(selectedTriggers));
+                // Get triggers from the container
+                const triggers = getTriggers();
+                formData.append('triggers', JSON.stringify(triggers));
                 
                 // Send data to server
                 fetch('/bambis/api/update-profile', {
                     method: 'POST',
                     body: formData
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || 'Error updating profile');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         showSuccess(data.message || 'Profile updated successfully!');
@@ -395,7 +399,7 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showError('An error occurred. Please try again later.');
+                    showError(error.message || 'An error occurred. Please try again later.');
                 });
             });
             
