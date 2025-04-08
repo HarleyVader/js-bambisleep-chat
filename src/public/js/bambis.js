@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-   if (locals.bambi) {
+  <% if (locals.bambi) { %>
     // SINGLE PROFILE VIEW JAVASCRIPT
     const editProfileBtn = document.getElementById('editProfileBtn');
     const editForm = document.getElementById('editForm');
@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
       profileHeader.style.color = textColor;
     }
 
-  } else {
+  <% } else { %>
     // PROFILE LIST VIEW JAVASCRIPT
     const form = document.getElementById('createProfileForm');
     const usernameField = document.getElementById('username');
@@ -519,5 +519,5 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('An error occurred while creating your profile');
       }
     });
-  }
+  <% } %>
 });
