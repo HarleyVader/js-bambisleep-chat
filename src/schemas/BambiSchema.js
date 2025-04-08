@@ -57,6 +57,18 @@ const bambiSchema = new mongoose.Schema({
     }
   },
   triggers: [String],
+  activities: [{
+    type: {
+      type: String,
+      enum: ['achievement', 'heart', 'follow', 'level', 'other'],
+      default: 'other'
+    },
+    description: String,
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   hearts: {
     count: {
       type: Number,
@@ -87,6 +99,38 @@ const bambiSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+// Helper methods
+bambiSchema.methods.addActivity = async function(type, description) {
+  this.activities = this.activities || [];
+  
+  // Keep max 10 activities
+  if (this.activities.length >= 10) {
+    this.activities.pop(); // Remove oldest
+  }
+  
+  // Add new activity at the beginning
+  this.activities.unshift({
+    type,
+    description,
+    timestamp: Date.now()
+  });
+  
+  return this.save();
+};
+
+bambiSchema.methods.addExperience = async function(amount) {
+  this.experience = (this.experience || 0) + amount;
+  
+  // Level up logic
+  const newLevel = Math.floor(this.experience / 100) + 1;
+  if (newLevel > this.level) {
+    this.level = newLevel;
+    await this.addActivity('level', `Reached level ${newLevel}!`);
+  }
+  
+  return this.save();
+};
 
 // User Schema (for authentication)
 const userSchema = new mongoose.Schema({

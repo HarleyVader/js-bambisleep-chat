@@ -156,37 +156,29 @@ router.get('/:username', async (req, res) => {
     // Is this the profile owner viewing?
     const isOwnProfile = currentBambiname === username;
     
-    if (isOwnProfile) {
-      // If it's the owner, redirect to the profile page
-      return res.redirect('/bambis/profile');
-    }
-    
     // Update last view time
     bambi.lastActive = Date.now();
+    
+    // Add profile view to activity log if not own profile
+    if (!isOwnProfile && currentBambiname) {
+      await bambi.addActivity('other', `Profile viewed by ${currentBambiname}`);
+    }
+    
     await bambi.save();
     
-    // Convert to profile.ejs format for viewing others
-    const profile = {
-      avatar: bambi.profilePicture ? `${bambi.username}/avatar` : 'default-avatar.gif',
-      displayName: bambi.displayName,
-      woodland: bambi.woodland || 'Sleepy Meadow',
-      bio: bambi.description,
-      favoriteSeasons: bambi.favoriteSeasons || ['spring'],
-    };
+    // Add profilePictureUrl for proper display
+    bambi.profilePictureUrl = bambi.profilePicture 
+      ? `/bambis/${bambi.username}/avatar` 
+      : '/images/default-avatar.gif';
     
-    const user = {
-      username: bambi.username
-    };
+    // Detect if online (active in last 10 minutes)
+    bambi.isOnline = (Date.now() - new Date(bambi.lastActive).getTime()) < (10 * 60 * 1000);
     
-    // For viewing someone else's profile, use a viewer flag 
-    res.render('bambis/profile', {
-      user,
-      profile,
-      friendProfiles: [],
-      onlineUsers: [],
-      isViewer: true,
+    // Render the profile page
+    res.render('bambis/bambi-profile', {
+      bambi,
       userHasLiked,
-      hearts: bambi.hearts.count
+      isOwnProfile
     });
   } catch (error) {
     logger.error('Error fetching bambi profile:', error.message);
