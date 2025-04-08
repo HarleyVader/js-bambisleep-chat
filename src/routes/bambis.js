@@ -144,25 +144,34 @@ router.get('/:username', async (req, res) => {
     const bambi = await Bambi.findOne({ username });
     
     if (!bambi) {
-      return res.status(404).send('Bambi profile not found');
+      return res.status(404).render('error', { 
+        error: 'Bambi not found',
+        message: 'The profile you are looking for does not exist.'
+      });
     }
     
     // Check if the current user has liked this profile
     const userHasLiked = bambi.hearts.users.some(user => user.username === currentBambiname);
     
+    // Is this the profile owner viewing?
+    const isOwnProfile = currentBambiname === username;
+    
     // Update last view time
     bambi.lastActive = Date.now();
     await bambi.save();
     
-    // Updated path to reflect the new folder structure
-    res.render('bambis/bambi-profile', { 
+    // Render the profile page
+    res.render('bambis/bambi-profile', {
       bambi,
-      isOwnProfile: currentBambiname === username,
-      userHasLiked
+      userHasLiked,
+      isOwnProfile
     });
   } catch (error) {
     logger.error('Error fetching bambi profile:', error.message);
-    res.status(500).send('Error loading bambi profile');
+    res.status(500).render('error', {
+      error: 'Server Error',
+      message: 'Error loading profile page'
+    });
   }
 });
 
