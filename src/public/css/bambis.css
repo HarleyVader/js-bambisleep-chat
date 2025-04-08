@@ -589,3 +589,54 @@ input[type="file"] {
     margin-bottom: 15px;
   }
 }
+
+/* Add these styles to your existing CSS */
+.profile-header-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.profile-name-container {
+  flex: 1;
+}
+
+.profile-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
+}
+
+.share-profile-btn {
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.share-profile-btn:hover {
+  background-color: #3367d6;
+}
+
+@media (max-width: 768px) {
+  .profile-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .profile-stats {
+    margin-top: 15px;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
