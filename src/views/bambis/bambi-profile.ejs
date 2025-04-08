@@ -263,6 +263,14 @@
             </div>
         </div>
 
+        <!-- New standalone description container -->
+        <div class="profile-description-container" style="margin-bottom: 30px; padding: 5px; border-radius: 10px; border: 2px ridge <%= bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>; box-shadow: 0 0 15px <%= bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;">
+            <h3 class="section-title" style="margin-top: 10px; text-align: center;">About Me</h3>
+            <div class="profile-description-full" style="border: none; border-left: 4px solid <%= bambi.profileTheme?.primaryColor || 'var(--tertiary-color)' %>; border-right: 4px solid <%= bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>; margin: 0 10px 10px 10px;">
+                <%= bambi.description || 'This Bambi has not written a description yet.' %>
+            </div>
+        </div>
+
         <div class="profile-content">
             <div class="profile-sidebar">
                 <% if (!isOwnProfile) { %>
@@ -274,10 +282,6 @@
             </div>
             
             <div class="profile-main">
-                <div class="profile-description-full">
-                    <%= bambi.description || 'This Bambi has not written a description yet.' %>
-                </div>
-                
                 <h3 class="section-title">Recent Activity</h3>
                 <div class="activity-list">
                     <% if (bambi.activities && bambi.activities.length > 0) { %>
@@ -327,12 +331,14 @@
                 });
             }
 
+            // Fix the error by checking if profileForm exists before using it
             const profileForm = document.getElementById('profile-form');
-            
-            profileForm.addEventListener('submit', function(event) {
-                event.preventDefault();
-                updateProfile(this);
-            });
+            if (profileForm) {
+                profileForm.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    updateProfile(this);
+                });
+            }
         });
 
         /**
