@@ -1,891 +1,937 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <%- include('../partials/head.ejs') %>
-    <title>Create Your Bambi Profile</title>
-    <style>
-        .creation-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .welcome-section {
-            text-align: center;
-            margin-bottom: 30px;
-            animation: fadeIn 1s ease-in-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .welcome-title {
-            font-size: 2.5rem;
-            color: var(--button-color);
-            margin-bottom: 15px;
-            text-shadow: 0 0 10px var(--tertiary-color);
-        }
-        
-        .welcome-message {
-            font-size: 1.1rem;
-            color: var(--primary-alt);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .creation-section {
-            background-color: var(--transparent);
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 30px;
-            border-top: var(--button-color) 3px ridge;
-            border-bottom: var(--button-color) 3px ridge;
-            border-left: var(--secondary-alt) 1px groove;
-            border-right: var(--secondary-alt) 1px groove;
-            box-shadow: 0 0 15px var(--button-color);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .creation-section:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 20px var(--button-color);
-        }
-        
-        .section-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .section-icon {
-            font-size: 1.8rem;
-            margin-right: 10px;
-            color: var(--tertiary-color);
-        }
-        
-        .section-title {
-            font-size: 1.6rem;
-            color: var(--nav-alt);
-            margin: 0;
-        }
-        
-        .avatar-upload-container {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .current-avatar {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            margin: 0 auto 25px;
-            display: block;
-            border: 5px solid var(--tertiary-color);
-            box-shadow: 0 0 20px var(--button-color);
-            object-fit: cover;
-            transition: transform 0.5s ease, box-shadow 0.5s ease;
-        }
-        
-        .current-avatar:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 30px var(--tertiary-color);
-        }
-        
-        .file-upload-label {
-            display: inline-block;
-            padding: 12px 25px;
-            background-color: var(--button-color);
-            color: var(--secondary-color);
-            border-radius: 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-        }
-        
-        .file-upload-label:hover {
-            background-color: var(--secondary-color);
-            color: var(--button-color);
-            transform: scale(1.05);
-        }
-        
-        .file-upload-input {
-            display: none;
-        }
-        
-        .form-group {
-            margin-bottom: 25px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--primary-alt);
-            font-weight: bold;
-        }
-        
-        .form-group input[type="text"],
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            background-color: rgba(0, 0, 0, 0.2);
-            color: var(--primary-alt);
-            border: 1px solid var(--tertiary-color);
-            border-radius: 8px;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .form-group input[type="text"]:focus,
-        .form-group textarea:focus {
-            border-color: var(--button-color);
-            box-shadow: 0 0 10px var(--button-color);
-            outline: none;
-        }
-        
-        .color-customize-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 25px;
-            margin-top: 20px;
-        }
-        
-        .color-option {
-            text-align: center;
-        }
-        
-        .color-preview {
-            width: 100%;
-            height: 80px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border: 2px solid var(--nav-alt);
-            transition: transform 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .color-preview:hover {
-            transform: scale(1.05);
-        }
-        
-        .color-preview::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 100%);
-            pointer-events: none;
-        }
-        
-        .color-input-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .color-input-label {
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: var(--primary-alt);
-        }
-        
-        .color-picker {
-            width: 100%;
-            height: 40px;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-        
-        .color-picker::-webkit-color-swatch-wrapper {
-            padding: 0;
-        }
-        
-        .color-picker::-webkit-color-swatch {
-            border: 2px solid var(--nav-alt);
-            border-radius: 8px;
-        }
-        
-        .triggers-container {
-            margin-top: 30px;
-        }
-        
-        .triggers-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-        
-        .trigger-option {
-            position: relative;
-        }
-        
-        .trigger-checkbox {
-            position: absolute;
-            opacity: 0;
-        }
-        
-        .trigger-label {
-            display: block;
-            padding: 10px;
-            background-color: rgba(0, 0, 0, 0.2);
-            color: var(--primary-alt);
-            border: 1px solid var(--tertiary-color);
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        
-        .trigger-checkbox:checked + .trigger-label {
-            background-color: var(--tertiary-color);
-            color: white;
-            box-shadow: 0 0 10px var(--tertiary-color);
-            transform: translateY(-3px);
-        }
-        
-        .trigger-label:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-        }
-        
-        .custom-trigger-section {
-            margin-top: 25px;
-        }
-        
-        .custom-trigger-input {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .custom-trigger-input input {
-            flex: 1;
-            padding: 10px;
-            background-color: rgba(0, 0, 0, 0.2);
-            color: var(--primary-alt);
-            border: 1px solid var(--tertiary-color);
-            border-radius: 8px;
-        }
-        
-        .add-trigger-btn {
-            padding: 10px 15px;
-            background-color: var(--button-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .add-trigger-btn:hover {
-            background-color: var(--tertiary-color);
-            transform: scale(1.05);
-        }
-        
-        .selected-triggers {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .trigger-tag {
-            background-color: var(--tertiary-color);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            animation: fadeInTag 0.3s ease-out;
-        }
-        
-        @keyframes fadeInTag {
-            from { opacity: 0; transform: scale(0.8); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        
-        .remove-trigger {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background-color: rgba(0, 0, 0, 0.2);
-        }
-        
-        .remove-trigger:hover {
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-        
-        .preview-section {
-            margin-top: 40px;
-            text-align: center;
-        }
-        
-        .preview-title {
-            font-size: 1.8rem;
-            color: var(--tertiary-color);
-            margin-bottom: 20px;
-        }
-        
-        .profile-preview {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .preview-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            margin: 0 auto 15px;
-            object-fit: cover;
-            border: 3px solid;
-        }
-        
-        .preview-name {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-        }
-        
-        .preview-description {
-            margin-bottom: 15px;
-            font-style: italic;
-        }
-        
-        .preview-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        
-        .preview-tag {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.9rem;
-        }
-        
-        .submit-section {
-            margin-top: 40px;
-            text-align: center;
-        }
-        
-        .create-profile-btn {
-            padding: 15px 40px;
-            font-size: 1.2rem;
-            background-color: var(--button-color);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .create-profile-btn:hover {
-            background-color: var(--tertiary-color);
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-        }
-        
-        .notification {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            border-radius: 8px;
-            color: white;
-            z-index: 1000;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            animation: slideIn 0.3s ease-out;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        .notification.success {
-            background-color: #4CAF50;
-        }
-        
-        .notification.error {
-            background-color: #F44336;
-        }
-        
-        .notification.warning {
-            background-color: #FF9800;
-        }
-        
-        .notification.info {
-            background-color: #2196F3;
-        }
-    </style>
+        <title>Create Your Bambi Profile</title>
+        <style>
+            .creation-container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+
+            .welcome-section {
+                text-align: center;
+                margin-bottom: 30px;
+                animation: fadeIn 1s ease-in-out;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .welcome-title {
+                font-size: 2.5rem;
+                color: var(--button-color);
+                margin-bottom: 15px;
+                text-shadow: 0 0 10px var(--tertiary-color);
+            }
+
+            .welcome-message {
+                font-size: 1.1rem;
+                color: var(--primary-alt);
+                max-width: 600px;
+                margin: 0 auto;
+            }
+
+            .creation-section {
+                background-color: var(--transparent);
+                border-radius: 12px;
+                padding: 25px;
+                margin-bottom: 30px;
+                border-top: var(--button-color) 3px ridge;
+                border-bottom: var(--button-color) 3px ridge;
+                border-left: var(--secondary-alt) 1px groove;
+                border-right: var(--secondary-alt) 1px groove;
+                box-shadow: 0 0 15px var(--button-color);
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+
+            .creation-section:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 5px 20px var(--button-color);
+            }
+
+            .section-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+
+            .section-icon {
+                font-size: 1.8rem;
+                margin-right: 10px;
+                color: var(--tertiary-color);
+            }
+
+            .section-title {
+                font-size: 1.6rem;
+                color: var(--nav-alt);
+                margin: 0;
+            }
+
+            .avatar-upload-container {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+
+            .current-avatar {
+                width: 180px;
+                height: 180px;
+                border-radius: 50%;
+                margin: 0 auto 25px;
+                display: block;
+                border: 5px solid var(--tertiary-color);
+                box-shadow: 0 0 20px var(--button-color);
+                object-fit: cover;
+                transition: transform 0.5s ease, box-shadow 0.5s ease;
+            }
+
+            .current-avatar:hover {
+                transform: scale(1.05);
+                box-shadow: 0 0 30px var(--tertiary-color);
+            }
+
+            .file-upload-label {
+                display: inline-block;
+                padding: 12px 25px;
+                background-color: var(--button-color);
+                color: var(--secondary-color);
+                border-radius: 25px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-weight: bold;
+                letter-spacing: 0.5px;
+            }
+
+            .file-upload-label:hover {
+                background-color: var(--secondary-color);
+                color: var(--button-color);
+                transform: scale(1.05);
+            }
+
+            .file-upload-input {
+                display: none;
+            }
+
+            .form-group {
+                margin-bottom: 25px;
+            }
+
+            .form-group label {
+                display: block;
+                margin-bottom: 8px;
+                color: var(--primary-alt);
+                font-weight: bold;
+            }
+
+            .form-group input[type="text"],
+            .form-group textarea {
+                width: 100%;
+                padding: 12px;
+                background-color: rgba(0, 0, 0, 0.2);
+                color: var(--primary-alt);
+                border: 1px solid var(--tertiary-color);
+                border-radius: 8px;
+                transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            }
+
+            .form-group input[type="text"]:focus,
+            .form-group textarea:focus {
+                border-color: var(--button-color);
+                box-shadow: 0 0 10px var(--button-color);
+                outline: none;
+            }
+
+            .color-customize-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 25px;
+                margin-top: 20px;
+            }
+
+            .color-option {
+                text-align: center;
+            }
+
+            .color-preview {
+                width: 100%;
+                height: 80px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                border: 2px solid var(--nav-alt);
+                transition: transform 0.3s ease;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .color-preview:hover {
+                transform: scale(1.05);
+            }
+
+            .color-preview::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%);
+                pointer-events: none;
+            }
+
+            .color-input-group {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .color-input-label {
+                margin-bottom: 8px;
+                font-weight: bold;
+                color: var(--primary-alt);
+            }
+
+            .color-picker {
+                width: 100%;
+                height: 40px;
+                background: none;
+                border: none;
+                cursor: pointer;
+            }
+
+            .color-picker::-webkit-color-swatch-wrapper {
+                padding: 0;
+            }
+
+            .color-picker::-webkit-color-swatch {
+                border: 2px solid var(--nav-alt);
+                border-radius: 8px;
+            }
+
+            .triggers-container {
+                margin-top: 30px;
+            }
+
+            .triggers-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+                margin-top: 15px;
+            }
+
+            .trigger-option {
+                position: relative;
+            }
+
+            .trigger-checkbox {
+                position: absolute;
+                opacity: 0;
+            }
+
+            .trigger-label {
+                display: block;
+                padding: 10px;
+                background-color: rgba(0, 0, 0, 0.2);
+                color: var(--primary-alt);
+                border: 1px solid var(--tertiary-color);
+                border-radius: 8px;
+                cursor: pointer;
+                text-align: center;
+                transition: all 0.3s ease;
+            }
+
+            .trigger-checkbox:checked+.trigger-label {
+                background-color: var(--tertiary-color);
+                color: white;
+                box-shadow: 0 0 10px var(--tertiary-color);
+                transform: translateY(-3px);
+            }
+
+            .trigger-label:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            }
+
+            .custom-trigger-section {
+                margin-top: 25px;
+            }
+
+            .custom-trigger-input {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+
+            .custom-trigger-input input {
+                flex: 1;
+                padding: 10px;
+                background-color: rgba(0, 0, 0, 0.2);
+                color: var(--primary-alt);
+                border: 1px solid var(--tertiary-color);
+                border-radius: 8px;
+            }
+
+            .add-trigger-btn {
+                padding: 10px 15px;
+                background-color: var(--button-color);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .add-trigger-btn:hover {
+                background-color: var(--tertiary-color);
+                transform: scale(1.05);
+            }
+
+            .selected-triggers {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .trigger-tag {
+                background-color: var(--tertiary-color);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 20px;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                animation: fadeInTag 0.3s ease-out;
+            }
+
+            @keyframes fadeInTag {
+                from {
+                    opacity: 0;
+                    transform: scale(0.8);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+
+            .remove-trigger {
+                background: none;
+                border: none;
+                color: white;
+                cursor: pointer;
+                font-size: 14px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                background-color: rgba(0, 0, 0, 0.2);
+            }
+
+            .remove-trigger:hover {
+                background-color: rgba(0, 0, 0, 0.4);
+            }
+
+            .preview-section {
+                margin-top: 40px;
+                text-align: center;
+            }
+
+            .preview-title {
+                font-size: 1.8rem;
+                color: var(--tertiary-color);
+                margin-bottom: 20px;
+            }
+
+            .profile-preview {
+                max-width: 400px;
+                margin: 0 auto;
+                padding: 20px;
+                border-radius: 12px;
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .preview-avatar {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                margin: 0 auto 15px;
+                object-fit: cover;
+                border: 3px solid;
+            }
+
+            .preview-name {
+                font-size: 1.5rem;
+                margin-bottom: 10px;
+            }
+
+            .preview-description {
+                margin-bottom: 15px;
+                font-style: italic;
+            }
+
+            .preview-tags {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: center;
+                margin-bottom: 15px;
+            }
+
+            .preview-tag {
+                padding: 5px 10px;
+                border-radius: 15px;
+                font-size: 0.9rem;
+            }
+
+            .submit-section {
+                margin-top: 40px;
+                text-align: center;
+            }
+
+            .create-profile-btn {
+                padding: 15px 40px;
+                font-size: 1.2rem;
+                background-color: var(--button-color);
+                color: white;
+                border: none;
+                border-radius: 30px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            }
+
+            .create-profile-btn:hover {
+                background-color: var(--tertiary-color);
+                transform: translateY(-5px);
+                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            }
+
+            .notification {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                border-radius: 8px;
+                color: white;
+                z-index: 1000;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+                animation: slideIn 0.3s ease-out;
+            }
+
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            .notification.success {
+                background-color: #4CAF50;
+            }
+
+            .notification.error {
+                background-color: #F44336;
+            }
+
+            .notification.warning {
+                background-color: #FF9800;
+            }
+
+            .notification.info {
+                background-color: #2196F3;
+            }
+        </style>
 </head>
+
 <body>
     <%- include('../partials/nav.ejs') %>
-    
-    <div class="container">
-        <div class="creation-container">
-            <div class="welcome-section">
-                <h1 class="welcome-title">Welcome to BambiSleep Community</h1>
-                <p class="welcome-message">Create your personalized Bambi profile and connect with other Bambis. Express yourself, share your experiences, and join our growing community!</p>
+
+        <div class="container">
+            <div class="creation-container">
+                <div class="welcome-section">
+                    <h1 class="welcome-title">Welcome to BambiSleep Community</h1>
+                    <p class="welcome-message">Create your personalized Bambi profile and connect with other Bambis.
+                        Express yourself, share your experiences, and join our growing community!</p>
+                </div>
+
+                <form id="profile-form" enctype="multipart/form-data">
+                    <!-- Profile Basics Section -->
+                    <div class="creation-section">
+                        <div class="section-header">
+                            <div class="section-icon">👤</div>
+                            <h2 class="section-title">Profile Basics</h2>
+                        </div>
+
+                        <div class="avatar-upload-container">
+                            <img src="/images/in-her-bubble.gif" alt="Default Avatar" class="current-avatar"
+                                id="avatar-preview">
+                            <label for="avatar-upload" class="file-upload-label">Choose Your Avatar</label>
+                            <input type="file" id="avatar-upload" name="avatar" class="file-upload-input"
+                                accept=".jpg,.jpeg,.png,.gif">
+                            <p>JPG, PNG, GIF • Max 10MB</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bambiname">Bambi Name (Username)</label>
+                            <input type="text" id="bambiname" name="username" value="<%= bambiname %>" readonly>
+                            <p><small>Your unique identifier in the community</small></p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="displayName">Display Name</label>
+                            <input type="text" id="displayName" name="displayName"
+                                placeholder="How you want to be known" required>
+                            <p><small>This will be shown on your profile and in the community</small></p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">Your Bambi Mantra</label>
+                            <textarea id="description" name="description" rows="4" maxlength="500"
+                                placeholder="Tell us about yourself and your Bambi journey..."></textarea>
+                            <p><small><span id="char-count">0</span>/500 characters • Express who you are as a
+                                    Bambi</small></p>
+                        </div>
+                    </div>
+
+                    <!-- Profile Theme Section -->
+                    <div class="creation-section">
+                        <div class="section-header">
+                            <div class="section-icon">🎨</div>
+                            <h2 class="section-title">Profile Theme</h2>
+                        </div>
+
+                        <p>Customize your profile with colors that reflect your Bambi persona</p>
+
+                        <div class="color-customize-container">
+                            <div class="color-option">
+                                <div class="color-preview" id="primaryColorPreview" style="background-color: #fa81ff;">
+                                </div>
+                                <div class="color-input-group">
+                                    <span class="color-input-label">Primary Color</span>
+                                    <input type="color" id="primaryColor" name="primaryColor" value="#fa81ff"
+                                        class="color-picker">
+                                </div>
+                            </div>
+
+                            <div class="color-option">
+                                <div class="color-preview" id="secondaryColorPreview"
+                                    style="background-color: #ff4fa2;"></div>
+                                <div class="color-input-group">
+                                    <span class="color-input-label">Secondary Color</span>
+                                    <input type="color" id="secondaryColor" name="secondaryColor" value="#ff4fa2"
+                                        class="color-picker">
+                                </div>
+                            </div>
+
+                            <div class="color-option">
+                                <div class="color-preview" id="textColorPreview" style="background-color: #ffffff;">
+                                </div>
+                                <div class="color-input-group">
+                                    <span class="color-input-label">Text Color</span>
+                                    <input type="color" id="textColor" name="textColor" value="#ffffff"
+                                        class="color-picker">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Triggers Section -->
+                    <div class="creation-section">
+                        <div class="section-header">
+                            <div class="section-icon">✨</div>
+                            <h2 class="section-title">Favorite Triggers</h2>
+                        </div>
+
+                        <p>Select up to 10 of your favorite BambiSleep triggers</p>
+
+                        <div class="triggers-grid">
+                            <% const popularTriggers=[ "BIMBO DOLL" , "GOOD GIRL" , "BAMBI SLEEP" , "BAMBI FREEZE"
+                                , "BAMBI ALWAYS WINS" , "BAMBI RESET" , "SAFE & SECURE" , "PRIMPED" , "PAMPERED"
+                                , "GIGGLE TIME" , "BLONDE MOMENT" , "DROP FOR COCK" , "TITS LOCK" , "WAIST LOCK" ] %>
+
+                                <% popularTriggers.forEach(trigger=> { %>
+                                    <div class="trigger-option">
+                                        <input type="checkbox"
+                                            id="trigger-<%= trigger.toLowerCase().replace(/\s+/g, '-') %>"
+                                            class="trigger-checkbox trigger-input" value="<%= trigger %>">
+                                        <label for="trigger-<%= trigger.toLowerCase().replace(/\s+/g, '-') %>"
+                                            class="trigger-label">
+                                            <%= trigger %>
+                                        </label>
+                                    </div>
+                                    <% }) %>
+                        </div>
+
+                        <div class="custom-trigger-section">
+                            <label>Add Your Own Triggers</label>
+                            <div class="custom-trigger-input">
+                                <input type="text" id="custom-trigger" placeholder="Enter trigger name...">
+                                <button type="button" id="add-trigger-btn" class="add-trigger-btn">Add</button>
+                            </div>
+
+                            <div class="selected-triggers" id="selected-triggers">
+                                <!-- Selected triggers will appear here -->
+                            </div>
+
+                            <p><small>Up to 10 triggers total • Choose your favorites</small></p>
+                        </div>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div class="creation-section preview-section">
+                        <div class="section-header" style="justify-content: center;">
+                            <div class="section-icon">👁️</div>
+                            <h2 class="section-title">Profile Preview</h2>
+                        </div>
+
+                        <div class="profile-preview" id="profile-preview">
+                            <img src="/images/in-her-bubble.gif" alt="Profile Avatar" class="preview-avatar"
+                                id="preview-avatar">
+                            <h3 class="preview-name" id="preview-name">Your Display Name</h3>
+                            <p class="preview-description" id="preview-description">Your profile description will appear
+                                here...</p>
+                            <div class="preview-tags" id="preview-tags">
+                                <!-- Preview tags will appear here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Section -->
+                    <div class="submit-section">
+                        <button type="submit" class="create-profile-btn">Create My Bambi Profile</button>
+                    </div>
+                </form>
             </div>
-            
-            <form id="profile-form" enctype="multipart/form-data">
-                <!-- Profile Basics Section -->
-                <div class="creation-section">
-                    <div class="section-header">
-                        <div class="section-icon">👤</div>
-                        <h2 class="section-title">Profile Basics</h2>
-                    </div>
-                    
-                    <div class="avatar-upload-container">
-                        <img src="/images/in-her-bubble.gif" alt="Default Avatar" class="current-avatar" id="avatar-preview">
-                        <label for="avatar-upload" class="file-upload-label">Choose Your Avatar</label>
-                        <input type="file" id="avatar-upload" name="avatar" class="file-upload-input" accept=".jpg,.jpeg,.png,.gif">
-                        <p>JPG, PNG, GIF • Max 10MB</p>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="bambiname">Bambi Name (Username)</label>
-                        <input type="text" id="bambiname" name="username" value="<%= bambiname %>" readonly>
-                        <p><small>Your unique identifier in the community</small></p>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="displayName">Display Name</label>
-                        <input type="text" id="displayName" name="displayName" placeholder="How you want to be known" required>
-                        <p><small>This will be shown on your profile and in the community</small></p>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="description">Your Bambi Mantra</label>
-                        <textarea id="description" name="description" rows="4" maxlength="500" placeholder="Tell us about yourself and your Bambi journey..."></textarea>
-                        <p><small><span id="char-count">0</span>/500 characters • Express who you are as a Bambi</small></p>
-                    </div>
-                </div>
-                
-                <!-- Profile Theme Section -->
-                <div class="creation-section">
-                    <div class="section-header">
-                        <div class="section-icon">🎨</div>
-                        <h2 class="section-title">Profile Theme</h2>
-                    </div>
-                    
-                    <p>Customize your profile with colors that reflect your Bambi persona</p>
-                    
-                    <div class="color-customize-container">
-                        <div class="color-option">
-                            <div class="color-preview" id="primaryColorPreview" style="background-color: #fa81ff;"></div>
-                            <div class="color-input-group">
-                                <span class="color-input-label">Primary Color</span>
-                                <input type="color" id="primaryColor" name="primaryColor" value="#fa81ff" class="color-picker">
-                            </div>
-                        </div>
-                        
-                        <div class="color-option">
-                            <div class="color-preview" id="secondaryColorPreview" style="background-color: #ff4fa2;"></div>
-                            <div class="color-input-group">
-                                <span class="color-input-label">Secondary Color</span>
-                                <input type="color" id="secondaryColor" name="secondaryColor" value="#ff4fa2" class="color-picker">
-                            </div>
-                        </div>
-                        
-                        <div class="color-option">
-                            <div class="color-preview" id="textColorPreview" style="background-color: #ffffff;"></div>
-                            <div class="color-input-group">
-                                <span class="color-input-label">Text Color</span>
-                                <input type="color" id="textColor" name="textColor" value="#ffffff" class="color-picker">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Triggers Section -->
-                <div class="creation-section">
-                    <div class="section-header">
-                        <div class="section-icon">✨</div>
-                        <h2 class="section-title">Favorite Triggers</h2>
-                    </div>
-                    
-                    <p>Select up to 10 of your favorite BambiSleep triggers</p>
-                    
-                    <div class="triggers-grid">
-                        <% const popularTriggers = [
-                            "BIMBO DOLL", "GOOD GIRL", "BAMBI SLEEP", "BAMBI FREEZE", 
-                            "BAMBI ALWAYS WINS", "BAMBI RESET", "SAFE & SECURE", 
-                            "PRIMPED", "PAMPERED", "GIGGLE TIME", "BLONDE MOMENT", 
-                            "DROP FOR COCK", "TITS LOCK", "WAIST LOCK"
-                        ] %>
-                        
-                        <% popularTriggers.forEach(trigger => { %>
-                        <div class="trigger-option">
-                            <input type="checkbox" id="trigger-<%= trigger.toLowerCase().replace(/\s+/g, '-') %>" 
-                                    class="trigger-checkbox trigger-input" value="<%= trigger %>">
-                            <label for="trigger-<%= trigger.toLowerCase().replace(/\s+/g, '-') %>" class="trigger-label">
-                                <%= trigger %>
-                            </label>
-                        </div>
-                        <% }) %>
-                    </div>
-                    
-                    <div class="custom-trigger-section">
-                        <label>Add Your Own Triggers</label>
-                        <div class="custom-trigger-input">
-                            <input type="text" id="custom-trigger" placeholder="Enter trigger name...">
-                            <button type="button" id="add-trigger-btn" class="add-trigger-btn">Add</button>
-                        </div>
-                        
-                        <div class="selected-triggers" id="selected-triggers">
-                            <!-- Selected triggers will appear here -->
-                        </div>
-                        
-                        <p><small>Up to 10 triggers total • Choose your favorites</small></p>
-                    </div>
-                </div>
-                
-                <!-- Preview Section -->
-                <div class="creation-section preview-section">
-                    <div class="section-header" style="justify-content: center;">
-                        <div class="section-icon">👁️</div>
-                        <h2 class="section-title">Profile Preview</h2>
-                    </div>
-                    
-                    <div class="profile-preview" id="profile-preview">
-                        <img src="/images/in-her-bubble.gif" alt="Profile Avatar" class="preview-avatar" id="preview-avatar">
-                        <h3 class="preview-name" id="preview-name">Your Display Name</h3>
-                        <p class="preview-description" id="preview-description">Your profile description will appear here...</p>
-                        <div class="preview-tags" id="preview-tags">
-                            <!-- Preview tags will appear here -->
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Submit Section -->
-                <div class="submit-section">
-                    <button type="submit" class="create-profile-btn">Create My Bambi Profile</button>
-                </div>
-            </form>
         </div>
-    </div>
-    
-    <%- include('../partials/footer.ejs') %>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Form elements
-            const profileForm = document.getElementById('profile-form');
-            const displayNameInput = document.getElementById('displayName');
-            const descriptionInput = document.getElementById('description');
-            const charCount = document.getElementById('char-count');
-            const avatarUpload = document.getElementById('avatar-upload');
-            const avatarPreview = document.getElementById('avatar-preview');
-            const primaryColorInput = document.getElementById('primaryColor');
-            const secondaryColorInput = document.getElementById('secondaryColor');
-            const textColorInput = document.getElementById('textColor');
-            const primaryColorPreview = document.getElementById('primaryColorPreview');
-            const secondaryColorPreview = document.getElementById('secondaryColorPreview');
-            const textColorPreview = document.getElementById('textColorPreview');
-            const customTriggerInput = document.getElementById('custom-trigger');
-            const addTriggerBtn = document.getElementById('add-trigger-btn');
-            const selectedTriggersContainer = document.getElementById('selected-triggers');
-            
-            // Preview elements
-            const profilePreview = document.getElementById('profile-preview');
-            const previewAvatar = document.getElementById('preview-avatar');
-            const previewName = document.getElementById('preview-name');
-            const previewDescription = document.getElementById('preview-description');
-            const previewTags = document.getElementById('preview-tags');
-            
-            // Character count for description
-            descriptionInput.addEventListener('input', function() {
-                const count = this.value.length;
-                charCount.textContent = count;
-                
-                // Update preview
-                previewDescription.textContent = this.value || 'Your profile description will appear here...';
-            });
-            
-            // Avatar preview
-            avatarUpload.addEventListener('change', function() {
-                const file = this.files[0];
-                if (file) {
-                    // Validate file size (10MB max)
-                    const maxSize = 10 * 1024 * 1024;
-                    if (file.size > maxSize) {
-                        showNotification('Avatar file is too large. Maximum size is 10MB.', 'error');
-                        this.value = '';
-                        return;
-                    }
-                    
-                    // Validate file type
-                    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-                    if (!validTypes.includes(file.type)) {
-                        showNotification('Invalid file type. Please use JPG, PNG, or GIF.', 'error');
-                        this.value = '';
-                        return;
-                    }
-                    
-                    // Show preview
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        avatarPreview.src = e.target.result;
-                        previewAvatar.src = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-            
-            // Display name preview
-            displayNameInput.addEventListener('input', function() {
-                previewName.textContent = this.value || 'Your Display Name';
-            });
-            
-            // Color previews
-            primaryColorInput.addEventListener('input', function() {
-                primaryColorPreview.style.backgroundColor = this.value;
-                updateProfilePreview();
-            });
-            
-            secondaryColorInput.addEventListener('input', function() {
-                secondaryColorPreview.style.backgroundColor = this.value;
-                updateProfilePreview();
-            });
-            
-            textColorInput.addEventListener('input', function() {
-                textColorPreview.style.backgroundColor = this.value;
-                updateProfilePreview();
-            });
-            
-            // Update profile preview colors
-            function updateProfilePreview() {
-                const primaryColor = primaryColorInput.value;
-                const secondaryColor = secondaryColorInput.value;
-                const textColor = textColorInput.value;
-                
-                profilePreview.style.background = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`;
-                profilePreview.style.color = textColor;
-                previewAvatar.style.borderColor = primaryColor;
-                
-                // Update tags
-                const tags = document.querySelectorAll('.preview-tag');
-                tags.forEach(tag => {
-                    tag.style.backgroundColor = primaryColor;
-                    tag.style.color = textColor;
-                });
-            }
-            
-            // Initialize preview
-            updateProfilePreview();
-            
-            // Add trigger functionality
-            addTriggerBtn.addEventListener('click', function() {
-                addTrigger();
-            });
-            
-            customTriggerInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTrigger();
-                }
-            });
-            
-            function addTrigger() {
-                const triggerText = customTriggerInput.value.trim();
-                if (!triggerText) return;
-                
-                // Check if we already have 10 triggers
-                const selectedTriggers = document.querySelectorAll('.trigger-tag, .trigger-checkbox:checked');
-                if (selectedTriggers.length >= 10) {
-                    showNotification('You can only select up to 10 triggers', 'warning');
-                    return;
-                }
-                
-                // Create trigger tag
-                const triggerTag = document.createElement('div');
-                triggerTag.className = 'trigger-tag';
-                triggerTag.innerHTML = `
-                    <span>${triggerText}</span>
-                    <button type="button" class="remove-trigger" aria-label="Remove trigger">×</button>
-                `;
-                
-                // Add remove functionality
-                triggerTag.querySelector('.remove-trigger').addEventListener('click', function() {
-                    triggerTag.remove();
-                    updateTriggerPreview();
-                });
-                
-                // Add to container
-                selectedTriggersContainer.appendChild(triggerTag);
-                
-                // Clear input
-                customTriggerInput.value = '';
-                
-                // Update preview
-                updateTriggerPreview();
-            }
-            
-            // Handle checkbox triggers
-            document.querySelectorAll('.trigger-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    // Check if we're trying to select more than 10
-                    const selectedCount = document.querySelectorAll('.trigger-tag, .trigger-checkbox:checked').length;
-                    if (selectedCount > 10 && this.checked) {
-                        this.checked = false;
-                        showNotification('You can only select up to 10 triggers', 'warning');
-                        return;
-                    }
-                    
-                    updateTriggerPreview();
-                });
-            });
-            
-            // Update trigger preview
-            function updateTriggerPreview() {
-                previewTags.innerHTML = '';
-                
-                // Get selected checkboxes
-                const selectedCheckboxes = document.querySelectorAll('.trigger-checkbox:checked');
-                selectedCheckboxes.forEach(checkbox => {
-                    const tag = document.createElement('span');
-                    tag.className = 'preview-tag';
-                    tag.textContent = checkbox.value;
-                    tag.style.backgroundColor = primaryColorInput.value;
-                    tag.style.color = textColorInput.value;
-                    previewTags.appendChild(tag);
-                });
-                
-                // Get custom triggers
-                const customTriggers = document.querySelectorAll('.trigger-tag');
-                customTriggers.forEach(triggerEl => {
-                    const triggerText = triggerEl.querySelector('span').textContent;
-                    const tag = document.createElement('span');
-                    tag.className = 'preview-tag';
-                    tag.textContent = triggerText;
-                    tag.style.backgroundColor = primaryColorInput.value;
-                    tag.style.color = textColorInput.value;
-                    previewTags.appendChild(tag);
-                });
-            }
-            
-            // Form submission
-            profileForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Create FormData
-                const formData = new FormData(this);
-                
-                // Get all triggers (checked + custom)
-                const triggers = [];
-                
-                // Add checkbox triggers
-                document.querySelectorAll('.trigger-checkbox:checked').forEach(checkbox => {
-                    triggers.push(checkbox.value);
-                });
-                
-                // Add custom triggers
-                document.querySelectorAll('.trigger-tag span').forEach(span => {
-                    triggers.push(span.textContent);
-                });
-                
-                // Add triggers to form data
-                formData.append('triggers', JSON.stringify(triggers));
-                
-                // Send to server
-                fetch('/bambis/api/update-profile', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(data => {
-                            throw new Error(data.message || 'Error creating profile');
+
+        <%- include('../partials/footer.ejs') %>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    // Form elements
+                    const profileForm = document.getElementById('profile-form');
+                    const displayNameInput = document.getElementById('displayName');
+                    const descriptionInput = document.getElementById('description');
+                    const charCount = document.getElementById('char-count');
+                    const avatarUpload = document.getElementById('avatar-upload');
+                    const avatarPreview = document.getElementById('avatar-preview');
+                    const primaryColorInput = document.getElementById('primaryColor');
+                    const secondaryColorInput = document.getElementById('secondaryColor');
+                    const textColorInput = document.getElementById('textColor');
+                    const primaryColorPreview = document.getElementById('primaryColorPreview');
+                    const secondaryColorPreview = document.getElementById('secondaryColorPreview');
+                    const textColorPreview = document.getElementById('textColorPreview');
+                    const customTriggerInput = document.getElementById('custom-trigger');
+                    const addTriggerBtn = document.getElementById('add-trigger-btn');
+                    const selectedTriggersContainer = document.getElementById('selected-triggers');
+
+                    // Preview elements
+                    const profilePreview = document.getElementById('profile-preview');
+                    const previewAvatar = document.getElementById('preview-avatar');
+                    const previewName = document.getElementById('preview-name');
+                    const previewDescription = document.getElementById('preview-description');
+                    const previewTags = document.getElementById('preview-tags');
+
+                    // Character count for description
+                    descriptionInput.addEventListener('input', function () {
+                        const count = this.value.length;
+                        charCount.textContent = count;
+
+                        // Update preview
+                        previewDescription.textContent = this.value || 'Your profile description will appear here...';
+                    });
+
+                    // Avatar preview
+                    avatarUpload.addEventListener('change', function () {
+                        const file = this.files[0];
+                        if (file) {
+                            // Validate file size (10MB max)
+                            const maxSize = 10 * 1024 * 1024;
+                            if (file.size > maxSize) {
+                                showNotification('Avatar file is too large. Maximum size is 10MB.', 'error');
+                                this.value = '';
+                                return;
+                            }
+
+                            // Validate file type
+                            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                            if (!validTypes.includes(file.type)) {
+                                showNotification('Invalid file type. Please use JPG, PNG, or GIF.', 'error');
+                                this.value = '';
+                                return;
+                            }
+
+                            // Show preview
+                            const reader = new FileReader();
+                            reader.onload = function (e) {
+                                avatarPreview.src = e.target.result;
+                                previewAvatar.src = e.target.result;
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+
+                    // Display name preview
+                    displayNameInput.addEventListener('input', function () {
+                        previewName.textContent = this.value || 'Your Display Name';
+                    });
+
+                    // Color previews
+                    primaryColorInput.addEventListener('input', function () {
+                        primaryColorPreview.style.backgroundColor = this.value;
+                        updateProfilePreview();
+                    });
+
+                    secondaryColorInput.addEventListener('input', function () {
+                        secondaryColorPreview.style.backgroundColor = this.value;
+                        updateProfilePreview();
+                    });
+
+                    textColorInput.addEventListener('input', function () {
+                        textColorPreview.style.backgroundColor = this.value;
+                        updateProfilePreview();
+                    });
+
+                    // Update profile preview colors
+                    function updateProfilePreview() {
+                        const primaryColor = primaryColorInput.value;
+                        const secondaryColor = secondaryColorInput.value;
+                        const textColor = textColorInput.value;
+
+                        profilePreview.style.background = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`;
+                        profilePreview.style.color = textColor;
+                        previewAvatar.style.borderColor = primaryColor;
+
+                        // Update tags
+                        const tags = document.querySelectorAll('.preview-tag');
+                        tags.forEach(tag => {
+                            tag.style.backgroundColor = primaryColor;
+                            tag.style.color = textColor;
                         });
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        showNotification('Profile created successfully!', 'success');
-                        
-                        // Redirect to new profile
-                        setTimeout(() => {
-                            window.location.href = data.redirect || '/bambis';
-                        }, 1500);
-                    } else {
-                        showNotification(data.message || 'Unknown error', 'error');
+
+                    // Initialize preview
+                    updateProfilePreview();
+
+                    // Get current trigger count (both checkbox and custom)
+                    function getTriggerCount() {
+                        const checkboxCount = document.querySelectorAll('.trigger-checkbox:checked').length;
+                        const customCount = document.querySelectorAll('.trigger-tag').length;
+                        return checkboxCount + customCount;
                     }
-                })
-                .catch(error => {
-                    showNotification(error.message || 'Error creating profile', 'error');
-                    console.error('Error:', error);
+
+                    // Get all selected triggers (both checkbox and custom)
+                    function getTriggers() {
+                        const triggers = [];
+
+                        // Add checkbox triggers
+                        document.querySelectorAll('.trigger-checkbox:checked').forEach(checkbox => {
+                            triggers.push(checkbox.value);
+                        });
+
+                        // Add custom triggers
+                        document.querySelectorAll('.trigger-tag span').forEach(span => {
+                            triggers.push(span.textContent);
+                        });
+
+                        return triggers;
+                    }
+
+                    // Add trigger functionality
+                    addTriggerBtn.addEventListener('click', function () {
+                        addTrigger();
+                    });
+
+                    customTriggerInput.addEventListener('keypress', function (e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault(); // Prevent form submission
+                            addTrigger();
+                        }
+                    });
+
+                    function addTrigger() {
+                        const triggerText = customTriggerInput.value.trim();
+                        if (!triggerText) return;
+
+                        // Check if this trigger already exists
+                        const existingTriggers = getTriggers();
+                        if (existingTriggers.includes(triggerText)) {
+                            showNotification('This trigger is already in your list', 'warning');
+                            return;
+                        }
+
+                        // Check if we already have 10 triggers
+                        if (getTriggerCount() >= 10) {
+                            showNotification('You can only select up to 10 triggers', 'warning');
+                            return;
+                        }
+
+                        // Create trigger tag
+                        const triggerTag = document.createElement('div');
+                        triggerTag.className = 'trigger-tag';
+                        triggerTag.innerHTML = `
+            <span>${triggerText}</span>
+            <button type="button" class="remove-trigger" aria-label="Remove trigger">×</button>
+        `;
+
+                        // Add remove functionality
+                        triggerTag.querySelector('.remove-trigger').addEventListener('click', function () {
+                            triggerTag.remove();
+                            updateTriggerPreview();
+                        });
+
+                        // Add to container
+                        selectedTriggersContainer.appendChild(triggerTag);
+
+                        // Clear input
+                        customTriggerInput.value = '';
+
+                        // Update preview
+                        updateTriggerPreview();
+                    }
+
+                    // Handle checkbox triggers
+                    document.querySelectorAll('.trigger-checkbox').forEach(checkbox => {
+                        checkbox.addEventListener('change', function () {
+                            // Check if we're trying to select more than 10
+                            if (this.checked && getTriggerCount() > 10) {
+                                this.checked = false;
+                                showNotification('You can only select up to 10 triggers', 'warning');
+                                return;
+                            }
+
+                            updateTriggerPreview();
+                        });
+                    });
+
+                    // Update trigger preview
+                    function updateTriggerPreview() {
+                        previewTags.innerHTML = '';
+
+                        const triggers = getTriggers();
+
+                        triggers.forEach(triggerText => {
+                            const tag = document.createElement('span');
+                            tag.className = 'preview-tag';
+                            tag.textContent = triggerText;
+                            tag.style.backgroundColor = primaryColorInput.value;
+                            tag.style.color = textColorInput.value;
+                            previewTags.appendChild(tag);
+                        });
+                    }
+
+                    // Form validation
+                    function validateForm() {
+                        let isValid = true;
+
+                        // Check display name
+                        if (!displayNameInput.value.trim()) {
+                            showNotification('Please enter a display name', 'error');
+                            displayNameInput.focus();
+                            isValid = false;
+                        }
+
+                        return isValid;
+                    }
+
+                    // Form submission
+                    profileForm.addEventListener('submit', function (e) {
+                        e.preventDefault();
+
+                        // Validate form
+                        if (!validateForm()) {
+                            return;
+                        }
+
+                        // Create FormData
+                        const formData = new FormData(this);
+
+                        // Add triggers to form data
+                        formData.append('triggers', JSON.stringify(getTriggers()));
+
+                        // Show loading notification
+                        showNotification('Creating your profile...', 'info');
+
+                        // Send to server
+                        fetch('/bambis/api/update-profile', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => {
+                                if (!response.ok) {
+                                    return response.json().then(data => {
+                                        throw new Error(data.message || 'Error creating profile');
+                                    });
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.success) {
+                                    showNotification('Profile created successfully!', 'success');
+
+                                    // Redirect to new profile
+                                    setTimeout(() => {
+                                        window.location.href = data.redirect || '/bambis';
+                                    }, 1500);
+                                } else {
+                                    showNotification(data.message || 'Unknown error', 'error');
+                                }
+                            })
+                            .catch(error => {
+                                showNotification(error.message || 'Error creating profile', 'error');
+                                console.error('Error:', error);
+                            });
+                    });
+
+                    // Helper function to show notifications
+                    function showNotification(message, type = 'info') {
+                        // Remove existing notification
+                        const existingNotification = document.querySelector('.notification');
+                        if (existingNotification) {
+                            existingNotification.remove();
+                        }
+
+                        // Create notification
+                        const notification = document.createElement('div');
+                        notification.className = `notification ${type}`;
+                        notification.textContent = message;
+
+                        // Add to document
+                        document.body.appendChild(notification);
+
+                        // Remove after 5 seconds
+                        setTimeout(() => {
+                            notification.style.opacity = '0';
+                            notification.style.transition = 'opacity 0.5s ease';
+
+                            setTimeout(() => {
+                                notification.remove();
+                            }, 500);
+                        }, 5000);
+                    }
                 });
-            });
-            
-            // Helper function to show notifications
-            function showNotification(message, type = 'info') {
-                // Remove existing notification
-                const existingNotification = document.querySelector('.notification');
-                if (existingNotification) {
-                    existingNotification.remove();
-                }
-                
-                // Create notification
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
-                notification.textContent = message;
-                
-                // Add to document
-                document.body.appendChild(notification);
-                
-                // Remove after 5 seconds
-                setTimeout(() => {
-                    notification.style.opacity = '0';
-                    notification.style.transition = 'opacity 0.5s ease';
-                    
-                    setTimeout(() => {
-                        notification.remove();
-                    }, 500);
-                }, 5000);
-            }
-            
-            // Initialize with defaults
-            getTriggers = function() {
-                const triggers = [];
-                
-                // Add checkbox triggers
-                document.querySelectorAll('.trigger-checkbox:checked').forEach(checkbox => {
-                    triggers.push(checkbox.value);
-                });
-                
-                // Add custom triggers
-                document.querySelectorAll('.trigger-tag span').forEach(span => {
-                    triggers.push(span.textContent);
-                });
-                
-                return triggers;
-            };
-        });
-    </script>
+            </script>
 </body>
+
 </html>

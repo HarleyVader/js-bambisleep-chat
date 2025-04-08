@@ -463,10 +463,18 @@
                  * @returns {Array} Array of trigger strings
                  */
                 function getTriggers() {
-                    // Get triggers from the UI - this is a placeholder
-                    // You should implement this based on your actual UI
-                    const triggerElements = document.querySelectorAll('.trigger-input:checked');
-                    return Array.from(triggerElements).map(el => el.value);
+                    // Get custom triggers from trigger tags
+                    const customTriggers = Array.from(
+                        document.querySelectorAll('.trigger-tag span')
+                    ).map(el => el.textContent.trim());
+                    
+                    // Get checkbox triggers
+                    const checkboxTriggers = Array.from(
+                        document.querySelectorAll('.trigger-checkbox:checked')
+                    ).map(el => el.value);
+                    
+                    // Combine all triggers
+                    return [...new Set([...customTriggers, ...checkboxTriggers])];
                 }
 
                 /**
