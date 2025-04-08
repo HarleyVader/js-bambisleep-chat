@@ -15,6 +15,7 @@
             position: relative;
             overflow: hidden;
             transition: all 0.3s ease;
+            padding: 20px;
         }
         
         .profile-card:hover {
@@ -106,6 +107,30 @@
             flex: 1;
             margin-right: 10px;
         }
+        
+        .heart-button {
+            background-color: transparent;
+            border: none;
+            color: var(--button-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            animation: none;
+        }
+        
+        .heart-button:hover {
+            transform: scale(1.2);
+        }
+        
+        .heart-button.active {
+            color: var(--tertiary-color);
+            animation: heartbeat 1s infinite;
+        }
+        
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
     </style>
 </head>
 <body>
@@ -139,8 +164,11 @@
                                 <div class="stat-value">LVL <%= bambi.level %></div>
                                 <div class="stat-label">Level</div>
                             </div>
-                            <div class="stat">
-                                <div class="stat-value"><%= bambi.hearts.count %></div>
+                            <div class="stat heart-stat" data-username="<%= bambi.username %>">
+                                <button class="heart-button <% if (bambi.userHasLiked) { %>active<% } %>" data-username="<%= bambi.username %>">
+                                    ❤️
+                                </button>
+                                <div class="stat-value heart-count"><%= bambi.hearts.count %></div>
                                 <div class="stat-label">Hearts</div>
                             </div>
                             <div class="stat">
@@ -166,8 +194,12 @@
     
     <%- include('../views/partials/footer.ejs') %>
     
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Connect to Socket.io
+            const socket = io();
+            
             // Handle profile creation
             const createProfileForm = document.getElementById('create-profile-form');
             
@@ -177,11 +209,73 @@
                 const bambiname = document.getElementById('bambiname-input').value.trim();
                 if (!bambiname) return;
                 
+                // Validate bambiname (alphanumeric + spaces, 3-30 chars)
+                const nameRegex = /^[a-zA-Z0-9 ]{3,30}$/;
+                if (!nameRegex.test(bambiname)) {
+                    alert('BambiName must be 3-30 characters with only letters, numbers and spaces.');
+                    return;
+                }
+                
                 // Set cookie for bambiname
                 document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
                 
                 // Redirect to create profile page
                 window.location.href = `/bambis/create`;
+            });
+            
+            // Handle heart buttons
+            document.querySelectorAll('.heart-button').forEach(button => {
+                button.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    
+                    const username = this.dataset.username;
+                    try {
+                        const response = await fetch(`/bambis/api/heart/${username}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            // Update UI
+                            this.classList.toggle('active', data.hearted);
+                            
+                            const heartStat = document.querySelector(`.heart-stat[data-username="${username}"]`);
+                            const heartCount = heartStat.querySelector('.heart-count');
+                            heartCount.textContent = data.heartCount;
+                            
+                            // Emit socket event for real-time updates
+                            socket.emit('profile:heart', {
+                                username: username,
+                                count: data.heartCount,
+                                hearted: data.hearted
+                            });
+                        } else {
+                            alert(data.message || 'Error hearting profile');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error processing your request');
+                    }
+                });
+            });
+            
+            // Listen for real-time updates
+            socket.on('profile:hearted', data => {
+                const heartStat = document.querySelector(`.heart-stat[data-username="${data.username}"]`);
+                if (heartStat) {
+                    const heartCount = heartStat.querySelector('.heart-count');
+                    heartCount.textContent = data.count;
+                }
+            });
+            
+            // Listen for new profile creation
+            socket.on('profile:created', data => {
+                // You could either refresh the page or dynamically add the new profile
+                // For simplicity, refresh the page
+                window.location.reload();
             });
         });
     </script>
