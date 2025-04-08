@@ -1,0 +1,92 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bambi Forest - My Profile</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav>
+    <ul>
+      <li><a href="/profile">My Woodland</a></li>
+      <li><a href="/friends">Forest Friends</a></li>
+      <li><a href="/logout">Leave Forest</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="profile-container">
+      <div id="notification-area" class="notification-area" style="display: none;"></div>
+      
+      <div class="profile-header">
+        <div class="avatar-container">
+          <img src="/images/<%= profile.avatar %>" alt="Profile Avatar" class="profile-avatar">
+        </div>
+        <h1 id="displayName" class="profile-name" data-field="displayName"><%= profile.displayName %></h1>
+        <p class="username">@<%= user.username %> <span class="online-indicator online">●</span></p>
+      </div>
+      
+      <div class="profile-section">
+        <h3><svg class="icon"><use xlink:href="/images/woodland-icons.svg#tree"></use></svg> Woodland Home</h3>
+        <p id="woodland" data-field="woodland"><%= profile.woodland %></p>
+        <button class="edit-btn" data-target="woodland">Edit</button>
+      </div>
+      
+      <div class="profile-section">
+        <h3><svg class="icon"><use xlink:href="/images/woodland-icons.svg#leaf"></use></svg> My Story</h3>
+        <p id="bio" data-field="bio"><%= profile.bio %></p>
+        <button class="edit-btn" data-target="bio">Edit</button>
+      </div>
+      
+      <div class="profile-section">
+        <h3><svg class="icon"><use xlink:href="/images/woodland-icons.svg#sun"></use></svg> Favorite Seasons</h3>
+        <div id="favoriteSeasons" class="seasons-container">
+          <% profile.favoriteSeasons.forEach(season => { %>
+            <span class="season-tag"><%= season %></span>
+          <% }) %>
+        </div>
+        <button class="edit-btn" data-target="favoriteSeasons">Edit</button>
+      </div>
+      
+      <div class="profile-section">
+        <h3><svg class="icon"><use xlink:href="/images/woodland-icons.svg#butterfly"></use></svg> Forest Friends</h3>
+        <div id="friends" class="friends-container">
+          <% if (friendProfiles && friendProfiles.length > 0) { %>
+            <% friendProfiles.forEach(friend => { %>
+              <div class="friend-chip">
+                <%= friend.displayName %>
+                <span class="online-indicator <%= onlineUsers.includes(friend.userId.toString()) ? 'online' : 'offline' %>">●</span>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <p>No forest friends yet. Explore the woodland to find some!</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="edit-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h3>Edit <span id="editing-field-name"></span></h3>
+      <div id="edit-field-container"></div>
+      <button id="save-changes-btn">Save Changes</button>
+    </div>
+  </div>
+  
+  <div id="notification-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-notification-modal">&times;</span>
+      <h3>Woodland Notifications</h3>
+      <div id="notification-container"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/profile.js"></script>
+</body>
+</html>
