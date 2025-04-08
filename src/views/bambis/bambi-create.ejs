@@ -745,17 +745,27 @@
                     function getTriggers() {
                         const triggers = [];
 
-                        // Add checkbox triggers
-                        document.querySelectorAll('.trigger-checkbox:checked').forEach(checkbox => {
-                            triggers.push(checkbox.value);
-                        });
+                        try {
+                            // Add checkbox triggers
+                            document.querySelectorAll('.trigger-checkbox:checked').forEach(checkbox => {
+                                if (checkbox.value && typeof checkbox.value === 'string') {
+                                    triggers.push(checkbox.value);
+                                }
+                            });
 
-                        // Add custom triggers
-                        document.querySelectorAll('.trigger-tag span').forEach(span => {
-                            triggers.push(span.textContent);
-                        });
+                            // Add custom triggers
+                            document.querySelectorAll('.trigger-tag span').forEach(span => {
+                                if (span.textContent && typeof span.textContent === 'string') {
+                                    triggers.push(span.textContent.trim());
+                                }
+                            });
 
-                        return triggers;
+                            // Remove duplicates
+                            return [...new Set(triggers)];
+                        } catch (error) {
+                            console.error('Error in getTriggers:', error);
+                            return [];
+                        }
                     }
 
                     // Add trigger functionality
@@ -852,6 +862,30 @@
                             isValid = false;
                         }
 
+                        // Check if description is too long
+                        if (descriptionInput.value.length > 500) {
+                            showNotification('Description must be under 500 characters', 'error');
+                            descriptionInput.focus();
+                            isValid = false;
+                        }
+
+                        // Check avatar if one is selected
+                        if (avatarUpload.files.length > 0) {
+                            const file = avatarUpload.files[0];
+                            const maxSize = 10 * 1024 * 1024; // 10MB
+
+                            if (file.size > maxSize) {
+                                showNotification('Avatar file is too large. Maximum size is 10MB.', 'error');
+                                isValid = false;
+                            }
+
+                            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                            if (!validTypes.includes(file.type)) {
+                                showNotification('Invalid file type. Please use JPG, PNG, or GIF.', 'error');
+                                isValid = false;
+                            }
+                        }
+
                         return isValid;
                     }
 
@@ -867,17 +901,33 @@
                         // Create FormData
                         const formData = new FormData(this);
 
-                        // Add triggers to form data
+                        // Add triggers to form data with more robust error handling
                         try {
                             const triggers = getTriggers();
+                            console.log('Sending triggers:', triggers);
                             formData.append('triggers', JSON.stringify(triggers));
                         } catch (error) {
                             console.error('Error processing triggers:', error);
                             formData.append('triggers', JSON.stringify([]));
                         }
 
+                        // Add other fields with explicit checks
+                        if (!formData.get('displayName')) {
+                            formData.set('displayName', document.getElementById('bambiname').value);
+                        }
+
                         // Show loading notification
                         showNotification('Creating your profile...', 'info');
+
+                        // Log formData contents for debugging
+                        console.log('Form data being sent:');
+                        for (let pair of formData.entries()) {
+                            if (pair[0] === 'avatar' && pair[1] instanceof File) {
+                                console.log(pair[0], `File: ${pair[1].name}, size: ${pair[1].size}, type: ${pair[1].type}`);
+                            } else {
+                                console.log(pair[0], pair[1]);
+                            }
+                        }
 
                         // Send to server
                         fetch('/bambis/api/update-profile', {
@@ -885,22 +935,27 @@
                             body: formData
                         })
                             .then(response => {
+                                console.log('Server response status:', response.status);
+
                                 if (!response.ok) {
-                                    return response.json()
-                                        .then(data => {
-                                            throw new Error(data.message || 'Error creating profile');
-                                        })
-                                        .catch(err => {
-                                            // If the response is not valid JSON
-                                            if (err instanceof SyntaxError) {
-                                                throw new Error(`Server error (${response.status}): Please try again later`);
+                                    return response.text()
+                                        .then(text => {
+                                            // Try to parse as JSON first
+                                            try {
+                                                const data = JSON.parse(text);
+                                                throw new Error(data.message || `Error (${response.status}): Request failed`);
+                                            } catch (parseError) {
+                                                // If not JSON, return the text or a generic message
+                                                throw new Error(`Server error (${response.status}): ${text || 'Unknown server error'}`);
                                             }
-                                            throw err;
                                         });
                                 }
+
                                 return response.json();
                             })
                             .then(data => {
+                                console.log('Success response:', data);
+
                                 if (data.success) {
                                     showNotification('Profile created successfully!', 'success');
 
@@ -913,8 +968,8 @@
                                 }
                             })
                             .catch(error => {
-                                showNotification(error.message || 'Error creating profile', 'error');
-                                console.error('Error:', error);
+                                console.error('Error creating profile:', error);
+                                showNotification(error.message || 'Error creating profile. Please try again.', 'error');
                             });
                     });
 
