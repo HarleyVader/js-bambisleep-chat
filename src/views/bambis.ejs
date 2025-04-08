@@ -3,266 +3,375 @@
 <%- include('../views/partials/head.ejs') %>
   <title><%= locals.bambi ? `${bambi.displayName || bambi.username} | Bambisleep.chat` : 'Bambi Profiles | Bambisleep.chat' %></title>
   <link rel="stylesheet" href="/css/bambis.css">
+  <style>
+    /* Tab styles */
+    .tabs-container {
+      width: 100%;
+      margin-bottom: 30px;
+    }
+    
+    .tabs-nav {
+      display: flex;
+      border-bottom: 3px solid var(--button-color);
+      margin-bottom: 20px;
+    }
+    
+    .tab-button {
+      padding: 10px 20px;
+      margin-right: 5px;
+      background: transparent;
+      border: none;
+      border-radius: 5px 5px 0 0;
+      color: var(--primary-alt);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .tab-button:hover {
+      color: var(--tertiary-color);
+      text-shadow: var(--secondary-color) 1px 1px 1px;
+    }
+    
+    .tab-button.active {
+      background: var(--button-color);
+      color: var(--secondary-color);
+      text-shadow: var(--tertiary-color) 1px 1px 1px;
+      transform: translateY(-3px);
+      border-top: 2px solid var(--tertiary-color);
+      border-left: 2px solid var(--tertiary-color);
+      border-right: 2px solid var(--tertiary-color);
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 20px;
+      background-color: var(--transparent);
+      border-radius: 0 0 8px 8px;
+      transition: all 0.3s ease;
+    }
+    
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 <body>
   <%- include('../views/partials/nav.ejs') %>
   
   <main class="container" style="width: 95%; max-width: 95%;">
-    <% if (locals.bambi) { %>
-      <!-- SINGLE PROFILE VIEW -->
-      <a href="/bambis" class="back-to-profiles"><i class="fas fa-arrow-left"></i> Back to Profiles</a>
+    <!-- Tabs Navigation -->
+    <div class="tabs-container">
+      <div class="tabs-nav">
+        <button class="tab-button active" data-tab="profiles">Profiles</button>
+        <button class="tab-button" data-tab="favorites">Favorites</button>
+        <button class="tab-button" data-tab="following">Following</button>
+        <button class="tab-button" data-tab="followers">Followers</button>
+      </div>
       
-      <div class="profile-container">
-        <div class="profile-header">
-          <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>" class="profile-avatar">
-        </div>
-        
-        <div class="profile-details">
-          <!-- Row 1: Name and Stats in 5 columns -->
-          <div class="profile-row stats-row">
-            <div class="profile-name-column">
-              <h1 class="profile-name"><%= bambi.displayName || bambi.username %></h1>
-              <div class="profile-username">@<%= bambi.username %></div>
+      <!-- Tab Content -->
+      <div class="tab-content active" id="profiles-tab">
+        <% if (locals.bambi) { %>
+          <!-- SINGLE PROFILE VIEW -->
+          <a href="/bambis" class="back-to-profiles"><i class="fas fa-arrow-left"></i> Back to Profiles</a>
+          
+          <div class="profile-container">
+            <div class="profile-header">
+              <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>" class="profile-avatar">
             </div>
             
-            <div class="stat-column">
-              <div class="stat-value"><%= bambi.level %></div>
-              <div class="stat-label">Level</div>
-            </div>
-            
-            <div class="stat-column">
-              <div class="stat-value"><%= bambi.triggers.length %></div>
-              <div class="stat-label">Triggers</div>
-            </div>
-            
-            <div class="stat-column">
-              <div class="stat-value"><%= bambi.favoriteFiles.length %></div>
-              <div class="stat-label">Favorite Files</div>
-            </div>
-            
-            <div class="stat-column">
-              <div class="stat-value heart-container">
-                <span id="heartCount"><%= bambi.hearts ? bambi.hearts.count : 0 %></span>
-                <button id="heartButton" class="heart-button">
-                  <i class="fas fa-heart"></i>
+            <div class="profile-details">
+              <!-- Row 1: Name and Stats in 5 columns -->
+              <div class="profile-row stats-row">
+                <div class="profile-name-column">
+                  <h1 class="profile-name"><%= bambi.displayName || bambi.username %></h1>
+                  <div class="profile-username">@<%= bambi.username %></div>
+                </div>
+                
+                <div class="stat-column">
+                  <div class="stat-value"><%= bambi.level %></div>
+                  <div class="stat-label">Level</div>
+                </div>
+                
+                <div class="stat-column">
+                  <div class="stat-value"><%= bambi.triggers.length %></div>
+                  <div class="stat-label">Triggers</div>
+                </div>
+                
+                <div class="stat-column">
+                  <div class="stat-value"><%= bambi.favoriteFiles.length %></div>
+                  <div class="stat-label">Favorite Files</div>
+                </div>
+                
+                <div class="stat-column">
+                  <div class="stat-value heart-container">
+                    <span id="heartCount"><%= bambi.hearts ? bambi.hearts.count : 0 %></span>
+                    <button id="heartButton" class="heart-button">
+                      <i class="fas fa-heart"></i>
+                    </button>
+                  </div>
+                  <div class="stat-label">Hearts</div>
+                </div>
+              </div>
+              
+              <!-- Row 2: Custom URL and Share Button -->
+              <div class="profile-row url-share-row">
+                <div class="custom-url">
+                  <span class="url-label">Profile URL:</span>
+                  <span class="url-value">bambisleep.chat/bambis/<%= bambi.username %></span>
+                </div>
+                
+                <button id="shareProfileBtn" class="share-button">
+                  <i class="fas fa-share-alt"></i> Share Profile
                 </button>
               </div>
-              <div class="stat-label">Hearts</div>
-            </div>
-          </div>
-          
-          <!-- Row 2: Custom URL and Share Button -->
-          <div class="profile-row url-share-row">
-            <div class="custom-url">
-              <span class="url-label">Profile URL:</span>
-              <span class="url-value">bambisleep.chat/bambis/<%= bambi.username %></span>
+              
+              <!-- Row 3: Description -->
+              <div class="profile-row description-row">
+                <h3>About</h3>
+                <div class="profile-description">
+                  <%= bambi.description || 'No description provided' %>
+                </div>
+              </div>
+              
+              <!-- Row 4: Triggers -->
+              <div class="profile-row triggers-row">
+                <h3 class="triggers-title">Triggers</h3>
+                
+                <div class="trigger-tags">
+                  <% if (bambi.triggers && bambi.triggers.length > 0) { %>
+                    <% bambi.triggers.forEach(trigger => { %>
+                      <div class="trigger-tag"><%= trigger %></div>
+                    <% }) %>
+                  <% } else { %>
+                    <p>No triggers added yet</p>
+                  <% } %>
+                </div>
+              </div>
+              
+              <!-- Row 5: Recent Activity -->
+              <div class="profile-row activity-row">
+                <h3>Recent Activity</h3>
+                <div class="activity-feed">
+                  <% if (bambi.activities && bambi.activities.length > 0) { %>
+                    <% bambi.activities.slice(0, 5).forEach(activity => { %>
+                      <div class="activity-item">
+                        <div class="activity-icon">
+                          <% if (activity.type === 'file') { %>
+                            <i class="fas fa-file-audio"></i>
+                          <% } else if (activity.type === 'level') { %>
+                            <i class="fas fa-arrow-up"></i>
+                          <% } else if (activity.type === 'badge') { %>
+                            <i class="fas fa-award"></i>
+                          <% } else if (activity.type === 'heart') { %>
+                            <i class="fas fa-heart"></i>
+                          <% } else { %>
+                            <i class="fas fa-star"></i>
+                          <% } %>
+                        </div>
+                        <div class="activity-details">
+                          <p><%= activity.description %></p>
+                          <small><%= new Date(activity.timestamp).toLocaleString() %></small>
+                        </div>
+                      </div>
+                    <% }) %>
+                  <% } else { %>
+                    <p>No recent activity</p>
+                  <% } %>
+                </div>
+              </div>
+              
+              <!-- Edit Profile Button -->
+              <button id="editProfileBtn" class="edit-profile-btn">Edit Profile</button>
             </div>
             
-            <button id="shareProfileBtn" class="share-button">
-              <i class="fas fa-share-alt"></i> Share Profile
-            </button>
-          </div>
-          
-          <!-- Row 3: Description -->
-          <div class="profile-row description-row">
-            <h3>About</h3>
-            <div class="profile-description">
-              <%= bambi.description || 'No description provided' %>
-            </div>
-          </div>
-          
-          <!-- Row 4: Triggers -->
-          <div class="profile-row triggers-row">
-            <h3 class="triggers-title">Triggers</h3>
-            
-            <div class="trigger-tags">
-              <% if (bambi.triggers && bambi.triggers.length > 0) { %>
-                <% bambi.triggers.forEach(trigger => { %>
-                  <div class="trigger-tag"><%= trigger %></div>
-                <% }) %>
-              <% } else { %>
-                <p>No triggers added yet</p>
-              <% } %>
-            </div>
-          </div>
-          
-          <!-- Row 5: Recent Activity -->
-          <div class="profile-row activity-row">
-            <h3>Recent Activity</h3>
-            <div class="activity-feed">
-              <% if (bambi.activities && bambi.activities.length > 0) { %>
-                <% bambi.activities.slice(0, 5).forEach(activity => { %>
-                  <div class="activity-item">
-                    <div class="activity-icon">
-                      <% if (activity.type === 'file') { %>
-                        <i class="fas fa-file-audio"></i>
-                      <% } else if (activity.type === 'level') { %>
-                        <i class="fas fa-arrow-up"></i>
-                      <% } else if (activity.type === 'badge') { %>
-                        <i class="fas fa-award"></i>
-                      <% } else if (activity.type === 'heart') { %>
-                        <i class="fas fa-heart"></i>
-                      <% } else { %>
-                        <i class="fas fa-star"></i>
-                      <% } %>
+            <div id="editForm" class="edit-form">
+              <h2>Edit Your Profile</h2>
+              <form id="profileEditForm">
+                <div class="form-group">
+                  <label for="displayNameEdit">Display Name</label>
+                  <input type="text" id="displayNameEdit" name="displayName" value="<%= bambi.displayName || '' %>" placeholder="Your display name">
+                </div>
+                
+                <div class="form-group">
+                  <label for="descriptionEdit">About You</label>
+                  <textarea id="descriptionEdit" name="description" rows="4" placeholder="Tell us about yourself..."><%= bambi.description || '' %></textarea>
+                </div>
+                
+                <div class="form-group">
+                  <label for="profilePictureEdit">Profile Picture</label>
+                  <input type="file" id="profilePictureEdit" name="profilePicture" accept="image/*">
+                </div>
+                
+                <div class="form-group">
+                  <label>Triggers</label>
+                  <div id="triggersList" class="triggers-input">
+                    <% if (bambi.triggers && bambi.triggers.length > 0) { %>
+                      <% bambi.triggers.forEach(trigger => { %>
+                        <div class="trigger-pill" data-value="<%= trigger %>">
+                          <%= trigger %><span class="remove-trigger">×</span>
+                        </div>
+                      <% }) %>
+                    <% } %>
+                  </div>
+                  <input type="text" id="newTrigger" placeholder="Type a trigger and press Enter">
+                </div>
+                
+                <div class="form-group">
+                  <label>Profile Theme</label>
+                  <div class="theme-customizer">
+                    <div class="color-picker">
+                      <label for="primaryColor">Primary Color:</label>
+                      <input type="color" id="primaryColor" name="primaryColor" value="<%= bambi.profileTheme?.primaryColor || '#fa81ff' %>">
                     </div>
-                    <div class="activity-details">
-                      <p><%= activity.description %></p>
-                      <small><%= new Date(activity.timestamp).toLocaleString() %></small>
+                    
+                    <div class="color-picker">
+                      <label for="secondaryColor">Secondary Color:</label>
+                      <input type="color" id="secondaryColor" name="secondaryColor" value="<%= bambi.profileTheme?.secondaryColor || '#ff4fa2' %>">
+                    </div>
+                    
+                    <div class="color-picker">
+                      <label for="textColor">Text Color:</label>
+                      <input type="color" id="textColor" name="textColor" value="<%= bambi.profileTheme?.textColor || '#ffffff' %>">
+                    </div>
+                    
+                    <div class="preview-box" id="themePreview">
+                      <span>Theme Preview</span>
                     </div>
                   </div>
-                <% }) %>
-              <% } else { %>
-                <p>No recent activity</p>
-              <% } %>
+                </div>
+                
+                <button type="submit" class="edit-profile-btn">Save Changes</button>
+              </form>
             </div>
           </div>
+        <% } else { %>
+          <!-- PROFILES LIST VIEW -->
+          <h1>Bambi Profiles</h1>
           
-          <!-- Edit Profile Button -->
-          <button id="editProfileBtn" class="edit-profile-btn">Edit Profile</button>
-        </div>
-        
-        <div id="editForm" class="edit-form">
-          <h2>Edit Your Profile</h2>
-          <form id="profileEditForm">
-            <div class="form-group">
-              <label for="displayNameEdit">Display Name</label>
-              <input type="text" id="displayNameEdit" name="displayName" value="<%= bambi.displayName || '' %>" placeholder="Your display name">
+          <% if (locals.error) { %>
+            <div class="error-message">
+              <%= error %>
             </div>
-            
-            <div class="form-group">
-              <label for="descriptionEdit">About You</label>
-              <textarea id="descriptionEdit" name="description" rows="4" placeholder="Tell us about yourself..."><%= bambi.description || '' %></textarea>
-            </div>
-            
-            <div class="form-group">
-              <label for="profilePictureEdit">Profile Picture</label>
-              <input type="file" id="profilePictureEdit" name="profilePicture" accept="image/*">
-            </div>
-            
-            <div class="form-group">
-              <label>Triggers</label>
-              <div id="triggersList" class="triggers-input">
-                <% if (bambi.triggers && bambi.triggers.length > 0) { %>
-                  <% bambi.triggers.forEach(trigger => { %>
-                    <div class="trigger-pill" data-value="<%= trigger %>">
-                      <%= trigger %><span class="remove-trigger">×</span>
+          <% } %>
+          
+          <div class="create-profile-section">
+            <h2>Create Your Bambi Profile</h2>
+            <form id="createProfileForm">
+              <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required minlength="3" placeholder="Your unique bambi name">
+              </div>
+              
+              <div class="form-group">
+                <label for="displayName">Display Name (optional)</label>
+                <input type="text" id="displayName" name="displayName" placeholder="Your display name">
+              </div>
+              
+              <div class="form-group">
+                <label for="description">About You</label>
+                <textarea id="description" name="description" rows="4" placeholder="Tell us about yourself..."></textarea>
+              </div>
+              
+              <button type="submit">Create Profile</button>
+            </form>
+          </div>
+          
+          <% if (locals.bambis && bambis.length > 0) { %>
+            <div class="profiles-container">
+              <% bambis.forEach(bambi => { %>
+                <div class="profile-card">
+                  <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>" class="profile-image">
+                  <div class="profile-info">
+                    <h3 class="profile-name"><a href="/bambis/<%= bambi.username %>"><%= bambi.displayName || bambi.username %></a></h3>
+                    <p class="profile-description"><%= bambi.description || 'No description provided' %></p>
+                    <div class="profile-details">
+                      <span>Level: <%= bambi.level %></span>
+                      <span>
+                        <i class="fas fa-heart" style="color: #ff4fa2;"></i> 
+                        <%= bambi.hearts ? bambi.hearts.count : 0 %>
+                      </span>
+                      <span>Triggers: <%= bambi.triggers ? bambi.triggers.length : 0 %></span>
                     </div>
-                  <% }) %>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+            
+            <!-- Pagination -->
+            <% if (locals.totalPages && totalPages > 1) { %>
+              <div class="pagination">
+                <% if (currentPage > 1) { %>
+                  <a href="/bambis?page=<%= currentPage - 1 %>">Previous</a>
+                <% } %>
+                
+                <% for (let i = 1; i <= totalPages; i++) { %>
+                  <% if (i === currentPage) { %>
+                    <span class="active"><%= i %></span>
+                  <% } else { %>
+                    <a href="/bambis?page=<%= i %>"><%= i %></a>
+                  <% } %>
+                <% } %>
+                
+                <% if (currentPage < totalPages) { %>
+                  <a href="/bambis?page=<%= currentPage + 1 %>">Next</a>
                 <% } %>
               </div>
-              <input type="text" id="newTrigger" placeholder="Type a trigger and press Enter">
-            </div>
-            
-            <div class="form-group">
-              <label>Profile Theme</label>
-              <div class="theme-customizer">
-                <div class="color-picker">
-                  <label for="primaryColor">Primary Color:</label>
-                  <input type="color" id="primaryColor" name="primaryColor" value="<%= bambi.profileTheme?.primaryColor || '#fa81ff' %>">
-                </div>
-                
-                <div class="color-picker">
-                  <label for="secondaryColor">Secondary Color:</label>
-                  <input type="color" id="secondaryColor" name="secondaryColor" value="<%= bambi.profileTheme?.secondaryColor || '#ff4fa2' %>">
-                </div>
-                
-                <div class="color-picker">
-                  <label for="textColor">Text Color:</label>
-                  <input type="color" id="textColor" name="textColor" value="<%= bambi.profileTheme?.textColor || '#ffffff' %>">
-                </div>
-                
-                <div class="preview-box" id="themePreview">
-                  <span>Theme Preview</span>
-                </div>
-              </div>
-            </div>
-            
-            <button type="submit" class="edit-profile-btn">Save Changes</button>
-          </form>
-        </div>
-      </div>
-    <% } else { %>
-      <!-- PROFILES LIST VIEW -->
-      <h1>Bambi Profiles</h1>
-      
-      <% if (locals.error) { %>
-        <div class="error-message">
-          <%= error %>
-        </div>
-      <% } %>
-      
-      <div class="create-profile-section">
-        <h2>Create Your Bambi Profile</h2>
-        <form id="createProfileForm">
-          <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" required minlength="3" placeholder="Your unique bambi name">
-          </div>
-          
-          <div class="form-group">
-            <label for="displayName">Display Name (optional)</label>
-            <input type="text" id="displayName" name="displayName" placeholder="Your display name">
-          </div>
-          
-          <div class="form-group">
-            <label for="description">About You</label>
-            <textarea id="description" name="description" rows="4" placeholder="Tell us about yourself..."></textarea>
-          </div>
-          
-          <button type="submit">Create Profile</button>
-        </form>
-      </div>
-      
-      <% if (locals.bambis && bambis.length > 0) { %>
-        <div class="profiles-container">
-          <% bambis.forEach(bambi => { %>
-            <div class="profile-card">
-              <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>" class="profile-image">
-              <div class="profile-info">
-                <h3 class="profile-name"><a href="/bambis/<%= bambi.username %>"><%= bambi.displayName || bambi.username %></a></h3>
-                <p class="profile-description"><%= bambi.description || 'No description provided' %></p>
-                <div class="profile-details">
-                  <span>Level: <%= bambi.level %></span>
-                  <span>
-                    <i class="fas fa-heart" style="color: #ff4fa2;"></i> 
-                    <%= bambi.hearts ? bambi.hearts.count : 0 %>
-                  </span>
-                  <span>Triggers: <%= bambi.triggers ? bambi.triggers.length : 0 %></span>
-                </div>
-              </div>
-            </div>
-          <% }) %>
-        </div>
-        
-        <!-- Pagination -->
-        <% if (locals.totalPages && totalPages > 1) { %>
-          <div class="pagination">
-            <% if (currentPage > 1) { %>
-              <a href="/bambis?page=<%= currentPage - 1 %>">Previous</a>
             <% } %>
-            
-            <% for (let i = 1; i <= totalPages; i++) { %>
-              <% if (i === currentPage) { %>
-                <span class="active"><%= i %></span>
-              <% } else { %>
-                <a href="/bambis?page=<%= i %>"><%= i %></a>
-              <% } %>
-            <% } %>
-            
-            <% if (currentPage < totalPages) { %>
-              <a href="/bambis?page=<%= currentPage + 1 %>">Next</a>
-            <% } %>
-          </div>
+          <% } else if (!locals.error) { %>
+            <div class="empty-state">
+              <p>No bambi profiles found. Be the first to create one!</p>
+            </div>
+          <% } %>
         <% } %>
-      <% } else if (!locals.error) { %>
-        <div class="empty-state">
-          <p>No bambi profiles found. Be the first to create one!</p>
-        </div>
-      <% } %>
-    <% } %>
+      </div>
+      
+      <div class="tab-content" id="favorites-tab">
+        <h2>Your Favorite Bambis</h2>
+        <p>You haven't favorited any bambis yet.</p>
+      </div>
+      
+      <div class="tab-content" id="following-tab">
+        <h2>Bambis You Follow</h2>
+        <p>You aren't following any bambis yet.</p>
+      </div>
+      
+      <div class="tab-content" id="followers-tab">
+        <h2>Your Followers</h2>
+        <p>You don't have any followers yet.</p>
+      </div>
+    </div>
   </main>
   
   <%- include('../views/partials/footer.ejs') %>
   <script src="/js/bambis.js"></script>
+  <script>
+    // Tab functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const tabId = button.getAttribute('data-tab');
+          
+          // Remove active class from all buttons and tabs
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          tabContents.forEach(content => content.classList.remove('active'));
+          
+          // Add active class to current button and tab
+          button.classList.add('active');
+          document.getElementById(`${tabId}-tab`).classList.add('active');
+        });
+      });
+    });
+  </script>
 </body>
 </html>

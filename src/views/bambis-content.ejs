@@ -112,9 +112,64 @@
       <button id="editProfileBtn" class="edit-profile-btn">Edit Profile</button>
     </div>
     
-    <!-- Include Edit Form Section Here -->
     <div id="editForm" class="edit-form">
-      <!-- Your existing edit form goes here -->
+      <h2>Edit Your Profile</h2>
+      <form id="profileEditForm">
+        <div class="form-group">
+          <label for="displayNameEdit">Display Name</label>
+          <input type="text" id="displayNameEdit" name="displayName" value="<%= bambi.displayName || '' %>" placeholder="Your display name">
+        </div>
+        
+        <div class="form-group">
+          <label for="descriptionEdit">About You</label>
+          <textarea id="descriptionEdit" name="description" rows="4" placeholder="Tell us about yourself..."><%= bambi.description || '' %></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="profilePictureEdit">Profile Picture</label>
+          <input type="file" id="profilePictureEdit" name="profilePicture" accept="image/*">
+        </div>
+        
+        <div class="form-group">
+          <label>Triggers</label>
+          <div id="triggersList" class="triggers-input">
+            <% if (bambi.triggers && bambi.triggers.length > 0) { %>
+              <% bambi.triggers.forEach(trigger => { %>
+                <div class="trigger-pill" data-value="<%= trigger %>">
+                  <%= trigger %><span class="remove-trigger">×</span>
+                </div>
+              <% }) %>
+            <% } %>
+          </div>
+          <input type="text" id="newTrigger" placeholder="Type a trigger and press Enter">
+        </div>
+        
+        <div class="form-group">
+          <label>Profile Theme</label>
+          <div class="theme-customizer">
+            <div class="color-picker">
+              <label for="primaryColor">Primary Color:</label>
+              <input type="color" id="primaryColor" name="primaryColor" value="<%= bambi.profileTheme?.primaryColor || '#fa81ff' %>">
+            </div>
+            
+            <div class="color-picker">
+              <label for="secondaryColor">Secondary Color:</label>
+              <input type="color" id="secondaryColor" name="secondaryColor" value="<%= bambi.profileTheme?.secondaryColor || '#ff4fa2' %>">
+            </div>
+            
+            <div class="color-picker">
+              <label for="textColor">Text Color:</label>
+              <input type="color" id="textColor" name="textColor" value="<%= bambi.profileTheme?.textColor || '#ffffff' %>">
+            </div>
+            
+            <div class="preview-box" id="themePreview">
+              <span>Theme Preview</span>
+            </div>
+          </div>
+        </div>
+        
+        <button type="submit" class="edit-profile-btn">Save Changes</button>
+      </form>
     </div>
   </div>
 <% } else { %>
@@ -129,20 +184,65 @@
   
   <div class="create-profile-section">
     <h2>Create Your Bambi Profile</h2>
-    <!-- Your existing create profile form goes here -->
+    <form id="createProfileForm">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required minlength="3" placeholder="Your unique bambi name">
+      </div>
+      
+      <div class="form-group">
+        <label for="displayName">Display Name (optional)</label>
+        <input type="text" id="displayName" name="displayName" placeholder="Your display name">
+      </div>
+      
+      <div class="form-group">
+        <label for="description">About You</label>
+        <textarea id="description" name="description" rows="4" placeholder="Tell us about yourself..."></textarea>
+      </div>
+      
+      <button type="submit">Create Profile</button>
+    </form>
   </div>
   
   <% if (locals.bambis && bambis.length > 0) { %>
     <div class="profiles-container">
       <% bambis.forEach(bambi => { %>
-        <!-- Your existing profile card goes here -->
+        <div class="profile-card">
+          <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>" class="profile-image">
+          <div class="profile-info">
+            <h3 class="profile-name"><a href="/bambis/<%= bambi.username %>"><%= bambi.displayName || bambi.username %></a></h3>
+            <p class="profile-description"><%= bambi.description || 'No description provided' %></p>
+            <div class="profile-details">
+              <span>Level: <%= bambi.level %></span>
+              <span>
+                <i class="fas fa-heart" style="color: #ff4fa2;"></i> 
+                <%= bambi.hearts ? bambi.hearts.count : 0 %>
+              </span>
+              <span>Triggers: <%= bambi.triggers ? bambi.triggers.length : 0 %></span>
+            </div>
+          </div>
+        </div>
       <% }) %>
     </div>
     
     <!-- Pagination -->
     <% if (locals.totalPages && totalPages > 1) { %>
       <div class="pagination">
-        <!-- Pagination elements go here -->
+        <% if (currentPage > 1) { %>
+          <a href="/bambis?page=<%= currentPage - 1 %>">Previous</a>
+        <% } %>
+        
+        <% for (let i = 1; i <= totalPages; i++) { %>
+          <% if (i === currentPage) { %>
+            <span class="active"><%= i %></span>
+          <% } else { %>
+            <a href="/bambis?page=<%= i %>"><%= i %></a>
+          <% } %>
+        <% } %>
+        
+        <% if (currentPage < totalPages) { %>
+          <a href="/bambis?page=<%= currentPage + 1 %>">Next</a>
+        <% } %>
       </div>
     <% } %>
   <% } else if (!locals.error) { %>
