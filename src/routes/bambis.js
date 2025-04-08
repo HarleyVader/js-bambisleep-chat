@@ -83,7 +83,8 @@ router.get('/create', (req, res) => {
     triggers: []
   };
   
-  res.render('bambi-edit', { 
+  // Updated path to reflect the new folder structure
+  res.render('bambis/bambi-edit', { 
     bambi,
     newProfile: true
   });
@@ -105,7 +106,8 @@ router.get('/edit', async (req, res) => {
       return res.redirect('/bambis/create');
     }
     
-    res.render('bambi-edit', { 
+    // Updated path to reflect the new folder structure
+    res.render('bambis/bambi-edit', { 
       bambi,
       newProfile: false
     });
@@ -135,7 +137,8 @@ router.get('/:username', async (req, res) => {
     bambi.lastActive = Date.now();
     await bambi.save();
     
-    res.render('bambi-profile', { 
+    // Updated path to reflect the new folder structure
+    res.render('bambis/bambi-profile', { 
       bambi,
       isOwnProfile: currentBambiname === username,
       userHasLiked
