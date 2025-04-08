@@ -212,15 +212,14 @@
     
     <div class="container">
         <div class="profile-header">
-            
-            
             <% if (isOwnProfile) { %>
                 <div class="profile-actions">
                     <a href="/bambis/edit" class="edit-profile-btn">Edit Profile</a>
                 </div>
             <% } %>
         </div>
-        <div class="profile-avatar-large">
+
+        <div class="profile-avatar-large" style="position: relative; bottom: 0; left: 50%; transform: translateX(-50%); margin-top: -60px; margin-bottom: 20px;">
             <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>">
         </div>
         
