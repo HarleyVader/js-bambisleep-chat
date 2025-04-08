@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../views/partials/head.ejs') %>
+    <title><%= bambi.displayName || bambi.username %> | BambiSleep Profile</title>
+    <style>
+        .profile-header {
+            position: relative;
+            height: 200px;
+            background: linear-gradient(to right, 
+                <%= bambi.profileTheme?.primaryColor || 'var(--primary-color)' %>, 
+                <%= bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>);
+            border-radius: 8px;
+            margin-bottom: 60px;
+            overflow: hidden;
+            box-shadow: 0 0 20px <%= bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;
+        }
+        
+        .profile-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('<%= bambi.profileTheme?.customHeaderImage || "/images/bambisleep-chat.gif" %>') center/cover;
+            opacity: 0.2;
+            mix-blend-mode: overlay;
+        }
+        
+        .profile-avatar-large {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            position: absolute;
+            bottom: -60px;
+            left: 50px;
+            border: 5px solid var(--transparent);
+            box-shadow: 0 0 20px <%= bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;
+            overflow: hidden;
+        }
+        
+        .profile-avatar-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-actions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+        }
+        
+        .edit-profile-btn {
+            padding: 8px 16px;
+            display: inline-block;
+        }
+        
+        .profile-content {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 20px;
+        }
+        
+        .profile-sidebar {
+            background-color: var(--transparent);
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px ridge <%= bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;
+            box-shadow: 0 0 10px <%= bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;
+        }
+        
+        .profile-main {
+            background-color: var(--transparent);
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px ridge <%= bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>;
+            box-shadow: 0 0 10px <%= bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>;
+        }
+        
+        .profile-name-large {
+            font-size: 2rem;
+            color: <%= bambi.profileTheme?.textColor || 'var(--button-color)' %>;
+            margin: 10px 0;
+            text-align: center;
+            margin-top: 60px;
+            animation: flicker 5s infinite;
+        }
+        
+        .profile-username {
+            font-size: 1rem;
+            color: var(--nav-alt);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .profile-stats-detailed {
+            background-color: rgba(18, 65, 65, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .profile-description-full {
+            color: <%= bambi.profileTheme?.textColor || 'var(--primary-alt)' %>;
+            font-style: italic;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: rgba(18, 65, 65, 0.5);
+            border-radius: 8px;
+            border-left: 3px solid <%= bambi.profileTheme?.primaryColor || 'var(--tertiary-color)' %>;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--nav-alt);
+            margin: 20px 0 10px 0;
+            border-bottom: 1px solid var(--tertiary-color);
+            padding-bottom: 5px;
+        }
+        
+        .activity-list {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .activity-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: rgba(18, 65, 65, 0.5);
+            border-radius: 6px;
+        }
+        
+        .activity-date {
+            font-size: 0.8rem;
+            color: var(--secondary-text-color);
+            margin-bottom: 5px;
+        }
+        
+        .activity-description {
+            color: <%= bambi.profileTheme?.textColor || 'var(--primary-alt)' %>;
+        }
+        
+        .triggers-section {
+            margin-top: 20px;
+        }
+        
+        .triggers-title {
+            font-size: 1.3rem;
+            color: var(--nav-alt);
+            margin-bottom: 10px;
+        }
+        
+        .triggers-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .trigger-tag {
+            background-color: <%= bambi.profileTheme?.primaryColor || 'var(--tertiary-color)' %>;
+            color: var(--primary-alt);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .heart-button {
+            background-color: var(--tertiary-color);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .heart-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px var(--tertiary-color);
+        }
+        
+        .heart-button.liked {
+            background-color: var(--button-color);
+            animation: heartbeat 1s infinite;
+        }
+        
+        @media (max-width: 768px) {
+            .profile-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .profile-avatar-large {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <%- include('../views/partials/nav.ejs') %>
+    
+    <div class="container">
+        <div class="profile-header">
+            <div class="profile-avatar-large">
+                <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>">
+            </div>
+            
+            <% if (isOwnProfile) { %>
+                <div class="profile-actions">
+                    <a href="/bambis/edit" class="edit-profile-btn">Edit Profile</a>
+                </div>
+            <% } %>
+        </div>
+        
+        <h1 class="profile-name-large"><%= bambi.displayName || bambi.username %></h1>
+        <div class="profile-username">@<%= bambi.username %></div>
+        
+        <div class="profile-content">
+            <div class="profile-sidebar">
+                <div class="profile-stats-detailed">
+                    <h3 class="section-title">Stats</h3>
+                    <div class="stats-grid">
+                        <div class="stat">
+                            <div class="stat-value">LVL <%= bambi.level %></div>
+                            <div class="stat-label">Level</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value"><%= bambi.experience %></div>
+                            <div class="stat-label">Experience</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value"><%= bambi.hearts.count %></div>
+                            <div class="stat-label">Hearts</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value"><%= bambi.followers.length %></div>
+                            <div class="stat-label">Followers</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="triggers-section">
+                    <h3 class="triggers-title">Favorite Triggers</h3>
+                    <div class="triggers-list">
+                        <% if (bambi.triggers && bambi.triggers.length > 0) { %>
+                            <% bambi.triggers.forEach(trigger => { %>
+                                <span class="trigger-tag"><%= trigger %></span>
+                            <% }); %>
+                        <% } else { %>
+                            <p>No favorite triggers set</p>
+                        <% } %>
+                    </div>
+                </div>
+                
+                <% if (!isOwnProfile) { %>
+                    <button id="heart-button" class="heart-button <%= userHasLiked ? 'liked' : '' %>" data-username="<%= bambi.username %>">
+                        <span>❤️</span>
+                        <span id="heart-count"><%= bambi.hearts.count %></span>
+                    </button>
+                <% } %>
+            </div>
+            
+            <div class="profile-main">
+                <div class="profile-description-full">
+                    <%= bambi.description || 'This Bambi has not written a description yet.' %>
+                </div>
+                
+                <h3 class="section-title">Recent Activity</h3>
+                <div class="activity-list">
+                    <% if (bambi.activities && bambi.activities.length > 0) { %>
+                        <% bambi.activities.forEach(activity => { %>
+                            <div class="activity-item">
+                                <div class="activity-date">
+                                    <%= new Date(activity.timestamp).toLocaleString() %>
+                                </div>
+                                <div class="activity-description">
+                                    <%= activity.description %>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <p>No recent activity</p>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <%- include('../views/partials/footer.ejs') %>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const heartButton = document.getElementById('heart-button');
+            if (heartButton) {
+                heartButton.addEventListener('click', function() {
+                    const username = this.getAttribute('data-username');
+                    
+                    fetch(`/bambis/api/heart/${username}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const heartCount = document.getElementById('heart-count');
+                            heartCount.textContent = data.count;
+                            
+                            heartButton.classList.toggle('liked', data.liked);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                });
+            }
+        });
+    </script>
+</body>
+</html>
