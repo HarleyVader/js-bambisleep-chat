@@ -69,25 +69,22 @@ router.get('/create', (req, res) => {
     return res.redirect('/bambis');
   }
   
-  // Create empty bambi model for the form
-  const bambi = {
-    username: bambiname,
-    displayName: '',
-    description: '',
-    profilePictureUrl: '/images/in-her-bubble.gif',
-    profileTheme: {
-      primaryColor: '#fa81ff',
-      secondaryColor: '#ff4fa2',
-      textColor: '#ffffff'
-    },
-    triggers: []
-  };
-  
-  // Updated path to reflect the new folder structure
-  res.render('bambis/bambi-edit', { 
-    bambi,
-    newProfile: true
-  });
+  // Check if profile already exists
+  Bambi.findOne({ username: bambiname })
+    .then(existingProfile => {
+      if (existingProfile) {
+        return res.redirect(`/bambis/${bambiname}`);
+      }
+      
+      // Use the bambi-create.ejs template for new profiles
+      res.render('bambis/bambi-create', { 
+        bambiname
+      });
+    })
+    .catch(error => {
+      logger.error('Error checking for existing profile:', error.message);
+      res.status(500).send('Error checking profile');
+    });
 });
 
 // Edit profile page route
@@ -343,20 +340,149 @@ router.get('/api/profile/:username/picture', async (req, res) => {
     const bambi = await Bambi.findOne({ username });
     
     if (!bambi || !bambi.profileImageData || !bambi.profileImageType) {
-      return res.redirect('/images/in-her-bubble.gif');
+      // Use a better fallback image path
+      const defaultImagePath = path.join(__dirname, '../public/images/in-her-bubble.gif');
+      
+      // Check if the default image exists
+      try {
+        await fsPromises.access(defaultImagePath);
+        return res.sendFile(defaultImagePath);
+      } catch (err) {
+        // If we can't access the default image, use a data URI as last resort
+        return res.redirect('/images/default-profile.png');
+      }
     }
     
     // Convert base64 to binary
     const img = Buffer.from(bambi.profileImageData, 'base64');
     
-    // Set content type header
+    // Set appropriate cache control headers
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
     res.setHeader('Content-Type', bambi.profileImageType);
     
     // Send the image
     res.send(img);
   } catch (error) {
     logger.error('Error fetching profile picture:', error.message);
-    res.redirect('/images/in-her-bubble.gif');
+    res.redirect('/images/default-profile.png');
+  }
+});
+
+// Add a route for following/unfollowing another Bambi
+router.post('/api/follow/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const currentBambiname = getBambiNameFromCookies(req);
+    
+    if (!currentBambiname) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+    
+    // Don't allow following yourself
+    if (currentBambiname === username) {
+      return res.status(400).json({ success: false, message: 'You cannot follow yourself' });
+    }
+    
+    // Find both Bambi profiles
+    const [currentBambi, targetBambi] = await Promise.all([
+      Bambi.findOne({ username: currentBambiname }),
+      Bambi.findOne({ username })
+    ]);
+    
+    if (!currentBambi || !targetBambi) {
+      return res.status(404).json({ success: false, message: 'Bambi profile not found' });
+    }
+    
+    // Check if already following
+    const isFollowing = currentBambi.following.some(follow => follow === username);
+    
+    if (isFollowing) {
+      // Unfollow
+      // Remove from current user's following list
+      currentBambi.following = currentBambi.following.filter(follow => follow !== username);
+      
+      // Remove from target user's followers list
+      targetBambi.followers = targetBambi.followers.filter(follower => follower !== currentBambiname);
+      
+      await Promise.all([currentBambi.save(), targetBambi.save()]);
+      
+      return res.json({ 
+        success: true, 
+        following: false,
+        message: `You are no longer following ${targetBambi.displayName || username}`
+      });
+    } else {
+      // Follow
+      // Add to current user's following list if not already present
+      if (!currentBambi.following.includes(username)) {
+        currentBambi.following.push(username);
+      }
+      
+      // Add to target user's followers list if not already present
+      if (!targetBambi.followers.includes(currentBambiname)) {
+        targetBambi.followers.push(currentBambiname);
+      }
+      
+      // Add activity for the target Bambi
+      await targetBambi.addActivity('other', `Got a new follower: ${currentBambi.displayName || currentBambiname}`);
+      
+      // Award experience to both users
+      await Promise.all([
+        targetBambi.addExperience(2),  // Small XP for being followed
+        currentBambi.addExperience(1)  // Even smaller XP for following someone
+      ]);
+      
+      await Promise.all([currentBambi.save(), targetBambi.save()]);
+      
+      return res.json({ 
+        success: true, 
+        following: true,
+        message: `You are now following ${targetBambi.displayName || username}`
+      });
+    }
+  } catch (error) {
+    logger.error('Error processing follow/unfollow:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Add a route to get followers/following lists
+router.get('/api/connections/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const type = req.query.type || 'followers'; // Default to followers
+    
+    // Find the Bambi profile
+    const bambi = await Bambi.findOne({ username });
+    
+    if (!bambi) {
+      return res.status(404).json({ success: false, message: 'Bambi profile not found' });
+    }
+    
+    if (type === 'followers') {
+      // Get followers details
+      const followers = await Bambi.find({ username: { $in: bambi.followers } })
+        .select('username displayName profileTheme lastActive');
+      
+      return res.json({
+        success: true,
+        connections: followers
+      });
+    } else if (type === 'following') {
+      // Get following details
+      const following = await Bambi.find({ username: { $in: bambi.following } })
+        .select('username displayName profileTheme lastActive');
+      
+      return res.json({
+        success: true,
+        connections: following
+      });
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid connection type' });
+    }
+  } catch (error) {
+    logger.error('Error fetching connections:', error.message);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

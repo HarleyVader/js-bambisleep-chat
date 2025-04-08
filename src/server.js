@@ -281,8 +281,27 @@ function setupSockets() {
           : {};
         let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
         logger.info('Cookies received in handshake:', socket.handshake.headers.cookie);
+        
+        // IMPROVED USERNAME HANDLING
         if (username === 'anonBambi') {
           socket.emit('prompt username');
+        } else {
+          // Load user's Bambi profile if it exists
+          mongoose.model('Bambi').findOne({ username }).then(bambi => {
+            if (bambi) {
+              socket.bambiProfile = bambi;
+              socket.emit('profile loaded', {
+                username: bambi.username,
+                displayName: bambi.displayName,
+                level: bambi.level,
+                triggers: bambi.triggers
+              });
+              
+              // Update lastActive timestamp
+              bambi.lastActive = Date.now();
+              bambi.save().catch(err => logger.error('Error updating lastActive:', err));
+            }
+          }).catch(err => logger.error('Error loading Bambi profile:', err));
         }
 
         const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
@@ -354,32 +373,39 @@ function setupSockets() {
         // Add profile update event
         socket.on('update profile', async (profileData) => {
           try {
-            if (username === 'anonBambi') return;
-
-            const { displayName, description, triggers } = profileData;
-            const Bambi = mongoose.model('Bambi');
-
-            // Find or create profile
-            let bambi = await Bambi.findOne({ username });
-
-            if (!bambi) {
-              bambi = new Bambi({
-                username,
-                displayName: displayName || username,
-                description,
-                triggers
-              });
-            } else {
-              bambi.displayName = displayName || bambi.displayName;
-              bambi.description = description || bambi.description;
-              bambi.triggers = triggers || bambi.triggers;
-              bambi.lastActive = Date.now();
+            if (username === 'anonBambi') {
+              socket.emit('profile error', 'You need to set a username first');
+              return;
             }
-
-            await bambi.save();
-            socket.emit('profile updated', bambi);
+        
+            // Don't duplicate functionality from the HTTP API
+            // Instead, notify the user to use the profile editor
+            socket.emit('redirect to profile editor', {
+              message: 'Please use the profile editor to update your profile',
+              url: '/bambis/edit'
+            });
+            
+            // Optionally, we can still update simple things like triggers
+            if (profileData.triggers && Array.isArray(profileData.triggers)) {
+              try {
+                const Bambi = mongoose.model('Bambi');
+                let bambi = await Bambi.findOne({ username });
+                
+                if (bambi) {
+                  // Use the manageTriggers method
+                  const triggers = profileData.triggers.slice(0, 10); // Max 10
+                  bambi.triggers = triggers;
+                  await bambi.save();
+                  socket.emit('triggers updated', bambi.triggers);
+                }
+              } catch (error) {
+                logger.error('Error updating triggers via socket:', error);
+                socket.emit('profile error', 'Failed to update triggers');
+              }
+            }
           } catch (error) {
-            logger.error('Error updating profile via socket:', error);
+            logger.error('Error handling profile update via socket:', error);
+            socket.emit('profile error', 'Server error occurred');
           }
         });
 
