@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../views/partials/head.ejs') %>
+    <title>Edit Your Bambi Profile</title>
+    <style>
+        .edit-profile-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .edit-section {
+            margin-bottom: 30px;
+            background-color: var(--transparent);
+            border-radius: 8px;
+            padding: 20px;
+            border-top: var(--button-color) 3px ridge;
+            border-bottom: var(--button-color) 3px ridge;
+            border-left: var(--secondary-alt) 1px groove;
+            border-right: var(--secondary-alt) 1px groove;
+            box-shadow: 0 0 10px var(--button-color);
+        }
+        
+        .current-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: block;
+            border: 3px solid var(--tertiary-color);
+            box-shadow: 0 0 15px var(--button-color);
+            object-fit: cover;
+        }
+        
+        .avatar-upload-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .file-upload-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--button-color);
+            color: var(--secondary-color);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .file-upload-label:hover {
+            background-color: var(--secondary-color);
+            color: var(--button-color);
+        }
+        
+        .file-upload-input {
+            display: none;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--primary-alt);
+        }
+        
+        .color-picker-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .color-picker-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .color-preview {
+            width: 100%;
+            height: 60px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border: 1px solid var(--nav-alt);
+        }
+        
+        .triggers-container {
+            margin-top: 20px;
+        }
+        
+        .triggers-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .trigger-option {
+            display: inline-block;
+        }
+        
+        .trigger-checkbox {
+            display: none;
+        }
+        
+        .trigger-label {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: var(--transparent);
+            color: var(--primary-alt);
+            border-radius: 20px;
+            border: 1px solid var(--tertiary-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .trigger-checkbox:checked + .trigger-label {
+            background-color: var(--tertiary-color);
+            color: var(--primary-alt);
+            box-shadow: 0 0 10px var(--tertiary-color);
+        }
+        
+        .save-button-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .save-profile-btn {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+        }
+        
+        .error-message {
+            color: var(--error);
+            background-color: var(--error-bg);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .success-message {
+            color: #28a745;
+            background-color: rgba(40, 167, 69, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../views/partials/nav.ejs') %>
+    
+    <div class="container">
+        <div class="edit-profile-container">
+            <h1>Edit Your Bambi Profile</h1>
+            
+            <div class="error-message" id="error-message"></div>
+            <div class="success-message" id="success-message"></div>
+            
+            <form id="edit-profile-form" enctype="multipart/form-data">
+                <div class="edit-section">
+                    <h2>Profile Basics</h2>
+                    
+                    <div class="avatar-upload-container">
+                        <img src="<%= bambi.profilePictureUrl %>" alt="Your Avatar" class="current-avatar" id="avatar-preview">
+                        <label for="avatar-upload" class="file-upload-label">Choose Avatar (10MB max)</label>
+                        <input type="file" id="avatar-upload" name="avatar" class="file-upload-input" accept=".jpg,.jpeg,.png,.gif">
+                        <p>Accepted formats: JPG, PNG, GIF (10MB max)</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bambiname">Bambi Name (Username)</label>
+                        <input type="text" id="bambiname" name="username" value="<%= bambi.username %>" <%= newProfile ? '' : 'readonly' %>>
+                        <% if (!newProfile) { %>
+                            <p><small>Username cannot be changed after profile creation</small></p>
+                        <% } %>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="displayName">Display Name</label>
+                        <input type="text" id="displayName" name="displayName" value="<%= bambi.displayName %>" maxlength="50">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Your Bambi Mantra</label>
+                        <textarea id="description" name="description" rows="4" maxlength="500"><%= bambi.description %></textarea>
+                    </div>
+                </div>
+                
+                <div class="edit-section">
+                    <h2>Profile Theme</h2>
+                    
+                    <div class="color-picker-container">
+                        <div class="color-picker-group">
+                            <label for="primaryColor">Primary Color</label>
+                            <input type="color" id="primaryColor" name="primaryColor" value="<%= bambi.profileTheme?.primaryColor || '#fa81ff' %>">
+                            <div class="color-preview" id="primaryColorPreview" style="background-color: <%= bambi.profileTheme?.primaryColor || '#fa81ff' %>"></div>
+                        </div>
+                        
+                        <div class="color-picker-group">
+                            <label for="secondaryColor">Secondary Color</label>
+                            <input type="color" id="secondaryColor" name="secondaryColor" value="<%= bambi.profileTheme?.secondaryColor || '#ff4fa2' %>">
+                            <div class="color-preview" id="secondaryColorPreview" style="background-color: <%= bambi.profileTheme?.secondaryColor || '#ff4fa2' %>"></div>
+                        </div>
+                        
+                        <div class="color-picker-group">
+                            <label for="textColor">Text Color</label>
+                            <input type="color" id="textColor" name="textColor" value="<%= bambi.profileTheme?.textColor || '#ffffff' %>">
+                            <div class="color-preview" id="textColorPreview" style="background-color: <%= bambi.profileTheme?.textColor || '#ffffff' %>"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="edit-section">
+                    <h2>Favorite Triggers</h2>
+                    
+                    <div class="triggers-container">
+                        <p>Select your favorite BambiSleep triggers:</p>
+                        
+                        <div class="triggers-options">
+                            <% const allTriggers = [
+                                "BIMBO DOLL", "GOOD GIRL", "BAMBI SLEEP", "BAMBI FREEZE", 
+                                "ZAP COCK DRAIN OBEY", "BAMBI ALWAYS WINS", "BAMBI RESET", 
+                                "I-Q DROP", "I-Q LOCK", "POSTURE LOCK", "UNIFORM LOCK", 
+                                "SAFE & SECURE", "PRIMPED", "PAMPERED", "SNAP & FORGET", 
+                                "GIGGLE TIME", "BLONDE MOMENT", "BAMBI DOES AS SHE IS TOLD", 
+                                "DROP FOR COCK", "COCK ZOMBIE NOW", "TITS LOCK", "WAIST LOCK", 
+                                "BUTT LOCK", "LIMBS LOCK", "FACE LOCK", "LIPS LOCK", "THROAT LOCK", 
+                                "HIPS LOCK", "CUNT LOCK", "BAMBI CUM & COLAPSE"
+                            ]; %>
+                            
+                            <% allTriggers.forEach(trigger => { %>
+                                <div class="trigger-option">
+                                    <input type="checkbox" id="trigger-<%= trigger.toLowerCase().replace(/\s+/g, '-') %>" 
+                                           class="trigger-checkbox" name="triggers[]" value="<%= trigger %>"
+                                           <%= bambi.triggers && bambi.triggers.includes(trigger) ? 'checked' : '' %>>
+                                    <label for="trigger-<%= trigger.toLowerCase().replace(/\s+/g, '-') %>" class="trigger-label">
+                                        <%= trigger %>
+                                    </label>
+                                </div>
+                            <% }); %>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="save-button-container">
+                    <button type="submit" class="save-profile-btn">Save Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <%- include('../views/partials/footer.ejs') %>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Avatar preview
+            const avatarUpload = document.getElementById('avatar-upload');
+            const avatarPreview = document.getElementById('avatar-preview');
+            
+            avatarUpload.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    // Check file size (10MB max)
+                    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+                    if (file.size > maxSize) {
+                        showError('Avatar file is too large. Maximum size is 10MB.');
+                        this.value = ''; // Clear the file input
+                        return;
+                    }
+                    
+                    // Check file type
+                    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                    if (!validTypes.includes(file.type)) {
+                        showError('Invalid file type. Please use JPG, PNG, or GIF.');
+                        this.value = ''; // Clear the file input
+                        return;
+                    }
+                    
+                    // Preview the image
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        avatarPreview.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Color pickers preview
+            const colorInputs = document.querySelectorAll('input[type="color"]');
+            colorInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const previewId = this.id + 'Preview';
+                    document.getElementById(previewId).style.backgroundColor = this.value;
+                });
+            });
+            
+            // Form submission
+            const editProfileForm = document.getElementById('edit-profile-form');
+            
+            editProfileForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Clear previous messages
+                hideError();
+                hideSuccess();
+                
+                // Prepare form data
+                const formData = new FormData(this);
+                
+                // Get selected triggers
+                const selectedTriggers = [];
+                document.querySelectorAll('input[name="triggers[]"]:checked').forEach(checkbox => {
+                    selectedTriggers.push(checkbox.value);
+                });
+                formData.append('triggers', JSON.stringify(selectedTriggers));
+                
+                // Send data to server
+                fetch('/bambis/api/update-profile', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess(data.message || 'Profile updated successfully!');
+                        
+                        // If new profile created, redirect to profile page
+                        if (data.redirect) {
+                            setTimeout(() => {
+                                window.location.href = data.redirect;
+                            }, 1500);
+                        }
+                    } else {
+                        showError(data.message || 'An error occurred while updating your profile.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('An error occurred. Please try again later.');
+                });
+            });
+            
+            // Helper functions for showing/hiding messages
+            function showError(message) {
+                const errorElement = document.getElementById('error-message');
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            }
+            
+            function hideError() {
+                document.getElementById('error-message').style.display = 'none';
+            }
+            
+            function showSuccess(message) {
+                const successElement = document.getElementById('success-message');
+                successElement.textContent = message;
+                successElement.style.display = 'block';
+            }
+            
+            function hideSuccess() {
+                document.getElementById('success-message').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
