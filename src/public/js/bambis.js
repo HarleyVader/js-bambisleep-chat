@@ -1,4 +1,6 @@
-document.addEventListener('DOMContentLoaded', function() {
+// @ts-nocheck
+document.addEventListener('DOMContentLoaded', () => {
+  // @ts-ignore
   <% if (locals.bambi) { %>
     // SINGLE PROFILE VIEW JAVASCRIPT
     const editProfileBtn = document.getElementById('editProfileBtn');
@@ -16,26 +18,26 @@ document.addEventListener('DOMContentLoaded', function() {
     let isFileValid = true;
     
     // Add character counter to edit form
-    charCounter.className = 'char-counter';
-    charCounter.style.textAlign = 'right';
-    charCounter.style.fontSize = '0.8rem';
-    charCounter.style.color = 'var(--text-muted)';
+    Object.assign(charCounter, {
+      className: 'char-counter',
+      style: {
+        textAlign: 'right',
+        fontSize: '0.8rem',
+        color: 'var(--text-muted)'
+      }
+    });
     descriptionEdit.parentNode.appendChild(charCounter);
     
     // Toggle edit form visibility
-    editProfileBtn.addEventListener('click', function() {
-      if (editForm.style.display === 'block') {
-        editForm.style.display = 'none';
-      } else {
-        editForm.style.display = 'block';
-      }
+    editProfileBtn.addEventListener('click', () => {
+      editForm.style.display = editForm.style.display === 'block' ? 'none' : 'block';
     });
     
     // Handle adding new triggers
-    newTriggerInput.addEventListener('keypress', function(e) {
+    newTriggerInput.addEventListener('keypress', e => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        const triggerValue = this.value.trim();
+        const triggerValue = e.target.value.trim();
         
         if (triggerValue) {
           // Validate trigger - max length and max count
@@ -56,10 +58,10 @@ document.addEventListener('DOMContentLoaded', function() {
           triggerPill.innerHTML = `${triggerValue}<span class="remove-trigger">×</span>`;
           
           triggersList.appendChild(triggerPill);
-          this.value = '';
+          e.target.value = '';
           
           // Add event listener to the new remove button
-          triggerPill.querySelector('.remove-trigger').addEventListener('click', function() {
+          triggerPill.querySelector('.remove-trigger').addEventListener('click', () => {
             triggerPill.remove();
           });
         }
@@ -68,22 +70,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add event listeners to existing remove buttons
     document.querySelectorAll('.remove-trigger').forEach(button => {
-      button.addEventListener('click', function() {
-        this.parentElement.remove();
-      });
+      button.addEventListener('click', () => button.parentElement.remove());
     });
     
     // Validate display name
-    displayNameEdit.addEventListener('input', function() {
-      const displayName = this.value.trim();
+    displayNameEdit.addEventListener('input', e => {
+      const displayName = e.target.value.trim();
       if (displayName.length > 50) {
-        this.value = displayName.substring(0, 50);
+        e.target.value = displayName.substring(0, 50);
       }
     });
     
     // Validate file uploads
-    profilePictureEdit.addEventListener('change', function() {
-      const file = this.files[0];
+    profilePictureEdit.addEventListener('change', e => {
+      const file = e.target.files[0];
       
       // Reset validation
       isFileValid = true;
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!validTypes.includes(file.type)) {
           alert('Please select a valid image file (JPEG, PNG, GIF, or WEBP)');
-          this.value = '';
+          e.target.value = '';
           isFileValid = false;
           return;
         }
@@ -101,8 +101,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check file size (max 10MB)
         const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-          alert('File size must be less than 5MB');
-          this.value = '';
+          alert('File size must be less than 10MB');
+          e.target.value = '';
           isFileValid = false;
           return;
         }
@@ -112,33 +112,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Update character count function
-    function updateCharCount() {
+    const updateCharCount = () => {
       const remaining = 500 - descriptionEdit.value.length;
       charCounter.textContent = `${remaining} characters remaining`;
       
-      if (remaining < 0) {
-        charCounter.style.color = 'var(--error)';
-        isDescriptionValid = false;
-      } else {
-        charCounter.style.color = 'var(--text-muted)';
-        isDescriptionValid = true;
-      }
+      charCounter.style.color = remaining < 0 ? 'var(--error)' : 'var(--text-muted)';
+      isDescriptionValid = remaining >= 0;
       
       updateSubmitButton();
-    }
+    };
     
     // Enable/disable submit button based on form validity
-    function updateSubmitButton() {
+    const updateSubmitButton = () => {
       const submitButton = profileEditForm.querySelector('button[type="submit"]');
       
-      if (isDescriptionValid && isFileValid) {
-        submitButton.disabled = false;
-        submitButton.style.opacity = '1';
-      } else {
-        submitButton.disabled = true;
-        submitButton.style.opacity = '0.5';
-      }
-    }
+      submitButton.disabled = !(isDescriptionValid && isFileValid);
+      submitButton.style.opacity = submitButton.disabled ? '0.5' : '1';
+    };
     
     // Add event listeners
     descriptionEdit.addEventListener('input', updateCharCount);
@@ -148,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateSubmitButton();
     
     // Handle form submission
-    profileEditForm.addEventListener('submit', async function(e) {
+    profileEditForm.addEventListener('submit', async e => {
       e.preventDefault();
       
       // Final validation checks
@@ -163,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       // Collect all triggers
-      const triggers = Array.from(triggersList.querySelectorAll('.trigger-pill')).map(pill => pill.dataset.value);
+      const triggers = [...triggersList.querySelectorAll('.trigger-pill')].map(pill => pill.dataset.value);
       
       // First update profile data
       const profileData = {
@@ -195,8 +185,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (result.success) {
           // Apply new theme immediately
           const profileHeader = document.querySelector('.profile-header');
-          profileHeader.style.background = `linear-gradient(135deg, ${profileData.profileTheme.primaryColor} 0%, ${profileData.profileTheme.secondaryColor} 100%)`;
-          profileHeader.style.color = profileData.profileTheme.textColor;
+          const { primaryColor, secondaryColor, textColor } = profileData.profileTheme;
+          profileHeader.style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`;
+          profileHeader.style.color = textColor;
           
           // If there's a profile picture, upload it separately
           const profilePictureInput = document.getElementById('profilePictureEdit');
@@ -247,14 +238,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const textColorInput = document.getElementById('textColor');
     const themePreview = document.getElementById('themePreview');
     
-    function updateThemePreview() {
+    const updateThemePreview = () => {
       const primary = primaryColorInput.value;
       const secondary = secondaryColorInput.value;
       const text = textColorInput.value;
       
       themePreview.style.background = `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`;
       themePreview.style.color = text;
-    }
+    };
     
     // Update on input change
     primaryColorInput.addEventListener('input', updateThemePreview);
@@ -270,17 +261,17 @@ document.addEventListener('DOMContentLoaded', function() {
     let isHearted = false;
 
     // Get cookie for current user
-    const bambiname = getCookie('bambiname') || 'Anonymous';
-
-    function getCookie(name) {
+    const getCookie = name => {
       const value = `; ${document.cookie}`;
       const parts = value.split(`; ${name}=`);
       if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
       return null;
-    }
+    };
+    
+    const bambiname = getCookie('bambiname') || 'Anonymous';
 
     // Check initial heart status
-    async function checkHeartStatus() {
+    const checkHeartStatus = async () => {
       try {
         const response = await fetch(`/bambis/api/profile/<%= bambi.username %>/heart-status?currentUser=${encodeURIComponent(bambiname)}`);
         const result = await response.json();
@@ -289,19 +280,15 @@ document.addEventListener('DOMContentLoaded', function() {
           isHearted = result.hearted;
           heartCount.textContent = result.heartCount;
           
-          if (isHearted) {
-            heartButton.classList.add('active');
-          } else {
-            heartButton.classList.remove('active');
-          }
+          heartButton.classList[isHearted ? 'add' : 'remove']('active');
         }
       } catch (error) {
         console.error('Error checking heart status:', error);
       }
-    }
+    };
 
     // Toggle heart when clicked
-    heartButton.addEventListener('click', async function() {
+    heartButton.addEventListener('click', async () => {
       if (bambiname === 'Anonymous') {
         alert('Please log in to heart this profile');
         return;
@@ -324,11 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
           isHearted = result.hearted;
           heartCount.textContent = result.heartCount;
           
-          if (isHearted) {
-            heartButton.classList.add('active');
-          } else {
-            heartButton.classList.remove('active');
-          }
+          heartButton.classList[isHearted ? 'add' : 'remove']('active');
         } else {
           alert(result.message || 'Failed to update heart');
         }
@@ -362,16 +345,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const usernameMessage = document.createElement('div');
     
     // Add validation message containers
-    usernameMessage.className = 'validation-message';
-    usernameMessage.style.fontSize = '0.8rem';
-    usernameMessage.style.marginTop = '0.25rem';
+    Object.assign(usernameMessage, {
+      className: 'validation-message',
+      style: {
+        fontSize: '0.8rem',
+        marginTop: '0.25rem'
+      }
+    });
     usernameField.parentNode.appendChild(usernameMessage);
     
     // Add character counter
-    charCounter.className = 'char-counter';
-    charCounter.style.textAlign = 'right';
-    charCounter.style.fontSize = '0.8rem';
-    charCounter.style.color = 'var(--text-muted)';
+    Object.assign(charCounter, {
+      className: 'char-counter',
+      style: {
+        textAlign: 'right',
+        fontSize: '0.8rem',
+        color: 'var(--text-muted)'
+      }
+    });
     descriptionField.parentNode.appendChild(charCounter);
     
     // Validation flags
@@ -379,13 +370,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let isDescriptionValid = true;
     
     // Validate username format
-    function validateUsernameFormat(username) {
+    const validateUsernameFormat = username => {
       const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
       return usernameRegex.test(username);
-    }
+    };
     
     // Check username uniqueness via API
-    async function checkUsernameUniqueness(username) {
+    const checkUsernameUniqueness = async username => {
       try {
         const response = await fetch(`/bambis/api/check-username?username=${encodeURIComponent(username)}`);
         const data = await response.json();
@@ -394,14 +385,14 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Error checking username:', error);
         return false;
       }
-    }
+    };
     
     // Validate username with debounce
     let usernameTimer;
-    usernameField.addEventListener('input', function() {
+    usernameField.addEventListener('input', e => {
       clearTimeout(usernameTimer);
       
-      const username = this.value.trim();
+      const username = e.target.value.trim();
       
       // Reset validation
       isUsernameValid = false;
@@ -420,56 +411,40 @@ document.addEventListener('DOMContentLoaded', function() {
       usernameTimer = setTimeout(async () => {
         const isAvailable = await checkUsernameUniqueness(username);
         
-        if (isAvailable) {
-          usernameMessage.textContent = 'Username is available';
-          usernameMessage.style.color = 'green';
-          isUsernameValid = true;
-        } else {
-          usernameMessage.textContent = 'Username is already taken';
-          usernameMessage.style.color = 'var(--error)';
-          isUsernameValid = false;
-        }
+        usernameMessage.textContent = isAvailable ? 'Username is available' : 'Username is already taken';
+        usernameMessage.style.color = isAvailable ? 'green' : 'var(--error)';
+        isUsernameValid = isAvailable;
         
         updateSubmitButton();
       }, 500);
     });
     
     // Validate display name
-    displayNameField.addEventListener('input', function() {
-      const displayName = this.value.trim();
+    displayNameField.addEventListener('input', e => {
+      const displayName = e.target.value.trim();
       if (displayName.length > 50) {
-        this.value = displayName.substring(0, 50);
+        e.target.value = displayName.substring(0, 50);
       }
     });
     
     // Update character count function
-    function updateCharCount() {
+    const updateCharCount = () => {
       const remaining = 500 - descriptionField.value.length;
       charCounter.textContent = `${remaining} characters remaining`;
       
-      if (remaining < 0) {
-        charCounter.style.color = 'var(--error)';
-        isDescriptionValid = false;
-      } else {
-        charCounter.style.color = 'var(--text-muted)';
-        isDescriptionValid = true;
-      }
+      charCounter.style.color = remaining < 0 ? 'var(--error)' : 'var(--text-muted)';
+      isDescriptionValid = remaining >= 0;
       
       updateSubmitButton();
-    }
+    };
     
     // Enable/disable submit button based on form validity
-    function updateSubmitButton() {
+    const updateSubmitButton = () => {
       const submitButton = form.querySelector('button[type="submit"]');
       
-      if (isUsernameValid && isDescriptionValid) {
-        submitButton.disabled = false;
-        submitButton.style.opacity = '1';
-      } else {
-        submitButton.disabled = true;
-        submitButton.style.opacity = '0.5';
-      }
-    }
+      submitButton.disabled = !(isUsernameValid && isDescriptionValid);
+      submitButton.style.opacity = submitButton.disabled ? '0.5' : '1';
+    };
     
     // Add event listeners
     descriptionField.addEventListener('input', updateCharCount);
@@ -478,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update submit button state initially
     updateSubmitButton();
     
-    form.addEventListener('submit', async function(e) {
+    form.addEventListener('submit', async e => {
       e.preventDefault();
       
       // Final validation check
