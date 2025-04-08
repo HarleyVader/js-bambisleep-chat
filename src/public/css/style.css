@@ -13,13 +13,22 @@
     --nav-alt: #17dbd8;
     --transparent: #124141ce;
     --transparent-alt: #ffffff00;
+    --error: #ff3333;
+    --error-bg: rgba(255, 51, 51, 0.1);
+    
+    /* Add these variable if they don't exist yet */
+    --accent-color: var(--button-color);
+    --border-color: var(--tertiary-color);
+    --secondary-text-color: var(--primary-alt);
+    --text-color: var(--primary-alt);
+    --bg-color-secondary: var(--nav-color);
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 
-    --hypno-giphy: url("<div style=" width:100%; height:0; padding-bottom:100%; position:relative; "><iframe src=" " width=" 100%" height=" 100%" style=" position:absolute" frameBorder=" 0" class=" giphy-embed" allowFullScreen></iframe></div><p><a href=" " https://giphy.com/embed/10l8fc00NMNJNm >via GIPHY</a></p>");
+    --hypno-giphy: url("<div style='width:100%; height:0; padding-bottom:100%; position:relative;'><iframe src='' width='100%' height='100%' style='position:absolute' frameBorder='0' class='giphy-embed' allowFullScreen></iframe></div><p><a href='https://giphy.com/embed/10l8fc00NMNJNm'>via GIPHY</a></p>");
 }
 
 html,
@@ -35,6 +44,185 @@ body {
     scrollbar-color: var(--primary-alt) var(--primary-color);
 }
 
+/* Standardized Container Styles from scrapers.css and bambis.css */
+.container, .profile-container, .create-profile-section, .scraper-column, .stats-dashboard {
+    background-color: var(--transparent);
+    border-top: var(--button-color) 3px ridge;
+    border-bottom: var(--button-color) 3px ridge;
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
+    border-radius: 8px;
+    box-shadow: 0 0 10px var(--button-color);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+/* Standardized Form Controls */
+input, textarea, select {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 4px;
+    background-color: var(--nav-color);
+    color: var(--primary-alt);
+    resize: vertical;
+    border-left: var(--primary-alt) 2px ridge;
+    border-right: var(--primary-alt) 2px ridge;
+    border-top: var(--button-color) 2px ridge;
+    border-bottom: var(--button-color) 2px ridge;
+    text-shadow: var(--secondary-color) 2px 2px 2px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+input:focus, textarea:focus, select:focus {
+    border: var(--nav-alt) 4px ridge;
+    border-color: var(--tertiary-color);
+    text-shadow: var(--nav-alt) 2px 2px 2px;
+    outline: none;
+}
+
+/* Standardized Button Styles from both files */
+button, .edit-profile-btn, .submit-form button, .heart-button, .top-view-btn {
+    color: var(--secondary-color);
+    background-color: var(--button-color);
+    text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
+    border: var(--secondary-color) outset 0.3vw;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 0.6vw;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+button:hover, .edit-profile-btn:hover, .submit-form button:hover, .heart-button:hover, .top-view-btn:hover {
+    color: var(--button-color);
+    background-color: var(--secondary-color);
+    text-shadow: var(--nav-color) 0.3vw 0.3vw 0.3vw;
+    border: var(--button-color) 0.3vw inset;
+}
+
+button:active, .edit-profile-btn:active, .submit-form button:active, .heart-button:active, .top-view-btn:active {
+    background-color: var(--tertiary-alt);
+    color: var(--nav-alt);
+    border-color: var(--primary-alt);
+}
+
+/* Standardized Headings */
+h1, h2, h3, .profile-name, .triggers-title {
+    color: var(--button-color);
+    text-shadow: var(--secondary-color) 3px 3px 3px;
+    animation: flicker 5s infinite;
+}
+
+h2, .scraper-column h2, .stats-section h2, .triggers-title {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--tertiary-color);
+    text-shadow: var(--secondary-color) 2px 2px 2px;
+}
+
+/* Additional link styling */
+a {
+    color: var(--nav-alt);
+    text-decoration: underline;
+    padding-bottom: 0.15em;
+    transition: all 0.3s ease;
+}
+
+a:hover {
+    color: var(--tertiary-color);
+    text-shadow: var(--secondary-color) 4px 4px 4px;
+}
+
+/* Card styling from bambis.css */
+.card, .profile-card, .submission-card, .activity-item, .stat-card {
+    background-color: var(--transparent);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    border-top: var(--tertiary-color) 1px ridge;
+    border-bottom: var(--tertiary-color) 1px ridge;
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
+    box-shadow: 0 0 5px var(--tertiary-color);
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.card:hover, .profile-card:hover, .submission-card:hover, .activity-item:hover, .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 15px var(--tertiary-color);
+}
+
+/* Stats styling */
+.stat, .stat-card {
+    text-align: center;
+}
+
+.stat-value, .stat-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+    color: var(--nav-alt);
+    text-shadow: var(--secondary-color) 1px 1px 1px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--primary-alt);
+}
+
+/* Unified animation keyframes */
+@keyframes flicker {
+    0%, 20%, 80%, 100% { color: #55CDFC; }
+    30%, 50%, 70% { color: #F7A8B8; }
+    10%, 40%, 60%, 90% { color: #FFF; }
+}
+
+@keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Modal styles from scrapers.css */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: var(--primary-color);
+    margin: 10% auto;
+    padding: 15px;
+    border-radius: 6px;
+    width: 85%;
+    max-width: 700px;
+    box-shadow: 0 0 10px var(--button-color);
+    border-top: var(--button-color) 3px ridge;
+    border-bottom: var(--button-color) 3px ridge;
+    border-left: var(--secondary-alt) 1px groove;
+    border-right: var(--secondary-alt) 1px groove;
+}
+
+/* Grid layouts from scrapers.css */
+.grid, .scrapers-grid, .stats-grid, .top-submissions {
+    display: grid;
+    gap: 1rem;
+}
+
+/* Keep the rest of your original style.css content below */
 #chat-container {
     display: flex;
     height: calc(99.4vh - 3vh);
