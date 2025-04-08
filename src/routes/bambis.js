@@ -180,7 +180,7 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
         textColor: req.body.textColor || '#ffffff'
       };
       
-      // Process triggers
+      // Process triggers - with better error handling
       if (req.body.triggers) {
         try {
           const triggers = JSON.parse(req.body.triggers);
@@ -189,10 +189,12 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
           }
         } catch (e) {
           logger.error('Error parsing triggers:', e.message);
+          // Don't throw error, continue with empty triggers
+          bambi.triggers = [];
         }
       }
       
-      // Process uploaded avatar - directly from memory
+      // Process uploaded avatar with better error handling
       if (req.file) {
         try {
           // Convert buffer to base64 directly
@@ -204,21 +206,36 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
           bambi.profileImageName = req.file.originalname;
         } catch (e) {
           logger.error('Error processing avatar:', e.message);
+          // Continue without updating the profile image
         }
       }
       
       // Update last active time
       bambi.lastActive = Date.now();
       
-      // Save the profile
-      await bambi.save();
+      // Save the profile with explicit error handling
+      try {
+        await bambi.save();
+      } catch (saveError) {
+        logger.error('Error saving profile:', saveError.message);
+        if (saveError.name === 'ValidationError') {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Validation error: ' + Object.values(saveError.errors).map(e => e.message).join(', ')
+          });
+        }
+        throw saveError; // Re-throw for the outer catch block
+      }
       
-      // If new profile, add a first activity
+      // If new profile, add activity and experience
       if (isNewProfile) {
-        await bambi.addActivity('other', 'Created their profile');
-        
-        // Award some initial experience
-        await bambi.addExperience(50);
+        try {
+          await bambi.addActivity('other', 'Created their profile');
+          await bambi.addExperience(50);
+        } catch (activityError) {
+          logger.error('Error adding activity/experience:', activityError.message);
+          // Don't fail the whole request if just this part fails
+        }
       }
       
       // Send response
@@ -228,10 +245,15 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
         redirect: isNewProfile ? `/bambis/${bambi.username}` : null
       });
     } catch (error) {
-      logger.error('Error updating profile:', error.message);
-      res.status(500).json({ success: false, message: error.message });
+      // Improved error logging
+      logger.error('Error updating profile:', error.message, error.stack);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Server error: ' + error.message,
+        errorType: error.name
+      });
     }
-  });
+});
 
 // API route for hearts
 router.post('/api/heart/:username', async (req, res) => {
