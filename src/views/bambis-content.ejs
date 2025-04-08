@@ -4,7 +4,7 @@
   
   <div class="profile-container">
     <div class="profile-header">
-      <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>" class="profile-avatar">
+      <img src="<%= bambi.profilePictureUrl || '/images/default-profile.png' %>" alt="<%= bambi.displayName || bambi.username %>" class="profile-avatar">
     </div>
     
     <div class="profile-details">
@@ -16,17 +16,17 @@
         </div>
         
         <div class="stat-column">
-          <div class="stat-value"><%= bambi.level %></div>
+          <div class="stat-value"><%= bambi.level || 0 %></div>
           <div class="stat-label">Level</div>
         </div>
         
         <div class="stat-column">
-          <div class="stat-value"><%= bambi.triggers.length %></div>
+          <div class="stat-value"><%= bambi.triggers ? bambi.triggers.length : 0 %></div>
           <div class="stat-label">Triggers</div>
         </div>
         
         <div class="stat-column">
-          <div class="stat-value"><%= bambi.favoriteFiles.length %></div>
+          <div class="stat-value"><%= bambi.favoriteFiles ? bambi.favoriteFiles.length : 0 %></div>
           <div class="stat-label">Favorite Files</div>
         </div>
         
@@ -112,11 +112,9 @@
       <button id="editProfileBtn" class="edit-profile-btn">Edit Profile</button>
     </div>
     
+    <!-- Include Edit Form Section Here -->
     <div id="editForm" class="edit-form">
-      <h2>Edit Your Profile</h2>
-      <form id="profileEditForm">
-        <!-- ...edit form elements... -->
-      </form>
+      <!-- Your existing edit form goes here -->
     </div>
   </div>
 <% } else { %>
@@ -131,24 +129,20 @@
   
   <div class="create-profile-section">
     <h2>Create Your Bambi Profile</h2>
-    <form id="createProfileForm">
-      <!-- ...create form elements... -->
-    </form>
+    <!-- Your existing create profile form goes here -->
   </div>
   
   <% if (locals.bambis && bambis.length > 0) { %>
     <div class="profiles-container">
       <% bambis.forEach(bambi => { %>
-        <div class="profile-card">
-          <!-- ...profile card elements... -->
-        </div>
+        <!-- Your existing profile card goes here -->
       <% }) %>
     </div>
     
     <!-- Pagination -->
     <% if (locals.totalPages && totalPages > 1) { %>
       <div class="pagination">
-        <!-- ...pagination elements... -->
+        <!-- Pagination elements go here -->
       </div>
     <% } %>
   <% } else if (!locals.error) { %>
