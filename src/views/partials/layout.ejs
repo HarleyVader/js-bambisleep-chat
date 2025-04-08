@@ -1,0 +1,19 @@
+ejs
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head.ejs') %>
+<body>
+  <%- include('../partials/nav.ejs') %>
+  
+  <main class="container" style="width: 95%; max-width: 95%;">
+    <%- content %>
+  </main>
+  
+  <%- include('../partials/footer.ejs') %>
+  <% if (locals.scripts) { %>
+    <% scripts.forEach(script => { %>
+      <script src="<%= script %>"></script>
+    <% }) %>
+  <% } %>
+</body>
+</html>

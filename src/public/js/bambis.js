@@ -549,4 +549,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+  
+  // Add other existing bambis.js functionality here
 });
