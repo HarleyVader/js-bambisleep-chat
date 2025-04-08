@@ -38,7 +38,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single bambi profile
+// Get single bambi profile - now renders the same bambis.ejs template with bambi data
 router.get('/:username', async (req, res) => {
   try {
     const bambi = await Bambi.findOne({ username: req.params.username });
@@ -47,7 +47,8 @@ router.get('/:username', async (req, res) => {
       return res.status(404).render('bambis', { error: 'Bambi not found' });
     }
     
-    res.render('bambiProfile', { bambi });
+    // Now render the bambis.ejs template with a single bambi
+    res.render('bambis', { bambi });
   } catch (error) {
     logger.error('Error fetching bambi profile:', error);
     res.status(500).render('bambis', { error: 'Failed to fetch bambi profile' });
