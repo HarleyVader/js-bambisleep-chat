@@ -868,7 +868,13 @@
                         const formData = new FormData(this);
 
                         // Add triggers to form data
-                        formData.append('triggers', JSON.stringify(getTriggers()));
+                        try {
+                            const triggers = getTriggers();
+                            formData.append('triggers', JSON.stringify(triggers));
+                        } catch (error) {
+                            console.error('Error processing triggers:', error);
+                            formData.append('triggers', JSON.stringify([]));
+                        }
 
                         // Show loading notification
                         showNotification('Creating your profile...', 'info');
@@ -880,9 +886,17 @@
                         })
                             .then(response => {
                                 if (!response.ok) {
-                                    return response.json().then(data => {
-                                        throw new Error(data.message || 'Error creating profile');
-                                    });
+                                    return response.json()
+                                        .then(data => {
+                                            throw new Error(data.message || 'Error creating profile');
+                                        })
+                                        .catch(err => {
+                                            // If the response is not valid JSON
+                                            if (err instanceof SyntaxError) {
+                                                throw new Error(`Server error (${response.status}): Please try again later`);
+                                            }
+                                            throw err;
+                                        });
                                 }
                                 return response.json();
                             })

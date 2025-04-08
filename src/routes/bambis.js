@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import multer from 'multer';
 import Bambi from '../schemas/BambiSchema.js';
 import Logger from '../utils/logger.js';
+import path from 'path';
+import { promises as fsPromises } from 'fs';
 
 const router = express.Router();
 const logger = new Logger('BambiRoutes');
@@ -196,12 +198,15 @@ router.post('/api/update-profile', upload.single('avatar'), async (req, res) => 
         try {
           const triggers = JSON.parse(req.body.triggers);
           if (Array.isArray(triggers)) {
-            bambi.triggers = triggers.slice(0, 10); // Limit to 10 triggers
+            // Filter out any invalid values (null, undefined, etc.)
+            bambi.triggers = triggers
+              .filter(trigger => trigger && typeof trigger === 'string')
+              .slice(0, 10); // Limit to 10 triggers
           }
         } catch (e) {
           logger.error('Error parsing triggers:', e.message);
-          // Don't throw error, continue with empty triggers
-          bambi.triggers = [];
+          // Don't throw error, continue with existing triggers or empty array
+          bambi.triggers = bambi.triggers || [];
         }
       } else {
         // Ensure triggers is always an array
@@ -340,23 +345,14 @@ router.get('/api/profile/:username/picture', async (req, res) => {
     const bambi = await Bambi.findOne({ username });
     
     if (!bambi || !bambi.profileImageData || !bambi.profileImageType) {
-      // Use a better fallback image path
-      const defaultImagePath = path.join(__dirname, '../public/images/in-her-bubble.gif');
-      
-      // Check if the default image exists
-      try {
-        await fsPromises.access(defaultImagePath);
-        return res.sendFile(defaultImagePath);
-      } catch (err) {
-        // If we can't access the default image, use a data URI as last resort
-        return res.redirect('/images/default-profile.png');
-      }
+      // Simple fallback instead of trying to use file system
+      return res.redirect('/images/default-profile.png');
     }
     
     // Convert base64 to binary
     const img = Buffer.from(bambi.profileImageData, 'base64');
     
-    // Set appropriate cache control headers
+    // Set appropriate content type and cache headers
     res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
     res.setHeader('Content-Type', bambi.profileImageType);
     

@@ -43,7 +43,7 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  pingTimeout: 300000, // 300 seconds
+  pingTimeout: 86400000, // 1 day
   pingInterval: 25000, // 25 seconds
 });
 
