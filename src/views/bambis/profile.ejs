@@ -16,8 +16,7 @@
               <!-- User identity section with integrated header and neonwave styling -->
               <div class="profile-identity-section neonwave">
                 <!-- Header image moved inside identity section -->
-                <div class="profile-header-image" style="background-image: url('<%= profile.headerImage || "
-                  /gif/default-header.gif" %>'); background-color: <%= profile.headerColor %>;">
+                <div class="profile-header-image" style="background-image: url('<%= profile.headerImage || "/gif/default-header.gif" %>'); background-color: <%= profile.headerColor %>;">
                 </div>
 
                 <!-- Profile content container that includes avatar and info -->
@@ -67,9 +66,7 @@
                     </div>
 
                     <div class="profile-about clickable-links neon-text-subtle">
-                      <%=
-                        profile.about.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>'
-                        ) %>
+                      <%= profile.about.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>') %>
                     </div>
 
                     <div class="profile-description-container cyber-panel">

@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('./layouts/main', { title: 'BambiSleep Content Scrapers', body: `
+<%- include('../partials/head.ejs', { title: 'BambiSleep Content Scrapers' }) %>
+<body>
+  <%- include('../partials/nav.ejs') %>
+  
+  <div class="container">
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="error-message">
+        <%= typeof errorMessage !== 'undefined' ? errorMessage : 'An error occurred' %>
+      </div>
+    <% } %>
+    
     <header>
         <h1>BambiSleep Content Scrapers</h1>
         <p>Welcome, <span class="bambi-name"><%= bambiname %></span>! Submit URLs to scrape BambiSleep content.</p>
@@ -224,7 +234,12 @@
             <!-- Modal content will be dynamically added here -->
         </div>
     </div>
-  ` }) %>
+    
+  </div>
+
+  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/scrapers.js"></script>
   <script src="/js/scrapers-view.js"></script>
   <script>
@@ -234,4 +249,5 @@
         }
     });
   </script>
+</body>
 </html>

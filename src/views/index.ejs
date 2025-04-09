@@ -1,63 +1,76 @@
-<% layout('./layouts/main') -%>
-<% block('title', 'BambiSleep.Chat AIGF') -%>
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head.ejs', { title: 'BambiSleep.Chat AIGF' }) %>
+<body>
+  <%- include('../partials/nav.ejs') %>
+  
+  <div class="container">
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="error-message">
+        <%= typeof errorMessage !== 'undefined' ? errorMessage : 'An error occurred' %>
+      </div>
+    <% } %>
+    
+    <div id="chat-container">
+      <!-- Add modal for username prompt -->
+      <div id="username-modal" class="modal">
+        <div class="modal-content">
+          <p>give me your bambi name:</p>
+          <input type="text" id="username-input" placeholder="Enter username">
+          <button id="username-submit">Submit</button>
+        </div>
+      </div>
+      <div id="user-input">
+        <h1>BambiSleep AIGF 👁️</h1>
+        <div id="llm">
+          <form id="llm-form">
+            <textarea id="textarea" oninput="autoExpand(this)" placeholder="Prompt my AIGF"></textarea>
+            <button id="submit" type="submit">Send</button>
+          </form>
+          <div id="user-prompt"></div>
+          <div id="audiomessage">
+            <audio id="audio" hidden controls></audio>
+            <p id="message"></p>
+            <p id="error-message" style="display: none; color: red;"></p>
+          </div>
+        </div>
+        <br>
+        <div id="system-controls-container">
+          <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
+        </div>
+      </div>
+      <div id="response-container">
+        <div id="response-chat-wrapper">
+          <div id="response"></div>
+          <div id="chat">
+            <form id="chat-form">
+              <textarea id="textarea-chat" oninput="autoExpand(this)" placeholder="Send in Chat"></textarea>
+              <button id="send" type="submit" class="send-btn">Chat</button>
+            </form>
+            <ul id="chat-response"></ul>
+          </div>
+        </div>
+        <div id="eyeCursorContainer">
+          <div id="eyeCursor">
+            <div id="eyeCursorText"></div>
+            <div id="eyeCursorText2"></div>
+            <div id="eye" aria-label="Eye Cursor"></div>
+            <div id="eyeCursorText3"></div>
+            <div id="eyeCursorText4"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
 
-<div id="chat-container">
-  <!-- Add modal for username prompt -->
-  <div id="username-modal" class="modal">
-    <div class="modal-content">
-      <p>give me your bambi name:</p>
-      <input type="text" id="username-input" placeholder="Enter username">
-      <button id="username-submit">Submit</button>
-    </div>
-  </div>
-  <div id="user-input">
-    <h1>BambiSleep AIGF 👁️</h1>
-    <div id="llm">
-      <form id="llm-form">
-        <textarea id="textarea" oninput="autoExpand(this)" placeholder="Prompt my AIGF"></textarea>
-        <button id="submit" type="submit">Send</button>
-      </form>
-      <div id="user-prompt"></div>
-      <div id="audiomessage">
-        <audio id="audio" hidden controls></audio>
-        <p id="message"></p>
-        <p id="error-message" style="display: none; color: red;"></p>
-      </div>
-    </div>
-    <br>
-    <div id="system-controls-container">
-      <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
-    </div>
-  </div>
-  <div id="response-container">
-    <div id="response-chat-wrapper">
-      <div id="response"></div>
-      <div id="chat">
-        <form id="chat-form">
-          <textarea id="textarea-chat" oninput="autoExpand(this)" placeholder="Send in Chat"></textarea>
-          <button id="send" type="submit" class="send-btn">Chat</button>
-        </form>
-        <ul id="chat-response"></ul>
-      </div>
-    </div>
-    <div id="eyeCursorContainer">
-      <div id="eyeCursor">
-        <div id="eyeCursorText"></div>
-        <div id="eyeCursorText2"></div>
-        <div id="eye" aria-label="Eye Cursor"></div>
-        <div id="eyeCursorText3"></div>
-        <div id="eyeCursorText4"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<% block('script', `
+  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  
+  <script src="/socket.io/socket.io.js"></script>
   <script src="js/psychodelic-trigger-mania.js"></script>
   <script src="js/text2speech.js"></script>
   <script src="js/responsive.js"></script>
   <script src="js/triggers.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
   <script src="js/aigf-core.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -141,4 +154,5 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
   <script src="js/bootstrap.min.js"></script>
-`) %>
+</body>
+</html>
