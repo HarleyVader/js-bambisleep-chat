@@ -1,7 +1,7 @@
-const Profile = require('../models/Profile');
-const logger = require('../utils/logger');
+import Profile from '../models/Profile.js';
+import logger from '../utils/logger.js';
 
-module.exports = (io) => {
+export default function initSocketHandlers(io) {
   io.on('connection', (socket) => {
     logger.info('New client connected');
     
@@ -176,4 +176,4 @@ module.exports = (io) => {
       logger.info('Client disconnected');
     });
   });
-};
+}

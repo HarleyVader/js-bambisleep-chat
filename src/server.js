@@ -35,6 +35,11 @@ import Logger from './utils/logger.js';
 import connectToMongoDB from './utils/dbConnection.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
 
+//profile app and middleware
+import profileSocketHandlers from '../bambisleep-profile/src/socket/handlers.js';
+import profileApp from '../bambisleep-profile/src/app.js';
+import { userContextMiddleware } from './middleware/userContext.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -54,7 +59,7 @@ const io = new Server(server, {
 const profileIo = io.of('/profiles');
 
 // Pass the namespaced io to the bambisleep-profile socket handlers
-require('../bambisleep-profile/src/socket/handlers')(profileIo);
+profileSocketHandlers(profileIo);
 
 //filteredWords
 const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
@@ -958,11 +963,6 @@ async function initializeServer() {
     await delay(200);
 
     // Mount the profile app at the /profile path
-    const profileApp = require('../bambisleep-profile/src/app');
-    const { userContextMiddleware } = require('./middleware/userContext.js');
-
-    // Add before mounting the profile app
-    app.use(userContextMiddleware);
     app.use('/profiles', userContextMiddleware, profileApp);
 
     serverInstance = server.listen(PORT, async () => {

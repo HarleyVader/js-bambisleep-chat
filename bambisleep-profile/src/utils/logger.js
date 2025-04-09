@@ -1,4 +1,4 @@
-const colors = require('colors');
+import colors from 'colors';
 
 // Configure colors
 colors.setTheme({
@@ -15,4 +15,4 @@ const logger = {
   error: (message) => console.error(`ERROR: ${message}`)
 };
 
-module.exports = logger;
+export default logger;

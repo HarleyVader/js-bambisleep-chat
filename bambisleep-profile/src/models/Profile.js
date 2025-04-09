@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // Standard BambiSleep triggers from triggers.js
 const STANDARD_TRIGGERS = [
@@ -290,4 +290,4 @@ ProfileSchema.methods.setTriggerActive = function(triggerName, active) {
   return false;
 };
 
-module.exports = mongoose.model('Profile', ProfileSchema);
+export default mongoose.model('Profile', ProfileSchema);

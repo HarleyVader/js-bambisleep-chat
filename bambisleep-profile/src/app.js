@@ -1,11 +1,11 @@
-const express = require('express');
-const path = require('path');
-const dotenv = require('dotenv');
-const cookieParser = require('cookie-parser');
-const logger = require('./utils/logger');
-const { getMongoConnection } = require('./utils/dbConnection');
-const eventBus = require('./utils/eventBus.js');
-const { Bambi } = require('../../../src/models/index.js');
+import express from 'express';
+import path from 'path';
+import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+import logger from './utils/logger.js';
+import { getMongoConnection } from '../../src/utils/dbConnection.js';
+import eventBus from '../../src/utils/eventBus.js';
+import { Bambi } from '../../src/models/index.js';
 
 // Load env vars
 dotenv.config();
@@ -94,8 +94,8 @@ app.use((req, res, next) => {
 const db = getMongoConnection();
 
 // Import routes
-const indexRouter = require('./routes/index');
-const profileRouter = require('./routes/profile');
+import indexRouter from './routes/index.js';
+import profileRouter from './routes/profile.js';
 
 // Use routes
 app.use('/', indexRouter);
@@ -154,4 +154,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-module.exports = app;
+export default app;

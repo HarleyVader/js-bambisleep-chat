@@ -9,7 +9,7 @@
   ],
   "license": "MIT",
   "author": "melkanea",
-  "type": "commonjs",
+  "type": "module",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
