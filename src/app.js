@@ -1,5 +1,4 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
@@ -20,9 +19,6 @@ import profilesRouter from './routes/profile.js';
 
 // Middleware
 import errorHandler from './middleware/errorHandler.js';
-import { userContextMiddleware } from './middleware/userContext.js';
-import { performanceMiddleware } from './middleware/performance.js';
-import { databaseErrorHandler } from './middleware/databaseErrorHandler.js';
 
 // Config
 import footerConfig from './config/footer.config.js';
@@ -30,14 +26,15 @@ import footerConfig from './config/footer.config.js';
 // Worker Coordinator
 import workerCoordinator from './workers/workerCoordinator.js';
 
+// Database
+import dbConnection from './database/dbConnection.js';
+import { databaseErrorHandler } from './database/databaseErrorHandler.js';
+
 // Utilities
 import Logger from './utils/logger.js';
 
 // Schemas
-import { Bambi, BambiSchema } from './models/Bambi.js';
-
-// Database
-import dbConnection from './database/index.js';
+import { Bambi } from './models/Bambi.js';
 
 // Load env variables
 dotenv.config();
@@ -50,6 +47,17 @@ const logger = new Logger('App');
 
 // Create Express app
 const app = express();
+
+// Ensure database connection before starting the app
+(async () => {
+  try {
+    await dbConnection.connect();
+    logger.info('Database connected successfully');
+  } catch (error) {
+    logger.error('Failed to connect to the database:', error.message);
+    process.exit(1); // Exit the process if the database connection fails
+  }
+})();
 
 // Configure TTS API settings
 const KOKORO_HOST = process.env.KOKORO_HOST || 'localhost';
@@ -284,7 +292,7 @@ app.post('/bambis/update-profile', async (req, res) => {
     }
     
     // Find and update the user's profile
-    const bambi = await mongoose.model('Bambi').findOneAndUpdate(
+    const bambi = await dbConnection.getConnection().model('Bambi').findOneAndUpdate(
         { username },
         { 
             $set: {
@@ -336,29 +344,6 @@ export async function initializeScraperSystem() {
 // Function to initialize worker coordinator (for server.js)
 export async function initializeWorkerSystem() {
   return await workerCoordinator.initialize();
-}
-
-// Connect to database before starting server
-try {
-  await dbConnection.connect();
-  
-  // Start server only after successful database connection
-  const server = app.listen(PORT, () => {
-    logger.success(`Server running on port ${PORT}`);
-  });
-  
-  // Add graceful shutdown handler
-  process.on('SIGTERM', async () => {
-    logger.info('SIGTERM received, shutting down gracefully');
-    await dbConnection.disconnect();
-    server.close(() => {
-      logger.info('Process terminated');
-    });
-  });
-  
-} catch (error) {
-  logger.error(`Failed to start server: ${error.message}`);
-  process.exit(1);
 }
 
 // Export the configured app, session middleware and other necessary components

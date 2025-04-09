@@ -3,7 +3,17 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
 // Add database connection import (if needed for future DB operations)
-import connectToMongoDB from '../utils/dbConnection.js';
+import dbConnection from '../database/dbConnection.js';
+
+// Ensure database connection is established when the worker starts
+try {
+  await dbConnection.connect();
+  logger.info('Database connection established successfully in lmstudio worker');
+} catch (error) {
+  logger.error('Failed to establish database connection in lmstudio worker:', error);
+  throw new ConnectionError('Failed to connect to the database');
+}
+
 // Add this import near the top
 import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 

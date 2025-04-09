@@ -3,8 +3,6 @@ import { Server } from 'socket.io';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Worker } from 'worker_threads';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
 // Define __dirname first
@@ -22,7 +20,7 @@ import {
 
 // Use direct import instead of dynamic import
 import { Logger } from './src/utils/logger.js';
-import connectToMongoDB from './src/utils/dbConnection.js';
+import dbConnection from './src/database/dbConnection.js';
 import gracefulShutdown from './src/utils/gracefulShutdown.js';
 
 // Import socket handlers
@@ -68,7 +66,7 @@ async function initializeServer() {
   try {
     // Step 1: Connect to MongoDB
     logger.info('Step 1/5: Connecting to MongoDB...');
-    await connectToMongoDB();
+    await dbConnection.connect();
 
     // Step 2: Load filtered words
     logger.info('Step 2/5: Loading filtered words...');
@@ -87,12 +85,21 @@ async function initializeServer() {
     logger.info('Step 5/5: Starting HTTP server...');
     
     // Set up signal handlers for graceful shutdown
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
+    process.on('SIGTERM', async () => {
+      await gracefulShutdown('SIGTERM', server);
+      await dbConnection.disconnect();
+    });
+    
+    process.on('SIGINT', async () => {
+      await gracefulShutdown('SIGINT', server);
+      await dbConnection.disconnect();
+    });
+    
     process.on('uncaughtException', async (err) => {
       logger.error('Uncaught Exception:', err);
       try {
         await gracefulShutdown('UNCAUGHT_EXCEPTION', server);
+        await dbConnection.disconnect();
       } catch (error) {
         logger.error('Error during shutdown after uncaught exception:', error);
         process.exit(1);

@@ -3,9 +3,10 @@ import mongoose from 'mongoose';
 import Profile from '../models/Bambi.js';
 import auth from '../middleware/auth.js';
 import logger from '../utils/logger.js';
-import { withDatabaseTimeout } from '../middleware/databaseErrorHandler.js';
+import { withDatabaseTimeout } from '../database/databaseErrorHandler.js';
 import { withTransaction } from '../database/transaction.js';
-import { validationResult, body, param } from 'express-validator'; // Add this
+import { validationResult, body, param } from 'express-validator';
+import dbConnection from '../database/dbConnection.js';
 
 const router = express.Router();
 
@@ -92,6 +93,30 @@ const ownershipCheck = (req, res, next) => {
   next();
 };
 
+// Add a middleware to ensure database connection before operations
+const ensureDbConnection = async (req, res, next) => {
+  try {
+    if (!dbConnection.isConnected()) {
+      await dbConnection.connect();
+    }
+    next();
+  } catch (error) {
+    logger.error(`Database connection failed: ${error.message}`);
+    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection failed'
+      });
+    }
+    return res.status(500).render('error', {
+      message: 'Database connection failed',
+      error: { status: 500 },
+      title: 'Database Error',
+      validConstantsCount: 5
+    });
+  }
+};
+
 // Add a middleware for database operations with error handling
 const withDBErrorHandling = (handler) => async (req, res, next) => {
   try {
@@ -154,6 +179,9 @@ router.use((req, res, next) => {
   next();
 });
 
+// Apply ensureDbConnection middleware to all routes
+router.use(ensureDbConnection);
+
 // Home page - Show all profiles with pagination
 router.get('/', withDBErrorHandling(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -205,50 +233,53 @@ router.get('/new', (req, res) => {
 router.post('/new', validateProfileInput, withDBErrorHandling(async (req, res) => {
   const { username, displayName, avatar, about, description, seasons } = req.body;
   
-  // Check if username already exists
-  const existingProfile = await Profile.findOne({ username });
-  if (existingProfile) {
-    return res.render('creation', { 
-      title: 'Create New Profile',
-      error: 'Username already exists',
-      validConstantsCount: 5
+  // Use transaction for consistent data
+  await withTransaction(async (session) => {
+    // Check if username already exists
+    const existingProfile = await Profile.findOne({ username }).session(session);
+    if (existingProfile) {
+      return res.render('creation', { 
+        title: 'Create New Profile',
+        error: 'Username already exists',
+        validConstantsCount: 5
+      });
+    }
+    
+    // Process seasons
+    const selectedSeasons = Array.isArray(seasons) ? seasons : [seasons].filter(Boolean);
+    
+    // Create new profile
+    const newProfile = new Profile({
+      username,
+      displayName: displayName || username,
+      avatar: avatar || '/gif/default-avatar.gif',
+      about: about || 'Tell us about yourself...',
+      description: description || 'Share your bambi journey...',
+      seasons: selectedSeasons.length > 0 ? selectedSeasons : ['spring'],
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
-  }
-  
-  // Process seasons
-  const selectedSeasons = Array.isArray(seasons) ? seasons : [seasons].filter(Boolean);
-  
-  // Create new profile
-  const newProfile = new Profile({
-    username,
-    displayName: displayName || username,
-    avatar: avatar || '/gif/default-avatar.gif',
-    about: about || 'Tell us about yourself...',
-    description: description || 'Share your bambi journey...',
-    seasons: selectedSeasons.length > 0 ? selectedSeasons : ['spring'],
-    createdAt: new Date(),
-    updatedAt: new Date()
+    
+    await newProfile.save({ session });
+    
+    // Set cookie with security options
+    res.cookie('bambiname', username, { 
+      path: '/',
+      httpOnly: true, // Prevents JavaScript from accessing the cookie
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
+      sameSite: 'strict' // Prevents CSRF attacks
+    });
+    
+    // Set session too for better auth
+    if (req.session) {
+      req.session.user = {
+        username: username,
+        profileId: newProfile._id
+      };
+    }
+    
+    res.redirect(`/profile/${username}`);
   });
-  
-  await newProfile.save();
-  
-  // Set cookie with security options
-  res.cookie('bambiname', username, { 
-    path: '/',
-    httpOnly: true, // Prevents JavaScript from accessing the cookie
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
-    sameSite: 'strict' // Prevents CSRF attacks
-  });
-  
-  // Set session too for better auth
-  if (req.session) {
-    req.session.user = {
-      username: username,
-      profileId: newProfile._id
-    };
-  }
-  
-  res.redirect(`/profile/${username}`);
 }));
 
 // Handle profile updates with improved error handling
@@ -374,33 +405,36 @@ router.post('/:username',
     // Process seasons
     const selectedSeasons = Array.isArray(seasons) ? seasons : [];
     
-    // Update profile
-    const updatedProfile = await Profile.findOneAndUpdate(
-      { username },
-      {
-        displayName: displayName || username,
-        avatar,
-        headerImage,
-        headerColor,
-        about,
-        description,
-        seasons: selectedSeasons,
-        updatedAt: new Date()
-      },
-      { new: true }
-    );
-    
-    if (!updatedProfile) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Profile not found'
+    // Use transaction for data consistency
+    await withTransaction(async (session) => {
+      // Update profile
+      const updatedProfile = await Profile.findOneAndUpdate(
+        { username },
+        {
+          displayName: displayName || username,
+          avatar,
+          headerImage,
+          headerColor,
+          about,
+          description,
+          seasons: selectedSeasons,
+          updatedAt: new Date()
+        },
+        { new: true, session }
+      );
+      
+      if (!updatedProfile) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Profile not found'
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Profile updated successfully',
+        profile: updatedProfile
       });
-    }
-    
-    res.json({ 
-      success: true, 
-      message: 'Profile updated successfully',
-      profile: updatedProfile
     });
   })
 );
@@ -436,37 +470,40 @@ router.post('/:username/delete',
   withDBErrorHandling(async (req, res) => {
     const { username } = req.params;
     
-    // Find and delete the profile
-    const deletedProfile = await Profile.findOneAndDelete({ username });
-    
-    if (!deletedProfile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profile not found'
-      });
-    }
-    
-    logger.success(`Profile deleted for ${username} via HTTP route`);
-    
-    // Clear the user cookie
-    res.clearCookie('bambiname');
-    
-    // Also clear session
-    if (req.session) {
-      req.session.destroy();
-    }
-    
-    // If it's an AJAX request, send JSON response
-    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
-      return res.json({
-        success: true,
-        message: 'Profile deleted successfully',
-        redirectUrl: '/'
-      });
-    }
-    
-    // For regular form submissions, redirect
-    return res.redirect('/');
+    // Use transaction for data consistency
+    await withTransaction(async (session) => {
+      // Find and delete the profile
+      const deletedProfile = await Profile.findOneAndDelete({ username }, { session });
+      
+      if (!deletedProfile) {
+        return res.status(404).json({
+          success: false,
+          message: 'Profile not found'
+        });
+      }
+      
+      logger.success(`Profile deleted for ${username} via HTTP route`);
+      
+      // Clear the user cookie
+      res.clearCookie('bambiname');
+      
+      // Also clear session
+      if (req.session) {
+        req.session.destroy();
+      }
+      
+      // If it's an AJAX request, send JSON response
+      if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+        return res.json({
+          success: true,
+          message: 'Profile deleted successfully',
+          redirectUrl: '/'
+        });
+      }
+      
+      // For regular form submissions, redirect
+      return res.redirect('/');
+    });
   })
 );
 
@@ -485,32 +522,35 @@ router.delete('/:username/delete',
       });
     }
     
-    // Find and delete the profile
-    const deletedProfile = await Profile.findOneAndDelete({ username });
-    
-    if (!deletedProfile) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Profile not found' 
-      });
-    }
-    
-    logger.success(`Profile deleted for ${username} via API route`);
-    
-    // Clear the user cookie if it was their own profile
-    if (req.user.username === username) {
-      res.clearCookie('bambiname');
+    // Use transaction for data consistency
+    await withTransaction(async (session) => {
+      // Find and delete the profile
+      const deletedProfile = await Profile.findOneAndDelete({ username }, { session });
       
-      // Also clear session
-      if (req.session) {
-        req.session.destroy();
+      if (!deletedProfile) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Profile not found' 
+        });
       }
-    }
-    
-    return res.json({ 
-      success: true, 
-      message: 'Profile deleted successfully',
-      redirectUrl: '/'
+      
+      logger.success(`Profile deleted for ${username} via API route`);
+      
+      // Clear the user cookie if it was their own profile
+      if (req.user.username === username) {
+        res.clearCookie('bambiname');
+        
+        // Also clear session
+        if (req.session) {
+          req.session.destroy();
+        }
+      }
+      
+      return res.json({ 
+        success: true, 
+        message: 'Profile deleted successfully',
+        redirectUrl: '/'
+      });
     });
   })
 );

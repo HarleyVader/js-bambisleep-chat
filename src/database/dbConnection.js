@@ -1,41 +1,31 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import Logger from '../utils/logger.js';
+import { Logger } from '../utils/logger.js';
+
+// Initialize logger
+const logger = new Logger('Database');
 
 dotenv.config();
 
-// Create a specialized logger for database operations
-const logger = new Logger('Database');
-
 // MongoDB connection options with proper pooling and timeouts
 const CONNECTION_OPTIONS = {
-  // Connection pooling settings
   maxPoolSize: 10,
   minPoolSize: 2,
-  socketTimeoutMS: 45000,      // Close sockets after 45 seconds of inactivity
-  connectTimeoutMS: 10000,     // Give up initial connection after 10 seconds
-  serverSelectionTimeoutMS: 5000, // How long to try selecting server
-  heartbeatFrequencyMS: 30000, // Check connection health every 30 seconds
-  maxIdleTimeMS: 60000,        // Remove idle connections after 60 seconds
-  
-  // Signal to driver that we understand the new connection string parser
-  useNewUrlParser: true,
-
-  // For replica sets and general connection stability
-  autoReconnect: true
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 10000,
+  serverSelectionTimeoutMS: 5000,
+  heartbeatFrequencyMS: 30000,
+  maxIdleTimeMS: 60000
 };
-
-// Get MongoDB URI from environment variables with fallbacks
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
 
 class DatabaseConnection {
   constructor() {
     this.isConnected = false;
-    this.healthCheckInterval = null;
     this.connectionPromise = null;
     this.retryCount = 0;
     this.maxRetries = 5;
-    this.retryDelay = 5000; // 5 seconds
+    this.retryDelay = 5000;
+    this.healthCheckInterval = null;
   }
 
   /**
@@ -43,23 +33,22 @@ class DatabaseConnection {
    * @returns {Promise<mongoose.Connection>} Mongoose connection
    */
   async connect() {
-    // Return existing connection promise if already connecting
     if (this.connectionPromise) {
       return this.connectionPromise;
     }
     
-    // Create new connection promise
     this.connectionPromise = new Promise(async (resolve, reject) => {
       try {
-        // Set up connection events before connecting
+        const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
+        
+        // Set up connection events
         mongoose.connection.on('error', this._handleError.bind(this));
         mongoose.connection.on('disconnected', this._handleDisconnect.bind(this));
         mongoose.connection.on('connected', this._handleConnection.bind(this));
         
-        // Attempt to connect
-        await mongoose.connect(MONGODB_URI, CONNECTION_OPTIONS);
+        await mongoose.connect(MONGO_URI, CONNECTION_OPTIONS);
         
-        // Start health check once connected
+        // Start health check
         this._startHealthCheck();
         
         resolve(mongoose.connection);
@@ -70,7 +59,6 @@ class DatabaseConnection {
           this.retryCount++;
           logger.error(`Connection failed. Retrying (${this.retryCount}/${this.maxRetries}) in ${this.retryDelay/1000}s...`);
           
-          // Retry after delay
           setTimeout(() => {
             this.connect()
               .then(resolve)
@@ -107,13 +95,11 @@ class DatabaseConnection {
    * @returns {Promise<void>}
    */
   async disconnect() {
-    // Clear health check interval
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = null;
     }
 
-    // Close connection if it exists
     if (mongoose.connection.readyState !== 0) {
       logger.info('Closing database connection...');
       await mongoose.connection.close(false);
@@ -140,7 +126,6 @@ class DatabaseConnection {
    */
   async pingDatabase() {
     try {
-      // Use admin command to check connection
       await mongoose.connection.db.admin().ping();
       return true;
     } catch (error) {
@@ -154,12 +139,10 @@ class DatabaseConnection {
    * @private
    */
   _startHealthCheck() {
-    // Clear any existing interval
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
 
-    // Create new interval check
     this.healthCheckInterval = setInterval(async () => {
       try {
         const isHealthy = await this.pingDatabase();
@@ -167,14 +150,13 @@ class DatabaseConnection {
           logger.warn('Health check failed, attempting reconnection');
           this.isConnected = false;
           
-          // Reset connection and try again
           this.connectionPromise = null;
           await this.connect();
         }
       } catch (error) {
         logger.error(`Health check error: ${error.message}`);
       }
-    }, 30000); // Check every 30 seconds
+    }, 30000);
   }
 
   /**
@@ -183,7 +165,7 @@ class DatabaseConnection {
    */
   _handleConnection() {
     this.isConnected = true;
-    this.retryCount = 0; // Reset retry counter
+    this.retryCount = 0;
     logger.success(`MongoDB Connected: ${mongoose.connection.host}:${mongoose.connection.port}/${mongoose.connection.name}`);
   }
 
@@ -203,11 +185,9 @@ class DatabaseConnection {
   _handleDisconnect() {
     this.isConnected = false;
     logger.warning('MongoDB disconnected');
-    
-    // Reconnection will be handled by mongoose's autoReconnect option
   }
 }
 
-// Export a singleton instance
+// Export singleton instance
 const dbConnection = new DatabaseConnection();
 export default dbConnection;

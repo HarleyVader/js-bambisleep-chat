@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { withDatabaseTimeout } from '../middleware/databaseErrorHandler.js';
+import { withDatabaseTimeout } from '../database/databaseErrorHandler.js';
 
 // Standard BambiSleep triggers from triggers.js
 const STANDARD_TRIGGERS = [
