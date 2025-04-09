@@ -25,7 +25,7 @@ const bambiSchema = new mongoose.Schema({
     },
     headerImageUrl: {
         type: String,
-        default: 'https://via.placeholder.com/1000x250'
+        default: '/default-avatar.gif'
     },
     level: {
         type: Number,
@@ -42,8 +42,27 @@ const bambiSchema = new mongoose.Schema({
     lastActive: {
         type: Date,
         default: Date.now
+    },
+    lastViewed: {
+        type: Date,
+        default: null
+    },
+    profileTheme: {
+        primaryColor: {
+            type: String,
+            default: null
+        },
+        textColor: {
+            type: String,
+            default: null
+        }
+    },
+    triggers: {
+        type: [String],
+        default: []
     }
 });
 
-export const Bambi = mongoose.model('Bmabi', bambiSchema);
+// Fix the typo in the model name (Bmabi → Bambi)
+export const Bambi = mongoose.model('Bambi', bambiSchema);
 export default bambiSchema;
