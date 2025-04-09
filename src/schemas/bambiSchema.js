@@ -21,7 +21,7 @@ const bambiSchema = new mongoose.Schema({
     },
     profilePictureUrl: {
         type: String,
-        default: '/default-avatar.gif' // Updated to use the default avatar file
+        default: '/default-avatar.gif'
     },
     headerImageUrl: {
         type: String,
@@ -63,6 +63,5 @@ const bambiSchema = new mongoose.Schema({
     }
 });
 
-// Fix the typo in the model name (Bmabi → Bambi)
 export const Bambi = mongoose.model('Bambi', bambiSchema);
 export default bambiSchema;
