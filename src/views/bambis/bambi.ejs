@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Page</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background-color: #f4f4f4;
+    }
+
+    .profile-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-container {
+        position: relative;
+        width: 100%;
+        height: 250px;
+        overflow: hidden;
+    }
+
+    #header-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-container {
+        position: relative;
+        margin-top: -75px;
+        margin-left: 30px;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 5px solid white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    #avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .profile-details {
+        padding: 20px 30px;
+    }
+
+    .editable-section {
+        margin: 20px 0;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 5px;
+        position: relative;
+    }
+
+    .editable {
+        min-height: 50px;
+        padding: 10px;
+        border: 1px solid transparent;
+    }
+
+    .editable[contenteditable="true"] {
+        border: 1px solid #ddd;
+        background: white;
+        outline: none;
+    }
+
+    .edit-btn {
+        padding: 5px 10px;
+        background: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        position: absolute;
+        right: 10px;
+        top: 10px;
+    }
+
+    .edit-btn:hover {
+        background: #3367d6;
+    }
+
+    h1 {
+        margin-bottom: 15px;
+    }
+
+    h2 {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+</style>
+
+<body>
+    <div class="profile-container">
+        <!-- Header Image -->
+        <div class="header-container">
+            <img id="header-img" src="https://via.placeholder.com/1000x250" alt="Profile header">
+            <button class="edit-btn" id="edit-header">Edit Header</button>
+            <input type="file" id="header-upload" accept="image/*" hidden>
+        </div>
+
+        <!-- Avatar -->
+        <div class="avatar-container">
+            <img id="avatar-img" src="https://via.placeholder.com/150" alt="Profile avatar">
+            <button class="edit-btn" id="edit-avatar">Edit</button>
+            <input type="file" id="avatar-upload" accept="image/*" hidden>
+        </div>
+
+        <!-- Profile Details -->
+        <div class="profile-details">
+            <h1>My Profile</h1>
+
+            <div class="editable-section">
+                <h2>About</h2>
+                <div id="about" class="editable" contenteditable="false">Click edit to add your about information</div>
+                <button class="edit-btn" id="edit-about">Edit</button>
+            </div>
+
+            <div class="editable-section">
+                <h2>Description</h2>
+                <div id="description" class="editable" contenteditable="false">Click edit to add your description</div>
+                <button class="edit-btn" id="edit-description">Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', () => {
+            // Load saved data from localStorage
+            loadProfileData();
+
+            // Setup edit buttons for text elements
+            setupTextEditing('about');
+            setupTextEditing('description');
+
+            // Setup image uploads
+            setupImageUpload('avatar');
+            setupImageUpload('header');
+        });
+
+        function setupTextEditing(elementId) {
+            const element = document.getElementById(elementId);
+            const editButton = document.getElementById(`edit-${elementId}`);
+
+            editButton.addEventListener('click', () => {
+                const isEditing = element.contentEditable === 'true';
+
+                if (isEditing) {
+                    // Save the content
+                    element.contentEditable = 'false';
+                    editButton.textContent = 'Edit';
+                    saveProfileData();
+                } else {
+                    // Enable editing
+                    element.contentEditable = 'true';
+                    element.focus();
+                    editButton.textContent = 'Save';
+                }
+            });
+        }
+
+        function setupImageUpload(type) {
+            const uploadInput = document.getElementById(`${type}-upload`);
+            const editButton = document.getElementById(`edit-${type}`);
+            const image = document.getElementById(`${type}-img`);
+
+            editButton.addEventListener('click', () => {
+                uploadInput.click();
+            });
+
+            uploadInput.addEventListener('change', (event) => {
+                if (event.target.files && event.target.files[0]) {
+                    const reader = new FileReader();
+
+                    reader.onload = (e) => {
+                        image.src = e.target.result;
+                        saveProfileData();
+                    };
+
+                    reader.readAsDataURL(event.target.files[0]);
+                }
+            });
+        }
+
+        function saveProfileData() {
+            const profileData = {
+                about: document.getElementById('about').innerHTML,
+                description: document.getElementById('description').innerHTML,
+                avatar: document.getElementById('avatar-img').src,
+                header: document.getElementById('header-img').src
+            };
+
+            localStorage.setItem('profileData', JSON.stringify(profileData));
+        }
+
+        function loadProfileData() {
+            const savedData = localStorage.getItem('profileData');
+
+            if (savedData) {
+                const profileData = JSON.parse(savedData);
+
+                document.getElementById('about').innerHTML = profileData.about;
+                document.getElementById('description').innerHTML = profileData.description;
+                document.getElementById('avatar-img').src = profileData.avatar;
+                document.getElementById('header-img').src = profileData.header;
+            }
+        }
+    </script>
+</body>
+
+</html>
