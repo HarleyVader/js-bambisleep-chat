@@ -12,17 +12,17 @@ const logger = new Logger('API:Profiles');
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype === 'image/jpeg' || 
-      file.mimetype === 'image/jpg' || 
-      file.mimetype === 'image/png' || 
-      file.mimetype === 'image/gif') {
+  if (file.mimetype === 'image/jpeg' ||
+    file.mimetype === 'image/jpg' ||
+    file.mimetype === 'image/png' ||
+    file.mimetype === 'image/gif') {
     cb(null, true);
   } else {
     cb(new Error('Only image files (JPEG, JPG, PNG, GIF) are allowed!'), false);
   }
 };
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: fileFilter
@@ -44,7 +44,7 @@ router.get('/list', async (req, res) => {
     const skip = (page - 1) * limit;
     const sort = req.query.sort || 'updatedAt';
     const search = req.query.search || '';
-    
+
     let sortOptions = {};
     switch (sort) {
       case 'hearts':
@@ -60,7 +60,7 @@ router.get('/list', async (req, res) => {
       default:
         sortOptions = { 'updatedAt': -1 };
     }
-    
+
     let query = {};
     if (search) {
       query = {
@@ -71,7 +71,7 @@ router.get('/list', async (req, res) => {
         ]
       };
     }
-    
+
     const [profiles, total] = await Promise.all([
       Profile.find(query)
         .select('username displayName avatar about updatedAt views hearts')
@@ -81,7 +81,7 @@ router.get('/list', async (req, res) => {
         .lean(),
       Profile.countDocuments(query)
     ]);
-    
+
     res.json({
       success: true,
       profiles,
@@ -100,25 +100,25 @@ router.get('/list', async (req, res) => {
 });
 
 // Get single profile
-router.get('/profile/:username', async (req, res) => {
+router.get('/bambi/:username', async (req, res) => {
   try {
     const { username } = req.params;
-    
+
     const profile = await Profile.findOne({ username })
       .select('-triggerHistory')
       .lean();
-    
+
     if (!profile) {
       return res.status(404).json({
         success: false,
         message: 'Profile not found'
       });
     }
-    
+
     // Check if this is the profile owner
     const bambiname = getUsernameFromCookies(req);
     const isOwnProfile = bambiname === username;
-    
+
     // Track profile views if not own profile
     if (!isOwnProfile) {
       Profile.updateOne(
@@ -126,7 +126,7 @@ router.get('/profile/:username', async (req, res) => {
         { $inc: { views: 1 } }
       ).catch(err => logger.error(`Failed to update view count: ${err.message}`));
     }
-    
+
     res.json({
       success: true,
       profile,
@@ -142,11 +142,11 @@ router.get('/profile/:username', async (req, res) => {
 });
 
 // Update profile
-router.put('/profile/:username', auth, upload.single('avatar'), async (req, res) => {
+router.put('/bambi/:username', auth, upload.single('avatar'), async (req, res) => {
   try {
     const { username } = req.params;
     const currentBambiname = getUsernameFromCookies(req);
-    
+
     // Check ownership
     if (currentBambiname !== username) {
       return res.status(403).json({
@@ -154,21 +154,21 @@ router.put('/profile/:username', auth, upload.single('avatar'), async (req, res)
         message: 'You are not authorized to update this profile'
       });
     }
-    
+
     const updateData = {
       displayName: req.body.displayName,
       about: req.body.about,
       description: req.body.description,
       updatedAt: new Date()
     };
-    
+
     // Handle avatar upload
     if (req.file) {
       updateData.avatar = `/uploads/avatars/${username}.${req.file.originalname.split('.').pop()}`;
-      
+
       // Save file logic would go here
     }
-    
+
     // Use transaction for data consistency
     const updatedProfile = await withTransaction(async (session) => {
       return Profile.findOneAndUpdate(
@@ -177,14 +177,14 @@ router.put('/profile/:username', auth, upload.single('avatar'), async (req, res)
         { new: true, session }
       );
     });
-    
+
     if (!updatedProfile) {
       return res.status(404).json({
         success: false,
         message: 'Profile not found'
       });
     }
-    
+
     res.json({
       success: true,
       message: 'Profile updated successfully',
@@ -200,11 +200,11 @@ router.put('/profile/:username', auth, upload.single('avatar'), async (req, res)
 });
 
 // Delete profile
-router.delete('/profile/:username', auth, async (req, res) => {
+router.delete('/bambi/:username', auth, async (req, res) => {
   try {
     const { username } = req.params;
     const currentBambiname = getUsernameFromCookies(req);
-    
+
     // Check ownership
     if (currentBambiname !== username && !req.user.isAdmin) {
       return res.status(403).json({
@@ -212,28 +212,28 @@ router.delete('/profile/:username', auth, async (req, res) => {
         message: 'You are not authorized to delete this profile'
       });
     }
-    
+
     // Use transaction for data consistency
     const deletedProfile = await withTransaction(async (session) => {
       return Profile.findOneAndDelete({ username }, { session });
     });
-    
+
     if (!deletedProfile) {
       return res.status(404).json({
         success: false,
         message: 'Profile not found'
       });
     }
-    
+
     // Clear cookies if deleting own profile
     if (currentBambiname === username) {
       res.clearCookie('bambiname');
-      
+
       if (req.session) {
         req.session.destroy();
       }
     }
-    
+
     res.json({
       success: true,
       message: 'Profile deleted successfully'
@@ -248,29 +248,29 @@ router.delete('/profile/:username', auth, async (req, res) => {
 });
 
 // Handle hearts/likes
-router.post('/profile/:username/heart', auth, async (req, res) => {
+router.post('/bambi/:username/heart', auth, async (req, res) => {
   try {
     const { username } = req.params;
     const currentBambiname = getUsernameFromCookies(req);
-    
+
     if (!currentBambiname) {
       return res.status(401).json({
         success: false,
         message: 'Authentication required'
       });
     }
-    
+
     // Use transaction for data consistency
     const result = await withTransaction(async (session) => {
       const profile = await Profile.findOne({ username }).session(session);
-      
+
       if (!profile) {
         throw new Error('Profile not found');
       }
-      
+
       // Check if already hearted
       const heartIndex = profile.hearts?.findIndex(h => h.username === currentBambiname);
-      
+
       if (heartIndex >= 0) {
         // Remove heart
         profile.hearts.splice(heartIndex, 1);
@@ -282,15 +282,15 @@ router.post('/profile/:username/heart', auth, async (req, res) => {
           timestamp: new Date()
         });
       }
-      
+
       await profile.save({ session });
-      
+
       return {
         hearted: heartIndex < 0,
         heartCount: profile.hearts?.length || 0
       };
     });
-    
+
     res.json({
       success: true,
       ...result
@@ -305,7 +305,7 @@ router.post('/profile/:username/heart', auth, async (req, res) => {
 });
 
 // Add to app.js:
-// import profileApiRouter from './routes/api/profiles.js';
-// app.use('/api/profiles', profileApiRouter);
+// import bambiApiRouter from './routes/api/bambis.js';
+// app.use('/api/bambis', bambiApiRouter);
 
 export default router;

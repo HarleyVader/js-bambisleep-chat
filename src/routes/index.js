@@ -19,11 +19,11 @@ mainRouter.get('/', (req, res) => {
 });
 
 // Profile listing route
-profileRouter.get('/profiles', async (req, res) => {
+profileRouter.get('/bambis', async (req, res) => {
   try {
     const profiles = await Profile.find().sort({ updatedAt: -1 });
-    res.render('profiles', { 
-      title: 'BambiSleep Profiles',
+    res.render('bambis', { 
+      title: 'Bambi Profiles',
       profiles
     });
   } catch (error) {
@@ -36,15 +36,15 @@ profileRouter.get('/profiles', async (req, res) => {
 
 // Redirect all bambis routes to the proper profiles routes
 router.get('/', (req, res) => {
-  res.redirect('/profiles');
+  res.redirect('/bambis');
 });
 
 router.get('/create', (req, res) => {
-  res.redirect('/profile/new');
+  res.redirect('/bambi/new');
 });
 
 router.get('/:username', (req, res) => {
-  res.redirect(`/profile/${req.params.username}`);
+  res.redirect(`/bambi/${req.params.username}`);
 });
 
 // Export combined setup function
@@ -54,7 +54,7 @@ export const setRoutes = (app) => {
   
   // Set up view routes
   app.use('/', mainRouter);
-  app.use('/', profileRouter);
+  app.use('/bambi', profileRouter);
   
   // Additional routes can be configured here
 };

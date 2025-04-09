@@ -14,7 +14,7 @@
     <div class="profile-edit-container">
       <h1>Edit Your Profile</h1>
       
-      <form id="edit-profile-form" class="profile-form">
+      <form id="edit-profile-form" class="profile-form" action="/bambi/update" method="POST">
         <input type="hidden" name="username" value="<%= profile.username %>">
 
         <div class="input-container">
@@ -83,7 +83,7 @@
 
         <div class="form-actions">
           <button type="submit" class="save-btn">Save Changes</button>
-          <a href="/profile/<%= profile.username %>" class="cancel-btn">Cancel</a>
+          <a href="/bambi/<%= profile.username %>" class="cancel-btn">Cancel</a>
         </div>
       </form>
     </div>

@@ -86,6 +86,12 @@
                                             <% } %>
                         </div>
 
+                        <!-- In all templates, update form actions: -->
+                        <form action="/bambi/update" method="POST">
+                        <!-- Update links: -->
+                        <a href="/bambi/<%= profile.username %>">View Profile</a>
+                        <a href="/bambis/new">Create Bambi Profile</a>
+
             </div>
 
             <%- include('./partials/footer.ejs', { footer: typeof footer !=='undefined' ? footer : {} }) %>

@@ -1,12 +1,19 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import multer from 'multer';
-import { Bambi } from '../schemas/BambiSchema.js';
-import Logger from '../utils/logger.js';
+import { Logger } from '../utils/logger.js';
+import { validationResult, body, param } from 'express-validator';
+import dbConnection from '../database/dbConnection.js';
+import { withDatabaseTimeout } from '../database/databaseErrorHandler.js';
+import { withTransaction } from '../database/transaction.js';
+import Profile from '../models/Bambi.js';
+import auth from '../middleware/auth.js';
 
-const router = express.Router();
+const Bambi = Profile; // For backward compatibility
 const logger = new Logger('BambiRoutes');
+const router = express.Router();
 
-// Configure multer to use memory storage
+// Configure multer for file uploads
 const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
   // Updated to allow jpeg, jpg, png, and gif
@@ -26,30 +33,147 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-// Helper to get the bambiname from cookies
+// Helper to get the bambiname from cookies - consolidated from both files
 function getBambiNameFromCookies(req) {
-  const cookieHeader = req.headers.cookie;
-  if (!cookieHeader) return null;
-  
-  const cookies = cookieHeader.split(';')
-    .map(cookie => cookie.trim().split('='))
-    .reduce((acc, [key, value]) => {
-      acc[key] = value;
-      return acc;
-    }, {});
-  
-  return cookies['bambiname'] 
-    ? decodeURIComponent(cookies['bambiname']).replace(/%20/g, ' ') 
-    : null;
+  if (req.cookies && req.cookies.bambiname) {
+    return decodeURIComponent(req.cookies.bambiname);
+  }
+  return null;
 }
+
+// Input validation middleware from profiles.js
+const validateProfileInput = [
+  body('username')
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters')
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage('Username can only contain letters, numbers, underscores and hyphens'),
+  body('displayName')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('Display name cannot exceed 50 characters'),
+  body('about')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('About section cannot exceed 200 characters'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 2000 })
+    .withMessage('Description cannot exceed 2000 characters'),
+  body('avatar')
+    .optional()
+    .isURL()
+    .withMessage('Avatar must be a valid URL'),
+  body('triggers')
+    .optional()
+    .isArray()
+    .withMessage('Triggers must be an array'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Validation error', 
+          errors: errors.array() 
+        });
+      }
+      return res.status(400).render('error', {
+        message: 'Validation error',
+        error: { status: 400, details: errors.array() },
+        title: 'Validation Error',
+        validConstantsCount: 5
+      });
+    }
+    next();
+  }
+];
+
+// Create a middleware to check if user owns the profile
+const ownershipCheck = (req, res, next) => {
+  const { username } = req.params;
+  const currentBambiname = getBambiNameFromCookies(req);
+  
+  if (!currentBambiname || currentBambiname !== username) {
+    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You are not authorized to modify this profile' 
+      });
+    }
+    return res.status(403).render('error', { 
+      message: 'You are not authorized to modify this profile',
+      error: { status: 403 },
+      title: 'Authorization Error',
+      validConstantsCount: 5
+    });
+  }
+  
+  next();
+};
+
+// Ensure database connection before operations
+const ensureDbConnection = async (req, res, next) => {
+  try {
+    if (!dbConnection.isConnected()) {
+      await dbConnection.connect();
+    }
+    next();
+  } catch (error) {
+    logger.error(`Database connection failed: ${error.message}`);
+    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection failed'
+      });
+    }
+    return res.status(500).render('error', {
+      message: 'Database connection failed',
+      error: { status: 500 },
+      title: 'Database Error',
+      validConstantsCount: 5
+    });
+  }
+};
+
+// Database operations with error handling
+const withDBErrorHandling = (handler) => async (req, res, next) => {
+  try {
+    await handler(req, res, next);
+  } catch (error) {
+    logger.error(`Database operation failed: ${error.message}`, { 
+      route: req.originalUrl,
+      method: req.method,
+      stack: error.stack
+    });
+    
+    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+      return res.status(500).json({
+        success: false,
+        message: 'A database error occurred'
+      });
+    }
+    
+    return res.status(500).render('error', {
+      message: 'A database error occurred',
+      error: req.app.get('env') === 'development' ? error : {},
+      validConstantsCount: 5,
+      title: 'Database Error'
+    });
+  }
+};
 
 // Helper function to render profile cards into HTML strings
 function renderProfileCardToString(req, res, bambi) {
   try {
     // Add userHasLiked property for consistent template usage
     const currentBambiname = getBambiNameFromCookies(req);
-    bambi.userHasLiked = bambi.hearts.users.some(user => 
-      user.username === currentBambiname);
+    bambi.userHasLiked = bambi.hearts?.users?.some(user => 
+      user.username === currentBambiname) || false;
     
     // Use the res.render method with a callback to get the HTML string
     return new Promise((resolve, reject) => {
@@ -64,188 +188,511 @@ function renderProfileCardToString(req, res, bambi) {
   }
 }
 
-// Main bambis page route
-router.get('/', async (req, res) => {
+// Apply database error handling and consistent response formatting to all routes
+router.use((req, res, next) => {
+  const originalRender = res.render;
+  const originalJson = res.json;
+  
+  // Wrap render to add consistent template data
+  res.render = function(view, options, callback) {
+    // Add common properties to all render calls
+    const enhancedOptions = {
+      ...options,
+      validConstantsCount: options.validConstantsCount || 5,
+      footer: options.footer || {
+        logo: {
+          url: "https://brandynette.xxx/",
+          image: "/gif/default-avatar.gif",
+          alt: "Brandynette.xxx"
+        },
+        tagline: "Connect with other Bambis and explore the forest together"
+      }
+    };
+    return originalRender.call(this, view, enhancedOptions, callback);
+  };
+  
+  // Wrap JSON to add consistent API response format
+  res.json = function(body) {
+    // If success status isn't explicitly set, determine it from the HTTP status code
+    if (body.success === undefined) {
+      body.success = res.statusCode >= 200 && res.statusCode < 300;
+    }
+    return originalJson.call(this, body);
+  };
+  
+  next();
+});
+
+// Apply ensureDbConnection middleware to all routes
+router.use(ensureDbConnection);
+
+// Main bambis page route - consolidated from both routers
+router.get('/', withDBErrorHandling(async (req, res) => {
   try {
-    const bambis = await Bambi.find()
-      .sort({ lastActive: -1 })
-      .limit(20);
+    // Check for success message in query parameters
+    const successMessage = req.query.success || null;
+    const search = req.query.search || '';
+    const sort = req.query.sort || 'updatedAt';
     
-    // Add profilePictureUrl for each bambi
-    const bambisWithPics = bambis.map(bambi => {
-      const bambiObj = bambi.toObject();
-      bambiObj.profilePictureUrl = bambi.profilePicture 
-        ? `/bambis/${bambi.username}/avatar` 
-        : '/bambis/default-avatar.gif';
-      return bambiObj;
-    });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
     
-    res.render('bambis', { 
-      bambis: bambisWithPics,
-      error: null
+    // Create query based on search
+    let query = {};
+    if (search) {
+      query = {
+        $or: [
+          { username: { $regex: search, $options: 'i' } },
+          { displayName: { $regex: search, $options: 'i' } },
+          { about: { $regex: search, $options: 'i' } }
+        ]
+      };
+    }
+    
+    // Create sort options based on sort parameter
+    let sortOptions = {};
+    switch (sort) {
+      case 'hearts':
+        sortOptions = { 'hearts.count': -1 };
+        break;
+      case 'views':
+        sortOptions = { 'views': -1 };
+        break;
+      case 'username':
+        sortOptions = { 'username': 1 };
+        break;
+      case 'updatedAt':
+      default:
+        sortOptions = { 'updatedAt': -1 };
+    }
+    
+    // Use Promise.all to run queries in parallel
+    const [profiles, totalProfiles] = await Promise.all([
+      Bambi.find(query)
+        .select('username displayName avatar about updatedAt views hearts') 
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+        
+      Bambi.countDocuments(query) 
+    ]);
+    
+    const totalPages = Math.ceil(totalProfiles / limit);
+    
+    res.render('bambis/index', {
+      title: 'BambiSleep Community',
+      profiles,
+      search,
+      sort,
+      pagination: {
+        current: page,
+        total: totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      },
+      success: successMessage,
+      validConstantsCount: 5
     });
   } catch (error) {
-    logger.error('Error fetching bambis:', error.message);
-    res.status(500).send('Error loading bambis page');
+    logger.error(`Error loading bambis: ${error.message}`);
+    res.render('bambis/index', { 
+      title: 'BambiSleep Community',
+      error: true,
+      errorMessage: 'Failed to load profiles',
+      profiles: []
+    });
   }
+}));
+
+// Create bambi profile page
+router.get('/new', (req, res) => {
+  const currentBambiname = getBambiNameFromCookies(req);
+  if (currentBambiname) {
+    return res.redirect(`/bambi/${currentBambiname}`);
+  }
+  
+  res.render('bambis/creation', { 
+    title: 'Create New Bambi Profile',
+    validConstantsCount: 5
+  });
 });
+
+// Support /create route as an alternative
+router.get('/create', (req, res) => {
+  return res.redirect(`/bambi/${username}`);
+});
+
+// Create profile submission endpoint
+router.post('/new', validateProfileInput, withDBErrorHandling(async (req, res) => {
+  const { username, displayName, avatar, about, description, seasons } = req.body;
+  
+  try {
+    // Use transaction for consistent data
+    await withTransaction(async (session) => {
+      // Check if username already exists
+      const existingProfile = await Bambi.findOne({ username }).session(session);
+      if (existingProfile) {
+        return res.render('bambis/creation', { 
+          title: 'Create New Bambi Profile',
+          error: 'Username already exists',
+          validConstantsCount: 5,
+          formData: req.body
+        });
+      }
+      
+      // Process seasons
+      const selectedSeasons = Array.isArray(seasons) ? seasons : [seasons].filter(Boolean);
+      
+      // Create new profile
+      const newProfile = new Bambi({
+        username,
+        displayName: displayName || username,
+        avatar: avatar || '/gif/default-avatar.gif',
+        about: about || 'Tell us about yourself...',
+        description: description || 'Share your bambi journey...',
+        seasons: selectedSeasons.length > 0 ? selectedSeasons : ['spring'],
+        followers: [],
+        following: [],
+        hearts: { count: 0, users: [] },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      await newProfile.save({ session });
+      
+      // Set cookie with security options
+      res.cookie('bambiname', username, { // Use username consistently
+        path: '/',
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: 'strict'
+      });
+      
+      // Set session too for better auth
+      if (req.session) {
+        req.session.user = {
+          username: username, // Use username consistently
+          profileId: newProfile._id
+        };
+      }
+      
+      // Redirect to the user profile with a success message
+      return res.redirect(`/bambi/${username}?success=Profile+created+successfully`);
+    });
+  } catch (error) {
+    logger.error(`Error creating profile: ${error.message}`);
+    res.render('bambis/creation', { 
+      error: true, 
+      errorMessage: 'Error creating profile',
+      formData: req.body,
+      validConstantsCount: 5
+    });
+  }
+}));
 
 // Avatar route - serve profile pictures
 router.get('/:username/avatar', async (req, res) => {
   try {
     const bambi = await Bambi.findOne({ username: req.params.username });
     if (!bambi || !bambi.profilePicture) {
-      return res.redirect('/bambis/default-avatar.gif');
+      return res.redirect('/gif/default-avatar.gif');
     }
     
     res.set('Content-Type', bambi.profilePicture.contentType);
     res.send(bambi.profilePicture.buffer);
   } catch (error) {
     logger.error('Error serving avatar:', error.message);
-    res.redirect('/bambis/default-avatar.gif');
+    return res.redirect(`/bambi/${username}`);
   }
 });
 
-// Route for profile page - use the existing profile.ejs instead
-router.get('/profile', async (req, res) => {
+// Individual bambi profile view
+router.get('/:username', param('username').trim().escape(), withDBErrorHandling(async (req, res) => {
+  const { username } = req.params;
+  
   try {
-    const bambiname = getBambiNameFromCookies(req);
+    const profile = await Bambi.findOne({ username })
+      .select('-__v')
+      .lean();
     
-    if (!bambiname) {
-      return res.redirect('/login?redirect=/bambis/profile');
-    }
-    
-    // Find the bambi profile
-    const bambi = await Bambi.findOne({ username: bambiname });
-    
-    if (!bambi) {
-      return res.redirect('/register');
-    }
-    
-    // Convert Bambi object to match the profile.ejs template expectations
-    const profile = {
-      avatar: bambi.profilePicture ? `${bambi.username}/avatar` : '/bambis/default-avatar.gif',
-      displayName: bambi.displayName,
-      woodland: bambi.woodland || 'Sleepy Meadow',
-      bio: bambi.description,
-      favoriteSeasons: bambi.favoriteSeasons || ['spring'],
-    };
-    
-    const user = {
-      username: bambi.username
-    };
-    
-    // Get friends if any
-    const friendProfiles = [];
-    const onlineUsers = [];
-    
-    // Render using the existing profile.ejs
-    res.render('bambis/profile', { 
-      user,
-      profile,
-      friendProfiles,
-      onlineUsers
-    });
-  } catch (error) {
-    logger.error('Error loading profile page:', error.message);
-    res.status(500).render('error', {
-      error: 'Server Error',
-      message: 'Error loading profile page'
-    });
-  }
-});
-
-// Edit profile page route
-router.get('/edit', async (req, res) => {
-  try {
-    const bambiname = getBambiNameFromCookies(req);
-    
-    if (!bambiname) {
-      return res.redirect('/login?redirect=/bambis/edit');
-    }
-    
-    // Find the bambi profile
-    const bambi = await Bambi.findOne({ username: bambiname });
-    
-    if (!bambi) {
-      return res.redirect('/register');
-    }
-    
-    // Add profilePictureUrl for display
-    bambi.profilePictureUrl = bambi.profilePicture 
-      ? `/bambis/${bambi.username}/avatar` 
-      : '/bambis/default-avatar.gif';
-    
-    // Render the edit profile page
-    res.render('bambis/bambi-edit', {
-      bambi,
-      error: null
-    });
-  } catch (error) {
-    logger.error('Error loading profile edit page:', error.message);
-    res.status(500).render('error', {
-      error: 'Server Error',
-      message: 'Error loading profile edit page'
-    });
-  }
-});
-
-// Individual profile page route
-router.get('/:username', async (req, res) => {
-  try {
-    const { username } = req.params;
-    const currentBambiname = getBambiNameFromCookies(req);
-    
-    // Find the bambi profile
-    const bambi = await Bambi.findOne({ username });
-    
-    if (!bambi) {
+    if (!profile) {
       return res.status(404).render('error', { 
-        error: 'Bambi not found',
-        message: 'The profile you are looking for does not exist.'
+        message: 'Profile not found',
+        error: { status: 404 },
+        title: 'Not Found'
       });
     }
     
-    // Check if the current user has liked this profile
-    const userHasLiked = bambi.hearts.users.some(user => user.username === currentBambiname);
+    // Check if user is the profile owner
+    const bambiname = getBambiNameFromCookies(req);
+    const isOwnProfile = bambiname === username;
     
-    // Is this the profile owner viewing?
-    const isOwnProfile = currentBambiname === username;
-    
-    // Update last view time
-    bambi.lastActive = Date.now();
-    
-    // Add profile view to activity log if not own profile
-    if (!isOwnProfile && currentBambiname) {
-      await bambi.addActivity('other', `Profile viewed by ${currentBambiname}`);
+    // Track profile views if not own profile
+    if (!isOwnProfile) {
+      Bambi.updateOne(
+        { _id: profile._id },
+        { $inc: { views: 1 } }
+      ).catch(err => logger.error(`Failed to update view count: ${err.message}`));
     }
     
-    await bambi.save();
+    // Check for success message in query parameters
+    const successMessage = req.query.success || null;
     
-    // Add profilePictureUrl for proper display
-    bambi.profilePictureUrl = bambi.profilePicture 
-      ? `/bambis/${bambi.username}/avatar` 
-      : '/bambis/default-avatar.gif';
-    
-    // Detect if online (active in last 10 minutes)
-    bambi.isOnline = (Date.now() - new Date(bambi.lastActive).getTime()) < (10 * 60 * 1000);
-    
-    // Render the profile page
-    res.render('bambis/bambi-profile', {
-      bambi,
-      userHasLiked,
-      isOwnProfile
+    res.render('bambis/profile', { 
+      title: `${profile.displayName || profile.username}'s Profile`,
+      profile,
+      isOwnProfile,
+      success: successMessage
     });
   } catch (error) {
-    logger.error('Error fetching bambi profile:', error.message);
+    logger.error(`Error loading profile: ${error.message}`);
     res.status(500).render('error', {
-      error: 'Server Error',
-      message: 'Error loading profile page'
+      message: 'Error loading profile',
+      error: { status: 500 }
     });
   }
-});
+}));
 
-// API route to update profile
+// Edit profile page - apply ownership check middleware
+router.get('/:username/edit', 
+  param('username').trim().escape(),
+  ownershipCheck, 
+  withDBErrorHandling(async (req, res) => {
+    const { username } = req.params;
+    const profile = await Bambi.findOne({ username }).lean();
+    
+    if (!profile) {
+      return res.status(404).render('error', { 
+        message: 'Profile not found',
+        error: { status: 404 },
+        title: 'Not Found'
+      });
+    }
+    
+    res.render('bambis/edit', { 
+      title: 'Edit Bambi Profile',
+      profile,
+      username
+    });
+  })
+);
+
+// Update profile - with both middleware
+router.post('/:username', 
+  param('username').trim().escape(),
+  ownershipCheck, 
+  validateProfileInput, 
+  withDBErrorHandling(async (req, res) => {
+    const { username } = req.params;
+    const { displayName, avatar, headerImage, headerColor, about, description, seasons } = req.body;
+    
+    // Process seasons
+    const selectedSeasons = Array.isArray(seasons) ? seasons : [];
+    
+    // Use transaction for data consistency
+    await withTransaction(async (session) => {
+      // Update profile
+      const updatedProfile = await Bambi.findOneAndUpdate(
+        { username },
+        {
+          displayName: displayName || username,
+          avatar,
+          headerImage,
+          headerColor,
+          about,
+          description,
+          seasons: selectedSeasons,
+          updatedAt: new Date()
+        },
+        { new: true, session }
+      );
+      
+      if (!updatedProfile) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Profile not found'
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Profile updated successfully',
+        profile: updatedProfile
+      });
+    });
+  })
+);
+
+// Handle profile updates via the API route
+router.post('/api/update', auth, validateProfileInput, withDBErrorHandling(async (req, res) => {
+  // Get username from session or cookie
+  const username = req.user?.username || getBambiNameFromCookies(req);
+  
+  if (!username) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'You must be logged in to update your profile' 
+    });
+  }
+  
+  // Use database timeout and transaction for better error handling
+  const updatedProfile = await withDatabaseTimeout(
+    async () => {
+      // Perform update within a transaction for data consistency
+      return withTransaction(async (session) => {
+        const bambi = await Bambi.findOneAndUpdate(
+          { username },
+          { 
+            $set: {
+              about: req.body.about,
+              description: req.body.description,
+              avatar: req.body.avatar,
+              headerImage: req.body.headerImage,
+              headerColor: req.body.headerColor,
+              lastActive: new Date(),
+              updatedAt: new Date()
+            }
+          },
+          { new: true, session }
+        );
+        
+        if (!bambi) {
+          throw new Error('Profile not found');
+        }
+        
+        return bambi;
+      });
+    },
+    10000, // 10 second timeout
+    'Update profile'
+  );
+  
+  res.json({ 
+    success: true, 
+    message: 'Profile updated successfully',
+    bambi: updatedProfile
+  });
+}));
+
+// GET - show delete confirmation
+router.get('/:username/delete', 
+  param('username').trim().escape(),
+  ownershipCheck, 
+  withDBErrorHandling(async (req, res) => {
+    const { username } = req.params;
+    const profile = await Bambi.findOne({ username }).lean();
+    
+    if (!profile) {
+      return res.status(404).render('error', {
+        message: 'Profile not found',
+        error: { status: 404 },
+        title: 'Error - Profile Not Found'
+      });
+    }
+    
+    // Show confirmation page
+    return res.render('bambis/delete-confirmation', {
+      profile,
+      title: 'Delete Bambi Profile'
+    });
+  })
+);
+
+// POST - handle form submission for deletion
+router.post('/:username/delete', 
+  param('username').trim().escape(),
+  ownershipCheck, 
+  withDBErrorHandling(async (req, res) => {
+    const { username } = req.params;
+    
+    // Use transaction for data consistency
+    await withTransaction(async (session) => {
+      // Find and delete the profile
+      const deletedProfile = await Bambi.findOneAndDelete({ username }, { session });
+      
+      if (!deletedProfile) {
+        return res.status(404).json({
+          success: false,
+          message: 'Profile not found'
+        });
+      }
+      
+      logger.info(`Profile deleted for ${username} via HTTP route`);
+      
+      // Clear the user cookie
+      res.clearCookie('bambiname');
+      
+      // Also clear session
+      if (req.session) {
+        req.session.destroy();
+      }
+      
+      // If it's an AJAX request, send JSON response
+      if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+        return res.json({
+          success: true,
+          message: 'Profile deleted successfully',
+          redirectUrl: '/'
+        });
+      }
+      
+      // For regular form submissions, redirect
+      return res.redirect('/');
+    });
+  })
+);
+
+// DELETE - API endpoint for deletion (requires auth middleware)
+router.delete('/:username/delete', 
+  param('username').trim().escape(),
+  auth, 
+  withDBErrorHandling(async (req, res) => {
+    const { username } = req.params;
+    
+    // Check if the authenticated user has permission to delete this profile
+    if (req.user?.username !== username && !req.user?.isAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You do not have permission to delete this profile' 
+      });
+    }
+    
+    // Use transaction for data consistency
+    await withTransaction(async (session) => {
+      // Find and delete the profile
+      const deletedProfile = await Bambi.findOneAndDelete({ username }, { session });
+      
+      if (!deletedProfile) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Profile not found' 
+        });
+      }
+      
+      logger.info(`Profile deleted for ${username} via API route`);
+      
+      // Clear the user cookie if it was their own profile
+      if (req.user?.username === username) {
+        res.clearCookie('bambiname');
+        
+        // Also clear session
+        if (req.session) {
+          req.session.destroy();
+        }
+      }
+      
+      return res.json({ 
+        success: true, 
+        message: 'Profile deleted successfully',
+        redirectUrl: '/'
+      });
+    });
+  })
+);
+
+// API route to update profile with avatar upload
 router.post('/api/update-profile', upload.single('avatar'), async (req, res) => {
   try {
     logger.info('Update profile request received');
@@ -350,6 +797,11 @@ router.post('/api/heart/:username', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Profile not found' });
     }
     
+    // Initialize hearts if it doesn't exist
+    if (!bambi.hearts) {
+      bambi.hearts = { count: 0, users: [] };
+    }
+    
     // Check if already hearted
     const alreadyHearted = bambi.hearts.users.some(user => user.username === currentBambiname);
     
@@ -404,8 +856,12 @@ router.post('/api/follow/:username', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Bambi profile not found' });
     }
     
+    // Initialize arrays if they don't exist
+    if (!currentBambi.following) currentBambi.following = [];
+    if (!targetBambi.followers) targetBambi.followers = [];
+    
     // Check if already following
-    const isFollowing = currentBambi.following.some(follow => follow === username);
+    const isFollowing = currentBambi.following.includes(username);
     
     if (isFollowing) {
       // Unfollow
@@ -434,14 +890,19 @@ router.post('/api/follow/:username', async (req, res) => {
         targetBambi.followers.push(currentBambiname);
       }
       
-      // Add activity for the target Bambi
-      await targetBambi.addActivity('other', `Got a new follower: ${currentBambi.displayName || currentBambiname}`);
+      // Add activity for the target Bambi if the method exists
+      if (typeof targetBambi.addActivity === 'function') {
+        await targetBambi.addActivity('other', `Got a new follower: ${currentBambi.displayName || currentBambiname}`);
+      }
       
-      // Award experience to both users
-      await Promise.all([
-        targetBambi.addExperience(2),  // Small XP for being followed
-        currentBambi.addExperience(1)  // Even smaller XP for following someone
-      ]);
+      // Award experience to both users if the method exists
+      if (typeof targetBambi.addExperience === 'function' && 
+          typeof currentBambi.addExperience === 'function') {
+        await Promise.all([
+          targetBambi.addExperience(2),  // Small XP for being followed
+          currentBambi.addExperience(1)  // Even smaller XP for following someone
+        ]);
+      }
       
       await Promise.all([currentBambi.save(), targetBambi.save()]);
       
@@ -472,7 +933,7 @@ router.get('/api/connections/:username', async (req, res) => {
     
     if (type === 'followers') {
       // Get followers details
-      const followers = await Bambi.find({ username: { $in: bambi.followers } })
+      const followers = await Bambi.find({ username: { $in: bambi.followers || [] } })
         .select('username displayName profileTheme lastActive');
       
       return res.json({
@@ -481,7 +942,7 @@ router.get('/api/connections/:username', async (req, res) => {
       });
     } else if (type === 'following') {
       // Get following details
-      const following = await Bambi.find({ username: { $in: bambi.following } })
+      const following = await Bambi.find({ username: { $in: bambi.following || [] } })
         .select('username displayName profileTheme lastActive');
       
       return res.json({
@@ -590,6 +1051,25 @@ router.get('/api/list', async (req, res) => {
       message: 'Error fetching bambis'
     });
   }
+});
+
+// Middleware to ensure user is authenticated
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect('/login');
+}
+
+// Ensure compatibility with the old profile routes
+router.get('/bambi', ensureAuthenticated, (req, res) => {
+  const username = req.user?.username || getBambiNameFromCookies(req);
+  
+  if (username) {
+    return res.redirect(`/bambi/${username}`);
+  }
+  
+  return res.redirect(`/bambi/${username}`);
 });
 
 // Add a route for registration
