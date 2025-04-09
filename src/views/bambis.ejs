@@ -239,7 +239,7 @@
         <div class="bambis-grid">
             <% if (bambis && bambis.length > 0) { %>
                 <% bambis.forEach(bambi => { %>
-                    <div class="profile-card" style="background-color: <%= bambi.profileTheme?.primaryColor || 'var(--transparent)' %>;">
+                    <div class="profile-card" style="background-color: <%= bambi.profileTheme?.primaryColor || 'var(--transparent)' %>;" data-username="<%= bambi.username %>">
                         <div class="profile-avatar">
                             <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>">
                         </div>
@@ -368,64 +368,167 @@
             
             // Heart functionality
             document.querySelectorAll('.heart-button').forEach(button => {
-                button.addEventListener('click', async function(e) {
+                button.addEventListener('click', function(e) {
                     e.preventDefault();
                     
                     const username = this.dataset.username;
-                    try {
-                        const response = await fetch(`/bambis/api/heart/${username}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        
-                        if (response.status === 401) {
-                            // Not logged in - show login modal
-                            document.cookie = `pendingHeartAction=${username}; path=/`;
-                            modal.style.display = 'block';
-                            return;
-                        }
-                        
-                        const data = await response.json();
-                        if (data.success) {
-                            // Update UI
-                            this.classList.toggle('active', data.hearted);
-                            
-                            const heartStat = document.querySelector(`.heart-stat[data-username="${username}"]`);
-                            const heartCount = heartStat.querySelector('.heart-count');
-                            heartCount.textContent = data.heartCount;
-                            
-                            // Emit socket event for real-time updates
-                            socket.emit('profile:heart', {
-                                username: username,
-                                count: data.heartCount,
-                                hearted: data.hearted
-                            });
-                        } else {
-                            alert(data.message || 'Error hearting profile');
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Error processing your request');
-                    }
+                    
+                    // Emit heart/unheart action via socket instead of fetch
+                    socket.emit('profile:heart', {
+                        username: username,
+                        action: this.classList.contains('active') ? 'unheart' : 'heart'
+                    });
                 });
             });
             
             // Listen for real-time updates
             socket.on('profile:hearted', data => {
-                const heartStat = document.querySelector(`.heart-stat[data-username="${data.username}"]`);
-                if (heartStat) {
-                    const heartCount = heartStat.querySelector('.heart-count');
-                    heartCount.textContent = data.count;
-                }
+                updateHeartUI(data.username, data.count, data.hearted);
             });
             
-            // Listen for new profile creation
             socket.on('profile:created', data => {
-                // Refresh the page to show the new profile
-                window.location.reload();
+                // Add the new profile card to the grid without page reload
+                addProfileCard(data.bambi);
             });
+            
+            socket.on('profile:updated', data => {
+                // Find and update the profile card if it exists on this page
+                updateProfileCard(data.username, data.bambi);
+            });
+            
+            // Function to update heart UI
+            function updateHeartUI(username, count, hearted) {
+                const heartStat = document.querySelector(`.heart-stat[data-username="${username}"]`);
+                if (heartStat) {
+                    const heartButton = heartStat.querySelector('.heart-button');
+                    const heartCount = heartStat.querySelector('.heart-count');
+                    
+                    if (heartButton) {
+                        heartButton.classList.toggle('active', hearted);
+                    }
+                    
+                    if (heartCount) {
+                        heartCount.textContent = count;
+                    }
+                }
+            }
+            
+            // Function to add a new profile card to the grid
+            function addProfileCard(bambi) {
+                const bambisGrid = document.querySelector('.bambis-grid');
+                if (!bambisGrid) return;
+                
+                // Remove "no profiles" message if it exists
+                const noProfilesMsg = bambisGrid.querySelector('.no-profiles-message');
+                if (noProfilesMsg) {
+                    noProfilesMsg.remove();
+                }
+                
+                // Create new profile card
+                const profileCard = document.createElement('div');
+                profileCard.className = 'profile-card';
+                profileCard.setAttribute('data-username', bambi.username);
+                if (bambi.profileTheme?.primaryColor) {
+                    profileCard.style.backgroundColor = bambi.profileTheme.primaryColor;
+                }
+                
+                // Fill in the profile card HTML
+                profileCard.innerHTML = `
+                    <div class="profile-avatar">
+                        <img src="${bambi.profilePictureUrl}" alt="${bambi.displayName || bambi.username}">
+                    </div>
+                    <h3 class="profile-name" style="color: ${bambi.profileTheme?.textColor || 'var(--button-color)'}">
+                        ${bambi.displayName || bambi.username}
+                    </h3>
+                    <div class="profile-stats">
+                        <div class="stat">
+                            <div class="stat-value">LVL ${bambi.level}</div>
+                            <div class="stat-label">Level</div>
+                        </div>
+                        <div class="stat heart-stat" data-username="${bambi.username}">
+                            <button class="heart-button" data-username="${bambi.username}">
+                                ❤️
+                            </button>
+                            <div class="stat-value heart-count">${bambi.hearts.count}</div>
+                            <div class="stat-label">Hearts</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${bambi.followers.length}</div>
+                            <div class="stat-label">Followers</div>
+                        </div>
+                    </div>
+                    <div class="profile-description" style="color: ${bambi.profileTheme?.textColor || 'var(--primary-alt)'}">
+                        ${bambi.description || 'A mysterious Bambi...'}
+                    </div>
+                    <div class="text-center">
+                        <a href="/bambis/${bambi.username}" class="btn">View Profile</a>
+                    </div>
+                `;
+                
+                // Add the card to the grid
+                bambisGrid.appendChild(profileCard);
+                
+                // Add event listener to the new heart button
+                const heartButton = profileCard.querySelector('.heart-button');
+                if (heartButton) {
+                    heartButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        socket.emit('profile:heart', {
+                            username: this.dataset.username,
+                            action: this.classList.contains('active') ? 'unheart' : 'heart'
+                        });
+                    });
+                }
+            }
+            
+            // Function to update an existing profile card
+            function updateProfileCard(username, bambi) {
+                const profileCard = document.querySelector(`.profile-card[data-username="${username}"]`);
+                if (!profileCard) return;
+                
+                // Update avatar
+                const avatar = profileCard.querySelector('.profile-avatar img');
+                if (avatar && bambi.profilePictureUrl) {
+                    avatar.src = bambi.profilePictureUrl;
+                }
+                
+                // Update name
+                const name = profileCard.querySelector('.profile-name');
+                if (name) {
+                    name.textContent = bambi.displayName || bambi.username;
+                    if (bambi.profileTheme?.textColor) {
+                        name.style.color = bambi.profileTheme.textColor;
+                    }
+                }
+                
+                // Update level
+                const level = profileCard.querySelector('.stat-value:first-child');
+                if (level) {
+                    level.textContent = `LVL ${bambi.level}`;
+                }
+                
+                // Update hearts (already handled by updateHeartUI)
+                
+                // Update followers
+                const followers = profileCard.querySelector('.stat:last-child .stat-value');
+                if (followers) {
+                    followers.textContent = bambi.followers.length;
+                }
+                
+                // Update description
+                const description = profileCard.querySelector('.profile-description');
+                if (description) {
+                    description.textContent = bambi.description || 'A mysterious Bambi...';
+                    if (bambi.profileTheme?.textColor) {
+                        description.style.color = bambi.profileTheme.textColor;
+                    }
+                }
+                
+                // Update background color
+                if (bambi.profileTheme?.primaryColor) {
+                    profileCard.style.backgroundColor = bambi.profileTheme.primaryColor;
+                }
+            }
         });
     </script>
 </body>

@@ -167,7 +167,7 @@
             // Connect to Socket.io
             const socket = io();
             
-            // Get username from URL or localStorage
+            // Get username from URL
             const urlPath = window.location.pathname;
             const username = urlPath.split('/bambis/')[1];
             
@@ -179,8 +179,8 @@
             setupImageUpload('avatar');
             setupImageUpload('header');
             
-            // Load saved data from localStorage as fallback
-            loadProfileData();
+            // Request full profile data via socket
+            socket.emit('profile:view', username);
             
             // Show save status
             function showSaveStatus(message, isError = false) {
@@ -253,76 +253,74 @@
                     headerImageUrl: document.getElementById('header-img').src
                 };
 
-                // Save to localStorage as backup
-                localStorage.setItem('profileData', JSON.stringify(profileData));
+                // Save via socket.io for real-time updates
+                socket.emit('profile:save', profileData);
                 
-                // Save to database via API
-                fetch('/bambis/update-profile', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(profileData)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showSaveStatus('Profile saved successfully!');
-                        
-                        // Notify other clients via socket
-                        socket.emit('profile:update', {
-                            field: 'profile',
-                            value: profileData
-                        });
-                    } else {
-                        showSaveStatus(data.message || 'Failed to save profile', true);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showSaveStatus('Error saving profile. Please try again.', true);
-                });
-            }
-
-            function loadProfileData() {
-                // This is now just a fallback, as the server should render the data
-                const savedData = localStorage.getItem('profileData');
-
-                if (savedData) {
-                    const profileData = JSON.parse(savedData);
-                    
-                    // Only use localStorage if elements are empty or have default text
-                    const aboutEl = document.getElementById('about');
-                    if (aboutEl.innerHTML.includes('Click edit to add your about')) {
-                        aboutEl.innerHTML = profileData.about;
-                    }
-                    
-                    const descEl = document.getElementById('description');
-                    if (descEl.innerHTML.includes('Click edit to add your description')) {
-                        descEl.innerHTML = profileData.description;
-                    }
-                    
-                    // Check if images are placeholders
-                    const avatarImg = document.getElementById('avatar-img');
-                    if (avatarImg.src.includes('placeholder')) {
-                        avatarImg.src = profileData.avatar;
-                    }
-                    
-                    const headerImg = document.getElementById('header-img');
-                    if (headerImg.src.includes('placeholder')) {
-                        headerImg.src = profileData.header;
-                    }
-                }
+                // Also save to localStorage as backup
+                localStorage.setItem('profileData', JSON.stringify(profileData));
             }
             
-            // Listen for profile update events
-            socket.on('profile:updated', data => {
-                showSaveStatus('Profile updated successfully!');
+            // Listen for profile events
+            socket.on('profile:saved', data => {
+                if (data.success) {
+                    showSaveStatus('Profile saved successfully!');
+                } else {
+                    showSaveStatus(data.message || 'Failed to save profile', true);
+                }
             });
             
-            socket.on('profile error', message => {
+            socket.on('profile:updated', data => {
+                if (data.username === username) {
+                    updateProfileUI(data.bambi);
+                    showSaveStatus('Profile was updated');
+                }
+            });
+            
+            socket.on('profile:data', data => {
+                if (data.bambi) {
+                    updateProfileUI(data.bambi);
+                }
+            });
+            
+            socket.on('profile:error', message => {
                 showSaveStatus(message, true);
             });
+            
+            // Update the UI when profile data changes
+            function updateProfileUI(bambi) {
+                if (!bambi) return;
+                
+                // Update text fields if they're not being edited
+                const aboutEl = document.getElementById('about');
+                if (aboutEl.contentEditable !== 'true' && bambi.about) {
+                    aboutEl.innerHTML = bambi.about;
+                }
+                
+                const descEl = document.getElementById('description');
+                if (descEl.contentEditable !== 'true' && bambi.description) {
+                    descEl.innerHTML = bambi.description;
+                }
+                
+                // Update images
+                const avatarImg = document.getElementById('avatar-img');
+                if (bambi.profilePictureUrl) {
+                    avatarImg.src = bambi.profilePictureUrl;
+                }
+                
+                const headerImg = document.getElementById('header-img');
+                if (bambi.headerImageUrl) {
+                    headerImg.src = bambi.headerImageUrl;
+                }
+                
+                // Update page title
+                document.title = `${bambi.displayName || bambi.username}'s Profile`;
+                
+                // Update h1
+                const profileName = document.querySelector('.profile-details h1');
+                if (profileName) {
+                    profileName.textContent = bambi.displayName || bambi.username;
+                }
+            }
         });
     </script>
 </body>

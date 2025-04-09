@@ -244,7 +244,7 @@ function setupRoutes() {
         }
         
         // Find and update the user's profile
-        const bambi = await mongoose.model('Bmabi').findOneAndUpdate(
+        const bambi = await mongoose.model('Bambi').findOneAndUpdate(
             { username },
             { 
                 $set: {
@@ -266,14 +266,13 @@ function setupRoutes() {
         });
         
         // Emit socket event for real-time updates
-        req.app.get('io').emit('profile:updated', {
+        io.emit('profile:updated', {
             username,
-            field: 'profile',
-            success: true
+            bambi
         });
         
       } catch (error) {
-          console.error('Profile update error:', error);
+          logger.error('Profile update error:', error);
           res.status(500).json({ 
               success: false, 
               message: 'Server error occurred while updating profile' 
@@ -466,17 +465,53 @@ function setupSockets() {
 
         socket.on('profile:heart', async (data) => {
           try {
-            // Update all connected clients about the heart change
+            const targetUsername = data.username;
+            const currentUsername = socket.bambiProfile?.username || 
+                                   decodeURIComponent(socket.handshake.headers.cookie
+                                     ?.split(';')
+                                     .find(c => c.trim().startsWith('bambiname='))
+                                     ?.split('=')[1] || '');
+            
+            if (!currentUsername || currentUsername === 'anonBambi') {
+              socket.emit('profile:error', 'You must be logged in to heart a profile');
+              return;
+            }
+            
+            const targetBambi = await mongoose.model('Bambi').findOne({ username: targetUsername });
+            
+            if (!targetBambi) {
+              socket.emit('profile:error', 'Profile not found');
+              return;
+            }
+            
+            // Check if user has already hearted this profile
+            const heartIndex = targetBambi.hearts.users.indexOf(currentUsername);
+            let hearted = false;
+            
+            if (heartIndex === -1 && data.action !== 'unheart') {
+              // Add heart
+              targetBambi.hearts.users.push(currentUsername);
+              targetBambi.hearts.count += 1;
+              hearted = true;
+            } else if (heartIndex !== -1 && data.action !== 'heart') {
+              // Remove heart
+              targetBambi.hearts.users.splice(heartIndex, 1);
+              targetBambi.hearts.count = Math.max(0, targetBambi.hearts.count - 1);
+            }
+            
+            await targetBambi.save();
+            
+            // Emit to all clients for real-time updates
             io.emit('profile:hearted', {
-              username: data.username,
-              count: data.count,
-              hearted: data.hearted
+              username: targetUsername,
+              count: targetBambi.hearts.count,
+              hearted: hearted
             });
             
-            // If this is a MongoDB change, you might want to persist it too
-            // (though we already do this in the API route)
+            logger.info(`User ${currentUsername} ${hearted ? 'hearted' : 'unhearted'} profile ${targetUsername}`);
           } catch (error) {
-            logger.error('Error in profile:heart handler:', error);
+            logger.error(`Heart socket error: ${error.message}`);
+            socket.emit('profile:error', 'Error processing heart action');
           }
         });
 
@@ -504,6 +539,81 @@ function setupSockets() {
             await bambi.save();
           } catch (error) {
             logger.error('Error in profile:update handler:', error);
+          }
+        });
+
+        // Add this to your existing socket.io connection handler in setupSockets()
+        socket.on('profile:save', async (profileData) => {
+          try {
+            // Get username from socket connection
+            const username = socket.bambiProfile?.username || 
+                            decodeURIComponent(socket.handshake.headers.cookie?.split(';')
+                              .find(c => c.trim().startsWith('bambiname='))
+                              ?.split('=')[1] || '');
+            
+            if (!username || username === 'anonBambi') {
+              socket.emit('profile:error', 'You must be logged in to update your profile');
+              return;
+            }
+            
+            logger.info(`Socket profile update for user: ${username}`);
+            
+            // Find and update the user's profile
+            const bambi = await mongoose.model('Bambi').findOneAndUpdate(
+              { username },
+              { 
+                $set: {
+                  about: profileData.about,
+                  description: profileData.description,
+                  profilePictureUrl: profileData.profilePictureUrl,
+                  headerImageUrl: profileData.headerImageUrl,
+                  lastActive: new Date()
+                }
+              },
+              { new: true, upsert: true }
+            );
+            
+            // Send success message back to the client that made the update
+            socket.emit('profile:saved', {
+              success: true,
+              bambi: bambi,
+              message: 'Profile updated successfully'
+            });
+            
+            // Broadcast to all other clients viewing this profile
+            socket.broadcast.emit('profile:updated', {
+              username,
+              bambi: bambi
+            });
+            
+            logger.success(`Profile updated for ${username} via socket`);
+          } catch (error) {
+            logger.error('Socket profile update error:', error);
+            socket.emit('profile:error', 'Error updating profile');
+          }
+        });
+
+        // Handle profile view request via socket
+        socket.on('profile:view', async (username) => {
+          try {
+            if (!username) return;
+            
+            const bambi = await mongoose.model('Bambi').findOne({ username });
+            
+            if (bambi) {
+              socket.emit('profile:data', {
+                bambi: bambi
+              });
+              
+              // Update last viewed timestamp
+              bambi.lastViewed = new Date();
+              await bambi.save();
+            } else {
+              socket.emit('profile:error', 'Profile not found');
+            }
+          } catch (error) {
+            logger.error(`Error fetching profile data: ${error.message}`);
+            socket.emit('profile:error', 'Error loading profile');
           }
         });
 
