@@ -115,9 +115,9 @@
                 window.location.href = '/login?redirect=' + encodeURIComponent('/bambis/profile');
             });
             
-            // Register button redirects to registration.ejs
+            // Register button redirects to registration.ejs - FIX URL PATH
             registerBtn?.addEventListener('click', function() {
-                window.location.href = `/register?template=bambi&redirect=${encodeURIComponent('/bambis/profile')}`;
+                window.location.href = `/bambis/register?template=bambi&redirect=${encodeURIComponent('/bambis/profile')}`;
             });
             
             // Show profile check form
@@ -176,13 +176,14 @@
                     } else {
                         // No profile - set cookie and redirect to registration.ejs with template parameter
                         document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
-                        window.location.href = `/register?template=bambi&redirect=${encodeURIComponent('/bambis/profile')}`;
+                        // FIX THE URL HERE TO USE THE CORRECT PATH
+                        window.location.href = `/bambis/register?template=bambi&redirect=${encodeURIComponent('/bambis/profile')}`;
                     }
                 } catch (error) {
                     console.error('Error checking profile:', error);
-                    // Default to registration if check fails
+                    // Default to registration if check fails - FIX THIS URL TOO
                     document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
-                    window.location.href = `/register?template=bambi&redirect=${encodeURIComponent('/bambis/profile')}`;
+                    window.location.href = `/bambis/register?template=bambi&redirect=${encodeURIComponent('/bambis/profile')}`;
                 }
             });
             

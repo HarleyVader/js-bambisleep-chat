@@ -542,6 +542,112 @@ function setupSockets() {
           }
         });
 
+        // Handle profile view request via socket with improved error handling
+        socket.on('profile:view', async (username) => {
+          try {
+            if (!username) {
+              socket.emit('profile:error', 'Invalid username provided');
+              return;
+            }
+            
+            const bambi = await mongoose.model('Bambi').findOne({ username });
+            
+            if (bambi) {
+              // Get current user for tracking who viewed this profile
+              const currentUser = socket.bambiProfile?.username || 
+                                 decodeURIComponent(socket.handshake.headers.cookie
+                                   ?.split(';')
+                                   .find(c => c.trim().startsWith('bambiname='))
+                                   ?.split('=')[1] || '');
+              
+              // Record the view if this isn't the profile owner
+              if (currentUser && currentUser !== username) {
+                bambi.lastViewed = new Date();
+                await bambi.save();
+                
+                // Only add view activity if we have the addActivity method
+                if (typeof bambi.addActivity === 'function') {
+                  bambi.addActivity('viewed', `Profile viewed by ${currentUser}`);
+                }
+              }
+              
+              socket.emit('profile:data', {
+                bambi: bambi
+              });
+            } else {
+              socket.emit('profile:error', 'Profile not found');
+            }
+          } catch (error) {
+            logger.error(`Error fetching profile data: ${error.message}`);
+            socket.emit('profile:error', 'Error loading profile');
+          }
+        });
+
+        // Add better error handling for profile:save
+        socket.on('profile:save', async (profileData) => {
+          try {
+            // Get username with better fallback logic
+            const username = socket.bambiProfile?.username || 
+                            decodeURIComponent(socket.handshake.headers.cookie?.split(';')
+                              .find(c => c.trim().startsWith('bambiname='))
+                              ?.split('=')[1] || '');
+            
+            if (!username || username === 'anonBambi') {
+              socket.emit('profile:error', 'You must be logged in to update your profile');
+              return;
+            }
+            
+            logger.info(`Socket profile update for user: ${username}`);
+            
+            // Sanitize input data
+            const sanitizedData = {
+              about: (profileData.about || '').substring(0, 2000),
+              description: (profileData.description || '').substring(0, 500),
+              profilePictureUrl: profileData.profilePictureUrl,
+              headerImageUrl: profileData.headerImageUrl
+            };
+            
+            // Only update with valid URLs
+            const urlPattern = /^(https?:\/\/|\/)[a-zA-Z0-9_\/.\-~:]+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
+            if (sanitizedData.profilePictureUrl && !urlPattern.test(sanitizedData.profilePictureUrl)) {
+              delete sanitizedData.profilePictureUrl;
+            }
+            if (sanitizedData.headerImageUrl && !urlPattern.test(sanitizedData.headerImageUrl)) {
+              delete sanitizedData.headerImageUrl;
+            }
+            
+            // Find and update the user's profile
+            const bambi = await mongoose.model('Bambi').findOneAndUpdate(
+              { username },
+              { 
+                $set: {
+                  ...sanitizedData,
+                  lastActive: new Date()
+                }
+              },
+              { new: true, upsert: true }
+            );
+            
+            // Send success message back to the client that made the update
+            socket.emit('profile:saved', {
+              success: true,
+              bambi: bambi,
+              message: 'Profile updated successfully'
+            });
+            
+            // Broadcast to all other clients viewing this profile
+            socket.broadcast.emit('profile:updated', {
+              username,
+              bambi: bambi
+            });
+            
+            logger.success(`Profile updated for ${username} via socket`);
+          } catch (error) {
+            logger.error('Socket profile update error:', error);
+            socket.emit('profile:error', 'Error updating profile');
+          }
+        });
+
         // Add this to your existing socket.io connection handler in setupSockets()
         socket.on('profile:save', async (profileData) => {
           try {

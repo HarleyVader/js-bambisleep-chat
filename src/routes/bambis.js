@@ -43,6 +43,27 @@ function getBambiNameFromCookies(req) {
     : null;
 }
 
+// Helper function to render profile cards into HTML strings
+function renderProfileCardToString(req, res, bambi) {
+  try {
+    // Add userHasLiked property for consistent template usage
+    const currentBambiname = getBambiNameFromCookies(req);
+    bambi.userHasLiked = bambi.hearts.users.some(user => 
+      user.username === currentBambiname);
+    
+    // Use the res.render method with a callback to get the HTML string
+    return new Promise((resolve, reject) => {
+      res.render('../views/partials/profile-card', { bambi }, (err, html) => {
+        if (err) reject(err);
+        else resolve(html);
+      });
+    });
+  } catch (error) {
+    logger.error('Error rendering profile card:', error);
+    return Promise.resolve(''); // Return empty string on error
+  }
+}
+
 // Main bambis page route
 router.get('/', async (req, res) => {
   try {
@@ -490,6 +511,83 @@ router.get('/api/check-profile/:username', async (req, res) => {
     res.status(500).json({ 
       error: 'Server error',
       exists: false
+    });
+  }
+});
+
+// Modify the API list route to use this function
+router.get('/api/list', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 20;
+    const skip = (page - 1) * limit;
+    const sort = req.query.sort || 'active';
+    const search = req.query.search || '';
+    
+    let sortOptions = {};
+    switch (sort) {
+      case 'hearts':
+        sortOptions = { 'hearts.count': -1 };
+        break;
+      case 'followers':
+        sortOptions = { 'followers.length': -1 };
+        break;
+      case 'level':
+        sortOptions = { level: -1 };
+        break;
+      case 'active':
+      default:
+        sortOptions = { lastActive: -1 };
+    }
+    
+    let query = {};
+    if (search) {
+      query = {
+        $or: [
+          { username: { $regex: search, $options: 'i' } },
+          { displayName: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ]
+      };
+    }
+    
+    const [bambis, total] = await Promise.all([
+      Bambi.find(query)
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limit),
+      Bambi.countDocuments(query)
+    ]);
+    
+    // If the request wants HTML (for server-side rendering)
+    if (req.query.format === 'html') {
+      // Render each bambi using the partial
+      const renderedCards = await Promise.all(
+        bambis.map(bambi => renderProfileCardToString(req, res, bambi))
+      );
+      
+      res.json({
+        success: true,
+        bambis: renderedCards,
+        total,
+        page,
+        hasMore: total > (skip + limit)
+      });
+    } else {
+      // Standard JSON response for client-side rendering
+      res.json({
+        success: true,
+        bambis: bambis,
+        total,
+        page,
+        hasMore: total > (skip + limit)
+      });
+    }
+  } catch (error) {
+    logger.error('Error fetching bambis list:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching bambis'
     });
   }
 });
