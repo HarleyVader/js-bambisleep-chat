@@ -22,15 +22,15 @@ import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
 import bambisRouter from './routes/bambis.js';
 
-//schemas
-import { Bambi } from './schemas/BambiSchema.js';
-
 //wokers
 import workerCoordinator from './workers/workerCoordinator.js';
 
 //configs
 import errorHandler from './middleware/error.js';
 import footerConfig from './config/footer.config.js';
+
+//utils
+import eventBus from './utils/eventBus.js';
 import Logger from './utils/logger.js';
 import connectToMongoDB from './utils/dbConnection.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
@@ -49,6 +49,12 @@ const io = new Server(server, {
   pingTimeout: 86400000, // 1 day
   pingInterval: 25000, // 25 seconds
 });
+
+// Modify the Socket.IO initialization
+const profileIo = io.of('/profiles');
+
+// Pass the namespaced io to the bambisleep-profile socket handlers
+require('../bambisleep-profile/src/socket/handlers')(profileIo);
 
 //filteredWords
 const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
@@ -102,6 +108,19 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 });
 
 app.locals.footer = footerConfig;
+
+// Ensure static assets from profiles are served correctly
+app.use('/profiles/css', express.static(path.join(__dirname, '../bambisleep-profile/src/public/css')));
+app.use('/profiles/js', express.static(path.join(__dirname, '../bambisleep-profile/src/public/js')));
+app.use('/profiles/gif', express.static(path.join(__dirname, '../bambisleep-profile/src/public/gif')));
+
+// In src/server.js - Add a middleware to inject navigation links
+app.use((req, res, next) => {
+  // Only modify responses for HTML content
+  res.locals = res.locals || {};
+  res.locals.profilesUrl = '/profiles';
+  next();
+});
 
 const routes = [
   { path: '/', handler: indexRoute },
@@ -270,6 +289,9 @@ function setupRoutes() {
             username,
             bambi
         });
+
+        // Emit event for other parts of the app
+        eventBus.emit('profile:updated', { username, profile: bambi });
         
       } catch (error) {
           logger.error('Profile update error:', error);
@@ -780,6 +802,26 @@ function setupSockets() {
 
 logger.success('Socket middleware setup complete');
 
+function setupEventBusListeners() {
+  // Listen for profile updates from the profile app
+  eventBus.on('profile:updated', ({ username, profile }) => {
+    // Broadcast to all connected sockets
+    io.emit('profile:updated', { username, profile });
+    
+    // Update any cached data
+    // ...
+  });
+  
+  // Listen for new messages in profile that should appear in main chat
+  eventBus.on('profile:message', (messageData) => {
+    // Maybe broadcast important messages to main chat
+    io.emit('chat message', {
+      ...messageData,
+      source: 'profile'
+    });
+  });
+}
+
 function setupErrorHandlers() {
   try {
     app.use((err, req, res, next) => {
@@ -890,6 +932,8 @@ async function initializeServer() {
     await delay(150);
     setupSockets();
     await delay(150);
+    setupEventBusListeners();
+    await delay(150);
     setupErrorHandlers();
     app.use(errorHandler);
     await delay(200);
@@ -912,6 +956,14 @@ async function initializeServer() {
 
     const PORT = process.env.SERVER_PORT || 6969;
     await delay(200);
+
+    // Mount the profile app at the /profile path
+    const profileApp = require('../bambisleep-profile/src/app');
+    const { userContextMiddleware } = require('./middleware/userContext.js');
+
+    // Add before mounting the profile app
+    app.use(userContextMiddleware);
+    app.use('/profiles', userContextMiddleware, profileApp);
 
     serverInstance = server.listen(PORT, async () => {
       logger.success(`Server running on http://${getServerAddress()}:${PORT}`);

@@ -30,3 +30,6 @@ const connectToMongoDB = async () => {
 };
 
 export default connectToMongoDB;
+
+// Export the connection
+export const getMongoConnection = () => mongoose.connection;

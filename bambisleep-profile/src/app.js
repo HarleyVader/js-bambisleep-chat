@@ -3,6 +3,9 @@ const path = require('path');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 const logger = require('./utils/logger');
+const { getMongoConnection } = require('./utils/dbConnection');
+const eventBus = require('./utils/eventBus.js');
+const { Bambi } = require('../../../src/models/index.js');
 
 // Load env vars
 dotenv.config();
@@ -87,6 +90,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Establish MongoDB connection
+const db = getMongoConnection();
+
 // Import routes
 const indexRouter = require('./routes/index');
 const profileRouter = require('./routes/profile');
@@ -94,6 +100,38 @@ const profileRouter = require('./routes/profile');
 // Use routes
 app.use('/', indexRouter);
 app.use('/profile', profileRouter);
+
+// Listen for events from the main app
+function setupProfileEventListeners() {
+  // Listen for profile updates from the main app
+  eventBus.on('profile:updated', ({ username, profile }) => {
+    // Update profile UI if needed
+    profileIo.emit('profile:updated', { username, profile });
+  });
+  
+  // Listen for main app user login/logout
+  eventBus.on('user:login', (userData) => {
+    // Update profile app state when users log in
+    profileIo.emit('user:login', userData);
+  });
+}
+
+// Emit events from the profile app
+profileRouter.post('/update', async (req, res) => {
+  try {
+    // Process update...
+    
+    // Notify main app about the update
+    eventBus.emit('profile:updated', {
+      username: req.body.username,
+      profile: updatedProfile
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    // Error handling...
+  }
+});
 
 // 404 handler
 app.use((req, res, next) => {
