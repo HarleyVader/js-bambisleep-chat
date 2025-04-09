@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'BambiSleep.Chat Help' }) %>
+<%- include('./partials/head.ejs', { title: 'BambiSleep.Chat Help' }) %>
 
     <style>
         :root {
@@ -69,29 +69,10 @@
             background-color: rgba(0, 0, 0, 0.7);
         }
 
-        .ascii-controls {
-            text-align: center;
-            margin: 10px auto;
-            max-width: 800px;
-        }
-
-        .ascii-controls input[type="text"] {
-            background-color: var(--button-alt);
-            color: var(--primary-alt);
-            border: 1px solid var(--tertiary-color);
-            padding: 5px 10px;
-            border-radius: 4px;
-            margin-right: 10px;
-        }
-
-        .ascii-controls label {
-            color: var(--tertiary-alt);
-            margin: 0 10px;
-        }
     </style>
 
     <body>
-        <%- include('../partials/nav.ejs') %>
+        <%- include('./partials/nav.ejs') %>
 
             <div class="container">
                 <% if (typeof error !=='undefined' && error) { %>
@@ -109,7 +90,6 @@
                             <li><a href="#bambisleep">Bambisleep AI GF</a></li>
                             <li><a href="#usage">Usage</a></li>
                             <li><a href="#triggers">Triggers</a></li>
-                            <li><a href="#ascii-art">3D ASCII Art Generator</a></li>
                             <li><a href="#warning">Warning</a></li>
                             <li><a href="#tips">Tips</a></li>
                             <li><a href="#footer">Footer</a></li>
@@ -239,7 +219,7 @@
 
             </div>
 
-            <%- include('../partials/footer.ejs', { footer: typeof footer !=='undefined' ? footer : {} }) %>
+            <%- include('./partials/footer.ejs', { footer: typeof footer !=='undefined' ? footer : {} }) %>
 
                 <script src="/socket.io/socket.io.js"></script>
                 <script src="/js/chat-common.js"></script>

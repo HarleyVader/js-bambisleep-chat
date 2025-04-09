@@ -1,234 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'Create New Profile' }) %>
+<%- include('../partials/head.ejs', { title: 'Create Bambi Profile' }) %>
 <body>
   <%- include('../partials/nav.ejs') %>
   
   <div class="container">
-    <% if (typeof error !== 'undefined' && error) { %>
-      <div class="error-message">
-        <%= typeof errorMessage !== 'undefined' ? errorMessage : 'An error occurred' %>
-      </div>
-    <% } %>
-    
-    <div class="profile-creation-container">
-      <h1>Create Your Bambi Profile</h1>
+    <div class="creation-container">
+      <h1 class="neon-text">Create Bambi Profile</h1>
       
-      <form id="create-profile-form" class="profile-form" method="POST" action="/profile/new">
-        <div class="input-container">
-          <label for="username">Username</label>
-          <input type="text" id="username" name="username" required>
-          <p class="helper-text">This will be your unique identifier and cannot be changed later.</p>
-        </div>
-
-        <div class="input-container">
+      <form action="/bambis/create" method="POST" class="bambi-form" enctype="multipart/form-data">
+        <div class="form-group">
           <label for="displayName">Display Name</label>
-          <input type="text" id="displayName" name="displayName">
-          <p class="helper-text">This is how you'll appear to others.</p>
+          <input type="text" id="displayName" name="displayName" required>
         </div>
-
-        <div class="input-container">
-          <label for="avatar">Avatar URL</label>
-          <input type="text" id="avatar" name="avatar" placeholder="https://example.com/your-avatar.jpg">
-          <p class="helper-text">Leave empty to use default avatar.</p>
+        
+        <div class="form-group">
+          <label for="about">About Me</label>
+          <textarea id="about" name="about" rows="4"></textarea>
         </div>
-
-        <div class="input-container">
-          <label for="about">About</label>
-          <textarea id="about" name="about" rows="3"></textarea>
-          <p class="helper-text">Tell us a bit about yourself.</p>
+        
+        <div class="form-group">
+          <label for="avatar">Profile Picture</label>
+          <input type="file" id="avatar" name="avatar" accept="image/*">
         </div>
-
-        <div class="input-container">
-          <label for="description">Description</label>
-          <textarea id="description" name="description" rows="5"></textarea>
-          <p class="helper-text">Share your bambi journey in more detail.</p>
-        </div>
-
+        
         <div class="form-actions">
-          <button type="submit" class="save-btn">Create Profile</button>
-          <a href="/" class="cancel-btn">Cancel</a>
+          <button type="submit" class="submit-btn">Create Profile</button>
+          <a href="/bambis" class="cancel-btn">Cancel</a>
         </div>
       </form>
-      
-      <!-- System Controls Section -->
-      <div class="system-controls-section">
-        <h2>System Controls Setup</h2>
-        <p class="helper-text">Configure your system controls now or edit them later from your profile page.</p>
-        
-        <div class="system-controls-container">
-          <!-- Include system controls without the profile form part -->
-          <div class="system-controls">
-            <div id="buttons" class="control-buttons">
-              <% const validConstantsCount = 5; %>
-              <% if (validConstantsCount >= 1) { %>
-                <button id="triggers" class="control-btn">Triggers</button>
-              <% } %>
-              <% if (validConstantsCount >= 2) { %>
-                <button id="toggle-collar" class="control-btn">Collar</button>
-              <% } %>
-              <% if (validConstantsCount >= 3) { %>
-                <button id="spirals" class="control-btn">Spirals</button>
-              <% } %>
-              <% if (validConstantsCount >= 4) { %>
-                <button id="hypnosis" class="control-btn">Hypnosis</button>
-              <% } %>
-              <% if (validConstantsCount >= 5) { %>
-                <button id="toggle-all-triggers" class="control-btn">Toggle All Triggers</button>
-              <% } %>
-            </div>
-
-            <div id="console" class="control-panels">
-              <% if (validConstantsCount >= 1) { %>
-                <div id="trigger-toggles" class="control-panel" style="display: none;">
-                  <h3>Trigger Controls</h3>
-                  <button id="activate-all" class="secondary-btn">Toggle All</button>
-                  <div id="trigger-list" class="trigger-grid">
-                    <!-- Triggers will be populated by JavaScript -->
-                  </div>
-                </div>
-              <% } %>
-              
-              <% if (validConstantsCount >= 2) { %>
-                <div id="collar-form" class="control-panel" style="display: none;">
-                  <h3>Collar System</h3>
-                  <form id="collar-form-inputs">
-                    <textarea id="textarea-collar" placeholder="System Collar for my AIGF"></textarea>
-                    <button id="collar" type="submit" class="secondary-btn">Apply Collar</button>
-                  </form>
-                  <div id="user-collar" class="collar-messages"></div>
-                  <div id="textarea-collar-response" class="collar-responses"></div>
-                </div>
-              <% } %>
-              
-              <% if (validConstantsCount >= 3) { %>
-                <div id="spirals-template" class="control-panel" style="display: none;">
-                  <h3>Spiral Controls</h3>
-                  <p>Spiral features coming soon...</p>
-                </div>
-              <% } %>
-              
-              <% if (validConstantsCount >= 4) { %>
-                <div id="hypnosis-template" class="control-panel" style="display: none;">
-                  <h3>Hypnosis Controls</h3>
-                  <p>Hypnosis features coming soon...</p>
-                </div>
-              <% } %>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-
-    <div class="notification-area"></div>
   </div>
 
   <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/trigger-client.js"></script>
-  
-  <script>
-    // Control panel toggle functionality
-    document.addEventListener("DOMContentLoaded", () => {
-      // Toggle function for control panels
-      function toggleButton(button, target) {
-        const panels = document.querySelectorAll('.control-panel');
-        const buttons = document.querySelectorAll('.control-btn');
-        
-        // Hide all panels first
-        panels.forEach(panel => {
-          panel.style.display = 'none';
-        });
-        
-        // Remove active class from all buttons
-        buttons.forEach(btn => {
-          btn.classList.remove('active-button');
-        });
-        
-        // Show the target panel
-        const element = document.getElementById(target);
-        if (element) {
-          element.style.display = 'block';
-          button.classList.add('active-button');
-        }
-      }
-      
-      // Setup button click handlers
-      const triggersButton = document.getElementById('triggers');
-      if (triggersButton) {
-        triggersButton.addEventListener('click', function() {
-          toggleButton(this, 'trigger-toggles');
-        });
-      }
-      
-      const toggleCollarButton = document.getElementById('toggle-collar');
-      if (toggleCollarButton) {
-        toggleCollarButton.addEventListener('click', function() {
-          toggleButton(this, 'collar-form');
-        });
-      }
-      
-      const spiralsButton = document.getElementById('spirals');
-      if (spiralsButton) {
-        spiralsButton.addEventListener('click', function() {
-          toggleButton(this, 'spirals-template');
-        });
-      }
-      
-      const hypnosisButton = document.getElementById('hypnosis');
-      if (hypnosisButton) {
-        hypnosisButton.addEventListener('click', function() {
-          toggleButton(this, 'hypnosis-template');
-        });
-      }
-      
-      // Initialize triggers list
-      const triggerList = document.getElementById('trigger-list');
-      if (triggerList) {
-        const bambiTriggers = [
-          "BIMBO DOLL", "GOOD GIRL", "BAMBI SLEEP", "BAMBI FREEZE",
-          "ZAP COCK DRAIN OBEY", "BAMBI ALWAYS WINS", "BAMBI RESET",
-          "I-Q DROP", "I-Q LOCK", "POSTURE LOCK", "UNIFORM LOCK",
-          "SAFE & SECURE", "PRIMPED", "PAMPERED", "SNAP & FORGET",
-          "GIGGLE TIME", "BLONDE MOMENT", "BAMBI DOES AS SHE IS TOLD",
-          "DROP FOR COCK", "COCK ZOMBIE NOW", "TITS LOCK", "WAIST LOCK",
-          "BUTT LOCK", "LIMBS LOCK", "FACE LOCK", "LIPS LOCK",
-          "THROAT LOCK", "HIPS LOCK", "CUNT LOCK", "BAMBI CUM & COLAPSE"
-        ];
-        
-        bambiTriggers.forEach((trigger, index) => {
-          const triggerItem = document.createElement('div');
-          triggerItem.className = 'trigger-toggle-item';
-          
-          const toggle = document.createElement('input');
-          toggle.type = 'checkbox';
-          toggle.id = `toggle-${index}`;
-          toggle.className = 'toggle-input';
-          toggle.setAttribute('data-trigger', trigger);
-          
-          const label = document.createElement('label');
-          label.textContent = trigger;
-          label.htmlFor = `toggle-${index}`;
-          label.className = 'toggle-label';
-          
-          triggerItem.appendChild(toggle);
-          triggerItem.appendChild(label);
-          triggerList.appendChild(triggerItem);
-        });
-        
-        // Add toggle all functionality
-        const activateAllButton = document.getElementById('activate-all');
-        if (activateAllButton) {
-          activateAllButton.addEventListener('click', function() {
-            const toggleInputs = document.querySelectorAll('.toggle-input');
-            toggleInputs.forEach(input => {
-              input.checked = !input.checked;
-            });
-          });
-        }
-      }
-    });
-  </script>
 </body>
 </html>

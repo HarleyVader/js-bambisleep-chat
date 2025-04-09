@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-    <%- include('../partials/head.ejs', { title: 'Psychodelic Trigger Mania' }) %>
+    <%- include('./partials/head.ejs', { title: 'Psychodelic Trigger Mania' }) %>
 <style>
     #eyeCursor {
         margin: 0;
@@ -10,7 +10,7 @@
     }
 </style>
 <body>
-  <%- include('../partials/nav.ejs') %>
+  <%- include('./partials/nav.ejs') %>
   
   <div class="container">
     <% if (typeof error !== 'undefined' && error) { %>
@@ -37,7 +37,7 @@
     
   </div>
 
-  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>

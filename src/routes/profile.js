@@ -137,22 +137,11 @@ router.get('/:username', async (req, res) => {
       profile,
       username,
       isOwnProfile,
-      validConstantsCount: 5,
-      footer: {
-        logo: {
-          url: "https://brandynette.xxx/",
-          image: "/gif/default-avatar.gif",
-          alt: "Brandynette.xxx"
-        },
-        tagline: "Exploring the bambi community"
-      }
+      // other fields...
     });
   } catch (error) {
     console.error('Error fetching profile:', error);
-    res.status(500).render('error', { 
-      message: 'Error fetching profile',
-      error: req.app.get('env') === 'development' ? error : {}
-    });
+    // error handling...
   }
 });
 

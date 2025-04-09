@@ -10,6 +10,39 @@ router.get('/', (req, res) => {
   });
 });
 
+// Make sure specific routes come BEFORE parameter routes
+router.get('/create', (req, res) => {
+  res.render('bambis/creation');
+});
+
+// Handle profile creation form submission
+router.post('/create', async (req, res) => {
+  try {
+    const { displayName, about } = req.body;
+    
+    // For now, log the submission data
+    console.log('Profile creation requested:', { displayName, about });
+    
+    // Will implement actual database creation later
+    // For now, redirect back to the bambis index page with a success message
+    res.redirect('/bambis?success=Profile+created+successfully');
+    
+    // Later you'll want to implement:
+    // 1. Validation of the form data
+    // 2. Saving to your database
+    // 3. Handling file uploads for the avatar
+    // 4. Redirect to the new profile page
+  } catch (error) {
+    console.error('Error creating profile:', error);
+    res.render('bambis/creation', { 
+      error: true, 
+      errorMessage: 'Error creating profile',
+      // Include form data to preserve user input
+      formData: req.body
+    });
+  }
+});
+
 // Get profile by username
 router.get('/:username', (req, res) => {
   const { username } = req.params;
@@ -20,11 +53,6 @@ router.get('/:username', (req, res) => {
     username,
     profile: {}
   });
-});
-
-// Make sure your route is pointing to the correct view path
-router.get('/profiles/create', (req, res) => {
-  res.render('bambis/creation');
 });
 
 // This will be expanded with actual profile management 

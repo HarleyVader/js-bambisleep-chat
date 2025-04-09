@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'BambiSleep Community' }) %>
+<%- include('./partials/head.ejs', { title: 'Page-specific title' }) %>
 <body>
-  <%- include('../partials/nav.ejs') %>
+  <%- include('./partials/nav.ejs') %>
   
   <div class="container">
     <% if (typeof error !== 'undefined' && error) { %>
@@ -10,10 +10,6 @@
         <%= typeof errorMessage !== 'undefined' ? errorMessage : 'An error occurred' %>
       </div>
     <% } %>
-    
-    <!-- profiles.ejs using express-ejs-layouts -->
-    <% layout('./layouts/main') -%>
-    <% block('title', 'BambiSleep Community') -%>
 
     <div class="page-header">
       <h1>BambiSleep Community</h1>
@@ -67,7 +63,7 @@
     
   </div>
 
-  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
   <!-- Add any page-specific scripts that were previously in the scripts array -->

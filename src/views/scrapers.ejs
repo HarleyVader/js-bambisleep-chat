@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'BambiSleep Content Scrapers' }) %>
+<%- include('./partials/head.ejs', { title: 'BambiSleep Content Scrapers' }) %>
 <body>
-  <%- include('../partials/nav.ejs') %>
-  
+  <%- include('./partials/nav.ejs') %>
+<link rel="stylesheet" href="/css/scrapers.css">
   <div class="container">
     <% if (typeof error !== 'undefined' && error) { %>
       <div class="error-message">
@@ -237,7 +237,7 @@
     
   </div>
 
-  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/scrapers.js"></script>

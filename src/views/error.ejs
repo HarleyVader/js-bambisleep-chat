@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'Error' }) %>
+<%- include('./partials/head.ejs', { title: 'Error' }) %>
     <style>
         .error-container {
             max-width: 800px;
@@ -52,7 +52,7 @@
     </style>
 
     <body>
-        <%- include('../partials/nav.ejs') %>
+        <%- include('./partials/nav.ejs') %>
 
             <div class="container">
                 <% if (typeof error !=='undefined' && error) { %>
@@ -88,7 +88,7 @@
 
             </div>
 
-            <%- include('../partials/footer.ejs', { footer: typeof footer !=='undefined' ? footer : {} }) %>
+            <%- include('./partials/footer.ejs', { footer: typeof footer !=='undefined' ? footer : {} }) %>
 
                 <script src="/socket.io/socket.io.js"></script>
     </body>

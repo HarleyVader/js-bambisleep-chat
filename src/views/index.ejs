@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'BambiSleep.Chat AIGF' }) %>
+<%- include('./partials/head.ejs', { title: 'BambiSleep.Chat AIGF' }) %>
 <body>
-  <%- include('../partials/nav.ejs') %>
+  <%- include('./partials/nav.ejs') %>
   
   <div class="container">
     <% if (typeof error !== 'undefined' && error) { %>
@@ -36,7 +36,7 @@
         </div>
         <br>
         <div id="system-controls-container">
-          <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
+          <%- include('./partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
         </div>
       </div>
       <div id="response-container">
@@ -64,7 +64,7 @@
     
   </div>
 
-  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
   <script src="js/psychodelic-trigger-mania.js"></script>

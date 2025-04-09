@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import { Logger } from '../utils/logger.js';
 
@@ -49,6 +50,29 @@ export class DbManager {
       logger.error(`Error retrieving users: ${error.message}`);
       throw new Error(`Error retrieving users: ${error.message}`);
     }
+  }
+}
+
+/**
+ * Connect to MongoDB
+ * @returns {Promise<Object>} MongoDB connection
+ */
+export async function connectToMongoDB() {
+  try {
+    const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
+    
+    await mongoose.connect(MONGO_URI)
+      .then(() => {
+        console.log('Successfully connected to MongoDB');
+      })
+      .catch(err => {
+        console.error('MongoDB connection error:', err);
+      });
+    
+    return mongoose.connection;
+  } catch (error) {
+    console.error('Error connecting to MongoDB:', error);
+    throw error;
   }
 }
 
