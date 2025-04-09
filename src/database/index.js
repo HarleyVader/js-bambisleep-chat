@@ -68,7 +68,7 @@ class DatabaseConnection {
         
         if (this.retryCount < this.maxRetries) {
           this.retryCount++;
-          logger.warn(`Connection failed. Retrying (${this.retryCount}/${this.maxRetries}) in ${this.retryDelay/1000}s...`);
+          logger.error(`Connection failed. Retrying (${this.retryCount}/${this.maxRetries}) in ${this.retryDelay/1000}s...`);
           
           // Retry after delay
           setTimeout(() => {
@@ -202,7 +202,7 @@ class DatabaseConnection {
    */
   _handleDisconnect() {
     this.isConnected = false;
-    logger.warn('MongoDB disconnected');
+    logger.warning('MongoDB disconnected');
     
     // Reconnection will be handled by mongoose's autoReconnect option
   }
