@@ -184,39 +184,57 @@ router.use((req, res, next) => {
 // Apply ensureDbConnection middleware to all routes
 router.use(ensureDbConnection);
 
-// Redirect all bambis routes to the proper profiles routes
-router.get('/', (req, res) => {
-  res.redirect('/profiles');
-});
-
-router.get('/create', (req, res) => {
-  res.redirect('/profile/new');
-});
-
-router.get('/:username', (req, res) => {
-  res.redirect(`/profile/${req.params.username}`);
-});
-
-// Update the router configuration to handle both /profile and /profiles paths
+// Update the main route to handle sort parameter
 router.get('/', withDBErrorHandling(async (req, res) => {
   try {
     // Check for success message in query parameters
     const successMessage = req.query.success || null;
+    const search = req.query.search || '';
+    const sort = req.query.sort || 'updatedAt'; // Default sort by last active
     
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
     
+    // Create query based on search
+    let query = {};
+    if (search) {
+      query = {
+        $or: [
+          { username: { $regex: search, $options: 'i' } },
+          { displayName: { $regex: search, $options: 'i' } },
+          { about: { $regex: search, $options: 'i' } }
+        ]
+      };
+    }
+    
+    // Create sort options based on sort parameter
+    let sortOptions = {};
+    switch (sort) {
+      case 'hearts':
+        sortOptions = { 'hearts.length': -1 };
+        break;
+      case 'views':
+        sortOptions = { 'views': -1 };
+        break;
+      case 'username':
+        sortOptions = { 'username': 1 };
+        break;
+      case 'updatedAt':
+      default:
+        sortOptions = { 'updatedAt': -1 };
+    }
+    
     // Use Promise.all to run queries in parallel
     const [profiles, totalProfiles] = await Promise.all([
-      Profile.find()
-        .select('username displayName avatar about updatedAt') 
-        .sort({ updatedAt: -1 })
+      Profile.find(query)
+        .select('username displayName avatar about updatedAt views hearts') 
+        .sort(sortOptions)
         .skip(skip)
         .limit(limit)
         .lean(),
         
-      Profile.countDocuments() 
+      Profile.countDocuments(query) 
     ]);
     
     const totalPages = Math.ceil(totalProfiles / limit);
@@ -224,6 +242,8 @@ router.get('/', withDBErrorHandling(async (req, res) => {
     res.render('profiles', { 
       title: 'BambiSleep Community',
       profiles,
+      search,
+      sort,
       pagination: {
         current: page,
         total: totalPages,

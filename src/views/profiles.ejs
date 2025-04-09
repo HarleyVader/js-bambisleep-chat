@@ -16,6 +16,44 @@
       <p class="subtitle">Connect with other Bambis and explore the forest together</p>
     </div>
 
+    <div class="profile-search">
+      <form action="/profiles" method="GET" class="search-form">
+        <input 
+          type="text" 
+          name="search" 
+          placeholder="Search profiles..." 
+          value="<%= typeof search !== 'undefined' ? search : '' %>"
+          class="search-input"
+        >
+        <button type="submit" class="search-button">🔍</button>
+      </form>
+    </div>
+
+    <!-- Add this after the search box -->
+    <div class="profile-sort">
+      <span class="sort-label">Sort by:</span>
+      <div class="sort-options">
+        <% 
+          const currentSort = typeof sort !== 'undefined' ? sort : 'updatedAt';
+          const options = [
+            {value: 'updatedAt', label: 'Last Active'},
+            {value: 'username', label: 'Username'},
+            {value: 'hearts', label: 'Hearts'},
+            {value: 'views', label: 'Views'}
+          ];
+        %>
+        
+        <% options.forEach(option => { %>
+          <a 
+            href="/profiles?sort=<%= option.value %><%= typeof search !== 'undefined' && search ? `&search=${encodeURIComponent(search)}` : '' %>" 
+            class="sort-option <%= currentSort === option.value ? 'active' : '' %>"
+          >
+            <%= option.label %>
+          </a>
+        <% }); %>
+      </div>
+    </div>
+
     <div class="create-profile-section">
       <h2>Join Our Community</h2>
       <p>Share your journey into blissful mindlessness with others</p>
@@ -72,10 +110,17 @@
       <% } %>
     </div>
     
+    <!-- Update pagination links to include both search and sort parameters -->
     <% if (locals.pagination && pagination.total > 1) { %>
       <div class="profile-pagination">
+        <% 
+          const searchParam = typeof search !== 'undefined' && search ? `&search=${encodeURIComponent(search)}` : '';
+          const sortParam = typeof sort !== 'undefined' ? `&sort=${sort}` : '';
+          const queryParams = `${searchParam}${sortParam}`;
+        %>
+        
         <% if (pagination.hasPrev) { %>
-          <a href="/profiles?page=<%= pagination.current - 1 %>" class="pagination-btn prev">
+          <a href="/profiles?page=<%= pagination.current - 1 %><%= queryParams %>" class="pagination-btn prev">
             <span class="pagination-icon">◀</span> Previous
           </a>
         <% } else { %>
@@ -91,7 +136,7 @@
           %>
           
           <% if (startPage > 1) { %>
-            <a href="/profiles?page=1" class="pagination-number">1</a>
+            <a href="/profiles?page=1<%= queryParams %>" class="pagination-number">1</a>
             <% if (startPage > 2) { %>
               <span class="pagination-ellipsis">...</span>
             <% } %>
@@ -101,7 +146,7 @@
             <% if (i === pagination.current) { %>
               <span class="pagination-number active"><%= i %></span>
             <% } else { %>
-              <a href="/profiles?page=<%= i %>" class="pagination-number"><%= i %></a>
+              <a href="/profiles?page=<%= i %><%= queryParams %>" class="pagination-number"><%= i %></a>
             <% } %>
           <% } %>
           
@@ -109,12 +154,12 @@
             <% if (endPage < pagination.total - 1) { %>
               <span class="pagination-ellipsis">...</span>
             <% } %>
-            <a href="/profiles?page=<%= pagination.total %>" class="pagination-number"><%= pagination.total %></a>
+            <a href="/profiles?page=<%= pagination.total %><%= queryParams %>" class="pagination-number"><%= pagination.total %></a>
           <% } %>
         </div>
         
         <% if (pagination.hasNext) { %>
-          <a href="/profiles?page=<%= pagination.current + 1 %>" class="pagination-btn next">
+          <a href="/profiles?page=<%= pagination.current + 1 %><%= queryParams %>" class="pagination-btn next">
             Next <span class="pagination-icon">▶</span>
           </a>
         <% } else { %>
@@ -123,79 +168,6 @@
           </span>
         <% } %>
       </div>
-      
-      <!-- Add pagination CSS -->
-      <style>
-        .profile-pagination {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          margin: 2rem 0;
-          gap: 1rem;
-        }
-        
-        .pagination-btn {
-          display: flex;
-          align-items: center;
-          padding: 0.5rem 1rem;
-          background: rgba(255, 100, 255, 0.1);
-          border: 1px solid rgba(255, 100, 255, 0.5);
-          color: #ff80ff;
-          text-decoration: none;
-          border-radius: 4px;
-          transition: all 0.3s ease;
-        }
-        
-        .pagination-btn:hover {
-          background: rgba(255, 100, 255, 0.2);
-          box-shadow: 0 0 10px rgba(255, 100, 255, 0.5);
-        }
-        
-        .pagination-btn.disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          pointer-events: none;
-        }
-        
-        .pagination-icon {
-          font-size: 0.8rem;
-        }
-        
-        .pagination-numbers {
-          display: flex;
-          gap: 0.5rem;
-          align-items: center;
-        }
-        
-        .pagination-number {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 2rem;
-          height: 2rem;
-          background: rgba(255, 100, 255, 0.1);
-          border: 1px solid rgba(255, 100, 255, 0.5);
-          color: #ff80ff;
-          text-decoration: none;
-          border-radius: 4px;
-          transition: all 0.3s ease;
-        }
-        
-        .pagination-number:hover {
-          background: rgba(255, 100, 255, 0.2);
-          box-shadow: 0 0 10px rgba(255, 100, 255, 0.5);
-        }
-        
-        .pagination-number.active {
-          background: rgba(255, 100, 255, 0.3);
-          box-shadow: 0 0 10px rgba(255, 100, 255, 0.8);
-          pointer-events: none;
-        }
-        
-        .pagination-ellipsis {
-          color: #ff80ff;
-        }
-      </style>
     <% } %>
     
   </div>
@@ -237,6 +209,85 @@
       0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
       70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
       100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+    }
+
+    .profile-search {
+      margin: 1rem 0;
+      max-width: 500px;
+      width: 100%;
+    }
+    
+    .search-form {
+      display: flex;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 100, 255, 0.3);
+      background: rgba(20, 20, 30, 0.6);
+    }
+    
+    .search-input {
+      flex: 1;
+      padding: 10px 15px;
+      border: none;
+      background: transparent;
+      color: #fff;
+      font-size: 16px;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      box-shadow: 0 0 10px rgba(255, 100, 255, 0.5) inset;
+    }
+    
+    .search-button {
+      background: rgba(255, 100, 255, 0.2);
+      border: none;
+      padding: 0 15px;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .search-button:hover {
+      background: rgba(255, 100, 255, 0.4);
+    }
+
+    .profile-sort {
+      display: flex;
+      align-items: center;
+      margin: 1rem 0;
+      gap: 10px;
+    }
+    
+    .sort-label {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+    
+    .sort-options {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    
+    .sort-option {
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 14px;
+      background: rgba(255, 100, 255, 0.1);
+      color: #ff80ff;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    
+    .sort-option:hover {
+      background: rgba(255, 100, 255, 0.2);
+      box-shadow: 0 0 5px rgba(255, 100, 255, 0.4);
+    }
+    
+    .sort-option.active {
+      background: rgba(255, 100, 255, 0.3);
+      box-shadow: 0 0 8px rgba(255, 100, 255, 0.6);
     }
   </style>
 </body>

@@ -16,6 +16,7 @@ import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
 import profilesRouter from './routes/profiles.js';
 import profileRouter from './routes/profile.js';
+import profileApiRouter from './routes/api/profiles.js';
 
 // Middleware
 import errorHandler from './middleware/errorHandler.js';
@@ -266,6 +267,7 @@ async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE) {
 }
 
 app.use('/api/scraper', scraperAPIRoutes);
+app.use('/api/profiles', profileApiRouter);
 
 // Handle profile updates
 app.post('/bambis/update-profile', async (req, res) => {
