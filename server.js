@@ -7,6 +7,10 @@ import { Worker } from 'worker_threads';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
+// Define __dirname first
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Import app and other components
 import { 
   app, 
@@ -17,15 +21,12 @@ import {
 } from './src/app.js';
 
 // Import utilities
-import Logger from './src/utils/logger.js';
+import Logger from path.join(__dirname, 'src/utils/logger.js');
 import connectToMongoDB from './src/utils/dbConnection.js';
 import gracefulShutdown from './src/utils/gracefulShutdown.js';
 
 // Socket handlers
 import { initSocketHandlers } from '../bambisleep-profile/src/socket/handlers.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Initialize logger
 const logger = new Logger('Server');
