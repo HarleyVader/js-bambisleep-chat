@@ -1,14 +1,12 @@
 import express from 'express';
-import eventBus from '../utils/eventBus.js';
 
 const router = express.Router();
 
 // Only enable in development
 if (process.env.NODE_ENV !== 'production') {
-  router.post('/test-event', (req, res) => {
+  router.post('/emit', (req, res) => {
     const { event, data } = req.body;
-    eventBus.emit(event, data);
-    res.json({ success: true, message: `Event ${event} emitted` });
+    res.json({ success: true, message: `Event emission disabled` });
   });
 
   // Add to your debug routes
@@ -19,11 +17,18 @@ if (process.env.NODE_ENV !== 'production') {
       profile_integration: true,
       event_bus: {
         connected: true,
-        events: Array.from(eventBus.eventNames())
+        events: []
       }
     };
     
     res.json(health);
+  });
+
+  router.get('/events', (req, res) => {
+    res.json({
+        success: true,
+        events: []
+    });
   });
 }
 

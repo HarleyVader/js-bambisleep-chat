@@ -16,27 +16,24 @@ import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
 import bambisRouter from './routes/bambis.js';
+import profilesRouter from './routes/profile.js';
 
 // Middleware
-import errorHandler from './middleware/error.js';
+import errorHandler from './middleware/errorHandler.js';
 import { userContextMiddleware } from './middleware/userContext.js';
 import { performanceMiddleware } from './middleware/performance.js';
 
 // Config
 import footerConfig from './config/footer.config.js';
 
-// Profile app
-import profileApp from '../bambisleep-profile/src/app.js';
-
 // Worker Coordinator
 import workerCoordinator from './workers/workerCoordinator.js';
 
 // Utilities
 import Logger from './utils/logger.js';
-import eventBus from './utils/eventBus.js';
 
 // Schemas
-import { Bambi, BambiSchema } from './schemas/BambiSchema.js';
+import { Bambi, BambiSchema } from './models/Bambi.js';
 
 // Load env variables
 dotenv.config();
@@ -100,9 +97,9 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 });
 
 // Profile assets
-app.use('/profiles/css', express.static(path.join(__dirname, '../bambisleep-profile/src/public/css')));
-app.use('/profiles/js', express.static(path.join(__dirname, '../bambisleep-profile/src/public/js')));
-app.use('/profiles/gif', express.static(path.join(__dirname, '../bambisleep-profile/src/public/gif')));
+app.use('/profiles/css', express.static(path.join(__dirname, '../src/public/css')));
+app.use('/profiles/js', express.static(path.join(__dirname, '../src/public/js')));
+app.use('/profiles/gif', express.static(path.join(__dirname, '../src/public/gif')));
 
 // Navigation links middleware
 app.use((req, res, next) => {
@@ -112,7 +109,7 @@ app.use((req, res, next) => {
 });
 
 // Apply profile app middleware
-app.use('/profiles', sessionMiddleware, userContextMiddleware, profileApp);
+app.use('/profiles', sessionMiddleware, userContextMiddleware, profilesRouter);
 
 // Define routes
 const routes = [
@@ -121,6 +118,7 @@ const routes = [
   { path: '/help', handler: helpRoute },
   { path: '/scrapers', handler: scrapersRoute },
   { path: '/bambis', handler: bambisRouter },
+  { path: '/profiles', handler: profilesRouter },
 ];
 
 // Setup routes
@@ -294,9 +292,6 @@ app.post('/bambis/update-profile', async (req, res) => {
         message: 'Profile updated successfully',
         bambi
     });
-    
-    // Emit event for socket updates (will be handled in server.js)
-    eventBus.emit('profile:updated', { username, profile: bambi });
     
   } catch (error) {
       logger.error('Profile update error:', error);

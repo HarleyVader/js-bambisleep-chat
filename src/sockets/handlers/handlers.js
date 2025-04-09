@@ -1,7 +1,7 @@
 import { Worker } from 'worker_threads';
 import path from 'path';
 import mongoose from 'mongoose';
-import Logger from '../../../../src/utils/logger.js';
+import Logger from '../../utils/logger.js';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);

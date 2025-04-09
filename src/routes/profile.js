@@ -2,7 +2,8 @@ import express from 'express';
 const router = express.Router();
 import Profile from '../models/Profile.js';
 import auth from '../middleware/auth.js';
-import logger from '../../../bambisleep-profile/src/utils/logger.js';
+import logger from '../utils/logger.js';
+
 
 // Helper function to get username from cookies
 const getUsernameFromCookies = (req) => {
@@ -426,12 +427,6 @@ router.delete('/:username/delete', auth, async (req, res) => {
 router.post('/update', async (req, res) => {
   try {
     // Process update...
-    
-    // Notify main app about the update
-    eventBus.emit('profile:updated', {
-      username: req.body.username,
-      profile: updatedProfile
-    });
     
     res.json({ success: true });
   } catch (error) {
