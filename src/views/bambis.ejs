@@ -354,15 +354,15 @@
                         document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
                         window.location.href = `/login?redirect=${encodeURIComponent('/bambis/profile')}`;
                     } else {
-                        // No profile - set cookie and redirect to registration.ejs
+                        // No profile - set cookie and redirect to registration.ejs with template parameter
                         document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
-                        window.location.href = '/register';
+                        window.location.href = `/register?template=bambi&redirect=${encodeURIComponent('/bambis/profile')}`;
                     }
                 } catch (error) {
                     console.error('Error checking profile:', error);
                     // Default to registration if check fails
                     document.cookie = `bambiname=${encodeURIComponent(bambiname)}; path=/`;
-                    window.location.href = '/register';
+                    window.location.href = `/register?template=bambi&redirect=${encodeURIComponent('/bambis/profile')}`;
                 }
             });
             
