@@ -3,6 +3,11 @@
 // Cache name for offline support
 const CACHE_NAME = 'bambisleep-cache-v1';
 
+// Socket connection
+let socket = null;
+let bambiname = null;
+let io = null;
+
 // Install event - cache important resources
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -36,18 +41,21 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Socket connection management
-let socket = null;
-let bambiname = null;
+// Load the socket.io client library
+self.importScripts('/socket.io/socket.io.js');
 
 // Handle messages from clients
 self.addEventListener('message', (event) => {
   if (event.data.type === 'INIT_SOCKET') {
     // Store bambiname
     bambiname = event.data.bambiname;
+    
     // Initialize socket if needed
     if (!socket) {
-      importScripts('/socket.io/socket.io.js');
+      if (!io) {
+        io = self.io;
+      }
+      
       socket = io({
         transports: ['websocket'],
         reconnectionAttempts: 10,
@@ -101,6 +109,12 @@ self.addEventListener('message', (event) => {
     socket.emit('set username', bambiname);
   }
 });
+
+// Add a check before adding the event listener
+const element = document.getElementById('your-element-id');
+if (element) {
+  element.addEventListener('event', handler);
+}
 
 // Broadcast a message to all clients
 async function broadcastToClients(message) {

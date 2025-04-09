@@ -172,9 +172,12 @@ document.addEventListener('visibilitychange', function() {
 });
 
 // Example usage: sending a message
-document.getElementById('sendButton').addEventListener('click', () => {
-  const messageInput = document.getElementById('messageInput');
-  const message = messageInput.value;
-  sendMessage('message', message);
-  messageInput.value = ''; // Clear input after sending
-});
+const element = document.getElementById('sendButton');
+if (element) {
+  element.addEventListener('click', () => {
+    const messageInput = document.getElementById('messageInput');
+    const message = messageInput.value;
+    sendMessage('message', message);
+    messageInput.value = ''; // Clear input after sending
+  });
+}

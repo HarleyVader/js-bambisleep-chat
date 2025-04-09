@@ -1122,7 +1122,7 @@ router.get('/register', (req, res) => {
 });
 
 // Add this route to handle setting BambiName (if not already present)
-router.post('/api/set-bambiname', (req, res) => {
+router.post('/api/bambis/set-bambiname', (req, res) => {
   const { bambiname } = req.body;
   
   if (!bambiname || bambiname.trim().length < 3) {
@@ -1155,3 +1155,5 @@ router.post('/api/set-bambiname', (req, res) => {
 });
 
 export default router;
+export const Bambi = mongoose.model('Bambi', BambiSchema);
+export { BambiSchema };// Export the same model as default

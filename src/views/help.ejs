@@ -220,8 +220,11 @@
                         <!-- In all templates, update form actions: -->
                         <form action="/bambi/update" method="POST">
                         <!-- Update links: -->
-                        <a href="/bambi/<%= bambi.username %>">View bambi</a>
-                        <a href="/bambis/new">Create Bambi bambi</a>
+                        <% if (locals.bambiname) { %>
+                            <a href="/bambi/<%= locals.bambiname %>">View your bambi</a>
+                        <% } else { %>
+                            <a href="/bambi">View bambi</a>
+                        <% } %>
 
             </div>
 

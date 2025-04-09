@@ -1,4 +1,4 @@
-import bambi from '../models/Bambi.js';
+import { Bambi } from '../models/Bambi.js';
 import logger from '../utils/logger.js';
 
 // Standard trigger list
@@ -47,10 +47,10 @@ export const getAllTriggers = async (req, res) => {
 export const getbambiTriggers = async (req, res) => {
   try {
     const { username } = req.params;
-    const bambi = await bambi.findOne({ username });
+    const bambi = await Bambi.findOne({ username });
     
     if (!bambi) {
-      return res.status(404).json({ error: 'bambi not found' });
+      return res.status(404).json({ error: 'Bambi not found' });
     }
     
     const activeTriggerSession = bambi.activeTriggerSession || {
@@ -77,10 +77,10 @@ export const addTrigger = async (req, res) => {
       return res.status(400).json({ error: 'Description must be 1500 characters or less' });
     }
     
-    const bambi = await bambi.findOne({ username });
+    const bambi = await Bambi.findOne({ username });
     
     if (!bambi) {
-      return res.status(404).json({ error: 'bambi not found' });
+      return res.status(404).json({ error: 'Bambi not found' });
     }
     
     const isStandard = standardTriggers.includes(name);
@@ -131,10 +131,10 @@ export const toggleTrigger = async (req, res) => {
     const { username, triggerName } = req.params;
     const { active } = req.body;
     
-    const bambi = await bambi.findOne({ username });
+    const bambi = await Bambi.findOne({ username });
     
     if (!bambi) {
-      return res.status(404).json({ error: 'bambi not found' });
+      return res.status(404).json({ error: 'Bambi not found' });
     }
     
     const triggerIndex = bambi.triggers.findIndex(t => t.name === triggerName);
@@ -184,10 +184,10 @@ export const toggleAllTriggers = async (req, res) => {
     const { username } = req.params;
     const { active } = req.body;
     
-    const bambi = await bambi.findOne({ username });
+    const bambi = await Bambi.findOne({ username });
     
     if (!bambi) {
-      return res.status(404).json({ error: 'bambi not found' });
+      return res.status(404).json({ error: 'Bambi not found' });
     }
     
     bambi.triggers.forEach(trigger => {
@@ -227,10 +227,10 @@ export const getTriggerHistory = async (req, res) => {
   try {
     const { username } = req.params;
     
-    const bambi = await bambi.findOne({ username });
+    const bambi = await Bambi.findOne({ username });
     
     if (!bambi) {
-      return res.status(404).json({ error: 'bambi not found' });
+      return res.status(404).json({ error: 'Bambi not found' });
     }
     
     res.json({ triggerHistory: bambi.triggerHistory || [] });
@@ -249,10 +249,10 @@ export const processTriggerEvent = async (req, res) => {
       return res.status(400).json({ error: 'No valid triggers provided' });
     }
     
-    const bambi = await bambi.findOne({ username });
+    const bambi = await Bambi.findOne({ username });
     
     if (!bambi) {
-      return res.status(404).json({ error: 'bambi not found' });
+      return res.status(404).json({ error: 'Bambi not found' });
     }
     
     if (!bambi.triggerHistory) {

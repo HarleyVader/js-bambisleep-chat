@@ -231,6 +231,39 @@ app.get('/api/tts', async (req, res) => {
   }
 });
 
+// Add this route near your other API routes
+app.post('/api/bambis/set-bambiname', (req, res) => {
+  const { bambiname } = req.body;
+  
+  if (!bambiname || bambiname.trim().length < 3) {
+    return res.status(400).json({
+      success: false,
+      message: 'BambiName must be at least 3 characters long'
+    });
+  }
+  
+  // Set cookie with security options
+  res.cookie('bambiname', bambiname, { 
+    path: '/',
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    sameSite: 'strict'
+  });
+  
+  // Set session too for better auth
+  if (req.session) {
+    req.session.user = {
+      bambiname: bambiname
+    };
+  }
+  
+  return res.json({
+    success: true,
+    message: 'BambiName set successfully',
+    bambiname: bambiname
+  });
+});
+
 // TTS helper function
 async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE) {
   try {

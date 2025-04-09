@@ -65,7 +65,7 @@
         event.preventDefault();
         const bambiname = document.getElementById('bambiname-input').value;
         
-        fetch('/api/set-bambiname', {
+        fetch('/api/bambis/set-bambiname', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -305,7 +305,7 @@ router.post('/bambi/:username/heart', auth, async (req, res) => {
 });
 
 // Add this route to handle setting BambiName
-router.post('/set-bambiname', (req, res) => {
+router.post('/api/bambis/set-bambiname', (req, res) => {
   const { bambiname } = req.body;
   
   if (!bambiname || bambiname.trim().length < 3) {
@@ -337,8 +337,7 @@ router.post('/set-bambiname', (req, res) => {
   });
 });
 
-// Add to app.js:
-// import bambiApiRouter from './routes/api/bambis.js';
-// app.use('/api/bambis', bambiApiRouter);
-
-export default router;
+// Recommended fix for Bambi.js
+export const Bambi = mongoose.model('Bambi', BambiSchema);
+export { BambiSchema };
+export default Bambi; // Export the same model as default
