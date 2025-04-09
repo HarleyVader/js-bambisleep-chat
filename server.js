@@ -17,9 +17,9 @@ import {
 } from './src/app.js';
 
 // Import utilities
-import Logger from './utils/logger.js';
-import connectToMongoDB from './utils/dbConnection.js';
-import gracefulShutdown from './utils/gracefulShutdown.js';
+import Logger from './src/utils/logger.js';
+import connectToMongoDB from './src/utils/dbConnection.js';
+import gracefulShutdown from './src/utils/gracefulShutdown.js';
 
 // Socket handlers
 import { initSocketHandlers } from '../bambisleep-profile/src/socket/handlers.js';

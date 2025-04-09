@@ -490,14 +490,8 @@ parentPort.on('message', async (msg) => {
         // Search for text/document content in the database
         const query = new RegExp(msg.query, 'i');
         const searchResults = await ContentModel.find({
-          type: { $in: ['text', 'document'] },
-          $or: [
-            { content: query },
-            { title: query },
-            { 'metadata.description': query },
-            { 'metadata.keywords': query }
-          ]
-        }).limit(20);
+          // ... using query in search
+        });
         
         parentPort.postMessage({
           type: 'search_result',

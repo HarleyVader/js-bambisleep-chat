@@ -237,5 +237,12 @@
     <%- include('../views/partials/footer.ejs') %>
     <script src="/js/scrapers.js"></script>
     <script src="/js/scrapers-view.js"></script>
+    <script>
+        window.addEventListener('click', function (event) {
+            if (event.target === contentModal) {
+                contentModal.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>

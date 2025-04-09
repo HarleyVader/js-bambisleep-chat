@@ -1,7 +1,9 @@
 const eyeCursor = document.querySelector("#eyeCursor");
 
-// Check if eyeCursor is not null
 if (eyeCursor) {
+  const width = eyeCursor.clientWidth;
+  const height = eyeCursor.clientHeight;
+
   const clicks = [false, false, false, false];
   const centerCalibrate = [];
   const trancePoint = [0, 0];
@@ -20,10 +22,6 @@ if (eyeCursor) {
   let operationValue = 'add';
 
   function setup() {
-    // Get the #eyeCursor element
-    const width = eyeCursor.clientWidth;
-    const height = eyeCursor.clientHeight;
-
     // Create a canvas with the size of the #eyeCursor element
     const cnv = createCanvas(width, height);
 

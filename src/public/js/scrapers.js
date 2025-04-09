@@ -179,11 +179,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Helper function to display comments
   function displayComments(comments) {
-    if (!comments || comments.length === 0) {
-      commentsContainer.innerHTML = '<p class="no-comments">No comments yet</p>';
-      return;
-    }
-    
     commentsContainer.innerHTML = '';
     comments.forEach(comment => {
       const commentEl = document.createElement('div');

@@ -73,7 +73,7 @@ function setupInlineEditing() {
             // For about field, handle links
             displayEl.innerHTML = value.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer">$&</a>');
           } else {
-            displayEl.textContent = value || `Default ${field.charAt(0).toUpperCase() + field.slice(1)}`;
+            displayEl.innerHTML = value.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer">$&</a>');
           }
           
           // Show display, hide form
@@ -108,7 +108,7 @@ function setupInlineEditing() {
           if (field === 'about') {
             displayEl.innerHTML = value.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer">$&</a>');
           } else {
-            displayEl.textContent = value || `Default ${field.charAt(0).toUpperCase() + field.slice(1)}`;
+            displayEl.innerHTML = value.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer">$&</a>');
           }
           
           // Show display, hide form

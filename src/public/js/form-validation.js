@@ -40,8 +40,6 @@ function validateForm(form) {
       input.parentNode.appendChild(message);
     }
   });
-  
-  return isValid;
 }
 
 function validateEmail(email) {
