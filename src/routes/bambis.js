@@ -494,4 +494,28 @@ router.get('/api/check-profile/:username', async (req, res) => {
   }
 });
 
+// Add a route for registration
+router.get('/register', (req, res) => {
+  const template = req.query.template;
+  const redirect = req.query.redirect || '/';
+  
+  // Get the bambiname from cookies if available
+  const bambiname = req.cookies.bambiname || '';
+  
+  if (template === 'bambi') {
+      // Use the bambi template
+      res.render('register', {
+          bambiTemplate: true,
+          bambiname: bambiname,
+          redirect: redirect
+      });
+  } else {
+      // Use the default registration template
+      res.render('register', {
+          bambiTemplate: false,
+          redirect: redirect
+      });
+  }
+});
+
 export default router;
