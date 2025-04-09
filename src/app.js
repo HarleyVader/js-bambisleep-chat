@@ -15,7 +15,6 @@ import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
 
-import profileApiRouter from './routes/api/bambis.js';
 import bambisRouter from './routes/bambis.js';
 import bambiApiRouter from './routes/api/bambis.js';
 
@@ -104,19 +103,19 @@ app.get('/socket.io/socket.io.js', (req, res) => {
 });
 
 // Profile assets
-app.use('/profiles/css', express.static(path.join(__dirname, '../src/public/css')));
-app.use('/profiles/js', express.static(path.join(__dirname, '../src/public/js')));
-app.use('/profiles/gif', express.static(path.join(__dirname, '../src/public/gif')));
+app.use('/bambis/css', express.static(path.join(__dirname, '../src/public/css')));
+app.use('/bambis/js', express.static(path.join(__dirname, '../src/public/js')));
+app.use('/bambis/gif', express.static(path.join(__dirname, '../src/public/gif')));
 
 // Navigation links middleware
 app.use((req, res, next) => {
   res.locals = res.locals || {};
-  res.locals.profilesUrl = '/profiles';
+  res.locals.profilesUrl = '/bambis';
   next();
 });
 
 // Apply profile app middleware
-app.use('/profiles', sessionMiddleware, userContextMiddleware, profilesRouter);
+app.use('/bambis', sessionMiddleware, userContextMiddleware, bambisRouter);
 
 // Define routes
 const routes = [
@@ -128,7 +127,6 @@ const routes = [
 
 app.use('/api/bambis', bambiApiRouter);
 app.use('/bambi', bambisRouter); 
-app.use('/bambis', bambisRouter);
 
 // Setup routes
 routes.forEach(route => {
