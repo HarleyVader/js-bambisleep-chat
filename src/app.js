@@ -19,6 +19,8 @@ import profilesRouter from './routes/profile.js';
 
 // Middleware
 import errorHandler from './middleware/errorHandler.js';
+import performanceMiddleware from './middleware/performance.js';
+import { userContextMiddleware } from './middleware/userContext.js';
 
 // Config
 import footerConfig from './config/footer.config.js';
@@ -47,17 +49,6 @@ const logger = new Logger('App');
 
 // Create Express app
 const app = express();
-
-// Ensure database connection before starting the app
-(async () => {
-  try {
-    await dbConnection.connect();
-    logger.info('Database connected successfully');
-  } catch (error) {
-    logger.error('Failed to connect to the database:', error.message);
-    process.exit(1); // Exit the process if the database connection fails
-  }
-})();
 
 // Configure TTS API settings
 const KOKORO_HOST = process.env.KOKORO_HOST || 'localhost';
@@ -292,7 +283,7 @@ app.post('/bambis/update-profile', async (req, res) => {
     }
     
     // Find and update the user's profile
-    const bambi = await dbConnection.getConnection().model('Bambi').findOneAndUpdate(
+    const bambi = await Bambi.findOneAndUpdate(
         { username },
         { 
             $set: {

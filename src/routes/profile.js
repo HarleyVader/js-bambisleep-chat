@@ -1,13 +1,15 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import Profile from '../models/Bambi.js';
-import auth from '../middleware/auth.js';
-import logger from '../utils/logger.js';
-import { withDatabaseTimeout } from '../database/databaseErrorHandler.js';
-import { withTransaction } from '../database/transaction.js';
+import { Logger } from '../utils/logger.js';
 import { validationResult, body, param } from 'express-validator';
 import dbConnection from '../database/dbConnection.js';
+import { withDatabaseTimeout } from '../database/databaseErrorHandler.js';
+import { withTransaction } from '../database/transaction.js';
 
+import Profile from '../models/Bambi.js';
+import auth from '../middleware/auth.js';
+
+const logger = new Logger('Profiles');
 const router = express.Router();
 
 // Helper function to get username from cookies

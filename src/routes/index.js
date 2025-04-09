@@ -1,4 +1,3 @@
-import { setApiRoutes } from './api.js';
 import express from 'express';
 import Profile from '../models/Bambi.js';
 
