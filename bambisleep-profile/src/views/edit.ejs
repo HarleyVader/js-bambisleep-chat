@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('./partials/head') %>
+  <title>Edit Profile</title>
+  <link rel="stylesheet" href="/css/profile.css">
+</head>
+<body>
+  <%- include('./partials/nav') %>
+
+  <div class="container">
+    <div class="profile-edit-container">
+      <h1>Edit Your Profile</h1>
+      
+      <form id="edit-profile-form" class="profile-form">
+        <input type="hidden" name="username" value="<%= profile.username %>">
+
+        <div class="input-container">
+          <label for="displayName">Display Name</label>
+          <input type="text" id="displayName" name="displayName" value="<%= profile.displayName || profile.username %>" required>
+        </div>
+
+        <div class="input-container">
+          <label for="avatar">Avatar URL:</label>
+          <input type="text" id="avatar" name="avatar" value="<%= profile.avatar %>" placeholder="/gif/default-avatar.gif">
+          <div class="preview">
+            <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="Avatar Preview" id="avatar-preview">
+          </div>
+        </div>
+
+        <div class="input-container">
+          <label for="headerImage">Header Image URL:</label>
+          <input type="text" id="headerImage" name="headerImage" value="<%= profile.headerImage %>" placeholder="/gif/default-header.gif">
+          <div class="preview">
+            <img src="<%= profile.headerImage || '/gif/default-header.gif' %>" alt="Header Preview" id="header-preview" style="border-radius: 4px; max-width: 200px; height: auto;">
+          </div>
+        </div>
+
+        <div class="input-container">
+          <label for="headerColor">Header Color</label>
+          <input type="color" id="headerColor" name="headerColor" value="<%= profile.headerColor || '#35424a' %>">
+        </div>
+
+        <div class="input-container">
+          <label for="about">About (150 chars max):</label>
+          <textarea id="about" name="about" maxlength="150" placeholder="Brief intro (150 chars max)"><%= profile.about %></textarea>
+          <div class="char-counter"><span id="about-counter">0</span>/150</div>
+        </div>
+
+        <div class="input-container">
+          <label for="description">Description (1500 chars max):</label>
+          <textarea id="description" name="description" maxlength="1500" rows="5" placeholder="Your full bambi journey (1500 chars max)"><%= profile.description %></textarea>
+          <div class="char-counter"><span id="description-counter">0</span>/1500</div>
+        </div>
+
+        <div class="input-container">
+          <label>Seasons</label>
+          <div class="checkbox-group">
+            <div class="checkbox-item">
+              <input type="checkbox" id="spring" name="seasons" value="spring" 
+                <%= profile.seasons && profile.seasons.includes('spring') ? 'checked' : '' %>>
+              <label for="spring">Spring</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="summer" name="seasons" value="summer"
+                <%= profile.seasons && profile.seasons.includes('summer') ? 'checked' : '' %>>
+              <label for="summer">Summer</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="autumn" name="seasons" value="autumn"
+                <%= profile.seasons && profile.seasons.includes('autumn') ? 'checked' : '' %>>
+              <label for="autumn">Autumn</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="winter" name="seasons" value="winter"
+                <%= profile.seasons && profile.seasons.includes('winter') ? 'checked' : '' %>>
+              <label for="winter">Winter</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="save-btn">Save Changes</button>
+          <a href="/profile/<%= profile.username %>" class="cancel-btn">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="notification-area"></div>
+
+  <%- include('./partials/footer') %>
+  
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/socket-client.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Connect to Socket.io
+      const socket = io();
+      
+      // Show notification
+      function showNotification(message, isError = false) {
+        const notificationArea = document.querySelector('.notification-area');
+        
+        const notification = document.createElement('div');
+        notification.className = `notification ${isError ? 'error' : 'success'}`;
+        notification.textContent = message;
+        
+        notificationArea.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.classList.add('fade-out');
+          setTimeout(() => notification.remove(), 500);
+        }, 3000);
+      }
+      
+      // Avatar preview
+      const avatarInput = document.getElementById('avatar');
+      const avatarPreview = document.getElementById('avatar-preview');
+      
+      avatarInput.addEventListener('input', () => {
+        const url = avatarInput.value.trim();
+        avatarPreview.src = url || '/gif/default-avatar.gif';
+      });
+      
+      // Character counter implementation
+      const aboutInput = document.getElementById('about');
+      const aboutCounter = document.getElementById('about-counter');
+      
+      const descriptionInput = document.getElementById('description');
+      const descriptionCounter = document.getElementById('description-counter');
+      
+      function updateCounter(input, counter, maxLength) {
+        counter.textContent = input.value.length;
+        if (input.value.length > maxLength) {
+          counter.classList.add('over-limit');
+        } else {
+          counter.classList.remove('over-limit');
+        }
+      }
+      
+      if (aboutInput && aboutCounter) {
+        updateCounter(aboutInput, aboutCounter, 150);
+        aboutInput.addEventListener('input', () => updateCounter(aboutInput, aboutCounter, 150));
+      }
+      
+      if (descriptionInput && descriptionCounter) {
+        updateCounter(descriptionInput, descriptionCounter, 1500);
+        descriptionInput.addEventListener('input', () => updateCounter(descriptionInput, descriptionCounter, 1500));
+      }
+      
+      // Form submission
+      const form = document.getElementById('edit-profile-form');
+      
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const username = formData.get('username');
+        
+        // Get all checked seasons
+        const seasonInputs = document.querySelectorAll('input[name="seasons"]:checked');
+        const seasons = Array.from(seasonInputs).map(input => input.value);
+        
+        // Construct profile data
+        const profileData = {
+          displayName: formData.get('displayName'),
+          avatar: formData.get('avatar'),
+          headerImage: formData.get('headerImage'),
+          headerColor: formData.get('headerColor'),
+          about: formData.get('about'),
+          description: formData.get('description'),
+          seasons: seasons
+        };
+        
+        try {
+          // Send data to server via fetch
+          const response = await fetch(`/profile/${username}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(profileData)
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            showNotification('Profile updated successfully');
+            setTimeout(() => {
+              window.location.href = `/profile/${username}`;
+            }, 1000);
+          } else {
+            showNotification(data.message || 'Failed to update profile', true);
+          }
+        } catch (error) {
+          console.error('Error updating profile:', error);
+          showNotification('An error occurred while updating profile', true);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
