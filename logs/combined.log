@@ -1,0 +1,72 @@
+{"level":"info","message":"Kokoro TTS API configured with URL: http://192.168.0.178:8880/v1","module":"App","timestamp":"2025-04-09T12:59:10.896Z"}
+{"level":"info","message":"Step 1/5: Connecting to MongoDB...","module":"Server","timestamp":"2025-04-09T12:59:10.918Z"}
+{"level":"info","message":"Step 2/5: Loading filtered words...","module":"Server","timestamp":"2025-04-09T12:59:10.961Z"}
+{"error":"Error: ENOENT: no such file or directory, open '/mnt/f/js-bambisleep-chat/src/filteredWords.json'\n    at async open (node:internal/fs/promises:634:25)\n    at async Object.readFile (node:internal/fs/promises:1238:14)\n    at async loadFilteredWords (file:///mnt/f/js-bambisleep-chat/src/app.js:327:23)\n    at async initializeServer (file:///mnt/f/js-bambisleep-chat/server.js:75:21)","level":"error","message":"Error loading filtered words:","module":"App","timestamp":"2025-04-09T12:59:10.965Z"}
+{"level":"info","message":"Step 3/5: Setting up socket handlers...","module":"Server","timestamp":"2025-04-09T12:59:10.966Z"}
+{"level":"info","message":"Step 4/5: Initializing subsystems...","module":"Server","timestamp":"2025-04-09T12:59:10.966Z"}
+{"level":"info","message":"Scrapers system initialized successfully","module":"ScrapersRoute","timestamp":"2025-04-09T12:59:10.966Z"}
+{"level":"info","message":"Beginning model loading sequence...","module":"WorkerCoordinator","timestamp":"2025-04-09T12:59:10.967Z"}
+{"level":"info","message":"Loading model 1/2: llama-3.2-3b-claude-3.7-sonnet-reasoning-distilled@q4_0","module":"WorkerCoordinator","timestamp":"2025-04-09T12:59:10.967Z"}
+{"level":"info","message":"Model 1/2 loaded: llama-3.2-3b-claude-3.7-sonnet-reasoning-distilled@q4_0","module":"WorkerCoordinator","timestamp":"2025-04-09T12:59:10.989Z"}
+{"level":"info","message":"Loading model 2/2: l3-sthenomaidblackroot-8b-v1@q2_k","module":"WorkerCoordinator","timestamp":"2025-04-09T12:59:11.191Z"}
+{"level":"info","message":"Model 2/2 loaded: l3-sthenomaidblackroot-8b-v1@q2_k:2","module":"WorkerCoordinator","timestamp":"2025-04-09T12:59:11.194Z"}
+{"level":"info","message":"Beginning worker initialization sequence...","module":"WorkerCoordinator","timestamp":"2025-04-09T12:59:11.194Z"}
+{"level":"info","message":"Initializing text scraper worker (1/3)...","module":"WorkerCoordinator","timestamp":"2025-04-09T12:59:11.194Z"}
+{"level":"info","message":"Initializing image scraper worker (2/3)...","module":"WorkerCoordinator","timestamp":"2025-04-09T12:59:11.447Z"}
+{"level":"info","message":"Initializing video scraper worker (3/3)...","module":"WorkerCoordinator","timestamp":"2025-04-09T12:59:11.699Z"}
+{"level":"info","message":"All workers initialized and ready for scraping tasks","module":"WorkerCoordinator","timestamp":"2025-04-09T12:59:11.700Z"}
+{"level":"info","message":"Step 5/5: Starting HTTP server...","module":"Server","timestamp":"2025-04-09T12:59:11.700Z"}
+{"level":"info","message":"Server running on http://172.22.78.155:6969","module":"Server","timestamp":"2025-04-09T12:59:11.702Z"}
+{"level":"info","message":"Server initialization sequence completed successfully","module":"Server","timestamp":"2025-04-09T12:59:11.702Z"}
+{"level":"info","message":"GoodScraping worker started and ready to receive messages","module":"TextScraper","timestamp":"2025-04-09T12:59:20.413Z"}
+{"level":"info","message":"Image scraping worker started and ready to receive messages","module":"ImageScraper","timestamp":"2025-04-09T12:59:20.604Z"}
+{"level":"info","message":"Video scraping worker started and ready to receive messages","module":"VideoScraper","timestamp":"2025-04-09T12:59:23.907Z"}
+{"level":"info","message":"Client connected: tZw5nLERHZomKCw5AAAB","module":"SocketHandlers","timestamp":"2025-04-09T12:59:33.810Z"}
+{"level":"info","message":"Kokoro TTS API configured with URL: http://192.168.0.178:8880/v1","module":"App","timestamp":"15:05:27"}
+{"level":"info","message":"Step 1/5: Connecting to MongoDB...","module":"Server","timestamp":"15:05:27"}
+{"level":"info","message":"Step 2/5: Loading filtered words...","module":"Server","timestamp":"15:05:28"}
+{"error":"Error: ENOENT: no such file or directory, open '/mnt/f/js-bambisleep-chat/src/filteredWords.json'\n    at async open (node:internal/fs/promises:634:25)\n    at async Object.readFile (node:internal/fs/promises:1238:14)\n    at async loadFilteredWords (file:///mnt/f/js-bambisleep-chat/src/app.js:327:23)\n    at async initializeServer (file:///mnt/f/js-bambisleep-chat/server.js:75:21)","level":"error","message":"Error loading filtered words:","module":"App","timestamp":"15:05:28"}
+{"level":"info","message":"Step 3/5: Setting up socket handlers...","module":"Server","timestamp":"15:05:28"}
+{"level":"info","message":"Step 4/5: Initializing subsystems...","module":"Server","timestamp":"15:05:28"}
+{"level":"info","message":"Scrapers system initialized successfully","module":"ScrapersRoute","timestamp":"15:05:28"}
+{"level":"info","message":"Beginning model loading sequence...","module":"WorkerCoordinator","timestamp":"15:05:28"}
+{"level":"info","message":"Loading model 1/2: llama-3.2-3b-claude-3.7-sonnet-reasoning-distilled@q4_0","module":"WorkerCoordinator","timestamp":"15:05:28"}
+{"level":"info","message":"Model 1/2 loaded: llama-3.2-3b-claude-3.7-sonnet-reasoning-distilled@q4_0","module":"WorkerCoordinator","timestamp":"15:05:28"}
+{"level":"info","message":"Loading model 2/2: l3-sthenomaidblackroot-8b-v1@q2_k","module":"WorkerCoordinator","timestamp":"15:05:28"}
+{"level":"info","message":"Model 2/2 loaded: l3-sthenomaidblackroot-8b-v1@q2_k:2","module":"WorkerCoordinator","timestamp":"15:05:28"}
+{"level":"info","message":"Beginning worker initialization sequence...","module":"WorkerCoordinator","timestamp":"15:05:28"}
+{"level":"info","message":"Initializing text scraper worker (1/3)...","module":"WorkerCoordinator","timestamp":"15:05:28"}
+{"level":"info","message":"Initializing image scraper worker (2/3)...","module":"WorkerCoordinator","timestamp":"15:05:28"}
+{"level":"info","message":"Initializing video scraper worker (3/3)...","module":"WorkerCoordinator","timestamp":"15:05:28"}
+{"level":"info","message":"All workers initialized and ready for scraping tasks","module":"WorkerCoordinator","timestamp":"15:05:28"}
+{"level":"info","message":"Step 5/5: Starting HTTP server...","module":"Server","timestamp":"15:05:28"}
+{"level":"info","message":"Server running on http://172.22.78.155:6969","module":"Server","timestamp":"15:05:28"}
+{"level":"info","message":"Server initialization sequence completed successfully","module":"Server","timestamp":"15:05:28"}
+{"level":"info","message":"GoodScraping worker started and ready to receive messages","module":"TextScraper","timestamp":"15:05:37"}
+{"level":"info","message":"Image scraping worker started and ready to receive messages","module":"ImageScraper","timestamp":"15:05:37"}
+{"level":"info","message":"Video scraping worker started and ready to receive messages","module":"VideoScraper","timestamp":"15:05:40"}
+{"level":"info","message":"Client connected: itP4al21ZMvQX7paAAAB","module":"SocketHandlers","timestamp":"15:08:42"}
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined

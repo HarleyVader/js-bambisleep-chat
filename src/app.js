@@ -76,9 +76,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/workers', express.static(path.join(__dirname, 'workers')));
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
-// View engine setup
-app.set('view engine', 'ejs');
+// Update the views configuration
 app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+
 app.locals.footer = footerConfig;
 
 // Session middleware

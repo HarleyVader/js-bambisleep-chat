@@ -1,6 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import Logger from '../utils/logger.js';
+import { Logger } from '../utils/logger.js';  // Use named import with curly braces
 
 const router = express.Router();
 const logger = new Logger('ScrapersRoute');

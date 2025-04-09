@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BambiSleep Profiles</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/bambis.css">
+</head>
+<body>
+  <%- include('../partials/nav.ejs') %>
+
+  <div class="container">
+    <div class="bambis-container">
+      <h1 class="neon-text">Bambi Profiles</h1>
+      
+      <div class="bambis-grid">
+        <% if (locals.bambis && bambis.length > 0) { %>
+          <% bambis.forEach(bambi => { %>
+            <div class="bambi-card">
+              <div class="bambi-avatar">
+                <img src="<%= bambi.avatar || '/gif/default-avatar.gif' %>" alt="<%= bambi.displayName || bambi.username %>">
+              </div>
+              <div class="bambi-info">
+                <h3><%= bambi.displayName || bambi.username %></h3>
+                <p class="bambi-about"><%= bambi.about || 'No information provided' %></p>
+                <a href="/profiles/<%= bambi.username %>" class="view-profile-btn">View Profile</a>
+              </div>
+            </div>
+          <% }); %>
+        <% } else { %>
+          <div class="no-bambis">
+            <p>No bambi profiles found</p>
+            <a href="/profiles/create" class="create-profile-btn">Create Your Profile</a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer.ejs') %>
+</body>
+</html>
