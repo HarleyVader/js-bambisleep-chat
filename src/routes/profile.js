@@ -557,4 +557,17 @@ router.delete('/:username/delete',
   })
 );
 
+// Middleware to ensure user is authenticated
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect('/login');
+}
+
+router.get('/profile', ensureAuthenticated, (req, res) => {
+  // Render the profile page with user data
+  res.render('profile', { user: req.user });
+});
+
 export default router;
