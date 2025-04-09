@@ -11,20 +11,26 @@
       </div>
     <% } %>
     
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="success-message">
+        <%= success %>
+      </div>
+    <% } %>
+    
     <div class="bambis-container">
       <h1 class="neon-text">Bambi Profiles</h1>
       
       <div class="bambis-grid">
-        <% if (locals.bambis && bambis.length > 0) { %>
-          <% bambis.forEach(bambi => { %>
+        <% if (locals.profiles && profiles.length > 0) { %>
+          <% profiles.forEach(profile => { %>
             <div class="bambi-card">
               <div class="bambi-avatar">
-                <img src="<%= bambi.avatar || '/gif/default-avatar.gif' %>" alt="<%= bambi.displayName || bambi.username %>">
+                <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>">
               </div>
               <div class="bambi-info">
-                <h3><%= bambi.displayName || bambi.username %></h3>
-                <p class="bambi-about"><%= bambi.about || 'No information provided' %></p>
-                <a href="/bambis/<%= bambi.username %>" class="view-profile-btn">View Profile</a>
+                <h3><%= profile.displayName || profile.username %></h3>
+                <p class="bambi-about"><%= profile.about || 'No information provided' %></p>
+                <a href="/bambis/<%= profile.username %>" class="view-profile-btn">View Profile</a>
               </div>
             </div>
           <% }); %>

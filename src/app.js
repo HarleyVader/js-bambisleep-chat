@@ -14,8 +14,8 @@ import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js
 import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
-import bambisRouter from './routes/bambis.js';
-import profilesRouter from './routes/profile.js';
+import profilesRouter from './routes/profiles.js';
+import profileRouter from './routes/profile.js';
 
 // Middleware
 import errorHandler from './middleware/errorHandler.js';
@@ -121,7 +121,6 @@ const routes = [
   { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
   { path: '/help', handler: helpRoute },
   { path: '/scrapers', handler: scrapersRoute },
-  { path: '/bambis', handler: bambisRouter },
   { path: '/profiles', handler: profilesRouter },
 ];
 
@@ -336,6 +335,13 @@ export async function initializeScraperSystem() {
 export async function initializeWorkerSystem() {
   return await workerCoordinator.initialize();
 }
+
+// Set up your routes
+app.use('/profile', profileRouter);
+app.use('/bambis', profileRouter);  // Allow both route paths to work
+
+// Make sure this is in your app.js
+app.use('/bambis', bambisRouter);
 
 // Export the configured app, session middleware and other necessary components
 export { 

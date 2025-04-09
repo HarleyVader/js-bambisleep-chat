@@ -184,104 +184,146 @@ router.use((req, res, next) => {
 // Apply ensureDbConnection middleware to all routes
 router.use(ensureDbConnection);
 
-// Home page - Show all profiles with pagination
+// Redirect all bambis routes to the proper profiles routes
+router.get('/', (req, res) => {
+  res.redirect('/profiles');
+});
+
+router.get('/create', (req, res) => {
+  res.redirect('/profile/new');
+});
+
+router.get('/:username', (req, res) => {
+  res.redirect(`/profile/${req.params.username}`);
+});
+
+// Update the router configuration to handle both /profile and /profiles paths
 router.get('/', withDBErrorHandling(async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
-  const skip = (page - 1) * limit;
-  
-  // Use Promise.all to run queries in parallel
-  const [profiles, totalProfiles] = await Promise.all([
-    Profile.find()
-      .select('username displayName avatar about updatedAt') // Only select fields we need
-      .sort({ updatedAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean(), // Convert to plain JS object for better performance
-      
-    Profile.countDocuments() // Get total count for pagination
-  ]);
-  
-  const totalPages = Math.ceil(totalProfiles / limit);
-  
-  res.render('index', { 
-    title: 'BambiSleep Community Profiles',
-    profiles,
-    pagination: {
-      current: page,
-      total: totalPages,
-      hasNext: page < totalPages,
-      hasPrev: page > 1
-    },
-    validConstantsCount: 5
-  });
+  try {
+    // Check for success message in query parameters
+    const successMessage = req.query.success || null;
+    
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    
+    // Use Promise.all to run queries in parallel
+    const [profiles, totalProfiles] = await Promise.all([
+      Profile.find()
+        .select('username displayName avatar about updatedAt') 
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+        
+      Profile.countDocuments() 
+    ]);
+    
+    const totalPages = Math.ceil(totalProfiles / limit);
+    
+    res.render('profiles', { 
+      title: 'BambiSleep Community',
+      profiles,
+      pagination: {
+        current: page,
+        total: totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      },
+      success: successMessage,
+      validConstantsCount: 5
+    });
+  } catch (error) {
+    logger.error(`Error loading profiles: ${error.message}`);
+    res.render('profiles', { 
+      title: 'BambiSleep Community',
+      error: true,
+      errorMessage: 'Failed to load profiles',
+      profiles: []
+    });
+  }
 }));
 
-// Create profile page
+// Create profile page (now support both /profile/new and /profile/create paths)
 router.get('/new', (req, res) => {
-  // Check if user already has a profile
   const currentBambiname = getUsernameFromCookies(req);
   if (currentBambiname) {
     return res.redirect(`/profile/${currentBambiname}`);
   }
   
-  res.render('creation', { 
+  res.render('bambis/creation', { 
     title: 'Create New Profile',
     validConstantsCount: 5
   });
 });
 
-// Create profile submission with validation
+router.get('/create', (req, res) => {
+  res.redirect('/profile/new');
+});
+
+// Fix create profile submission endpoint
 router.post('/new', validateProfileInput, withDBErrorHandling(async (req, res) => {
   const { username, displayName, avatar, about, description, seasons } = req.body;
   
-  // Use transaction for consistent data
-  await withTransaction(async (session) => {
-    // Check if username already exists
-    const existingProfile = await Profile.findOne({ username }).session(session);
-    if (existingProfile) {
-      return res.render('creation', { 
-        title: 'Create New Profile',
-        error: 'Username already exists',
-        validConstantsCount: 5
+  try {
+    // Use transaction for consistent data
+    await withTransaction(async (session) => {
+      // Check if username already exists
+      const existingProfile = await Profile.findOne({ username }).session(session);
+      if (existingProfile) {
+        return res.render('bambis/creation', { 
+          title: 'Create New Profile',
+          error: 'Username already exists',
+          validConstantsCount: 5,
+          formData: req.body
+        });
+      }
+      
+      // Process seasons
+      const selectedSeasons = Array.isArray(seasons) ? seasons : [seasons].filter(Boolean);
+      
+      // Create new profile
+      const newProfile = new Profile({
+        username,
+        displayName: displayName || username,
+        avatar: avatar || '/gif/default-avatar.gif',
+        about: about || 'Tell us about yourself...',
+        description: description || 'Share your bambi journey...',
+        seasons: selectedSeasons.length > 0 ? selectedSeasons : ['spring'],
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
-    }
-    
-    // Process seasons
-    const selectedSeasons = Array.isArray(seasons) ? seasons : [seasons].filter(Boolean);
-    
-    // Create new profile
-    const newProfile = new Profile({
-      username,
-      displayName: displayName || username,
-      avatar: avatar || '/gif/default-avatar.gif',
-      about: about || 'Tell us about yourself...',
-      description: description || 'Share your bambi journey...',
-      seasons: selectedSeasons.length > 0 ? selectedSeasons : ['spring'],
-      createdAt: new Date(),
-      updatedAt: new Date()
+      
+      await newProfile.save({ session });
+      
+      // Set cookie with security options
+      res.cookie('bambiname', username, { 
+        path: '/',
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: 'strict'
+      });
+      
+      // Set session too for better auth
+      if (req.session) {
+        req.session.user = {
+          username: username,
+          profileId: newProfile._id
+        };
+      }
+      
+      // Redirect to the user profile with a success message
+      return res.redirect(`/profile/${username}?success=Profile+created+successfully`);
     });
-    
-    await newProfile.save({ session });
-    
-    // Set cookie with security options
-    res.cookie('bambiname', username, { 
-      path: '/',
-      httpOnly: true, // Prevents JavaScript from accessing the cookie
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
-      sameSite: 'strict' // Prevents CSRF attacks
+  } catch (error) {
+    logger.error(`Error creating profile: ${error.message}`);
+    res.render('bambis/creation', { 
+      error: true, 
+      errorMessage: 'Error creating profile',
+      formData: req.body,
+      validConstantsCount: 5
     });
-    
-    // Set session too for better auth
-    if (req.session) {
-      req.session.user = {
-        username: username,
-        profileId: newProfile._id
-      };
-    }
-    
-    res.redirect(`/profile/${username}`);
-  });
+  }
 }));
 
 // Handle profile updates with improved error handling
@@ -334,41 +376,51 @@ router.post('/update', auth, validateProfileInput, withDBErrorHandling(async (re
   });
 }));
 
-// View profile with efficient query
+// Single profile view - keep the most robust implementation
 router.get('/:username', param('username').trim().escape(), withDBErrorHandling(async (req, res) => {
   const { username } = req.params;
   
-  const profile = await Profile.findOne({ username })
-    .select('-__v') // Exclude version field
-    .lean(); // Use lean for better performance
-  
-  if (!profile) {
-    return res.status(404).render('error', { 
-      message: 'Profile not found',
-      error: { status: 404 },
-      title: 'Not Found'
+  try {
+    const profile = await Profile.findOne({ username })
+      .select('-__v')
+      .lean();
+    
+    if (!profile) {
+      return res.status(404).render('error', { 
+        message: 'Profile not found',
+        error: { status: 404 },
+        title: 'Not Found'
+      });
+    }
+    
+    // Check if user is the profile owner
+    const bambiname = getUsernameFromCookies(req);
+    const isOwnProfile = bambiname === username;
+    
+    // Track profile views if not own profile
+    if (!isOwnProfile) {
+      Profile.updateOne(
+        { _id: profile._id },
+        { $inc: { views: 1 } }
+      ).catch(err => logger.error(`Failed to update view count: ${err.message}`));
+    }
+    
+    // Check for success message in query parameters
+    const successMessage = req.query.success || null;
+    
+    res.render('bambis/profile', { 
+      title: `${profile.displayName || profile.username}'s Profile`,
+      profile,
+      isOwnProfile,
+      success: successMessage
+    });
+  } catch (error) {
+    logger.error(`Error loading profile: ${error.message}`);
+    res.status(500).render('error', {
+      message: 'Error loading profile',
+      error: { status: 500 }
     });
   }
-  
-  // Check if user is the profile owner
-  const currentBambiname = getUsernameFromCookies(req);
-  const isOwnProfile = currentBambiname === username;
-  
-  // Track profile views
-  if (!isOwnProfile) {
-    // Don't await this to prevent slowing down the page load
-    Profile.updateOne(
-      { _id: profile._id },
-      { $inc: { views: 1 } }
-    ).catch(err => logger.error(`Failed to update view count: ${err.message}`));
-  }
-  
-  res.render('profile', { 
-    title: `${profile.displayName || profile.username}'s Profile`,
-    profile,
-    username,
-    isOwnProfile
-  });
 }));
 
 // Edit profile page - apply ownership check middleware
@@ -387,7 +439,7 @@ router.get('/:username/edit',
       });
     }
     
-    res.render('edit', { 
+    res.render('bambis/edit', { 
       title: 'Edit Profile',
       profile,
       username
@@ -458,7 +510,7 @@ router.get('/:username/delete',
     }
     
     // Show confirmation page
-    return res.render('delete-confirmation', {
+    return res.render('bambis/delete-confirmation', {
       profile,
       title: 'Delete Profile'
     });

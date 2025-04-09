@@ -112,9 +112,12 @@ const SystemControlsSchema = new mongoose.Schema({
 const ProfileSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: true,
+    required: [true, 'Username is required'],
     unique: true,
-    trim: true
+    trim: true,
+    minlength: [3, 'Username must be at least 3 characters'],
+    maxlength: [30, 'Username cannot exceed 30 characters'],
+    match: [/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores and hyphens']
   },
   displayName: {
     type: String,
@@ -135,12 +138,12 @@ const ProfileSchema = new mongoose.Schema({
   about: {
     type: String,
     default: 'Tell us about yourself...',
-    maxlength: 150
+    maxlength: [150, 'About section cannot exceed 150 characters']
   },
   description: {
     type: String,
     default: 'Share your bambi journey...',
-    maxlength: 1500
+    maxlength: [1500, 'Description cannot exceed 1500 characters']
   },
   triggers: [TriggerSchema],
   triggerHistory: [TriggerHistorySchema],
@@ -294,9 +297,12 @@ ProfileSchema.methods.setTriggerActive = function(triggerName, active) {
 const BambiSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: true,
+    required: [true, 'Username is required'],
     unique: true,
-    trim: true
+    trim: true,
+    minlength: [3, 'Username must be at least 3 characters'],
+    maxlength: [30, 'Username cannot exceed 30 characters'],
+    match: [/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores and hyphens']
   },
   // Add other fields as needed
 });

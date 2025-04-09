@@ -4,6 +4,7 @@ import Profile from '../models/Bambi.js';
 // Create routers
 const mainRouter = express.Router();
 const profileRouter = express.Router();
+const router = express.Router();
 
 // Main home route with cookie authentication
 mainRouter.get('/', (req, res) => {
@@ -33,6 +34,19 @@ profileRouter.get('/profiles', async (req, res) => {
   }
 });
 
+// Redirect all bambis routes to the proper profiles routes
+router.get('/', (req, res) => {
+  res.redirect('/profiles');
+});
+
+router.get('/create', (req, res) => {
+  res.redirect('/profile/new');
+});
+
+router.get('/:username', (req, res) => {
+  res.redirect(`/profile/${req.params.username}`);
+});
+
 // Export combined setup function
 export const setRoutes = (app) => {
   // Set up API routes
@@ -52,5 +66,4 @@ export const routers = {
 };
 
 // For backward compatibility with the original structure
-const router = mainRouter;
-export default router;
+export default mainRouter;

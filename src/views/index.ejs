@@ -156,3 +156,22 @@
   <script src="js/bootstrap.min.js"></script>
 </body>
 </html>
+
+import express from 'express';
+
+const router = express.Router();
+
+// Redirect all bambis routes to the proper profiles routes
+router.get('/', (req, res) => {
+  res.redirect('/profiles');
+});
+
+router.get('/create', (req, res) => {
+  res.redirect('/profile/new');
+});
+
+router.get('/:username', (req, res) => {
+  res.redirect(`/profile/${req.params.username}`);
+});
+
+export default router;

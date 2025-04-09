@@ -26,27 +26,38 @@
     <h2 class="section-title">Explore Bambi Profiles</h2>
 
     <div class="profiles-grid">
-      <% if (profiles && profiles.length > 0) { %>
+      <% if (locals.profiles && profiles.length > 0) { %>
         <% profiles.forEach(profile => { %>
-          <div class="profile-card">
-            <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>" class="profile-avatar">
-            <h3 class="profile-name"><%= profile.displayName || profile.username %></h3>
-            <div class="profile-stats">
-              <div class="stat">
-                <div class="stat-value"><%= (profile.seasons && profile.seasons.length) || 0 %></div>
-                <div class="stat-label">Seasons</div>
-              </div>
-              <div class="stat">
-                <div class="stat-value"><%= (profile.triggers && profile.triggers.length) || 0 %></div>
-                <div class="stat-label">Triggers</div>
-              </div>
+          <div class="bambi-card">
+            <div class="bambi-avatar">
+              <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>">
+              <% if (profile.updatedAt) { %>
+                <% 
+                  const now = new Date();
+                  const lastActive = new Date(profile.updatedAt);
+                  const diffMinutes = Math.floor((now - lastActive) / (1000 * 60));
+                  const diffHours = Math.floor(diffMinutes / 60);
+                  const diffDays = Math.floor(diffHours / 24);
+                  
+                  let activityClass = '';
+                  if (diffMinutes < 10) {
+                    activityClass = 'online';
+                  } else if (diffHours < 1) {
+                    activityClass = 'recent';
+                  }
+                %>
+                
+                <div class="activity-indicator <%= activityClass %>" title="<%= 
+                  diffMinutes < 10 ? 'Online now' : 
+                  diffMinutes < 60 ? `Active ${diffMinutes} minutes ago` :
+                  diffHours < 24 ? `Active ${diffHours} hours ago` :
+                  `Active ${diffDays} days ago`
+                %>"></div>
+              <% } %>
             </div>
-            <div class="profile-description">
-              <%= profile.description && profile.description.length > 120 ? 
-                profile.description.substring(0, 120) + '...' : 
-                profile.description || 'A mysterious Bambi...' %>
-            </div>
-            <div class="profile-actions">
+            <div class="bambi-info">
+              <h3><%= profile.displayName || profile.username %></h3>
+              <p class="bambi-about"><%= profile.about || 'No information provided' %></p>
               <a href="/profile/<%= profile.username %>" class="view-profile-btn">View Profile</a>
             </div>
           </div>
@@ -61,11 +72,172 @@
       <% } %>
     </div>
     
+    <% if (locals.pagination && pagination.total > 1) { %>
+      <div class="profile-pagination">
+        <% if (pagination.hasPrev) { %>
+          <a href="/profiles?page=<%= pagination.current - 1 %>" class="pagination-btn prev">
+            <span class="pagination-icon">◀</span> Previous
+          </a>
+        <% } else { %>
+          <span class="pagination-btn disabled">
+            <span class="pagination-icon">◀</span> Previous
+          </span>
+        <% } %>
+        
+        <div class="pagination-numbers">
+          <% 
+            const startPage = Math.max(1, pagination.current - 2);
+            const endPage = Math.min(pagination.total, pagination.current + 2);
+          %>
+          
+          <% if (startPage > 1) { %>
+            <a href="/profiles?page=1" class="pagination-number">1</a>
+            <% if (startPage > 2) { %>
+              <span class="pagination-ellipsis">...</span>
+            <% } %>
+          <% } %>
+          
+          <% for (let i = startPage; i <= endPage; i++) { %>
+            <% if (i === pagination.current) { %>
+              <span class="pagination-number active"><%= i %></span>
+            <% } else { %>
+              <a href="/profiles?page=<%= i %>" class="pagination-number"><%= i %></a>
+            <% } %>
+          <% } %>
+          
+          <% if (endPage < pagination.total) { %>
+            <% if (endPage < pagination.total - 1) { %>
+              <span class="pagination-ellipsis">...</span>
+            <% } %>
+            <a href="/profiles?page=<%= pagination.total %>" class="pagination-number"><%= pagination.total %></a>
+          <% } %>
+        </div>
+        
+        <% if (pagination.hasNext) { %>
+          <a href="/profiles?page=<%= pagination.current + 1 %>" class="pagination-btn next">
+            Next <span class="pagination-icon">▶</span>
+          </a>
+        <% } else { %>
+          <span class="pagination-btn disabled">
+            Next <span class="pagination-icon">▶</span>
+          </span>
+        <% } %>
+      </div>
+      
+      <!-- Add pagination CSS -->
+      <style>
+        .profile-pagination {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin: 2rem 0;
+          gap: 1rem;
+        }
+        
+        .pagination-btn {
+          display: flex;
+          align-items: center;
+          padding: 0.5rem 1rem;
+          background: rgba(255, 100, 255, 0.1);
+          border: 1px solid rgba(255, 100, 255, 0.5);
+          color: #ff80ff;
+          text-decoration: none;
+          border-radius: 4px;
+          transition: all 0.3s ease;
+        }
+        
+        .pagination-btn:hover {
+          background: rgba(255, 100, 255, 0.2);
+          box-shadow: 0 0 10px rgba(255, 100, 255, 0.5);
+        }
+        
+        .pagination-btn.disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+        
+        .pagination-icon {
+          font-size: 0.8rem;
+        }
+        
+        .pagination-numbers {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+        }
+        
+        .pagination-number {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 2rem;
+          height: 2rem;
+          background: rgba(255, 100, 255, 0.1);
+          border: 1px solid rgba(255, 100, 255, 0.5);
+          color: #ff80ff;
+          text-decoration: none;
+          border-radius: 4px;
+          transition: all 0.3s ease;
+        }
+        
+        .pagination-number:hover {
+          background: rgba(255, 100, 255, 0.2);
+          box-shadow: 0 0 10px rgba(255, 100, 255, 0.5);
+        }
+        
+        .pagination-number.active {
+          background: rgba(255, 100, 255, 0.3);
+          box-shadow: 0 0 10px rgba(255, 100, 255, 0.8);
+          pointer-events: none;
+        }
+        
+        .pagination-ellipsis {
+          color: #ff80ff;
+        }
+      </style>
+    <% } %>
+    
   </div>
 
   <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
   <!-- Add any page-specific scripts that were previously in the scripts array -->
+  
+  <!-- Add this CSS for the activity indicators -->
+  <style>
+    .bambi-avatar {
+      position: relative;
+    }
+    
+    .activity-indicator {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #888;
+      border: 2px solid rgba(0,0,0,0.3);
+    }
+    
+    .activity-indicator.online {
+      background: #00ff00;
+      box-shadow: 0 0 8px #00ff00;
+      animation: pulse 2s infinite;
+    }
+    
+    .activity-indicator.recent {
+      background: #ffcc00;
+      box-shadow: 0 0 5px #ffcc00;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(0, 255, 0, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+    }
+  </style>
 </body>
 </html>
