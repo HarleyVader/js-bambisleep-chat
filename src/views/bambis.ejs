@@ -3,207 +3,7 @@
 <head>
     <%- include('../views/partials/head.ejs') %>
     <title>BambiSleep Community Profiles</title>
-    <style>
-        .bambis-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-        
-        .profile-card {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            padding: 20px;
-        }
-        
-        .profile-card:hover {
-            transform: translateY(-10px) scale(1.03);
-            box-shadow: 0 0 25px var(--tertiary-color);
-        }
-        
-        .profile-card:hover .profile-avatar img {
-            transform: scale(1.1);
-        }
-        
-        .profile-card:hover::before {
-            opacity: 1;
-        }
-        
-        .profile-card::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--button-color), var(--tertiary-color), var(--nav-alt));
-            z-index: -1;
-            opacity: 0.7;
-            transition: opacity 0.3s ease;
-            border-radius: 10px;
-            filter: blur(8px);
-        }
-        
-        .profile-avatar {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            overflow: hidden;
-            margin: 0 auto 1rem;
-            border: 3px solid var(--tertiary-color);
-            box-shadow: 0 0 15px var(--button-color);
-        }
-        
-        .profile-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-        
-        .profile-name {
-            text-align: center;
-            margin-bottom: 0.5rem;
-        }
-        
-        .profile-stats {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 1rem;
-        }
-        
-        .stat {
-            text-align: center;
-        }
-        
-        .profile-description {
-            font-style: italic;
-            color: var(--primary-alt);
-            text-align: center;
-            margin-bottom: 1rem;
-            padding: 0 1rem;
-            max-height: 60px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
-        
-        .create-profile-section {
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-        
-        #create-profile-form {
-            display: flex;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        
-        #bambiname-input {
-            flex: 1;
-            margin-right: 10px;
-        }
-        
-        .join-community-btn {
-            display: block;
-            margin: 20px auto;
-            padding: 12px 24px;
-            font-size: 1.2rem;
-            background-color: var(--tertiary-color);
-            color: var(--secondary-color);
-            border: 3px outset var(--secondary-color);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            animation: pulse 2s infinite;
-            text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
-        }
-        
-        .join-community-btn:hover {
-            transform: scale(1.05);
-            background-color: var(--secondary-color);
-            color: var(--tertiary-color);
-            border: 3px inset var(--tertiary-color);
-        }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(204, 1, 116, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(204, 1, 116, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(204, 1, 116, 0); }
-        }
-        
-        .heart-button {
-            background-color: transparent;
-            border: none;
-            color: var(--button-color);
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-            animation: none;
-        }
-        
-        .heart-button:hover {
-            transform: scale(1.2);
-        }
-        
-        .heart-button.active {
-            color: var(--tertiary-color);
-            animation: heartbeat 1s infinite;
-        }
-        
-        @keyframes heartbeat {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-        }
-        
-        /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-        }
-        
-        .modal-content {
-            background-color: var(--primary-color);
-            margin: 15% auto;
-            padding: 20px;
-            border: 3px ridge var(--tertiary-color);
-            border-radius: 8px;
-            width: 80%;
-            max-width: 500px;
-            box-shadow: 0 0 25px var(--button-color);
-            text-align: center;
-        }
-        
-        .modal-buttons {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 20px;
-        }
-        
-        .close {
-            color: var(--tertiary-color);
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        .close:hover {
-            color: var(--button-color);
-        }
-    </style>
+    <%- include('../views/partials/bambi-styles.ejs') %> 
 </head>
 <body>
     <%- include('../views/partials/nav.ejs') %>
@@ -239,37 +39,7 @@
         <div class="bambis-grid">
             <% if (bambis && bambis.length > 0) { %>
                 <% bambis.forEach(bambi => { %>
-                    <div class="profile-card" style="background-color: <%= bambi.profileTheme?.primaryColor || 'var(--transparent)' %>;" data-username="<%= bambi.username %>">
-                        <div class="profile-avatar">
-                            <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>">
-                        </div>
-                        <h3 class="profile-name" style="color: <%= bambi.profileTheme?.textColor || 'var(--button-color)' %>">
-                            <%= bambi.displayName || bambi.username %>
-                        </h3>
-                        <div class="profile-stats">
-                            <div class="stat">
-                                <div class="stat-value">LVL <%= bambi.level %></div>
-                                <div class="stat-label">Level</div>
-                            </div>
-                            <div class="stat heart-stat" data-username="<%= bambi.username %>">
-                                <button class="heart-button <% if (bambi.userHasLiked) { %>active<% } %>" data-username="<%= bambi.username %>">
-                                    ❤️
-                                </button>
-                                <div class="stat-value heart-count"><%= bambi.hearts.count %></div>
-                                <div class="stat-label">Hearts</div>
-                            </div>
-                            <div class="stat">
-                                <div class="stat-value"><%= bambi.followers.length %></div>
-                                <div class="stat-label">Followers</div>
-                            </div>
-                        </div>
-                        <div class="profile-description" style="color: <%= bambi.profileTheme?.textColor || 'var(--primary-alt)' %>">
-                            <%= bambi.description || 'A mysterious Bambi...' %>
-                        </div>
-                        <div class="text-center">
-                            <a href="/bambis/<%= bambi.username %>" class="btn">View Profile</a>
-                        </div>
-                    </div>
+                    <%- include('../views/partials/profile-card', { bambi: bambi }) %>
                 <% }); %>
             <% } else { %>
                 <div class="no-profiles-message">
@@ -282,11 +52,9 @@
     <%- include('../views/partials/footer.ejs') %>
     
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/socket-client.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Connect to Socket.io
-            const socket = io();
-            
             // Modal elements
             const modal = document.getElementById('profile-modal');
             const joinBtn = document.getElementById('join-community-btn');
@@ -345,9 +113,8 @@
                 }
                 
                 try {
-                    // Check if profile exists
-                    const response = await fetch(`/bambis/api/check-profile/${encodeURIComponent(bambiname)}`);
-                    const data = await response.json();
+                    // Check if profile exists using our socket client
+                    const data = await bambiSocket.checkProfile(bambiname);
                     
                     if (data.exists) {
                         // Profile exists - set cookie and redirect to login.ejs
@@ -366,35 +133,31 @@
                 }
             });
             
-            // Heart functionality
-            document.querySelectorAll('.heart-button').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    const username = this.dataset.username;
-                    
-                    // Emit heart/unheart action via socket instead of fetch
-                    socket.emit('profile:heart', {
-                        username: username,  // Add this missing username
-                        action: this.classList.contains('active') ? 'unheart' : 'heart'
-                    });
+            // Heart functionality using event delegation
+            document.querySelector('.bambis-grid').addEventListener('click', function(e) {
+                // Find closest heart button if it was clicked or a child of it
+                const heartButton = e.target.closest('.heart-button');
+                if (!heartButton) return;
+                
+                e.preventDefault();
+                const username = heartButton.dataset.username;
+                const isActive = heartButton.classList.contains('active');
+                
+                // Use our unified socket client
+                bambiSocket.toggleHeart(username, isActive);
+            });
+            
+            // Register socket event handlers
+            bambiSocket
+                .on('profile:hearted', data => {
+                    updateHeartUI(data.username, data.count, data.hearted);
+                })
+                .on('profile:created', data => {
+                    addProfileCard(data.bambi);
+                })
+                .on('profile:updated', data => {
+                    updateProfileCard(data.username, data.bambi);
                 });
-            });
-            
-            // Listen for real-time updates
-            socket.on('profile:hearted', data => {
-                updateHeartUI(data.username, data.count, data.hearted);
-            });
-            
-            socket.on('profile:created', data => {
-                // Add the new profile card to the grid without page reload
-                addProfileCard(data.bambi);
-            });
-            
-            socket.on('profile:updated', data => {
-                // Find and update the profile card if it exists on this page
-                updateProfileCard(data.username, data.bambi);
-            });
             
             // Function to update heart UI
             function updateHeartUI(username, count, hearted) {
@@ -424,61 +187,55 @@
                     noProfilesMsg.remove();
                 }
                 
-                // Create new profile card
-                const profileCard = document.createElement('div');
-                profileCard.className = 'profile-card';
-                profileCard.setAttribute('data-username', bambi.username);
-                if (bambi.profileTheme?.primaryColor) {
-                    profileCard.style.backgroundColor = bambi.profileTheme.primaryColor;
-                }
+                // Create new profile card using template function
+                const templateHtml = createProfileCardHTML(bambi);
                 
-                // Fill in the profile card HTML
-                profileCard.innerHTML = `
-                    <div class="profile-avatar">
-                        <img src="${bambi.profilePictureUrl}" alt="${bambi.displayName || bambi.username}">
-                    </div>
-                    <h3 class="profile-name" style="color: ${bambi.profileTheme?.textColor || 'var(--button-color)'}">
-                        ${bambi.displayName || bambi.username}
-                    </h3>
-                    <div class="profile-stats">
-                        <div class="stat">
-                            <div class="stat-value">LVL ${bambi.level}</div>
-                            <div class="stat-label">Level</div>
-                        </div>
-                        <div class="stat heart-stat" data-username="${bambi.username}">
-                            <button class="heart-button" data-username="${bambi.username}">
-                                ❤️
-                            </button>
-                            <div class="stat-value heart-count">${bambi.hearts.count}</div>
-                            <div class="stat-label">Hearts</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-value">${bambi.followers.length}</div>
-                            <div class="stat-label">Followers</div>
-                        </div>
-                    </div>
-                    <div class="profile-description" style="color: ${bambi.profileTheme?.textColor || 'var(--primary-alt)'}">
-                        ${bambi.description || 'A mysterious Bambi...'}
-                    </div>
-                    <div class="text-center">
-                        <a href="/bambis/${bambi.username}" class="btn">View Profile</a>
-                    </div>
-                `;
+                // Create a temporary container
+                const tempContainer = document.createElement('div');
+                tempContainer.innerHTML = templateHtml;
+                
+                // Get the profile card from the container
+                const profileCard = tempContainer.firstElementChild;
                 
                 // Add the card to the grid
                 bambisGrid.appendChild(profileCard);
-                
-                // Add event listener to the new heart button
-                const heartButton = profileCard.querySelector('.heart-button');
-                if (heartButton) {
-                    heartButton.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        socket.emit('profile:heart', {
-                            username: this.dataset.username,
-                            action: this.classList.contains('active') ? 'unheart' : 'heart'
-                        });
-                    });
-                }
+            }
+            
+            // Function to create profile card HTML
+            function createProfileCardHTML(bambi) {
+                return `
+                    <div class="profile-card" style="background-color: ${bambi.profileTheme?.primaryColor || 'var(--transparent)'}" data-username="${bambi.username}">
+                        <div class="profile-avatar">
+                            <img src="${bambi.profilePictureUrl}" alt="${bambi.displayName || bambi.username}">
+                        </div>
+                        <h3 class="profile-name" style="color: ${bambi.profileTheme?.textColor || 'var(--button-color)'}">
+                            ${bambi.displayName || bambi.username}
+                        </h3>
+                        <div class="profile-stats">
+                            <div class="stat">
+                                <div class="stat-value">LVL ${bambi.level}</div>
+                                <div class="stat-label">Level</div>
+                            </div>
+                            <div class="stat heart-stat" data-username="${bambi.username}">
+                                <button class="heart-button" data-username="${bambi.username}">
+                                    ❤️
+                                </button>
+                                <div class="stat-value heart-count">${bambi.hearts.count}</div>
+                                <div class="stat-label">Hearts</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${bambi.followers.length}</div>
+                                <div class="stat-label">Followers</div>
+                            </div>
+                        </div>
+                        <div class="profile-description" style="color: ${bambi.profileTheme?.textColor || 'var(--primary-alt)'}">
+                            ${bambi.description || 'A mysterious Bambi...'}
+                        </div>
+                        <div class="text-center">
+                            <a href="/bambis/${bambi.username}" class="btn">View Profile</a>
+                        </div>
+                    </div>
+                `;
             }
             
             // Function to update an existing profile card
@@ -507,8 +264,6 @@
                     level.textContent = `LVL ${bambi.level}`;
                 }
                 
-                // Update hearts (already handled by updateHeartUI)
-                
                 // Update followers
                 const followers = profileCard.querySelector('.stat:last-child .stat-value');
                 if (followers) {
@@ -533,4 +288,3 @@
     </script>
 </body>
 </html>
-``` 
