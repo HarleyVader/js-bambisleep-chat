@@ -1,16 +1,24 @@
+import logger from '../../../src/utils/logger.js';
+
 export const userContextMiddleware = (req, res, next) => {
-  // Extract username from cookie or session
-  const username = req.session?.user?.username || 
-                  decodeURIComponent(req.cookies['bambiname'] || '');
-  
-  // Attach to a shared context object
-  req.bambiContext = {
-    username,
-    isAuthenticated: username && username !== 'anonBambi'
-  };
-  
-  // Make available to views
-  res.locals.bambiContext = req.bambiContext;
-  
-  next();
+  try {
+    // Extract username from cookie or session
+    const username = req.cookies && req.cookies.bambiname 
+      ? decodeURIComponent(req.cookies.bambiname) 
+      : null;
+    
+    // Attach to a shared context object
+    req.bambiContext = {
+      username,
+      isAuthenticated: !!username && username !== 'anonBambi'
+    };
+    
+    // Make available to views
+    res.locals.bambiContext = req.bambiContext;
+    
+    next();
+  } catch (error) {
+    logger.error(`Error in userContext middleware: ${error.message}`);
+    next();
+  }
 };

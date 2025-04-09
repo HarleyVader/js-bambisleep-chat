@@ -4,8 +4,8 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import Logger from '../utils/logger.js';
-import connectToMongoDB from '../utils/dbConnection.js';
+import Logger from '../../../src/utils/logger.js';
+import { connectToMongoDB } from '../../../src/utils/dbConnection.js';
 import mongoose from 'mongoose';
 
 // Create ESM equivalent of __dirname

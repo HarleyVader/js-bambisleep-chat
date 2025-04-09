@@ -1,5 +1,6 @@
 import express from 'express';
 import eventBus from '../utils/eventBus.js';
+import EVENTS from '../config/events.js';
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.post('/update-profile', async (req, res) => {
     console.log(`Profile update requested for ${username}`);
     
     // Emit event for state synchronization
-    eventBus.emit('profile:updated', { 
+    eventBus.emit(EVENTS.PROFILE_UPDATED, { 
       username, 
       profile: profileData 
     });

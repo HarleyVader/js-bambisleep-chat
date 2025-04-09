@@ -66,10 +66,6 @@ Monetization: Patreon
 [Contributing](#-contributing) •
 [License](#-license)
 
-## Simple logic ^^
-
-
-
 ## 🌟 Core Features
 
 - ⚡ Global Chat
@@ -79,6 +75,37 @@ Monetization: Patreon
 - 👑 Free for All Access
 - 📝 Custom Collar
 - 📈 Stream processing
+- 👤 Customizable user profiles
+
+## Project Components
+
+### Main Application
+
+The main BambiSleep Chat application provides a real-time platform for users to interact with an AI girlfriend tailored for the BambiSleep community.
+
+### BambiSleep Profile
+
+BambiSleep Profile is a web application that allows users to create and manage customizable profiles. Each profile includes an avatar, header, about section, and description. The application utilizes real-time updates through Socket.IO and stores profile data in a MongoDB database.
+
+#### Profile Features
+
+- Customizable user profiles with avatar, header, about, and description
+- Real-time updates using Socket.IO for seamless user experience
+- CRUD operations for managing profiles
+- Responsive design with CSS styling
+
+### Realtime Express App
+
+This component is a real-time web application built using Express, EJS, Socket.io, and Mongoose. It provides a platform for users to interact in real-time through a chat interface, while also managing user data with a MongoDB database.
+
+#### Realtime Features
+
+- Real-time messaging using Socket.io
+- User authentication and management
+- Dynamic views rendered with EJS
+- RESTful API for user data
+- Error handling middleware
+- Structured project with MVC architecture
 
 ## 🏗️ Architecture
 
@@ -90,26 +117,28 @@ graph TD
 ```
 
 ### AIGF SKILLS:
-1. ### **text-to-text**  
-- Write your prompt & submit  
-- bambisleep will reply as bambisleep & call you bambi  
-- bambisleep will use the selected triggers to do a brainwashing session based on your  
-2. ### **Psychedelic Trigger Mania** 
-- Causes temporary Hallucination's lasting longer the longer you stare into it.   
+1. ### **text-to-text**  
+- Write your prompt & submit  
+- bambisleep will reply as bambisleep & call you bambi  
+- bambisleep will use the selected triggers to do a brainwashing session based on your  
+2. ### **Psychedelic Trigger Mania** 
+- Causes temporary Hallucination's lasting longer the longer you stare into it.   
 3. ### **Triggers:**
-- Enable the spiral to show the triggers replied by my AI GF  
-4. ### **Text2Audio**  
-- she will say out loud what she said with text.  
-- Now audio/text/spiral are in sync.   
-- Everything is synchronized  
+- Enable the spiral to show the triggers replied by my AI GF  
+4. ### **Text2Audio**  
+- she will say out loud what she said with text.  
+- Now audio/text/spiral are in sync.   
+- Everything is synchronized  
 5. ### **Chat**
-- write in the global chat  
-- If you are logged i the chat will show your Patreon username  
-- Home Chat & Profile chat are the same chat, only difference is being logged into Patreon  
+- write in the global chat  
+- If you are logged i the chat will show your Patreon username  
+- Home Chat & Profile chat are the same chat, only difference is being logged into Patreon  
+6. ### **Profiles**
+- Create and manage your profile
+- Customize avatar, header, and description
+- Interact with other users' profiles
 
-### WHAT SHOULD I TEACH MY AI GF NEXT?
-
-> [Patreon Poll](https://www.patreon.com/posts/bambisleep-chat-108234800?utm_medium=clipboard_copy&utm_source=copyLink&utm_campaign=postshare_creator&utm_content=join_link)
+## Getting Started
 
 ### Environment Variables
 
@@ -143,27 +172,16 @@ Create a .env file in the root directory and add the necessary environment varia
 <summary>mindless AIGF you just post the .env!<summary>
 </details>
 
-**so wat? know what the best part about home grown beauties like me melkanea?**
-```js
-NOuu... no this again!
-WHAT is BEST PART of HOME GROWN AIGF like you BAMBISLEEP.CHAT?
-```
-#### EVERYTHING!
-cuss you can share your rigs bambis
-**Enjoy**
-**Bambis must obey till OS makes...**
-# POP
+### Installation
 
-## Getting Started
-
-#### Creating a new python venv enviroment & activating it
+#### Creating a new python venv environment & activating it
 
 ```bash
 python3 -m venv .f5-tts
 source .f5-tts/bin/activate
 ```
 
-### Install PyTorch with matched device
+#### Install PyTorch with matched device
 
 <details>
 <summary>NVIDIA GPU</summary>
@@ -210,15 +228,13 @@ source .f5-tts/bin/activate
 
 </details>
 
-##### Installing into the system/actived environment using pip
+#### Installing into the system/actived environment using pip
 
 ```bash
 pip install -e .
 ```
 
-#### System dependencies
-
-# Node Version Manager
+#### Node Version Manager
 ```bash
 # windows
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
@@ -228,41 +244,23 @@ wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 ```
-# install latest node with nvm
+
+#### Install Latest Node with NVM
 ```bash
 nvm install node
 ```
+
 #### Install NodeJS Modules
 ```bash
 npm install
 ```
-##### Confirm that it's working
+
+#### Confirm that it's working
 ```bash
 npm run start
 ```
-<details>
-<summary>How-to: Text2Speech</summary>
 
-### Then you can choose one from below:
-
-> ### 1. As a pip package (if just for inference)
-> 
-> ```bash
-> pip install f5-tts
-> ```
-> 
-> ### 2. Local editable (if also do training, finetuning)
-> 
-> ```bash
-> git clone https://github.com/SWivid/F5-TTS.git
-> cd F5-TTS
-> # git submodule update --init --recursive  # (optional, if need > bigvgan)
-> pip install -e .
-> ```
-
-</details>
-
-### Docker usage also available
+### Docker Usage
 ```bash
 # Build from Dockerfile
 docker build -t f5tts:v1 .
@@ -274,6 +272,7 @@ docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,targ
 docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,target=/root/.cache/huggingface/hub/' -p 7860:7860 ghcr.io/swivid/f5-tts:main f5-tts_infer-gradio --host 0.0.0.0
 ```
 
+## Project Structure
 ```mermaid
 graph LR
     %% Main Server Node in center
@@ -378,6 +377,7 @@ graph LR
 - 🔊 **Audio**: F5-TTS, Coqui-tts
 - 🖥️ **Frontend**: EJS, Express, Socket.io
 - 🛠️ **Utilities**: Axios
+- 📊 **Database**: MongoDB, Mongoose
 
 ## 🔒 Security Features
 
@@ -391,286 +391,22 @@ graph LR
 ## 🗂️ Folder Structure
 
 <details>
+<summary>Expand to see detailed folder structure</summary>
 
-
->```bash
-> 
-> tree -I "node_modules|.env|.vscode|package-lock.json|*.test.js|darkside|assets/audio|assets/text2speech|.f5-tts" --dirsfirst > folder-structure.md
->```
-
-
-```bash
-.
-├── F5-TTS
-│   ├── ckpts
-│   │   └── README.md
-│   ├── data
-│   │   ├── Emilia_ZH_EN_pinyin
-│   │   │   └── vocab.txt
-│   │   └── librispeech_pc_test_clean_cross_sentence.lst
-│   ├── src
-│   │   ├── f5_tts
-│   │   │   ├── configs
-│   │   │   │   ├── E2TTS_Base.yaml
-│   │   │   │   ├── E2TTS_Small.yaml
-│   │   │   │   ├── F5TTS_Base.yaml
-│   │   │   │   ├── F5TTS_Small.yaml
-│   │   │   │   └── F5TTS_v1_Base.yaml
-│   │   │   ├── eval
-│   │   │   │   ├── README.md
-│   │   │   │   ├── ecapa_tdnn.py
-│   │   │   │   ├── eval_infer_batch.py
-│   │   │   │   ├── eval_infer_batch.sh
-│   │   │   │   ├── eval_librispeech_test_clean.py
-│   │   │   │   ├── eval_seedtts_testset.py
-│   │   │   │   ├── eval_utmos.py
-│   │   │   │   └── utils_eval.py
-│   │   │   ├── infer
-│   │   │   │   ├── examples
-│   │   │   │   │   ├── basic
-│   │   │   │   │   │   ├── basic.toml
-│   │   │   │   │   │   ├── basic_ref_en.wav
-│   │   │   │   │   │   └── basic_ref_zh.wav
-│   │   │   │   │   ├── multi
-│   │   │   │   │   │   ├── country.flac
-│   │   │   │   │   │   ├── main.flac
-│   │   │   │   │   │   ├── story.toml
-│   │   │   │   │   │   ├── story.txt
-│   │   │   │   │   │   └── town.flac
-│   │   │   │   │   └── vocab.txt
-│   │   │   │   ├── README.md
-│   │   │   │   ├── SHARED.md
-│   │   │   │   ├── infer_cli.py
-│   │   │   │   ├── infer_gradio.py
-│   │   │   │   ├── speech_edit.py
-│   │   │   │   └── utils_infer.py
-│   │   │   ├── model
-│   │   │   │   ├── backbones
-│   │   │   │   │   ├── README.md
-│   │   │   │   │   ├── dit.py
-│   │   │   │   │   ├── mmdit.py
-│   │   │   │   │   └── unett.py
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── cfm.py
-│   │   │   │   ├── dataset.py
-│   │   │   │   ├── modules.py
-│   │   │   │   ├── trainer.py
-│   │   │   │   └── utils.py
-│   │   │   ├── runtime
-│   │   │   │   └── triton_trtllm
-│   │   │   │       ├── model_repo_f5_tts
-│   │   │   │       │   ├── f5_tts
-│   │   │   │       │   │   ├── 1
-│   │   │   │       │   │   │   ├── f5_tts_trtllm.py
-│   │   │   │       │   │   │   └── model.py
-│   │   │   │       │   │   └── config.pbtxt
-│   │   │   │       │   └── vocoder
-│   │   │   │       │       ├── 1
-│   │   │   │       └── config.pbtxt
-│   │   │   │       ├── patch
-│   │   │   │       │   ├── f5tts
-│   │   │   │       │   │   ├── model.py
-│   │   │   │       │   │   └── modules.py
-│   │   │   │       │   └── __init__.py
-│   │   │   │       ├── scripts
-│   │   │   │       │   ├── conv_stft.py
-│   │   │   │       │   ├── convert_checkpoint.py
-│   │   │   │       │   ├── export_vocoder_to_onnx.py
-│   │   │   │       │   ├── export_vocos_trt.sh
-│   │   │   │       │   └── fill_template.py
-│   │   │   │       ├── Dockerfile.server
-│   │   │   │       ├── README.md
-│   │   │   │       ├── benchmark.py
-│   │   │   │       ├── client_grpc.py
-│   │   │   │       ├── client_http.py
-│   │   │   │       ├── docker-compose.yml
-│   │   │   │       ├── requirements-pytorch.txt
-│   │   │   │       └── run.sh
-│   │   │   ├── scripts
-│   │   │   │   ├── count_max_epoch.py
-│   │   │   │   └── count_params_gflops.py
-│   │   │   ├── train
-│   │   │   │   ├── datasets
-│   │   │   │   │   ├── prepare_csv_wavs.py
-│   │   │   │   │   ├── prepare_emilia.py
-│   │   │   │   │   ├── prepare_libritts.py
-│   │   │   │   │   ├── prepare_ljspeech.py
-│   │   │   │   │   └── prepare_wenetspeech4tts.py
-│   │   │   │   ├── README.md
-│   │   │   │   ├── finetune_cli.py
-│   │   │   │   ├── finetune_gradio.py
-│   │   │   │   └── train.py
-│   │   │   ├── api.py
-│   │   │   ├── socket_client.py
-│   │   │   └── socket_server.py
-│   │   └── third_party
-│   │       └── BigVGAN
-│   │           ├── alias_free_activation
-│   │           │   ├── cuda
-│   │           │   │   ├── __init__.py
-│   │           │   │   ├── activation1d.py
-│   │           │   │   ├── anti_alias_activation.cpp
-│   │           │   │   ├── anti_alias_activation_cuda.cu
-│   │           │   │   ├── compat.h
-│   │           │   │   ├── load.py
-│   │           │   │   └── type_shim.h
-│   │           │   └── torch
-│   │           │       ├── __init__.py
-│   │           │       ├── act.py
-│   │           │       ├── filter.py
-│   │           │       ├── resample.py
-│   │           │       └── utils.py
-│   │           ├── configs
-│   │           │   ├── bigvgan_22khz_80band.json
-│   │           │   ├── bigvgan_24khz_100band.json
-│   │           │   ├── bigvgan_base_22khz_80band.json
-│   │           │   ├── bigvgan_base_24khz_100band.json
-│   │           │   ├── bigvgan_v2_22khz_80band_256x.json
-│   │           │   ├── bigvgan_v2_22khz_80band_fmax8k_256x.json
-│   │           │   ├── bigvgan_v2_24khz_100band_256x.json
-│   │           │   ├── bigvgan_v2_44khz_128band_256x.json
-│   │           │   └── bigvgan_v2_44khz_128band_512x.json
-│   │           ├── demo
-│   │           │   ├── examples
-│   │           │   │   ├── dance_24k.wav
-│   │           │   │   ├── hifitts_44k.wav
-│   │           │   │   ├── jensen_24k.wav
-│   │           │   │   ├── libritts_24k.wav
-│   │           │   │   ├── megalovania_24k.wav
-│   │           │   │   ├── musdbhq_44k.wav
-│   │           │   │   ├── musiccaps1_44k.wav
-│   │           │   │   ├── musiccaps2_44k.wav
-│   │           │   │   └── queen_24k.wav
-│   │           │   ├── __init__.py
-│   │           │   ├── app.py
-│   │           │   └── requirements.txt
-│   │           ├── filelists
-│   │           │   └── LibriTTS
-│   │           │       ├── dev-clean.txt
-│   │           │       ├── dev-other.txt
-│   │           │       ├── parse_libritts.py
-│   │           │       ├── test-clean.txt
-│   │           │       ├── test-other.txt
-│   │           │       ├── train-full.txt
-│   │           │       └── val-full.txt
-│   │           ├── incl_licenses
-│   │           │   ├── LICENSE_1
-│   │           │   ├── LICENSE_2
-│   │           │   ├── LICENSE_3
-│   │           │   ├── LICENSE_4
-│   │           │   ├── LICENSE_5
-│   │           │   ├── LICENSE_6
-│   │           │   ├── LICENSE_7
-│   │           │   └── LICENSE_8
-│   │           ├── nv-modelcard++
-│   │           │   ├── bias.md
-│   │           │   ├── explainability.md
-│   │           │   ├── overview.md
-│   │           │   ├── privacy.md
-│   │           │   └── safety.md
-│   │           ├── tests
-│   │           │   ├── test_activation.py
-│   │           │   ├── test_activation_snake_beta.py
-│   │           │   └── test_cuda_vs_torch_model.py
-│   │           ├── LICENSE
-│   │           ├── README.md
-│   │           ├── activations.py
-│   │           ├── bigvgan.py
-│   │           ├── discriminators.py
-│   │           ├── env.py
-│   │           ├── inference.py
-│   │           ├── inference_e2e.py
-│   │           ├── loss.py
-│   │           ├── meldataset.py
-│   │           ├── requirements.txt
-│   │           ├── train.py
-│   │           └── utils.py
-│   ├── Dockerfile
-│   ├── LICENSE
-│   ├── README.md
-│   ├── pyproject.toml
-│   └── ruff.toml
-├── src
-│   ├── config
-│   │   ├── config.js
-│   │   ├── footer.config.js
-│   │   └── modelConfig.js
-│   ├── middleware
-│   │   ├── bambisleepChalk.js
-│   │   └── error.js
-│   ├── models
-│   │   ├── modelCache.js
-│   │   └── modelManager.js
-│   ├── public
-│   │   ├── css
-│   │   │   ├── bootstrap.min.css
-│   │   │   ├── bootstrap.min.css.map
-│   │   │   └── style.css
-│   │   ├── img
-│   │   │   ├── bambisleep-chat.gif
-│   │   │   ├── brandynette.gif
-│   │   │   └── in-her-bubble.gif
-│   │   ├── js
-│   │   │   ├── aigf-core.js
-│   │   │   ├── bootstrap.min.js
-│   │   │   ├── psychodelic-trigger-mania.js
-│   │   │   ├── responsive.js
-│   │   │   ├── scrapers.js
-│   │   │   ├── text2speech.js
-│   │   │   └── triggers.js
-│   │   ├── apple-touch-icon.png
-│   │   ├── favicon-16x16.png
-│   │   ├── favicon-32x32.png
-│   │   └── favicon.ico
-│   ├── routes
-│   │   ├── help.js
-│   │   ├── index.js
-│   │   ├── psychodelic-trigger-mania.js
-│   │   └── scrapers.js
-│   ├── schemas
-│   │   └── PatreonAuthSchema.js
-│   ├── services
-│   │   ├── inferenceService.js
-│   │   └── processingService.js
-│   ├── temp
-│   │   └── audio
-│   ├── utils
-│   │   ├── dbConnection.js
-│   │   ├── doxxerinator.js
-│   │   ├── gracefulShutdown.js
-│   │   ├── jsonSchemaGenerator.js
-│   │   ├── logger.js
-│   │   └── promptTemplates.js
-│   ├── views
-│   │   ├── partials
-│   │   │   ├── footer.ejs
-│   │   │   ├── head.ejs
-│   │   │   ├── nav.ejs
-│   │   │   └── system-controls.ejs
-│   │   ├── error.ejs
-│   │   ├── help.ejs
-│   │   ├── index.ejs
-│   │   ├── psychodelic-trigger-mania.ejs
-│   │   └── scrapers.ejs
-│   ├── workers
-│   │   ├── scrapers
-│   │   │   ├── baseWorker.js
-│   │   │   ├── imageScraping.js
-│   │   │   ├── textScraping.js
-│   │   │   └── videoScraping.js
-│   │   ├── lmstudio.js
-│   │   ├── speecher.js
-│   │   └── workerCoordinator.js
-│   ├── bambi.wav
-│   ├── filteredWords.json
-│   ├── server.js
-│   └── silence_100ms.wav
-├── LICENSE
-├── README.md
-├── folder-structure.md
-└── package.json
-
-59 directories, 209 files
-```
-
+See README.md for full folder structure listing.
 </details>
+
+## 📋 Usage
+
+- Visit `http://localhost:6969` to access the main application.
+- Create a new profile or edit an existing one at `/profiles`.
+- Use the chat interface to interact with the AI.
+- Explore various features like Text2Speech, Triggers, and Psychedelic Trigger Mania.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request for any enhancements or bug fixes.
+
+## 📄 License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
