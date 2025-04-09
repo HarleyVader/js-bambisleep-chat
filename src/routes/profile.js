@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
       footer: {
         logo: {
           url: "https://brandynette.xxx/",
-          image: "/gif/brandynette.gif",
+          image: "/gif/default-avatar.gif",
           alt: "Brandynette.xxx"
         },
         tagline: "Connect with other Bambis and explore the forest together"
@@ -48,7 +48,7 @@ router.get('/new', (req, res) => {
     footer: {
       logo: {
         url: "https://brandynette.xxx/",
-        image: "/gif/brandynette.gif",
+        image: "/gif/default-avatar.gif",
         alt: "Brandynette.xxx"
       },
       tagline: "Create your bambi profile and join the community"
@@ -71,7 +71,7 @@ router.post('/new', async (req, res) => {
         footer: {
           logo: {
             url: "https://brandynette.xxx/",
-            image: "/gif/brandynette.gif",
+            image: "/gif/default-avatar.gif",
             alt: "Brandynette.xxx"
           },
           tagline: "Create your bambi profile and join the community"
@@ -106,7 +106,7 @@ router.post('/new', async (req, res) => {
       footer: {
         logo: {
           url: "https://brandynette.xxx/",
-          image: "/gif/brandynette.gif",
+          image: "/gif/default-avatar.gif",
           alt: "Brandynette.xxx"
         },
         tagline: "Create your bambi profile and join the community"
@@ -141,7 +141,7 @@ router.get('/:username', async (req, res) => {
       footer: {
         logo: {
           url: "https://brandynette.xxx/",
-          image: "/gif/brandynette.gif",
+          image: "/gif/default-avatar.gif",
           alt: "Brandynette.xxx"
         },
         tagline: "Exploring the bambi community"
@@ -187,7 +187,7 @@ router.get('/edit/:username', async (req, res) => {
       footer: {
         logo: {
           url: "https://brandynette.xxx/",
-          image: "/gif/brandynette.gif",
+          image: "/gif/default-avatar.gif",
           alt: "Brandynette.xxx"
         },
         tagline: "Edit your bambi profile"

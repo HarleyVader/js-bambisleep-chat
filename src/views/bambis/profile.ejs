@@ -1,124 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('./partials/head', { title: `${profile.displayName || profile.username}'s Profile` }) %>
+<% layout('./layouts/main') -%>
+<% block('title', 'BambiSleep Community') -%>
 
-<body data-username="<%= profile.username %>">
-  <%- include('./partials/nav') %>
+<div class="page-header">
+  <h1>BambiSleep Community</h1>
+  <!-- rest of your content... -->
+</div>
 
-  <div class="container">
-    <div class="profile-container">
-      <!-- User identity section with integrated header and neonwave styling -->
-      <div class="profile-identity-section neonwave">
-        <!-- Header image moved inside identity section -->
-        <div class="profile-header-image" style="background-image: url('<%= profile.headerImage || "/gif/default-header.gif" %>'); background-color: <%= profile.headerColor %>;">
+<%- include('../layouts/main', { title: `${profile.displayName || profile.username}'s Profile`, body: `
+  <div class="profile-container" data-username="${profile.username}">
+    <!-- User identity section with integrated header and neonwave styling -->
+    <div class="profile-identity-section neonwave">
+      <!-- Header image moved inside identity section -->
+      <div class="profile-header-image" style="background-image: url('${profile.headerImage || "/gif/default-header.gif"}'); background-color: ${profile.headerColor};">
+      </div>
+      
+      <!-- Profile content container that includes avatar and info -->
+      <div class="profile-info-container">
+        <div class="avatar-container">
+          <img src="${profile.avatar || '/gif/default-avatar.gif'}" alt="${profile.displayName || profile.username}" class="profile-avatar neon-glow">
+          <div class="avatar-neon-ring"></div>
         </div>
         
-        <!-- Profile content container that includes avatar and info -->
-        <div class="profile-info-container">
-          <div class="avatar-container">
-            <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>" class="profile-avatar neon-glow">
-            <div class="avatar-neon-ring"></div>
-          </div>
-          
-          <div class="profile-info">
-            <div class="profile-header-flex">
-              <h1 class="profile-username neon-text">
-                <%= profile.displayName || profile.username %>
-              </h1>
-              
-              <div class="user-stats-container">
-                <div class="user-stat">
-                  <div class="stat-icon level-icon">⭐</div>
-                  <div class="stat-value"><%= profile.level || '1' %></div>
-                  <div class="stat-label">Level</div>
-                </div>
-                <div class="user-stat">
-                  <div class="stat-icon hearts-icon">❤️</div>
-                  <div class="stat-value"><%= profile.hearts || '0' %></div>
-                  <div class="stat-label">Hearts</div>
-                </div>
-                <div class="user-stat">
-                  <div class="stat-icon scrapes-icon">🔄</div>
-                  <div class="stat-value"><%= profile.scrapes || '0' %></div>
-                  <div class="stat-label">Scrapes</div>
-                </div>
-                <div class="user-stat">
-                  <div class="stat-icon controls-icon">⚙️</div>
-                  <div class="stat-value"><%= profile.controls || '0' %></div>
-                  <div class="stat-label">Controls</div>
-                </div>
-              </div>
-            </div>
+        <div class="profile-info">
+          <div class="profile-header-flex">
+            <h1 class="profile-username neon-text">
+              ${profile.displayName || profile.username}
+            </h1>
             
-            <div class="profile-about clickable-links neon-text-subtle">
-              <%- profile.about.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>') %>
-            </div>
-
-            <div class="profile-description-container cyber-panel">
-              <h2 class="neon-heading">Description</h2>
-              <div class="profile-description cyber-text">
-                <%= profile.description %>
+            <div class="user-stats-container">
+              <div class="user-stat">
+                <div class="stat-icon level-icon">⭐</div>
+                <div class="stat-value">${profile.level || '1'}</div>
+                <div class="stat-label">Level</div>
+              </div>
+              <div class="user-stat">
+                <div class="stat-icon hearts-icon">❤️</div>
+                <div class="stat-value">${profile.hearts || '0'}</div>
+                <div class="stat-label">Hearts</div>
+              </div>
+              <div class="user-stat">
+                <div class="stat-icon scrapes-icon">🔄</div>
+                <div class="stat-value">${profile.scrapes || '0'}</div>
+                <div class="stat-label">Scrapes</div>
+              </div>
+              <div class="user-stat">
+                <div class="stat-icon controls-icon">⚙️</div>
+                <div class="stat-value">${profile.controls || '0'}</div>
+                <div class="stat-label">Controls</div>
               </div>
             </div>
+          </div>
+          
+          <div class="profile-about clickable-links neon-text-subtle">
+            ${ profile.about.replace(/https?:\\/\\/[^\\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>') }
+          </div>
 
-            <% if (isOwnProfile) { %>
-            <div class="profile-actions">
-              <button id="edit-profile-btn" class="neon-button">Edit Profile</button>
-              <button id="delete-profile-btn" class="neon-button danger">Delete Profile</button>
+          <div class="profile-description-container cyber-panel">
+            <h2 class="neon-heading">Description</h2>
+            <div class="profile-description cyber-text">
+              ${ profile.description }
             </div>
-            <% } %>
+          </div>
+
+          ${ isOwnProfile ? `
+          <div class="profile-actions">
+            <button id="edit-profile-btn" class="neon-button">Edit Profile</button>
+            <button id="delete-profile-btn" class="neon-button danger">Delete Profile</button>
+          </div>
+          ` : '' }
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-content">
+      <!-- Triggers Section - First content section -->
+      <div class="profile-section">
+        <h2>Triggers</h2>
+
+        <div id="active-trigger-session" style="display: block;" class="trigger-session-info">
+          <!-- Session info will be populated by JavaScript -->
+        </div>
+
+        <div class="triggers-container">
+          <div class="profile-triggers">
+            <div class="trigger-item active">
+              <div class="trigger-header">
+                <h4>BAMBI SLEEP</h4>
+                <div class="trigger-controls">
+                  <label class="switch">
+                    <input type="checkbox" class="trigger-toggle" data-trigger="BAMBI SLEEP" checked>
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+              <p class="trigger-description">The foundational trigger for all bambi dolls</p>
+            </div>
+          </div>
+
+          <div class="add-trigger-container">
+            <h3>Add Trigger</h3>
+            <form class="trigger-form" id="add-trigger-form">
+              <div class="form-group">
+                <label for="trigger-name">Name</label>
+                <input type="text" id="trigger-name" name="name" required>
+              </div>
+              <div class="form-group">
+                <label for="trigger-description">Description</label>
+                <textarea id="trigger-description" name="description" rows="3"></textarea>
+              </div>
+              <button type="submit" class="add-trigger-btn">Add Trigger</button>
+            </form>
           </div>
         </div>
       </div>
 
-      <div class="profile-content">
-        <!-- Triggers Section - First content section -->
-        <div class="profile-section">
-          <h2>Triggers</h2>
-
-          <div id="active-trigger-session" style="display: block;" class="trigger-session-info">
-            <!-- Session info will be populated by JavaScript -->
-          </div>
-
-          <div class="triggers-container">
-            <div class="profile-triggers">
-              <div class="trigger-item active">
-                <div class="trigger-header">
-                  <h4>BAMBI SLEEP</h4>
-                  <div class="trigger-controls">
-                    <label class="switch">
-                      <input type="checkbox" class="trigger-toggle" data-trigger="BAMBI SLEEP" checked>
-                      <span class="slider round"></span>
-                    </label>
-                  </div>
-                </div>
-                <p class="trigger-description">The foundational trigger for all bambi dolls</p>
-              </div>
-            </div>
-
-            <div class="add-trigger-container">
-              <h3>Add Trigger</h3>
-              <form class="trigger-form" id="add-trigger-form">
-                <div class="form-group">
-                  <label for="trigger-name">Name</label>
-                  <input type="text" id="trigger-name" name="name" required>
-                </div>
-                <div class="form-group">
-                  <label for="trigger-description">Description</label>
-                  <textarea id="trigger-description" name="description" rows="3"></textarea>
-                </div>
-                <button type="submit" class="add-trigger-btn">Add Trigger</button>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <!-- Profile Settings only shown for profile owner -->
-        <% if (isOwnProfile) { %>
-          
-          
-        <% } %>
-      </div>
+      <!-- Profile Settings only shown for profile owner -->
+      ${ isOwnProfile ? `` : '' }
     </div>
   </div>
 
@@ -131,43 +130,43 @@
       </div>
       <div class="modal-body">
         <form id="edit-profile-form" class="profile-form">
-          <input type="hidden" name="username" value="<%= profile.username %>">
+          <input type="hidden" name="username" value="${profile.username}">
 
           <div class="input-container">
             <label for="displayName">Display Name</label>
-            <input type="text" id="displayName" name="displayName" value="<%= profile.displayName || profile.username %>" required>
+            <input type="text" id="displayName" name="displayName" value="${profile.displayName || profile.username}" required>
           </div>
 
           <div class="input-container">
             <label for="avatar">Avatar URL:</label>
-            <input type="text" id="avatar" name="avatar" value="<%= profile.avatar %>" placeholder="/gif/default-avatar.gif">
+            <input type="text" id="avatar" name="avatar" value="${profile.avatar}" placeholder="/gif/default-avatar.gif">
             <div class="preview">
-              <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="Avatar Preview" id="avatar-preview">
+              <img src="${profile.avatar || '/gif/default-avatar.gif'}" alt="Avatar Preview" id="avatar-preview">
             </div>
           </div>
 
           <div class="input-container">
             <label for="headerImage">Header Image URL:</label>
-            <input type="text" id="headerImage" name="headerImage" value="<%= profile.headerImage %>" placeholder="/gif/default-header.gif">
+            <input type="text" id="headerImage" name="headerImage" value="${profile.headerImage}" placeholder="/gif/default-header.gif">
             <div class="preview">
-              <img src="<%= profile.headerImage || '/gif/default-header.gif' %>" alt="Header Preview" id="header-preview" style="border-radius: 4px; max-width: 200px; height: auto;">
+              <img src="${profile.headerImage || '/gif/default-header.gif'}" alt="Header Preview" id="header-preview" style="border-radius: 4px; max-width: 200px; height: auto;">
             </div>
           </div>
 
           <div class="input-container">
             <label for="headerColor">Header Color</label>
-            <input type="color" id="headerColor" name="headerColor" value="<%= profile.headerColor || '#35424a' %>">
+            <input type="color" id="headerColor" name="headerColor" value="${profile.headerColor || '#35424a'}">
           </div>
 
           <div class="input-container">
             <label for="about">About (150 chars max):</label>
-            <textarea id="about" name="about" maxlength="150" placeholder="Brief intro (150 chars max)"><%= profile.about %></textarea>
+            <textarea id="about" name="about" maxlength="150" placeholder="Brief intro (150 chars max)">${profile.about}</textarea>
             <div class="char-counter"><span id="about-counter">0</span>/150</div>
           </div>
 
           <div class="input-container">
             <label for="description">Description (1500 chars max):</label>
-            <textarea id="description" name="description" maxlength="1500" rows="5" placeholder="Your full bambi journey (1500 chars max)"><%= profile.description %></textarea>
+            <textarea id="description" name="description" maxlength="1500" rows="5" placeholder="Your full bambi journey (1500 chars max)">${profile.description}</textarea>
             <div class="char-counter"><span id="description-counter">0</span>/1500</div>
           </div>
 
@@ -181,7 +180,7 @@
   </div>
 
   <div class="notification-area"></div>
-
+  ` }) %>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/trigger-client.js"></script>
 
@@ -395,7 +394,4 @@
       }
     });
   </script>
-
-  <%- include('./partials/footer') %>
-</body>
 </html>

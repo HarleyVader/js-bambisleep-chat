@@ -80,6 +80,10 @@ app.use('/images', express.static(path.join(__dirname, 'public/images')));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+const expressLayouts = require('express-ejs-layouts');
+app.use(expressLayouts);
+app.set('layout', './layouts/main');
+
 app.locals.footer = footerConfig;
 
 // Session middleware
@@ -228,6 +232,7 @@ app.get('/api/tts', async (req, res) => {
 // TTS helper function
 async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE) {
   try {
+    const startTime = Date.now();
     logger.info(`Fetching TTS from Kokoro: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
 
     const requestData = {
@@ -248,6 +253,12 @@ async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE) {
       responseType: 'arraybuffer',
       timeout: 30000
     });
+    
+    // Calculate duration and append it to the log when complete
+    const duration = Date.now() - startTime;
+    if (duration > 500) {
+      logger.info(`Fetching TTS from Kokoro completed in ${duration}ms`);
+    }
 
     return response;
   } catch (error) {

@@ -267,11 +267,8 @@ function handleWorkerMessage(socket, io, data) {
     if (!data) return;
     
     if (data.type === 'response') {
-      // Send AI response to client
-      socket.emit('llm:response', {
-        message: data.response,
-        timestamp: new Date().toISOString()
-      });
+      // Send AI response to client - Use the correct data field and event name
+      socket.emit('response', data.data);
       
       logger.success(`LLM response sent to ${socket.id}`);
     } else if (data.type === 'status') {

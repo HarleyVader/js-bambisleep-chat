@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BambiSleep Profiles</title>
-  <link rel="stylesheet" href="/css/styles.css">
-  <link rel="stylesheet" href="/css/bambis.css">
-</head>
-<body>
+  <%- include('../partials/head') -%>
+  <% layout('./layouts/main') -%>
+  <% block('title', '<%= bambi.displayName || bambi.username %>') -%>
+
+  <div class="page-header">
+    <h1><%= bambi.displayName || bambi.username %></h1>
+  </div>
+
   <%- include('../partials/nav.ejs') %>
 
   <div class="container">

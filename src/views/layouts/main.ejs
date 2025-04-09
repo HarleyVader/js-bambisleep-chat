@@ -1,21 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/css/style.css">
-</head>
+<%- include('../partials/head.ejs', { title: title || 'BambiSleep.Chat' }) %>
 <body>
-    <header>
-        <%- include('../partials/header.ejs') %>
-    </header>
-    <main>
+    <%- include('../partials/nav.ejs') %>
+    
+    <div class="container">
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="error-message">
+                <%= typeof errorMessage !== 'undefined' ? errorMessage : 'An error occurred' %>
+            </div>
+        <% } %>
+        
+        <!-- Main content from calling view -->
         <%- body %>
-    </main>
-    <footer>
-        <%- include('../partials/footer.ejs') %>
-    </footer>
-    <script src="/js/socket-client.js"></script>
+    </div>
+    
+    <%- include('../partials/footer.ejs') %>
+    
+    <!-- Common scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <% if (typeof scripts !== 'undefined' && scripts) { %>
+        <% scripts.forEach(function(script) { %>
+            <script src="<%= script %>"></script>
+        <% }); %>
+    <% } %>
+    
+    <!-- Add page-specific scripts -->
+    <% if (typeof pageScript !== 'undefined' && pageScript) { %>
+        <script src="<%= pageScript %>"></script>
+    <% } %>
 </body>
 </html>

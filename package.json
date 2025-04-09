@@ -44,6 +44,7 @@
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
+    "express-ejs-layouts": "^2.5.1",
     "express-fileupload": "^1.5.1",
     "express-session": "^1.17.3",
     "jsonwebtoken": "^9.0.2",

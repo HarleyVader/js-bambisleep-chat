@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('./partials/head', { title: 'Delete Profile' }) %>
-<body>
-  <%- include('./partials/nav') %>
-
-  <div class="container">
+<%- include('../layouts/main', { title: 'Delete Profile', body: `
     <div class="profile-container">
       <h1>Delete Your Profile</h1>
       
@@ -29,10 +25,10 @@
         <a href="/profile/<%= profile.username %>" class="cancel-btn">Cancel</a>
       </div>
     </div>
-  </div>
 
-  <div class="notification-area"></div>
-
+    <div class="notification-area"></div>
+  ` }) %>
+  
   <script>
     document.getElementById('delete-form').addEventListener('submit', function(e) {
       if (!confirm('Are you absolutely sure you want to delete your profile? This cannot be undone!')) {
@@ -40,7 +36,4 @@
       }
     });
   </script>
-
-  <%- include('./partials/footer') %>
-</body>
 </html>

@@ -22,6 +22,11 @@ router.get('/:username', (req, res) => {
   });
 });
 
+// Make sure your route is pointing to the correct view path
+router.get('/profiles/create', (req, res) => {
+  res.render('bambis/creation');
+});
+
 // This will be expanded with actual profile management 
 router.post('/update-profile', async (req, res) => {
   try {

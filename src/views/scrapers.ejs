@@ -1,248 +1,237 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <%- include('../views/partials/head.ejs') %>
-    <title>BambiSleep Content Scrapers</title>
-    <link rel="stylesheet" href="/css/scrapers.css">
-</head>
+<%- include('./layouts/main', { title: 'BambiSleep Content Scrapers', body: `
+    <header>
+        <h1>BambiSleep Content Scrapers</h1>
+        <p>Welcome, <span class="bambi-name"><%= bambiname %></span>! Submit URLs to scrape BambiSleep content.</p>
+        <p>Prototype to create a bambisleep content database for future model training.</p>
+        <div class="auto-delete-notice">
+            <i class="fas fa-exclamation-circle"></i> Submissions with 10 downvotes will be automatically deleted.
+        </div>
+    </header>
 
-<body>
-    <%- include('../views/partials/nav.ejs') %>
-    <div class="container">
-        <header>
-            <h1>BambiSleep Content Scrapers</h1>
-            <p>Welcome, <span class="bambi-name"><%= bambiname %></span>! Submit URLs to scrape BambiSleep content.</p>
-            <p>Prototype to create a bambisleep content database for future model training.</p>
-            <div class="auto-delete-notice">
-                <i class="fas fa-exclamation-circle"></i> Submissions with 10 downvotes will be automatically deleted.
+    <div class="stats-dashboard">
+        <div class="stats-section">
+            <h2>Scraper Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Successful Scrapes</div>
+                    <div class="stat-value successful"><%= stats.successful %></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Failed Scrapes</div>
+                    <div class="stat-value failed"><%= stats.failed %></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Blocked Scrapes</div>
+                    <div class="stat-value blocked"><%= stats.blocked %></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Upvotes</div>
+                    <div class="stat-value upvotes"><%= stats.totalUpvotes %></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Downvotes</div>
+                    <div class="stat-value downvotes"><%= stats.totalDownvotes %></div>
+                </div>
             </div>
-        </header>
-
-        <div class="stats-dashboard">
-            <div class="stats-section">
-                <h2>Scraper Statistics</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-title">Successful Scrapes</div>
-                        <div class="stat-value successful"><%= stats.successful %></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-title">Failed Scrapes</div>
-                        <div class="stat-value failed"><%= stats.failed %></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-title">Blocked Scrapes</div>
-                        <div class="stat-value blocked"><%= stats.blocked %></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-title">Total Upvotes</div>
-                        <div class="stat-value upvotes"><%= stats.totalUpvotes %></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-title">Total Downvotes</div>
-                        <div class="stat-value downvotes"><%= stats.totalDownvotes %></div>
-                    </div>
+        </div>
+        
+        <div class="top-submissions">
+            <div class="top-section">
+                <h3>Most Upvoted Submissions</h3>
+                <div class="top-list">
+                    <% if (stats.topUpvoted && stats.topUpvoted.length > 0) { %>
+                        <% stats.topUpvoted.forEach(submission => { %>
+                            <div class="top-item">
+                                <div class="top-url" title="<%= submission.url %>">
+                                    <%= submission.url.length > 50 ? submission.url.substring(0, 50) + '...' : submission.url %>
+                                </div>
+                                <div class="top-votes">
+                                    <i class="fas fa-thumbs-up"></i> <%= submission.upvotes %>
+                                </div>
+                                <a href="/scrapers?view=<%= submission._id %>&type=<%= submission.type %>" class="top-view-btn">View</a>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="no-data">No upvoted submissions yet</div>
+                    <% } %>
                 </div>
             </div>
             
-            <div class="top-submissions">
-                <div class="top-section">
-                    <h3>Most Upvoted Submissions</h3>
-                    <div class="top-list">
-                        <% if (stats.topUpvoted && stats.topUpvoted.length > 0) { %>
-                            <% stats.topUpvoted.forEach(submission => { %>
-                                <div class="top-item">
-                                    <div class="top-url" title="<%= submission.url %>">
-                                        <%= submission.url.length > 50 ? submission.url.substring(0, 50) + '...' : submission.url %>
-                                    </div>
-                                    <div class="top-votes">
-                                        <i class="fas fa-thumbs-up"></i> <%= submission.upvotes %>
-                                    </div>
-                                    <a href="/scrapers?view=<%= submission._id %>&type=<%= submission.type %>" class="top-view-btn">View</a>
+            <div class="top-section">
+                <h3>Most Downvoted Submissions</h3>
+                <div class="top-list">
+                    <% if (stats.topDownvoted && stats.topDownvoted.length > 0) { %>
+                        <% stats.topDownvoted.forEach(submission => { %>
+                            <div class="top-item">
+                                <div class="top-url" title="<%= submission.url %>">
+                                    <%= submission.url.length > 50 ? submission.url.substring(0, 50) + '...' : submission.url %>
                                 </div>
-                            <% }); %>
-                        <% } else { %>
-                            <div class="no-data">No upvoted submissions yet</div>
-                        <% } %>
-                    </div>
-                </div>
-                
-                <div class="top-section">
-                    <h3>Most Downvoted Submissions</h3>
-                    <div class="top-list">
-                        <% if (stats.topDownvoted && stats.topDownvoted.length > 0) { %>
-                            <% stats.topDownvoted.forEach(submission => { %>
-                                <div class="top-item">
-                                    <div class="top-url" title="<%= submission.url %>">
-                                        <%= submission.url.length > 50 ? submission.url.substring(0, 50) + '...' : submission.url %>
-                                    </div>
-                                    <div class="top-votes">
-                                        <i class="fas fa-thumbs-down"></i> <%= submission.downvotes %>
-                                    </div>
-                                    <a href="/scrapers?view=<%= submission._id %>&type=<%= submission.type %>" class="top-view-btn">View</a>
+                                <div class="top-votes">
+                                    <i class="fas fa-thumbs-down"></i> <%= submission.downvotes %>
                                 </div>
-                            <% }); %>
-                        <% } else { %>
-                            <div class="no-data">No downvoted submissions yet</div>
-                        <% } %>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="scrapers-grid">
-            <!-- Text Scraper Column -->
-            <div class="scraper-column">
-                <h2>Text Scraper</h2>
-                <div class="submit-form">
-                    <form id="text-form" data-type="text">
-                        <textarea placeholder="Enter URL to scrape for BambiSleep text content..." required></textarea>
-                        <button type="submit">Scrape Text</button>
-                    </form>
-                </div>
-                <div class="submissions-list">
-                    <h3>Recent Text Submissions</h3>
-                    <% if (textSubmissions && textSubmissions.length > 0) { %>
-                        <% textSubmissions.forEach(submission => { %>
-                            <div class="submission-card" data-id="<%= submission._id %>">
-                                <div class="submission-header">
-                                    <div class="submission-url"><%= submission.url %></div>
-                                    <div class="submission-status <%= submission.status %>"><%= submission.status %></div>
-                                </div>
-                                <div class="submission-info">
-                                    <span class="bambi-name">By: <%= submission.bambiname %></span>
-                                    <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString() %></span>
-                                </div>
-                                <% if (submission.results && submission.results.text && submission.results.text.contentFound) { %>
-                                    <div class="content-found">Content found! ✓</div>
-                                <% } %>
-                                <div class="submission-actions">
-                                    <button class="vote-btn upvote" data-vote="upvote">👍 <span><%= submission.upvotes %></span></button>
-                                    <button class="vote-btn downvote" data-vote="downvote">👎 <span><%= submission.downvotes %></span></button>
-                                    <button class="comment-btn">💬 <span><%= submission.comments.length %></span></button>
-                                    <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View</span></button>
-                                    <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
-                                </div>
+                                <a href="/scrapers?view=<%= submission._id %>&type=<%= submission.type %>" class="top-view-btn">View</a>
                             </div>
                         <% }); %>
                     <% } else { %>
-                        <p class="no-submissions">No text submissions yet</p>
+                        <div class="no-data">No downvoted submissions yet</div>
                     <% } %>
                 </div>
-            </div>
-
-            <!-- Image Scraper Column -->
-            <div class="scraper-column">
-                <h2>Image Scraper</h2>
-                <div class="submit-form">
-                    <form id="image-form" data-type="image">
-                        <textarea placeholder="Enter URL to scrape for BambiSleep image content..." required></textarea>
-                        <button type="submit">Scrape Images</button>
-                    </form>
-                </div>
-                <div class="submissions-list">
-                    <h3>Recent Image Submissions</h3>
-                    <% if (imageSubmissions && imageSubmissions.length > 0) { %>
-                        <% imageSubmissions.forEach(submission => { %>
-                            <div class="submission-card" data-id="<%= submission._id %>">
-                                <div class="submission-header">
-                                    <div class="submission-url"><%= submission.url %></div>
-                                    <div class="submission-status <%= submission.status %>"><%= submission.status %></div>
-                                </div>
-                                <div class="submission-info">
-                                    <span class="bambi-name">By: <%= submission.bambiname %></span>
-                                    <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString() %></span>
-                                </div>
-                                <% if (submission.results && submission.results.image && submission.results.image.contentFound) { %>
-                                    <div class="content-found">Images found! ✓</div>
-                                <% } %>
-                                <div class="submission-actions">
-                                    <button class="vote-btn upvote" data-vote="upvote">👍 <span><%= submission.upvotes %></span></button>
-                                    <button class="vote-btn downvote" data-vote="downvote">👎 <span><%= submission.downvotes %></span></button>
-                                    <button class="comment-btn">💬 <span><%= submission.comments.length %></span></button>
-                                    <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View</span></button>
-                                    <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
-                                </div>
-                            </div>
-                        <% }); %>
-                    <% } else { %>
-                        <p class="no-submissions">No image submissions yet</p>
-                    <% } %>
-                </div>
-            </div>
-
-            <!-- Video Scraper Column -->
-            <div class="scraper-column">
-                <h2>Video Scraper</h2>
-                <div class="submit-form">
-                    <form id="video-form" data-type="video">
-                        <textarea placeholder="Enter URL to scrape for BambiSleep video content..." required></textarea>
-                        <button type="submit">Scrape Videos</button>
-                    </form>
-                </div>
-                <div class="submissions-list">
-                    <h3>Recent Video Submissions</h3>
-                    <% if (videoSubmissions && videoSubmissions.length > 0) { %>
-                        <% videoSubmissions.forEach(submission => { %>
-                            <div class="submission-card" data-id="<%= submission._id %>">
-                                <div class="submission-header">
-                                    <div class="submission-url"><%= submission.url %></div>
-                                    <div class="submission-status <%= submission.status %>"><%= submission.status %></div>
-                                </div>
-                                <div class="submission-info">
-                                    <span class="bambi-name">By: <%= submission.bambiname %></span>
-                                    <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString() %></span>
-                                </div>
-                                <% if (submission.results && submission.results.video && submission.results.video.contentFound) { %>
-                                    <div class="content-found">Videos found! ✓</div>
-                                <% } %>
-                                <div class="submission-actions">
-                                    <button class="vote-btn upvote" data-vote="upvote">👍 <span><%= submission.upvotes %></span></button>
-                                    <button class="vote-btn downvote" data-vote="downvote">👎 <span><%= submission.downvotes %></span></button>
-                                    <button class="comment-btn">💬 <span><%= submission.comments.length %></span></button>
-                                    <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View</span></button>
-                                    <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
-                                </div>
-                            </div>
-                        <% }); %>
-                    <% } else { %>
-                        <p class="no-submissions">No video submissions yet</p>
-                    <% } %>
-                </div>
-            </div>
-        </div>
-
-        <!-- Comment Modal -->
-        <div id="comment-modal" class="modal">
-            <div class="modal-content">
-                <span class="close-btn">&times;</span>
-                <h3>Comments</h3>
-                <div id="comments-container"></div>
-                <form id="comment-form">
-                    <textarea id="comment-text" placeholder="Add your comment..." required></textarea>
-                    <button type="submit">Submit Comment</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Scraped Content Modal -->
-        <div id="content-modal" class="modal">
-            <div class="modal-content content-modal-content">
-                <span class="close-btn content-close-btn">&times;</span>
-                <!-- Modal content will be dynamically added here -->
             </div>
         </div>
     </div>
 
-    <%- include('../views/partials/footer.ejs') %>
-    <script src="/js/scrapers.js"></script>
-    <script src="/js/scrapers-view.js"></script>
-    <script>
-        window.addEventListener('click', function (event) {
-            if (event.target === contentModal) {
-                contentModal.style.display = 'none';
-            }
-        });
-    </script>
-</body>
+    <div class="scrapers-grid">
+        <!-- Text Scraper Column -->
+        <div class="scraper-column">
+            <h2>Text Scraper</h2>
+            <div class="submit-form">
+                <form id="text-form" data-type="text">
+                    <textarea placeholder="Enter URL to scrape for BambiSleep text content..." required></textarea>
+                    <button type="submit">Scrape Text</button>
+                </form>
+            </div>
+            <div class="submissions-list">
+                <h3>Recent Text Submissions</h3>
+                <% if (textSubmissions && textSubmissions.length > 0) { %>
+                    <% textSubmissions.forEach(submission => { %>
+                        <div class="submission-card" data-id="<%= submission._id %>">
+                            <div class="submission-header">
+                                <div class="submission-url"><%= submission.url %></div>
+                                <div class="submission-status <%= submission.status %>"><%= submission.status %></div>
+                            </div>
+                            <div class="submission-info">
+                                <span class="bambi-name">By: <%= submission.bambiname %></span>
+                                <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString() %></span>
+                            </div>
+                            <% if (submission.results && submission.results.text && submission.results.text.contentFound) { %>
+                                <div class="content-found">Content found! ✓</div>
+                            <% } %>
+                            <div class="submission-actions">
+                                <button class="vote-btn upvote" data-vote="upvote">👍 <span><%= submission.upvotes %></span></button>
+                                <button class="vote-btn downvote" data-vote="downvote">👎 <span><%= submission.downvotes %></span></button>
+                                <button class="comment-btn">💬 <span><%= submission.comments.length %></span></button>
+                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View</span></button>
+                                <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <p class="no-submissions">No text submissions yet</p>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Image Scraper Column -->
+        <div class="scraper-column">
+            <h2>Image Scraper</h2>
+            <div class="submit-form">
+                <form id="image-form" data-type="image">
+                    <textarea placeholder="Enter URL to scrape for BambiSleep image content..." required></textarea>
+                    <button type="submit">Scrape Images</button>
+                </form>
+            </div>
+            <div class="submissions-list">
+                <h3>Recent Image Submissions</h3>
+                <% if (imageSubmissions && imageSubmissions.length > 0) { %>
+                    <% imageSubmissions.forEach(submission => { %>
+                        <div class="submission-card" data-id="<%= submission._id %>">
+                            <div class="submission-header">
+                                <div class="submission-url"><%= submission.url %></div>
+                                <div class="submission-status <%= submission.status %>"><%= submission.status %></div>
+                            </div>
+                            <div class="submission-info">
+                                <span class="bambi-name">By: <%= submission.bambiname %></span>
+                                <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString() %></span>
+                            </div>
+                            <% if (submission.results && submission.results.image && submission.results.image.contentFound) { %>
+                                <div class="content-found">Images found! ✓</div>
+                            <% } %>
+                            <div class="submission-actions">
+                                <button class="vote-btn upvote" data-vote="upvote">👍 <span><%= submission.upvotes %></span></button>
+                                <button class="vote-btn downvote" data-vote="downvote">👎 <span><%= submission.downvotes %></span></button>
+                                <button class="comment-btn">💬 <span><%= submission.comments.length %></span></button>
+                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View</span></button>
+                                <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <p class="no-submissions">No image submissions yet</p>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Video Scraper Column -->
+        <div class="scraper-column">
+            <h2>Video Scraper</h2>
+            <div class="submit-form">
+                <form id="video-form" data-type="video">
+                    <textarea placeholder="Enter URL to scrape for BambiSleep video content..." required></textarea>
+                    <button type="submit">Scrape Videos</button>
+                </form>
+            </div>
+            <div class="submissions-list">
+                <h3>Recent Video Submissions</h3>
+                <% if (videoSubmissions && videoSubmissions.length > 0) { %>
+                    <% videoSubmissions.forEach(submission => { %>
+                        <div class="submission-card" data-id="<%= submission._id %>">
+                            <div class="submission-header">
+                                <div class="submission-url"><%= submission.url %></div>
+                                <div class="submission-status <%= submission.status %>"><%= submission.status %></div>
+                            </div>
+                            <div class="submission-info">
+                                <span class="bambi-name">By: <%= submission.bambiname %></span>
+                                <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString() %></span>
+                            </div>
+                            <% if (submission.results && submission.results.video && submission.results.video.contentFound) { %>
+                                <div class="content-found">Videos found! ✓</div>
+                            <% } %>
+                            <div class="submission-actions">
+                                <button class="vote-btn upvote" data-vote="upvote">👍 <span><%= submission.upvotes %></span></button>
+                                <button class="vote-btn downvote" data-vote="downvote">👎 <span><%= submission.downvotes %></span></button>
+                                <button class="comment-btn">💬 <span><%= submission.comments.length %></span></button>
+                                <button class="view-content-btn" data-type="<%= submission.type %>">👁️ <span>View</span></button>
+                                <button class="share-btn" data-id="<%= submission._id %>" data-type="<%= submission.type %>">📤 <span>Share</span></button>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <p class="no-submissions">No video submissions yet</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comment Modal -->
+    <div id="comment-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3>Comments</h3>
+            <div id="comments-container"></div>
+            <form id="comment-form">
+                <textarea id="comment-text" placeholder="Add your comment..." required></textarea>
+                <button type="submit">Submit Comment</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scraped Content Modal -->
+    <div id="content-modal" class="modal">
+        <div class="modal-content content-modal-content">
+            <span class="close-btn content-close-btn">&times;</span>
+            <!-- Modal content will be dynamically added here -->
+        </div>
+    </div>
+  ` }) %>
+  <script src="/js/scrapers.js"></script>
+  <script src="/js/scrapers-view.js"></script>
+  <script>
+    window.addEventListener('click', function (event) {
+        if (event.target === contentModal) {
+            contentModal.style.display = 'none';
+        }
+    });
+  </script>
 </html>

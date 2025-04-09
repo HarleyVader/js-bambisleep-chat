@@ -1,11 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('partials/head') %>
-<%- include('partials/header') %>
-  <title>BambiSleep.Chat AIGF</title>
-
-  <body>
-    <%- include('../views/partials/nav.ejs') %>
+<%- include('layouts/main', { title: 'BambiSleep.Chat AIGF', body: `
       <div id="chat-container">
         <!-- Add modal for username prompt -->
         <div id="username-modal" class="modal">
@@ -56,7 +51,7 @@
           </div>
         </div>
       </div>
-      <%- include('../views/partials/footer.ejs') %>
+      ` }) %>
         <script src="js/psychodelic-trigger-mania.js"></script>
         <script src="js/text2speech.js"></script>
         <script src="js/responsive.js"></script>
@@ -145,6 +140,4 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
         <script src="js/bootstrap.min.js"></script>
-  </body>
-
 </html>

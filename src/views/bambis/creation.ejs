@@ -1,14 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <%- include('./partials/head') %>
-  <title>Create New Profile</title>
-  <link rel="stylesheet" href="/css/profile.css">
-</head>
-<body>
-  <%- include('./partials/nav') %>
-
-  <div class="container">
+<%- include('../layouts/main', { title: 'Create New Profile', body: `
     <div class="profile-creation-container">
       <h1>Create Your Bambi Profile</h1>
       
@@ -121,10 +113,9 @@
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="notification-area"></div>
-
+    <div class="notification-area"></div>
+  ` }) %>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/trigger-client.js"></script>
   
@@ -203,13 +194,13 @@
           
           const toggle = document.createElement('input');
           toggle.type = 'checkbox';
-          toggle.id = `toggle-${index}`;
+          toggle.id = \`toggle-\${index}\`;
           toggle.className = 'toggle-input';
           toggle.setAttribute('data-trigger', trigger);
           
           const label = document.createElement('label');
           label.textContent = trigger;
-          label.htmlFor = `toggle-${index}`;
+          label.htmlFor = \`toggle-\${index}\`;
           label.className = 'toggle-label';
           
           triggerItem.appendChild(toggle);
@@ -230,7 +221,4 @@
       }
     });
   </script>
-
-  <%- include('./partials/footer') %>
-</body>
 </html>
