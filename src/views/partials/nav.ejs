@@ -10,3 +10,86 @@
     <% } %>
   </ul>
 </nav>
+
+<!-- Add this somewhere in your navigation bar -->
+<div id="bambiname-container">
+  <% if (!locals.bambiname) { %>
+    <button id="set-bambiname-btn" class="neon-button">Set BambiName</button>
+  <% } else { %>
+    <span class="bambiname-display">BambiName: <%= bambiname %></span>
+  <% } %>
+</div>
+
+<!-- Add modal dialog for setting BambiName -->
+<div id="bambiname-modal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Set Your BambiName</h2>
+    <form id="bambiname-form">
+      <div class="form-group">
+        <label for="bambiname-input">BambiName (3+ characters):</label>
+        <input type="text" id="bambiname-input" name="bambiname" minlength="3" required>
+      </div>
+      <button type="submit" class="neon-button">Save</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const setBambiNameBtn = document.getElementById('set-bambiname-btn');
+    const modal = document.getElementById('bambiname-modal');
+    const closeBtn = modal?.querySelector('.close');
+    const form = document.getElementById('bambiname-form');
+    
+    if (setBambiNameBtn) {
+      setBambiNameBtn.addEventListener('click', function() {
+        if (modal) modal.style.display = 'block';
+      });
+    }
+    
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function() {
+        if (modal) modal.style.display = 'none';
+      });
+    }
+    
+    window.addEventListener('click', function(event) {
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+    
+    if (form) {
+      form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const bambiname = document.getElementById('bambiname-input').value;
+        
+        fetch('/api/set-bambiname', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ bambiname }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update the service worker with new bambiname
+            if (window.BambiSocket && typeof window.BambiSocket.updateBambiName === 'function') {
+              window.BambiSocket.updateBambiName(bambiname);
+            }
+            // Refresh page to update UI with new bambiname
+            window.location.reload();
+          } else {
+            alert(data.message || 'Error setting BambiName');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Failed to set BambiName');
+        });
+      });
+    }
+  });
+</script>

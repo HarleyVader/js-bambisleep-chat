@@ -106,41 +106,45 @@
         <script src="/js/socket-client.js"></script>
         <script>
           document.addEventListener('DOMContentLoaded', function() {
-            // Get the persistent socket connection
-            const socket = BambiSocket.getSocket();
+            // Initialize socket connection if not already initialized
+            if (window.BambiSocket && typeof window.BambiSocket.initialize === 'function') {
+              window.BambiSocket.initialize();
+            }
             
             // Set up bambi-specific event listeners
-            socket.on('bambi_update', (data) => {
-              if (data.username === '<%= bambi.username %>') {
-                console.log('Bambi update received', data);
-                // Update UI as needed
-              }
-            });
-            
-            // If this is the user's own bambi profile, set up edit functionality
-            <% if (isOwnbambi) { %>
-            const editBtn = document.getElementById('edit-bambi-btn');
-            if (editBtn) {
-              editBtn.addEventListener('click', function() {
-                const modal = document.getElementById('bambi-edit-modal');
-                if (modal) modal.style.display = 'block';
-              });
-            }
-            
-            const deleteBtn = document.getElementById('delete-bambi-btn');
-            if (deleteBtn) {
-              deleteBtn.addEventListener('click', function() {
-                if (confirm('Are you sure you want to delete your bambi?')) {
-                  // Send delete event
-                  socket.emit('bambi_action', {
-                    action: 'delete',
-                    username: '<%= bambi.username %>'
-                  });
-                  window.location.href = '/';
+            if (window.BambiSocket && typeof window.BambiSocket.on === 'function') {
+              window.BambiSocket.on('bambi_update', (data) => {
+                if (data.username === '<%= bambi.username %>') {
+                  console.log('Bambi update received', data);
+                  // Update UI as needed
                 }
               });
+              
+              // If this is the user's own bambi profile, set up edit functionality
+              <% if (isOwnbambi) { %>
+              const editBtn = document.getElementById('edit-bambi-btn');
+              if (editBtn) {
+                editBtn.addEventListener('click', function() {
+                  const modal = document.getElementById('bambi-edit-modal');
+                  if (modal) modal.style.display = 'block';
+                });
+              }
+              
+              const deleteBtn = document.getElementById('delete-bambi-btn');
+              if (deleteBtn) {
+                deleteBtn.addEventListener('click', function() {
+                  if (confirm('Are you sure you want to delete your bambi?')) {
+                    // Send delete event
+                    window.BambiSocket.sendMessage('bambi_action', {
+                      action: 'delete',
+                      username: '<%= bambi.username %>'
+                    });
+                    window.location.href = '/';
+                  }
+                });
+              }
+              <% } %>
             }
-            <% } %>
           });
         </script>
   </body>

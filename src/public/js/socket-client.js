@@ -1,47 +1,95 @@
-// Create a global socket connection that persists across routes
-let globalSocket;
+// Socket client that uses a service worker for persistent connections
 
-// Initialize socket connection if it doesn't exist
-function initializeSocket() {
-  if (!globalSocket || !globalSocket.connected) {
-    globalSocket = io({
-      transports: ['websocket'],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000
-    });
-    
-    // Listen for connection
-    globalSocket.on('connect', () => {
-      console.log('Connected to the server');
+// Event listeners for socket events
+const eventListeners = {};
+let serviceWorkerReady = false;
+let messageQueue = [];
+let socketConnected = false;
+
+// Initialize the service worker and socket connection
+async function initializeSocket() {
+  if ('serviceWorker' in navigator) {
+    try {
+      // Register the service worker
+      const registration = await navigator.serviceWorker.register('/socket-worker.js');
+      console.log('ServiceWorker registered:', registration);
       
-      // Set the BambiName on connect if available
+      // Wait for the service worker to be ready
+      await navigator.serviceWorker.ready;
+      serviceWorkerReady = true;
+      
+      // Set up message listener from service worker
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+      
+      // Initialize socket in service worker
       const bambiname = getBambiNameFromCookies();
-      if (bambiname) {
-        globalSocket.emit('set username', bambiname);
-        console.log('BambiName set:', bambiname);
-      }
-    });
-    
-    // Listen for reconnection
-    globalSocket.on('reconnect', () => {
-      console.log('Reconnected to server');
-      // Reset username on reconnect
-      const bambiname = getBambiNameFromCookies();
-      if (bambiname) {
-        globalSocket.emit('set username', bambiname);
-      }
-    });
-    
-    // Listen for disconnect
-    globalSocket.on('disconnect', (reason) => {
-      console.log('Disconnected from server:', reason);
-    });
-    
-    // Setup default event listeners
-    setupSocketListeners(globalSocket);
+      sendToServiceWorker({
+        type: 'INIT_SOCKET',
+        bambiname: bambiname
+      });
+      
+      // Process any queued messages
+      processMessageQueue();
+      
+      return true;
+    } catch (error) {
+      console.error('ServiceWorker registration failed:', error);
+      return false;
+    }
+  } else {
+    console.warn('Service workers are not supported in this browser');
+    return false;
+  }
+}
+
+// Process any messages queued before service worker was ready
+function processMessageQueue() {
+  if (serviceWorkerReady && messageQueue.length > 0) {
+    messageQueue.forEach(msg => sendToServiceWorker(msg));
+    messageQueue = [];
+  }
+}
+
+// Send a message to the service worker
+function sendToServiceWorker(message) {
+  if (serviceWorkerReady && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage(message);
+  } else {
+    messageQueue.push(message);
+  }
+}
+
+// Handle messages from the service worker
+function handleServiceWorkerMessage(event) {
+  const data = event.data;
+  
+  if (data.type === 'SOCKET_CONNECTED') {
+    console.log('Socket connected via service worker, ID:', data.id);
+    socketConnected = true;
+    // Execute any onConnect callbacks
+    if (eventListeners['connect']) {
+      eventListeners['connect'].forEach(callback => callback());
+    }
   }
   
-  return globalSocket;
+  if (data.type === 'SOCKET_DISCONNECTED') {
+    console.log('Socket disconnected:', data.reason);
+    socketConnected = false;
+    // Execute any onDisconnect callbacks
+    if (eventListeners['disconnect']) {
+      eventListeners['disconnect'].forEach(callback => callback(data.reason));
+    }
+  }
+  
+  if (data.type === 'SOCKET_EVENT') {
+    // Forward event to appropriate listeners
+    const event = data.event;
+    const args = data.data;
+    
+    if (eventListeners[event]) {
+      eventListeners[event].forEach(callback => callback(...args));
+    }
+  }
 }
 
 // Helper function to get BambiName from cookies
@@ -52,85 +100,81 @@ function getBambiNameFromCookies() {
   return null;
 }
 
-// Set up common event listeners
-function setupSocketListeners(socket) {
-  // Listen for messages from the server
-  socket.on('message', (data) => {
-    console.log('Message from server:', data);
-  });
-  
-  // Chat messages
-  socket.on('chat message', (msg) => {
-    const chatResponse = document.getElementById('chat-response');
-    if (chatResponse) {
-      const item = document.createElement("li");
-      const timestamp = new Date(msg.timestamp).toLocaleTimeString();
-      item.textContent = `${timestamp} - ${msg.username}: ${msg.data}`;
-      if (timestamp && window.username) {
-        item.classList.add("neon-glow");
-      }
-      chatResponse.appendChild(item);
-    }
-  });
-  
-  // Collar messages
-  socket.on('collar', (message) => {
-    const collarResponse = document.getElementById('textarea-collar-response');
-    if (collarResponse) {
-      const messageElement = document.createElement('p');
-      messageElement.textContent = message;
-      if (collarResponse.firstChild) {
-        collarResponse.insertBefore(messageElement, collarResponse.firstChild);
-      } else {
-        collarResponse.appendChild(messageElement);
-      }
-      if (typeof applyUppercaseStyle === 'function') {
-        applyUppercaseStyle();
-      }
-    }
-  });
-}
-
 // Function to send a message to the server
-function sendMessage(message) {
-  const socket = getSocket();
-  socket.emit('message', message);
+function sendMessage(event, ...args) {
+  sendToServiceWorker({
+    type: 'EMIT',
+    event: event,
+    args: args
+  });
 }
 
 // Function to send a chat message
 function sendChatMessage(message) {
-  const socket = getSocket();
   const bambiname = getBambiNameFromCookies() || 'Anonymous';
-  socket.emit('chat message', { data: message, username: bambiname });
+  sendMessage('chat message', { data: message, username: bambiname });
 }
 
 // Function to send a collar message
 function sendCollarMessage(message) {
-  const socket = getSocket();
-  socket.emit('collar', { data: message, socketId: socket.id });
+  sendMessage('collar', { data: message });
 }
 
-// Get the global socket instance or initialize if needed
-function getSocket() {
-  return globalSocket || initializeSocket();
+// Function to add event listener
+function on(event, callback) {
+  if (!eventListeners[event]) {
+    eventListeners[event] = [];
+  }
+  eventListeners[event].push(callback);
 }
 
-// Immediately initialize the socket when this script loads
-initializeSocket();
+// Function to remove event listener
+function off(event, callback) {
+  if (eventListeners[event]) {
+    eventListeners[event] = eventListeners[event].filter(cb => cb !== callback);
+  }
+}
 
-// Export functions for use in other scripts
+// Function to check if socket is connected
+function isConnected() {
+  return socketConnected;
+}
+
+// Update bambiname in the service worker when it changes
+function updateBambiName(bambiname) {
+  sendToServiceWorker({
+    type: 'SET_BAMBINAME',
+    bambiname: bambiname
+  });
+}
+
+// Export public API
 window.BambiSocket = {
-  getSocket,
+  initialize: initializeSocket,
   sendMessage,
   sendChatMessage,
   sendCollarMessage,
+  on,
+  off,
+  isConnected,
+  updateBambiName,
   getBambiNameFromCookies
 };
+
+// Initialize automatically when the script loads
+document.addEventListener('DOMContentLoaded', initializeSocket);
+
+// Re-initialize when page visibility changes (helps with page refresh)
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && !socketConnected) {
+    initializeSocket();
+  }
+});
 
 // Example usage: sending a message
 document.getElementById('sendButton').addEventListener('click', () => {
   const messageInput = document.getElementById('messageInput');
   const message = messageInput.value;
-  sendMessage(message);
+  sendMessage('message', message);
   messageInput.value = ''; // Clear input after sending
 });
