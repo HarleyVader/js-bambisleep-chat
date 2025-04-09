@@ -16,9 +16,9 @@ export function setupSocketHandlers(io) {
   const mainIo = io.of('/');
   setupMainHandlers(mainIo);
   
-  // Profiles namespace
-  const profileIo = io.of('/profiles');
-  setupProfileHandlers(profileIo);
+  // bambis namespace
+  const bambiIo = io.of('/bambis');
+  setupBambiHandlers(bambiIo);
   
   return io;
 }
@@ -30,8 +30,8 @@ function setupMainHandlers(io) {
     // Get username from cookie
     const username = getUsernameFromCookie(socket);
     
-    // Load user profile
-    loadUserProfile(socket, username);
+    // Load user bambi
+    loadUserBambi(socket, username);
     
     // Initialize LLM worker
     const lmstudio = initializeWorker(socket);
@@ -95,22 +95,22 @@ function initializeWorker(socket) {
   }
 }
 
-function setupProfileHandlers(profileIo) {
-  profileIo.on('connection', (socket) => {
-    logger.success(`Profile client connected: ${socket.id}`);
+function setupBambiHandlers(bambiIo) {
+  bambiIo.on('connection', (socket) => {
+    logger.success(`bambi client connected: ${socket.id}`);
     
-    // Handle profile view
-    socket.on('profile:view', (username) => handleProfileView(socket, profileIo, username));
+    // Handle bambi view
+    socket.on('bambi:view', (username) => handleBambiView(socket, bambiIo, username));
     
-    // Handle profile update
-    socket.on('profile:save', (data) => handleProfileSave(socket, profileIo, data));
+    // Handle bambi update
+    socket.on('bambi:save', (data) => handleBambiSave(socket, bambiIo, data));
     
-    // Handle profile heart/like
-    socket.on('profile:heart', (data) => handleProfileHeart(socket, profileIo, data));
+    // Handle bambi heart/like
+    socket.on('bambi:heart', (data) => handleBambiHeart(socket, bambiIo, data));
     
     // Disconnect handling
     socket.on('disconnect', () => {
-      logger.info(`Profile client disconnected: ${socket.id}`);
+      logger.info(`bambi client disconnected: ${socket.id}`);
     });
   });
 }
@@ -131,8 +131,8 @@ function getUsernameFromCookie(socket) {
   }
 }
 
-// Load user profile from database
-async function loadUserProfile(socket, username) {
+// Load user bambi from database
+async function loadUserBambi(socket, username) {
   try {
     if (!username || username === 'anonBambi') {
       return;
@@ -145,14 +145,14 @@ async function loadUserProfile(socket, username) {
       bambi.lastActive = new Date();
       await bambi.save();
       
-      socket.emit('profile:loaded', {
+      socket.emit('bambi:loaded', {
         username: bambi.username,
-        avatarUrl: bambi.profilePictureUrl,
+        avatarUrl: bambi.bambiPictureUrl,
         level: bambi.level || 1
       });
     }
   } catch (error) {
-    logger.error(`Error loading profile for ${username}:`, error);
+    logger.error(`Error loading bambi for ${username}:`, error);
   }
 }
 
@@ -304,14 +304,14 @@ function handleWorkerMessage(socket, io, data) {
   }
 }
 
-function handleProfileView(socket, io, username) {
+function handleBambiView(socket, io, username) {
   try {
     if (!username) {
-      socket.emit('profile:error', 'Invalid username provided');
+      socket.emit('bambi:error', 'Invalid username provided');
       return;
     }
     
-    logger.info(`Profile view request for ${username} from ${socket.id}`);
+    logger.info(`bambi view request for ${username} from ${socket.id}`);
     
     mongoose.model('Bambi').findOne({ username })
       .then(bambi => {
@@ -326,35 +326,35 @@ function handleProfileView(socket, io, username) {
             bambi.save().catch(err => logger.error(`Error saving view count: ${err.message}`));
           }
           
-          socket.emit('profile:data', { bambi });
+          socket.emit('bambi:data', { bambi });
         } else {
-          socket.emit('profile:error', 'Profile not found');
+          socket.emit('bambi:error', 'bambi not found');
         }
       })
       .catch(error => {
-        logger.error(`Error fetching profile: ${error.message}`);
-        socket.emit('profile:error', 'Error loading profile');
+        logger.error(`Error fetching bambi: ${error.message}`);
+        socket.emit('bambi:error', 'Error loading bambi');
       });
   } catch (error) {
-    logger.error('Error handling profile view:', error);
-    socket.emit('profile:error', 'Server error processing profile request');
+    logger.error('Error handling bambi view:', error);
+    socket.emit('bambi:error', 'Server error processing bambi request');
   }
 }
 
-function handleProfileSave(socket, io, data) {
+function handlebambiSave(socket, io, data) {
   try {
     if (!data) {
-      socket.emit('profile:save:error', 'No profile data provided');
+      socket.emit('bambi:save:error', 'No bambi data provided');
       return;
     }
     
     const username = getUsernameFromCookie(socket);
     if (!username || username === 'anonBambi') {
-      socket.emit('profile:save:error', 'You must be logged in to save a profile');
+      socket.emit('bambi:save:error', 'You must be logged in to save a bambi');
       return;
     }
     
-    logger.info(`Profile save request for ${username}`);
+    logger.info(`bambi save request for ${username}`);
     
     mongoose.model('Bambi').findOneAndUpdate(
       { username },
@@ -362,7 +362,7 @@ function handleProfileSave(socket, io, data) {
         $set: {
           about: data.about,
           description: data.description,
-          profilePictureUrl: data.profilePictureUrl,
+          bambiPictureUrl: data.bambiPictureUrl,
           headerImageUrl: data.headerImageUrl,
           lastModified: new Date(),
           lastActive: new Date()
@@ -371,35 +371,35 @@ function handleProfileSave(socket, io, data) {
       { new: true, upsert: true }
     )
     .then(bambi => {
-      socket.emit('profile:save:success', { bambi });
-      logger.success(`Profile saved for ${username}`);
+      socket.emit('bambi:save:success', { bambi });
+      logger.success(`bambi saved for ${username}`);
     })
     .catch(error => {
-      logger.error(`Error saving profile: ${error.message}`);
-      socket.emit('profile:save:error', 'Error saving profile');
+      logger.error(`Error saving bambi: ${error.message}`);
+      socket.emit('bambi:save:error', 'Error saving bambi');
     });
   } catch (error) {
-    logger.error('Error handling profile save:', error);
-    socket.emit('profile:save:error', 'Server error processing profile save');
+    logger.error('Error handling bambi save:', error);
+    socket.emit('bambi:save:error', 'Server error processing bambi save');
   }
 }
 
-function handleProfileHeart(socket, io, data) {
+function handleBambiHeart(socket, io, data) {
   try {
     if (!data || !data.username) {
-      socket.emit('profile:heart:error', 'Invalid request');
+      socket.emit('bambi:heart:error', 'Invalid request');
       return;
     }
     
     const currentUser = getUsernameFromCookie(socket);
     if (!currentUser || currentUser === 'anonBambi') {
-      socket.emit('profile:heart:error', 'You must be logged in to heart a profile');
+      socket.emit('bambi:heart:error', 'You must be logged in to heart a bambi');
       return;
     }
     
     // Don't allow self-hearts
     if (currentUser === data.username) {
-      socket.emit('profile:heart:error', 'You cannot heart your own profile');
+      socket.emit('bambi:heart:error', 'You cannot heart your own bambi');
       return;
     }
     
@@ -408,7 +408,7 @@ function handleProfileHeart(socket, io, data) {
     mongoose.model('Bambi').findOne({ username: data.username })
       .then(bambi => {
         if (!bambi) {
-          socket.emit('profile:heart:error', 'Profile not found');
+          socket.emit('bambi:heart:error', 'bambi not found');
           return;
         }
         
@@ -432,13 +432,13 @@ function handleProfileHeart(socket, io, data) {
       })
       .then(bambi => {
         if (bambi) {
-          socket.emit('profile:heart:success', { 
+          socket.emit('bambi:heart:success', { 
             hearted: bambi.hearts.includes(currentUser),
             count: bambi.hearts.length
           });
           
-          // Notify profile owner if they're online
-          io.to(`user:${data.username}`).emit('profile:hearted', { 
+          // Notify bambi owner if they're online
+          io.to(`user:${data.username}`).emit('bambi:hearted', { 
             from: currentUser,
             count: bambi.hearts.length
           });
@@ -446,11 +446,11 @@ function handleProfileHeart(socket, io, data) {
       })
       .catch(error => {
         logger.error(`Error processing heart: ${error.message}`);
-        socket.emit('profile:heart:error', 'Error processing heart request');
+        socket.emit('bambi:heart:error', 'Error processing heart request');
       });
   } catch (error) {
-    logger.error('Error handling profile heart:', error);
-    socket.emit('profile:heart:error', 'Server error processing heart');
+    logger.error('Error handling bambi heart:', error);
+    socket.emit('bambi:heart:error', 'Server error processing heart');
   }
 }
 

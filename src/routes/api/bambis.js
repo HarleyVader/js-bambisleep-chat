@@ -2,12 +2,12 @@ import express from 'express';
 import multer from 'multer';
 import mongoose from 'mongoose';
 import { Logger } from '../../utils/logger.js';
-import Profile from '../../models/Bambi.js';
+import Bambi from '../../models/Bambi.js';
 import auth from '../../middleware/auth.js';
 import { withTransaction } from '../../database/transaction.js';
 
 const router = express.Router();
-const logger = new Logger('API:Profiles');
+const logger = new Logger('API:Bambis');
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -36,7 +36,7 @@ const getUsernameFromCookies = (req) => {
   return null;
 };
 
-// List profiles with pagination and search
+// List bambis with pagination and search
 router.get('/list', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -72,76 +72,76 @@ router.get('/list', async (req, res) => {
       };
     }
 
-    const [profiles, total] = await Promise.all([
-      Profile.find(query)
+    const [bambis, total] = await Promise.all([
+      Bambi.find(query)
         .select('username displayName avatar about updatedAt views hearts')
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
         .lean(),
-      Profile.countDocuments(query)
+      Bambi.countDocuments(query)
     ]);
 
     res.json({
       success: true,
-      profiles,
+      bambis,
       total,
       page,
       pages: Math.ceil(total / limit),
       hasMore: total > (skip + limit)
     });
   } catch (error) {
-    logger.error(`Error fetching profiles: ${error.message}`);
+    logger.error(`Error fetching bambis: ${error.message}`);
     res.status(500).json({
       success: false,
-      message: 'Error fetching profiles'
+      message: 'Error fetching bambis'
     });
   }
 });
 
-// Get single profile
+// Get single bambi
 router.get('/bambi/:username', async (req, res) => {
   try {
     const { username } = req.params;
 
-    const profile = await Profile.findOne({ username })
+    const bambi = await Bambi.findOne({ username })
       .select('-triggerHistory')
       .lean();
 
-    if (!profile) {
+    if (!bambi) {
       return res.status(404).json({
         success: false,
-        message: 'Profile not found'
+        message: 'Bambi not found'
       });
     }
 
-    // Check if this is the profile owner
+    // Check if this is the bambi owner
     const bambiname = getUsernameFromCookies(req);
-    const isOwnProfile = bambiname === username;
+    const isOwnBambi = bambiname === username;
 
-    // Track profile views if not own profile
-    if (!isOwnProfile) {
-      Profile.updateOne(
-        { _id: profile._id },
+    // Track bambi views if not own bambi
+    if (!isOwnBambi) {
+      Bambi.updateOne(
+        { _id: bambi._id },
         { $inc: { views: 1 } }
       ).catch(err => logger.error(`Failed to update view count: ${err.message}`));
     }
 
     res.json({
       success: true,
-      profile,
-      isOwnProfile
+      bambi,
+      isOwnBambi
     });
   } catch (error) {
-    logger.error(`Error fetching profile: ${error.message}`);
+    logger.error(`Error fetching bambi: ${error.message}`);
     res.status(500).json({
       success: false,
-      message: 'Error fetching profile'
+      message: 'Error fetching bambi'
     });
   }
 });
 
-// Update profile
+// Update bambi
 router.put('/bambi/:username', auth, upload.single('avatar'), async (req, res) => {
   try {
     const { username } = req.params;
@@ -151,7 +151,7 @@ router.put('/bambi/:username', auth, upload.single('avatar'), async (req, res) =
     if (currentBambiname !== username) {
       return res.status(403).json({
         success: false,
-        message: 'You are not authorized to update this profile'
+        message: 'You are not authorized to update this bambi'
       });
     }
 
@@ -170,36 +170,36 @@ router.put('/bambi/:username', auth, upload.single('avatar'), async (req, res) =
     }
 
     // Use transaction for data consistency
-    const updatedProfile = await withTransaction(async (session) => {
-      return Profile.findOneAndUpdate(
+    const updatedBambi = await withTransaction(async (session) => {
+      return Bambi.findOneAndUpdate(
         { username },
         { $set: updateData },
         { new: true, session }
       );
     });
 
-    if (!updatedProfile) {
+    if (!updatedBambi) {
       return res.status(404).json({
         success: false,
-        message: 'Profile not found'
+        message: 'Bambi not found'
       });
     }
 
     res.json({
       success: true,
-      message: 'Profile updated successfully',
-      profile: updatedProfile
+      message: 'Bambi updated successfully',
+      bambi: updatedBambi
     });
   } catch (error) {
-    logger.error(`Error updating profile: ${error.message}`);
+    logger.error(`Error updating bambi: ${error.message}`);
     res.status(500).json({
       success: false,
-      message: 'Error updating profile'
+      message: 'Error updating bambi'
     });
   }
 });
 
-// Delete profile
+// Delete bambi
 router.delete('/bambi/:username', auth, async (req, res) => {
   try {
     const { username } = req.params;
@@ -209,23 +209,23 @@ router.delete('/bambi/:username', auth, async (req, res) => {
     if (currentBambiname !== username && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
-        message: 'You are not authorized to delete this profile'
+        message: 'You are not authorized to delete this bambi'
       });
     }
 
     // Use transaction for data consistency
-    const deletedProfile = await withTransaction(async (session) => {
-      return Profile.findOneAndDelete({ username }, { session });
+    const deletedBambi = await withTransaction(async (session) => {
+      return Bambi.findOneAndDelete({ username }, { session });
     });
 
-    if (!deletedProfile) {
+    if (!deletedBambi) {
       return res.status(404).json({
         success: false,
-        message: 'Profile not found'
+        message: 'Bambi not found'
       });
     }
 
-    // Clear cookies if deleting own profile
+    // Clear cookies if deleting own bambi
     if (currentBambiname === username) {
       res.clearCookie('bambiname');
 
@@ -236,13 +236,13 @@ router.delete('/bambi/:username', auth, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Profile deleted successfully'
+      message: 'Bambi deleted successfully'
     });
   } catch (error) {
-    logger.error(`Error deleting profile: ${error.message}`);
+    logger.error(`Error deleting bambi: ${error.message}`);
     res.status(500).json({
       success: false,
-      message: 'Error deleting profile'
+      message: 'Error deleting bambi'
     });
   }
 });
@@ -262,32 +262,32 @@ router.post('/bambi/:username/heart', auth, async (req, res) => {
 
     // Use transaction for data consistency
     const result = await withTransaction(async (session) => {
-      const profile = await Profile.findOne({ username }).session(session);
+      const bambi = await Bambi.findOne({ username }).session(session);
 
-      if (!profile) {
-        throw new Error('Profile not found');
+      if (!bambi) {
+        throw new Error('Bambi not found');
       }
 
       // Check if already hearted
-      const heartIndex = profile.hearts?.findIndex(h => h.username === currentBambiname);
+      const heartIndex = bambi.hearts?.findIndex(h => h.username === currentBambiname);
 
       if (heartIndex >= 0) {
         // Remove heart
-        profile.hearts.splice(heartIndex, 1);
+        bambi.hearts.splice(heartIndex, 1);
       } else {
         // Add heart
-        if (!profile.hearts) profile.hearts = [];
-        profile.hearts.push({
+        if (!bambi.hearts) bambi.hearts = [];
+        bambi.hearts.push({
           username: currentBambiname,
           timestamp: new Date()
         });
       }
 
-      await profile.save({ session });
+      await bambi.save({ session });
 
       return {
         hearted: heartIndex < 0,
-        heartCount: profile.hearts?.length || 0
+        heartCount: bambi.hearts?.length || 0
       };
     });
 
@@ -302,6 +302,39 @@ router.post('/bambi/:username/heart', auth, async (req, res) => {
       message: error.message
     });
   }
+});
+
+// Add this route to handle setting BambiName
+router.post('/set-bambiname', (req, res) => {
+  const { bambiname } = req.body;
+  
+  if (!bambiname || bambiname.trim().length < 3) {
+    return res.status(400).json({
+      success: false,
+      message: 'BambiName must be at least 3 characters long'
+    });
+  }
+  
+  // Set cookie with security options
+  res.cookie('bambiname', bambiname, { 
+    path: '/',
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    sameSite: 'strict'
+  });
+  
+  // Set session too for better auth
+  if (req.session) {
+    req.session.user = {
+      bambiname: bambiname
+    };
+  }
+  
+  return res.json({
+    success: true,
+    message: 'BambiName set successfully',
+    bambiname: bambiname
+  });
 });
 
 // Add to app.js:

@@ -1,17 +1,24 @@
 import jwt from 'jsonwebtoken';
 
 export const socketAuth = (socket, next) => {
-  const token = socket.handshake.query.token;
-
-  if (!token) {
-    return next(new Error('Authentication error'));
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return next(new Error('Authentication error'));
+  // Get bambiname from cookies
+  const cookies = socket.request.headers.cookie;
+  if (cookies) {
+    const bambinameCookie = cookies.split(';').find(c => c.trim().startsWith('bambiname='));
+    if (bambinameCookie) {
+      const bambiname = decodeURIComponent(bambinameCookie.split('=')[1].trim());
+      if (bambiname) {
+        // Attach user info to socket
+        socket.user = { bambiname };
+        socket.bambiname = bambiname;
+        return next();
+      }
     }
-    socket.user = decoded; // Attach user info to socket
-    next();
-  });
+  }
+  
+  // Allow connection even without authentication
+  // Users will be treated as anonymous until they set a BambiName
+  socket.user = { bambiname: null };
+  socket.bambiname = null;
+  next();
 };

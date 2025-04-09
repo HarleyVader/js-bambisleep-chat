@@ -35,7 +35,7 @@ function setupFormHandlers() {
           const username = document.body.getAttribute('data-username');
           if (username) formObject.username = username;
           
-          // Get event name from form attribute or default to update-profile
+          // Get event name from form attribute or default to update-bambi
           const eventName = this.getAttribute('data-socket-event') || 'update-profile';
           
           response = await emitSocketPromise(eventName, formObject);

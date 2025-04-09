@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'Create Bambi Profile' }) %>
+<%- include('../partials/head.ejs', { title: 'Create Bambi bambi' }) %>
 <body>
   <%- include('../partials/nav.ejs') %>
   
   <div class="container">
     <div class="creation-container">
-      <h1 class="neon-text">Create Bambi Profile</h1>
+      <h1 class="neon-text">Create Bambi bambi</h1>
       
       <form action="/bambis/create" method="POST" class="bambi-form" enctype="multipart/form-data">
         <div class="form-group">
@@ -20,12 +20,12 @@
         </div>
         
         <div class="form-group">
-          <label for="avatar">Profile Picture</label>
+          <label for="avatar">bambi Picture</label>
           <input type="file" id="avatar" name="avatar" accept="image/*">
         </div>
         
         <div class="form-actions">
-          <button type="submit" class="submit-btn">Create Profile</button>
+          <button type="submit" class="submit-btn">Create bambi</button>
           <a href="/bambis" class="cancel-btn">Cancel</a>
         </div>
       </form>

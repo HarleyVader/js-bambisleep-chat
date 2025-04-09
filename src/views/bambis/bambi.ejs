@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: `${profile.displayName || profile.username}'s Profile` }) %>
+<%- include('../partials/head.ejs', { title: `${bambi.displayName || bambi.username}'s bambi` }) %>
 
   <body>
     <%- include('../partials/nav.ejs') %>
@@ -12,77 +12,77 @@
           </div>
           <% } %>
 
-            <div class="profile-container" data-username="<%= profile.username %>">
+            <div class="bambi-container" data-username="<%= bambi.username %>">
               <!-- User identity section with integrated header and neonwave styling -->
-              <div class="profile-identity-section neonwave">
+              <div class="bambi-identity-section neonwave">
                 <!-- Header image moved inside identity section -->
-                <div class="profile-header-image" style="background-image: url('<%= profile.headerImage || "
-                  /gif/default-header.gif" %>'); background-color: <%= profile.headerColor %>;">
+                <div class="bambi-header-image" style="background-image: url('<%= bambi.headerImage || "
+                  /gif/default-header.gif" %>'); background-color: <%= bambi.headerColor %>;">
                 </div>
 
-                <!-- Profile content container that includes avatar and info -->
-                <div class="profile-info-container">
+                <!-- bambi content container that includes avatar and info -->
+                <div class="bambi-info-container">
                   <div class="avatar-container">
-                    <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>"
-                      alt="<%= profile.displayName || profile.username %>" class="profile-avatar neon-glow">
+                    <img src="<%= bambi.avatar || '/gif/default-avatar.gif' %>"
+                      alt="<%= bambi.displayName || bambi.username %>" class="bambi-avatar neon-glow">
                     <div class="avatar-neon-ring"></div>
                   </div>
 
-                  <div class="profile-info">
-                    <div class="profile-header-flex">
-                      <h1 class="profile-username neon-text">
-                        <%= profile.displayName || profile.username %>
+                  <div class="bambi-info">
+                    <div class="bambi-header-flex">
+                      <h1 class="bambi-username neon-text">
+                        <%= bambi.displayName || bambi.username %>
                       </h1>
 
                       <div class="user-stats-container">
                         <div class="user-stat">
                           <div class="stat-icon level-icon">⭐</div>
                           <div class="stat-value">
-                            <%= profile.level || '1' %>
+                            <%= bambi.level || '1' %>
                           </div>
                           <div class="stat-label">Level</div>
                         </div>
                         <div class="user-stat">
                           <div class="stat-icon hearts-icon">❤️</div>
                           <div class="stat-value">
-                            <%= profile.hearts || '0' %>
+                            <%= bambi.hearts || '0' %>
                           </div>
                           <div class="stat-label">Hearts</div>
                         </div>
                         <div class="user-stat">
                           <div class="stat-icon scrapes-icon">🔄</div>
                           <div class="stat-value">
-                            <%= profile.scrapes || '0' %>
+                            <%= bambi.scrapes || '0' %>
                           </div>
                           <div class="stat-label">Scrapes</div>
                         </div>
                         <div class="user-stat">
                           <div class="stat-icon controls-icon">⚙️</div>
                           <div class="stat-value">
-                            <%= profile.controls || '0' %>
+                            <%= bambi.controls || '0' %>
                           </div>
                           <div class="stat-label">Controls</div>
                         </div>
                       </div>
                     </div>
 
-                    <div class="profile-about clickable-links neon-text-subtle">
+                    <div class="bambi-about clickable-links neon-text-subtle">
                       <%=
-                        profile.about.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>')
+                        bambi.about.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>')
                       %>
                     </div>
 
-                    <div class="profile-description-container cyber-panel">
+                    <div class="bambi-description-container cyber-panel">
                       <h2 class="neon-heading">Description</h2>
-                      <div class="profile-description cyber-text">
-                        <%= profile.description %>
+                      <div class="bambi-description cyber-text">
+                        <%= bambi.description %>
                       </div>
                     </div>
 
-                    <% if (isOwnProfile) { %>
-                      <div class="profile-actions">
-                        <button id="edit-profile-btn" class="neon-button">Edit Profile</button>
-                        <button id="delete-profile-btn" class="neon-button danger">Delete Profile</button>
+                    <% if (isOwnbambi) { %>
+                      <div class="bambi-actions">
+                        <button id="edit-bambi-btn" class="neon-button">Edit bambi</button>
+                        <button id="delete-bambi-btn" class="neon-button danger">Delete bambi</button>
                       </div>
                       <% } %>
                   </div>
@@ -92,8 +92,8 @@
               <!-- Rest of your content... -->
             </div>
 
-            <!-- Profile Edit Modal -->
-            <div id="profile-edit-modal" class="modal">
+            <!-- bambi Edit Modal -->
+            <div id="bambi-edit-modal" class="modal">
               <!-- Modal content... -->
             </div>
 
@@ -104,6 +104,45 @@
 
         <script src="/socket.io/socket.io.js"></script>
         <script src="/js/socket-client.js"></script>
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            // Get the persistent socket connection
+            const socket = BambiSocket.getSocket();
+            
+            // Set up bambi-specific event listeners
+            socket.on('bambi_update', (data) => {
+              if (data.username === '<%= bambi.username %>') {
+                console.log('Bambi update received', data);
+                // Update UI as needed
+              }
+            });
+            
+            // If this is the user's own bambi profile, set up edit functionality
+            <% if (isOwnbambi) { %>
+            const editBtn = document.getElementById('edit-bambi-btn');
+            if (editBtn) {
+              editBtn.addEventListener('click', function() {
+                const modal = document.getElementById('bambi-edit-modal');
+                if (modal) modal.style.display = 'block';
+              });
+            }
+            
+            const deleteBtn = document.getElementById('delete-bambi-btn');
+            if (deleteBtn) {
+              deleteBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to delete your bambi?')) {
+                  // Send delete event
+                  socket.emit('bambi_action', {
+                    action: 'delete',
+                    username: '<%= bambi.username %>'
+                  });
+                  window.location.href = '/';
+                }
+              });
+            }
+            <% } %>
+          });
+        </script>
   </body>
 
 </html>

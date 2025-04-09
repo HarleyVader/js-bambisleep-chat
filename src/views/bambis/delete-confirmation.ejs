@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'Delete Profile' }) %>
+<%- include('../partials/head.ejs', { title: 'Delete bambi' }) %>
 <body>
   <%- include('../partials/nav.ejs') %>
   
@@ -11,28 +11,28 @@
       </div>
     <% } %>
     
-    <div class="profile-container">
-      <h1>Delete Your Profile</h1>
+    <div class="bambi-container">
+      <h1>Delete Your bambi</h1>
       
       <div class="alert alert-warning">
-        <p><strong>Warning:</strong> You are about to delete your profile. This action cannot be undone.</p>
+        <p><strong>Warning:</strong> You are about to delete your bambi. This action cannot be undone.</p>
       </div>
       
-      <div class="profile-summary">
-        <h2>Profile Summary</h2>
-        <div class="profile-info">
-          <p><strong>Username:</strong> <%= profile.username %></p>
-          <p><strong>Display Name:</strong> <%= profile.displayName || 'Not set' %></p>
-          <p><strong>Created:</strong> <%= new Date(profile.createdAt).toLocaleDateString() %></p>
-          <p><strong>Triggers:</strong> <%= profile.triggers ? profile.triggers.length : 0 %></p>
+      <div class="bambi-summary">
+        <h2>bambi Summary</h2>
+        <div class="bambi-info">
+          <p><strong>Username:</strong> <%= bambi.username %></p>
+          <p><strong>Display Name:</strong> <%= bambi.displayName || 'Not set' %></p>
+          <p><strong>Created:</strong> <%= new Date(bambi.createdAt).toLocaleDateString() %></p>
+          <p><strong>Triggers:</strong> <%= bambi.triggers ? bambi.triggers.length : 0 %></p>
         </div>
       </div>
       
       <div class="confirmation-actions">
-        <form id="delete-form" method="POST" action="/bambis/<%= profile.username %>/delete">
-          <button type="submit" class="delete-profile-btn">Yes, Delete My Profile</button>
+        <form id="delete-form" method="POST" action="/bambis/<%= bambi.username %>/delete">
+          <button type="submit" class="delete-bambi-btn">Yes, Delete My bambi</button>
         </form>
-        <a href="/profile/<%= profile.username %>" class="cancel-btn">Cancel</a>
+        <a href="/bambi/<%= bambi.username %>" class="cancel-btn">Cancel</a>
       </div>
     </div>
 
@@ -44,7 +44,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     document.getElementById('delete-form').addEventListener('submit', function(e) {
-      if (!confirm('Are you absolutely sure you want to delete your profile? This cannot be undone!')) {
+      if (!confirm('Are you absolutely sure you want to delete your bambi? This cannot be undone!')) {
         e.preventDefault();
       }
     });

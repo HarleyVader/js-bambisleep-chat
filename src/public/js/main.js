@@ -14,11 +14,11 @@ function makeLinksClickable(text) {
 window.makeLinksClickable = makeLinksClickable;
 
 // Connect to socket.io
-const socket = io('/profiles');
+const socket = io('/bambis');
 
 // Socket events
 socket.on('connect', () => {
-  console.log('Connected to BambiSleep Profiles socket');
+  console.log('Connected to BambiSleep bambis socket');
 });
 
 socket.on('profile-updated', (data) => {
@@ -31,7 +31,7 @@ socket.on('profile-updated', (data) => {
 });
 
 socket.on('disconnect', () => {
-  console.log('Disconnected from profiles socket');
+  console.log('Disconnected from bambis socket');
 });
 
 // Error handling

@@ -109,7 +109,7 @@ const SystemControlsSchema = new mongoose.Schema({
   }
 });
 
-const ProfileSchema = new mongoose.Schema({
+const bambiSchema = new mongoose.Schema({
   username: {
     type: String,
     required: [true, 'Username is required'],
@@ -175,7 +175,7 @@ const ProfileSchema = new mongoose.Schema({
 });
 
 // Pre-save middleware to add standard triggers if none exist
-ProfileSchema.pre('save', function(next) {
+bambiSchema.pre('save', function(next) {
   // Add standard triggers if no triggers exist
   if (!this.triggers || this.triggers.length === 0) {
     this.triggers = [
@@ -194,12 +194,12 @@ ProfileSchema.pre('save', function(next) {
 });
 
 // Static method to get standard triggers
-ProfileSchema.statics.getStandardTriggers = function() {
+bambiSchema.statics.getStandardTriggers = function() {
   return STANDARD_TRIGGERS;
 };
 
-// Method to add a standard trigger to the profile
-ProfileSchema.methods.addStandardTrigger = function(triggerName) {
+// Method to add a standard trigger to the bambi
+bambiSchema.methods.addStandardTrigger = function(triggerName) {
   if (STANDARD_TRIGGERS.includes(triggerName)) {
     const existingTrigger = this.triggers.find(t => t.name === triggerName);
     
@@ -217,7 +217,7 @@ ProfileSchema.methods.addStandardTrigger = function(triggerName) {
 };
 
 // Method to toggle all triggers
-ProfileSchema.methods.toggleAllTriggers = function(state) {
+bambiSchema.methods.toggleAllTriggers = function(state) {
   const newState = typeof state === 'boolean' ? state : undefined;
   
   this.triggers.forEach(trigger => {
@@ -229,12 +229,12 @@ ProfileSchema.methods.toggleAllTriggers = function(state) {
 };
 
 // Get active triggers
-ProfileSchema.methods.getActiveTriggers = function() {
+bambiSchema.methods.getActiveTriggers = function() {
   return this.triggers.filter(trigger => trigger.active);
 };
 
 // Record trigger activation
-ProfileSchema.methods.recordTriggerActivation = function(triggerName) {
+bambiSchema.methods.recordTriggerActivation = function(triggerName) {
   const trigger = this.triggers.find(t => t.name === triggerName);
   
   if (trigger) {
@@ -260,7 +260,7 @@ ProfileSchema.methods.recordTriggerActivation = function(triggerName) {
 };
 
 // Update active trigger session
-ProfileSchema.methods.updateActiveTriggerSession = function() {
+bambiSchema.methods.updateActiveTriggerSession = function() {
   const activeTriggers = this.getActiveTriggers();
   const activeTriggerNames = activeTriggers.map(t => t.name);
   
@@ -277,7 +277,7 @@ ProfileSchema.methods.updateActiveTriggerSession = function() {
 };
 
 // Set trigger active state
-ProfileSchema.methods.setTriggerActive = function(triggerName, active) {
+bambiSchema.methods.setTriggerActive = function(triggerName, active) {
   const trigger = this.triggers.find(t => t.name === triggerName);
   
   if (trigger) {
@@ -329,4 +329,4 @@ BambiSchema.statics.updateWithTransaction = async function(userId, updateData, s
 export const Bambi = mongoose.model('Bambi', BambiSchema);
 export { BambiSchema };
 
-export default mongoose.model('Profile', ProfileSchema);
+export default mongoose.model('bambi', bambiSchema);

@@ -4,7 +4,9 @@
     <!-- <li><a href="/psychodelic-trigger-mania">Psychodelic Trigger Mania</a></li> -->
     <li><a href="/scrapers">Scrapers</a></li>
     <li><a href="/help">Help</a></li>
-    <li><a href="/bambis">Browse Bambis</a></li>
-    <li><a href="/bambi/<%= profile.username %>">Bambi Profile</a></li>
+    <li><a href="/bambis">All Bambis</a></li>
+    <% if (typeof bambi !== 'undefined' && bambi) { %>
+      <li><a href="/bambi/<%= bambi.username %>">My Bambi</a></li>
+    <% } %>
   </ul>
 </nav>

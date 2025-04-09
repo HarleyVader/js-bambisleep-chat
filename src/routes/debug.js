@@ -14,7 +14,7 @@ if (process.env.NODE_ENV !== 'production') {
     const health = {
       uptime: process.uptime(),
       timestamp: Date.now(),
-      profile_integration: true,
+      bambi_integration: true,
       event_bus: {
         connected: true,
         events: []

@@ -22,7 +22,7 @@ export const setupSocketRoutes = (io) => {
     logger.success(`Client connected: ${socket.id}`);
     startWorkerForSocket(socket.id);
 
-    // Handle user profile/bambi name setting
+    // Handle user bambi/bambi name setting
     socket.on('set username', (username) => {
       logger.info(`Setting username for socket ${socket.id}: ${username}`);
       socket.username = username;
@@ -97,13 +97,13 @@ export const setupSocketRoutes = (io) => {
       }
     });
 
-    // Handle profile updates
-    socket.on('profile update', (profileData) => {
-      logger.info(`Profile update from ${socket.username || 'anonymous'}`);
+    // Handle bambi updates
+    socket.on('bambi update', (bambiData) => {
+      logger.info(`bambi update from ${socket.username || 'anonymous'}`);
       // Forward to relevant handler or API endpoint
-      io.to(socket.id).emit('profile update status', { 
+      io.to(socket.id).emit('bambi update status', { 
         success: true, 
-        message: 'Profile update received' 
+        message: 'bambi update received' 
       });
     });
 

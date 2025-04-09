@@ -38,11 +38,9 @@ export default function errorHandler(err, req, res, next) {
 
   // For HTML responses, render the error page
   res.status(err.status).render('error', {
-    error: {
-      ...err,
-      // Only include stack in development
-      stack: process.env.NODE_ENV === 'development' ? err.stack : ''
-    },
-    message: userMessage
+    error: err,
+    message: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : '',
+    bambiname: req.cookies && req.cookies.bambiname ? req.cookies.bambiname : ''
   });
 }

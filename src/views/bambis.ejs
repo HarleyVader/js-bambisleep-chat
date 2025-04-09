@@ -22,7 +22,7 @@
       <p class="subtitle">Connect with other Bambis and explore the forest together</p>
     </div>
 
-    <div class="profile-search">
+    <div class="bambi-search">
       <form action="/bambis" method="GET" class="search-form">
         <input 
           type="text" 
@@ -35,7 +35,7 @@
       </form>
     </div>
 
-    <div class="profile-sort">
+    <div class="bambi-sort">
       <span class="sort-label">Sort by:</span>
       <div class="sort-options">
         <% 
@@ -59,25 +59,25 @@
       </div>
     </div>
 
-    <div class="create-profile-section">
+    <div class="create-bambi-section">
       <h2>Join Our Community</h2>
       <p>Share your journey into blissful mindlessness with others</p>
       
-      <a href="/bambis/new" class="join-community-btn">Create Bambi Profile</a>
+      <a href="/bambis/new" class="join-community-btn">Create Bambi bambi</a>
     </div>
 
-    <h2 class="section-title">Explore Bambi Profiles</h2>
+    <h2 class="section-title">Explore Bambi bambis</h2>
 
     <div class="bambi-grid">
-      <% if (locals.profiles && profiles.length > 0) { %>
-        <% profiles.forEach(profile => { %>
+      <% if (locals.bambis && bambis.length > 0) { %>
+        <% bambis.forEach(bambi => { %>
           <div class="bambi-card">
             <div class="bambi-avatar">
-              <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>">
-              <% if (profile.updatedAt) { %>
+              <img src="<%= bambi.avatar || '/gif/default-avatar.gif' %>" alt="<%= bambi.displayName || bambi.username %>">
+              <% if (bambi.updatedAt) { %>
                 <% 
                   const now = new Date();
-                  const lastActive = new Date(profile.updatedAt);
+                  const lastActive = new Date(bambi.updatedAt);
                   const diffMinutes = Math.floor((now - lastActive) / (1000 * 60));
                   const diffHours = Math.floor(diffMinutes / 60);
                   const diffDays = Math.floor(diffHours / 24);
@@ -99,23 +99,23 @@
               <% } %>
             </div>
             <div class="bambi-info">
-              <h3><%= profile.displayName || profile.username %></h3>
-              <p class="bambi-about"><%= profile.about || 'No information provided' %></p>
-              <a href="/bambi/<%= profile.username %>" class="view-profile-btn">View Profile</a>
+              <h3><%= bambi.displayName || bambi.username %></h3>
+              <p class="bambi-about"><%= bambi.about || 'No information provided' %></p>
+              <a href="/bambi/<%= bambi.username %>" class="view-bambi-btn">View bambi</a>
             </div>
           </div>
         <% }); %>
       <% } else { %>
         <div class="no-bambis">
-          <p>No bambi profiles found</p>
-          <a href="/bambis/new" class="create-profile-btn">Create Bambi Profile</a>
+          <p>No bambi bambis found</p>
+          <a href="/bambis/new" class="create-bambi-btn">Create Bambi bambi</a>
         </div>
       <% } %>
     </div>
     
     <!-- Update pagination links -->
     <% if (locals.pagination && pagination.total > 1) { %>
-      <div class="profile-pagination">
+      <div class="bambi-pagination">
         <% 
           const searchParam = typeof search !== 'undefined' && search ? `&search=${encodeURIComponent(search)}` : '';
           const sortParam = typeof sort !== 'undefined' ? `&sort=${sort}` : '';
@@ -139,7 +139,7 @@
           %>
           
           <% if (startPage > 1) { %>
-            <a href="/profiles?page=1<%= queryParams %>" class="pagination-number">1</a>
+            <a href="/bambis?page=1<%= queryParams %>" class="pagination-number">1</a>
             <% if (startPage > 2) { %>
               <span class="pagination-ellipsis">...</span>
             <% } %>
@@ -149,7 +149,7 @@
             <% if (i === pagination.current) { %>
               <span class="pagination-number active"><%= i %></span>
             <% } else { %>
-              <a href="/profiles?page=<%= i %><%= queryParams %>" class="pagination-number"><%= i %></a>
+              <a href="/bambis?page=<%= i %><%= queryParams %>" class="pagination-number"><%= i %></a>
             <% } %>
           <% } %>
           
@@ -157,7 +157,7 @@
             <% if (endPage < pagination.total - 1) { %>
               <span class="pagination-ellipsis">...</span>
             <% } %>
-            <a href="/profiles?page=<%= pagination.total %><%= queryParams %>" class="pagination-number"><%= pagination.total %></a>
+            <a href="/bambis?page=<%= pagination.total %><%= queryParams %>" class="pagination-number"><%= pagination.total %></a>
           <% } %>
         </div>
         
@@ -214,7 +214,7 @@
       100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
     }
 
-    .profile-search {
+    .bambi-search {
       margin: 1rem 0;
       max-width: 500px;
       width: 100%;
@@ -255,7 +255,7 @@
       background: rgba(255, 100, 255, 0.4);
     }
 
-    .profile-sort {
+    .bambi-sort {
       display: flex;
       align-items: center;
       margin: 1rem 0;

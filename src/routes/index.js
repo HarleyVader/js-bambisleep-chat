@@ -1,9 +1,9 @@
 import express from 'express';
-import Profile from '../models/Bambi.js';
+import Bambi from '../models/Bambi.js';
 
 // Create routers
 const mainRouter = express.Router();
-const profileRouter = express.Router();
+const bambiRouter = express.Router();
 const router = express.Router();
 
 // Main home route with cookie authentication
@@ -18,23 +18,23 @@ mainRouter.get('/', (req, res) => {
   });
 });
 
-// Profile listing route
-profileRouter.get('/bambis', async (req, res) => {
+// bambi listing route
+bambiRouter.get('/bambis', async (req, res) => {
   try {
-    const profiles = await Profile.find().sort({ updatedAt: -1 });
+    const bambis = await Bambi.find().sort({ updatedAt: -1 });
     res.render('bambis', { 
-      title: 'Bambi Profiles',
-      profiles
+      title: 'Bambi bambis',
+      bambis
     });
   } catch (error) {
     res.status(500).render('error', { 
-      message: 'Error fetching profiles',
+      message: 'Error fetching bambis',
       error 
     });
   }
 });
 
-// Redirect all bambis routes to the proper profiles routes
+// Redirect all bambis routes to the proper bambis routes
 router.get('/', (req, res) => {
   res.redirect('/bambis');
 });
@@ -54,7 +54,7 @@ export const setRoutes = (app) => {
   
   // Set up view routes
   app.use('/', mainRouter);
-  app.use('/bambi', profileRouter);
+  app.use('/bambi', bambiRouter);
   
   // Additional routes can be configured here
 };
@@ -62,7 +62,7 @@ export const setRoutes = (app) => {
 // Also export the routers separately for flexibility
 export const routers = {
   mainRouter,
-  profileRouter
+  bambiRouter
 };
 
 // For backward compatibility with the original structure

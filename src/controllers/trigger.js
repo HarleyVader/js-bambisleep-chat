@@ -1,5 +1,5 @@
-import Profile from '../models/Profile.js';
-import logger from '../../../bambisleep-profile/src/utils/logger.js';
+import bambi from '../models/Bambi.js';
+import logger from '../utils/logger.js';
 
 // Standard trigger list
 const standardTriggers = [
@@ -44,27 +44,27 @@ export const getAllTriggers = async (req, res) => {
   }
 };
 
-export const getProfileTriggers = async (req, res) => {
+export const getbambiTriggers = async (req, res) => {
   try {
     const { username } = req.params;
-    const profile = await Profile.findOne({ username });
+    const bambi = await bambi.findOne({ username });
     
-    if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+    if (!bambi) {
+      return res.status(404).json({ error: 'bambi not found' });
     }
     
-    const activeTriggerSession = profile.activeTriggerSession || {
+    const activeTriggerSession = bambi.activeTriggerSession || {
       startTime: new Date(),
       activeTriggers: []
     };
     
     res.json({ 
-      triggers: profile.triggers,
+      triggers: bambi.triggers,
       activeTriggerSession
     });
   } catch (err) {
-    logger.error(`Error getting profile triggers: ${err.message}`);
-    res.status(500).json({ error: 'Failed to get profile triggers' });
+    logger.error(`Error getting bambi triggers: ${err.message}`);
+    res.status(500).json({ error: 'Failed to get bambi triggers' });
   }
 };
 
@@ -77,20 +77,20 @@ export const addTrigger = async (req, res) => {
       return res.status(400).json({ error: 'Description must be 1500 characters or less' });
     }
     
-    const profile = await Profile.findOne({ username });
+    const bambi = await bambi.findOne({ username });
     
-    if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+    if (!bambi) {
+      return res.status(404).json({ error: 'bambi not found' });
     }
     
     const isStandard = standardTriggers.includes(name);
     
-    const existingTrigger = profile.triggers.find(t => t.name === name);
+    const existingTrigger = bambi.triggers.find(t => t.name === name);
     if (existingTrigger) {
       return res.status(400).json({ error: 'Trigger already exists' });
     }
     
-    profile.triggers.push({
+    bambi.triggers.push({
       name,
       description,
       active: active !== false,
@@ -98,27 +98,27 @@ export const addTrigger = async (req, res) => {
     });
     
     if (active !== false) {
-      if (!profile.activeTriggerSession) {
-        profile.activeTriggerSession = {
+      if (!bambi.activeTriggerSession) {
+        bambi.activeTriggerSession = {
           startTime: new Date(),
           activeTriggers: [name],
           lastUpdated: new Date()
         };
       } else {
-        if (!profile.activeTriggerSession.activeTriggers) {
-          profile.activeTriggerSession.activeTriggers = [];
+        if (!bambi.activeTriggerSession.activeTriggers) {
+          bambi.activeTriggerSession.activeTriggers = [];
         }
-        profile.activeTriggerSession.activeTriggers.push(name);
-        profile.activeTriggerSession.lastUpdated = new Date();
+        bambi.activeTriggerSession.activeTriggers.push(name);
+        bambi.activeTriggerSession.lastUpdated = new Date();
       }
     }
     
-    await profile.save();
+    await bambi.save();
     
     res.status(201).json({ 
       message: 'Trigger added successfully',
-      trigger: profile.triggers[profile.triggers.length - 1],
-      activeTriggerSession: profile.activeTriggerSession
+      trigger: bambi.triggers[bambi.triggers.length - 1],
+      activeTriggerSession: bambi.activeTriggerSession
     });
   } catch (err) {
     logger.error(`Error adding trigger: ${err.message}`);
@@ -131,47 +131,47 @@ export const toggleTrigger = async (req, res) => {
     const { username, triggerName } = req.params;
     const { active } = req.body;
     
-    const profile = await Profile.findOne({ username });
+    const bambi = await bambi.findOne({ username });
     
-    if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+    if (!bambi) {
+      return res.status(404).json({ error: 'bambi not found' });
     }
     
-    const triggerIndex = profile.triggers.findIndex(t => t.name === triggerName);
+    const triggerIndex = bambi.triggers.findIndex(t => t.name === triggerName);
     if (triggerIndex === -1) {
       return res.status(404).json({ error: 'Trigger not found' });
     }
     
-    profile.triggers[triggerIndex].active = active;
+    bambi.triggers[triggerIndex].active = active;
     
-    if (!profile.activeTriggerSession) {
-      profile.activeTriggerSession = {
+    if (!bambi.activeTriggerSession) {
+      bambi.activeTriggerSession = {
         startTime: new Date(),
         activeTriggers: active ? [triggerName] : [],
         lastUpdated: new Date()
       };
     } else {
-      if (!profile.activeTriggerSession.activeTriggers) {
-        profile.activeTriggerSession.activeTriggers = [];
+      if (!bambi.activeTriggerSession.activeTriggers) {
+        bambi.activeTriggerSession.activeTriggers = [];
       }
       
       if (active) {
-        if (!profile.activeTriggerSession.activeTriggers.includes(triggerName)) {
-          profile.activeTriggerSession.activeTriggers.push(triggerName);
+        if (!bambi.activeTriggerSession.activeTriggers.includes(triggerName)) {
+          bambi.activeTriggerSession.activeTriggers.push(triggerName);
         }
       } else {
-        profile.activeTriggerSession.activeTriggers = 
-          profile.activeTriggerSession.activeTriggers.filter(t => t !== triggerName);
+        bambi.activeTriggerSession.activeTriggers = 
+          bambi.activeTriggerSession.activeTriggers.filter(t => t !== triggerName);
       }
       
-      profile.activeTriggerSession.lastUpdated = new Date();
+      bambi.activeTriggerSession.lastUpdated = new Date();
     }
     
-    await profile.save();
+    await bambi.save();
     
     res.json({ 
       message: `Trigger ${active ? 'activated' : 'deactivated'} successfully`,
-      activeTriggerSession: profile.activeTriggerSession
+      activeTriggerSession: bambi.activeTriggerSession
     });
   } catch (err) {
     logger.error(`Error toggling trigger: ${err.message}`);
@@ -184,18 +184,18 @@ export const toggleAllTriggers = async (req, res) => {
     const { username } = req.params;
     const { active } = req.body;
     
-    const profile = await Profile.findOne({ username });
+    const bambi = await bambi.findOne({ username });
     
-    if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+    if (!bambi) {
+      return res.status(404).json({ error: 'bambi not found' });
     }
     
-    profile.triggers.forEach(trigger => {
+    bambi.triggers.forEach(trigger => {
       trigger.active = !!active;
     });
     
-    if (!profile.activeTriggerSession) {
-      profile.activeTriggerSession = {
+    if (!bambi.activeTriggerSession) {
+      bambi.activeTriggerSession = {
         startTime: new Date(),
         activeTriggers: [],
         lastUpdated: new Date()
@@ -203,19 +203,19 @@ export const toggleAllTriggers = async (req, res) => {
     }
     
     if (active) {
-      profile.activeTriggerSession.activeTriggers = profile.triggers.map(t => t.name);
+      bambi.activeTriggerSession.activeTriggers = bambi.triggers.map(t => t.name);
     } else {
-      profile.activeTriggerSession.activeTriggers = [];
+      bambi.activeTriggerSession.activeTriggers = [];
     }
     
-    profile.activeTriggerSession.lastUpdated = new Date();
+    bambi.activeTriggerSession.lastUpdated = new Date();
     
-    await profile.save();
+    await bambi.save();
     
     res.json({ 
       message: `All triggers ${active ? 'activated' : 'deactivated'} successfully`,
-      activeTriggerSession: profile.activeTriggerSession,
-      triggers: profile.triggers
+      activeTriggerSession: bambi.activeTriggerSession,
+      triggers: bambi.triggers
     });
   } catch (err) {
     logger.error(`Error toggling all triggers: ${err.message}`);
@@ -227,13 +227,13 @@ export const getTriggerHistory = async (req, res) => {
   try {
     const { username } = req.params;
     
-    const profile = await Profile.findOne({ username });
+    const bambi = await bambi.findOne({ username });
     
-    if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+    if (!bambi) {
+      return res.status(404).json({ error: 'bambi not found' });
     }
     
-    res.json({ triggerHistory: profile.triggerHistory || [] });
+    res.json({ triggerHistory: bambi.triggerHistory || [] });
   } catch (err) {
     logger.error(`Error getting trigger history: ${err.message}`);
     res.status(500).json({ error: 'Failed to get trigger history' });
@@ -249,27 +249,27 @@ export const processTriggerEvent = async (req, res) => {
       return res.status(400).json({ error: 'No valid triggers provided' });
     }
     
-    const profile = await Profile.findOne({ username });
+    const bambi = await bambi.findOne({ username });
     
-    if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+    if (!bambi) {
+      return res.status(404).json({ error: 'bambi not found' });
     }
     
-    if (!profile.triggerHistory) {
-      profile.triggerHistory = [];
+    if (!bambi.triggerHistory) {
+      bambi.triggerHistory = [];
     }
     
-    profile.triggerHistory.push({
+    bambi.triggerHistory.push({
       timestamp: new Date(),
       triggers: triggers,
       source: req.body.source || 'web'
     });
     
-    if (profile.triggerHistory.length > 100) {
-      profile.triggerHistory = profile.triggerHistory.slice(-100);
+    if (bambi.triggerHistory.length > 100) {
+      bambi.triggerHistory = bambi.triggerHistory.slice(-100);
     }
     
-    await profile.save();
+    await bambi.save();
     
     res.status(200).json({ 
       message: 'Trigger event processed successfully',

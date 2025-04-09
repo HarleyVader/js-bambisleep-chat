@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'Bambi Profiles' }) %>
+<%- include('../partials/head.ejs', { title: 'Bambi bambis' }) %>
 <body>
   <%- include('../partials/nav.ejs') %>
   
@@ -18,26 +18,26 @@
     <% } %>
     
     <div class="bambis-container">
-      <h1 class="neon-text">Bambi Profiles</h1>
+      <h1 class="neon-text">Bambi bambis</h1>
       
       <div class="bambis-grid">
-        <% if (locals.profiles && profiles.length > 0) { %>
-          <% profiles.forEach(profile => { %>
+        <% if (locals.bambis && bambis.length > 0) { %>
+          <% bambis.forEach(bambi => { %>
             <div class="bambi-card">
               <div class="bambi-avatar">
-                <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>">
+                <img src="<%= bambi.avatar || '/gif/default-avatar.gif' %>" alt="<%= bambi.displayName || bambi.username %>">
               </div>
               <div class="bambi-info">
-                <h3><%= profile.displayName || profile.username %></h3>
-                <p class="bambi-about"><%= profile.about || 'No information provided' %></p>
-                <a href="/bambi/<%= profile.username %>" class="view-profile-btn">View Profile</a>
+                <h3><%= bambi.displayName || bambi.username %></h3>
+                <p class="bambi-about"><%= bambi.about || 'No information provided' %></p>
+                <a href="/bambi/<%= bambi.username %>" class="view-bambi-btn">View bambi</a>
               </div>
             </div>
           <% }); %>
         <% } else { %>
           <div class="no-bambis">
-            <p>No bambi profiles found</p>
-            <a href="/bambis/new" class="create-profile-btn">Create Bambi Profile</a>
+            <p>No bambi bambis found</p>
+            <a href="/bambis/new" class="create-bambi-btn">Create Bambi bambi</a>
           </div>
         <% } %>
       </div>

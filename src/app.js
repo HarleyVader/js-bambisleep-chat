@@ -18,7 +18,6 @@ import scraperAPIRoutes from './routes/scraperRoutes.js';
 import bambisRouter from './routes/bambis.js';
 import bambiApiRouter from './routes/api/bambis.js';
 
-
 // Middleware
 import errorHandler from './middleware/errorHandler.js';
 import performanceMiddleware from './middleware/performance.js';
@@ -102,7 +101,7 @@ app.get('/socket.io/socket.io.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
 });
 
-// Profile assets
+// bambi assets
 app.use('/bambis/css', express.static(path.join(__dirname, '../src/public/css')));
 app.use('/bambis/js', express.static(path.join(__dirname, '../src/public/js')));
 app.use('/bambis/gif', express.static(path.join(__dirname, '../src/public/gif')));
@@ -110,11 +109,11 @@ app.use('/bambis/gif', express.static(path.join(__dirname, '../src/public/gif'))
 // Navigation links middleware
 app.use((req, res, next) => {
   res.locals = res.locals || {};
-  res.locals.profilesUrl = '/bambis';
+  res.locals.bambisUrl = '/bambis';
   next();
 });
 
-// Apply profile app middleware
+// Apply bambi app middleware
 app.use('/bambis', sessionMiddleware, userContextMiddleware, bambisRouter);
 
 // Define routes
@@ -127,6 +126,7 @@ const routes = [
 
 app.use('/api/bambis', bambiApiRouter);
 app.use('/bambi', bambisRouter); 
+app.use('/bambis', bambisRouter);
 
 // Setup routes
 routes.forEach(route => {
@@ -270,10 +270,10 @@ async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE) {
 }
 
 app.use('/api/scraper', scraperAPIRoutes);
-app.use('/api/profiles', profileApiRouter);
+app.use('/api/bambis', bambiApiRouter);
 
-// Handle profile updates
-app.post('/bambis/update-profile', async (req, res) => {
+// Handle bambi updates
+app.post('/bambis/update-bambi', async (req, res) => {
   try {
     // Get username from session or cookie
     const username = req.session?.user?.username || 
@@ -282,18 +282,18 @@ app.post('/bambis/update-profile', async (req, res) => {
     if (!username) {
       return res.status(401).json({ 
           success: false, 
-          message: 'You must be logged in to update your profile' 
+          message: 'You must be logged in to update your bambi' 
       });
     }
     
-    // Find and update the user's profile
+    // Find and update the user's bambi
     const bambi = await Bambi.findOneAndUpdate(
         { username },
         { 
             $set: {
                 about: req.body.about,
                 description: req.body.description,
-                profilePictureUrl: req.body.profilePictureUrl,
+                bambiPictureUrl: req.body.bambiPictureUrl,
                 headerImageUrl: req.body.headerImageUrl,
                 lastActive: new Date()
             }
@@ -304,15 +304,15 @@ app.post('/bambis/update-profile', async (req, res) => {
     // Respond with success
     res.json({ 
         success: true, 
-        message: 'Profile updated successfully',
+        message: 'bambi updated successfully',
         bambi
     });
     
   } catch (error) {
-      logger.error('Profile update error:', error);
+      logger.error('bambi update error:', error);
       res.status(500).json({ 
           success: false, 
-          message: 'Server error occurred while updating profile' 
+          message: 'Server error occurred while updating bambi' 
       });
   }
 });

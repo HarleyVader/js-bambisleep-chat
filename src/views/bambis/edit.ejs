@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'Edit Profile' }) %>
+<%- include('../partials/head.ejs', { title: 'Edit bambi' }) %>
 <body>
   <%- include('../partials/nav.ejs') %>
   
@@ -11,47 +11,47 @@
       </div>
     <% } %>
     
-    <div class="profile-edit-container">
-      <h1>Edit Your Profile</h1>
+    <div class="bambi-edit-container">
+      <h1>Edit Your bambi</h1>
       
-      <form id="edit-profile-form" class="profile-form" action="/bambi/update" method="POST">
-        <input type="hidden" name="username" value="<%= profile.username %>">
+      <form id="edit-bambi-form" class="bambi-form" action="/bambi/update" method="POST">
+        <input type="hidden" name="username" value="<%= bambi.username %>">
 
         <div class="input-container">
           <label for="displayName">Display Name</label>
-          <input type="text" id="displayName" name="displayName" value="<%= profile.displayName || profile.username %>" required>
+          <input type="text" id="displayName" name="displayName" value="<%= bambi.displayName || bambi.username %>" required>
         </div>
 
         <div class="input-container">
           <label for="avatar">Avatar URL:</label>
-          <input type="text" id="avatar" name="avatar" value="<%= profile.avatar %>" placeholder="/gif/default-avatar.gif">
+          <input type="text" id="avatar" name="avatar" value="<%= bambi.avatar %>" placeholder="/gif/default-avatar.gif">
           <div class="preview">
-            <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="Avatar Preview" id="avatar-preview">
+            <img src="<%= bambi.avatar || '/gif/default-avatar.gif' %>" alt="Avatar Preview" id="avatar-preview">
           </div>
         </div>
 
         <div class="input-container">
           <label for="headerImage">Header Image URL:</label>
-          <input type="text" id="headerImage" name="headerImage" value="<%= profile.headerImage %>" placeholder="/gif/default-header.gif">
+          <input type="text" id="headerImage" name="headerImage" value="<%= bambi.headerImage %>" placeholder="/gif/default-header.gif">
           <div class="preview">
-            <img src="<%= profile.headerImage || '/gif/default-header.gif' %>" alt="Header Preview" id="header-preview" style="border-radius: 4px; max-width: 200px; height: auto;">
+            <img src="<%= bambi.headerImage || '/gif/default-header.gif' %>" alt="Header Preview" id="header-preview" style="border-radius: 4px; max-width: 200px; height: auto;">
           </div>
         </div>
 
         <div class="input-container">
           <label for="headerColor">Header Color</label>
-          <input type="color" id="headerColor" name="headerColor" value="<%= profile.headerColor || '#35424a' %>">
+          <input type="color" id="headerColor" name="headerColor" value="<%= bambi.headerColor || '#35424a' %>">
         </div>
 
         <div class="input-container">
           <label for="about">About (150 chars max):</label>
-          <textarea id="about" name="about" maxlength="150" placeholder="Brief intro (150 chars max)"><%= profile.about %></textarea>
+          <textarea id="about" name="about" maxlength="150" placeholder="Brief intro (150 chars max)"><%= bambi.about %></textarea>
           <div class="char-counter"><span id="about-counter">0</span>/150</div>
         </div>
 
         <div class="input-container">
           <label for="description">Description (1500 chars max):</label>
-          <textarea id="description" name="description" maxlength="1500" rows="5" placeholder="Your full bambi journey (1500 chars max)"><%= profile.description %></textarea>
+          <textarea id="description" name="description" maxlength="1500" rows="5" placeholder="Your full bambi journey (1500 chars max)"><%= bambi.description %></textarea>
           <div class="char-counter"><span id="description-counter">0</span>/1500</div>
         </div>
 
@@ -60,22 +60,22 @@
           <div class="checkbox-group">
             <div class="checkbox-item">
               <input type="checkbox" id="spring" name="seasons" value="spring" 
-                <%= profile.seasons && profile.seasons.includes('spring') ? 'checked' : '' %>>
+                <%= bambi.seasons && bambi.seasons.includes('spring') ? 'checked' : '' %>>
               <label for="spring">Spring</label>
             </div>
             <div class="checkbox-item">
               <input type="checkbox" id="summer" name="seasons" value="summer"
-                <%= profile.seasons && profile.seasons.includes('summer') ? 'checked' : '' %>>
+                <%= bambi.seasons && bambi.seasons.includes('summer') ? 'checked' : '' %>>
               <label for="summer">Summer</label>
             </div>
             <div class="checkbox-item">
               <input type="checkbox" id="autumn" name="seasons" value="autumn"
-                <%= profile.seasons && profile.seasons.includes('autumn') ? 'checked' : '' %>>
+                <%= bambi.seasons && bambi.seasons.includes('autumn') ? 'checked' : '' %>>
               <label for="autumn">Autumn</label>
             </div>
             <div class="checkbox-item">
               <input type="checkbox" id="winter" name="seasons" value="winter"
-                <%= profile.seasons && profile.seasons.includes('winter') ? 'checked' : '' %>>
+                <%= bambi.seasons && bambi.seasons.includes('winter') ? 'checked' : '' %>>
               <label for="winter">Winter</label>
             </div>
           </div>
@@ -83,7 +83,7 @@
 
         <div class="form-actions">
           <button type="submit" class="save-btn">Save Changes</button>
-          <a href="/bambi/<%= profile.username %>" class="cancel-btn">Cancel</a>
+          <a href="/bambi/<%= bambi.username %>" class="cancel-btn">Cancel</a>
         </div>
       </form>
     </div>
@@ -152,7 +152,7 @@
       }
       
       // Form submission
-      const form = document.getElementById('edit-profile-form');
+      const form = document.getElementById('edit-bambi-form');
       
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -164,8 +164,8 @@
         const seasonInputs = document.querySelectorAll('input[name="seasons"]:checked');
         const seasons = Array.from(seasonInputs).map(input => input.value);
         
-        // Construct profile data
-        const profileData = {
+        // Construct bambi data
+        const bambiData = {
           displayName: formData.get('displayName'),
           avatar: formData.get('avatar'),
           headerImage: formData.get('headerImage'),
@@ -177,27 +177,27 @@
         
         try {
           // Send data to server via fetch
-          const response = await fetch(`/profile/${username}/`, {
+          const response = await fetch(`/bambi/${username}/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify(profileData)
+            body: JSON.stringify(bambiData)
           });
           
           const data = await response.json();
           
           if (data.success) {
-            showNotification('Profile updated successfully');
+            showNotification('bambi updated successfully');
             setTimeout(() => {
-              window.location.href = `/profile/${username}/`;
+              window.location.href = `/bambi/${username}/`;
             }, 1000);
           } else {
-            showNotification(data.message || 'Failed to update profile', true);
+            showNotification(data.message || 'Failed to update bambi', true);
           }
         } catch (error) {
-          console.error('Error updating profile:', error);
-          showNotification('An error occurred while updating profile', true);
+          console.error('Error updating bambi:', error);
+          showNotification('An error occurred while updating bambi', true);
         }
       });
     });

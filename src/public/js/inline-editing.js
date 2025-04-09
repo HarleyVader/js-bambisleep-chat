@@ -88,7 +88,7 @@ function setupInlineEditing() {
           formData.append(field, value);
           formData.append('username', username);
           
-          const response = await fetch(`/profile/${username}/update`, {
+          const response = await fetch(`/bambi/${username}/update`, {
             method: 'POST',
             body: formData,
             headers: {
