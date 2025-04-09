@@ -1,6 +1,6 @@
 import { setApiRoutes } from './api.js';
 import express from 'express';
-import Profile from '../models/Profile.js';
+import Profile from '../models/Bambi.js';
 
 // Create routers
 const mainRouter = express.Router();

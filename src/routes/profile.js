@@ -1,9 +1,13 @@
 import express from 'express';
-const router = express.Router();
-import Profile from '../models/Profile.js';
+import mongoose from 'mongoose';
+import Profile from '../models/Bambi.js';
 import auth from '../middleware/auth.js';
 import logger from '../utils/logger.js';
+import { withDatabaseTimeout } from '../middleware/databaseErrorHandler.js';
+import { withTransaction } from '../database/transaction.js';
+import { validationResult, body, param } from 'express-validator'; // Add this
 
+const router = express.Router();
 
 // Helper function to get username from cookies
 const getUsernameFromCookies = (req) => {
@@ -13,16 +17,120 @@ const getUsernameFromCookies = (req) => {
   return null;
 };
 
-// Home page - Show all profiles in a card style layout
-router.get('/', async (req, res) => {
+// Input validation middleware
+const validateProfileInput = [
+  body('username')
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters')
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage('Username can only contain letters, numbers, underscores and hyphens'),
+  body('displayName')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('Display name cannot exceed 50 characters'),
+  body('about')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('About section cannot exceed 200 characters'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 2000 })
+    .withMessage('Description cannot exceed 2000 characters'),
+  body('avatar')
+    .optional()
+    .isURL()
+    .withMessage('Avatar must be a valid URL'),
+  body('triggers')
+    .optional()
+    .isArray()
+    .withMessage('Triggers must be an array'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Validation error', 
+          errors: errors.array() 
+        });
+      }
+      return res.status(400).render('error', {
+        message: 'Validation error',
+        error: { status: 400, details: errors.array() },
+        title: 'Validation Error',
+        validConstantsCount: 5
+      });
+    }
+    next();
+  }
+];
+
+// Create a middleware to check if user owns the profile
+const ownershipCheck = (req, res, next) => {
+  const { username } = req.params;
+  const currentBambiname = getUsernameFromCookies(req);
+  
+  if (!currentBambiname || currentBambiname !== username) {
+    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You are not authorized to modify this profile' 
+      });
+    }
+    return res.status(403).render('error', { 
+      message: 'You are not authorized to modify this profile',
+      error: { status: 403 },
+      title: 'Authorization Error',
+      validConstantsCount: 5
+    });
+  }
+  
+  next();
+};
+
+// Add a middleware for database operations with error handling
+const withDBErrorHandling = (handler) => async (req, res, next) => {
   try {
-    const profiles = await Profile.find().sort({ updatedAt: -1 });
+    await handler(req, res, next);
+  } catch (error) {
+    logger.error(`Database operation failed: ${error.message}`, { 
+      route: req.originalUrl,
+      method: req.method,
+      stack: error.stack
+    });
     
-    res.render('index', { 
-      title: 'BambiSleep Community Profiles',
-      profiles,
+    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+      return res.status(500).json({
+        success: false,
+        message: 'A database error occurred'
+      });
+    }
+    
+    return res.status(500).render('error', {
+      message: 'A database error occurred',
+      error: req.app.get('env') === 'development' ? error : {},
       validConstantsCount: 5,
-      footer: {
+      title: 'Database Error'
+    });
+  }
+};
+
+// Apply database error handling to all routes
+router.use((req, res, next) => {
+  const originalRender = res.render;
+  const originalJson = res.json;
+  
+  // Wrap render to add consistent template data
+  res.render = function(view, options, callback) {
+    // Add common properties to all render calls
+    const enhancedOptions = {
+      ...options,
+      validConstantsCount: options.validConstantsCount || 5,
+      footer: options.footer || {
         logo: {
           url: "https://brandynette.xxx/",
           image: "/gif/default-avatar.gif",
@@ -30,181 +138,237 @@ router.get('/', async (req, res) => {
         },
         tagline: "Connect with other Bambis and explore the forest together"
       }
-    });
-  } catch (error) {
-    console.error('Error fetching profiles:', error);
-    res.status(500).render('error', { 
-      message: 'Error fetching profiles',
-      error: req.app.get('env') === 'development' ? error : {}
-    });
-  }
+    };
+    return originalRender.call(this, view, enhancedOptions, callback);
+  };
+  
+  // Wrap JSON to add consistent API response format
+  res.json = function(body) {
+    // If success status isn't explicitly set, determine it from the HTTP status code
+    if (body.success === undefined) {
+      body.success = res.statusCode >= 200 && res.statusCode < 300;
+    }
+    return originalJson.call(this, body);
+  };
+  
+  next();
 });
+
+// Home page - Show all profiles with pagination
+router.get('/', withDBErrorHandling(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const skip = (page - 1) * limit;
+  
+  // Use Promise.all to run queries in parallel
+  const [profiles, totalProfiles] = await Promise.all([
+    Profile.find()
+      .select('username displayName avatar about updatedAt') // Only select fields we need
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(), // Convert to plain JS object for better performance
+      
+    Profile.countDocuments() // Get total count for pagination
+  ]);
+  
+  const totalPages = Math.ceil(totalProfiles / limit);
+  
+  res.render('index', { 
+    title: 'BambiSleep Community Profiles',
+    profiles,
+    pagination: {
+      current: page,
+      total: totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1
+    },
+    validConstantsCount: 5
+  });
+}));
 
 // Create profile page
 router.get('/new', (req, res) => {
+  // Check if user already has a profile
+  const currentBambiname = getUsernameFromCookies(req);
+  if (currentBambiname) {
+    return res.redirect(`/profile/${currentBambiname}`);
+  }
+  
   res.render('creation', { 
     title: 'Create New Profile',
-    validConstantsCount: 5,
-    footer: {
-      logo: {
-        url: "https://brandynette.xxx/",
-        image: "/gif/default-avatar.gif",
-        alt: "Brandynette.xxx"
-      },
-      tagline: "Create your bambi profile and join the community"
-    }
+    validConstantsCount: 5
   });
 });
 
-// Create profile submission
-router.post('/new', async (req, res) => {
-  try {
-    const { username, displayName, avatar, about, description, seasons } = req.body;
-    
-    // Check if username already exists
-    const existingProfile = await Profile.findOne({ username });
-    if (existingProfile) {
-      return res.render('creation', { 
-        title: 'Create New Profile',
-        error: 'Username already exists',
-        validConstantsCount: 5,
-        footer: {
-          logo: {
-            url: "https://brandynette.xxx/",
-            image: "/gif/default-avatar.gif",
-            alt: "Brandynette.xxx"
-          },
-          tagline: "Create your bambi profile and join the community"
-        }
-      });
-    }
-    
-    // Process seasons
-    const selectedSeasons = Array.isArray(seasons) ? seasons : [seasons].filter(Boolean);
-    
-    // Create new profile
-    const newProfile = new Profile({
-      username,
-      displayName: displayName || username,
-      avatar: avatar || '/gif/default-avatar.gif',
-      about: about || 'Tell us about yourself...',
-      description: description || 'Share your bambi journey...',
-      seasons: selectedSeasons.length > 0 ? selectedSeasons : ['spring']
-    });
-    
-    await newProfile.save();
-    
-    // Set cookie and redirect
-    res.cookie('bambiname', username, { path: '/' });
-    res.redirect(`/profile/${username}`);
-  } catch (error) {
-    console.error('Error creating profile:', error);
-    res.status(500).render('creation', { 
+// Create profile submission with validation
+router.post('/new', validateProfileInput, withDBErrorHandling(async (req, res) => {
+  const { username, displayName, avatar, about, description, seasons } = req.body;
+  
+  // Check if username already exists
+  const existingProfile = await Profile.findOne({ username });
+  if (existingProfile) {
+    return res.render('creation', { 
       title: 'Create New Profile',
-      error: 'Failed to create profile. Please try again.',
-      validConstantsCount: 5,
-      footer: {
-        logo: {
-          url: "https://brandynette.xxx/",
-          image: "/gif/default-avatar.gif",
-          alt: "Brandynette.xxx"
-        },
-        tagline: "Create your bambi profile and join the community"
-      }
+      error: 'Username already exists',
+      validConstantsCount: 5
     });
   }
-});
+  
+  // Process seasons
+  const selectedSeasons = Array.isArray(seasons) ? seasons : [seasons].filter(Boolean);
+  
+  // Create new profile
+  const newProfile = new Profile({
+    username,
+    displayName: displayName || username,
+    avatar: avatar || '/gif/default-avatar.gif',
+    about: about || 'Tell us about yourself...',
+    description: description || 'Share your bambi journey...',
+    seasons: selectedSeasons.length > 0 ? selectedSeasons : ['spring'],
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+  
+  await newProfile.save();
+  
+  // Set cookie with security options
+  res.cookie('bambiname', username, { 
+    path: '/',
+    httpOnly: true, // Prevents JavaScript from accessing the cookie
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
+    sameSite: 'strict' // Prevents CSRF attacks
+  });
+  
+  // Set session too for better auth
+  if (req.session) {
+    req.session.user = {
+      username: username,
+      profileId: newProfile._id
+    };
+  }
+  
+  res.redirect(`/profile/${username}`);
+}));
 
-// View profile
-router.get('/:username', async (req, res) => {
-  try {
+// Handle profile updates with improved error handling
+router.post('/update', auth, validateProfileInput, withDBErrorHandling(async (req, res) => {
+  // Get username from session or cookie
+  const username = req.user?.username || getUsernameFromCookies(req);
+  
+  if (!username) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'You must be logged in to update your profile' 
+    });
+  }
+  
+  // Use database timeout and transaction for better error handling
+  const updatedProfile = await withDatabaseTimeout(
+    async () => {
+      // Perform update within a transaction for data consistency
+      return withTransaction(async (session) => {
+        const bambi = await mongoose.model('Bambi').findOneAndUpdate(
+          { username },
+          { 
+            $set: {
+              about: req.body.about,
+              description: req.body.description,
+              profilePictureUrl: req.body.profilePictureUrl,
+              headerImageUrl: req.body.headerImageUrl,
+              lastActive: new Date(),
+              updatedAt: new Date()
+            }
+          },
+          { new: true, session }
+        );
+        
+        if (!bambi) {
+          throw new Error('Profile not found');
+        }
+        
+        return bambi;
+      });
+    },
+    10000, // 10 second timeout
+    'Update profile'
+  );
+  
+  res.json({ 
+    success: true, 
+    message: 'Profile updated successfully',
+    bambi: updatedProfile
+  });
+}));
+
+// View profile with efficient query
+router.get('/:username', param('username').trim().escape(), withDBErrorHandling(async (req, res) => {
+  const { username } = req.params;
+  
+  const profile = await Profile.findOne({ username })
+    .select('-__v') // Exclude version field
+    .lean(); // Use lean for better performance
+  
+  if (!profile) {
+    return res.status(404).render('error', { 
+      message: 'Profile not found',
+      error: { status: 404 },
+      title: 'Not Found'
+    });
+  }
+  
+  // Check if user is the profile owner
+  const currentBambiname = getUsernameFromCookies(req);
+  const isOwnProfile = currentBambiname === username;
+  
+  // Track profile views
+  if (!isOwnProfile) {
+    // Don't await this to prevent slowing down the page load
+    Profile.updateOne(
+      { _id: profile._id },
+      { $inc: { views: 1 } }
+    ).catch(err => logger.error(`Failed to update view count: ${err.message}`));
+  }
+  
+  res.render('profile', { 
+    title: `${profile.displayName || profile.username}'s Profile`,
+    profile,
+    username,
+    isOwnProfile
+  });
+}));
+
+// Edit profile page - apply ownership check middleware
+router.get('/:username/edit', 
+  param('username').trim().escape(),
+  ownershipCheck, 
+  withDBErrorHandling(async (req, res) => {
     const { username } = req.params;
-    const profile = await Profile.findOne({ username });
+    const profile = await Profile.findOne({ username }).lean();
     
     if (!profile) {
       return res.status(404).render('error', { 
         message: 'Profile not found',
-        error: { status: 404 }
-      });
-    }
-    
-    // Check if user is the profile owner
-    const currentBambiname = getUsernameFromCookies(req);
-    const isOwnProfile = currentBambiname === username;
-    
-    res.render('profile', { 
-      title: `${profile.displayName || profile.username}'s Profile`,
-      profile,
-      username,
-      isOwnProfile,
-      // other fields...
-    });
-  } catch (error) {
-    console.error('Error fetching profile:', error);
-    // error handling...
-  }
-});
-
-// Edit profile page
-router.get('/edit/:username', async (req, res) => {
-  try {
-    const { username } = req.params;
-    const currentBambiname = getUsernameFromCookies(req);
-    
-    // Check if user is authorized
-    if (!currentBambiname || currentBambiname !== username) {
-      return res.status(403).render('error', { 
-        message: 'You are not authorized to edit this profile',
-        error: { status: 403 }
-      });
-    }
-    
-    const profile = await Profile.findOne({ username });
-    
-    if (!profile) {
-      return res.status(404).render('error', { 
-        message: 'Profile not found',
-        error: { status: 404 }
+        error: { status: 404 },
+        title: 'Not Found'
       });
     }
     
     res.render('edit', { 
       title: 'Edit Profile',
       profile,
-      username,
-      validConstantsCount: 5,
-      footer: {
-        logo: {
-          url: "https://brandynette.xxx/",
-          image: "/gif/default-avatar.gif",
-          alt: "Brandynette.xxx"
-        },
-        tagline: "Edit your bambi profile"
-      }
+      username
     });
-  } catch (error) {
-    console.error('Error loading edit page:', error);
-    res.status(500).render('error', { 
-      message: 'Error loading edit page',
-      error: req.app.get('env') === 'development' ? error : {}
-    });
-  }
-});
+  })
+);
 
-// Update profile
-router.post('/:username', async (req, res) => {
-  try {
+// Update profile - with both middleware
+router.post('/:username', 
+  param('username').trim().escape(),
+  ownershipCheck, 
+  validateProfileInput, 
+  withDBErrorHandling(async (req, res) => {
     const { username } = req.params;
-    const currentBambiname = getUsernameFromCookies(req);
-    
-    // Check if user is authorized
-    if (!currentBambiname || currentBambiname !== username) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'You are not authorized to update this profile'
-      });
-    }
-    
     const { displayName, avatar, headerImage, headerColor, about, description, seasons } = req.body;
     
     // Process seasons
@@ -221,7 +385,7 @@ router.post('/:username', async (req, res) => {
         about,
         description,
         seasons: selectedSeasons,
-        updatedAt: Date.now()
+        updatedAt: new Date()
       },
       { new: true }
     );
@@ -238,77 +402,39 @@ router.post('/:username', async (req, res) => {
       message: 'Profile updated successfully',
       profile: updatedProfile
     });
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error updating profile'
-    });
-  }
-});
+  })
+);
 
-/**
- * Delete a profile
- * GET /profile/:username/delete - Shows confirmation page
- * POST /profile/:username/delete - Performs the deletion
- */
-router.get('/:username/delete', async (req, res) => {
-  try {
+// GET - show confirmation
+router.get('/:username/delete', 
+  param('username').trim().escape(),
+  ownershipCheck, 
+  withDBErrorHandling(async (req, res) => {
     const { username } = req.params;
-    const profile = await Profile.findOne({ username });
+    const profile = await Profile.findOne({ username }).lean();
     
     if (!profile) {
       return res.status(404).render('error', {
         message: 'Profile not found',
         error: { status: 404 },
-        validConstantsCount: 5,
         title: 'Error - Profile Not Found'
-      });
-    }
-    
-    // Check if user has permission (using cookies for now)
-    const isOwnProfile = req.cookies.username === username;
-    
-    if (!isOwnProfile) {
-      return res.status(403).render('error', {
-        message: 'You do not have permission to delete this profile',
-        error: { status: 403 },
-        validConstantsCount: 5,
-        title: 'Error - Access Denied'
       });
     }
     
     // Show confirmation page
     return res.render('delete-confirmation', {
       profile,
-      title: 'Delete Profile',
-      validConstantsCount: 5
+      title: 'Delete Profile'
     });
-    
-  } catch (err) {
-    logger.error(`Error preparing profile deletion: ${err.message}`);
-    return res.status(500).render('error', {
-      message: 'An error occurred',
-      error: { status: 500 },
-      validConstantsCount: 5,
-      title: 'Error'
-    });
-  }
-});
+  })
+);
 
-router.post('/:username/delete', async (req, res) => {
-  try {
+// POST - handle form submission for deletion
+router.post('/:username/delete', 
+  param('username').trim().escape(),
+  ownershipCheck, 
+  withDBErrorHandling(async (req, res) => {
     const { username } = req.params;
-    
-    // Check if user has permission (using cookies for now)
-    const isOwnProfile = req.cookies.username === username;
-    
-    if (!isOwnProfile) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have permission to delete this profile'
-      });
-    }
     
     // Find and delete the profile
     const deletedProfile = await Profile.findOneAndDelete({ username });
@@ -322,8 +448,16 @@ router.post('/:username/delete', async (req, res) => {
     
     logger.success(`Profile deleted for ${username} via HTTP route`);
     
+    // Clear the user cookie
+    res.clearCookie('bambiname');
+    
+    // Also clear session
+    if (req.session) {
+      req.session.destroy();
+    }
+    
     // If it's an AJAX request, send JSON response
-    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
       return res.json({
         success: true,
         message: 'Profile deleted successfully',
@@ -333,34 +467,14 @@ router.post('/:username/delete', async (req, res) => {
     
     // For regular form submissions, redirect
     return res.redirect('/');
-    
-  } catch (err) {
-    logger.error(`Error deleting profile: ${err.message}`);
-    
-    // Handle AJAX requests
-    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-      return res.status(500).json({
-        success: false,
-        message: 'An error occurred while deleting the profile'
-      });
-    }
-    
-    // Handle regular form requests
-    return res.status(500).render('error', {
-      message: 'An error occurred while deleting the profile',
-      error: { status: 500 },
-      validConstantsCount: 5,
-      title: 'Error'
-    });
-  }
-});
+  })
+);
 
-/**
- * Delete a profile
- * DELETE /profile/:username/delete
- */
-router.delete('/:username/delete', auth, async (req, res) => {
-  try {
+// DELETE - API endpoint for deletion (requires auth middleware)
+router.delete('/:username/delete', 
+  param('username').trim().escape(),
+  auth, 
+  withDBErrorHandling(async (req, res) => {
     const { username } = req.params;
     
     // Check if the authenticated user has permission to delete this profile
@@ -381,47 +495,24 @@ router.delete('/:username/delete', auth, async (req, res) => {
       });
     }
     
-    logger.success(`Profile deleted for ${username} via HTTP route`);
+    logger.success(`Profile deleted for ${username} via API route`);
     
-    // If it's an AJAX request, send JSON response
-    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-      return res.json({ 
-        success: true, 
-        message: 'Profile deleted successfully',
-        redirectUrl: '/'
-      });
+    // Clear the user cookie if it was their own profile
+    if (req.user.username === username) {
+      res.clearCookie('bambiname');
+      
+      // Also clear session
+      if (req.session) {
+        req.session.destroy();
+      }
     }
     
-    // For regular form submissions, redirect
-    return res.redirect('/');
-    
-  } catch (err) {
-    logger.error(`Error deleting profile: ${err.message}`);
-    
-    // Handle AJAX requests
-    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-      return res.status(500).json({ 
-        success: false, 
-        message: 'An error occurred while deleting the profile' 
-      });
-    }
-    
-    // Handle regular form requests
-    req.flash('error', 'Failed to delete profile');
-    return res.redirect(`/profile/${req.params.username}`);
-  }
-});
-
-// Add this route to your profile.js routes file
-router.post('/update', async (req, res) => {
-  try {
-    // Process update...
-    
-    res.json({ success: true });
-  } catch (error) {
-    // Error handling...
-    res.status(500).json({ success: false, message: 'Failed to update profile' });
-  }
-});
+    return res.json({ 
+      success: true, 
+      message: 'Profile deleted successfully',
+      redirectUrl: '/'
+    });
+  })
+);
 
 export default router;

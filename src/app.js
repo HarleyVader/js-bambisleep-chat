@@ -22,6 +22,7 @@ import profilesRouter from './routes/profile.js';
 import errorHandler from './middleware/errorHandler.js';
 import { userContextMiddleware } from './middleware/userContext.js';
 import { performanceMiddleware } from './middleware/performance.js';
+import { databaseErrorHandler } from './middleware/databaseErrorHandler.js';
 
 // Config
 import footerConfig from './config/footer.config.js';
@@ -34,6 +35,9 @@ import Logger from './utils/logger.js';
 
 // Schemas
 import { Bambi, BambiSchema } from './models/Bambi.js';
+
+// Database
+import dbConnection from './database/index.js';
 
 // Load env variables
 dotenv.config();
@@ -310,23 +314,8 @@ app.post('/bambis/update-profile', async (req, res) => {
   }
 });
 
-// Error handlers
-app.use((err, req, res, next) => {
-  const status = err.status || 500;
-  logger.error(`[${status}] ${err.message}`);
-  res.status(status).json({
-    error: process.env.NODE_ENV === 'production' ? 'An error occurred' : err.message
-  });
-});
-
-app.use((err, req, res, next) => {
-  if (err.status === 503) {
-    res.status(503).render('profile', { error: true });
-  } else {
-    next(err);
-  }
-});
-
+// Use database error handler middleware BEFORE other error handlers
+app.use(databaseErrorHandler);
 app.use(errorHandler);
 
 // Function to load filtered words (for the server.js file)
@@ -347,6 +336,29 @@ export async function initializeScraperSystem() {
 // Function to initialize worker coordinator (for server.js)
 export async function initializeWorkerSystem() {
   return await workerCoordinator.initialize();
+}
+
+// Connect to database before starting server
+try {
+  await dbConnection.connect();
+  
+  // Start server only after successful database connection
+  const server = app.listen(PORT, () => {
+    logger.success(`Server running on port ${PORT}`);
+  });
+  
+  // Add graceful shutdown handler
+  process.on('SIGTERM', async () => {
+    logger.info('SIGTERM received, shutting down gracefully');
+    await dbConnection.disconnect();
+    server.close(() => {
+      logger.info('Process terminated');
+    });
+  });
+  
+} catch (error) {
+  logger.error(`Failed to start server: ${error.message}`);
+  process.exit(1);
 }
 
 // Export the configured app, session middleware and other necessary components
