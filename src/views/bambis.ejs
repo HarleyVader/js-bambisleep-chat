@@ -320,7 +320,7 @@
             
             // Register button redirects to registration.ejs
             registerBtn.addEventListener('click', function() {
-                window.location.href = '/register';
+                window.location.href = `/register?template=bambi&redirect=${encodeURIComponent('/bambis/profile')}`;
             });
             
             // Show profile check form
@@ -375,7 +375,7 @@
                     
                     // Emit heart/unheart action via socket instead of fetch
                     socket.emit('profile:heart', {
-                        username: username,
+                        username: username,  // Add this missing username
                         action: this.classList.contains('active') ? 'unheart' : 'heart'
                     });
                 });
@@ -533,3 +533,4 @@
     </script>
 </body>
 </html>
+``` 
