@@ -1,54 +1,47 @@
 /**
- * Unified Socket.io Client Module
- * Handles all socket.io connections and events for Bambi profiles
+ * BambiSocket - Unified Socket.io Client for BambiSleep Community
  */
-class BambiSocketClient {
+class BambiSocket {
   constructor() {
     this.socket = io();
     this.eventHandlers = {};
-    this.setupDefaultHandlers();
+    this.setupSocketListeners();
+    this.setupErrorHandling();
   }
 
-  // Set up default event handlers
-  setupDefaultHandlers() {
-    this.socket.on('profile:hearted', data => {
-      if (this.eventHandlers['profile:hearted']) {
-        this.eventHandlers['profile:hearted'](data);
-      }
+  setupSocketListeners() {
+    const events = [
+      'profile:hearted', 'profile:created', 'profile:updated',
+      'profile:saved', 'profile:data', 'profile:error',
+      'profile:follow', 'redirect to profile editor'
+    ];
+    
+    events.forEach(event => {
+      this.socket.on(event, data => {
+        if (this.eventHandlers[event]) {
+          this.eventHandlers[event](data);
+        }
+      });
     });
-
-    this.socket.on('profile:updated', data => {
-      if (this.eventHandlers['profile:updated']) {
-        this.eventHandlers['profile:updated'](data);
+  }
+  
+  setupErrorHandling() {
+    this.socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      if (this.eventHandlers['connection:error']) {
+        this.eventHandlers['connection:error'](error);
       }
     });
     
-    this.socket.on('profile:created', data => {
-      if (this.eventHandlers['profile:created']) {
-        this.eventHandlers['profile:created'](data);
-      }
-    });
-    
-    this.socket.on('profile:saved', data => {
-      if (this.eventHandlers['profile:saved']) {
-        this.eventHandlers['profile:saved'](data);
-      }
-    });
-    
-    this.socket.on('profile:data', data => {
-      if (this.eventHandlers['profile:data']) {
-        this.eventHandlers['profile:data'](data);
-      }
-    });
-    
-    this.socket.on('profile:error', message => {
-      if (this.eventHandlers['profile:error']) {
-        this.eventHandlers['profile:error'](message);
+    this.socket.on('error', (error) => {
+      console.error('Socket error:', error);
+      if (this.eventHandlers['socket:error']) {
+        this.eventHandlers['socket:error'](error);
       }
     });
   }
 
-  // Register event handlers
+  // Register event handlers with chainable pattern
   on(event, callback) {
     this.eventHandlers[event] = callback;
     return this;
@@ -57,27 +50,44 @@ class BambiSocketClient {
   // Heart/unheart a profile
   toggleHeart(username, isActive) {
     this.socket.emit('profile:heart', {
-      username: username,
+      username,
       action: isActive ? 'unheart' : 'heart'
     });
+    return this;
   }
 
-  // Save profile data
-  saveProfile(profileData) {
-    this.socket.emit('profile:save', profileData);
-  }
-
-  // Request profile data
+  // View a profile to get its data
   viewProfile(username) {
     this.socket.emit('profile:view', username);
+    return this;
+  }
+
+  // Save profile changes
+  saveProfile(profileData) {
+    this.socket.emit('profile:save', profileData);
+    return this;
   }
 
   // Check if profile exists
-  checkProfile(username) {
-    return fetch(`/bambis/api/check-profile/${encodeURIComponent(username)}`)
-      .then(response => response.json());
+  async checkProfile(username) {
+    try {
+      const response = await fetch(`/bambis/api/check-profile/${encodeURIComponent(username)}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Error checking profile:', error);
+      return { exists: false, error: true };
+    }
+  }
+
+  // Follow/unfollow a profile
+  toggleFollow(username, isFollowing) {
+    this.socket.emit('profile:follow', {
+      username,
+      action: isFollowing ? 'unfollow' : 'follow'
+    });
+    return this;
   }
 }
 
-// Create a global instance
-window.bambiSocket = new BambiSocketClient();
+// Create global instance
+window.bambiSocket = new BambiSocket();
