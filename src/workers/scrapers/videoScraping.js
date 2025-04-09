@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { parentPort } from 'worker_threads';
 import Logger from '../../utils/logger.js';
-import connectToMongoDB from '../../utils/dbConnection.js';
+import dbConnection from '../../database/dbConnection.js';
 import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
 
 // Initialize logger
@@ -36,7 +36,7 @@ const VideoContentSchema = new mongoose.Schema({
 // Set up MongoDB connection
 const setupMongoDB = async () => {
   try {
-    await connectToMongoDB();
+    await dbConnection.connect();
     logger.success('Video scraper connected to MongoDB');
     return mongoose.model('BambiVideoContent', VideoContentSchema);
   } catch (error) {

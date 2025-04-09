@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
 // Add database connection import (if needed for future DB operations)
 import dbConnection from '../database/dbConnection.js';
+import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
+
+const logger = new Logger('LMStudio');
 
 // Ensure database connection is established when the worker starts
 try {
@@ -15,10 +18,7 @@ try {
 }
 
 // Add this import near the top
-import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 
-// Initialize logger
-const logger = new Logger('LMStudio');
 
 dotenv.config();
 

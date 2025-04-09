@@ -2,7 +2,7 @@ import Logger from '../utils/logger.js';
 
 const logger = new Logger('Performance');
 
-export const performanceMiddleware = (req, res, next) => {
+const performanceMiddleware = (req, res, next) => {
   const start = Date.now();
   
   // Store the original end and send methods
@@ -49,3 +49,5 @@ export const performanceMiddleware = (req, res, next) => {
   
   next();
 };
+
+export default performanceMiddleware;

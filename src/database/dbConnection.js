@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { Logger } from '../utils/logger.js';
+import Logger from '../utils/logger.js';
 
 // Initialize logger
 const logger = new Logger('Database');
@@ -20,7 +20,8 @@ const CONNECTION_OPTIONS = {
 
 class DatabaseConnection {
   constructor() {
-    this.isConnected = false;
+    // Change the property name to avoid conflict with the method
+    this._connected = false;
     this.connectionPromise = null;
     this.retryCount = 0;
     this.maxRetries = 5;
@@ -103,7 +104,7 @@ class DatabaseConnection {
     if (mongoose.connection.readyState !== 0) {
       logger.info('Closing database connection...');
       await mongoose.connection.close(false);
-      this.isConnected = false;
+      this._connected = false;
       this.connectionPromise = null;
       logger.success('Database connection closed');
     }
@@ -146,9 +147,9 @@ class DatabaseConnection {
     this.healthCheckInterval = setInterval(async () => {
       try {
         const isHealthy = await this.pingDatabase();
-        if (!isHealthy && this.isConnected) {
+        if (!isHealthy && this._connected) {
           logger.warn('Health check failed, attempting reconnection');
-          this.isConnected = false;
+          this._connected = false;
           
           this.connectionPromise = null;
           await this.connect();
@@ -164,7 +165,7 @@ class DatabaseConnection {
    * @private
    */
   _handleConnection() {
-    this.isConnected = true;
+    this._connected = true;
     this.retryCount = 0;
     logger.success(`MongoDB Connected: ${mongoose.connection.host}:${mongoose.connection.port}/${mongoose.connection.name}`);
   }
@@ -183,7 +184,7 @@ class DatabaseConnection {
    * @private
    */
   _handleDisconnect() {
-    this.isConnected = false;
+    this._connected = false;
     logger.warning('MongoDB disconnected');
   }
 }

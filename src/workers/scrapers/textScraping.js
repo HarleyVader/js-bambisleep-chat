@@ -7,7 +7,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import connectToMongoDB from '../../utils/dbConnection.js';
+import dbConnection from '../../database/dbConnection.js';
 import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
 
 // Initialize logger
@@ -66,7 +66,7 @@ const ContentSchema = new mongoose.Schema({
 // Set up MongoDB connection
 const setupMongoDB = async () => {
   try {
-    await connectToMongoDB();
+    await dbConnection.connect();
     logger.success('Text scraper connected to MongoDB');
     return mongoose.model('BambiContent', ContentSchema);
   } catch (error) {

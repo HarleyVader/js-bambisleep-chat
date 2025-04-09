@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import * as cheerio from 'cheerio';
 import { BaseWorker } from './baseWorker.js';
 import Logger from '../../utils/logger.js';
-import connectToMongoDB from '../../utils/dbConnection.js';
+import dbConnection from '../../database/dbConnection.js';
 import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
 
 dotenv.config();
@@ -38,7 +38,7 @@ const ImageContentSchema = new mongoose.Schema({
 // Set up MongoDB connection
 const setupMongoDB = async () => {
   try {
-    await connectToMongoDB();
+    await dbConnection.connect();
     logger.success('Image scraper connected to MongoDB');
     return mongoose.model('BambiImageContent', ImageContentSchema);
   } catch (error) {
