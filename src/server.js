@@ -229,6 +229,58 @@ function setupRoutes() {
 
     app.use('/api/scraper', scraperAPIRoutes);
 
+    // Handle profile updates
+    app.post('/bambis/update-profile', async (req, res) => {
+      try {
+        // Get username from session or cookie
+        const username = req.session?.user?.username || 
+                         decodeURIComponent(req.cookies['bambiname'] || '');
+        
+        if (!username) {
+          return res.status(401).json({ 
+              success: false, 
+              message: 'You must be logged in to update your profile' 
+          });
+        }
+        
+        // Find and update the user's profile
+        const bambi = await mongoose.model('Bmabi').findOneAndUpdate(
+            { username },
+            { 
+                $set: {
+                    about: req.body.about,
+                    description: req.body.description,
+                    profilePictureUrl: req.body.profilePictureUrl,
+                    headerImageUrl: req.body.headerImageUrl,
+                    lastActive: new Date()
+                }
+            },
+            { new: true, upsert: true }
+        );
+        
+        // Respond with success
+        res.json({ 
+            success: true, 
+            message: 'Profile updated successfully',
+            bambi
+        });
+        
+        // Emit socket event for real-time updates
+        req.app.get('io').emit('profile:updated', {
+            username,
+            field: 'profile',
+            success: true
+        });
+        
+      } catch (error) {
+          console.error('Profile update error:', error);
+          res.status(500).json({ 
+              success: false, 
+              message: 'Server error occurred while updating profile' 
+          });
+      }
+    });
+
   } catch (error) {
     logger.error('Error in setupRoutes:', error);
   }
