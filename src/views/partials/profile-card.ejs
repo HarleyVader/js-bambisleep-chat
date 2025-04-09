@@ -1,0 +1,31 @@
+<div class="profile-card" style="background-color: <%= bambi.profileTheme?.primaryColor || 'var(--transparent)' %>;" data-username="<%= bambi.username %>">
+    <div class="profile-avatar">
+        <img src="<%= bambi.profilePictureUrl %>" alt="<%= bambi.displayName || bambi.username %>">
+    </div>
+    <h3 class="profile-name" style="color: <%= bambi.profileTheme?.textColor || 'var(--button-color)' %>">
+        <%= bambi.displayName || bambi.username %>
+    </h3>
+    <div class="profile-stats">
+        <div class="stat">
+            <div class="stat-value">LVL <%= bambi.level %></div>
+            <div class="stat-label">Level</div>
+        </div>
+        <div class="stat heart-stat" data-username="<%= bambi.username %>">
+            <button class="heart-button <% if (bambi.userHasLiked) { %>active<% } %>" data-username="<%= bambi.username %>">
+                ❤️
+            </button>
+            <div class="stat-value heart-count"><%= bambi.hearts.count %></div>
+            <div class="stat-label">Hearts</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value"><%= bambi.followers.length %></div>
+            <div class="stat-label">Followers</div>
+        </div>
+    </div>
+    <div class="profile-description" style="color: <%= bambi.profileTheme?.textColor || 'var(--primary-alt)' %>">
+        <%= bambi.description || 'A mysterious Bambi...' %>
+    </div>
+    <div class="text-center">
+        <a href="/bambis/<%= bambi.username %>" class="btn">View Profile</a>
+    </div>
+</div>
