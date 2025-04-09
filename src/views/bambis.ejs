@@ -9,11 +9,14 @@
     <%- include('../views/partials/nav.ejs') %>
     
     <div class="container">
-        <h1>BambiSleep Community</h1>
+        <div class="page-header">
+            <h1>BambiSleep Community</h1>
+            <p class="subtitle">Connect with other Bambis and explore the forest together</p>
+        </div>
         
         <div class="create-profile-section">
             <h2>Join Our Community</h2>
-            <p>Connect with other Bambis and share your journey in the forest</p>
+            <p>Share your journey into blissful mindlessness with others</p>
             
             <button id="join-community-btn" class="join-community-btn">Join the Community</button>
             
@@ -36,6 +39,21 @@
             <p style="margin-top: 10px;">Already have a BambiName? <a href="#" id="check-profile-link">Check if you have a profile</a></p>
         </div>
         
+        <div class="filter-controls">
+            <div class="search-box">
+                <input type="text" id="bambi-search" placeholder="Search Bambis...">
+                <button id="search-btn"><i class="fas fa-search"></i></button>
+            </div>
+            <div class="sort-options">
+                <select id="sort-bambis">
+                    <option value="active">Recently Active</option>
+                    <option value="hearts">Most Hearts</option>
+                    <option value="followers">Most Followers</option>
+                    <option value="level">Highest Level</option>
+                </select>
+            </div>
+        </div>
+        
         <div class="bambis-grid">
             <% if (bambis && bambis.length > 0) { %>
                 <% bambis.forEach(bambi => { %>
@@ -46,6 +64,10 @@
                     <p>No bambi profiles found. Be the first to create one!</p>
                 </div>
             <% } %>
+        </div>
+        
+        <div id="load-more-container" class="text-center" style="margin-top: 30px; display: <%= bambis && bambis.length >= 20 ? 'block' : 'none' %>;">
+            <button id="load-more-btn" class="btn">Load More Bambis</button>
         </div>
     </div>
     
@@ -63,14 +85,21 @@
             const registerBtn = document.getElementById('register-btn');
             const checkProfileLink = document.getElementById('check-profile-link');
             const createProfileForm = document.getElementById('create-profile-form');
+            const searchInput = document.getElementById('bambi-search');
+            const sortSelect = document.getElementById('sort-bambis');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            
+            let currentPage = 1;
+            let currentSort = 'active';
+            let currentSearch = '';
             
             // Show modal when join button is clicked
-            joinBtn.addEventListener('click', function() {
+            joinBtn?.addEventListener('click', function() {
                 modal.style.display = 'block';
             });
             
             // Close modal when X is clicked
-            closeBtn.addEventListener('click', function() {
+            closeBtn?.addEventListener('click', function() {
                 modal.style.display = 'none';
             });
             
@@ -82,24 +111,48 @@
             });
             
             // Login button redirects to login.ejs
-            loginBtn.addEventListener('click', function() {
+            loginBtn?.addEventListener('click', function() {
                 window.location.href = '/login?redirect=' + encodeURIComponent('/bambis/profile');
             });
             
             // Register button redirects to registration.ejs
-            registerBtn.addEventListener('click', function() {
+            registerBtn?.addEventListener('click', function() {
                 window.location.href = `/register?template=bambi&redirect=${encodeURIComponent('/bambis/profile')}`;
             });
             
             // Show profile check form
-            checkProfileLink.addEventListener('click', function(e) {
+            checkProfileLink?.addEventListener('click', function(e) {
                 e.preventDefault();
                 createProfileForm.style.display = 'flex';
                 joinBtn.style.display = 'none';
             });
             
+            // Search functionality
+            let searchTimeout;
+            searchInput?.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    currentSearch = searchInput.value.trim();
+                    currentPage = 1;
+                    fetchBambis();
+                }, 500);
+            });
+            
+            // Sort functionality
+            sortSelect?.addEventListener('change', function() {
+                currentSort = this.value;
+                currentPage = 1;
+                fetchBambis();
+            });
+            
+            // Load more functionality
+            loadMoreBtn?.addEventListener('click', function() {
+                currentPage++;
+                fetchBambis(true); // Append instead of replace
+            });
+            
             // Handle profile check/creation
-            createProfileForm.addEventListener('submit', async function(e) {
+            createProfileForm?.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const bambiname = document.getElementById('bambiname-input').value.trim();
@@ -134,7 +187,7 @@
             });
             
             // Heart functionality using event delegation
-            document.querySelector('.bambis-grid').addEventListener('click', function(e) {
+            document.querySelector('.bambis-grid')?.addEventListener('click', function(e) {
                 // Find closest heart button if it was clicked or a child of it
                 const heartButton = e.target.closest('.heart-button');
                 if (!heartButton) return;
@@ -146,6 +199,47 @@
                 // Use our unified socket client
                 bambiSocket.toggleHeart(username, isActive);
             });
+            
+            // Async function to fetch bambis from the server
+            async function fetchBambis(append = false) {
+                try {
+                    const url = `/bambis/api/list?page=${currentPage}&sort=${currentSort}&search=${encodeURIComponent(currentSearch)}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const bambisGrid = document.querySelector('.bambis-grid');
+                        
+                        // Either append new results or replace existing ones
+                        if (append) {
+                            // Append new results
+                            data.bambis.forEach(bambi => {
+                                addProfileCard(bambi);
+                            });
+                        } else {
+                            // Replace existing results
+                            bambisGrid.innerHTML = '';
+                            if (data.bambis.length === 0) {
+                                bambisGrid.innerHTML = `
+                                    <div class="no-profiles-message">
+                                        <p>No bambis match your search criteria.</p>
+                                    </div>
+                                `;
+                            } else {
+                                data.bambis.forEach(bambi => {
+                                    addProfileCard(bambi);
+                                });
+                            }
+                        }
+                        
+                        // Show/hide load more button
+                        const loadMoreContainer = document.getElementById('load-more-container');
+                        loadMoreContainer.style.display = data.hasMore ? 'block' : 'none';
+                    }
+                } catch (error) {
+                    console.error('Error fetching bambis:', error);
+                }
+            }
             
             // Register socket event handlers
             bambiSocket
