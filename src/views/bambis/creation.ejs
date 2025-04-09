@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../layouts/main', { title: 'Create New Profile', body: `
+<%- include('../partials/head.ejs', { title: 'Create New Profile' }) %>
+<body>
+  <%- include('../partials/nav.ejs') %>
+  
+  <div class="container">
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="error-message">
+        <%= typeof errorMessage !== 'undefined' ? errorMessage : 'An error occurred' %>
+      </div>
+    <% } %>
+    
     <div class="profile-creation-container">
       <h1>Create Your Bambi Profile</h1>
-      
-      <% if (locals.error) { %>
-        <div class="error-message"><%= error %></div>
-      <% } %>
       
       <form id="create-profile-form" class="profile-form" method="POST" action="/profile/new">
         <div class="input-container">
@@ -115,7 +121,10 @@
     </div>
 
     <div class="notification-area"></div>
-  ` }) %>
+  </div>
+
+  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/trigger-client.js"></script>
   
@@ -194,13 +203,13 @@
           
           const toggle = document.createElement('input');
           toggle.type = 'checkbox';
-          toggle.id = \`toggle-\${index}\`;
+          toggle.id = `toggle-${index}`;
           toggle.className = 'toggle-input';
           toggle.setAttribute('data-trigger', trigger);
           
           const label = document.createElement('label');
           label.textContent = trigger;
-          label.htmlFor = \`toggle-\${index}\`;
+          label.htmlFor = `toggle-${index}`;
           label.className = 'toggle-label';
           
           triggerItem.appendChild(toggle);
@@ -221,4 +230,5 @@
       }
     });
   </script>
+</body>
 </html>

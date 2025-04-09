@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../layouts/main', { title: 'Delete Profile', body: `
+<%- include('../partials/head.ejs', { title: 'Delete Profile' }) %>
+<body>
+  <%- include('../partials/nav.ejs') %>
+  
+  <div class="container">
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="error-message">
+        <%= typeof errorMessage !== 'undefined' ? errorMessage : 'An error occurred' %>
+      </div>
+    <% } %>
+    
     <div class="profile-container">
       <h1>Delete Your Profile</h1>
       
@@ -27,8 +37,11 @@
     </div>
 
     <div class="notification-area"></div>
-  ` }) %>
+  </div>
+
+  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     document.getElementById('delete-form').addEventListener('submit', function(e) {
       if (!confirm('Are you absolutely sure you want to delete your profile? This cannot be undone!')) {
@@ -36,4 +49,5 @@
       }
     });
   </script>
+</body>
 </html>

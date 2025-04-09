@@ -1,14 +1,16 @@
-<!-- profiles.ejs using express-ejs-layouts -->
-<% layout('./layouts/main') -%>
-<% block('title', 'Edit Your Profile') -%>
-
-<div class="page-header">
-  <h1>Edit Your Profile</h1>
-  <!-- rest of your content... -->
-</div>
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../layouts/main', { title: 'Edit Profile', body: `
+<%- include('../partials/head.ejs', { title: 'Edit Profile' }) %>
+<body>
+  <%- include('../partials/nav.ejs') %>
+  
+  <div class="container">
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="error-message">
+        <%= typeof errorMessage !== 'undefined' ? errorMessage : 'An error occurred' %>
+      </div>
+    <% } %>
+    
     <div class="profile-edit-container">
       <h1>Edit Your Profile</h1>
       
@@ -87,7 +89,9 @@
     </div>
 
     <div class="notification-area"></div>
-  ` }) %>
+  </div>
+
+  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/socket-client.js"></script>
@@ -198,4 +202,5 @@
       });
     });
   </script>
+</body>
 </html>

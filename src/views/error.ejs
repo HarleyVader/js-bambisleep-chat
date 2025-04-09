@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <%- include('./partials/nav.ejs') %>
-    <title>Error - BambiSleep</title>
+<%- include('../partials/head.ejs', { title: 'Error' }) %>
     <style>
         .error-container {
             max-width: 800px;
@@ -13,18 +11,18 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
-        
+
         .error-status {
             font-size: 4rem;
             color: var(--accent-color);
             margin-bottom: 20px;
         }
-        
+
         .error-message {
             margin-bottom: 30px;
             font-size: 1.2rem;
         }
-        
+
         .error-stack {
             text-align: left;
             padding: 15px;
@@ -35,7 +33,7 @@
             font-size: 0.9rem;
             margin-top: 20px;
         }
-        
+
         .back-button {
             display: inline-block;
             margin-top: 20px;
@@ -47,31 +45,52 @@
             text-decoration: none;
             font-weight: bold;
         }
-        
+
         .back-button:hover {
             background-color: var(--accent-color-hover);
         }
     </style>
-</head>
-<body>
-    <div class="error-container">
-        <div class="error-status"><%= error.status || 500 %></div>
-        <div class="error-message"><%= message %></div>
-        
-        <% if (error.status === 403) { %>
-            <p>You must set a BambiName in order to access this feature.</p>
-            <p>Return to the home page and set your BambiName by clicking the "Set BambiName" button.</p>
-        <% } else { %>
-            <p>Something went wrong. Please try again later.</p>
-        <% } %>
-        
-        <a href="/" class="back-button">Back to Home</a>
-        
-        <% if (error.stack && error.stack.length > 0) { %>
-            <div class="error-stack">
-                <pre><%= error.stack %></pre>
+
+    <body>
+        <%- include('../partials/nav.ejs') %>
+
+            <div class="container">
+                <% if (typeof error !=='undefined' && error) { %>
+                    <div class="error-message">
+                        <%= typeof errorMessage !=='undefined' ? errorMessage : 'An error occurred' %>
+                    </div>
+                    <% } %>
+
+                        <div class="error-container">
+                            <div class="error-status">
+                                <%= error.status || 500 %>
+                            </div>
+                            <div class="error-message">
+                                <%= message %>
+                            </div>
+
+                            <% if (error.status===403) { %>
+                                <p>You must set a BambiName in order to access this feature.</p>
+                                <p>Return to the home page and set your BambiName by clicking the "Set BambiName"
+                                    button.</p>
+                                <% } else { %>
+                                    <p>Something went wrong. Please try again later.</p>
+                                    <% } %>
+
+                                        <a href="/" class="back-button">Back to Home</a>
+
+                                        <% if (error.stack && error.stack.length> 0) { %>
+                                            <div class="error-stack">
+                                                <pre><%= error.stack %></pre>
+                                            </div>
+                                            <% } %>
+                        </div>
+
             </div>
-        <% } %>
-    </div>
-</body>
+
+            <%- include('../partials/footer.ejs', { footer: typeof footer !=='undefined' ? footer : {} }) %>
+
+                <script src="/socket.io/socket.io.js"></script>
+    </body>
+
 </html>

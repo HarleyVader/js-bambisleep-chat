@@ -1,143 +1,144 @@
-<!DOCTYPE html>
-<html lang="en">
-<%- include('layouts/main', { title: 'BambiSleep.Chat AIGF', body: `
-      <div id="chat-container">
-        <!-- Add modal for username prompt -->
-        <div id="username-modal" class="modal">
-          <div class="modal-content">
-            <p>give me your bambi name:</p>
-            <input type="text" id="username-input" placeholder="Enter username">
-            <button id="username-submit">Submit</button>
-          </div>
-        </div>
-        <div id="user-input">
-          <h1>BambiSleep AIGF 👁️</h1>
-          <div id="llm">
-            <form id="llm-form">
-              <textarea id="textarea" oninput="autoExpand(this)" placeholder="Prompt my AIGF"></textarea>
-              <button id="submit" type="submit">Send</button>
-            </form>
-            <div id="user-prompt"></div>
-            <div id="audiomessage">
-              <audio id="audio" hidden controls></audio>
-              <p id="message"></p>
-              <p id="error-message" style="display: none; color: red;"></p>
-            </div>
-          </div>
-          <br>
-          <div id="system-controls-container">
-            <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
-          </div>
-        </div>
-        <div id="response-container">
-          <div id="response-chat-wrapper">
-            <div id="response"></div>
-            <div id="chat">
-              <form id="chat-form">
-                <textarea id="textarea-chat" oninput="autoExpand(this)" placeholder="Send in Chat"></textarea>
-                <button id="send" type="submit" class="send-btn">Chat</button>
-              </form>
-              <ul id="chat-response"></ul>
-            </div>
-          </div>
-          <div id="eyeCursorContainer">
-            <div id="eyeCursor">
-              <div id="eyeCursorText"></div>
-              <div id="eyeCursorText2"></div>
-              <div id="eye" aria-label="Eye Cursor"></div>
-              <div id="eyeCursorText3"></div>
-              <div id="eyeCursorText4"></div>
-            </div>
-          </div>
-        </div>
+<% layout('./layouts/main') -%>
+<% block('title', 'BambiSleep.Chat AIGF') -%>
+
+<div id="chat-container">
+  <!-- Add modal for username prompt -->
+  <div id="username-modal" class="modal">
+    <div class="modal-content">
+      <p>give me your bambi name:</p>
+      <input type="text" id="username-input" placeholder="Enter username">
+      <button id="username-submit">Submit</button>
+    </div>
+  </div>
+  <div id="user-input">
+    <h1>BambiSleep AIGF 👁️</h1>
+    <div id="llm">
+      <form id="llm-form">
+        <textarea id="textarea" oninput="autoExpand(this)" placeholder="Prompt my AIGF"></textarea>
+        <button id="submit" type="submit">Send</button>
+      </form>
+      <div id="user-prompt"></div>
+      <div id="audiomessage">
+        <audio id="audio" hidden controls></audio>
+        <p id="message"></p>
+        <p id="error-message" style="display: none; color: red;"></p>
       </div>
-      ` }) %>
-        <script src="js/psychodelic-trigger-mania.js"></script>
-        <script src="js/text2speech.js"></script>
-        <script src="js/responsive.js"></script>
-        <script src="js/triggers.js"></script>
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="js/aigf-core.js"></script>
-        <script>
-          document.addEventListener("DOMContentLoaded", () => {
-            const modal = document.getElementById('username-modal');
-            let username = '';
+    </div>
+    <br>
+    <div id="system-controls-container">
+      <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
+    </div>
+  </div>
+  <div id="response-container">
+    <div id="response-chat-wrapper">
+      <div id="response"></div>
+      <div id="chat">
+        <form id="chat-form">
+          <textarea id="textarea-chat" oninput="autoExpand(this)" placeholder="Send in Chat"></textarea>
+          <button id="send" type="submit" class="send-btn">Chat</button>
+        </form>
+        <ul id="chat-response"></ul>
+      </div>
+    </div>
+    <div id="eyeCursorContainer">
+      <div id="eyeCursor">
+        <div id="eyeCursorText"></div>
+        <div id="eyeCursorText2"></div>
+        <div id="eye" aria-label="Eye Cursor"></div>
+        <div id="eyeCursorText3"></div>
+        <div id="eyeCursorText4"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-            // ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪
-            function getCookie(name) {
-              const value = `; ${document.cookie}`;
-              const parts = value.split(`; ${name}=`);
-              if (parts.length === 2) return parts.pop().split(';').shift();
-            }
+<% block('script', `
+  <script src="js/psychodelic-trigger-mania.js"></script>
+  <script src="js/text2speech.js"></script>
+  <script src="js/responsive.js"></script>
+  <script src="js/triggers.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/aigf-core.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const modal = document.getElementById('username-modal');
+      let username = '';
 
-            username = getCookie('bambiname');
-            if (!username) {
-              modal.style.display = 'block';
-            }
+      // ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪
+      function getCookie(name) {
+        const value = `; /${document.cookie}/`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+      }
 
-            document.getElementById('username-submit').addEventListener('click', () => {
-              const input = document.getElementById('username-input');
-              const newUsername = input.value.trim();
-              if (newUsername) {
-                username = newUsername;
-                document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
-                socket.emit('set username', username);
-                modal.style.display = 'none';
-                window.username = username;
-              }
-            });
+      username = getCookie('bambiname');
+      if (!username) {
+        modal.style.display = 'block';
+      }
 
-            const style = document.createElement('style');
-            document.head.appendChild(style);
+      document.getElementById('username-submit').addEventListener('click', () => {
+        const input = document.getElementById('username-input');
+        const newUsername = input.value.trim();
+        if (newUsername) {
+          username = newUsername;
+          document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`; // Updated to remove leading slash
+          socket.emit('set username', username);
+          modal.style.display = 'none';
+          window.username = username;
+        }
+      });
 
-            socket.on("chat message", (msg) => {
-              const item = document.createElement("li");
-              const timestamp = new Date(msg.timestamp).toLocaleTimeString();
-              item.textContent = `${timestamp} - ${msg.username}: ${msg.data}`;
-              if (timestamp && window.username) {
-                item.classList.add("neon-glow");
-              }
-              document.getElementById("chat-response").appendChild(item);
-            });
+      const style = document.createElement('style');
+      document.head.appendChild(style);
 
-            document.getElementById("chat-form").addEventListener("submit", (event) => {
-              event.preventDefault();
-              const message = document.getElementById("textarea-chat").value;
-              if (message) {
-                socket.emit("chat message", { data: message, username: window.username });
-                document.getElementById("textarea-chat").value = "";
-              }
-            });
+      socket.on("chat message", (msg) => {
+        const item = document.createElement("li");
+        const timestamp = new Date(msg.timestamp).toLocaleTimeString();
+        item.textContent = `/${timestamp} - /${msg.username}: /${msg.data}/`;
+        if (timestamp && window.username) {
+          item.classList.add("neon-glow");
+        }
+        document.getElementById("chat-response").appendChild(item);
+      });
 
-            const collarForm = document.getElementById('collar-form');
-            if (collarForm) {
-              collarForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                const message = document.getElementById('textarea-collar').value.trim();
-                if (message) {
-                  socket.emit('collar', { data: message, socketId: socket.id });
-                  const userCollar = document.getElementById('user-collar');
-                  const messageElement = document.createElement('p');
-                  messageElement.textContent = message;
-                  userCollar.appendChild(messageElement);
-                }
-              });
-            }
+      document.getElementById("chat-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const message = document.getElementById("textarea-chat").value;
+        if (message) {
+          socket.emit("chat message", { data: message, username: window.username });
+          document.getElementById("textarea-chat").value = "";
+        }
+      });
 
-            socket.on('collar', (message) => {
-              const collarResponse = document.getElementById('textarea-collar-response');
-              const messageElement = document.createElement('p');
-              messageElement.textContent = message;
-              if (collarResponse.firstChild) {
-                collarResponse.insertBefore(messageElement, collarResponse.firstChild);
-              } else {
-                collarResponse.appendChild(messageElement);
-              }
-              applyUppercaseStyle();
-            });
-          });
-        </script>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
-        <script src="js/bootstrap.min.js"></script>
-</html>
+      const collarForm = document.getElementById('collar-form');
+      if (collarForm) {
+        collarForm.addEventListener('submit', (event) => {
+          event.preventDefault();
+          const message = document.getElementById('textarea-collar').value.trim();
+          if (message) {
+            socket.emit('collar', { data: message, socketId: socket.id });
+            const userCollar = document.getElementById('user-collar');
+            const messageElement = document.createElement('p');
+            messageElement.textContent = message;
+            userCollar.appendChild(messageElement);
+          }
+        });
+      }
+
+      socket.on('collar', (message) => {
+        const collarResponse = document.getElementById('textarea-collar-response');
+        const messageElement = document.createElement('p');
+        messageElement.textContent = message;
+        if (collarResponse.firstChild) {
+          collarResponse.insertBefore(messageElement, collarResponse.firstChild);
+        } else {
+          collarResponse.appendChild(messageElement);
+        }
+        applyUppercaseStyle();
+      });
+    });
+  </script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+`) %>

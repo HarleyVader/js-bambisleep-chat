@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-  <%- include('../partials/head') -%>
-  <% layout('./layouts/main') -%>
-  <% block('title', '<%= bambi.displayName || bambi.username %>') -%>
-
-  <div class="page-header">
-    <h1><%= bambi.displayName || bambi.username %></h1>
-  </div>
-
+<%- include('../partials/head.ejs', { title: 'Bambi Profiles' }) %>
+<body>
   <%- include('../partials/nav.ejs') %>
-
+  
   <div class="container">
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="error-message">
+        <%= typeof errorMessage !== 'undefined' ? errorMessage : 'An error occurred' %>
+      </div>
+    <% } %>
+    
     <div class="bambis-container">
       <h1 class="neon-text">Bambi Profiles</h1>
       
@@ -36,8 +36,12 @@
         <% } %>
       </div>
     </div>
+    
   </div>
 
-  <%- include('../partials/footer.ejs') %>
+  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Add any page-specific scripts that were previously in the scripts array -->
 </body>
 </html>
