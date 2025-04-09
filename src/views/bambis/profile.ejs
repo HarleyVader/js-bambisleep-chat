@@ -1,0 +1,31 @@
+<%- include('../partials/header') %>
+
+<div class="container">
+  <h1><%= username %>'s Profile</h1>
+  
+  <div class="profile-details">
+    <% if (profile) { %>
+      <div class="about-section">
+        <h3>About</h3>
+        <p><%= profile.about || 'No information provided' %></p>
+      </div>
+      
+      <div class="triggers-section">
+        <h3>Triggers</h3>
+        <% if (profile.triggers && profile.triggers.length > 0) { %>
+          <ul>
+            <% profile.triggers.forEach(trigger => { %>
+              <li><%= trigger %></li>
+            <% }); %>
+          </ul>
+        <% } else { %>
+          <p>No triggers defined.</p>
+        <% } %>
+      </div>
+    <% } else { %>
+      <p>Profile not found.</p>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
