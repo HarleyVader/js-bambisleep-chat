@@ -1,396 +1,487 @@
-<!-- filepath: f:\js-bambisleep-chat\src\views\bambis\bambi-update.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <%- include('../../views/partials/head.ejs') %>
-    <title>Update Profile | BambiSleep</title>
-    <style>
-        .profile-header {
-            position: relative;
-            height: 200px;
-            background: linear-gradient(to right, <%=bambi.profileTheme?.primaryColor || 'var(--primary-color)' %>, <%=bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>);
-            border-radius: 8px;
-            margin-bottom: 60px;
-            overflow: hidden;
-            box-shadow: 0 0 20px <%=bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;
-        }
-
-        .profile-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('<%= bambi.profileTheme?.customHeaderImage || (process.env.BASE_URL || "") + "/images/bambisleep-chat.gif" %>') center/cover;
-            opacity: 0.2;
-            mix-blend-mode: overlay;
-        }
-
-        .profile-avatar-large {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            position: relative;
-            margin: -60px auto 20px;
-            border: 5px solid var(--transparent);
-            box-shadow: 0 0 20px <%=bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;
-            overflow: hidden;
-        }
-
-        .profile-avatar-large img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .avatar-upload {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 50%;
-            padding: 5px;
-            cursor: pointer;
-        }
-
-        .form-section {
-            background-color: var(--transparent);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 2px ridge <%=bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>;
-            box-shadow: 0 0 10px <%=bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--primary-alt);
-            font-weight: bold;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            background-color: rgba(18, 65, 65, 0.3);
-            border: 1px solid var(--tertiary-color);
-            border-radius: 4px;
-            color: var(--primary-alt);
-        }
-
-        textarea.form-control {
-            min-height: 120px;
-            resize: vertical;
-        }
-
-        .color-inputs {
-            display: flex;
-            gap: 20px;
-        }
-
-        .color-input-group {
-            flex: 1;
-        }
-
-        .triggers-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .trigger-tag {
-            background-color: <%=bambi.profileTheme?.primaryColor || 'var(--tertiary-color)' %>;
-            color: var(--primary-alt);
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .trigger-tag span {
-            cursor: pointer;
-        }
-
-        .trigger-tag .remove {
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .add-trigger {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .submit-button {
-            background-color: var(--button-color);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: bold;
-            margin-top: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .submit-button:hover {
-            background-color: var(--tertiary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .notification {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            border-radius: 4px;
-            color: white;
-            z-index: 1000;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .notification.success {
-            background-color: #4CAF50;
-        }
-
-        .notification.error {
-            background-color: #F44336;
-        }
-
-        .notification.info {
-            background-color: #2196F3;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
+        <title>
+            Update <%= bambi.displayName || bambi.username %>'s Profile
+        </title>
+        <style>
+            .profile-header {
+                position: relative;
+                height: 200px;
+                background: linear-gradient(to right, <%=bambi.profileTheme?.primaryColor || 'var(--primary-color)' %>, <%=bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>);
+                border-radius: 8px;
+                margin-bottom: 60px;
+                overflow: hidden;
+                box-shadow: 0 0 20px <%=bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;
             }
-            to {
-                transform: translateX(0);
+
+            .profile-header::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: url('<%= bambi.profileTheme?.customHeaderImage || (process.env.BASE_URL || "") + "/images/bambisleep-chat.gif" %>') center/cover;
+                opacity: 0.2;
+                mix-blend-mode: overlay;
             }
-        }
-    </style>
+
+            .profile-avatar-large {
+                width: 150px;
+                height: 150px;
+                border-radius: 50%;
+                position: relative;
+                margin: -60px auto 20px;
+                border: 5px solid var(--transparent);
+                box-shadow: 0 0 20px <%=bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;
+                overflow: hidden;
+            }
+
+            .profile-avatar-large img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .profile-actions {
+                position: absolute;
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .profile-form {
+                background-color: var(--transparent);
+                border-top: var(--button-color) 3px ridge;
+                border-bottom: var(--button-color) 3px ridge;
+                border-left: var(--secondary-alt) 1px groove;
+                border-right: var(--secondary-alt) 1px groove;
+                border-radius: 8px;
+                box-shadow: 0 0 10px var(--button-color);
+                padding: 2rem;
+                margin-bottom: 2rem;
+            }
+
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+
+            .form-group label {
+                display: block;
+                margin-bottom: 0.5rem;
+                color: var(--primary-alt);
+                font-size: 1.1rem;
+            }
+
+            .color-picker-container {
+                display: flex;
+                gap: 1rem;
+                align-items: center;
+            }
+
+            .color-preview {
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                border: 2px solid var(--secondary-alt);
+            }
+
+            .profile-content {
+                display: grid;
+                grid-template-columns: 1fr 3fr;
+                gap: 20px;
+            }
+
+            .profile-sidebar {
+                background-color: var(--transparent);
+                border-radius: 8px;
+                padding: 20px;
+                border: 2px ridge <%=bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;
+                box-shadow: 0 0 10px <%=bambi.profileTheme?.primaryColor || 'var(--button-color)' %>;
+            }
+
+            .profile-main {
+                background-color: var(--transparent);
+                border-radius: 8px;
+                padding: 20px;
+                border: 2px ridge <%=bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>;
+                box-shadow: 0 0 10px <%=bambi.profileTheme?.secondaryColor || 'var(--tertiary-color)' %>;
+            }
+
+            .profile-name-large {
+                font-size: 2rem;
+                color: <%=bambi.profileTheme?.textColor || 'var(--button-color)' %>;
+                margin: 10px 0;
+                text-align: center;
+                animation: flicker 5s infinite;
+            }
+
+            .profile-username {
+                font-size: 1rem;
+                color: var(--nav-alt);
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            
+            .triggers-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-top: 0.5rem;
+            }
+            
+            .trigger-tag {
+                display: inline-block;
+                background-color: var(--primary-color);
+                color: var(--primary-alt);
+                padding: 5px 10px;
+                border-radius: 15px;
+                border: 1px solid var(--button-color);
+                display: flex;
+                align-items: center;
+            }
+            
+            .trigger-tag button {
+                background: none;
+                border: none;
+                color: var(--button-color);
+                margin-left: 5px;
+                cursor: pointer;
+                font-size: 1rem;
+                padding: 0 2px;
+            }
+            
+            #add-trigger-form {
+                display: flex;
+                margin-top: 0.5rem;
+                gap: 0.5rem;
+            }
+            
+            #new-trigger {
+                flex: 1;
+            }
+            
+            .seasons-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-top: 0.5rem;
+            }
+            
+            .season-checkbox {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 8px 12px;
+                background-color: var(--primary-color);
+                border-radius: 15px;
+                border: 1px solid var(--secondary-alt);
+            }
+            
+            .season-checkbox input {
+                width: auto;
+                margin: 0;
+            }
+
+            .notification {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 10px 20px;
+                border-radius: 4px;
+                color: white;
+                z-index: 1000;
+                animation: slideIn 0.3s ease-out;
+            }
+
+            .notification.success {
+                background-color: #4CAF50;
+            }
+
+            .notification.error {
+                background-color: #F44336;
+            }
+
+            .notification.info {
+                background-color: #2196F3;
+            }
+
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                }
+
+                to {
+                    transform: translateX(0);
+                }
+            }
+
+            @media (max-width: 768px) {
+                .profile-content {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
 </head>
 
 <body>
     <%- include('../../views/partials/nav.ejs') %>
 
     <div class="container">
-        <h1 class="page-title">Update Your Profile</h1>
-        
-        <form id="profile-form" enctype="multipart/form-data">
-            <div class="profile-header"></div>
+        <div class="profile-header">
+            <% if (bambiCookie === bambi.username) { %>
+                <div class="profile-actions">
+                    <a href="/bambis/<%= bambi.username %>" class="btn">View Profile</a>
+                </div>
+            <% } else { %>
+                <div class="profile-actions">
+                    <a href="/bambis/<%= bambi.username %>" class="btn">Back to Profile</a>
+                </div>
+            <% } %>
+        </div>
 
-            <div class="profile-avatar-large">
-                <img src="<%= bambi.profilePictureUrl || `/bambis/${bambi.username}/avatar` %>" alt="<%= bambi.displayName || bambi.username %>" id="avatar-preview">
-                <label for="avatar-upload" class="avatar-upload">
-                    <i class="fas fa-camera"></i>
-                </label>
-                <input type="file" id="avatar-upload" name="profilePicture" style="display: none;" accept="image/*">
+        <% if (bambiCookie !== bambi.username) { %>
+            <div class="error-message" style="background-color: var(--error-bg); color: var(--error); padding: 10px; margin: 20px auto; border-radius: 4px; max-width: 800px; text-align: center;">
+                You can only edit your own profile. <a href="/bambis/<%= bambi.username %>">Back to profile</a>
             </div>
-
-            <div class="form-section">
+        <% } else { %>
+            <form id="profile-update-form" enctype="multipart/form-data" class="profile-form">
+                <h1 class="profile-name-large">Update Your Profile</h1>
+                
+                <div class="profile-avatar-large">
+                    <img id="avatar-preview-img" src="<%= bambi.profilePictureUrl || `/bambis/${bambi.username}/avatar` %>" alt="<%= bambi.displayName || bambi.username %>">
+                </div>
+                
+                <div class="form-group">
+                    <label for="avatar">Profile Picture</label>
+                    <input type="file" id="avatar" name="avatar" accept="image/jpeg,image/jpg,image/png,image/gif">
+                    <small>Max size: 10MB. Supported formats: JPEG, JPG, PNG, GIF</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="username">Username (cannot be changed)</label>
+                    <input type="text" id="username" name="username" value="<%= bambi.username %>" readonly>
+                </div>
+                
                 <div class="form-group">
                     <label for="displayName">Display Name</label>
-                    <input type="text" id="displayName" name="displayName" class="form-control" value="<%= bambi.displayName || bambi.username %>">
+                    <input type="text" id="displayName" name="displayName" value="<%= bambi.displayName %>" required>
                 </div>
-
+                
                 <div class="form-group">
                     <label for="description">About Me</label>
-                    <textarea id="description" name="description" class="form-control"><%= bambi.description || '' %></textarea>
+                    <textarea id="description" name="description" rows="4" maxlength="500"><%= bambi.description %></textarea>
+                    <small><span id="description-chars"><%= (bambi.description || '').length %></span>/500 characters</small>
                 </div>
-            </div>
-
-            <div class="form-section">
-                <h3 class="section-title">Profile Theme</h3>
                 
                 <div class="form-group">
-                    <label for="headerImage">Custom Header Image URL (optional)</label>
-                    <input type="text" id="headerImage" name="profileTheme[customHeaderImage]" class="form-control" 
-                        value="<%= bambi.profileTheme?.customHeaderImage || '' %>" 
-                        placeholder="https://example.com/your-image.jpg">
+                    <label for="woodland">Woodland Home</label>
+                    <input type="text" id="woodland" name="woodland" value="<%= bambi.woodland || 'Sleepy Meadow' %>">
                 </div>
                 
-                <div class="color-inputs">
-                    <div class="color-input-group">
-                        <label for="primaryColor">Primary Color</label>
-                        <input type="color" id="primaryColor" name="profileTheme[primaryColor]" class="form-control" 
-                            value="<%= bambi.profileTheme?.primaryColor || '#2a9d8f' %>">
+                <div class="form-group">
+                    <label>Favorite Seasons</label>
+                    <div class="seasons-container">
+                        <label class="season-checkbox">
+                            <input type="checkbox" name="favoriteSeasons" value="spring" <% if (bambi.favoriteSeasons && bambi.favoriteSeasons.includes('spring')) { %>checked<% } %>>
+                            Spring
+                        </label>
+                        <label class="season-checkbox">
+                            <input type="checkbox" name="favoriteSeasons" value="summer" <% if (bambi.favoriteSeasons && bambi.favoriteSeasons.includes('summer')) { %>checked<% } %>>
+                            Summer
+                        </label>
+                        <label class="season-checkbox">
+                            <input type="checkbox" name="favoriteSeasons" value="autumn" <% if (bambi.favoriteSeasons && bambi.favoriteSeasons.includes('autumn')) { %>checked<% } %>>
+                            Autumn
+                        </label>
+                        <label class="season-checkbox">
+                            <input type="checkbox" name="favoriteSeasons" value="winter" <% if (bambi.favoriteSeasons && bambi.favoriteSeasons.includes('winter')) { %>checked<% } %>>
+                            Winter
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Profile Theme Colors</label>
+                    
+                    <div class="color-picker-container">
+                        <label for="primaryColor">Primary:</label>
+                        <input type="color" id="primaryColor" name="primaryColor" value="<%= bambi.profileTheme?.primaryColor || '#fa81ff' %>">
+                        <div class="color-preview" id="primary-preview" style="background-color: <%= bambi.profileTheme?.primaryColor || '#fa81ff' %>;"></div>
                     </div>
                     
-                    <div class="color-input-group">
-                        <label for="secondaryColor">Secondary Color</label>
-                        <input type="color" id="secondaryColor" name="profileTheme[secondaryColor]" class="form-control" 
-                            value="<%= bambi.profileTheme?.secondaryColor || '#e76f51' %>">
+                    <div class="color-picker-container">
+                        <label for="secondaryColor">Secondary:</label>
+                        <input type="color" id="secondaryColor" name="secondaryColor" value="<%= bambi.profileTheme?.secondaryColor || '#ff4fa2' %>">
+                        <div class="color-preview" id="secondary-preview" style="background-color: <%= bambi.profileTheme?.secondaryColor || '#ff4fa2' %>;"></div>
                     </div>
                     
-                    <div class="color-input-group">
-                        <label for="textColor">Text Color</label>
-                        <input type="color" id="textColor" name="profileTheme[textColor]" class="form-control" 
-                            value="<%= bambi.profileTheme?.textColor || '#ffffff' %>">
+                    <div class="color-picker-container">
+                        <label for="textColor">Text:</label>
+                        <input type="color" id="textColor" name="textColor" value="<%= bambi.profileTheme?.textColor || '#ffffff' %>">
+                        <div class="color-preview" id="text-preview" style="background-color: <%= bambi.profileTheme?.textColor || '#ffffff' %>;"></div>
                     </div>
                 </div>
-            </div>
-
-            <div class="form-section">
-                <h3 class="section-title">Favorite Triggers</h3>
                 
-                <div class="triggers-container" id="triggers-container">
-                    <% if (bambi.triggers && bambi.triggers.length > 0) { %>
-                        <% bambi.triggers.forEach(trigger => { %>
-                            <div class="trigger-tag">
-                                <span><%= trigger %></span>
-                                <span class="remove">×</span>
-                            </div>
-                        <% }); %>
-                    <% } %>
+                <div class="form-group">
+                    <label>Favorite Triggers</label>
+                    <div class="triggers-container" id="triggers-container">
+                        <% if (bambi.triggers && bambi.triggers.length > 0) { %>
+                            <% bambi.triggers.forEach((trigger, index) => { %>
+                                <div class="trigger-tag">
+                                    <span><%= trigger %></span>
+                                    <button type="button" class="remove-trigger" data-index="<%= index %>">×</button>
+                                </div>
+                            <% }); %>
+                        <% } %>
+                    </div>
+                    
+                    <div id="add-trigger-form">
+                        <input type="text" id="new-trigger" placeholder="Add a trigger...">
+                        <button type="button" id="add-trigger-btn">Add</button>
+                    </div>
+                    <small>Add words or phrases that trigger you (max 10)</small>
                 </div>
                 
-                <div class="add-trigger">
-                    <input type="text" id="new-trigger" class="form-control" placeholder="Add new trigger...">
-                    <button type="button" id="add-trigger-btn" class="btn">Add</button>
+                <div class="form-group" style="margin-top: 2rem; text-align: center;">
+                    <button type="submit" class="submit-btn">Save Profile</button>
+                    <a href="/bambis/<%= bambi.username %>" class="btn" style="margin-left: 1rem;">Cancel</a>
                 </div>
-                
-                <!-- Hidden input to store triggers as JSON -->
-                <input type="hidden" id="triggers-input" name="triggers">
-            </div>
-
-            <button type="submit" class="submit-button">Save Changes</button>
-        </form>
+            </form>
+        <% } %>
     </div>
 
     <%- include('../../views/partials/footer.ejs') %>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Avatar upload preview
-            const avatarUpload = document.getElementById('avatar-upload');
-            const avatarPreview = document.getElementById('avatar-preview');
+            <% if (bambiCookie !== bambi.username) { %>
+                // If not the profile owner, don't initialize editing functionality
+                return;
+            <% } %>
+
+            const socket = io();
+            const triggers = <%= JSON.stringify(bambi.triggers || []) %>;
             
-            avatarUpload.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
+            // Setup trigger management
+            function renderTriggers() {
+                const container = document.getElementById('triggers-container');
+                container.innerHTML = '';
+                
+                triggers.forEach((trigger, index) => {
+                    const tag = document.createElement('div');
+                    tag.className = 'trigger-tag';
+                    tag.innerHTML = `
+                        <span>${trigger}</span>
+                        <button type="button" class="remove-trigger" data-index="${index}">×</button>
+                    `;
+                    container.appendChild(tag);
+                });
+                
+                // Add event listeners to delete buttons
+                document.querySelectorAll('.remove-trigger').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const index = parseInt(this.dataset.index);
+                        triggers.splice(index, 1);
+                        renderTriggers();
+                    });
+                });
+            }
+            
+            document.getElementById('add-trigger-btn').addEventListener('click', function() {
+                const input = document.getElementById('new-trigger');
+                const trigger = input.value.trim();
+                
+                if (trigger && !triggers.includes(trigger) && triggers.length < 10) {
+                    triggers.push(trigger);
+                    renderTriggers();
+                    input.value = '';
+                } else if (triggers.length >= 10) {
+                    showNotification('Maximum 10 triggers allowed', 'error');
+                }
+            });
+            
+            // Handle file upload preview
+            document.getElementById('avatar').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        avatarPreview.src = e.target.result;
+                        document.getElementById('avatar-preview-img').src = e.target.result;
                     };
-                    reader.readAsDataURL(this.files[0]);
+                    reader.readAsDataURL(file);
                 }
             });
-
-            // Trigger tags management
-            const triggersContainer = document.getElementById('triggers-container');
-            const newTriggerInput = document.getElementById('new-trigger');
-            const addTriggerBtn = document.getElementById('add-trigger-btn');
-            const triggersInput = document.getElementById('triggers-input');
-
-            // Function to update the hidden input with current triggers
-            function updateTriggersInput() {
-                const triggers = Array.from(
-                    document.querySelectorAll('.trigger-tag span:first-child')
-                ).map(el => el.textContent.trim());
-                
-                triggersInput.value = JSON.stringify(triggers);
-            }
-
-            // Initialize hidden input
-            updateTriggersInput();
-
-            // Add new trigger
-            addTriggerBtn.addEventListener('click', function() {
-                const triggerText = newTriggerInput.value.trim();
-                if (!triggerText) return;
-
-                const triggerTag = document.createElement('div');
-                triggerTag.className = 'trigger-tag';
-                triggerTag.innerHTML = `
-                    <span>${triggerText}</span>
-                    <span class="remove">×</span>
-                `;
-
-                triggerTag.querySelector('.remove').addEventListener('click', function() {
-                    triggerTag.remove();
-                    updateTriggersInput();
-                });
-
-                triggersContainer.appendChild(triggerTag);
-                newTriggerInput.value = '';
-                updateTriggersInput();
+            
+            // Handle description character count
+            document.getElementById('description').addEventListener('input', function(e) {
+                const length = e.target.value.length;
+                document.getElementById('description-chars').textContent = length;
             });
-
-            // Allow pressing Enter to add trigger
-            newTriggerInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTriggerBtn.click();
-                }
+            
+            // Handle color pickers
+            document.getElementById('primaryColor').addEventListener('input', function(e) {
+                document.getElementById('primary-preview').style.backgroundColor = e.target.value;
             });
-
-            // Set up click listeners for existing trigger removals
-            document.querySelectorAll('.trigger-tag .remove').forEach(removeBtn => {
-                removeBtn.addEventListener('click', function() {
-                    this.parentElement.remove();
-                    updateTriggersInput();
-                });
+            
+            document.getElementById('secondaryColor').addEventListener('input', function(e) {
+                document.getElementById('secondary-preview').style.backgroundColor = e.target.value;
             });
-
-            // Form submission
-            const profileForm = document.getElementById('profile-form');
-            profileForm.addEventListener('submit', function(event) {
-                event.preventDefault();
+            
+            document.getElementById('textColor').addEventListener('input', function(e) {
+                document.getElementById('text-preview').style.backgroundColor = e.target.value;
+            });
+            
+            // Handle form submission
+            document.getElementById('profile-update-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
                 
-                // Update triggers input one final time before submission
-                updateTriggersInput();
-                
-                // Create FormData object
                 const formData = new FormData(this);
                 
-                // Send data to server
-                fetch('/bambis/api/update-profile', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(err => {
-                            throw new Error(`Server error: ${err.message || response.statusText}`);
-                        });
+                // Get selected seasons
+                const seasonCheckboxes = document.querySelectorAll('input[name="favoriteSeasons"]:checked');
+                const seasons = Array.from(seasonCheckboxes).map(cb => cb.value);
+                
+                // Remove all favoriteSeasons fields and add the array
+                for (const pair of formData.entries()) {
+                    if (pair[0] === 'favoriteSeasons') {
+                        formData.delete(pair[0]);
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Profile updated successfully:', data);
+                }
+                
+                // Add seasons as a JSON string
+                formData.append('favoriteSeasons', JSON.stringify(seasons));
+                
+                // Add triggers as a JSON string
+                formData.append('triggers', JSON.stringify(triggers));
+                
+                try {
+                    const response = await fetch('/bambis/api/update-profile', {
+                        method: 'POST',
+                        body: formData
+                    });
                     
-                    if (data.redirect) {
-                        // Show success message before redirect
+                    const data = await response.json();
+                    
+                    if (data.success) {
                         showNotification('Profile updated successfully!', 'success');
                         
-                        // Redirect to profile page after short delay
+                        // Redirect to profile page after a short delay
                         setTimeout(() => {
-                            window.location.href = data.redirect;
+                            window.location.href = `/bambis/<%= bambi.username %>`;
                         }, 1500);
                     } else {
-                        showNotification(data.message || 'Profile updated successfully!', 'success');
+                        showNotification('Error: ' + (data.message || 'Unknown error'), 'error');
                     }
-                })
-                .catch(error => {
-                    console.error('Error updating profile:', error);
-                    showNotification('Failed to update profile: ' + error.message, 'error');
-                });
+                } catch (error) {
+                    console.error('Error:', error);
+                    showNotification('Error updating profile. Please try again.', 'error');
+                }
             });
-
-            // Notification helper function
+            
             function showNotification(message, type = 'info') {
                 const notification = document.createElement('div');
                 notification.className = `notification ${type}`;
@@ -398,10 +489,14 @@
                 
                 document.body.appendChild(notification);
                 
+                // Remove notification after animation completes
                 setTimeout(() => {
                     notification.remove();
-                }, 5000);
+                }, 4000);
             }
+            
+            // Initialize the triggers UI
+            renderTriggers();
         });
     </script>
 </body>
