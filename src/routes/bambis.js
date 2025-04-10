@@ -305,7 +305,8 @@ router.get('/', withDBErrorHandling(async (req, res) => {
     
     const totalPages = Math.ceil(totalBambis / limit);
     
-    res.render('bambis/index', {
+    // Changed from 'bambis/bambi' to 'bambis'
+    res.render('bambis', {
       title: 'BambiSleep Community',
       bambis,
       search,
@@ -321,7 +322,8 @@ router.get('/', withDBErrorHandling(async (req, res) => {
     });
   } catch (error) {
     logger.error(`Error loading bambis: ${error.message}`);
-    res.render('bambis/index', { 
+    // Changed from 'bambis/bambi' to 'bambis'
+    res.render('bambis', { 
       title: 'BambiSleep Community',
       error: true,
       errorMessage: 'Failed to load bambis',
@@ -345,7 +347,7 @@ router.get('/new', checkBambiNameSet, (req, res) => {
 
 // Support /create route as an alternative
 router.get('/create', checkBambiNameSet, (req, res) => {
-  res.redirect('/bambi/new');
+  res.redirect('/bambis/new');
 });
 
 // Create bambi submission endpoint
@@ -403,7 +405,7 @@ router.post('/new', checkBambiNameSet, validateBambiInput, withDBErrorHandling(a
       }
       
       // Redirect to the user bambi with a success message
-      return res.redirect(`/bambi/${username}?success=Bambi+created+successfully`);
+      return res.redirect(`/bambis/${username}?success=Bambi+created+successfully`);
     });
   } catch (error) {
     logger.error(`Error creating bambi: ${error.message}`);
@@ -432,7 +434,7 @@ router.get('/:username/avatar', async (req, res) => {
   }
 });
 
-// Individual bambi bambi view
+// Individual bambi view - this should render the bambi template
 router.get('/:username', async (req, res) => {
   try {
     const username = req.params.username;
@@ -452,9 +454,11 @@ router.get('/:username', async (req, res) => {
       // Add other fields that might be undefined with defaults
     };
     
+    // This is correct - keep using 'bambis/bambi' for individual profiles
     res.render('bambis/bambi', { 
       title: `Bambi Profile - ${bambi.username}`,
-      bambi: sanitizedBambi
+      bambi: sanitizedBambi,
+      isOwnbambi: username === getBambiNameFromCookies(req) // Add this to check if it's their own profile
     });
   } catch (error) {
     console.error('Error fetching bambi:', error);
@@ -1138,7 +1142,5 @@ router.post('/api/bambis/set-bambiname', (req, res) => {
     bambiname: bambiname
   });
 });
-
-
 
 export default router;

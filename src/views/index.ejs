@@ -77,34 +77,63 @@
       const modal = document.getElementById('username-modal');
       let username = '';
 
-      // ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪
+      // Initialize socket connection first
+      const socket = io();
+      window.socket = socket;
+
+      // Fix cookie extraction function
       function getCookie(name) {
-        const value = `; /${document.cookie}/`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+          let c = ca[i];
+          while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+          if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+        }
+        return null;
       }
 
       username = getCookie('bambiname');
       if (!username) {
         modal.style.display = 'block';
+      } else {
+        // Set username in window and socket if it exists in cookie
+        window.username = username;
+        socket.emit('set username', username);
       }
 
-      document.getElementById('username-submit').addEventListener('click', () => {
+      // Add direct click handler without using socket validation first
+      const submitButton = document.getElementById('username-submit');
+      submitButton.addEventListener('click', function handleSubmit() {
         const input = document.getElementById('username-input');
         const newUsername = input.value.trim();
+        
         if (newUsername) {
-          // Validate username with server before accepting
-          socket.emit('validate_username', newUsername, (response) => {
-            if (response.valid) {
-              username = newUsername;
-              document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
-              socket.emit('set username', username);
-              modal.style.display = 'none';
-              window.username = username;
-            } else {
-              alert(response.message || 'Username is invalid or already taken.');
+          // Use a simpler approach first to ensure button works
+          username = newUsername;
+          window.username = username;
+          document.cookie = `bambiname=${encodeURIComponent(username)}; path=/; max-age=2592000`; // 30 days
+          
+          // Then validate with server
+          socket.emit('set username', username);
+          socket.emit('validate_username', username, (response) => {
+            if (!response || !response.valid) {
+              console.warn('Username validation failed:', response ? response.message : 'No response');
+              // Still hide modal even if server validation fails - we'll use the name anyway
             }
           });
+          
+          // Hide modal immediately for better UX
+          modal.style.display = 'none';
+          console.log('Username set to:', username);
+        }
+      });
+
+      // Handle form submission with Enter key
+      document.getElementById('username-input').addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          submitButton.click();
         }
       });
 

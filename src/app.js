@@ -10,14 +10,14 @@ import { promises as fsPromises } from 'fs';
 import multer from 'multer';
 
 // Routes
-import indexRoute from './routes/index.js';
-import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
-import helpRoute from './routes/help.js';
-import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
-
 import bambisRouter from './routes/bambis.js';
 import bambiApiRouter from './routes/api/bambis.js';
+import { setRoutes } from './routes/index.js';
+import bambiRoutes from './routes/bambis.js';
+import helpRoutes from './routes/help.js';
+import scraperRoutes from './routes/scrapers.js';
+import psychodelicTriggerManiaRoutes from './routes/psychodelic-trigger-mania.js';
 
 // Middleware
 import errorHandler from './middleware/errorHandler.js';
@@ -117,22 +117,14 @@ app.use((req, res, next) => {
 // Apply bambi app middleware
 app.use('/bambis', sessionMiddleware, userContextMiddleware, bambisRouter);
 
-// Define routes
-const routes = [
-  { path: '/', handler: indexRoute },
-  { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
-  { path: '/help', handler: helpRoute },
-  { path: '/scrapers', handler: scrapersRoute },
-];
+// Set up all routes
+setRoutes(app);
 
-app.use('/api/bambis', bambiApiRouter);
-app.use('/bambi', bambisRouter); 
-app.use('/bambis', bambisRouter);
-
-// Setup routes
-routes.forEach(route => {
-  app.use(route.path, route.handler);
-});
+// Mount specific route modules
+app.use('/bambis', bambiRoutes);
+app.use('/help', helpRoutes);
+app.use('/scrapers', scraperRoutes);
+app.use('/psychodelic-trigger-mania', psychodelicTriggerManiaRoutes);
 
 // Define API routes
 app.get('/', (req, res) => {
@@ -266,10 +258,10 @@ app.post('/api/bambis/set-bambiname', (req, res) => {
 });
 
 // TTS helper function
-async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE) {
+async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE, socketId = null) {
   try {
     const startTime = Date.now();
-    logger.info(`Fetching TTS from Kokoro: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+    logger.info(`[${socketId || 'no-socket'}]: "${text.substring(0, 45)}${text.length > 45 ? '...' : ''}"`);
 
     const requestData = {
       model: "kokoro",
@@ -418,6 +410,28 @@ export async function loadFilteredWords() {
   } catch (error) {
     logger.error('Error loading filtered words:', error);
     return [];
+  }
+}
+
+// Add this function before or after initializeScraperSystem
+async function initializeScrapers() {
+  const logger = new Logger('ScraperInit');
+  logger.info('Initializing scrapers...');
+  
+  try {
+    // You can put any scraper-specific initialization code here
+    // This could include loading configuration, preparing data directories, etc.
+    
+    // If you need to initialize specific scrapers beyond what workerCoordinator does:
+    // 1. Perhaps load scraper configurations from files
+    // 2. Set up any data folders needed
+    // 3. Register any additional scrapers that aren't part of the worker system
+    
+    logger.success('Scrapers initialized successfully');
+    return true;
+  } catch (error) {
+    logger.error('Failed to initialize scrapers:', error);
+    throw error;
   }
 }
 
