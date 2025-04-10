@@ -108,7 +108,7 @@ import dbConnection from './src/database/dbConnection.js';
 import gracefulShutdown from './src/utils/gracefulShutdown.js';
 
 // Import socket handlers
-import { setupSocketHandlers } from './src/sockets/handlers/handlers.js';
+import { initializeSockets } from './src/sockets/socketManager.js';
 
 // Initialize logger
 const logger = new Logger('Server');
@@ -153,7 +153,7 @@ async function initializeServer() {
     
     // Step 3: Setup socket handlers
     logger.info('Step 3/5: Setting up socket handlers...');
-    setupSocketHandlers(io);
+    initializeSockets(io);
     
     // Step 4: Initialize scrapers and workers
     logger.info('Step 4/5: Initializing subsystems...');

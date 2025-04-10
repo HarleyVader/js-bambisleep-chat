@@ -1,126 +1,131 @@
-// Service worker to maintain socket connection across page navigations
+// Service Worker for socket.io connections
 
-// Cache name for offline support
-const CACHE_NAME = 'bambisleep-cache-v1';
+// Import socket.io client if needed
+importScripts('/socket.io/socket.io.js');
 
-// Socket connection
-import { getSocket } from './js/socket.js';
-const socket = getSocket();
-let bambiname = null;
-let io = null;
+let socket = null;
+const clients = new Set();
+const messageQueue = [];
+let isConnected = false;
 
-// Install event - cache important resources
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        '/',
-        '/js/socket-client.js',
-        '/socket.io/socket.io.js',
-        '/css/main.css',
-        '/gif/default-avatar.gif',
-        '/gif/default-header.gif'
-      ]);
-    })
-  );
-});
-
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  return self.clients.claim();
-});
-
-// Load the socket.io client library
-self.importScripts('/socket.io/socket.io.js');
-
-// Handle messages from clients
-self.addEventListener('message', (event) => {
-  if (event.data.type === 'INIT_SOCKET') {
-    // Store bambiname
-    bambiname = event.data.bambiname;
+// Initialize socket connection
+function initSocket() {
+  if (socket) return; // Prevent duplicate initialization
+  
+  socket = io({
+    // Your existing socket options
+    reconnectionAttempts: 5,
+    reconnectionDelay: 3000,
+    timeout: 20000
+  });
+  
+  socket.on('connect', () => {
+    isConnected = true;
+    console.log('[ServiceWorker] Socket connected');
     
-    // Initialize socket if needed
-    if (!socket) {
-      if (!io) {
-        io = self.io;
-      }
-      
-      socket = io({
-        transports: ['websocket'],
-        reconnectionAttempts: 10,
-        reconnectionDelay: 1000
-      });
-      
-      socket.on('connect', () => {
-        broadcastToClients({
-          type: 'SOCKET_CONNECTED',
-          id: socket.id
-        });
-        
-        if (bambiname) {
-          socket.emit('set username', bambiname);
-        }
-      });
-      
-      socket.on('disconnect', (reason) => {
-        broadcastToClients({
-          type: 'SOCKET_DISCONNECTED',
-          reason: reason
-        });
-      });
-      
-      // Forward all messages to clients
-      socket.onAny((event, ...args) => {
-        broadcastToClients({
-          type: 'SOCKET_EVENT',
-          event: event,
-          data: args
-        });
-      });
+    // Process any queued messages
+    while (messageQueue.length > 0) {
+      const msg = messageQueue.shift();
+      socket.emit(msg.event, ...msg.args);
     }
     
-    // Respond to the client
-    event.source.postMessage({
-      type: 'SOCKET_STATUS',
-      connected: socket && socket.connected,
-      id: socket ? socket.id : null
+    // Notify all clients
+    notifyClients({
+      type: 'SOCKET_EVENT',
+      event: 'connect'
     });
-  }
+  });
   
-  // Handle sending messages through the socket
-  if (event.data.type === 'EMIT' && socket) {
-    socket.emit(event.data.event, ...event.data.args);
-  }
+  socket.on('disconnect', () => {
+    isConnected = false;
+    console.log('[ServiceWorker] Socket disconnected');
+    notifyClients({
+      type: 'SOCKET_EVENT',
+      event: 'disconnect'
+    });
+  });
   
-  // Update bambiname if it changes
-  if (event.data.type === 'SET_BAMBINAME' && socket) {
-    bambiname = event.data.bambiname;
-    socket.emit('set username', bambiname);
-  }
-});
-
-// Add a check before adding the event listener
-const element = document.getElementById('your-element-id');
-if (element) {
-  element.addEventListener('event', handler);
+  // Set up other socket event listeners and forward them to clients
+  setupSocketEventForwarding();
 }
 
-// Broadcast a message to all clients
-async function broadcastToClients(message) {
-  const clients = await self.clients.matchAll();
+// Forward events from socket to clients
+function setupSocketEventForwarding() {
+  const eventsToForward = [
+    'ai response',
+    'chat message',
+    'trigger',
+    'error',
+    // Add other events you need to forward
+  ];
+  
+  eventsToForward.forEach(eventName => {
+    socket.on(eventName, (data) => {
+      notifyClients({
+        type: 'SOCKET_EVENT',
+        event: eventName,
+        data: data
+      });
+    });
+  });
+}
+
+// Notify all clients with a message
+function notifyClients(message) {
   clients.forEach(client => {
     client.postMessage(message);
   });
 }
+
+// Service worker event listeners
+self.addEventListener('install', (event) => {
+  console.log('[ServiceWorker] Installed');
+  self.skipWaiting(); // Activate worker immediately
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('[ServiceWorker] Activated');
+  event.waitUntil(clients.claim()); // Take control of clients immediately
+});
+
+// Handle messages from clients
+self.addEventListener('message', (event) => {
+  const client = event.source;
+  
+  // Add client to our set if not already there
+  if (!clients.has(client)) {
+    clients.add(client);
+  }
+  
+  // Handle client message
+  const message = event.data;
+  
+  if (message.type === 'CLIENT_READY') {
+    // Initialize socket if not already done
+    if (!socket) {
+      initSocket();
+    }
+    // Notify client of current connection status
+    client.postMessage({
+      type: 'SOCKET_EVENT',
+      event: isConnected ? 'connect' : 'disconnect'
+    });
+  }
+  else if (message.type === 'SOCKET_EMIT') {
+    // Forward client emit to socket server
+    if (socket && isConnected) {
+      socket.emit(message.event, ...message.args);
+    } else {
+      // Queue message for when socket connects
+      messageQueue.push({
+        event: message.event,
+        args: message.args
+      });
+      
+      // Try to initialize socket if not done yet
+      if (!socket) {
+        initSocket();
+      }
+    }
+  }
+});

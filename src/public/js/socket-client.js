@@ -11,33 +11,46 @@ const socketManager = (() => {
   let socket = null;
   
   return {
-    getSocket: () => {
+    getSocket: (namespace = '') => {
       if (!socket) {
-        socket = io({
-          reconnection: true,
+        // Create the socket with options
+        socket = io(namespace, {
           reconnectionAttempts: 5,
-          reconnectionDelay: 1000,
-          reconnectionDelayMax: 5000,
-          timeout: 20000,
-          transports: ['websocket', 'polling']
+          reconnectionDelay: 2000,
+          timeout: 10000,
+          // Add any other options you need
         });
         
-        // Send connection type information
+        // Set up default event listeners
         socket.on('connect', () => {
-          socket.emit('connection_info', {
-            type: 'direct',
-            client: navigator.userAgent
-          });
+          console.log('Socket connected');
+          socketConnected = true;
           
-          console.log('Socket connected:', socket.id);
+          // Process any queued messages
+          while (messageQueue.length > 0) {
+            const msg = messageQueue.shift();
+            socket.emit(msg.event, ...msg.args);
+          }
+          
+          // Dispatch connect event to registered listeners
+          if (eventListeners['connect']) {
+            eventListeners['connect'].forEach(callback => callback());
+          }
         });
         
-        socket.on('disconnect', (reason) => {
-          console.log('Socket disconnected:', reason);
+        socket.on('disconnect', () => {
+          console.log('Socket disconnected');
+          socketConnected = false;
+          
+          // Dispatch disconnect event to registered listeners
+          if (eventListeners['disconnect']) {
+            eventListeners['disconnect'].forEach(callback => callback());
+          }
         });
         
-        socket.on('error', (error) => {
-          console.error('Socket error:', error);
+        socket.on('error', (errorData) => {
+          console.error('Socket error:', errorData);
+          handleSocketError(errorData);
         });
       }
       return socket;
@@ -47,6 +60,7 @@ const socketManager = (() => {
       if (socket) {
         socket.disconnect();
         socket = null;
+        socketConnected = false;
       }
     }
   };
@@ -62,12 +76,12 @@ function initializeSocket() {
     // Try to register service worker
     navigator.serviceWorker.register('/socket-worker.js')
       .then(registration => {
-        console.log('Service Worker registered with scope:', registration.scope);
-        // Continue with service worker-based socket connection
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        serviceWorkerReady = true;
         setupSocketWithServiceWorker();
       })
       .catch(error => {
-        console.error('Service Worker registration failed:', error);
+        console.error('ServiceWorker registration failed: ', error);
         // Fall back to direct socket connection
         setupDirectSocketConnection();
       });
@@ -83,7 +97,13 @@ function setupSocketWithServiceWorker() {
   navigator.serviceWorker.addEventListener('message', event => {
     // Handle messages from service worker
     if (event.data.type === 'SOCKET_EVENT') {
-      handleSocketEvent(event.data.eventName, event.data.data);
+      const socketEvent = event.data.event;
+      const socketData = event.data.data;
+      
+      // Notify listeners of this event
+      if (eventListeners[socketEvent]) {
+        eventListeners[socketEvent].forEach(callback => callback(socketData));
+      }
     }
   });
   
@@ -154,8 +174,9 @@ function handleSocketError(errorData) {
     
     // Automatic reconnection logic
     setTimeout(() => {
-      if (window.appSocket && !window.appSocket.connected) {
-        window.location.reload();
+      if (!socketConnected) {
+        const socket = getSocket();
+        socket.connect();
       }
     }, 5000);
   } else {
@@ -173,12 +194,40 @@ function getBambiNameFromCookies() {
   return null;
 }
 
+// Helper function to show notifications
+function showNotification(message, type = 'info') {
+  // Check if the notification area exists
+  let notificationArea = document.querySelector('.notification-area');
+  
+  // Create one if it doesn't exist
+  if (!notificationArea) {
+    notificationArea = document.createElement('div');
+    notificationArea.className = 'notification-area';
+    document.body.appendChild(notificationArea);
+  }
+  
+  // Create and show notification
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+  
+  notificationArea.appendChild(notification);
+  
+  // Auto-remove after delay
+  setTimeout(() => {
+    notification.classList.add('fade-out');
+    setTimeout(() => notification.remove(), 500);
+  }, 3000);
+}
+
 // Function to send a message to the server
 function sendMessage(event, ...args) {
-  if (window.appSocket) {
-    window.appSocket.emit(event, ...args);
+  const socket = getSocket();
+  if (socketConnected) {
+    socket.emit(event, ...args);
   } else {
-    console.warn('Socket not initialized. Message not sent.');
+    console.warn('Socket not connected. Queueing message for later.');
+    messageQueue.push({ event, args });
   }
 }
 
@@ -204,7 +253,10 @@ function on(event, callback) {
 // Function to remove event listener
 function off(event, callback) {
   if (eventListeners[event]) {
-    eventListeners[event] = eventListeners[event].filter(cb => cb !== callback);
+    const index = eventListeners[event].indexOf(callback);
+    if (index !== -1) {
+      eventListeners[event].splice(index, 1);
+    }
   }
 }
 
@@ -228,7 +280,8 @@ window.BambiSocket = {
   off,
   isConnected,
   updateBambiName,
-  getBambiNameFromCookies
+  getBambiNameFromCookies,
+  getSocket
 };
 
 // Initialize automatically when the script loads
@@ -241,16 +294,5 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
-// Example usage: sending a message
-import { getSocket } from './socket.js';
-const socket = getSocket();
-
-const element = document.getElementById('sendButton');
-if (element) {
-  element.addEventListener('click', () => {
-    const messageInput = document.getElementById('messageInput');
-    const message = messageInput.value;
-    sendMessage('message', message);
-    messageInput.value = ''; // Clear input after sending
-  });
-}
+// Export socket for direct use if needed
+export const socket = getSocket();

@@ -94,13 +94,13 @@
   <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/socket-client.js"></script>
-  <script>
-    import { getSocket } from '/js/socket.js';
-    const socket = getSocket();
+  <script src="/js/socket-client.js" type="module"></script>
+  <script type="module">
+    import { getSocket } from '/js/socket-client.js';
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Connect to Socket.io
+      const socket = getSocket();
+      window.socket = socket;
       
       // Show notification
       function showNotification(message, isError = false) {
@@ -218,9 +218,9 @@
         }
       });
 
-      if (!window.BambiSocket) {
-        console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
-        window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
+      // Replace the BambiSocket check with proper error handling
+      if (typeof getSocket !== 'function') {
+        console.error('Socket connection function not found. Make sure socket-client.js is loaded correctly.');
       }
     });
   </script>

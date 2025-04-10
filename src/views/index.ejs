@@ -67,13 +67,14 @@
   <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="/js/socket-client.js"></script>
   <script src="js/psychodelic-trigger-mania.js"></script>
   <script src="js/text2speech.js"></script>
   <script src="js/responsive.js"></script>
   <script src="js/triggers.js"></script>
-  <script src="js/aigf-core.js"></script>
+  <script type="module" src="/js/aigf-core.js"></script>
   <script type="module">
-    import { getSocket } from '/js/socket.js';
+    import { getSocket } from '/js/socket-client.js';
     const socket = getSocket();
 
     document.addEventListener("DOMContentLoaded", () => {

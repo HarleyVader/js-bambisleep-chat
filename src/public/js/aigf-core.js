@@ -1,4 +1,4 @@
-import { getSocket } from './socket.js';
+import { getSocket } from './socket-client.js';
 const socket = getSocket();
 
 let token = '';
