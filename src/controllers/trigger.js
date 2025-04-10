@@ -1,4 +1,4 @@
-import { Bambi } from '../models/Bambi.js';
+import { Bambi } from '../models/Bambi.js';  // Named import
 import logger from '../utils/logger.js';
 
 // Standard trigger list

@@ -107,6 +107,85 @@ export const setupSocketRoutes = (io) => {
       });
     });
 
+    // Handle connection info
+    socket.on('connection_info', (info) => {
+      logger.info(`Connection type for ${socket.id}: ${info.type}`);
+      socket.connectionType = info.type; // 'service-worker' or 'direct'
+      
+      // Store connection info in session if available
+      if (socket.request.session) {
+        socket.request.session.connectionType = info.type;
+        socket.request.session.save();
+      }
+      
+      // Apply different connection settings based on connection type
+      if (info.type === 'service-worker') {
+        // Service worker connections need longer timeouts since they may go to sleep
+        socket.conn.pingInterval = 30000; // 30 seconds
+        socket.conn.pingTimeout = 15000; // 15 seconds
+        
+        // Send acknowledgment to service worker
+        socket.emit('connection_info_ack', { 
+          status: 'connected',
+          type: 'service-worker',
+          id: socket.id,
+          username: socket.bambiname || null
+        });
+      } else if (info.type === 'direct') {
+        // Direct connections get more frequent heartbeats
+        socket.conn.pingInterval = 10000; // 10 seconds
+        socket.conn.pingTimeout = 5000; // 5 seconds
+        
+        // Send acknowledgment to client
+        socket.emit('connection_info_ack', { 
+          status: 'connected',
+          type: 'direct',
+          id: socket.id,
+          username: socket.bambiname || null
+        });
+      }
+      
+      // Update worker with connection info
+      const worker = activeWorkers.get(socket.id);
+      if (worker) {
+        worker.postMessage({
+          type: 'connection_info',
+          connectionType: info.type,
+          socketId: socket.id
+        });
+      }
+    });
+
+    // Handle reconnection attempts
+    socket.on('reconnect_attempt', (attemptNumber) => {
+      logger.info(`Reconnection attempt ${attemptNumber} for ${socket.id}`);
+      
+      // If this was a service worker connection, notify client
+      if (socket.connectionType === 'service-worker') {
+        io.to(socket.id).emit('system', {
+          type: 'info',
+          message: `Reconnecting (attempt ${attemptNumber})...`
+        });
+      }
+    });
+
+    // Handle successful reconnection
+    socket.on('reconnect', () => {
+      logger.success(`Client ${socket.id} reconnected successfully`);
+      
+      // Re-establish any state that was lost during the disconnection
+      if (socket.bambiname) {
+        // Re-join the user-specific room
+        socket.join(`user:${socket.bambiname}`);
+      }
+      
+      // Notify client about successful reconnection
+      io.to(socket.id).emit('system', {
+        type: 'success',
+        message: 'Reconnected successfully'
+      });
+    });
+
     // Standard disconnect handler
     socket.on('disconnect', () => {
       logger.info(`Client disconnected: ${socket.id}`);
@@ -206,3 +285,95 @@ export const setupSocketRoutes = (io) => {
     }
   }
 };
+
+// Initialize socket connection
+function initializeSocket() {
+  // Check if service workers are supported
+  if ('serviceWorker' in navigator) {
+    // Original service worker implementation
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('Service Worker registered with scope:', registration.scope);
+        // Continue with service worker-based socket connection
+        setupSocketWithServiceWorker();
+      })
+      .catch(error => {
+        console.error('Service Worker registration failed:', error);
+        // Fall back to direct socket connection
+        setupDirectSocketConnection();
+      });
+  } else {
+    console.log('Service Workers not supported in this browser. Using fallback connection...');
+    // Fall back to direct socket connection
+    setupDirectSocketConnection();
+  }
+}
+
+function setupSocketWithServiceWorker() {
+  // Your existing service worker-based socket implementation
+  // This might involve messaging through the service worker
+}
+
+function setupDirectSocketConnection() {
+  // Direct socket.io connection without service worker
+  const socket = io({
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000
+  });
+  
+  // Setup all your socket event handlers here
+  socket.on('connect', () => {
+    console.log('Connected directly to server');
+    // Additional connection setup
+  });
+  
+  socket.on('error', (errorData) => {
+    console.error('Socket error:', errorData);
+    handleSocketError(errorData);
+  });
+  
+  // All other event handlers
+  // socket.on('ai response', ...
+  // socket.on('chat message', ...
+  
+  // Return or store the socket for other parts of your application
+  window.appSocket = socket;
+  return socket;
+}
+
+// Function to handle socket errors consistently in both approaches
+function handleSocketError(errorData) {
+  // Display error to user
+  if (errorData.reconnect) {
+    // Show reconnection message
+    showNotification('Connection issue. Reconnecting...', 'warning');
+    
+    // You might want to implement automatic reconnection logic here
+    setTimeout(() => {
+      if (!window.appSocket.connected) {
+        window.location.reload();
+      }
+    }, 5000);
+  } else {
+    // Show error message
+    showNotification(`Error: ${errorData.error}`, 'error');
+    console.error('Socket error details:', errorData.details || 'No details provided');
+  }
+}
+
+// Helper function to show notifications to the user
+function showNotification(message, type) {
+  // Implement based on your UI framework (could be a toast, alert, etc.)
+  // Example:
+  const notificationArea = document.getElementById('notification-area');
+  if (notificationArea) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    notificationArea.appendChild(notification);
+    setTimeout(() => notification.remove(), 5000);
+  } else {
+    console.log(`Notification (${type}): ${message}`);
+  }
+}

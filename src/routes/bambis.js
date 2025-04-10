@@ -6,10 +6,9 @@ import { validationResult, body, param } from 'express-validator';
 import dbConnection from '../database/dbConnection.js';
 import { withDatabaseTimeout } from '../database/databaseErrorHandler.js';
 import { withTransaction } from '../database/transaction.js';
-import BambiModel from '../models/Bambi.js';  // Rename the import to avoid conflict
+import { Bambi } from '../models/Bambi.js';  // Named import
 import auth from '../middleware/auth.js';
 
-const Bambi = BambiModel; // Now this works correctly
 const logger = new Logger('BambiRoutes');
 const router = express.Router();
 
@@ -434,51 +433,37 @@ router.get('/:username/avatar', async (req, res) => {
 });
 
 // Individual bambi bambi view
-router.get('/:username', param('username').trim().escape(), withDBErrorHandling(async (req, res) => {
-  const { username } = req.params;
-  
+router.get('/:username', async (req, res) => {
   try {
-    const bambi = await Bambi.findOne({ username })
-      .select('-__v')
-      .lean();
+    const username = req.params.username;
+    const bambi = await Bambi.findOne({ username: username });
     
     if (!bambi) {
       return res.status(404).render('error', { 
         message: 'Bambi not found',
-        error: { status: 404 },
-        title: 'Not Found'
+        error: { status: 404, stack: '' } 
       });
     }
     
-    // Check if user is the bambi owner
-    const bambiname = getBambiNameFromCookies(req);
-    const isOwnBambi = bambiname === username;
-    
-    // Track bambi views if not own bambi
-    if (!isOwnBambi) {
-      Bambi.updateOne(
-        { _id: bambi._id },
-        { $inc: { views: 1 } }
-      ).catch(err => logger.error(`Failed to update view count: ${err.message}`));
-    }
-    
-    // Check for success message in query parameters
-    const successMessage = req.query.success || null;
+    // Ensure bambi has all required fields before rendering
+    const sanitizedBambi = {
+      ...bambi.toObject(),
+      about: bambi.about || '',
+      // Add other fields that might be undefined with defaults
+    };
     
     res.render('bambis/bambi', { 
-      title: `${bambi.displayName || bambi.username}'s Bambi`,
-      bambi,
-      isOwnBambi,
-      success: successMessage
+      title: `Bambi Profile - ${bambi.username}`,
+      bambi: sanitizedBambi
     });
   } catch (error) {
-    logger.error(`Error loading bambi: ${error.message}`);
-    res.status(500).render('error', {
-      message: 'Error loading bambi',
-      error: { status: 500 }
+    console.error('Error fetching bambi:', error);
+    res.status(500).render('error', { 
+      message: 'Error fetching bambi profile',
+      error 
     });
   }
-}));
+});
 
 // Edit bambi page - apply ownership check middleware
 router.get('/:username/edit', 
@@ -1154,6 +1139,6 @@ router.post('/api/bambis/set-bambiname', (req, res) => {
   });
 });
 
+
+
 export default router;
-export const Bambi = mongoose.model('Bambi', BambiSchema);
-export { BambiSchema };// Export the same model as default

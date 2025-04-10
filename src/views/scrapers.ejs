@@ -98,6 +98,13 @@
             <h2>Text Scraper</h2>
             <div class="submit-form">
                 <form id="text-form" data-type="text" action="/bambi/update" method="POST">
+                    <select name="category" required>
+                        <option value="">Select Category</option>
+                        <option value="fiction">Fiction</option>
+                        <option value="tutorial">Tutorial</option>
+                        <option value="discussion">Discussion</option>
+                        <option value="other">Other</option>
+                    </select>
                     <textarea placeholder="Enter URL to scrape for BambiSleep text content..." required></textarea>
                     <button type="submit">Scrape Text</button>
                 </form>
@@ -248,6 +255,26 @@
             contentModal.style.display = 'none';
         }
     });
+
+    // Check server-side authentication status
+    fetch('/api/auth/status')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.authenticated) {
+          modal.style.display = 'block';
+        } else {
+          window.username = data.username;
+        }
+      })
+      .catch(err => {
+        console.error('Authentication check failed:', err);
+        modal.style.display = 'block';
+      });
+
+    if (!window.BambiSocket) {
+      console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
+      window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
+    }
   </script>
 </body>
 </html>

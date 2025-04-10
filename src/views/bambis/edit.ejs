@@ -151,6 +151,21 @@
         descriptionInput.addEventListener('input', () => updateCounter(descriptionInput, descriptionCounter, 1500));
       }
       
+      // Check server-side authentication status
+      fetch('/api/auth/status')
+        .then(res => res.json())
+        .then(data => {
+          if (!data.authenticated) {
+            modal.style.display = 'block';
+          } else {
+            window.username = data.username;
+          }
+        })
+        .catch(err => {
+          console.error('Authentication check failed:', err);
+          modal.style.display = 'block';
+        });
+      
       // Form submission
       const form = document.getElementById('edit-bambi-form');
       
@@ -200,6 +215,11 @@
           showNotification('An error occurred while updating bambi', true);
         }
       });
+
+      if (!window.BambiSocket) {
+        console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
+        window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
+      }
     });
   </script>
 </body>

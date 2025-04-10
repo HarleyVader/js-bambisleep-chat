@@ -328,4 +328,4 @@ BambiSchema.statics.updateWithTransaction = async function(userId, updateData, s
 
 export const Bambi = mongoose.model('Bambi', BambiSchema);
 export { BambiSchema };
-export default mongoose.model('bambi', bambiSchema);
+export default Bambi;  // Export the same model as default

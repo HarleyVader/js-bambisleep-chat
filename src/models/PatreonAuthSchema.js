@@ -122,4 +122,4 @@ const PatreonAuthSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model("PatreonAuth", PatreonAuthSchema);
+export default mongoose.model("PatreonAuth", PatreonAuthSchema);

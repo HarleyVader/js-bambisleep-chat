@@ -16,8 +16,7 @@
               <!-- User identity section with integrated header and neonwave styling -->
               <div class="bambi-identity-section neonwave">
                 <!-- Header image moved inside identity section -->
-                <div class="bambi-header-image" style="background-image: url('<%= bambi.headerImage || "
-                  /gif/default-header.gif" %>'); background-color: <%= bambi.headerColor %>;">
+                <div class="bambi-header-image" style="background-image: url('<%= bambi.headerImage || '/gif/default-header.gif' %>'); background-color: <%= bambi.headerColor %>;">
                 </div>
 
                 <!-- bambi content container that includes avatar and info -->
@@ -67,15 +66,19 @@
                     </div>
 
                     <div class="bambi-about clickable-links neon-text-subtle">
-                      <%=
-                        bambi.about.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>')
+                      <%- 
+                        bambi.about ? sanitizeHtml(bambi.about, {
+                          allowedTags: [],
+                          allowedAttributes: {}
+                        }).replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>') 
+                        : 'No description available'
                       %>
                     </div>
 
                     <div class="bambi-description-container cyber-panel">
                       <h2 class="neon-heading">Description</h2>
                       <div class="bambi-description cyber-text">
-                        <%= bambi.description %>
+                        <%= bambi.description || 'No description available' %>
                       </div>
                     </div>
 
@@ -94,7 +97,68 @@
 
             <!-- bambi Edit Modal -->
             <div id="bambi-edit-modal" class="modal">
-              <!-- Modal content... -->
+              <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Edit Your Bambi</h2>
+                <form id="edit-bambi-form" class="bambi-form" action="/bambi/update" method="POST" enctype="multipart/form-data">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <div class="form-group">
+                    <label for="avatar">Avatar Image</label>
+                    <input type="file" id="avatar" name="avatar" accept="image/*">
+                    <small>Current: <%= bambi.avatar || 'Default avatar' %></small>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="headerImage">Header Image</label>
+                    <input type="file" id="headerImage" name="headerImage" accept="image/*">
+                    <small>Current: <%= bambi.headerImage || 'Default header' %></small>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="headerColor">Header Color</label>
+                    <input type="color" id="headerColor" name="headerColor" value="<%= bambi.headerColor || '#000000' %>">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="about">About (Short Bio)</label>
+                    <textarea id="about" name="about" rows="2" maxlength="150"><%= bambi.about || '' %></textarea>
+                    <small>Brief intro (150 chars max). Links will be clickable.</small>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="description">Full Description</label>
+                    <textarea id="description" name="description" rows="4"><%= bambi.description || '' %></textarea>
+                    <small>Tell us more about your bambi</small>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" value="<%= user.email || '' %>">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" name="currentPassword">
+                    <small>Required to confirm changes</small>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="newPassword">New Password (Optional)</label>
+                    <input type="password" id="newPassword" name="newPassword">
+                    <small>Leave blank to keep current password</small>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword">
+                  </div>
+                  
+                  <div class="form-actions">
+                    <button type="button" class="cancel-btn">Cancel</button>
+                    <button type="submit" class="save-btn">Save Changes</button>
+                  </div>
+                </form>
+              </div>
             </div>
 
             <div class="notification-area"></div>
@@ -106,9 +170,9 @@
         <script src="/js/socket-client.js"></script>
         <script>
           document.addEventListener('DOMContentLoaded', function() {
-            // Initialize socket connection if not already initialized
-            if (window.BambiSocket && typeof window.BambiSocket.initialize === 'function') {
-              window.BambiSocket.initialize();
+            if (!window.BambiSocket) {
+              console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
+              window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
             }
             
             // Set up bambi-specific event listeners
@@ -134,17 +198,95 @@
               if (deleteBtn) {
                 deleteBtn.addEventListener('click', function() {
                   if (confirm('Are you sure you want to delete your bambi?')) {
-                    // Send delete event
-                    window.BambiSocket.sendMessage('bambi_action', {
-                      action: 'delete',
-                      username: '<%= bambi.username %>'
-                    });
-                    window.location.href = '/';
+                    try {
+                      window.BambiSocket.sendMessage('bambi_action', {
+                        action: 'delete',
+                        username: '<%= bambi.username %>'
+                      });
+                      
+                      // Listen for confirmation before redirecting
+                      window.BambiSocket.on('bambi_deleted', (data) => {
+                        if (data.username === '<%= bambi.username %>') {
+                          window.location.href = '/?deleted=true';
+                        }
+                      });
+                      
+                      // Add timeout in case no response
+                      setTimeout(() => {
+                        window.location.href = '/';
+                      }, 3000);
+                    } catch (e) {
+                      console.error('Error deleting bambi:', e);
+                      alert('There was an error deleting your bambi. Please try again.');
+                    }
                   }
                 });
               }
               <% } %>
             }
+
+            // File upload preview
+            const avatarInput = document.getElementById('avatar');
+            const headerImageInput = document.getElementById('headerImage');
+
+            if (avatarInput) {
+              avatarInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                  const reader = new FileReader();
+                  reader.onload = function(e) {
+                    const preview = document.createElement('div');
+                    preview.className = 'image-preview';
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Avatar Preview">`;
+                    
+                    // Remove any existing preview
+                    const existingPreview = avatarInput.nextElementSibling.nextElementSibling;
+                    if (existingPreview && existingPreview.className === 'image-preview') {
+                      existingPreview.remove();
+                    }
+                    
+                    avatarInput.parentNode.insertBefore(preview, avatarInput.nextElementSibling.nextSibling);
+                  }
+                  reader.readAsDataURL(this.files[0]);
+                }
+              });
+            }
+
+            if (headerImageInput) {
+              headerImageInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                  const reader = new FileReader();
+                  reader.onload = function(e) {
+                    const preview = document.createElement('div');
+                    preview.className = 'image-preview';
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Header Preview">`;
+                    
+                    // Remove any existing preview
+                    const existingPreview = headerImageInput.nextElementSibling.nextElementSibling;
+                    if (existingPreview && existingPreview.className === 'image-preview') {
+                      existingPreview.remove();
+                    }
+                    
+                    headerImageInput.parentNode.insertBefore(preview, headerImageInput.nextElementSibling.nextSibling);
+                  }
+                  reader.readAsDataURL(this.files[0]);
+                }
+              });
+            }
+
+            // Check server-side authentication status
+            fetch('/api/auth/status')
+              .then(res => res.json())
+              .then(data => {
+                if (!data.authenticated) {
+                  modal.style.display = 'block';
+                } else {
+                  window.username = data.username;
+                }
+              })
+              .catch(err => {
+                console.error('Authentication check failed:', err);
+                modal.style.display = 'block';
+              });
           });
         </script>
   </body>

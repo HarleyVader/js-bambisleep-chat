@@ -1,5 +1,6 @@
 import express from 'express';
 import { Logger } from '../utils/logger.js';
+import { Bambi } from '../models/Bambi.js';  // Named import
 
 const router = express.Router();
 const logger = new Logger('HelpRoutes');

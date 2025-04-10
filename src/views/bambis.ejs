@@ -31,6 +31,10 @@
           value="<%= typeof search !== 'undefined' ? search : '' %>"
           class="search-input"
         >
+        <% if (typeof sort !== 'undefined') { %>
+          <input type="hidden" name="sort" value="<%= sort %>">
+        <% } %>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="search-button">🔍</button>
       </form>
     </div>
@@ -101,6 +105,9 @@
             <div class="bambi-info">
               <h3><%= bambi.displayName || bambi.username %></h3>
               <p class="bambi-about"><%= bambi.about || 'No information provided' %></p>
+              <div class="bambi-description cyber-text">
+                <%= bambi.description || 'No description available' %>
+              </div>
               <a href="/bambi/<%= bambi.username %>" class="view-bambi-btn">View bambi</a>
             </div>
           </div>
@@ -293,5 +300,42 @@
       box-shadow: 0 0 8px rgba(255, 100, 255, 0.6);
     }
   </style>
+
+  <script>
+    // Check server-side authentication status
+    fetch('/api/auth/status')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.authenticated) {
+          modal.style.display = 'block';
+        } else {
+          window.username = data.username;
+        }
+      })
+      .catch(err => {
+        console.error('Authentication check failed:', err);
+        modal.style.display = 'block';
+      });
+
+    if (!window.BambiSocket) {
+      console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
+      window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
+    }
+
+    // Close modal functionality
+    document.querySelectorAll('.close, .cancel-btn').forEach(element => {
+      element.addEventListener('click', function() {
+        document.getElementById('bambi-edit-modal').style.display = 'none';
+      });
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+      const modal = document.getElementById('bambi-edit-modal');
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>

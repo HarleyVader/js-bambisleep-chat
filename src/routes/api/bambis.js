@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import mongoose from 'mongoose';
 import { Logger } from '../../utils/logger.js';
-import Bambi from '../../models/Bambi.js';
+import { Bambi } from '../../models/Bambi.js';  // Fixed path with double ../
 import auth from '../../middleware/auth.js';
 import { withTransaction } from '../../database/transaction.js';
 
@@ -304,8 +304,8 @@ router.post('/bambi/:username/heart', auth, async (req, res) => {
   }
 });
 
-// Add this route to handle setting BambiName
-router.post('/api/bambis/set-bambiname', (req, res) => {
+// Keep this as-is since the client expects this exact endpoint:
+router.post('/set-bambiname', (req, res) => {
   const { bambiname } = req.body;
   
   if (!bambiname || bambiname.trim().length < 3) {
@@ -319,7 +319,7 @@ router.post('/api/bambis/set-bambiname', (req, res) => {
   res.cookie('bambiname', bambiname, { 
     path: '/',
     httpOnly: true,
-    maxAge: 30 * 24 * 60 * 60 * 1000,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     sameSite: 'strict'
   });
   
@@ -330,6 +330,31 @@ router.post('/api/bambis/set-bambiname', (req, res) => {
     };
   }
   
+  // Create bambi if doesn't exist
+  Bambi.findOne({ username: bambiname })
+    .then(existingBambi => {
+      if (!existingBambi) {
+        // Create new bambi with standard triggers
+        const newBambi = new Bambi({
+          username: bambiname,
+          triggers: [
+            {
+              name: "BAMBI SLEEP",
+              description: "The foundational trigger for all bambi dolls",
+              active: true,
+              isStandard: true
+            }
+          ]
+        });
+        return newBambi.save();
+      }
+      return existingBambi;
+    })
+    .catch(err => {
+      logger.error(`Error checking/creating bambi: ${err.message}`);
+      // Don't return error to client, just log it
+    });
+  
   return res.json({
     success: true,
     message: 'BambiName set successfully',
@@ -337,7 +362,5 @@ router.post('/api/bambis/set-bambiname', (req, res) => {
   });
 });
 
-// Recommended fix for Bambi.js
-export const Bambi = mongoose.model('Bambi', BambiSchema);
-export { BambiSchema };
-export default Bambi; // Export the same model as default
+
+export default router;

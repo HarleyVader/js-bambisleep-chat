@@ -104,6 +104,27 @@
             <%- include('./partials/footer.ejs', { footer: typeof footer !=='undefined' ? footer : {} }) %>
 
                 <script src="/socket.io/socket.io.js"></script>
+                <script>
+                    // Check server-side authentication status
+                    fetch('/api/auth/status')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (!data.authenticated) {
+                          modal.style.display = 'block';
+                        } else {
+                          window.username = data.username;
+                        }
+                      })
+                      .catch(err => {
+                        console.error('Authentication check failed:', err);
+                        modal.style.display = 'block';
+                      });
+
+                    if (!window.BambiSocket) {
+                      console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
+                      window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
+                    }
+                </script>
     </body>
 
 </html>

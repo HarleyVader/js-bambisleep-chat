@@ -6,89 +6,121 @@ let serviceWorkerReady = false;
 let messageQueue = [];
 let socketConnected = false;
 
-// Initialize the service worker and socket connection
-async function initializeSocket() {
+// Initialize socket connection
+function initializeSocket() {
+  // Check if service workers are supported
   if ('serviceWorker' in navigator) {
-    try {
-      // Register the service worker
-      const registration = await navigator.serviceWorker.register('/socket-worker.js');
-      console.log('ServiceWorker registered:', registration);
-      
-      // Wait for the service worker to be ready
-      await navigator.serviceWorker.ready;
-      serviceWorkerReady = true;
-      
-      // Set up message listener from service worker
-      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-      
-      // Initialize socket in service worker
-      const bambiname = getBambiNameFromCookies();
-      sendToServiceWorker({
-        type: 'INIT_SOCKET',
-        bambiname: bambiname
+    // Try to register service worker
+    navigator.serviceWorker.register('/socket-worker.js')
+      .then(registration => {
+        console.log('Service Worker registered with scope:', registration.scope);
+        // Continue with service worker-based socket connection
+        setupSocketWithServiceWorker();
+      })
+      .catch(error => {
+        console.error('Service Worker registration failed:', error);
+        // Fall back to direct socket connection
+        setupDirectSocketConnection();
       });
-      
-      // Process any queued messages
-      processMessageQueue();
-      
-      return true;
-    } catch (error) {
-      console.error('ServiceWorker registration failed:', error);
-      return false;
-    }
   } else {
-    console.warn('Service workers are not supported in this browser');
-    return false;
+    console.log('Service Workers not supported in this browser. Using fallback connection...');
+    // Fall back to direct socket connection
+    setupDirectSocketConnection();
   }
 }
 
-// Process any messages queued before service worker was ready
-function processMessageQueue() {
-  if (serviceWorkerReady && messageQueue.length > 0) {
-    messageQueue.forEach(msg => sendToServiceWorker(msg));
-    messageQueue = [];
+function setupSocketWithServiceWorker() {
+  // Setup messaging with service worker
+  navigator.serviceWorker.addEventListener('message', event => {
+    // Handle messages from service worker
+    if (event.data.type === 'SOCKET_EVENT') {
+      handleSocketEvent(event.data.eventName, event.data.data);
+    }
+  });
+  
+  // Tell the service worker the client is ready
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'CLIENT_READY'
+    });
   }
+  
+  // Let the server know we're using service worker connection
+  sendConnectionInfo('service-worker');
 }
 
-// Send a message to the service worker
-function sendToServiceWorker(message) {
-  if (serviceWorkerReady && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage(message);
+function setupDirectSocketConnection() {
+  // Direct socket.io connection without service worker
+  const socket = io({
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    withCredentials: true  // Add this line to ensure cookies are sent
+  });
+  
+  // Setup all your socket event handlers here
+  socket.on('connect', () => {
+    console.log('Connected directly to server');
+    // Let the server know we're using direct connection
+    socket.emit('connection_info', { type: 'direct' });
+  });
+  
+  socket.on('error', (errorData) => {
+    console.error('Socket error:', errorData);
+    handleSocketError(errorData);
+  });
+  
+  // Add all other event handlers
+  setupSocketEventHandlers(socket);
+  
+  // Store the socket for global access
+  window.appSocket = socket;
+  return socket;
+}
+
+function sendConnectionInfo(type) {
+  if (window.appSocket) {
+    window.appSocket.emit('connection_info', { type });
   } else {
-    messageQueue.push(message);
+    // Queue this information to be sent once socket is available
+    window.pendingConnectionInfo = type;
   }
 }
 
-// Handle messages from the service worker
-function handleServiceWorkerMessage(event) {
-  const data = event.data;
+function setupSocketEventHandlers(socket) {
+  // Add all your event handlers here
+  socket.on('ai response', (data) => {
+    // Handle AI response
+    console.log('Received AI response:', data);
+    // Update UI or process response
+  });
   
-  if (data.type === 'SOCKET_CONNECTED') {
-    console.log('Socket connected via service worker, ID:', data.id);
-    socketConnected = true;
-    // Execute any onConnect callbacks
-    if (eventListeners['connect']) {
-      eventListeners['connect'].forEach(callback => callback());
-    }
-  }
+  socket.on('chat message', (message) => {
+    // Handle chat messages
+    console.log('Received chat message:', message);
+    // Update UI with new message
+  });
   
-  if (data.type === 'SOCKET_DISCONNECTED') {
-    console.log('Socket disconnected:', data.reason);
-    socketConnected = false;
-    // Execute any onDisconnect callbacks
-    if (eventListeners['disconnect']) {
-      eventListeners['disconnect'].forEach(callback => callback(data.reason));
-    }
-  }
-  
-  if (data.type === 'SOCKET_EVENT') {
-    // Forward event to appropriate listeners
-    const event = data.event;
-    const args = data.data;
+  // Add other event handlers as needed
+}
+
+// Function to handle socket errors consistently in both approaches
+function handleSocketError(errorData) {
+  // Display error to user
+  if (errorData.reconnect) {
+    // Show reconnection message
+    showNotification('Connection issue. Reconnecting...', 'warning');
     
-    if (eventListeners[event]) {
-      eventListeners[event].forEach(callback => callback(...args));
-    }
+    // Automatic reconnection logic
+    setTimeout(() => {
+      if (window.appSocket && !window.appSocket.connected) {
+        window.location.reload();
+      }
+    }, 5000);
+  } else {
+    // Show error message
+    showNotification(`Error: ${errorData.error}`, 'error');
+    console.error('Socket error details:', errorData.details || 'No details provided');
   }
 }
 
@@ -102,11 +134,11 @@ function getBambiNameFromCookies() {
 
 // Function to send a message to the server
 function sendMessage(event, ...args) {
-  sendToServiceWorker({
-    type: 'EMIT',
-    event: event,
-    args: args
-  });
+  if (window.appSocket) {
+    window.appSocket.emit(event, ...args);
+  } else {
+    console.warn('Socket not initialized. Message not sent.');
+  }
 }
 
 // Function to send a chat message
@@ -142,10 +174,7 @@ function isConnected() {
 
 // Update bambiname in the service worker when it changes
 function updateBambiName(bambiname) {
-  sendToServiceWorker({
-    type: 'SET_BAMBINAME',
-    bambiname: bambiname
-  });
+  sendMessage('update_bambiname', { bambiname });
 }
 
 // Export public API

@@ -7,6 +7,7 @@ import session from 'express-session';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { promises as fsPromises } from 'fs';
+import multer from 'multer';
 
 // Routes
 import indexRoute from './routes/index.js';
@@ -347,6 +348,62 @@ app.post('/bambis/update-bambi', async (req, res) => {
           success: false, 
           message: 'Server error occurred while updating bambi' 
       });
+  }
+});
+
+// Set up storage for uploaded files
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    // Determine destination based on file type
+    const dest = file.fieldname === 'avatar' ? 'public/uploads/avatars' : 'public/uploads/headers';
+    cb(null, dest);
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+// Create upload middleware
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    // Accept only images
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
+
+// Define route handler for bambi update
+app.post('/bambi/update', upload.fields([
+  { name: 'avatar', maxCount: 1 },
+  { name: 'headerImage', maxCount: 1 }
+]), (req, res) => {
+  try {
+    // Files are available in req.files
+    const avatarFile = req.files.avatar ? req.files.avatar[0] : null;
+    const headerFile = req.files.headerImage ? req.files.headerImage[0] : null;
+    
+    // Get other form data
+    const { about, description, email, currentPassword, newPassword } = req.body;
+    
+    // Update bambi data in database
+    // ...
+    
+    // If successful, redirect or send success response
+    res.redirect(`/bambi/${req.user.username}?updated=true`);
+  } catch (error) {
+    console.error('Error updating bambi:', error);
+    res.status(500).render('error', { 
+      error: true, 
+      errorMessage: 'Failed to update bambi profile' 
+    });
   }
 });
 

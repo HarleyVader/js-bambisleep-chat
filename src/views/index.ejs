@@ -93,16 +93,42 @@
         const input = document.getElementById('username-input');
         const newUsername = input.value.trim();
         if (newUsername) {
-          username = newUsername;
-          document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`; // Updated to remove leading slash
-          socket.emit('set username', username);
-          modal.style.display = 'none';
-          window.username = username;
+          // Validate username with server before accepting
+          socket.emit('validate_username', newUsername, (response) => {
+            if (response.valid) {
+              username = newUsername;
+              document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
+              socket.emit('set username', username);
+              modal.style.display = 'none';
+              window.username = username;
+            } else {
+              alert(response.message || 'Username is invalid or already taken.');
+            }
+          });
         }
       });
 
       const style = document.createElement('style');
       document.head.appendChild(style);
+
+      if (!window.BambiSocket) {
+        console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
+        window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
+      }
+
+      socket.on("connect", () => {
+        socket.emit('get_chat_history', 20); // Get last 20 messages
+      });
+
+      socket.on("chat_history", (messages) => {
+        const chatResponse = document.getElementById("chat-response");
+        messages.forEach(msg => {
+          const item = document.createElement("li");
+          const timestamp = new Date(msg.timestamp).toLocaleTimeString();
+          item.textContent = `/${timestamp} - /${msg.username}: /${msg.data}/`;
+          chatResponse.appendChild(item);
+        });
+      });
 
       socket.on("chat message", (msg) => {
         const item = document.createElement("li");

@@ -1,5 +1,5 @@
 import express from 'express';
-import Bambi from '../models/Bambi.js';
+import { Bambi } from '../models/Bambi.js';  // Named import
 
 // Create routers
 const mainRouter = express.Router();
@@ -66,4 +66,4 @@ export const routers = {
 };
 
 // For backward compatibility with the original structure
-export default mainRouter;
+export default router;
