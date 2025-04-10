@@ -72,13 +72,15 @@
   <script src="js/responsive.js"></script>
   <script src="js/triggers.js"></script>
   <script src="js/aigf-core.js"></script>
-  <script>
+  <script type="module">
+    import { getSocket } from '/js/socket.js';
+    const socket = getSocket();
+
     document.addEventListener("DOMContentLoaded", () => {
       const modal = document.getElementById('username-modal');
       let username = '';
 
       // Initialize socket connection first
-      const socket = io();
       window.socket = socket;
 
       // Fix cookie extraction function

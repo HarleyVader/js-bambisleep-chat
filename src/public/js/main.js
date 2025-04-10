@@ -13,8 +13,8 @@ function makeLinksClickable(text) {
 // Make this function available globally
 window.makeLinksClickable = makeLinksClickable;
 
-// Connect to socket.io
-const socket = io('/bambis');
+import { getSocket } from './socket.js';
+const socket = getSocket();
 
 // Socket events
 socket.on('connect', () => {

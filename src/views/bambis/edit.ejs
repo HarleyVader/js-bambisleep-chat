@@ -96,9 +96,11 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/socket-client.js"></script>
   <script>
+    import { getSocket } from '/js/socket.js';
+    const socket = getSocket();
+
     document.addEventListener('DOMContentLoaded', () => {
       // Connect to Socket.io
-      const socket = io();
       
       // Show notification
       function showNotification(message, isError = false) {

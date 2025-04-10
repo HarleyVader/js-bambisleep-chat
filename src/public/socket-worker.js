@@ -4,7 +4,8 @@
 const CACHE_NAME = 'bambisleep-cache-v1';
 
 // Socket connection
-let socket = null;
+import { getSocket } from './js/socket.js';
+const socket = getSocket();
 let bambiname = null;
 let io = null;
 

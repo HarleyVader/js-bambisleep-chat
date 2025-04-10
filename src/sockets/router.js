@@ -4,6 +4,7 @@ import { Worker } from 'worker_threads';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Logger from '../utils/logger.js';
+import { getSocket } from '../public/js/socket.js';
 
 // Get directory name
 const __filename = fileURLToPath(import.meta.url);
@@ -286,94 +287,53 @@ export const setupSocketRoutes = (io) => {
   }
 };
 
-// Initialize socket connection
-function initializeSocket() {
-  // Check if service workers are supported
-  if ('serviceWorker' in navigator) {
-    // Original service worker implementation
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(registration => {
-        console.log('Service Worker registered with scope:', registration.scope);
-        // Continue with service worker-based socket connection
-        setupSocketWithServiceWorker();
-      })
-      .catch(error => {
-        console.error('Service Worker registration failed:', error);
-        // Fall back to direct socket connection
-        setupDirectSocketConnection();
-      });
-  } else {
-    console.log('Service Workers not supported in this browser. Using fallback connection...');
-    // Fall back to direct socket connection
-    setupDirectSocketConnection();
-  }
-}
-
-function setupSocketWithServiceWorker() {
-  // Your existing service worker-based socket implementation
-  // This might involve messaging through the service worker
-}
-
-function setupDirectSocketConnection() {
-  // Direct socket.io connection without service worker
-  const socket = io({
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000
-  });
+// Socket.io singleton implementation
+const socketManager = (() => {
+  let socket = null;
   
-  // Setup all your socket event handlers here
-  socket.on('connect', () => {
-    console.log('Connected directly to server');
-    // Additional connection setup
-  });
-  
-  socket.on('error', (errorData) => {
-    console.error('Socket error:', errorData);
-    handleSocketError(errorData);
-  });
-  
-  // All other event handlers
-  // socket.on('ai response', ...
-  // socket.on('chat message', ...
-  
-  // Return or store the socket for other parts of your application
-  window.appSocket = socket;
-  return socket;
-}
-
-// Function to handle socket errors consistently in both approaches
-function handleSocketError(errorData) {
-  // Display error to user
-  if (errorData.reconnect) {
-    // Show reconnection message
-    showNotification('Connection issue. Reconnecting...', 'warning');
-    
-    // You might want to implement automatic reconnection logic here
-    setTimeout(() => {
-      if (!window.appSocket.connected) {
-        window.location.reload();
+  return {
+    getSocket: () => {
+      if (!socket) {
+        socket = io({
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
+          timeout: 20000,
+          transports: ['websocket', 'polling']
+        });
+        
+        // Send connection type information
+        socket.on('connect', () => {
+          socket.emit('connection_info', {
+            type: 'direct',
+            client: navigator.userAgent
+          });
+          
+          console.log('Socket connected:', socket.id);
+        });
+        
+        socket.on('disconnect', (reason) => {
+          console.log('Socket disconnected:', reason);
+        });
+        
+        socket.on('error', (error) => {
+          console.error('Socket error:', error);
+        });
       }
-    }, 5000);
-  } else {
-    // Show error message
-    showNotification(`Error: ${errorData.error}`, 'error');
-    console.error('Socket error details:', errorData.details || 'No details provided');
-  }
-}
+      return socket;
+    },
+    
+    disconnect: () => {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+    }
+  };
+})();
 
-// Helper function to show notifications to the user
-function showNotification(message, type) {
-  // Implement based on your UI framework (could be a toast, alert, etc.)
-  // Example:
-  const notificationArea = document.getElementById('notification-area');
-  if (notificationArea) {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    notificationArea.appendChild(notification);
-    setTimeout(() => notification.remove(), 5000);
-  } else {
-    console.log(`Notification (${type}): ${message}`);
-  }
-}
+// Export the socket getter
+export const getSocket = socketManager.getSocket;
+
+const socket = getSocket();

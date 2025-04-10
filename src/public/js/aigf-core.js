@@ -1,3 +1,6 @@
+import { getSocket } from './socket.js';
+const socket = getSocket();
+
 let token = '';
 
 const _textArray = [];
@@ -6,13 +9,6 @@ const submit = document.getElementById('submit');
 const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
 let currentMessage = '';
-
-const socket = io({
-    reconnection: true,
-    reconnectionAttempts: 10, // Number of attempts before giving up
-    reconnectionDelay: 1000, // Initial delay between attempts (in ms)
-    reconnectionDelayMax: 5000, // Maximum delay between attempts (in ms)
-});
 
 socket.on('disconnect', () => {
     console.log('Disconnected');

@@ -6,6 +6,55 @@ let serviceWorkerReady = false;
 let messageQueue = [];
 let socketConnected = false;
 
+// Socket.io singleton implementation
+const socketManager = (() => {
+  let socket = null;
+  
+  return {
+    getSocket: () => {
+      if (!socket) {
+        socket = io({
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
+          timeout: 20000,
+          transports: ['websocket', 'polling']
+        });
+        
+        // Send connection type information
+        socket.on('connect', () => {
+          socket.emit('connection_info', {
+            type: 'direct',
+            client: navigator.userAgent
+          });
+          
+          console.log('Socket connected:', socket.id);
+        });
+        
+        socket.on('disconnect', (reason) => {
+          console.log('Socket disconnected:', reason);
+        });
+        
+        socket.on('error', (error) => {
+          console.error('Socket error:', error);
+        });
+      }
+      return socket;
+    },
+    
+    disconnect: () => {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+    }
+  };
+})();
+
+// Export the socket getter
+export const getSocket = socketManager.getSocket;
+
 // Initialize socket connection
 function initializeSocket() {
   // Check if service workers are supported
@@ -50,19 +99,11 @@ function setupSocketWithServiceWorker() {
 }
 
 function setupDirectSocketConnection() {
-  // Direct socket.io connection without service worker
-  const socket = io({
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-    withCredentials: true  // Add this line to ensure cookies are sent
-  });
+  const socket = getSocket();
   
   // Setup all your socket event handlers here
   socket.on('connect', () => {
     console.log('Connected directly to server');
-    // Let the server know we're using direct connection
-    socket.emit('connection_info', { type: 'direct' });
   });
   
   socket.on('error', (errorData) => {
@@ -201,6 +242,9 @@ document.addEventListener('visibilitychange', function() {
 });
 
 // Example usage: sending a message
+import { getSocket } from './socket.js';
+const socket = getSocket();
+
 const element = document.getElementById('sendButton');
 if (element) {
   element.addEventListener('click', () => {

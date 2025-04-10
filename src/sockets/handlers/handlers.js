@@ -27,6 +27,18 @@ function setupMainHandlers(io) {
   io.on('connection', (socket) => {
     logger.success(`Client connected: ${socket.id}`);
     
+    // Add this connection_info handler
+    socket.on('connection_info', (info) => {
+      logger.info(`Connection type for ${socket.id}: ${info.type}`);
+      socket.connectionType = info.type; // 'service-worker' or 'direct'
+      
+      // You might want different behavior based on connection type
+      if (info.type === 'direct') {
+        // Maybe more frequent heartbeats for direct connections
+        socket.conn.pingInterval = 10000; // 10 seconds instead of default
+      }
+    });
+    
     // Get username from cookie
     const username = getUsernameFromCookie(socket);
     

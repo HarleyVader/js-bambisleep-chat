@@ -190,20 +190,6 @@ async function initializeServer() {
       logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
       logger.success('Server initialization sequence completed successfully');
     });
-
-    // Inside your connection handler in router.js
-    io.on('connection', (socket) => {
-      socket.on('connection_info', (info) => {
-        logger.info(`Connection type for ${socket.id}: ${info.type}`);
-        socket.connectionType = info.type; // 'service-worker' or 'direct'
-        
-        // You might want different behavior based on connection type
-        if (info.type === 'direct') {
-          // Maybe more frequent heartbeats for direct connections
-          socket.conn.pingInterval = 10000; // 10 seconds instead of default
-        }
-      });
-    });
   } catch (err) {
     logger.error('Error in server initialization sequence:', err);
     process.exit(1);
