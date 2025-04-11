@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'Edit bambi' }) %>
+<%- include('./partials/head.ejs', { title: 'Edit bambi' }) %>
 <body>
-  <%- include('../partials/nav.ejs') %>
+  <%- include('./partials/nav.ejs') %>
   
   <div class="container">
     <% if (typeof error !== 'undefined' && error) { %>
@@ -14,7 +14,7 @@
     <div class="bambi-edit-container">
       <h1>Edit Your bambi</h1>
       
-      <form id="edit-bambi-form" class="bambi-form" action="/bambi/update" method="POST">
+      <form id="edit-bambi-form" class="bambi-form" action="/bambis/<%= bambi.username %>/update" method="POST">
         <input type="hidden" name="username" value="<%= bambi.username %>">
 
         <div class="input-container">
@@ -83,7 +83,7 @@
 
         <div class="form-actions">
           <button type="submit" class="save-btn">Save Changes</button>
-          <a href="/bambi/<%= bambi.username %>" class="cancel-btn">Cancel</a>
+          <a href="/bambis/<%= bambi.username %>" class="cancel-btn">Cancel</a>
         </div>
       </form>
     </div>
@@ -91,10 +91,8 @@
     <div class="notification-area"></div>
   </div>
 
-  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
-  
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/socket-client.js" type="module"></script>
+  <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+
   <script type="module">
     document.addEventListener('DOMContentLoaded', () => {
       // Use the socket from the BambiSocket object
@@ -200,7 +198,7 @@
         
         try {
           // Send data to server via fetch
-          const response = await fetch(`/bambi/${username}/`, {
+          const response = await fetch(`/bambis/${username}/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -213,7 +211,7 @@
           if (data.success) {
             showNotification('bambi updated successfully');
             setTimeout(() => {
-              window.location.href = `/bambi/${username}/`;
+              window.location.href = `/bambis/${username}/`;
             }, 1000);
           } else {
             showNotification(data.message || 'Failed to update bambi', true);

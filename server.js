@@ -1,108 +1,20 @@
 import http from 'http';
 import { Server } from 'socket.io';
 import os from 'os';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import express from 'express';
-import cookieParser from 'cookie-parser';
-import { mainRouter, bambiRouter } from './src/routes/index.js';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
-// Define __dirname first
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Import app and other components
+// Import app and other components from app.js
 import { 
-  app as appInstance, // Import the app instance from app.js
+  app, // Import the app instance directly - no need to rename it
   sessionMiddleware, 
   loadFilteredWords,
   initializeScraperSystem,
-  initializeWorkerSystem,
-  fetchTTSFromKokoro,
-  KOKORO_DEFAULT_VOICE
+  initializeWorkerSystem
 } from './src/app.js';
 
-// Create Express app
-const app = express();
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-// Updated static file configuration - use src/public as your static directory
-app.use('/js', express.static(path.join(__dirname, 'src/public/js')));
-app.use('/css', express.static(path.join(__dirname, 'src/public/css')));
-app.use('/images', express.static(path.join(__dirname, 'src/public/images')));
-app.use(express.static(path.join(__dirname, 'src/public')));
-
-// Serve socket.io client library
-app.use('/socket.io', express.static(path.join(__dirname, 'node_modules/socket.io/client-dist')));
-
-// Make sure Express MIME types are properly set
-app.use(express.static(path.join(__dirname, 'src/public'), {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css');
-    } else if (path.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript');
-    } else if (path.endsWith('.ico')) {
-      res.setHeader('Content-Type', 'image/x-icon');
-    }
-  }
-}));
-
-// Set view engine
-app.set('views', path.join(__dirname, 'src/views'));
-app.set('view engine', 'ejs');
-
-// Use routes
-app.use('/', mainRouter);
-app.use('/bambi', bambiRouter);
-
-// IMPORTANT: Mount API routes from app.js
-// This makes the TTS API endpoint available
-app.use('/api', appInstance._router);
-
-// TTS endpoint to mirror the one in app.js
-app.get('/tts', async (req, res) => {
-  const text = req.query.text;
-  const voice = req.query.voice || KOKORO_DEFAULT_VOICE;
-
-  if (typeof text !== 'string' || text.trim() === '') {
-    return res.status(400).json({ error: 'Invalid input: text must be a non-empty string' });
-  }
-
-  try {
-    const response = await fetchTTSFromKokoro(text, voice);
-
-    // Set appropriate headers
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Length', response.data.length);
-    res.setHeader('Cache-Control', 'no-cache');
-
-    // Send the audio data
-    res.send(response.data);
-  } catch (error) {
-    console.error(`TTS API Error: ${error.message}`);
-    return res.status(500).json({
-      error: 'Error in TTS service',
-      details: error.message
-    });
-  }
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(err.status || 500).render('error', {
-    message: err.message,
-    error: process.env.NODE_ENV === 'development' ? err : {}
-  });
-});
-
-// Use direct import instead of dynamic import
+// Utilities
 import { Logger } from './src/utils/logger.js';
 import dbConnection from './src/database/dbConnection.js';
 import gracefulShutdown from './src/utils/gracefulShutdown.js';
@@ -110,14 +22,18 @@ import gracefulShutdown from './src/utils/gracefulShutdown.js';
 // Import socket handlers
 import { initializeSockets } from './src/sockets/socketManager.js';
 
-// Initialize logger
+// Initialize logger and environment variables
 const logger = new Logger('Server');
-
 dotenv.config();
 
-// Create HTTP server and socket.io instance
+// Create HTTP server using the imported app instance
 const server = http.createServer(app);
 const io = new Server(server);
+
+// Apply Socket.IO middleware to share session with Socket.IO
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
 
 // Load filtered words for message filtering
 let filteredWords = [];

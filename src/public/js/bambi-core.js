@@ -119,7 +119,7 @@ function setupSocketWithServiceWorker() {
 }
 
 function setupDirectSocketConnection() {
-  const socket = getSocket();
+  const socket = socketManager.getSocket(); // Fix: use socketManager.getSocket() instead of getSocket()
   
   // Setup all your socket event handlers here
   socket.on('connect', () => {
@@ -177,7 +177,7 @@ function handleSocketError(errorData) {
     // Automatic reconnection logic
     setTimeout(() => {
       if (!socketConnected) {
-        const socket = getSocket();
+        const socket = socketManager.getSocket(); // Fix: use socketManager.getSocket()
         socket.connect();
       }
     }, 5000);
@@ -199,7 +199,7 @@ function emitSocketPromise(event, data) {
       reject(new Error('Socket request timed out'));
     }, 5000);
     
-    const socket = getSocket();
+    const socket = socketManager.getSocket(); // Fix: use socketManager.getSocket()
     socket.emit(event, data, (response) => {
       clearTimeout(timeout);
       if (response && response.success) {
@@ -247,7 +247,7 @@ function showNotification(message, type = 'info') {
 
 // Function to send a message to the server
 function sendMessage(event, ...args) {
-  const socket = getSocket();
+  const socket = socketManager.getSocket(); // Fix: use socketManager.getSocket()
   if (socketConnected) {
     socket.emit(event, ...args);
   } else {
@@ -258,7 +258,7 @@ function sendMessage(event, ...args) {
 
 // Function to send a chat message
 function sendChatMessage(message) {
-  const bambiname = getBambiNameFromCookies() || 'Anonymous';
+  const bambiname = getBambiNameFromCookies() || 'AnonBambi';
   sendMessage('chat message', { data: message, username: bambiname });
 }
 
@@ -344,6 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Make utility functions globally available
   window.makeLinksClickable = makeLinksClickable;
+  window.showNotification = showNotification; // Expose globally
 });
 
 // Re-initialize when page visibility changes (helps with page refresh)
@@ -353,28 +354,33 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
-// Export public API
+// Replace the ES module exports with proper browser-compatible code
 window.BambiSocket = {
-  initialize: initializeSocket,
-  sendMessage,
-  sendChatMessage,
-  sendCollarMessage,
-  on,
-  off,
-  isConnected,
-  updateBambiName,
-  getBambiNameFromCookies,
-  getSocket: socketManager.getSocket,
-  emitPromise: emitSocketPromise
-};
-
-// Export for ES modules
-export const getSocket = socketManager.getSocket;
-export const socket = getSocket();
-export { 
-  sendMessage, 
-  sendChatMessage, 
-  showNotification, 
-  emitSocketPromise,
-  makeLinksClickable
+    // Need to include these methods that are being used across files
+    initialize: function() {
+        // Initialize socket connection
+        console.log('BambiSocket initialized');
+        this.socket = socketManager.getSocket();
+    },
+    getSocket: socketManager.getSocket,
+    sendMessage: function(event, data) {
+        const socket = this.getSocket();
+        if (socket) socket.emit(event, data);
+    },
+    on: function(event, callback) {
+        const socket = this.getSocket();
+        if (socket) socket.on(event, callback);
+    },
+    off: function(event, callback) {
+        const socket = this.getSocket();
+        if (socket) socket.off(event, callback);
+    },
+    isConnected: function() {
+        return socketConnected;
+    },
+    updateBambiName: function(bambiname) {
+        // Implement bambi name update functionality
+        console.log('Updating bambi name to:', bambiname);
+    },
+    emitSocketPromise: emitSocketPromise
 };

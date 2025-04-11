@@ -217,14 +217,18 @@
                                 run for you.</p>
                         </div>
 
-                        <!-- In all templates, update form actions: -->
-                        <form action="/bambi/update" method="POST">
-                        <!-- Update links: -->
-                        <% if (locals.bambiname) { %>
-                            <a href="/bambi/<%= locals.bambiname %>">View your bambi</a>
-                        <% } else { %>
-                            <a href="/bambi">View bambi</a>
-                        <% } %>
+                         <!-- In all templates, update form actions: -->
+                         <form action="/bambis/update" method="POST">
+                            <!-- Update links: -->
+                            <% if (typeof bambi !== 'undefined' && bambi) { %>
+                              <a href="/bambis/<%= bambi.username %>">View bambi</a>
+                            <% } else if (typeof bambiname !== 'undefined' && bambiname) { %>
+                              <a href="/bambis/<%= bambiname %>">View bambi</a>
+                            <% } else { %>
+                              <a href="/bambis">Browse bambis</a>
+                            <% } %>
+    
+                            <a href="/bambis/new">Create Bambi bambi</a>
 
             </div>
 

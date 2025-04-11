@@ -250,7 +250,7 @@ const checkBambiNameSet = (req, res, next) => {
   next();
 };
 
-// Main bambis page route - consolidated from both routers
+// Main bambis page route - Lists all bambis
 router.get('/', withDBErrorHandling(async (req, res) => {
   try {
     // Check for success message in query parameters
@@ -332,26 +332,26 @@ router.get('/', withDBErrorHandling(async (req, res) => {
   }
 }));
 
-// Create bambi bambi page
-router.get('/new', checkBambiNameSet, (req, res) => {
+// Creation form - unified routing between /new and /create
+router.get('/create', checkBambiNameSet, (req, res) => {
   const currentBambiname = getBambiNameFromCookies(req);
   if (currentBambiname) {
-    return res.redirect(`/bambi/${currentBambiname}`);
+    return res.redirect(`/bambis/${currentBambiname}`);
   }
   
   res.render('bambis/creation', { 
-    title: 'Create New Bambi Bambi',
+    title: 'Create New Bambi Profile',
     validConstantsCount: 5
   });
 });
 
-// Support /create route as an alternative
-router.get('/create', checkBambiNameSet, (req, res) => {
-  res.redirect('/bambis/new');
+// Redirect /new to /create for consistency
+router.get('/new', checkBambiNameSet, (req, res) => {
+  res.redirect('/bambis/create');
 });
 
-// Create bambi submission endpoint
-router.post('/new', checkBambiNameSet, validateBambiInput, withDBErrorHandling(async (req, res) => {
+// Create bambi submission endpoint - consistent with API pattern
+router.post('/', checkBambiNameSet, validateBambiInput, withDBErrorHandling(async (req, res) => {
   const { username, displayName, avatar, about, description, seasons } = req.body;
   
   try {
@@ -361,7 +361,7 @@ router.post('/new', checkBambiNameSet, validateBambiInput, withDBErrorHandling(a
       const existingBambi = await Bambi.findOne({ username }).session(session);
       if (existingBambi) {
         return res.render('bambis/creation', { 
-          title: 'Create New Bambi Bambi',
+          title: 'Create New Bambi Profile',
           error: 'Username already exists',
           validConstantsCount: 5,
           formData: req.body
@@ -418,23 +418,7 @@ router.post('/new', checkBambiNameSet, validateBambiInput, withDBErrorHandling(a
   }
 }));
 
-// Avatar route - serve bambi pictures
-router.get('/:username/avatar', async (req, res) => {
-  try {
-    const bambi = await Bambi.findOne({ username: req.params.username });
-    if (!bambi || !bambi.bambiPicture) {
-      return res.redirect('/gif/default-avatar.gif');
-    }
-    
-    res.set('Content-Type', bambi.bambiPicture.contentType);
-    res.send(bambi.bambiPicture.buffer);
-  } catch (error) {
-    logger.error('Error serving avatar:', error.message);
-    res.redirect('/gif/default-avatar.gif');
-  }
-});
-
-// Individual bambi view - this should render the bambi template
+// Individual bambi profile view
 router.get('/:username', async (req, res) => {
   try {
     const username = req.params.username;
@@ -458,7 +442,7 @@ router.get('/:username', async (req, res) => {
     res.render('bambis/bambi', { 
       title: `Bambi Profile - ${bambi.username}`,
       bambi: sanitizedBambi,
-      isOwnbambi: username === getBambiNameFromCookies(req) // Add this to check if it's their own profile
+      isOwnbambi: username === getBambiNameFromCookies(req)
     });
   } catch (error) {
     console.error('Error fetching bambi:', error);
@@ -469,7 +453,7 @@ router.get('/:username', async (req, res) => {
   }
 });
 
-// Edit bambi page - apply ownership check middleware
+// Edit bambi profile form
 router.get('/:username/edit', 
   param('username').trim().escape(),
   ownershipCheck, 
@@ -486,15 +470,15 @@ router.get('/:username/edit',
     }
     
     res.render('bambis/edit', { 
-      title: 'Edit Bambi Bambi',
+      title: 'Edit Bambi Profile',
       bambi,
       username
     });
   })
 );
 
-// Update bambi - with both middleware
-router.post('/:username', 
+// Update bambi profile - standardized path naming
+router.post('/:username/update', 
   param('username').trim().escape(),
   ownershipCheck, 
   validateBambiInput, 
@@ -530,91 +514,22 @@ router.post('/:username',
         });
       }
       
-      res.json({ 
-        success: true, 
-        message: 'Bambi updated successfully',
-        bambi: updatedBambi
-      });
+      // If it's an AJAX request, send JSON response
+      if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+        return res.json({ 
+          success: true, 
+          message: 'Bambi updated successfully',
+          bambi: updatedBambi
+        });
+      }
+      
+      // For regular form submissions, redirect to profile page
+      return res.redirect(`/bambis/${username}?success=Profile+updated+successfully`);
     });
   })
 );
 
-// Handle bambi updates via the API route
-router.post('/api/update', auth, validateBambiInput, withDBErrorHandling(async (req, res) => {
-  // Get username from session or cookie
-  const username = req.user?.username || getBambiNameFromCookies(req);
-  
-  if (!username) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'You must be logged in to update your bambi' 
-    });
-  }
-  
-  // Use database timeout and transaction for better error handling
-  const updatedBambi = await withDatabaseTimeout(
-    async () => {
-      // Perform update within a transaction for data consistency
-      return withTransaction(async (session) => {
-        const bambi = await Bambi.findOneAndUpdate(
-          { username },
-          { 
-            $set: {
-              about: req.body.about,
-              description: req.body.description,
-              avatar: req.body.avatar,
-              headerImage: req.body.headerImage,
-              headerColor: req.body.headerColor,
-              lastActive: new Date(),
-              updatedAt: new Date()
-            }
-          },
-          { new: true, session }
-        );
-        
-        if (!bambi) {
-          throw new Error('Bambi not found');
-        }
-        
-        return bambi;
-      });
-    },
-    10000, // 10 second timeout
-    'Update bambi'
-  );
-  
-  res.json({ 
-    success: true, 
-    message: 'Bambi updated successfully',
-    bambi: updatedBambi
-  });
-}));
-
-// GET - show delete confirmation
-router.get('/:username/delete', 
-  param('username').trim().escape(),
-  ownershipCheck, 
-  withDBErrorHandling(async (req, res) => {
-    const { username } = req.params;
-    const bambi = await Bambi.findOne({ username }).lean();
-    
-    if (!bambi) {
-      return res.status(404).render('error', {
-        message: 'Bambi not found',
-        error: { status: 404 },
-        title: 'Error - Bambi Not Found'
-      });
-    }
-    
-    // Show confirmation page
-    return res.render('bambis/delete-confirmation', {
-      bambi,
-      title: 'Delete Bambi Bambi'
-    });
-  })
-);
-
-// POST - handle form submission for deletion
+// Delete bambi profile
 router.post('/:username/delete', 
   param('username').trim().escape(),
   ownershipCheck, 
@@ -658,141 +573,19 @@ router.post('/:username/delete',
   })
 );
 
-// DELETE - API endpoint for deletion (requires auth middleware)
-router.delete('/:username/delete', 
-  param('username').trim().escape(),
-  auth, 
-  withDBErrorHandling(async (req, res) => {
-    const { username } = req.params;
-    
-    // Check if the authenticated user has permission to delete this bambi
-    if (req.user?.username !== username && !req.user?.isAdmin) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'You do not have permission to delete this bambi' 
-      });
-    }
-    
-    // Use transaction for data consistency
-    await withTransaction(async (session) => {
-      // Find and delete the bambi
-      const deletedBambi = await Bambi.findOneAndDelete({ username }, { session });
-      
-      if (!deletedBambi) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'Bambi not found' 
-        });
-      }
-      
-      logger.info(`Bambi deleted for ${username} via API route`);
-      
-      // Clear the user cookie if it was their own bambi
-      if (req.user?.username === username) {
-        res.clearCookie('bambiname');
-        
-        // Also clear session
-        if (req.session) {
-          req.session.destroy();
-        }
-      }
-      
-      return res.json({ 
-        success: true, 
-        message: 'Bambi deleted successfully',
-        redirectUrl: '/'
-      });
-    });
-  })
-);
-
-// API route to update bambi with avatar upload
-router.post('/api/update-bambi', upload.single('avatar'), async (req, res) => {
+// Avatar route - serve bambi pictures
+router.get('/:username/avatar', async (req, res) => {
   try {
-    logger.info('Update bambi request received');
-    
-    const bambiname = getBambiNameFromCookies(req);
-    if (!bambiname) {
-      return res.status(401).json({ success: false, message: 'Not authorized' });
+    const bambi = await Bambi.findOne({ username: req.params.username });
+    if (!bambi || !bambi.bambiPicture) {
+      return res.redirect('/gif/default-avatar.gif');
     }
     
-    // Check if this is a new bambi or updating existing
-    let bambi = await Bambi.findOne({ username: bambiname });
-    const isNewBambi = !bambi;
-    
-    if (isNewBambi) {
-      // Create new bambi
-      bambi = new Bambi({
-        username: bambiname,
-        displayName: req.body.displayName || bambiname,
-        description: req.body.description || '',
-        level: 1,
-        experience: 0,
-        followers: [],
-        following: [],
-        hearts: { count: 0, users: [] },
-        lastActive: Date.now()
-      });
-    }
-    
-    // Update basic info
-    bambi.displayName = req.body.displayName || bambiname;
-    bambi.description = req.body.bio || req.body.description || '';
-    
-    // Handle woodland field from bambi.ejs
-    if (req.body.woodland) {
-      bambi.woodland = req.body.woodland;
-    }
-    
-    // Handle favorite seasons from bambi.ejs
-    if (req.body.favoriteSeasons) {
-      bambi.favoriteSeasons = Array.isArray(req.body.favoriteSeasons) 
-        ? req.body.favoriteSeasons 
-        : JSON.parse(req.body.favoriteSeasons);
-    }
-    
-    // Handle bambi picture upload with appropriate content type
-    if (req.file) {
-      bambi.bambiPicture = {
-        buffer: req.file.buffer,
-        contentType: req.file.mimetype
-      };
-    }
-    
-    // Handle bambi theme
-    if (req.body.primaryColor || req.body.secondaryColor || req.body.textColor) {
-      bambi.bambiTheme = {
-        primaryColor: req.body.primaryColor || bambi.bambiTheme?.primaryColor || '#fa81ff',
-        secondaryColor: req.body.secondaryColor || bambi.bambiTheme?.secondaryColor || '#ff4fa2',
-        textColor: req.body.textColor || bambi.bambiTheme?.textColor || '#ffffff'
-      };
-    }
-    
-    // Handle triggers
-    if (req.body.triggers) {
-      bambi.triggers = Array.isArray(req.body.triggers) 
-        ? req.body.triggers 
-        : JSON.parse(req.body.triggers);
-    }
-    
-    await bambi.save();
-    
-    res.json({
-      success: true,
-      message: isNewBambi ? 'Bambi created!' : 'Bambi updated!',
-      bambi: {
-        username: bambi.username,
-        displayName: bambi.displayName,
-        description: bambi.description,
-        woodland: bambi.woodland,
-        favoriteSeasons: bambi.favoriteSeasons,
-        level: bambi.level,
-        bambiTheme: bambi.bambiTheme
-      }
-    });
+    res.set('Content-Type', bambi.bambiPicture.contentType);
+    res.send(bambi.bambiPicture.buffer);
   } catch (error) {
-    logger.error('Error updating bambi:', error.message);
-    res.status(500).json({ success: false, message: 'Error updating bambi' });
+    logger.error('Error serving avatar:', error.message);
+    res.redirect('/gif/default-avatar.gif');
   }
 });
 
@@ -1080,10 +873,10 @@ router.get('/bambi', ensureAuthenticated, (req, res) => {
   const username = req.user?.username || getBambiNameFromCookies(req);
   
   if (username) {
-    return res.redirect(`/bambi/${username}`);
+    return res.redirect(`/bambis/${username}`);
   }
   
-  res.redirect('/bambi/new');
+  res.redirect('/bambis/new');
 });
 
 // Add a route for registration

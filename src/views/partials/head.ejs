@@ -15,6 +15,14 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="/css/bootstrap.min.css">
   <link rel="stylesheet" href="/css/style.css">
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/bambi-core.js"></script>
+  <script>
+    if (window.BambiSocket) {
+      window.BambiSocket.initialize();
+    } else {
+      console.error("BambiSocket failed to load properly");
+    }
+  </script>
   <script src="/js/bambi-forms.js"></script>
 </head>

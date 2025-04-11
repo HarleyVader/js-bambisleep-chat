@@ -1,16 +1,24 @@
 <nav>
-  <ul>
-    <li><a href="/">AIGF</a></li>
-    <!-- <li><a href="/psychodelic-trigger-mania">Psychodelic Trigger Mania</a></li> -->
-    <li><a href="/scrapers">Scrapers</a></li>
-    <li><a href="/help">Help</a></li>
-    <li><a href="/bambis">All Bambis</a></li>
-    <% if (typeof bambi !== 'undefined' && bambi) { %>
-      <li><a href="/bambi/<%= bambi.username %>">My Bambi</a></li>
-    <% } %>
-  </ul>
+  
 </nav>
-
+<nav class="main-nav">
+  <div class="nav-container">
+    <a href="/" class="logo">BambiSleep.Chat</a>
+    <div class="nav-links">
+      <ul>
+        <li><a href="/">AIGF</a></li>
+        <!-- <li><a href="/psychodelic-trigger-mania">Psychodelic Trigger Mania</a></li> -->
+        <li><a href="/scrapers">Scrapers</a></li>
+        <li><a href="/help">Help</a></li>
+        <li><a href="/bambis">All Bambis</a></li>
+        <% if (typeof bambi !== 'undefined' && bambi) { %>
+          <li><a href="/bambis/<%= bambi.username %>">My Bambi</a></li>
+        <% } %>
+        <!-- <li><a href="/settings">Settings</a></li> Added Settings link -->
+      </ul>
+    </div>
+  </div>
+</nav>
 <!-- Add this somewhere in your navigation bar -->
 <div id="bambiname-container">
   <% if (!locals.bambiname) { %>

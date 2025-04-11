@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: `${bambi.displayName || bambi.username}'s bambi` }) %>
+<%- include('./partials/head.ejs', { title: `${bambi.displayName || bambi.username}'s bambi` }) %>
 
   <body>
-    <%- include('../partials/nav.ejs') %>
-
+    <%- include('./partials/nav.ejs') %>
       <div class="container">
         <% if (typeof error !=='undefined' && error) { %>
           <div class="error-message">
@@ -100,7 +99,7 @@
               <div class="modal-content">
                 <span class="close">&times;</span>
                 <h2>Edit Your Bambi</h2>
-                <form id="edit-bambi-form" class="bambi-form" action="/bambi/update" method="POST" enctype="multipart/form-data">
+                <form id="edit-bambi-form" class="bambi-form" action="/bambis/update" method="POST" enctype="multipart/form-data">
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <div class="form-group">
                     <label for="avatar">Avatar Image</label>
@@ -164,7 +163,7 @@
             <div class="notification-area"></div>
       </div>
 
-      <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+      <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
 
         <script>
           document.addEventListener('DOMContentLoaded', function() {

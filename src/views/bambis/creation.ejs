@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'Create Bambi bambi' }) %>
+<%- include('./partials/head.ejs', { title: 'Create Bambi bambi' }) %>
 <body>
-  <%- include('../partials/nav.ejs') %>
+  <%- include('./partials/nav.ejs') %>
   
   <div class="container">
     <div class="creation-container">
       <h1 class="neon-text">Create Bambi bambi</h1>
       
-      <form action="/bambis/create" method="POST" class="bambi-form" enctype="multipart/form-data">
+      <form action="/bambis" method="POST" class="bambi-form" enctype="multipart/form-data">
         <div class="form-group">
           <label for="displayName">Display Name</label>
           <input type="text" id="displayName" name="displayName" required>
@@ -32,7 +32,7 @@
     </div>
   </div>
 
-  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
   <script>

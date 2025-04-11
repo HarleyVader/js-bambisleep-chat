@@ -87,12 +87,12 @@
                         </div>
 
                         <!-- In all templates, update form actions: -->
-                        <form action="/bambi/update" method="POST">
+                        <form action="/bambis/update" method="POST">
                         <!-- Update links: -->
                         <% if (typeof bambi !== 'undefined' && bambi) { %>
-                          <a href="/bambi/<%= bambi.username %>">View bambi</a>
+                          <a href="/bambis/<%= bambi.username %>">View bambi</a>
                         <% } else if (typeof bambiname !== 'undefined' && bambiname) { %>
-                          <a href="/bambi/<%= bambiname %>">View bambi</a>
+                          <a href="/bambis/<%= bambiname %>">View bambi</a>
                         <% } else { %>
                           <a href="/bambis">Browse bambis</a>
                         <% } %>

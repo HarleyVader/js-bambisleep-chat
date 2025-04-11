@@ -1,5 +1,6 @@
-import { getSocket } from './socket-client.js';
-const socket = getSocket();
+// BambiSleep Chat Client
+// This is a client-side JavaScript code for a chat application that interacts with a server using WebSocket.
+const socket = window.BambiSocket ? window.BambiSocket.getSocket() : io();
 
 let token = '';
 
@@ -50,10 +51,28 @@ document.addEventListener("DOMContentLoaded", () => {
     let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
     if (username === 'anonBambi') {
         socket.emit('username set');
+        showAuthModal('Please set your BambiName');
     }
     console.log("Username:", username);
     window.username = username;
 });
+
+// Add this function to safely handle the modal
+function showAuthModal(message) {
+    const modal = document.getElementById('bambiname-modal') || 
+                  document.getElementById('username-modal');
+    
+    if (modal) {
+        // Set any message if needed
+        const messageElement = modal.querySelector('.modal-message');
+        if (messageElement && message) {
+            messageElement.textContent = message;
+        }
+        modal.style.display = 'block';
+    } else {
+        console.error('Authentication modal not found');
+    }
+}
 
 function flashTrigger(trigger, duration) {
     const container = document.getElementById("eye");

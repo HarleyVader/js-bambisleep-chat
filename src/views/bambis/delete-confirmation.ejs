@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('../partials/head.ejs', { title: 'Delete bambi' }) %>
+<%- include('./partials/head.ejs', { title: 'Delete bambi' }) %>
 <body>
-  <%- include('../partials/nav.ejs') %>
+  <%- include('./partials/nav.ejs') %>
   
   <div class="container">
     <% if (typeof error !== 'undefined' && error) { %>
@@ -29,17 +29,18 @@
       </div>
       
       <div class="confirmation-actions">
+        <form action="/bambis/<%= bambi.username %>/update" method="POST"></form>
         <form id="delete-form" method="POST" action="/bambis/<%= bambi.username %>/delete">
           <button type="submit" class="delete-bambi-btn">Yes, Delete My bambi</button>
         </form>
-        <a href="/bambi/<%= bambi.username %>" class="cancel-btn">Cancel</a>
+        <a href="/bambis/<%= bambi.username %>" class="cancel-btn">Cancel</a>
       </div>
     </div>
 
     <div class="notification-area"></div>
   </div>
 
-  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
   <script>

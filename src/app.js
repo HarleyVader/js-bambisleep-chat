@@ -14,7 +14,6 @@ import scraperAPIRoutes from './routes/scraperRoutes.js';
 import bambisRouter from './routes/bambis.js';
 import bambiApiRouter from './routes/api/bambis.js';
 import { setRoutes } from './routes/index.js';
-import bambiRoutes from './routes/bambis.js';
 import helpRoutes from './routes/help.js';
 import scraperRoutes from './routes/scrapers.js';
 import psychodelicTriggerManiaRoutes from './routes/psychodelic-trigger-mania.js';
@@ -31,7 +30,6 @@ import footerConfig from './config/footer.config.js';
 import workerCoordinator from './workers/workerCoordinator.js';
 
 // Database
-import dbConnection from './database/dbConnection.js';
 import { databaseErrorHandler } from './database/databaseErrorHandler.js';
 
 // Utilities
@@ -63,7 +61,9 @@ logger.info(`Kokoro TTS API configured with URL: ${KOKORO_API_URL}`);
 
 // Setup basic middleware
 app.use(cors({
-  origin: ['https://bambisleep.chat', 'https://fickdichselber.com'],
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://bambisleep.chat', 'https://fickdichselber.com']
+    : true,
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type'],
   credentials: true
@@ -77,17 +77,8 @@ app.use(fileUpload({
 app.use(performanceMiddleware);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/workers', express.static(path.join(__dirname, 'workers')));
-app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
-// Update the views configuration
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-
-app.locals.footer = footerConfig;
-
-// Session middleware
+// Session middleware - define once, use everywhere
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'bambisleep-secret',
   resave: false,
@@ -97,15 +88,44 @@ const sessionMiddleware = session({
 
 app.use(sessionMiddleware);
 
-// Setup static assets
-app.get('/socket.io/socket.io.js', (req, res) => {
-  res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
-});
+// Consolidated static file serving with proper paths
+// Main public directory - solve path conflicts
+app.use(express.static(path.join(__dirname, 'public')));
 
-// bambi assets
-app.use('/bambis/css', express.static(path.join(__dirname, '../src/public/css')));
-app.use('/bambis/js', express.static(path.join(__dirname, '../src/public/js')));
-app.use('/bambis/gif', express.static(path.join(__dirname, '../src/public/gif')));
+// Workers directory
+app.use('/workers', express.static(path.join(__dirname, 'workers')));
+
+// Images with dedicated route
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
+
+// Dedicated CSS/JS routes with proper MIME types
+app.use('/css', express.static(path.join(__dirname, 'public/css'), {
+  setHeaders: (res) => res.setHeader('Content-Type', 'text/css')
+}));
+
+app.use('/js', express.static(path.join(__dirname, 'public/js'), {
+  setHeaders: (res) => res.setHeader('Content-Type', 'application/javascript')
+}));
+
+app.use('/gif', express.static(path.join(__dirname, 'public/gif')));
+
+// Bambi-specific assets (fixing path conflicts)
+app.use('/bambis/css', express.static(path.join(__dirname, 'public/css'), {
+  setHeaders: (res) => res.setHeader('Content-Type', 'text/css')
+}));
+
+app.use('/bambis/js', express.static(path.join(__dirname, 'public/js'), {
+  setHeaders: (res) => res.setHeader('Content-Type', 'application/javascript')
+}));
+
+app.use('/bambis/gif', express.static(path.join(__dirname, 'public/gif')));
+
+// Update the views configuration
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+
+// Set global template variables
+app.locals.footer = footerConfig;
 
 // Navigation links middleware
 app.use((req, res, next) => {
@@ -114,24 +134,32 @@ app.use((req, res, next) => {
   next();
 });
 
-// Apply bambi app middleware
-app.use('/bambis', sessionMiddleware, userContextMiddleware, bambisRouter);
+// Apply user context middleware globally
+app.use(userContextMiddleware);
 
-// Set up all routes
+// Route mounting - avoid duplication
+// Main routes using the route setter
 setRoutes(app);
 
-// Mount specific route modules
-app.use('/bambis', bambiRoutes);
+// Mount specific route modules - no duplicates
 app.use('/help', helpRoutes);
 app.use('/scrapers', scraperRoutes);
 app.use('/psychodelic-trigger-mania', psychodelicTriggerManiaRoutes);
 
-// Define API routes
+// Bambis routes - mounted once with proper middleware
+app.use('/bambis', bambisRouter);
+
+// API routes
+app.use('/api/scraper', scraperAPIRoutes);
+app.use('/api/bambis', bambiApiRouter);
+
+// Home route
 app.get('/', (req, res) => {
   const validConstantsCount = 9;
   res.render('index', { validConstantsCount: validConstantsCount });
 });
 
+// Worker coordination routes
 app.post('/scrape', (req, res) => {
   const { url } = req.body;
   if (!url) {
@@ -224,37 +252,120 @@ app.get('/api/tts', async (req, res) => {
   }
 });
 
-// Add this route near your other API routes
+// Bambis API routes
 app.post('/api/bambis/set-bambiname', (req, res) => {
   const { bambiname } = req.body;
   
-  if (!bambiname || bambiname.trim().length < 3) {
-    return res.status(400).json({
-      success: false,
-      message: 'BambiName must be at least 3 characters long'
+  if (!bambiname) {
+    return res.status(400).json({ success: false, message: 'Bambi name is required' });
+  }
+  
+  // Save the bambi name to the user's session
+  if (req.session) {
+    req.session.bambiname = bambiname;
+  }
+  
+  // Return success response
+  res.json({ success: true, message: 'Bambi name set successfully' });
+});
+
+// Set up storage for uploaded files
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    // Create uploads directory if it doesn't exist
+    const uploadDir = path.join(__dirname, 'public/uploads', file.fieldname === 'avatar' ? 'avatars' : 'headers');
+    
+    // Create directory if it doesn't exist
+    fsPromises.mkdir(uploadDir, { recursive: true })
+      .then(() => cb(null, uploadDir))
+      .catch(err => cb(err));
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+// Create upload middleware
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    // Accept only images
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
+
+// Define route handler for bambi update
+app.post('/bambi/update', upload.fields([
+  { name: 'avatar', maxCount: 1 },
+  { name: 'headerImage', maxCount: 1 }
+]), (req, res) => {
+  try {
+    // Files are available in req.files
+    const avatarFile = req.files.avatar ? req.files.avatar[0] : null;
+    const headerFile = req.files.headerImage ? req.files.headerImage[0] : null;
+    
+    // Get other form data
+    const { about, description, email, currentPassword, newPassword } = req.body;
+    
+    // Get username from session or cookie
+    const username = req.session?.user?.username || 
+                     decodeURIComponent(req.cookies['bambiname'] || '');
+    
+    if (!username) {
+      return res.status(401).render('error', {
+        error: { status: 401 },
+        message: 'You must be logged in to update your profile',
+        bambiname: ''
+      });
+    }
+    
+    // Prepare update object with only provided fields
+    const updateData = {};
+    if (about) updateData.about = about;
+    if (description) updateData.description = description;
+    if (email) updateData.email = email;
+    
+    // Add file paths if uploaded
+    if (avatarFile) {
+      updateData.bambiPictureUrl = `/uploads/avatars/${avatarFile.filename}`;
+    }
+    if (headerFile) {
+      updateData.headerImageUrl = `/uploads/headers/${headerFile.filename}`;
+    }
+    
+    // Update bambi in database
+    Bambi.findOneAndUpdate(
+      { username },
+      { $set: { ...updateData, lastActive: new Date() } },
+      { new: true, upsert: true }
+    )
+    .then(bambi => {
+      res.redirect(`/bambis/${username}?updated=true`);
+    })
+    .catch(error => {
+      logger.error('Error updating bambi:', error);
+      res.status(500).render('error', {
+        error: { status: 500 },
+        message: 'Failed to update bambi profile',
+        bambiname: username
+      });
+    });
+  } catch (error) {
+    logger.error('Error processing update:', error);
+    res.status(500).render('error', { 
+      error: { status: 500 },
+      message: 'Failed to process update request',
+      bambiname: req.cookies?.bambiname || ''
     });
   }
-  
-  // Set cookie with security options
-  res.cookie('bambiname', bambiname, { 
-    path: '/',
-    httpOnly: true,
-    maxAge: 30 * 24 * 60 * 60 * 1000,
-    sameSite: 'strict'
-  });
-  
-  // Set session too for better auth
-  if (req.session) {
-    req.session.user = {
-      bambiname: bambiname
-    };
-  }
-  
-  return res.json({
-    success: true,
-    message: 'BambiName set successfully',
-    bambiname: bambiname
-  });
 });
 
 // TTS helper function
@@ -295,114 +406,6 @@ async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE, socketId =
   }
 }
 
-app.use('/api/scraper', scraperAPIRoutes);
-app.use('/api/bambis', bambiApiRouter);
-
-// Handle bambi updates
-app.post('/bambis/update-bambi', async (req, res) => {
-  try {
-    // Get username from session or cookie
-    const username = req.session?.user?.username || 
-                     decodeURIComponent(req.cookies['bambiname'] || '');
-    
-    if (!username) {
-      return res.status(401).json({ 
-          success: false, 
-          message: 'You must be logged in to update your bambi' 
-      });
-    }
-    
-    // Find and update the user's bambi
-    const bambi = await Bambi.findOneAndUpdate(
-        { username },
-        { 
-            $set: {
-                about: req.body.about,
-                description: req.body.description,
-                bambiPictureUrl: req.body.bambiPictureUrl,
-                headerImageUrl: req.body.headerImageUrl,
-                lastActive: new Date()
-            }
-        },
-        { new: true, upsert: true }
-    );
-    
-    // Respond with success
-    res.json({ 
-        success: true, 
-        message: 'bambi updated successfully',
-        bambi
-    });
-    
-  } catch (error) {
-      logger.error('bambi update error:', error);
-      res.status(500).json({ 
-          success: false, 
-          message: 'Server error occurred while updating bambi' 
-      });
-  }
-});
-
-// Set up storage for uploaded files
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // Determine destination based on file type
-    const dest = file.fieldname === 'avatar' ? 'public/uploads/avatars' : 'public/uploads/headers';
-    cb(null, dest);
-  },
-  filename: function (req, file, cb) {
-    // Generate unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
-});
-
-// Create upload middleware
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    // Accept only images
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-});
-
-// Define route handler for bambi update
-app.post('/bambi/update', upload.fields([
-  { name: 'avatar', maxCount: 1 },
-  { name: 'headerImage', maxCount: 1 }
-]), (req, res) => {
-  try {
-    // Files are available in req.files
-    const avatarFile = req.files.avatar ? req.files.avatar[0] : null;
-    const headerFile = req.files.headerImage ? req.files.headerImage[0] : null;
-    
-    // Get other form data
-    const { about, description, email, currentPassword, newPassword } = req.body;
-    
-    // Update bambi data in database
-    // ...
-    
-    // If successful, redirect or send success response
-    res.redirect(`/bambi/${req.user.username}?updated=true`);
-  } catch (error) {
-    console.error('Error updating bambi:', error);
-    res.status(500).render('error', { 
-      error: true, 
-      errorMessage: 'Failed to update bambi profile' 
-    });
-  }
-});
-
-// Use database error handler middleware BEFORE other error handlers
-app.use(databaseErrorHandler);
-app.use(errorHandler);
-
 // Function to load filtered words (for the server.js file)
 export async function loadFilteredWords() {
   try {
@@ -413,20 +416,13 @@ export async function loadFilteredWords() {
   }
 }
 
-// Add this function before or after initializeScraperSystem
+// Initialize scrapers function
 async function initializeScrapers() {
   const logger = new Logger('ScraperInit');
   logger.info('Initializing scrapers...');
   
   try {
     // You can put any scraper-specific initialization code here
-    // This could include loading configuration, preparing data directories, etc.
-    
-    // If you need to initialize specific scrapers beyond what workerCoordinator does:
-    // 1. Perhaps load scraper configurations from files
-    // 2. Set up any data folders needed
-    // 3. Register any additional scrapers that aren't part of the worker system
-    
     logger.success('Scrapers initialized successfully');
     return true;
   } catch (error) {
@@ -444,6 +440,10 @@ export async function initializeScraperSystem() {
 export async function initializeWorkerSystem() {
   return await workerCoordinator.initialize();
 }
+
+// Use database error handler middleware BEFORE other error handlers
+app.use(databaseErrorHandler);
+app.use(errorHandler);
 
 // Export the configured app, session middleware and other necessary components
 export { 

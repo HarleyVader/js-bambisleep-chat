@@ -10,9 +10,7 @@
         <%= typeof errorMessage !== 'undefined' ? errorMessage : 'An error occurred' %>
       </div>
     <% } %>
-    
     <div id="chat-container">
-      <!-- Add modal for username prompt -->
       <div id="username-modal" class="modal">
         <div class="modal-content">
           <p>give me your bambi name:</p>
@@ -61,13 +59,11 @@
         </div>
       </div>
     </div>
-    
   </div>
 
   <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
-  <script type="module" src="/js/socket-client.js"></script>
   <script src="js/psychodelic-trigger-mania.js"></script>
   <script src="js/text2speech.js"></script>
   <script src="js/responsive.js"></script>

@@ -5,6 +5,7 @@ import logger from '../utils/logger.js';
 // Create routers
 const mainRouter = express.Router();
 const bambiRouter = express.Router();
+const authRouter = express.Router();
 
 // Main home route
 mainRouter.get('/', (req, res) => {
@@ -196,10 +197,27 @@ mainRouter.get('/psychodelic-trigger-mania', (req, res) => {
   });
 });
 
+// Add this route to handle authentication status checks
+authRouter.get('/api/auth/status', (req, res) => {
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    res.json({ 
+      authenticated: true,
+      user: {
+        id: req.user.id,
+        username: req.user.username
+        // Add other user properties as needed, but be careful with sensitive data
+      }
+    });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
 // Add this function to set up the routes in the app
 export function setRoutes(app) {
   app.use('/', mainRouter);
   app.use('/bambi', bambiRouter);
+  app.use('/auth', authRouter);
   
   // Ensure bambis routes work at both /bambi and /bambis paths for compatibility
   app.get('/bambis/:username', (req, res) => {
@@ -208,11 +226,12 @@ export function setRoutes(app) {
 }
 
 // Export the routers for modular use
-export { mainRouter, bambiRouter };
+export { mainRouter, bambiRouter, authRouter };
 
 // Default export for compatibility
 export default {
   mainRouter,
   bambiRouter,
+  authRouter,
   setRoutes
 };

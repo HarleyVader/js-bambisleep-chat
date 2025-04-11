@@ -77,7 +77,8 @@ window.onload = function () {
 };
 
 function sendTriggers() {
-  if (typeof socket === "undefined" || !socket.connected) {
+  // Use BambiSocket instead of directly accessing socket
+  if (typeof window.BambiSocket === "undefined" || !window.BambiSocket.getSocket().connected) {
     console.error("Socket is not initialized or connected.");
     return;
   }
@@ -96,7 +97,7 @@ function sendTriggers() {
     return;
   }
 
-  socket.emit("triggers", triggers);
+  window.BambiSocket.sendMessage("triggers", triggers);
   triggerTriggers(triggers); // Call the function to trigger the flash
   console.log("Triggers sent:", triggers);
 }

@@ -3,12 +3,9 @@
  * Handles form validation, submission, and inline editing
  */
 
-import { getSocket, showNotification, emitSocketPromise } from './bambi-core.js';
-
 // ------------------------
 // Form Validation
 // ------------------------
-
 function validateForm(form) {
   const inputs = form.querySelectorAll('input[required], textarea[required], select[required]');
   let isValid = true;
@@ -361,8 +358,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupInlineEditing();
 });
 
-// Export public API
-export {
+// Replace export statements with direct window assignments
+window.BambiForms = {
   validateForm,
   validateEmail,
   validateURL,
