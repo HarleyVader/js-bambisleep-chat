@@ -48,102 +48,30 @@
   <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
   <script src="js/psychodelic-trigger-mania.js"></script>
   <script src="js/text2speech.js"></script>
-  <script src="js/responsive.js"></script>
-  <script src="js/triggers.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="js/aigf-core.js"></script>
   <script>
-    const audio = document.createElement('audio');
-    document.body.appendChild(audio);
-    let _textArray = [];
-    let _urlArray = [];
-    let state = true;
-
-    document.getElementById('upload-file').addEventListener('change', function (event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const fileContent = e.target.result;
-          processText(fileContent);
-        };
-        reader.readAsText(file);
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize BambiSocket
+      if (!window.BambiSocket) {
+        console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
+      } else {
+        window.BambiSocket.initialize();
       }
-    });
-
-    function processText(_text) {
-      _textArray = _text.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
-      _urlArray = _textArray.map(sentence => `/api/tts?text=${encodeURIComponent(sentence)}`);
-      console.log('URL array:', _urlArray);
-      return _urlArray;
-    }
-
-    async function do_tts(_urlArray) {
-      document.querySelector("#message").textContent = "Synthesizing...";
-
-      while (_urlArray.length > 0) {
-        let currentURL = _urlArray.shift();
-        audio.src = currentURL;
-        console.log("audio.src ", audio.src);
-        audio.load();
-        await new Promise((resolve, reject) => {
-          audio.onloadedmetadata = function () {
-            console.log("audio ", audio);
-            console.log("audio.duration ", audio.duration);
-            document.querySelector("#message").textContent = "Playing...";
-            audio.play();
-          };
-          audio.onended = function () {
-            console.log("audio ended");
-            document.querySelector("#message").textContent = "Finished!";
-            resolve();
-          };
-          audio.onerror = function (e) {
-            console.error("Error playing audio:", e);
-            document.querySelector("#message").textContent = "Error playing audio." + e;
-            reject(e);
-          };
-        });
-      }
-    }
-
-    function handleAudioPlay() {
-      console.log('Audio is playing');
-      const duration = audio.duration * 1000;
-      new Promise(resolve => setTimeout(resolve, duration));
-      flashTrigger(text, duration);
-      applyUppercaseStyle();
-    }
-
-    function handleAudioEnded() {
-      console.log('Audio has ended');
-      if (_urlArray.length > 0) {
-        do_tts(_urlArray);
-      }
-    }
-
-    audio.addEventListener('ended', handleAudioEnded);
-    audio.addEventListener('play', handleAudioPlay);
-
-    // Check server-side authentication status
-    fetch('/api/auth/status')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.authenticated) {
+      
+      // Check server-side authentication status
+      fetch('/api/auth/status')
+        .then(res => res.json())
+        .then(data => {
+          if (!data.authenticated) {
+            modal.style.display = 'block';
+          } else {
+            window.username = data.username;
+          }
+        })
+        .catch(err => {
+          console.error('Authentication check failed:', err);
           modal.style.display = 'block';
-        } else {
-          window.username = data.username;
-        }
-      })
-      .catch(err => {
-        console.error('Authentication check failed:', err);
-        modal.style.display = 'block';
-      });
-
-    if (!window.BambiSocket) {
-      console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
-      window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
-    }
+        });
+    });
   </script>
 </body>
 </html>

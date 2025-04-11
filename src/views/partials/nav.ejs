@@ -75,7 +75,7 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            // Update the service worker with new bambiname
+            // Updated: Use new BambiSocket structure
             if (window.BambiSocket && typeof window.BambiSocket.updateBambiName === 'function') {
               window.BambiSocket.updateBambiName(bambiname);
             }

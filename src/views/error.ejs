@@ -105,6 +105,7 @@
 
                 <script src="/socket.io/socket.io.js"></script>
                 <script>
+                  document.addEventListener('DOMContentLoaded', function() {
                     // Check server-side authentication status
                     fetch('/api/auth/status')
                       .then(res => res.json())
@@ -120,10 +121,13 @@
                         modal.style.display = 'block';
                       });
 
+                    // Initialize BambiSocket
                     if (!window.BambiSocket) {
-                      console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
-                      window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
+                      console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
+                    } else {
+                      window.BambiSocket.initialize();
                     }
+                  });
                 </script>
     </body>
 

@@ -96,11 +96,16 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/socket-client.js" type="module"></script>
   <script type="module">
-    import { getSocket } from '/js/socket-client.js';
-
     document.addEventListener('DOMContentLoaded', () => {
-      const socket = getSocket();
+      // Use the socket from the BambiSocket object
+      const socket = window.BambiSocket.getSocket();
       window.socket = socket;
+
+      if (!window.BambiSocket) {
+        console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
+      } else {
+        window.BambiSocket.initialize();
+      }
       
       // Show notification
       function showNotification(message, isError = false) {
@@ -158,19 +163,20 @@
         .then(res => res.json())
         .then(data => {
           if (!data.authenticated) {
-            modal.style.display = 'block';
+            const modal = document.getElementById('bambiname-modal');
+            if (modal) modal.style.display = 'block';
           } else {
             window.username = data.username;
           }
         })
         .catch(err => {
           console.error('Authentication check failed:', err);
-          modal.style.display = 'block';
+          const modal = document.getElementById('bambiname-modal');
+          if (modal) modal.style.display = 'block';
         });
       
       // Form submission
       const form = document.getElementById('edit-bambi-form');
-      
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -217,11 +223,6 @@
           showNotification('An error occurred while updating bambi', true);
         }
       });
-
-      // Replace the BambiSocket check with proper error handling
-      if (typeof getSocket !== 'function') {
-        console.error('Socket connection function not found. Make sure socket-client.js is loaded correctly.');
-      }
     });
   </script>
 </body>

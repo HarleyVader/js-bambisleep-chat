@@ -249,8 +249,9 @@
                       });
 
                     if (!window.BambiSocket) {
-                      console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
-                      window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
+                      console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
+                    } else {
+                      window.BambiSocket.initialize();
                     }
                 </script>
     </body>

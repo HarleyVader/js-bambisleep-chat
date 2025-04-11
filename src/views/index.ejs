@@ -74,65 +74,19 @@
   <script src="js/triggers.js"></script>
   <script type="module" src="/js/aigf-core.js"></script>
   <script type="module">
-    import { getSocket } from '/js/socket-client.js';
-    const socket = getSocket();
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const modal = document.getElementById('username-modal');
-      let username = '';
-
-      // Initialize socket connection first
-      window.socket = socket;
-
-      // Fix cookie extraction function
-      function getCookie(name) {
-        const nameEQ = name + "=";
-        const ca = document.cookie.split(';');
-        for(let i = 0; i < ca.length; i++) {
-          let c = ca[i];
-          while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-          if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
-        }
-        return null;
-      }
-
-      username = getCookie('bambiname');
-      if (!username) {
-        modal.style.display = 'block';
-      } else {
-        // Set username in window and socket if it exists in cookie
-        window.username = username;
-        socket.emit('set username', username);
-      }
-
-      // Add direct click handler without using socket validation first
+    document.addEventListener('DOMContentLoaded', () => {
       const submitButton = document.getElementById('username-submit');
-      submitButton.addEventListener('click', function handleSubmit() {
-        const input = document.getElementById('username-input');
-        const newUsername = input.value.trim();
-        
-        if (newUsername) {
-          // Use a simpler approach first to ensure button works
-          username = newUsername;
-          window.username = username;
-          document.cookie = `bambiname=${encodeURIComponent(username)}; path=/; max-age=2592000`; // 30 days
-          
-          // Then validate with server
-          socket.emit('set username', username);
-          socket.emit('validate_username', username, (response) => {
-            if (!response || !response.valid) {
-              console.warn('Username validation failed:', response ? response.message : 'No response');
-              // Still hide modal even if server validation fails - we'll use the name anyway
-            }
-          });
-          
-          // Hide modal immediately for better UX
+      const usernameInput = document.getElementById('username-input');
+      const modal = document.getElementById('username-modal');
+
+      submitButton.addEventListener('click', () => {
+        const username = usernameInput.value.trim();
+        if (username) {
           modal.style.display = 'none';
-          console.log('Username set to:', username);
+          window.username = username;
         }
       });
 
-      // Handle form submission with Enter key
       document.getElementById('username-input').addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
           event.preventDefault();
@@ -144,9 +98,13 @@
       document.head.appendChild(style);
 
       if (!window.BambiSocket) {
-        console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
-        window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
+        console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
+      } else {
+        window.BambiSocket.initialize();
       }
+
+      // Get socket from the BambiSocket object
+      const socket = window.BambiSocket.getSocket();
 
       socket.on("connect", () => {
         socket.emit('get_chat_history', 20); // Get last 20 messages

@@ -166,13 +166,13 @@
 
       <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
 
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="/js/socket-client.js"></script>
         <script>
           document.addEventListener('DOMContentLoaded', function() {
+            // Initialize BambiSocket if needed
             if (!window.BambiSocket) {
-              console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
-              window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
+              console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
+            } else if (typeof window.BambiSocket.initialize === 'function') {
+              window.BambiSocket.initialize();
             }
             
             // Set up bambi-specific event listeners
@@ -225,7 +225,7 @@
               <% } %>
             }
 
-            // File upload preview
+            // File upload preview functionality
             const avatarInput = document.getElementById('avatar');
             const headerImageInput = document.getElementById('headerImage');
 
@@ -278,14 +278,16 @@
               .then(res => res.json())
               .then(data => {
                 if (!data.authenticated) {
-                  modal.style.display = 'block';
+                  const modal = document.getElementById('bambiname-modal');
+                  if (modal) modal.style.display = 'block';
                 } else {
                   window.username = data.username;
                 }
               })
               .catch(err => {
                 console.error('Authentication check failed:', err);
-                modal.style.display = 'block';
+                const modal = document.getElementById('bambiname-modal');
+                if (modal) modal.style.display = 'block';
               });
           });
         </script>

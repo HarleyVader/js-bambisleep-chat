@@ -250,31 +250,62 @@
   <script src="/js/scrapers.js"></script>
   <script src="/js/scrapers-view.js"></script>
   <script>
-    window.addEventListener('click', function (event) {
+    document.addEventListener('DOMContentLoaded', function() {
+      window.addEventListener('click', function (event) {
         if (event.target === contentModal) {
             contentModal.style.display = 'none';
         }
-    });
-
-    // Check server-side authentication status
-    fetch('/api/auth/status')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.authenticated) {
-          modal.style.display = 'block';
-        } else {
-          window.username = data.username;
-        }
-      })
-      .catch(err => {
-        console.error('Authentication check failed:', err);
-        modal.style.display = 'block';
       });
 
-    if (!window.BambiSocket) {
-      console.error('BambiSocket not found. Make sure socket-client.js is loaded.');
-      window.BambiSocket.initialize();  // Will throw error if BambiSocket is undefined
-    }
+      // Check server-side authentication status
+      fetch('/api/auth/status')
+        .then(res => res.json())
+        .then(data => {
+          if (!data.authenticated) {
+            modal.style.display = 'block';
+          } else {
+            window.username = data.username;
+          }
+        })
+        .catch(err => {
+          console.error('Authentication check failed:', err);
+          modal.style.display = 'block';
+        });
+
+      // Initialize BambiSocket
+      if (!window.BambiSocket) {
+        console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
+      } else {
+        window.BambiSocket.initialize();
+      }
+      
+      // Add scraper form validation
+      document.querySelectorAll('form[data-type]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const textarea = this.querySelector('textarea');
+          const url = textarea.value.trim();
+          
+          // Use form validation from bambi-forms.js
+          if (!window.validateURL(url)) {
+            alert('Please enter a valid URL');
+            return;
+          }
+          
+          // Send scrape request
+          window.BambiSocket.sendMessage('scrape_request', {
+            url: url,
+            type: this.dataset.type
+          });
+          
+          // Clear textarea
+          textarea.value = '';
+          
+          // Show notification
+          window.BambiSocket.showNotification('Scrape request submitted', 'info');
+        });
+      });
+    });
   </script>
 </body>
 </html>
