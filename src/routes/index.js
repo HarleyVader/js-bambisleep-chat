@@ -163,27 +163,46 @@ mainRouter.get('/help', (req, res) => {
 
 // Scrapers route
 mainRouter.get('/scrapers', (req, res) => {
-  const bambiname = req.cookies.bambiname || '';
-  
-  // Basic stats object
-  const stats = {
-    successful: 0,
-    failed: 0,
-    blocked: 0,
-    totalUpvotes: 0,
-    totalDownvotes: 0,
-    topUpvoted: [],
-    topDownvoted: []
-  };
-  
-  res.render('scrapers', { 
-    title: 'BambiSleep Content Scrapers',
-    bambiname,
-    stats,
-    textSubmissions: [],
-    imageSubmissions: [],
-    videoSubmissions: []
-  });
+  try {
+    // Add a null check before accessing req.user.bambiname
+    if (req.user && req.user.bambiname === 'admin') {
+      // Admin code here...
+      // Return your admin page with necessary data
+      res.render('scrapers', {
+        bambiname: req.user.bambiname,
+        stats: {
+          successful: 0,
+          failed: 0,
+          blocked: 0,
+          totalUpvotes: 0,
+          totalDownvotes: 0,
+          topUpvoted: [],
+          topDownvoted: []
+        },
+        textSubmissions: [],
+        imageSubmissions: [],
+        videoSubmissions: []
+      });
+    } else {
+      // Not admin or not logged in
+      return res.status(401).render('error', {
+        message: 'You must be logged in as admin to view this page',
+        error: {
+          status: 401,
+          stack: process.env.NODE_ENV === 'development' ? new Error().stack : ''
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Error in scrapers route:', err);
+    return res.status(500).render('error', {
+      message: 'An internal server error occurred',
+      error: {
+        status: 500,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : ''
+      }
+    });
+  }
 });
 
 // Psychodelic Trigger Mania route

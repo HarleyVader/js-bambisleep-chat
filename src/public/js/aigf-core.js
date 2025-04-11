@@ -42,12 +42,18 @@ submit.addEventListener('click', (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-    const cookies = document.cookie.split(";").reduce((acc, cookie) => {
-        const [name, value] = cookie.split("=").map(c => c.trim());
-        acc[name] = value;
-        return acc;
-    }, {});
+    // Fix cookie parsing to handle empty cookie strings
+    const cookies = {};
+    if (document.cookie) {
+        document.cookie.split(";").forEach(cookie => {
+            const parts = cookie.split("=").map(c => c.trim());
+            if (parts.length === 2) {
+                cookies[parts[0]] = parts[1];
+            }
+        });
+    }
     console.log("Site Cookies:", cookies);
+    
     let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
     if (username === 'anonBambi') {
         socket.emit('username set');

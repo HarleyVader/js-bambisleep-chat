@@ -26,7 +26,7 @@ function arrayPush(_audioArray, e) {
   
   // Update the URL to match the route structure in server.js
   // Try using a relative path that works with both server configurations
-  let URL = `/tts?text=${encodeURIComponent(e)}&voice=${encodeURIComponent(currentVoice)}`;
+  let URL = `/api/tts?text=${encodeURIComponent(e)}&voice=${encodeURIComponent(currentVoice)}`;
   _audioArray.push(URL);
   
   return _audioArray;

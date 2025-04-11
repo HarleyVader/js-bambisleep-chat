@@ -313,6 +313,18 @@ function setupLLMHandlers(socket, io, worker, username) {
  * @param {SocketIO.Namespace} io - The namespace
  */
 function setupUserHandlers(socket, io) {
+  const username = getUsernameFromCookie(socket);
+  if (username && username !== 'anonBambi') {
+    // Send auth status to client on connection
+    socket.emit('auth:status', { 
+      authenticated: true,
+      username: username 
+    });
+    
+    // Load the bambi data for this user
+    loadUserBambi(socket, username);
+  }
+  
   socket.on('set username', (newUsername) => {
     // Validate username
     if (!newUsername || typeof newUsername !== 'string' || newUsername.trim() === '') {

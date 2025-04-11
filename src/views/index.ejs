@@ -11,13 +11,7 @@
       </div>
     <% } %>
     <div id="chat-container">
-      <div id="username-modal" class="modal">
-        <div class="modal-content">
-          <p>give me your bambi name:</p>
-          <input type="text" id="username-input" placeholder="Enter username">
-          <button id="username-submit">Submit</button>
-        </div>
-      </div>
+      
       <div id="user-input">
         <h1>BambiSleep AIGF 👁️</h1>
         <div id="llm">
@@ -71,25 +65,6 @@
   <script type="module" src="/js/aigf-core.js"></script>
   <script type="module">
     document.addEventListener('DOMContentLoaded', () => {
-      const submitButton = document.getElementById('username-submit');
-      const usernameInput = document.getElementById('username-input');
-      const modal = document.getElementById('username-modal');
-
-      submitButton.addEventListener('click', () => {
-        const username = usernameInput.value.trim();
-        if (username) {
-          modal.style.display = 'none';
-          window.username = username;
-        }
-      });
-
-      document.getElementById('username-input').addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          submitButton.click();
-        }
-      });
-
       const style = document.createElement('style');
       document.head.appendChild(style);
 

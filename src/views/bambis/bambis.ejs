@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('./partials/head.ejs', { title: 'BambiSleep Community' }) %>
+<%- include('../partials/head.ejs', { title: 'BambiSleep Community' }) %>
 <body>
-  <%- include('./partials/nav.ejs') %>
+  <%- include('../partials/nav.ejs') %>
   
   <div class="container">
     <% if (typeof error !== 'undefined' && error) { %>
@@ -182,7 +182,7 @@
     
   </div>
 
-  <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
   <!-- Add any page-specific scripts that were previously in the scripts array -->
@@ -301,42 +301,51 @@
     }
   </style>
 
-  <script>
-    // Check server-side authentication status
-    fetch('/api/auth/status')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.authenticated) {
-          modal.style.display = 'block';
+// Replace the script section at bottom of file with:
+
+<script>
+  // Check server-side authentication status
+  fetch('/api/auth/status')
+    .then(res => res.json())
+    .then(data => {
+      if (!data.authenticated) {
+        const authModal = document.getElementById('bambiname-modal') || 
+                          document.getElementById('username-modal');
+        if (authModal) {
+          authModal.style.display = 'block';
         } else {
-          window.username = data.username;
+          console.error('Authentication modal not found');
         }
-      })
-      .catch(err => {
-        console.error('Authentication check failed:', err);
-        modal.style.display = 'block';
-      });
-
-    if (!window.BambiSocket) {
-      console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
-    } else {
-      window.BambiSocket.initialize();
-    }
-
-    // Close modal functionality
-    document.querySelectorAll('.close, .cancel-btn').forEach(element => {
-      element.addEventListener('click', function() {
-        document.getElementById('bambi-edit-modal').style.display = 'none';
-      });
-    });
-
-    // Close modal when clicking outside
-    window.addEventListener('click', function(event) {
-      const modal = document.getElementById('bambi-edit-modal');
-      if (event.target === modal) {
-        modal.style.display = 'none';
+      } else {
+        window.username = data.username;
       }
+    })
+    .catch(err => {
+      console.error('Authentication check failed:', err);
+      // Don't try to show modal here since it might cause an error
     });
-  </script>
+
+  if (!window.BambiSocket) {
+    console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
+  } else {
+    window.BambiSocket.initialize();
+  }
+
+  // Close modal functionality
+  document.querySelectorAll('.close, .cancel-btn').forEach(element => {
+    element.addEventListener('click', function() {
+      const editModal = document.getElementById('bambi-edit-modal');
+      if (editModal) editModal.style.display = 'none';
+    });
+  });
+
+  // Close modal when clicking outside
+  window.addEventListener('click', function(event) {
+    const editModal = document.getElementById('bambi-edit-modal');
+    if (event.target === editModal) {
+      editModal.style.display = 'none';
+    }
+  });
+</script>
 </body>
 </html>

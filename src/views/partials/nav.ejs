@@ -1,12 +1,8 @@
-<nav>
-  
-</nav>
 <nav class="main-nav">
   <div class="nav-container">
-    <a href="/" class="logo">BambiSleep.Chat</a>
     <div class="nav-links">
       <ul>
-        <li><a href="/">AIGF</a></li>
+        <li><a href="/"class="logo">BambiSleep.Chat AIGF</a></li>
         <!-- <li><a href="/psychodelic-trigger-mania">Psychodelic Trigger Mania</a></li> -->
         <li><a href="/scrapers">Scrapers</a></li>
         <li><a href="/help">Help</a></li>
@@ -29,74 +25,143 @@
 </div>
 
 <!-- Add modal dialog for setting BambiName -->
-<div id="bambiname-modal" class="modal">
+<div id="username-modal" class="modal">
   <div class="modal-content">
-    <span class="close">&times;</span>
-    <h2>Set Your BambiName</h2>
-    <form id="bambiname-form">
-      <div class="form-group">
-        <label for="bambiname-input">BambiName (3+ characters):</label>
-        <input type="text" id="bambiname-input" name="bambiname" minlength="3" required>
-      </div>
-      <button type="submit" class="neon-button">Save</button>
-    </form>
+    <p>give me your bambi name:</p>
+    <input type="text" id="username-input" placeholder="Enter username">
+    <button id="username-submit">Submit</button>
   </div>
 </div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // Get references to the elements (removed the URL that was breaking your code)
     const setBambiNameBtn = document.getElementById('set-bambiname-btn');
-    const modal = document.getElementById('bambiname-modal');
-    const closeBtn = modal?.querySelector('.close');
-    const form = document.getElementById('bambiname-form');
+    const usernameModal = document.getElementById('username-modal');
+    const usernameInput = document.getElementById('username-input');
+    const usernameSubmit = document.getElementById('username-submit');
     
+    // Check for error parameter in URL - show modal if present regardless of saved name
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    
+    // Check localStorage first to see if we already have a bambiname
+    const savedBambiname = localStorage.getItem('bambiname');
+    if (savedBambiname && !errorParam) {
+      window.username = savedBambiname;
+      // Hide modal if we already have a name and no error
+      if (usernameModal) usernameModal.style.display = 'none';
+    } else {
+      // Show modal if no name or if there's an error parameter
+      if (usernameModal) usernameModal.style.display = 'block';
+      
+      // If there's an error, show it
+      if (errorParam) {
+        const errorElement = document.createElement('p');
+        errorElement.textContent = errorParam;
+        errorElement.style.color = 'red';
+        errorElement.style.marginBottom = '10px';
+        
+        // Insert error message at the top of the modal content
+        const modalContent = document.querySelector('.modal-content');
+        if (modalContent && modalContent.firstChild) {
+          modalContent.insertBefore(errorElement, modalContent.firstChild);
+        }
+      }
+    }
+    
+    // Add click event for the "Set BambiName" button
     if (setBambiNameBtn) {
       setBambiNameBtn.addEventListener('click', function() {
-        if (modal) modal.style.display = 'block';
+        if (usernameModal) usernameModal.style.display = 'block';
       });
     }
     
-    if (closeBtn) {
-      closeBtn.addEventListener('click', function() {
-        if (modal) modal.style.display = 'none';
-      });
-    }
-    
+    // Close modal when clicking outside
     window.addEventListener('click', function(event) {
-      if (event.target === modal) {
-        modal.style.display = 'none';
+      if (event.target === usernameModal) {
+        usernameModal.style.display = 'none';
       }
     });
     
-    if (form) {
-      form.addEventListener('submit', function(event) {
-        event.preventDefault();
-        const bambiname = document.getElementById('bambiname-input').value;
+    // Add event listener to the submit button
+    if (usernameSubmit) {
+      usernameSubmit.addEventListener('click', function(e) {
+        e.preventDefault();
+        submitBambiname();
+      });
+    }
+    
+    // Submit on Enter key
+    if (usernameInput) {
+      usernameInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submitBambiname();
+        }
+      });
+    }
+    
+    function submitBambiname() {
+      const bambiname = usernameInput.value.trim();
+      if (!bambiname) return;
+      
+      // Store locally first
+      localStorage.setItem('bambiname', bambiname);
+      window.username = bambiname;
+      
+      // Hide modal immediately to improve user experience
+      usernameModal.style.display = 'none';
+      
+      // Then submit to server
+      fetch('/api/bambis/set-bambiname', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bambiname }),
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('BambiName set successfully:', data);
         
-        fetch('/api/bambis/set-bambiname', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ bambiname }),
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            // Updated: Use new BambiSocket structure
-            if (window.BambiSocket && typeof window.BambiSocket.updateBambiName === 'function') {
-              window.BambiSocket.updateBambiName(bambiname);
-            }
-            // Refresh page to update UI with new bambiname
-            window.location.reload();
-          } else {
-            alert(data.message || 'Error setting BambiName');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('Failed to set BambiName');
-        });
+        // Update BambiSocket if available
+        if (window.BambiSocket && typeof window.BambiSocket.updateBambiName === 'function') {
+          window.BambiSocket.updateBambiName(bambiname);
+        }
+        
+        // Update UI without full page reload if possible
+        const bambiDisplay = document.querySelector('.bambiname-display');
+        const setBambiBtn = document.getElementById('set-bambiname-btn');
+        
+        if (bambiDisplay) {
+          bambiDisplay.textContent = `BambiName: ${bambiname}`;
+        } else if (setBambiBtn) {
+          // Create display element if it doesn't exist
+          const container = document.getElementById('bambiname-container');
+          const span = document.createElement('span');
+          span.className = 'bambiname-display';
+          span.textContent = `BambiName: ${bambiname}`;
+          container.innerHTML = '';
+          container.appendChild(span);
+        }
+        
+        // Remove error params from URL if present
+        if (window.history && window.history.replaceState) {
+          const url = new URL(window.location);
+          url.searchParams.delete('error');
+          window.history.replaceState({}, '', url);
+        }
+      })
+      .catch(error => {
+        console.error('Error setting BambiName:', error);
+        // Don't show the modal again, just alert the error
+        alert('Failed to set BambiName: ' + error.message);
       });
     }
   });

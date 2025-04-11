@@ -56,6 +56,15 @@ const socketManager = (() => {
           console.error('Socket error:', errorData);
           handleSocketError(errorData);
         });
+
+        socket.on('auth:status', (data) => {
+          if (data.authenticated && data.username) {
+            console.log('Authenticated as:', data.username);
+            // Update your client-side username state
+            document.cookie = `bambiname=${encodeURIComponent(data.username)};path=/;max-age=${30*24*60*60}`;
+            // Update any UI elements showing the username
+          }
+        });
       }
       return socket;
     },
@@ -119,32 +128,33 @@ function setupSocketWithServiceWorker() {
 }
 
 function setupDirectSocketConnection() {
-  const socket = socketManager.getSocket(); // Fix: use socketManager.getSocket() instead of getSocket()
+  const socket = socketManager.getSocket();
   
-  // Setup all your socket event handlers here
-  socket.on('connect', () => {
-    console.log('Connected directly to server');
-  });
-  
-  socket.on('error', (errorData) => {
-    console.error('Socket error:', errorData);
-    handleSocketError(errorData);
-  });
-  
-  // Add all other event handlers
+  // We don't need to set up the connect handler again since it's already done in socketManager
+  // Just set up other event handlers
   setupSocketEventHandlers(socket);
   
   // Store the socket for global access
   window.appSocket = socket;
+  
+  // Since we're now using direct connection, let the server know
+  if (socketConnected) {
+    socket.emit('connection_info', { type: 'direct' });
+  } else {
+    // If not connected yet, set pending info
+    window.sendConnectionInfo = 'direct';
+  }
+  
   return socket;
 }
 
 function sendConnectionInfo(type) {
-  if (window.appSocket) {
-    window.appSocket.emit('connection_info', { type });
+  const socket = socketManager.getSocket();
+  if (socketConnected && socket) {
+    socket.emit('connection_info', { type });
   } else {
     // Queue this information to be sent once socket is available
-    window.pendingConnectionInfo = type;
+    window.sendConnectionInfo = type;
   }
 }
 
