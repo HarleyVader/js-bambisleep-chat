@@ -11,6 +11,47 @@ let serviceWorkerReady = false;
 let messageQueue = [];
 let socketConnected = false;
 
+// Add this function early in the file
+function syncAuthState() {
+  // Check all possible sources of truth
+  const cookieBambiname = getBambiNameFromCookies();
+  const localBambiname = localStorage.getItem('bambiname');
+  
+  // If we have a name in either place, synchronize all storage
+  if (cookieBambiname || localBambiname) {
+    const bambiname = cookieBambiname || localBambiname;
+    
+    // Update all storage mechanisms
+    if (!cookieBambiname) {
+      document.cookie = `bambiname=${encodeURIComponent(bambiname)};path=/;max-age=${30*24*60*60}`;
+    }
+    
+    if (!localBambiname) {
+      localStorage.setItem('bambiname', bambiname);
+    }
+    
+    // Set global variable
+    window.username = bambiname;
+    
+    return bambiname;
+  }
+  
+  // If no name found, check with server
+  fetch('/api/auth/status')
+    .then(res => res.json())
+    .then(data => {
+      if (data.authenticated && data.username) {
+        // Update all storage with server data
+        document.cookie = `bambiname=${encodeURIComponent(data.username)};path=/;max-age=${30*24*60*60}`;
+        localStorage.setItem('bambiname', data.username);
+        window.username = data.username;
+      }
+    })
+    .catch(err => console.error('Auth sync failed:', err));
+  
+  return null;
+}
+
 // Socket.io singleton implementation
 const socketManager = (() => {
   let socket = null;
@@ -57,12 +98,28 @@ const socketManager = (() => {
           handleSocketError(errorData);
         });
 
+        // Update the auth:status event handler in socketManager
         socket.on('auth:status', (data) => {
           if (data.authenticated && data.username) {
             console.log('Authenticated as:', data.username);
-            // Update your client-side username state
+            // Update all client state properly
             document.cookie = `bambiname=${encodeURIComponent(data.username)};path=/;max-age=${30*24*60*60}`;
-            // Update any UI elements showing the username
+            localStorage.setItem('bambiname', data.username);
+            window.username = data.username;
+            
+            // Close modal if it's open
+            const modal = document.getElementById('username-modal');
+            if (modal) {
+              modal.style.display = 'none';
+            }
+            
+            // Update any display elements
+            const bambiNameDisplay = document.querySelector('.bambiname-display');
+            if (bambiNameDisplay) {
+              bambiNameDisplay.textContent = `BambiName: ${data.username}`;
+            }
+            
+            console.log('Client authentication state updated successfully');
           }
         });
       }
@@ -78,6 +135,24 @@ const socketManager = (() => {
     }
   };
 })();
+
+// Add this function to synchronize client with server auth state
+function syncAuthenticationWithServer() {
+  fetch('/api/auth/status')
+    .then(res => res.json())
+    .then(data => {
+      if (data.authenticated && data.username) {
+        // Update client-side storage to match server
+        localStorage.setItem('bambiname', data.username);
+        document.cookie = `bambiname=${encodeURIComponent(data.username)};path=/;max-age=${30*24*60*60}`;
+        window.username = data.username;
+        console.log('Authentication synced with server:', data.username);
+      }
+    })
+    .catch(err => {
+      console.error('Authentication sync failed:', err);
+    });
+}
 
 // Initialize socket connection
 function initializeSocket() {
@@ -98,6 +173,22 @@ function initializeSocket() {
   } else {
     console.log('Service Workers not supported in this browser. Using fallback connection...');
     setupDirectSocketConnection();
+  }
+  
+  // Sync authentication with server first
+  syncAuthenticationWithServer();
+  
+  // Get bambiname and send it to server when socket connects
+  const bambiname = getBambiNameFromCookies() || localStorage.getItem('bambiname');
+  if (bambiname) {
+    window.username = bambiname;
+    
+    const socket = socketManager.getSocket();
+    if (socket) {
+      socket.on('connect', () => {
+        socket.emit('set_bambiname', { bambiname });
+      });
+    }
   }
 }
 
@@ -323,21 +414,52 @@ function makeLinksClickable(text) {
 function checkAuth() {
   // Check if we're on a protected page that requires BambiName
   const isProtectedRoute = 
-    window.location.pathname.includes('/bambi/create') || 
     window.location.pathname.includes('/bambis/create') || 
-    window.location.pathname.includes('/bambi/new') || 
-    window.location.pathname.includes('/bambis/new') || 
-    window.location.pathname.includes('/edit');
+    window.location.pathname.includes('/bambis/update') ||
+    window.location.pathname.includes('/bambis/delete');
   
   if (isProtectedRoute) {
-    // Get bambiname from cookies
-    const bambiname = getBambiNameFromCookies();
+    // Get bambiname from cookies (primary) or localStorage (fallback)
+    const bambiname = getBambiNameFromCookies() || localStorage.getItem('bambiname');
     
     // If bambiname isn't set, redirect to home with a message to set it
     if (!bambiname) {
       window.location.href = '/?error=You must set a BambiName to access this feature';
+      return false;
     }
+    
+    // Make sure cookie is set if only localStorage has the value
+    if (!getBambiNameFromCookies() && localStorage.getItem('bambiname')) {
+      document.cookie = `bambiname=${encodeURIComponent(localStorage.getItem('bambiname'))};path=/;max-age=${30*24*60*60}`;
+    }
+    
+    return true;
   }
+  
+  return true;
+}
+
+// Add a function to verify the bambiname with the server
+function verifyBambiNameWithServer() {
+  return new Promise((resolve, reject) => {
+    fetch('/api/auth/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated && data.username) {
+          // Set both localStorage and cookie to match server data
+          localStorage.setItem('bambiname', data.username);
+          document.cookie = `bambiname=${encodeURIComponent(data.username)};path=/;max-age=${30*24*60*60}`;
+          window.username = data.username;
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      })
+      .catch(err => {
+        console.error('Authentication check failed:', err);
+        reject(err);
+      });
+  });
 }
 
 // ------------------------
@@ -346,6 +468,9 @@ function checkAuth() {
 
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
+  // First thing to do - sync auth state
+  syncAuthState();
+  
   // Initialize socket
   initializeSocket();
   
@@ -364,13 +489,16 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
-// Replace the ES module exports with proper browser-compatible code
+// Update the BambiSocket object definition
 window.BambiSocket = {
-    // Need to include these methods that are being used across files
+    // Include existing methods
     initialize: function() {
         // Initialize socket connection
         console.log('BambiSocket initialized');
         this.socket = socketManager.getSocket();
+        
+        // Call syncAuth immediately after initialization
+        this.syncAuth();
     },
     getSocket: socketManager.getSocket,
     sendMessage: function(event, data) {
@@ -387,6 +515,46 @@ window.BambiSocket = {
     },
     isConnected: function() {
         return socketConnected;
+    },
+    // Add improved syncAuth method
+    syncAuth: function() {
+        // Try to get bambiname from server
+        fetch('/api/auth/status')
+            .then(res => res.json())
+            .then(data => {
+                if (data.authenticated && data.username) {
+                    // Update ALL client-side storage
+                    const bambiname = data.username;
+                    document.cookie = `bambiname=${encodeURIComponent(bambiname)};path=/;max-age=${30*24*60*60}`;
+                    localStorage.setItem('bambiname', bambiname);
+                    window.username = bambiname;
+                    
+                    // Hide modal
+                    const modal = document.getElementById('username-modal');
+                    if (modal) modal.style.display = 'none';
+                    
+                    console.log('Auth synced from server:', bambiname);
+                    
+                    // Update any UI elements
+                    const bambiNameDisplay = document.querySelector('.bambiname-display');
+                    if (bambiNameDisplay) {
+                        bambiNameDisplay.textContent = `BambiName: ${bambiname}`;
+                    }
+                    
+                    // If we're already connected to socket, send update
+                    const socket = this.getSocket();
+                    if (socket && socketConnected) {
+                        socket.emit('set_bambiname', { bambiname });
+                    }
+                    
+                    return bambiname;
+                }
+                return null;
+            })
+            .catch(err => {
+                console.error('Auth sync failed:', err);
+                return null;
+            });
     },
     updateBambiName: function(bambiname) {
         // Implement bambi name update functionality

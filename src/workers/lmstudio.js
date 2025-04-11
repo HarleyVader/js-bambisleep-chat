@@ -23,7 +23,7 @@ try {
 dotenv.config();
 
 const sessionHistories = {};
-let triggers = 'Bambi Sleep';
+let triggers = '';
 let collar;
 let collarText;
 let finalContent;
@@ -42,12 +42,22 @@ parentPort.on('message', async (msg) => {
         break;
       case 'message':
         logger.info('Received message event');
-        await handleMessage(msg.data, msg.socketId, msg.username);
+        await handleMessage(msg.data, msg.username, msg.socketId,);
         break;
       case 'collar':
         collar = msg.data;
         state = true;
         logger.info('Collar set:', collar);
+        break;
+      case 'set_bambiname':
+        const username = msg.bambiname;
+        logger.info('Bambiname set in worker:', username);
+        // Store username for this socket connection
+        if (!sessionHistories[msg.socketId]) {
+          sessionHistories[msg.socketId] = [];
+        }
+        // Save username with the session
+        sessionHistories[msg.socketId].username = username;
         break;
       case 'shutdown':
         logger.info('Shutting down lmstudio worker...');

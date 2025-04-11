@@ -144,7 +144,7 @@
         <div class="scraper-column">
             <h2>Image Scraper</h2>
             <div class="submit-form">
-                <form id="image-form" data-type="image" action="/bambi/update" method="POST">
+                <form id="image-form" data-type="image" action="/bambis/update" method="POST">
                     <textarea placeholder="Enter URL to scrape for BambiSleep image content..." required></textarea>
                     <button type="submit">Scrape Images</button>
                 </form>
@@ -184,7 +184,7 @@
         <div class="scraper-column">
             <h2>Video Scraper</h2>
             <div class="submit-form">
-                <form id="video-form" data-type="video" action="/bambi/update" method="POST">
+                <form id="video-form" data-type="video" action="/bambis/update" method="POST">
                     <textarea placeholder="Enter URL to scrape for BambiSleep video content..." required></textarea>
                     <button type="submit">Scrape Videos</button>
                 </form>
@@ -272,9 +272,24 @@
           modal.style.display = 'block';
         });
 
-      // Initialize BambiSocket
-      if (!window.BambiSocket) {
+      // Initialize BambiSocket properly
+      if (typeof window.BambiSocket === 'undefined') {
         console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
+        // Add fallback initialization
+        window.BambiSocket = {
+          initialize() {
+            console.log('BambiSocket fallback initialized');
+            this.socket = io ? io() : null;
+          },
+          getSocket() {
+            return this.socket;
+          },
+          sendMessage(event, data) {
+            const socket = this.getSocket();
+            if (socket) socket.emit(event, data);
+          }
+        };
+        window.BambiSocket.initialize();
       } else {
         window.BambiSocket.initialize();
       }

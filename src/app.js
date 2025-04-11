@@ -146,7 +146,13 @@ app.use('/help', helpRoutes);
 app.use('/scrapers', scraperRoutes);
 app.use('/psychodelic-trigger-mania', psychodelicTriggerManiaRoutes);
 
-// Bambis routes - mounted once with proper middleware
+// Add the correct route for bambi creation - this needs to be BEFORE the bambisRouter
+app.get('/bambis/create', (req, res) => {
+  res.render('bambis/creation', { 
+    bambiname: req.cookies?.bambiname || req.session?.bambiname || ''
+  });
+});
+
 app.use('/bambis', bambisRouter);
 
 // API routes
@@ -260,13 +266,53 @@ app.post('/api/bambis/set-bambiname', (req, res) => {
     return res.status(400).json({ success: false, message: 'Bambi name is required' });
   }
   
+  // Validate the bambiname (no special characters, reasonable length)
+  const sanitizedName = bambiname.trim().substring(0, 30);
+  if (sanitizedName !== bambiname) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Bambi name must be 30 characters or less with no leading/trailing spaces' 
+    });
+  }
+  
   // Save the bambi name to the user's session
   if (req.session) {
     req.session.bambiname = bambiname;
+    req.session.save();
   }
   
+  // Set cookie on the response for clients without JS
+  res.cookie('bambiname', bambiname, { 
+    maxAge: 30*24*60*60*1000, // 30 days
+    path: '/'
+  });
+  
   // Return success response
-  res.json({ success: true, message: 'Bambi name set successfully' });
+  res.json({ 
+    success: true, 
+    message: 'Bambi name set successfully', 
+    username: bambiname 
+  });
+});
+
+// Add an authentication status endpoint
+app.get('/api/auth/status', (req, res) => {
+  const bambiname = req.session?.bambiname || 
+                   req.cookies?.bambiname ||
+                   '';
+                   
+  // If we have a session but no cookie, set the cookie
+  if (req.session?.bambiname && !req.cookies?.bambiname) {
+    res.cookie('bambiname', req.session.bambiname, { 
+      maxAge: 30*24*60*60*1000,
+      path: '/'
+    });
+  }
+  
+  res.json({
+    authenticated: !!bambiname,
+    username: bambiname || null
+  });
 });
 
 // Set up storage for uploaded files
@@ -303,7 +349,7 @@ const upload = multer({
 });
 
 // Define route handler for bambi update
-app.post('/bambi/update', upload.fields([
+app.post('/bambis/update', upload.fields([
   { name: 'avatar', maxCount: 1 },
   { name: 'headerImage', maxCount: 1 }
 ]), (req, res) => {

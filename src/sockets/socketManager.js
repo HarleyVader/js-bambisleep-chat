@@ -65,6 +65,42 @@ function setupMainNamespace(io) {
     setupUserHandlers(socket, io);
     setupWorkerHandlers(socket, io, worker);
     
+    // Handle set_bambiname event
+    socket.on('set_bambiname', (data) => {
+      const { bambiname } = data;
+      if (bambiname && typeof bambiname === 'string') {
+        logger.info(`Setting bambiname for socket ${socket.id}: ${bambiname}`);
+        
+        // Update socket username
+        socket.username = bambiname;
+        
+        // Join user-specific room
+        socket.join(`user:${bambiname}`);
+        
+        // Store in session if available
+        if (socket.request.session) {
+          socket.request.session.bambiname = bambiname;
+          socket.request.session.save();
+        }
+        
+        // Notify client
+        socket.emit('auth:status', { 
+          authenticated: true,
+          username: bambiname
+        });
+        
+        // Pass to worker
+        const worker = activeWorkers.get(socket.id);
+        if (worker) {
+          worker.postMessage({
+            type: 'set_bambiname',
+            bambiname: bambiname,
+            socketId: socket.id
+          });
+        }
+      }
+    });
+    
     // Disconnect handling
     socket.on('disconnect', () => handleDisconnect(socket, io));
   });

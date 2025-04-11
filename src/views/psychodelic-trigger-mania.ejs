@@ -35,11 +35,10 @@
       </div>
     </div>
     
-    <!-- In all templates, update form actions: -->
     <form action="/bambis/update" method="POST">
-    <!-- Update links: -->
+    </form>
     <a href="/bambis/<%= bambi.username %>">View bambi</a>
-    <a href="/bambis/new">Create Bambi bambi</a>
+    <a href="/bambis/create">Create Bambi bambi</a>
   </div>
 
   <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>

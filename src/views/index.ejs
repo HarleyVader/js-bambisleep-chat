@@ -65,6 +65,34 @@
   <script type="module" src="/js/aigf-core.js"></script>
   <script type="module">
     document.addEventListener('DOMContentLoaded', () => {
+      // Ensure authentication is synchronized
+      function syncAuthState() {
+        fetch('/api/auth/status')
+          .then(res => res.json())
+          .then(data => {
+            if (data.authenticated && data.username) {
+              console.log("Index.ejs: Setting authenticated username:", data.username);
+              document.cookie = `bambiname=${encodeURIComponent(data.username)};path=/;max-age=${30*24*60*60}`;
+              localStorage.setItem('bambiname', data.username);
+              window.username = data.username;
+              
+              // Hide modal if it exists
+              const modal = document.getElementById('username-modal');
+              if (modal) modal.style.display = 'none';
+              
+              // Update display
+              const bambiNameDisplay = document.querySelector('.bambiname-display');
+              if (bambiNameDisplay) {
+                bambiNameDisplay.textContent = `BambiName: ${data.username}`;
+              }
+            }
+          })
+          .catch(err => console.error('Auth sync failed in index.ejs:', err));
+      }
+      
+      // Run auth sync immediately 
+      syncAuthState();
+      
       const style = document.createElement('style');
       document.head.appendChild(style);
 

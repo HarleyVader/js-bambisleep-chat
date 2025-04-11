@@ -332,22 +332,10 @@ router.get('/', withDBErrorHandling(async (req, res) => {
   }
 }));
 
-// Creation form - unified routing between /new and /create
-router.get('/create', checkBambiNameSet, (req, res) => {
-  const currentBambiname = getBambiNameFromCookies(req);
-  if (currentBambiname) {
-    return res.redirect(`/bambis/${currentBambiname}`);
-  }
-  
+router.get('/create', (req, res) => {
   res.render('bambis/creation', { 
-    title: 'Create New Bambi Profile',
-    validConstantsCount: 5
+    bambiname: req.cookies?.bambiname || req.session?.bambiname || '' 
   });
-});
-
-// Redirect /new to /create for consistency
-router.get('/new', checkBambiNameSet, (req, res) => {
-  res.redirect('/bambis/create');
 });
 
 // Create bambi submission endpoint - consistent with API pattern

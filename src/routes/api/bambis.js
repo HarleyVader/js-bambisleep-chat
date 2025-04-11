@@ -100,7 +100,7 @@ router.get('/list', async (req, res) => {
 });
 
 // Get single bambi
-router.get('/bambi/:username', async (req, res) => {
+router.get('/bambis/:username', async (req, res) => {
   try {
     const { username } = req.params;
 
@@ -142,7 +142,7 @@ router.get('/bambi/:username', async (req, res) => {
 });
 
 // Update bambi
-router.put('/bambi/:username', auth, upload.single('avatar'), async (req, res) => {
+router.put('/bambis/:username', auth, upload.single('avatar'), async (req, res) => {
   try {
     const { username } = req.params;
     const currentBambiname = getUsernameFromCookies(req);
@@ -200,7 +200,7 @@ router.put('/bambi/:username', auth, upload.single('avatar'), async (req, res) =
 });
 
 // Delete bambi
-router.delete('/bambi/:username', auth, async (req, res) => {
+router.delete('/bambis/:username', auth, async (req, res) => {
   try {
     const { username } = req.params;
     const currentBambiname = getUsernameFromCookies(req);
@@ -248,7 +248,7 @@ router.delete('/bambi/:username', auth, async (req, res) => {
 });
 
 // Handle hearts/likes
-router.post('/bambi/:username/heart', auth, async (req, res) => {
+router.post('/bambis/:username/heart', auth, async (req, res) => {
   try {
     const { username } = req.params;
     const currentBambiname = getUsernameFromCookies(req);

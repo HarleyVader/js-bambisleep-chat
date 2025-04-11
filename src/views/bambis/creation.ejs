@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include('./partials/head.ejs', { title: 'Create Bambi bambi' }) %>
+<%- include('../partials/head.ejs', { title: 'Create Bambi bambi' }) %>
 <body>
-  <%- include('./partials/nav.ejs') %>
+  <%- include('../partials/nav.ejs') %>
   
   <div class="container">
     <div class="creation-container">
@@ -32,18 +32,48 @@
     </div>
   </div>
 
-  <%- include('./partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
+  <%- include('../partials/footer.ejs', { footer: typeof footer !== 'undefined' ? footer : {} }) %>
   
   <script src="/socket.io/socket.io.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Initialize form validation
       const form = document.querySelector('.bambi-form');
+      
+      // Check for bambiname first
+      function getBambiNameFromCookie() {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; bambiname=`);
+        if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+        return null;
+      }
+      
+      const bambiname = getBambiNameFromCookie() || localStorage.getItem('bambiname');
+      
+      if (!bambiname) {
+        // No bambiname, show modal or redirect
+        const authModal = document.getElementById('username-modal');
+        if (authModal) {
+          authModal.style.display = 'block';
+        } else {
+          window.location.href = '/?error=You must set a BambiName before creating a profile';
+        }
+      }
+      
+      // Rest of your code...
       if (form) {
         form.addEventListener('submit', function(e) {
           e.preventDefault();
+          
+          // Re-check bambiname before submission
+          const currentBambiname = getBambiNameFromCookie() || localStorage.getItem('bambiname');
+          if (!currentBambiname) {
+            window.location.href = '/?error=You must set a BambiName before creating a profile';
+            return;
+          }
+          
           // Use the form validation from bambi-forms.js
-          if (!window.validateForm(this)) {
+          if (window.validateForm && !window.validateForm(this)) {
             return;
           }
           
@@ -57,20 +87,23 @@
         .then(res => res.json())
         .then(data => {
           if (!data.authenticated) {
-            modal.style.display = 'block';
+            const authModal = document.getElementById('username-modal');
+            if (authModal) {
+              authModal.style.display = 'block';
+            } else {
+              console.log('Authentication needed but modal not found');
+              window.location.href = '/?error=Please set a bambiname first';
+            }
           } else {
             window.username = data.username;
           }
         })
         .catch(err => {
           console.error('Authentication check failed:', err);
-          modal.style.display = 'block';
         });
 
-      // Initialize BambiSocket
-      if (!window.BambiSocket) {
-        console.error('BambiSocket not found. Make sure bambi-core.js is loaded.');
-      } else {
+      // Initialize BambiSocket if available
+      if (window.BambiSocket) {
         window.BambiSocket.initialize();
       }
     });

@@ -56,14 +56,18 @@
         .then(res => res.json())
         .then(data => {
           if (!data.authenticated) {
-            modal.style.display = 'block';
+            const modal = document.getElementById('bambiname-modal') || document.getElementById('username-modal');
+            if (modal) {
+              modal.style.display = 'block';
+            } else {
+              console.error('Authentication modal not found');
+            }
           } else {
             window.username = data.username;
           }
         })
         .catch(err => {
           console.error('Authentication check failed:', err);
-          modal.style.display = 'block';
         });
 
       // Initialize BambiSocket

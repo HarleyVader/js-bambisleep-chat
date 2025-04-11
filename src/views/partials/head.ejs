@@ -24,5 +24,39 @@
       console.error("BambiSocket failed to load properly");
     }
   </script>
+  <!-- After loading bambi-core.js -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (!window.BambiSocket) {
+        console.error("BambiSocket not found. Creating fallback implementation.");
+        window.BambiSocket = {
+          initialize: function() {
+            console.log("BambiSocket fallback initialized");
+            this.socket = io ? io() : null;
+            if (!this.socket) console.error("Socket.io not available");
+          },
+          getSocket: function() {
+            return this.socket;
+          },
+          sendMessage: function(event, data) {
+            if (this.socket) this.socket.emit(event, data);
+          },
+          on: function(event, callback) {
+            if (this.socket) this.socket.on(event, callback);
+          },
+          showNotification: function(message, type) {
+            console.log(`[${type}] ${message}`);
+            // Simple notification fallback
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type || 'info'}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+          }
+        };
+        window.BambiSocket.initialize();
+      }
+    });
+  </script>
   <script src="/js/bambi-forms.js"></script>
 </head>

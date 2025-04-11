@@ -8,20 +8,18 @@
         <li><a href="/help">Help</a></li>
         <li><a href="/bambis">All Bambis</a></li>
         <% if (typeof bambi !== 'undefined' && bambi) { %>
-          <li><a href="/bambis/<%= bambi.username %>">My Bambi</a></li>
+          <li><a href="/bambis/<%= bambi.username %>"><%= bambi.username %></a></li>
         <% } %>
         <!-- <li><a href="/settings">Settings</a></li> Added Settings link -->
       </ul>
     </div>
   </div>
 </nav>
-<!-- Add this somewhere in your navigation bar -->
+<!-- Replace your bambiname container with this improved version -->
 <div id="bambiname-container">
-  <% if (!locals.bambiname) { %>
-    <button id="set-bambiname-btn" class="neon-button">Set BambiName</button>
-  <% } else { %>
-    <span class="bambiname-display">BambiName: <%= bambiname %></span>
-  <% } %>
+  <!-- This will be updated dynamically via JavaScript -->
+  <button id="set-bambiname-btn" class="neon-button">Set BambiName</button>
+  <span class="bambiname-display" style="display:none;">BambiName: </span>
 </div>
 
 <!-- Add modal dialog for setting BambiName -->
@@ -35,38 +33,140 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Get references to the elements (removed the URL that was breaking your code)
+    // Get references to the elements
     const setBambiNameBtn = document.getElementById('set-bambiname-btn');
     const usernameModal = document.getElementById('username-modal');
     const usernameInput = document.getElementById('username-input');
     const usernameSubmit = document.getElementById('username-submit');
     
-    // Check for error parameter in URL - show modal if present regardless of saved name
-    const urlParams = new URLSearchParams(window.location.search);
-    const errorParam = urlParams.get('error');
+    // Initially hide modal until we confirm it needs to be shown
+    if (usernameModal) {
+      usernameModal.style.display = 'none';
+    }
     
-    // Check localStorage first to see if we already have a bambiname
-    const savedBambiname = localStorage.getItem('bambiname');
-    if (savedBambiname && !errorParam) {
-      window.username = savedBambiname;
-      // Hide modal if we already have a name and no error
-      if (usernameModal) usernameModal.style.display = 'none';
-    } else {
-      // Show modal if no name or if there's an error parameter
-      if (usernameModal) usernameModal.style.display = 'block';
-      
-      // If there's an error, show it
-      if (errorParam) {
+    // Check if URL has error param - show modal if it does
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasErrorParam = urlParams.has('error');
+    
+    if (hasErrorParam && usernameModal) {
+      usernameModal.style.display = 'block';
+      // Display the error message if present
+      const errorMsg = urlParams.get('error');
+      if (errorMsg) {
         const errorElement = document.createElement('p');
-        errorElement.textContent = errorParam;
+        errorElement.textContent = errorMsg;
         errorElement.style.color = 'red';
-        errorElement.style.marginBottom = '10px';
-        
-        // Insert error message at the top of the modal content
-        const modalContent = document.querySelector('.modal-content');
-        if (modalContent && modalContent.firstChild) {
-          modalContent.insertBefore(errorElement, modalContent.firstChild);
+        usernameModal.querySelector('.modal-content').prepend(errorElement);
+      }
+    } else {
+      // Only check auth if no error param
+      checkAuthentication();
+    }
+    
+    // Function to check authentication status
+    function checkAuthentication() {
+      // Check server-side authentication status first
+      fetch('/api/auth/status')
+        .then(res => res.json())
+        .then(data => {
+          console.log("Auth status response:", data);
+          if (data.authenticated && data.username) {
+            // Server says we're authenticated
+            const bambiname = data.username;
+            
+            // Update all client storage
+            document.cookie = `bambiname=${encodeURIComponent(bambiname)};path=/;max-age=${30*24*60*60}`;
+            localStorage.setItem('bambiname', bambiname);
+            window.username = bambiname;
+            
+            // Hide modal
+            if (usernameModal) usernameModal.style.display = 'none';
+            
+            console.log('Authentication verified with server:', bambiname);
+            
+            // Update any UI elements
+            const bambiNameDisplay = document.querySelector('.bambiname-display');
+            if (bambiNameDisplay) {
+              bambiNameDisplay.textContent = `BambiName: ${bambiname}`;
+              bambiNameDisplay.style.display = 'inline';
+            }
+            
+            // Force UI update for the button/display swap
+            const bambiNameContainer = document.getElementById('bambiname-container');
+            if (bambiNameContainer) {
+              if (setBambiNameBtn) setBambiNameBtn.style.display = 'none';
+              if (!bambiNameDisplay) {
+                const newDisplay = document.createElement('span');
+                newDisplay.className = 'bambiname-display';
+                newDisplay.textContent = `BambiName: ${bambiname}`;
+                newDisplay.style.display = 'inline';
+                bambiNameContainer.appendChild(newDisplay);
+              }
+            }
+          } else {
+            // Fall back to client-side checks
+            checkClientStorage();
+          }
+        })
+        .catch(err => {
+          console.error('Server authentication check failed:', err);
+          // Fall back to client-side checks
+          checkClientStorage();
+        });
+    }
+    
+    // Function to check client-side storage
+    function checkClientStorage() {
+      // Check for bambiname in cookies first (primary source of truth)
+      function getBambiNameFromCookie() {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; bambiname=`);
+        if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+        return null;
+      }
+      
+      const bambiname = getBambiNameFromCookie();
+      
+      // If no bambiname in cookies, check localStorage as fallback
+      if (!bambiname) {
+        const savedBambiname = localStorage.getItem('bambiname');
+        if (savedBambiname) {
+          // If it's in localStorage but not cookies, set the cookie
+          document.cookie = `bambiname=${encodeURIComponent(savedBambiname)};path=/;max-age=${30*24*60*60}`;
+          window.username = savedBambiname;
+          
+          // Update UI to show we have a bambiname
+          updateBambiNameUI(savedBambiname);
+        } else {
+          // Show modal if no name saved anywhere
+          if (usernameModal) usernameModal.style.display = 'block';
         }
+      } else {
+        // Set localStorage to match cookie for backward compatibility
+        localStorage.setItem('bambiname', bambiname);
+        window.username = bambiname;
+        
+        // Update UI to show we have a bambiname
+        updateBambiNameUI(bambiname);
+      }
+    }
+    
+    // Helper function to update UI
+    function updateBambiNameUI(bambiname) {
+      // Hide the modal
+      if (usernameModal) usernameModal.style.display = 'none';
+      
+      // Update display
+      const bambiNameDisplay = document.querySelector('.bambiname-display');
+      const setBambiNameBtn = document.getElementById('set-bambiname-btn');
+      
+      if (bambiNameDisplay) {
+        bambiNameDisplay.textContent = `BambiName: ${bambiname}`;
+        bambiNameDisplay.style.display = 'inline-block';
+      }
+      
+      if (setBambiNameBtn) {
+        setBambiNameBtn.style.display = 'none';
       }
     }
     
@@ -102,18 +202,20 @@
       });
     }
     
+    // Update the submitBambiname function
     function submitBambiname() {
       const bambiname = usernameInput.value.trim();
       if (!bambiname) return;
       
-      // Store locally first
+      // Store in both cookie and localStorage for compatibility
+      document.cookie = `bambiname=${encodeURIComponent(bambiname)};path=/;max-age=${30*24*60*60}`;
       localStorage.setItem('bambiname', bambiname);
       window.username = bambiname;
       
       // Hide modal immediately to improve user experience
       usernameModal.style.display = 'none';
       
-      // Then submit to server
+      // Submit to server with improved error handling
       fetch('/api/bambis/set-bambiname', {
         method: 'POST',
         headers: {
@@ -123,45 +225,36 @@
       })
       .then(response => {
         if (!response.ok) {
-          throw new Error(`Server responded with ${response.status}`);
+          throw new Error('Failed to set bambiname on server');
         }
         return response.json();
       })
       .then(data => {
         console.log('BambiName set successfully:', data);
         
-        // Update BambiSocket if available
-        if (window.BambiSocket && typeof window.BambiSocket.updateBambiName === 'function') {
-          window.BambiSocket.updateBambiName(bambiname);
-        }
+        // Check for error parameter in URL and remove it if it exists
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasErrorParam = urlParams.has('error');
         
-        // Update UI without full page reload if possible
-        const bambiDisplay = document.querySelector('.bambiname-display');
-        const setBambiBtn = document.getElementById('set-bambiname-btn');
-        
-        if (bambiDisplay) {
-          bambiDisplay.textContent = `BambiName: ${bambiname}`;
-        } else if (setBambiBtn) {
-          // Create display element if it doesn't exist
-          const container = document.getElementById('bambiname-container');
-          const span = document.createElement('span');
-          span.className = 'bambiname-display';
-          span.textContent = `BambiName: ${bambiname}`;
-          container.innerHTML = '';
-          container.appendChild(span);
-        }
-        
-        // Remove error params from URL if present
-        if (window.history && window.history.replaceState) {
+        if (hasErrorParam && window.history && window.history.replaceState) {
           const url = new URL(window.location);
           url.searchParams.delete('error');
           window.history.replaceState({}, '', url);
         }
+        
+        // If on creation page, don't reload - otherwise reload to apply changes
+        if (!window.location.pathname.includes('/bambis/new') && 
+            !window.location.pathname.includes('/bambis/create')) {
+          window.location.reload();
+        }
       })
       .catch(error => {
-        console.error('Error setting BambiName:', error);
-        // Don't show the modal again, just alert the error
-        alert('Failed to set BambiName: ' + error.message);
+        console.error('Server error:', error);
+        if (typeof showNotification === 'function') {
+          showNotification('Error setting bambiname: ' + error.message, 'error');
+        } else {
+          alert('Error setting bambiname: ' + error.message);
+        }
       });
     }
   });

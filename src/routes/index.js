@@ -235,13 +235,8 @@ authRouter.get('/api/auth/status', (req, res) => {
 // Add this function to set up the routes in the app
 export function setRoutes(app) {
   app.use('/', mainRouter);
-  app.use('/bambi', bambiRouter);
+  app.use('/bambis', bambiRouter);
   app.use('/auth', authRouter);
-  
-  // Ensure bambis routes work at both /bambi and /bambis paths for compatibility
-  app.get('/bambis/:username', (req, res) => {
-    res.redirect(`/bambi/${req.params.username}`);
-  });
 }
 
 // Export the routers for modular use

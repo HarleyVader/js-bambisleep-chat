@@ -2,7 +2,7 @@ let state = true;
 let _audioArray = [];
 let duration = 0;
 const audio = document.getElementById('audio');
-let currentVoice = 'af_sky'; // Default voice from app.js (KOKORO_DEFAULT_VOICE)
+let currentVoice = 'af_bella'; // Default voice from app.js (KOKORO_DEFAULT_VOICE)
 
 /**
  * Set the voice to use for TTS
