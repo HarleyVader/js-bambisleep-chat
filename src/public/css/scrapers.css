@@ -83,40 +83,11 @@ header {
     outline: none;
 }
 
-.submit-form button {
-    width: 100%;
-    padding: 8px;
-    margin: 0;
-    background-color: var(--button-color);
-    color: var(--secondary-color);
-    border: var(--secondary-color) outset 0.2vw;
-    border-radius: 0.4vw;
-    cursor: pointer;
-    font-weight: bold;
-    text-shadow: 0 0 0.3vw var(--tertiary-color);
-    font-family: "Audiowide", sans-serif;
-    transition: background-color 0.3s, color 0.3s, text-shadow 0.3s;
+/* Ensure submit buttons in scrapers.css match main style */
+.submit-form button, button[type="submit"], #submit {
     box-sizing: border-box;
     height: 38px;
     line-height: 1;
-    font-size: 1rem;
-}
-
-.submit-form button:hover {
-    background-color: var(--secondary-color);
-    color: var(--button-color);
-    text-shadow: 0 0 0.3vw var(--nav-color);
-    border: var(--button-color) 0.2vw inset;
-    padding: 8px;
-    margin: 0;
-}
-
-.submit-form button:active {
-    background-color: var(--tertiary-alt);
-    color: var(--nav-alt);
-    border-color: var(--primary-alt);
-    padding: 8px;
-    margin: 0;
 }
 
 /* Submissions List Styles */
@@ -369,6 +340,7 @@ header {
     margin-bottom: 10px;
 }
 
+/* Comment form button fixes */
 #comment-form button {
     padding: 8px 16px;
     background-color: var(--button-color);
@@ -389,7 +361,7 @@ header {
     color: var(--button-color);
     text-shadow: var(--nav-color) 0.3vw 0.3vw 0.3vw;
     border: var(--button-color) 0.3vw inset;
-    padding: 8px 16px;
+    /* Keep padding consistent */
 }
 
 /* Content Modal Styles - Larger content view */
@@ -501,14 +473,6 @@ header {
     z-index: 1001;
     font-weight: bold;
     display: none;
-    animation: fadeInOut 2s ease-in-out;
-}
-
-@keyframes fadeInOut {
-    0% { opacity: 0; }
-    15% { opacity: 1; }
-    85% { opacity: 1; }
-    100% { opacity: 0; }
 }
 
 /* Loading indicator */
@@ -540,6 +504,14 @@ header {
         width: 98%;
         max-width: 98vw;
         margin: 3vh auto;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .top-submissions {
+        grid-template-columns: 1fr;
     }
 }
 
