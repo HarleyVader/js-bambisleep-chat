@@ -12,8 +12,8 @@ const logger = new Logger('ChatRoutes');
  */
 router.get('/messages', async (req, res) => {
   try {
-    // Get limit from query or use default of 15
-    const limit = parseInt(req.query.limit) || 15;
+    // Get limit from query or use default of unlimited (no limit)
+    const limit = req.query.limit ? parseInt(req.query.limit) : undefined;
     
     // Get the most recent messages
     const messages = await ChatMessage.getRecentMessages(limit);
