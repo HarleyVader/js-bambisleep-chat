@@ -6,6 +6,8 @@ import Logger from '../utils/logger.js';
 import connectToMongoDB from '../utils/dbConnection.js';
 // Add this import near the top
 import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
+// Import database connection to update XP
+import mongoose from 'mongoose';
 
 // Initialize logger
 const logger = new Logger('LMStudio');
@@ -51,12 +53,56 @@ parentPort.on('message', async (msg) => {
   }
 });
 
-function handleResponse(response, socketId) {
+function handleResponse(response, socketId, username, wordCount) {
   parentPort.postMessage({
     type: "response",
     data: response,
-    socketId: socketId
+    socketId: socketId,
+    meta: {
+      wordCount: wordCount,
+      username: username
+    }
   });
+}
+
+// Function to count words in a text
+function countWords(text) {
+  if (!text || typeof text !== 'string') return 0;
+  return text.trim().split(/\s+/).length;
+}
+
+// Function to update user XP based on generated content
+async function updateUserXP(username, wordCount) {
+  if (!username || username === 'anonBambi' || wordCount <= 0) return;
+  
+  try {
+    // Connect to database if needed
+    if (mongoose.connection.readyState !== 1) {
+      await connectToMongoDB();
+    }
+    
+    // Calculate XP (1 XP per 5 words, minimum 1 XP)
+    const xpEarned = Math.max(1, Math.floor(wordCount / 5));
+    
+    // Update the user's profile
+    const Profile = mongoose.model('Profile');
+    const profile = await Profile.findOne({ username });
+    
+    if (profile) {
+      // Update generated words count
+      profile.generatedWords = (profile.generatedWords || 0) + wordCount;
+      
+      // Add XP using the method we added to the schema
+      profile.addXP(xpEarned, 'message', `Generated ${wordCount} words`);
+      
+      // Save the profile
+      await profile.save();
+      
+      logger.info(`Added ${xpEarned} XP to ${username} for generating ${wordCount} words`);
+    }
+  } catch (error) {
+    logger.error(`Error updating XP for ${username}: ${error.message}`);
+  }
 }
 
 // Keep in-memory session history
@@ -148,7 +194,13 @@ async function handleMessage(userPrompt, socketId, username) {
 
       let responseData = response.data.choices[0].message.content;
       finalContent = responseData;
-      handleResponse(finalContent, socketId);
+      
+      // Count words in response and update XP
+      const wordCount = countWords(finalContent);
+      await updateUserXP(username, wordCount);
+      
+      // Send response with wordCount
+      handleResponse(finalContent, socketId, username, wordCount);
       finalContent = '';
     } catch (error) {
       if (error.response) {

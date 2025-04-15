@@ -45,6 +45,9 @@ export default function setupProfileSockets(socket, io, username) {
   
   // Add handler for system controls updates
   socket.on('update-system-controls', (data) => handleSystemControlsUpdate(socket, io, data));
+  
+  // Add a new handler for XP updates from LMStudio
+  socket.on('xp:update', (data) => handleXPUpdate(socket, io, data, username));
 }
 
 /**
@@ -465,6 +468,64 @@ async function handleSystemControlsUpdate(socket, io, data) {
   } catch (error) {
     logger.error(`Error updating system controls: ${error.message}`);
     socket.emit('system-controls-error', 'Failed to update system controls');
+  }
+}
+
+/**
+ * Handle XP updates
+ * 
+ * @param {Socket} socket - Socket.io socket instance
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {Object} data - XP update data
+ * @param {string} username - Current username
+ */
+async function handleXPUpdate(socket, io, data, username) {
+  try {
+    const { wordCount, xpEarned } = data;
+    
+    if (username === 'anonBambi') {
+      return;
+    }
+    
+    const Profile = getProfile();
+    const profile = await Profile.findOne({ username });
+    
+    if (profile) {
+      // If xpEarned is provided, use it, otherwise calculate (1 XP per 5 words)
+      const xp = xpEarned || Math.max(1, Math.floor(wordCount / 5));
+      
+      // Update tracked words
+      profile.generatedWords = (profile.generatedWords || 0) + wordCount;
+      
+      // Calculate previous level for level-up detection
+      const previousLevel = profile.level || 1;
+      
+      // Add XP
+      profile.addXP(xp, 'message', `Generated ${wordCount} words`);
+      
+      await profile.save();
+      
+      // Emit updated XP to the user
+      socket.emit('xp:updated', {
+        xp: profile.xp,
+        level: profile.level,
+        generatedWords: profile.generatedWords,
+        xpEarned: xp,
+        nextLevelXP: profile.getNextLevelXP()
+      });
+      
+      // Check for level up
+      if (profile.level > previousLevel) {
+        socket.emit('level:up', {
+          level: profile.level,
+          xp: profile.xp
+        });
+      }
+      
+      logger.info(`User ${username} earned ${xp} XP for generating ${wordCount} words`);
+    }
+  } catch (error) {
+    logger.error(`Error handling XP update: ${error.message}`);
   }
 }
 

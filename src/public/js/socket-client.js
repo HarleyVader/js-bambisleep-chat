@@ -40,6 +40,11 @@ function initSocket() {
   socket.on('trigger-event-received', handleTriggerEvent);
   socket.on('trigger-history', handleTriggerHistory);
   
+  // LMStudio events
+  socket.on('response', handleResponse);
+  socket.on('xp:updated', handleXPUpdated);
+  socket.on('level:up', handleLevelUp);
+  
   return socket;
 }
 
@@ -234,6 +239,46 @@ function handleTriggerHistory({ history }) {
   
   // Update history display
   updateTriggerHistoryDisplay(history);
+}
+
+// LMStudio event handlers
+function handleResponse(data) {
+  // Existing response handling code...
+  
+  // If metadata with wordCount exists, log it
+  if (typeof data === 'object' && data.meta && data.meta.wordCount) {
+    console.log(`Generated ${data.meta.wordCount} words`);
+    
+    // Trigger XP update event
+    socket.emit('xp:update', {
+      wordCount: data.meta.wordCount
+    });
+  }
+}
+
+function handleXPUpdated(data) {
+  // Update UI elements if they exist
+  const levelElement = document.querySelector('.stat-value.level-value');
+  if (levelElement) {
+    levelElement.textContent = data.level;
+    
+    // Update the level tooltip data attributes
+    const statContainer = levelElement.closest('.user-stat');
+    if (statContainer) {
+      statContainer.setAttribute('data-xp', data.xp);
+      statContainer.setAttribute('data-next-level', data.nextLevelXP);
+      statContainer.setAttribute('data-words', data.generatedWords);
+    }
+  }
+  
+  // Show a small notification for earned XP
+  if (data.xpEarned) {
+    showXPNotification(data.xpEarned);
+  }
+}
+
+function handleLevelUp(data) {
+  showLevelUpNotification(data.level);
 }
 
 // General error handler
@@ -536,6 +581,47 @@ function showNotification(message, type = 'info', duration = 5000) {
   }, duration);
   
   return notification;
+}
+
+// Helper function to show XP notification
+function showXPNotification(amount) {
+  const notification = document.createElement('div');
+  notification.className = 'xp-notification';
+  notification.textContent = `+${amount} XP`;
+  
+  document.body.appendChild(notification);
+  
+  // Animate
+  setTimeout(() => {
+    notification.classList.add('show');
+    
+    setTimeout(() => {
+      notification.classList.add('fade-out');
+      setTimeout(() => notification.remove(), 500);
+    }, 2000);
+  }, 10);
+}
+
+// Helper function to show level up notification
+function showLevelUpNotification(level) {
+  const notification = document.createElement('div');
+  notification.className = 'level-up-notification';
+  notification.innerHTML = `
+    <div class="level-up-icon">🎉</div>
+    <div class="level-up-text">Level Up! You are now level ${level}</div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Animate
+  setTimeout(() => {
+    notification.classList.add('show');
+    
+    setTimeout(() => {
+      notification.classList.add('fade-out');
+      setTimeout(() => notification.remove(), 1000);
+    }, 4000);
+  }, 10);
 }
 
 // Initialize on DOM load

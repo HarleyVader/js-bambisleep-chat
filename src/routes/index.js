@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import Logger from '../utils/logger.js';
 import footerConfig from '../config/footer.config.js';
+import { getProfile } from '../models/Profile.js';
 
 const logger = new Logger('RouteManager');
 const router = express.Router();
@@ -61,7 +62,6 @@ export async function loadAllRoutes(app) {
       res.status(404).render('error', {
         message: 'Page not found',
         error: { status: 404 },
-        validConstantsCount: 5,
         title: 'Error - Page Not Found'
       });
     });
@@ -79,12 +79,18 @@ router.get('/', async (req, res) => {
     const bambiname = req.cookies && req.cookies.bambiname 
       ? decodeURIComponent(req.cookies.bambiname) 
       : null;
-    const validConstantsCount = 5;
+    
+    // Get or create profile based on cookie
+    let profile = null;
+    if (bambiname) {
+      const Profile = getProfile();
+      profile = await Profile.findOrCreateByCookie(bambiname);
+    }
     
     res.render('index', { 
       title: 'BambiSleep.Chat AIGF',
       username: bambiname || 'anonbambi',
-      validConstantsCount,
+      profile: profile || null,
       footer: footerConfig
     });
   } catch (error) {
@@ -92,7 +98,6 @@ router.get('/', async (req, res) => {
     res.status(500).render('error', { 
       message: 'Error loading home page',
       error: req.app.get('env') === 'development' ? error : {},
-      validConstantsCount: 5,
       title: 'Error - Server Error'
     });
   }

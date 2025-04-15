@@ -47,6 +47,12 @@ const profileSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // Add cookieName to track cookie associations
+  cookieName: {
+    type: String,
+    trim: true,
+    index: true
+  },
   avatar: {
     type: String,
     default: '/gif/default-avatar.gif'
@@ -151,10 +157,24 @@ const profileSchema = new mongoose.Schema({
     },
     activeTriggers: [String]
   },
-  validConstantsCount: {
+  xp: {
     type: Number,
-    default: 5
-  }
+    default: 0
+  },
+  level: {
+    type: Number,
+    default: 1
+  },
+  generatedWords: {
+    type: Number,
+    default: 0
+  },
+  xpHistory: [{
+    timestamp: Date,
+    amount: Number,
+    source: String,
+    description: String
+  }]
 }, { 
   timestamps: true 
 });
@@ -274,6 +294,74 @@ profileSchema.methods.updateSystemControls = function(controlsData) {
   if (controlsData.activeTriggers) {
     this.systemControls.activeTriggers = controlsData.activeTriggers;
   }
+};
+
+// Add a method to add XP to the profile
+profileSchema.methods.addXP = function(amount, source, description = '') {
+  if (!amount || isNaN(amount)) return;
+  
+  // Add to total XP
+  this.xp += amount;
+  
+  // Calculate level based on XP
+  // Formula: level = 1 + floor(sqrt(xp / 100))
+  this.level = 1 + Math.floor(Math.sqrt(this.xp / 100));
+  
+  // Add to XP history
+  if (!this.xpHistory) {
+    this.xpHistory = [];
+  }
+  
+  this.xpHistory.push({
+    timestamp: new Date(),
+    amount,
+    source,
+    description
+  });
+  
+  // Keep history to last 100 entries
+  if (this.xpHistory.length > 100) {
+    this.xpHistory = this.xpHistory.slice(-100);
+  }
+};
+
+// Add method to get XP required for next level
+profileSchema.methods.getNextLevelXP = function() {
+  const nextLevel = this.level + 1;
+  return Math.pow(nextLevel - 1, 2) * 100;
+};
+
+// Static method to find a profile by cookie name
+profileSchema.statics.findByCookieName = async function(cookieName) {
+  return this.findOne({ cookieName });
+};
+
+// Static method to create or update profile from cookie
+profileSchema.statics.findOrCreateByCookie = async function(cookieName) {
+  if (!cookieName) return null;
+  
+  let profile = await this.findOne({ cookieName });
+  
+  if (!profile) {
+    // Create new profile with cookie name
+    profile = new this({
+      username: cookieName,
+      cookieName: cookieName,
+      displayName: cookieName
+    });
+    
+    // Initialize with standard triggers
+    profile.triggers = STANDARD_TRIGGERS.map(name => ({
+      name,
+      description: '',
+      active: false,
+      isStandard: true
+    }));
+    
+    await profile.save();
+  }
+  
+  return profile;
 };
 
 // Register the model directly instead of using registerModel

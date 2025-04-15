@@ -30,7 +30,7 @@
           </div>
           <br>
           <div id="system-controls-container">
-            <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
+            <%- include('../views/partials/profile-system-controls.ejs', { profile: profile }) %>
           </div>
         </div>
         <div id="response-container">
@@ -61,6 +61,7 @@
         <script src="js/responsive.js"></script>
         <script src="js/triggers.js"></script>
         <script src="/socket.io/socket.io.js"></script>
+        <script src="js/socket-client.js"></script>
         <script src="js/aigf-core.js"></script>
         <script>
           document.addEventListener("DOMContentLoaded", () => {
@@ -88,11 +89,17 @@
                 socket.emit('set username', username);
                 modal.style.display = 'none';
                 window.username = username;
+                
+                // Reload the page to update the profile data
+                window.location.reload();
               }
             });
 
             const style = document.createElement('style');
             document.head.appendChild(style);
+
+            // Set username data attribute for profile-system-controls.ejs
+            document.body.setAttribute('data-username', username);
 
             socket.on("chat message", (msg) => {
               const item = document.createElement("li");
@@ -113,7 +120,7 @@
               }
             });
 
-            const collarForm = document.getElementById('collar-form');
+            const collarForm = document.getElementById('collar-form-inputs');
             if (collarForm) {
               collarForm.addEventListener('submit', (event) => {
                 event.preventDefault();

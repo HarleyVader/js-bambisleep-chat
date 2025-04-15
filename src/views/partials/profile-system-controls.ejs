@@ -1,34 +1,51 @@
 <div class="system-controls">
   <div id="buttons" class="control-buttons">
-    <% if (validConstantsCount >= 1) { %>
-      <button id="triggers" class="control-btn active-button">Triggers</button>
-    <% } %>
-    <% if (validConstantsCount >= 2) { %>
+    <!-- Always show triggers button -->
+    <button id="triggers" class="control-btn active-button">Triggers</button>
+    
+    <!-- Show collar feature if user level ≥ 2 -->
+    <% if (profile && profile.level >= 2) { %>
       <button id="toggle-collar" class="control-btn">Collar</button>
+    <% } else { %>
+      <button class="control-btn disabled" title="Reach Level 2 to unlock">Collar 🔒</button>
     <% } %>
-    <% if (validConstantsCount >= 3) { %>
+    
+    <!-- Show spirals feature if user level ≥ 3 -->
+    <% if (profile && profile.level >= 3) { %>
       <button id="spirals" class="control-btn">Spirals</button>
+    <% } else { %>
+      <button class="control-btn disabled" title="Reach Level 3 to unlock">Spirals 🔒</button>
     <% } %>
-    <% if (validConstantsCount >= 4) { %>
+    
+    <!-- Show hypnosis feature if user level ≥ 4 -->
+    <% if (profile && profile.level >= 4) { %>
       <button id="hypnosis" class="control-btn">Hypnosis</button>
+    <% } else { %>
+      <button class="control-btn disabled" title="Reach Level 4 to unlock">Hypnosis 🔒</button>
     <% } %>
-    <% if (validConstantsCount >= 5) { %>
+    
+    <!-- Show toggle all feature if user level ≥ 5 -->
+    <% if (profile && profile.level >= 5) { %>
       <button id="toggle-all-triggers" class="control-btn">Toggle All Triggers</button>
+    <% } else { %>
+      <button class="control-btn disabled" title="Reach Level 5 to unlock">Toggle All 🔒</button>
     <% } %>
   </div>
 
   <div id="console" class="control-panels">
-    <% if (validConstantsCount >= 1) { %>
-      <div id="trigger-toggles" class="control-panel" style="display: block;">
-        <h3>Trigger Controls</h3>
+    <!-- Triggers panel (always available) -->
+    <div id="trigger-toggles" class="control-panel" style="display: block;">
+      <h3>Trigger Controls</h3>
+      <% if (profile && profile.level >= 5) { %>
         <button id="activate-all" class="secondary-btn">Toggle All</button>
-        <div id="trigger-list" class="trigger-grid">
-          <!-- Triggers will be populated by JavaScript -->
-        </div>
+      <% } %>
+      <div id="trigger-list" class="trigger-grid">
+        <!-- Triggers will be populated by JavaScript -->
       </div>
-    <% } %>
+    </div>
     
-    <% if (validConstantsCount >= 2) { %>
+    <!-- Collar panel (Level 2+) -->
+    <% if (profile && profile.level >= 2) { %>
       <div id="collar-form" class="control-panel" style="display: none;">
         <h3>Collar System</h3>
         <form id="collar-form-inputs">
@@ -40,14 +57,16 @@
       </div>
     <% } %>
     
-    <% if (validConstantsCount >= 3) { %>
+    <!-- Spirals panel (Level 3+) -->
+    <% if (profile && profile.level >= 3) { %>
       <div id="spirals-template" class="control-panel" style="display: none;">
         <h3>Spiral Controls</h3>
         <p>Spiral features coming soon...</p>
       </div>
     <% } %>
     
-    <% if (validConstantsCount >= 4) { %>
+    <!-- Hypnosis panel (Level 4+) -->
+    <% if (profile && profile.level >= 4) { %>
       <div id="hypnosis-template" class="control-panel" style="display: none;">
         <h3>Hypnosis Controls</h3>
         <p>Hypnosis features coming soon...</p>
@@ -75,7 +94,60 @@
       </div>
     <% } %>
   </div>
+
+  <!-- Add XP progress bar at the bottom of system controls -->
+  <% if (profile && profile.xp !== undefined) { %>
+    <div class="xp-progress-container">
+      <div class="xp-progress-label">
+        Level <%= profile.level %> • <%= profile.xp %> XP / <%= profile.getNextLevelXP ? profile.getNextLevelXP() : Math.pow((profile.level), 2) * 100 %> XP
+      </div>
+      <div class="xp-progress-bar">
+        <div class="xp-progress-fill" style="width: <%= Math.min(100, profile.xp / Math.max(1, (profile.getNextLevelXP ? profile.getNextLevelXP() : Math.pow((profile.level), 2) * 100)) * 100) %>%"></div>
+      </div>
+    </div>
+  <% } %>
 </div>
+
+<style>
+  /* Add styles for disabled buttons */
+  .control-btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #444;
+    color: #aaa;
+    position: relative;
+  }
+  
+  /* XP progress bar styling */
+  .xp-progress-container {
+    margin-top: 20px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+  }
+  
+  .xp-progress-label {
+    margin-bottom: 5px;
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+  }
+  
+  .xp-progress-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .xp-progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, #00ffff, #ff00ff);
+    border-radius: 4px;
+    transition: width 0.5s ease-in-out;
+  }
+</style>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {

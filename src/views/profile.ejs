@@ -236,10 +236,23 @@
                 </h1>
                 
                 <div class="user-stats-container">
-                  <div class="user-stat">
+                  <div class="user-stat" 
+                       data-xp="<%= profile.xp || 0 %>" 
+                       data-next-level="<%= profile.getNextLevelXP ? profile.getNextLevelXP() : (profile.level+1)*(profile.level+1)*100 %>"
+                       data-words="<%= profile.generatedWords || 0 %>">
                     <div class="stat-icon level-icon">⭐</div>
-                    <div class="stat-value"><%= profile.level || '1' %></div>
+                    <div class="stat-value level-value"><%= profile.level || '1' %></div>
                     <div class="stat-label">Level</div>
+                    <div class="xp-tooltip">
+                      <div class="xp-tooltip-content">
+                        <h4>Level <%= profile.level || '1' %></h4>
+                        <div class="xp-progress">
+                          <div class="xp-bar" style="width: <%= Math.min(100, (profile.xp || 0) / Math.max(1, (profile.getNextLevelXP ? profile.getNextLevelXP() : (profile.level+1)*(profile.level+1)*100)) * 100) %>%"></div>
+                        </div>
+                        <p>XP: <%= profile.xp || 0 %>/<%= profile.getNextLevelXP ? profile.getNextLevelXP() : (profile.level+1)*(profile.level+1)*100 %></p>
+                        <p>Words Generated: <%= profile.generatedWords || 0 %></p>
+                      </div>
+                    </div>
                   </div>
                   <div class="user-stat">
                     <div class="stat-icon hearts-icon">❤️</div>
@@ -754,6 +767,142 @@
       }
     });
   </script>
+
+  <style>
+    .user-stat {
+      position: relative;
+    }
+    
+    .xp-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      min-width: 200px;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .xp-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 8px;
+      border-style: solid;
+      border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+    }
+    
+    .xp-tooltip-content h4 {
+      margin: 0 0 8px;
+      text-align: center;
+      color: #ff00ff;
+      text-shadow: 0 0 5px #ff00ff;
+    }
+    
+    .xp-progress {
+      height: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    
+    .xp-bar {
+      height: 100%;
+      background: linear-gradient(to right, #00ffff, #ff00ff);
+      box-shadow: 0 0 10px rgba(255, 0, 255, 0.7);
+    }
+    
+    .xp-tooltip-content p {
+      margin: 8px 0;
+      font-size: 0.9em;
+      text-align: center;
+    }
+    
+    .user-stat:hover .xp-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* XP and Level Up Notifications */
+    .xp-notification {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      background: rgba(255, 0, 255, 0.8);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-weight: bold;
+      transform: translateY(-20px);
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      z-index: 9999;
+      box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+    }
+    
+    .xp-notification.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .xp-notification.fade-out {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    
+    .level-up-notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      opacity: 0;
+      z-index: 10000;
+      transition: transform 0.5s, opacity 0.5s;
+      box-shadow: 0 0 30px rgba(255, 0, 255, 0.7);
+      border: 2px solid #ff00ff;
+      min-width: 250px;
+    }
+    
+    .level-up-notification.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+    
+    .level-up-notification.fade-out {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1.2);
+    }
+    
+    .level-up-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    
+    .level-up-text {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ff00ff;
+      text-shadow: 0 0 5px #ff00ff;
+    }
+  </style>
 
   <%- include('./partials/footer') %>
 </body>
