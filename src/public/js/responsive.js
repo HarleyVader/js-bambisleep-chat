@@ -8,10 +8,33 @@ function autoExpand(element) {
   element.style.height = height + "px";
 }
 
-textarea.addEventListener("keypress", function (event) {
-  if (event.key === "Enter" && !event.shiftKey) {
-    event.preventDefault();
-    submit.click();
+// Use different variable names to avoid conflicts
+document.addEventListener('DOMContentLoaded', function() {
+  // Get both textareas and their respective submit buttons
+  const mainTextarea = document.getElementById('textarea');
+  const chatTextarea = document.getElementById('textarea-chat');
+  const submitBtn = document.getElementById('submit');
+  const sendChatBtn = document.getElementById('send');
+
+  // Only add listeners if elements exist
+  if (mainTextarea && submitBtn) {
+    // Apply Enter key event listener to the main textarea
+    mainTextarea.addEventListener("keypress", function (event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        submitBtn.click();
+      }
+    });
+  }
+
+  if (chatTextarea && sendChatBtn) {
+    // Apply Enter key event listener to the chat textarea
+    chatTextarea.addEventListener("keypress", function (event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendChatBtn.click();
+      }
+    });
   }
 });
 

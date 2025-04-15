@@ -31,7 +31,7 @@ class Logger {
    */
   getTimestamp() {
     const now = new Date();
-    return `[${now.toLocaleTimeString()}]`;
+    return `[${now.toLocaleTimeString([], {hour12: false})}]`;
   }
 
   /**

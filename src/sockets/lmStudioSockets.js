@@ -11,6 +11,21 @@ const logger = new Logger('LMStudioSockets');
  * @param {Function} filterContent - Function to filter content
  */
 export default function setupLMStudioSockets(socket, io, lmstudio, filterContent) {
+  // Get username from socket or cookie for logging purposes
+  let socketUsername;
+  try {
+    socketUsername = decodeURIComponent(socket.handshake.headers.cookie
+                    ?.split(';')
+                    .find(c => c.trim().startsWith('bambiname='))
+                    ?.split('=')[1] || 'anonBambi');
+  } catch (error) {
+    socketUsername = 'anonBambi';
+    logger.warning('Could not extract username from socket:', error.message);
+  }
+  
+  // Make username available to socket instance
+  socket.bambiUsername = socketUsername;
+  
   // Set up message handler for worker responses
   lmstudio.on("message", (msg) => handleWorkerMessage(socket, io, msg));
   
@@ -47,6 +62,19 @@ function handleWorkerMessage(socket, io, msg) {
     } else if (msg.type === 'response') {
       const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
       io.to(msg.socketId).emit("response", responseData);
+    } else if (msg.type === 'xp:update') {
+      // Forward XP updates to the specific socket that triggered the action
+      if (msg.socketId && msg.username) { // Add check for username
+        io.to(msg.socketId).emit("xp:update", {
+          username: msg.username,
+          xp: msg.data.xp,
+          level: msg.data.level,
+          generatedWords: msg.data.generatedWords,
+          xpEarned: msg.data.xpEarned
+        });
+        
+        logger.info(`XP update for ${msg.username || 'unknown user'}: +${msg.data.xpEarned} XP`);
+      }
     }
   } catch (error) {
     logger.error('Error in worker message handler:', error);
@@ -63,12 +91,21 @@ function handleWorkerMessage(socket, io, msg) {
  */
 function handleUserMessage(socket, lmstudio, message, filterContent) {
   try {
-    // Extract username from socket or cookie
-    const username = socket.bambiProfile?.username || 
-                    decodeURIComponent(socket.handshake.headers.cookie
-                      ?.split(';')
-                      .find(c => c.trim().startsWith('bambiname='))
-                      ?.split('=')[1] || 'anonBambi');
+    // Try to get username from the socket first if we already extracted it
+    let username = socket.bambiUsername;
+    
+    // If not available, try to extract from cookie again
+    if (!username) {
+      try {
+        username = decodeURIComponent(socket.handshake.headers.cookie
+                    ?.split(';')
+                    .find(c => c.trim().startsWith('bambiname='))
+                    ?.split('=')[1] || 'anonBambi');
+      } catch (error) {
+        username = 'anonBambi';
+        logger.warning('Could not extract username from cookie:', error.message);
+      }
+    }
     
     // Filter message content
     const filteredMessage = filterContent(message);

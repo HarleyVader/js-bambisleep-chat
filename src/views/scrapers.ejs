@@ -111,7 +111,7 @@
                                 </div>
                                 <div class="submission-info">
                                     <span class="bambi-name">By: <%= submission.bambiname %></span>
-                                    <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString() %></span>
+                                    <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString([], {hour12: false}) %></span>
                                 </div>
                                 <% if (submission.results && submission.results.text && submission.results.text.contentFound) { %>
                                     <div class="content-found">Content found! ✓</div>
@@ -151,7 +151,7 @@
                                 </div>
                                 <div class="submission-info">
                                     <span class="bambi-name">By: <%= submission.bambiname %></span>
-                                    <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString() %></span>
+                                    <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString([], {hour12: false}) %></span>
                                 </div>
                                 <% if (submission.results && submission.results.image && submission.results.image.contentFound) { %>
                                     <div class="content-found">Images found! ✓</div>
@@ -191,7 +191,7 @@
                                 </div>
                                 <div class="submission-info">
                                     <span class="bambi-name">By: <%= submission.bambiname %></span>
-                                    <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString() %></span>
+                                    <span class="submission-date"><%= new Date(submission.submittedAt).toLocaleString([], {hour12: false}) %></span>
                                 </div>
                                 <% if (submission.results && submission.results.video && submission.results.video.contentFound) { %>
                                     <div class="content-found">Videos found! ✓</div>

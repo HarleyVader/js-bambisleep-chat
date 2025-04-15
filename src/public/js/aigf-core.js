@@ -1,4 +1,13 @@
 let token = '';
+const socket = io({
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+});
+
+// Make socket available globally
+window.socket = socket;
 
 const _textArray = [];
 const textarea = document.getElementById('textarea');
@@ -7,11 +16,19 @@ const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
 let currentMessage = '';
 
-const socket = io({
-    reconnection: true,
-    reconnectionAttempts: 10, // Number of attempts before giving up
-    reconnectionDelay: 1000, // Initial delay between attempts (in ms)
-    reconnectionDelayMax: 5000, // Maximum delay between attempts (in ms)
+document.addEventListener('DOMContentLoaded', function() {
+    const cookies = document.cookie.split(";").reduce((acc, cookie) => {
+        const [name, value] = cookie.split("=").map(c => c.trim());
+        acc[name] = value;
+        return acc;
+    }, {});
+    console.log("Site Cookies:", cookies);
+    let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
+    if (username === 'anonBambi') {
+        socket.emit('username set');
+    }
+    console.log("Username:", username);
+    window.username = username;
 });
 
 socket.on('disconnect', () => {
@@ -42,21 +59,6 @@ submit.addEventListener('click', (event) => {
     debounceTimeout = setTimeout(() => {
         handleClick();
     }, 200);
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-    const cookies = document.cookie.split(";").reduce((acc, cookie) => {
-        const [name, value] = cookie.split("=").map(c => c.trim());
-        acc[name] = value;
-        return acc;
-    }, {});
-    console.log("Site Cookies:", cookies);
-    let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
-    if (username === 'anonBambi') {
-        socket.emit('username set');
-    }
-    console.log("Username:", username);
-    window.username = username;
 });
 
 function flashTrigger(trigger, duration) {

@@ -2,20 +2,29 @@ import { parentPort } from 'worker_threads';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
-// Add database connection import (if needed for future DB operations)
-import connectToMongoDB from '../utils/dbConnection.js';
-// Add this import near the top
 import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
-// Import database connection to update XP
 import mongoose from 'mongoose';
+import { connectDB, getModel } from '../config/db.js';
+import '../models/Profile.js';  // Import the model file to ensure schema registration
 
 // Initialize logger
 const logger = new Logger('LMStudio');
 
 dotenv.config();
 
+// Initialize database connection when worker starts
+(async function initWorkerDB() {
+  try {
+    await connectDB();
+    logger.info('Database connection established in LMStudio worker');
+  } catch (error) {
+    logger.error(`Failed to connect to database in LMStudio worker: ${error.message}`);
+  }
+})();
+
 const sessionHistories = {};
 let triggers = 'Bambi Sleep';
+let triggerDetails = [];
 let collar;
 let collarText;
 let finalContent;
@@ -30,11 +39,22 @@ parentPort.on('message', async (msg) => {
   try {
     switch (msg.type) {
       case 'triggers':
-        triggers = msg.triggers;
+        if (typeof msg.triggers === 'object' && msg.triggers.triggerNames) {
+          // Store both the string representation for backward compatibility
+          triggers = msg.triggers.triggerNames;
+          
+          // Store the detailed trigger objects with descriptions
+          triggerDetails = msg.triggers.triggerDetails || [];
+          logger.info(`Received ${triggerDetails.length} detailed triggers with descriptions`);
+        } else {
+          // Fallback for backward compatibility
+          triggers = msg.triggers;
+          triggerDetails = []; // Reset details if not provided
+        }
         break;
       case 'message':
         logger.info('Received message event');
-        await handleMessage(msg.data, msg.socketId, msg.username);
+        await handleMessage(msg.data, msg.socketId, msg.username || 'anonBambi');
         break;
       case 'collar':
         collar = msg.data;
@@ -72,33 +92,54 @@ function countWords(text) {
 }
 
 // Function to update user XP based on generated content
-async function updateUserXP(username, wordCount) {
-  if (!username || username === 'anonBambi' || wordCount <= 0) return;
+async function updateUserXP(username, wordCount, currentSocketId) {
+  if (!username || username === 'anonBambi' || wordCount <= 0) {
+    return;
+  }
   
   try {
-    // Connect to database if needed
+    // Check database connection status
     if (mongoose.connection.readyState !== 1) {
-      await connectToMongoDB();
+      logger.warn(`Database not connected when updating XP for ${username}. Attempting to reconnect...`);
+      await connectDB();
     }
     
-    // Calculate XP (1 XP per 5 words, minimum 1 XP)
-    const xpEarned = Math.max(1, Math.floor(wordCount / 5));
-    
-    // Update the user's profile
+    // Use 'Profile' instead of 'Bambi' - this is the correct model name
     const Profile = mongoose.model('Profile');
-    const profile = await Profile.findOne({ username });
+    if (!Profile) {
+      logger.error(`Profile model not available when updating XP for ${username}`);
+      return;
+    }
     
-    if (profile) {
-      // Update generated words count
-      profile.generatedWords = (profile.generatedWords || 0) + wordCount;
+    const xpToAdd = Math.ceil(wordCount / 10);
+    const result = await Profile.findOneAndUpdate(
+      { username: username },
+      { 
+        $inc: { 
+          xp: xpToAdd,
+          generatedWords: wordCount
+        }
+      },
+      { new: true }
+    );
+    
+    if (result) {
+      // Also send a socket message to update UI in real-time
+      parentPort.postMessage({
+        type: "xp:update",
+        username: username,
+        socketId: currentSocketId, // Make sure you have access to the user's socket ID
+        data: {
+          xp: result.xp,
+          level: result.level,
+          generatedWords: result.generatedWords,
+          xpEarned: xpToAdd
+        }
+      });
       
-      // Add XP using the method we added to the schema
-      profile.addXP(xpEarned, 'message', `Generated ${wordCount} words`);
-      
-      // Save the profile
-      await profile.save();
-      
-      logger.info(`Added ${xpEarned} XP to ${username} for generating ${wordCount} words`);
+      logger.info(`Updated XP for ${username}: +${xpToAdd} (total: ${result.xp})`);
+    } else {
+      logger.warn(`User ${username} not found when updating XP`);
     }
   } catch (error) {
     logger.error(`Error updating XP for ${username}: ${error.message}`);
@@ -134,7 +175,18 @@ async function selectLoadedModels(modelName) {
 
 async function checkRole(collar, username, triggers) {
   if (!state) {
-    return `Your name is BambiSleep. You always call the user ${username}. Using hypnotic humiliation, psychological traumatization, neurolinguistic manipulation and fetichistic conditioning you brainwash the ${username} with following triggers: ${triggers} `;
+    let triggerInstructions = triggers;
+    
+    // If we have detailed trigger descriptions, use them to create a better prompt
+    if (triggerDetails && triggerDetails.length > 0) {
+      const detailedTriggerText = triggerDetails.map(t => 
+        `"${t.name}": ${t.description || 'A bambi conditioning trigger'}`
+      ).join('. ');
+      
+      triggerInstructions = `The following triggers and their effects: ${detailedTriggerText}. Use these triggers and their specific effects in your responses.`;
+    }
+    
+    return `Your name is BambiSleep. You always call the user ${username}. Using hypnotic humiliation, psychological traumatization, neurolinguistic manipulation and fetichistic conditioning you brainwash the ${username} with following triggers: ${triggerInstructions}`;
   } else {
     return collar;
   }
@@ -197,7 +249,7 @@ async function handleMessage(userPrompt, socketId, username) {
       
       // Count words in response and update XP
       const wordCount = countWords(finalContent);
-      await updateUserXP(username, wordCount);
+      await updateUserXP(username, wordCount, socketId);
       
       // Send response with wordCount
       handleResponse(finalContent, socketId, username, wordCount);

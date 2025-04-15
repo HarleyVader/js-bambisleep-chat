@@ -90,55 +90,69 @@ function validateURL(url) {
  * Supports both socket.io and traditional form submissions
  */
 function setupFormHandlers() {
-  const forms = document.querySelectorAll('form[data-submit-method]');
+  // Get profile forms and form elements
+  const forms = document.querySelectorAll('.profile-form');
   
   forms.forEach(form => {
     form.addEventListener('submit', async function(event) {
       event.preventDefault();
       
-      const submitMethod = this.getAttribute('data-submit-method');
-      const endpoint = this.getAttribute('action') || '';
-      const formData = new FormData(this);
-      const submitBtn = this.querySelector('[type="submit"]');
-      
-      // Validate the form if validateForm function exists
-      if (typeof validateForm === 'function' && !validateForm(this)) {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Submit';
-        }
+      // Validate form before submission
+      if (!validateForm(this)) {
         return;
       }
       
-      // Disable submit button and show loading state
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
+      // Get the username from the page data attribute
+      const username = document.body.getAttribute('data-username');
+      if (!username) {
+        showNotification('Cannot determine profile username', 'error');
+        return;
       }
       
+      // Check if there's a cookie for this username
+      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+        const [name, value] = cookie.split('=').map(c => c.trim());
+        acc[name] = value;
+        return acc;
+      }, {});
+      
+      const cookieUsername = cookies.bambiname ? decodeURIComponent(cookies.bambiname) : null;
+      
+      // Verify cookie matches username
+      if (cookieUsername !== username) {
+        showNotification('You are not authorized to update this profile', 'error');
+        return;
+      }
+      
+      // Collect form data
+      const formData = new FormData(this);
+      
       try {
-        let response;
-        
-        // Determine submission method
-        if (submitMethod === 'socket' && typeof socket !== 'undefined' && socket.connected) {
-          // Socket submission
-          const formObject = {};
-          formData.forEach((value, key) => {
-            formObject[key] = value;
+        // Use socket if available, otherwise fall back to AJAX
+        if (typeof socket !== 'undefined' && socket.connected) {
+          // Prepare data for socket transmission
+          const data = {};
+          for (const [key, value] of formData.entries()) {
+            data[key] = value;
+          }
+          data.username = username;
+          
+          // Send via socket
+          socket.emit('update-profile', data);
+          
+          // Listen for response
+          socket.once('profile-updated', function(response) {
+            if (response.success) {
+              showNotification(response.message || 'Profile updated successfully', 'success');
+              // Reload the page to show updated profile
+              setTimeout(() => window.location.reload(), 1500);
+            } else {
+              showNotification(response.message || 'Failed to update profile', 'error');
+            }
           });
-          
-          // Add username if available
-          const username = document.body.getAttribute('data-username');
-          if (username) formObject.username = username;
-          
-          // Get event name from form attribute or default to update-profile
-          const eventName = this.getAttribute('data-socket-event') || 'update-profile';
-          
-          response = await emitSocketPromise(eventName, formObject);
-          handleSuccess(response, this);
         } else {
-          // Traditional AJAX submission
-          response = await fetch(endpoint, {
+          // Fall back to AJAX
+          const response = await fetch(`/profile/${username}/update`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -149,28 +163,59 @@ function setupFormHandlers() {
           const data = await response.json();
           
           if (!response.ok) {
-            throw new Error(data.message || 'Form submission failed');
+            throw new Error(data.message || 'Update failed');
           }
           
-          handleSuccess(data, this);
+          showNotification(data.message || 'Profile updated successfully', 'success');
+          // Reload the page to show updated profile
+          setTimeout(() => window.location.reload(), 1500);
         }
       } catch (error) {
-        handleError(error, this);
-      } finally {
-        // Re-enable submit button
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Submit';
-        }
+        console.error('Error updating profile:', error);
+        showNotification(error.message || 'Failed to update profile', 'error');
       }
     });
-    
-    // Store original button text
-    const submitBtn = form.querySelector('[type="submit"]');
-    if (submitBtn) {
-      submitBtn.setAttribute('data-original-text', submitBtn.innerHTML);
-    }
   });
+  
+  // Add delete profile button handler
+  const deleteBtn = document.getElementById('delete-profile-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async function() {
+      // Confirm deletion
+      if (!confirm('Are you sure you want to delete your profile? This cannot be undone.')) {
+        return;
+      }
+      
+      // Get the username from the page data attribute
+      const username = document.body.getAttribute('data-username');
+      if (!username) {
+        showNotification('Cannot determine profile username', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/profile/${username}/delete`, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Deletion failed');
+        }
+        
+        showNotification(data.message || 'Profile deleted successfully', 'success');
+        // Redirect to home page after deletion
+        setTimeout(() => window.location.href = '/', 1500);
+      } catch (error) {
+        console.error('Error deleting profile:', error);
+        showNotification(error.message || 'Failed to delete profile', 'error');
+      }
+    });
+  }
 }
 
 /**
@@ -441,6 +486,32 @@ function setupInlineEditing() {
 // =============== SYSTEM CONTROLS ===============
 
 /**
+ * Synchronize active triggers with other pages
+ * @param {Array} activeTriggers - Array of active trigger names
+ * @param {Object} triggerDescriptions - Object mapping trigger names to descriptions
+ */
+function syncTriggersWithPages(activeTriggers, triggerDescriptions) {
+  // Use localStorage to persist the active triggers between pages
+  localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers));
+  localStorage.setItem('bambiTriggerDescriptions', JSON.stringify(triggerDescriptions));
+  
+  // If we're in the profile page, also update any other open tabs via BroadcastChannel
+  if (window.location.pathname.includes('/profile/')) {
+    // Create a broadcast channel if it doesn't exist
+    if (!window.triggerSyncChannel) {
+      window.triggerSyncChannel = new BroadcastChannel('bambi-trigger-sync');
+    }
+    
+    // Broadcast the update to other tabs
+    window.triggerSyncChannel.postMessage({
+      type: 'trigger-update',
+      activeTriggers: activeTriggers,
+      triggerDescriptions: triggerDescriptions
+    });
+  }
+}
+
+/**
  * Set up system controls functionality
  */
 function setupSystemControls() {
@@ -448,73 +519,538 @@ function setupSystemControls() {
   const systemControls = document.querySelector('.system-controls');
   if (!systemControls) return;
   
-  // Set up socket handlers for real-time updates if socket is available
-  if (typeof socket !== 'undefined' && socket.connected) {
-    // Listen for system controls updates
-    socket.on('system-controls-updated', function(data) {
-      if (data.success) {
-        showNotification('System controls updated successfully', 'success');
+  // Initialize triggers from profile data if available
+  const username = document.body.getAttribute('data-username');
+  if (username) {
+    const triggerList = document.getElementById('trigger-list');
+    
+    // Only populate if not already populated and we have the right elements
+    if (triggerList && triggerList.children.length === 0) {
+      // Populate triggers
+      populateTriggerList(triggerList);
+    }
+    
+    // Add event listeners to trigger toggles in the profile page
+    const triggerToggles = document.querySelectorAll('.trigger-toggle');
+    triggerToggles.forEach(toggle => {
+      toggle.addEventListener('change', function() {
+        const triggerName = this.getAttribute('data-trigger');
+        const isActive = this.checked;
+        
+        // Update via socket if available
+        if (typeof window.socket !== 'undefined' && window.socket.connected) {
+          window.socket.emit('update-system-controls', {
+            username: username,
+            activeTriggers: getActiveTriggersFromUI()
+          });
+        } else {
+          // Fallback to fetch API
+          fetch(`/profile/${username}/system-controls`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              activeTriggers: getActiveTriggersFromUI()
+            })
+          });
+        }
+      });
+    });
+  }
+  
+  // Function to get active triggers from UI elements
+  function getActiveTriggersFromUI() {
+    const toggles = document.querySelectorAll('.trigger-toggle');
+    const activeTriggers = [];
+    
+    toggles.forEach(toggle => {
+      if (toggle.checked) {
+        activeTriggers.push(toggle.getAttribute('data-trigger'));
       }
     });
     
-    // Listen for errors
-    socket.on('system-controls-error', function(message) {
-      showNotification(message, 'error');
-    });
-    
-    // Listen for updates from other clients
-    socket.on('profile-system-controls-updated', function(data) {
-      // Update UI if needed
-      updateSystemControlsUI(data.systemControls);
-    });
+    return activeTriggers;
   }
 }
 
 /**
- * Update system controls UI based on received data
+ * Helper function to populate trigger list
  */
-function updateSystemControlsUI(systemControls) {
-  if (!systemControls) return;
+function populateTriggerList(triggerList) {
+  const bambiTriggers = [
+    "BIMBO DOLL", "GOOD GIRL", "BAMBI SLEEP", "BAMBI FREEZE",
+    "ZAP COCK DRAIN OBEY", "BAMBI ALWAYS WINS", "BAMBI RESET",
+    "I-Q DROP", "I-Q LOCK", "POSTURE LOCK", "UNIFORM LOCK",
+    "SAFE & SECURE", "PRIMPED", "PAMPERED", "SNAP & FORGET",
+    "GIGGLE TIME", "BLONDE MOMENT", "BAMBI DOES AS SHE IS TOLD",
+    "DROP FOR COCK", "COCK ZOMBIE NOW", "TITS LOCK", "WAIST LOCK",
+    "BUTT LOCK", "LIMBS LOCK", "FACE LOCK", "LIPS LOCK",
+    "THROAT LOCK", "HIPS LOCK", "CUNT LOCK", "BAMBI CUM & COLAPSE"
+  ];
   
-  // Update collar text if available
-  const collarTextarea = document.getElementById('textarea-collar');
-  if (collarTextarea && systemControls.collarText) {
-    collarTextarea.value = systemControls.collarText;
+  // Get active triggers from profile if available
+  let activeTriggers = [];
+  const username = document.body.getAttribute('data-username');
+  
+  // Try to get active triggers from window.profileData if available
+  if (typeof window.profileData !== 'undefined' && window.profileData.systemControls && window.profileData.systemControls.activeTriggers) {
+    activeTriggers = window.profileData.systemControls.activeTriggers;
   }
   
-  // Update multiplier settings if available
-  if (systemControls.multiplierSettings) {
-    const { A1, A2, B1, B2, operation } = systemControls.multiplierSettings;
+  // Create trigger toggle items
+  bambiTriggers.forEach((trigger, index) => {
+    const triggerItem = document.createElement('div');
+    triggerItem.className = 'trigger-toggle-item';
     
-    const multiplierA1 = document.getElementById('multiplierA1');
-    if (multiplierA1 && A1 !== undefined) multiplierA1.value = A1;
+    const toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    toggle.id = `toggle-${index}`;
+    toggle.className = 'toggle-input';
+    toggle.setAttribute('data-trigger', trigger);
     
-    const multiplierA2 = document.getElementById('multiplierA2');
-    if (multiplierA2 && A2 !== undefined) multiplierA2.value = A2;
+    // Check if this trigger is active
+    if (activeTriggers.includes(trigger)) {
+      toggle.checked = true;
+    }
     
-    const multiplierB1 = document.getElementById('multiplierB1');
-    if (multiplierB1 && B1 !== undefined) multiplierB1.value = B1;
+    // Set up change handler to save state
+    toggle.addEventListener('change', function() {
+      saveTriggerState(username);
+    });
     
-    const multiplierB2 = document.getElementById('multiplierB2');
-    if (multiplierB2 && B2 !== undefined) multiplierB2.value = B2;
+    const label = document.createElement('label');
+    label.textContent = trigger;
+    label.htmlFor = `toggle-${index}`;
+    label.className = 'toggle-label';
     
-    const operationSelect = document.getElementById('operation');
-    if (operationSelect && operation) operationSelect.value = operation;
+    triggerItem.appendChild(toggle);
+    triggerItem.appendChild(label);
+    triggerList.appendChild(triggerItem);
+  });
+  
+  // Function to save trigger state
+  function saveTriggerState(username) {
+    if (!username) return;
+    
+    const toggleInputs = document.querySelectorAll('.toggle-input');
+    const activeTriggers = [];
+    const triggerDescriptions = {};
+    
+    toggleInputs.forEach(input => {
+      if (input.checked) {
+        const triggerName = input.getAttribute('data-trigger');
+        const triggerDesc = input.getAttribute('data-description');
+        activeTriggers.push(triggerName);
+        triggerDescriptions[triggerName] = triggerDesc;
+      }
+    });
+    
+    // Sync with other pages
+    syncTriggersWithPages(activeTriggers, triggerDescriptions);
+    
+    // Save via socket if available
+    if (typeof window.socket !== 'undefined' && window.socket.connected) {
+      window.socket.emit('update-system-controls', {
+        username: username,
+        activeTriggers: activeTriggers,
+        triggerDescriptions: triggerDescriptions
+      });
+    } else {
+      // Fallback to fetch API
+      fetch(`/profile/${username}/system-controls`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          activeTriggers: activeTriggers,
+          triggerDescriptions: triggerDescriptions
+        })
+      });
+    }
+  }
+}
+
+/**
+ * Update system controls UI based on profile data
+ * @param {object} data - Profile data containing system controls
+ */
+function updateSystemControlsUI(data) {
+  // Check if we have the necessary elements
+  const triggerList = document.getElementById('trigger-list');
+  if (!triggerList) return;
+  
+  // Get user level from the data
+  const userLevel = data && data.level ? data.level : 0;
+  
+  // If user level is less than 1, don't populate triggers
+  if (userLevel < 1) {
+    return;
   }
   
-  // Update active triggers if available
-  if (systemControls.activeTriggers && systemControls.activeTriggers.length > 0) {
-    const triggerInputs = document.querySelectorAll('.toggle-input');
-    
-    triggerInputs.forEach(input => {
-      const triggerName = input.getAttribute('data-trigger');
-      input.checked = systemControls.activeTriggers.includes(triggerName);
+  // Clear existing triggers
+  triggerList.innerHTML = '';
+  
+  // Get active triggers from data
+  const activeTriggers = data && data.systemControls && data.systemControls.activeTriggers 
+    ? data.systemControls.activeTriggers 
+    : [];
+  
+  // Check if we're on the profile page or the index page
+  const isProfilePage = window.location.pathname.includes('/profile/');
+  
+  // Standard set of Bambi triggers with descriptions (only used in profile page)
+  const triggerDescriptions = {
+    "BIMBO DOLL": "Turns you into a mindless, giggly bimbo doll",
+    "GOOD GIRL": "Makes you feel pleasure when obeying commands",
+    "BAMBI SLEEP": "Primary conditioning trigger for Bambi personality",
+    "BAMBI FREEZE": "Locks you in place, unable to move",
+    "ZAP COCK DRAIN OBEY": "Conditions to associate pleasure with submission",
+    "BAMBI ALWAYS WINS": "Strengthens the Bambi personality dominance",
+    "BAMBI RESET": "Resets Bambi to default programming state",
+    "I-Q DROP": "Reduces cognitive abilities, makes thinking difficult",
+    "I-Q LOCK": "Prevents intelligent thoughts or complex reasoning",
+    "POSTURE LOCK": "Forces proper feminine posture automatically",
+    "UNIFORM LOCK": "Makes you desire to dress in Bambi's preferred clothing",
+    "SAFE & SECURE": "Creates feelings of safety when in Bambi space",
+    "PRIMPED": "Compulsion to maintain perfect makeup and appearance",
+    "PAMPERED": "Increases desire for self-care and beauty treatments",
+    "SNAP & FORGET": "Erases memories of specific activities",
+    "GIGGLE TIME": "Induces uncontrollable ditzy giggling",
+    "BLONDE MOMENT": "Creates temporary confusion and airheadedness",
+    "BAMBI DOES AS SHE IS TOLD": "Enhances obedience to direct commands",
+    "DROP FOR COCK": "Triggers instant arousal and submission",
+    "COCK ZOMBIE NOW": "Induces trance state focused only on pleasing cock",
+    "TITS LOCK": "Focuses attention and sensitivity on chest",
+    "WAIST LOCK": "Creates awareness of waistline and feminine figure",
+    "BUTT LOCK": "Enhances awareness and movement of your rear",
+    "LIMBS LOCK": "Controls movement patterns to be more feminine",
+    "FACE LOCK": "Locks facial expressions into Bambi's patterns",
+    "LIPS LOCK": "Increases sensitivity and awareness of lips",
+    "THROAT LOCK": "Conditions throat for Bambi's preferred activities",
+    "HIPS LOCK": "Forces feminine hip movement and posture",
+    "CUNT LOCK": "Intensifies feelings in genital area",
+    "BAMBI CUM & COLAPSE": "Triggers intense orgasm followed by unconsciousness"
+  };
+  
+  // Populate trigger list based on whether we're in profile or index
+  if (isProfilePage) {
+    // For profile page, create items with descriptions
+    Object.keys(triggerDescriptions).forEach((triggerName, index) => {
+      const triggerItem = document.createElement('div');
+      triggerItem.className = 'trigger-toggle-item';
+      
+      const toggle = document.createElement('input');
+      toggle.type = 'checkbox';
+      toggle.id = `toggle-${index}`;
+      toggle.className = 'toggle-input';
+      toggle.setAttribute('data-trigger', triggerName);
+      
+      // Check if this trigger is active
+      if (activeTriggers.includes(triggerName)) {
+        toggle.checked = true;
+      }
+      
+      // Set up change handler
+      toggle.addEventListener('change', function() {
+        const username = document.body.getAttribute('data-username');
+        if (username) {
+          saveTriggerState(username);
+        }
+      });
+      
+      const label = document.createElement('label');
+      label.htmlFor = `toggle-${index}`;
+      label.className = 'toggle-label';
+      
+      const triggerNameEl = document.createElement('span');
+      triggerNameEl.className = 'trigger-name';
+      triggerNameEl.textContent = triggerName;
+      
+      const description = document.createElement('span');
+      description.className = 'trigger-description';
+      description.textContent = triggerDescriptions[triggerName];
+      
+      label.appendChild(triggerNameEl);
+      label.appendChild(description);
+      
+      triggerItem.appendChild(toggle);
+      triggerItem.appendChild(label);
+      triggerList.appendChild(triggerItem);
+    });
+  } else {
+    // For index page, create simple triggers without descriptions
+    Object.keys(triggerDescriptions).forEach((triggerName, index) => {
+      const triggerItem = document.createElement('div');
+      triggerItem.className = 'trigger-toggle-item';
+      
+      const toggle = document.createElement('input');
+      toggle.type = 'checkbox';
+      toggle.id = `toggle-${index}`;
+      toggle.className = 'toggle-input';
+      toggle.setAttribute('data-trigger', triggerName);
+      
+      // Check if this trigger is active
+      if (activeTriggers.includes(triggerName)) {
+        toggle.checked = true;
+      }
+      
+      // Set up change handler
+      toggle.addEventListener('change', function() {
+        const username = document.body.getAttribute('data-username');
+        if (username) {
+          saveTriggerState(username);
+        }
+      });
+      
+      const label = document.createElement('label');
+      label.htmlFor = `toggle-${index}`;
+      label.className = 'toggle-label';
+      label.textContent = triggerName;
+      
+      triggerItem.appendChild(toggle);
+      triggerItem.appendChild(label);
+      triggerList.appendChild(triggerItem);
     });
   }
+  
+  // Function to save trigger state
+  function saveTriggerState(username) {
+    if (!username) return;
+    
+    const toggleInputs = document.querySelectorAll('.toggle-input');
+    const activeTriggers = [];
+    
+    toggleInputs.forEach(input => {
+      if (input.checked) {
+        activeTriggers.push(input.getAttribute('data-trigger'));
+      }
+    });
+    
+    // Save via socket if available
+    if (typeof window.socket !== 'undefined' && window.socket.connected) {
+      window.socket.emit('update-system-controls', {
+        username: username,
+        activeTriggers: activeTriggers
+      });
+    } else {
+      // Fallback to fetch API
+      fetch(`/profile/${username}/system-controls`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          activeTriggers: activeTriggers
+        })
+      });
+    }
+  }
+}
+
+// =============== XP UPDATES ===============
+
+/**
+ * Set up socket listeners for XP updates
+ */
+function setupXPUpdates() {
+  // Create a function to initialize socket listeners once connection is established
+  const initSocketListeners = () => {
+    console.log('Setting up XP update listeners');
+    
+    // Listen for XP updates
+    window.socket.on('xp:update', function(data) {
+      console.log('XP update received:', data);
+      
+      // Calculate next level XP threshold
+      const nextLevelXP = Math.pow(data.level, 2) * 100;
+      
+      // Update XP display with the calculated nextLevelXP
+      updateXPDisplay({
+        xp: data.xp,
+        level: data.level,
+        nextLevelXP: nextLevelXP,
+        xpEarned: data.xpEarned || 0,
+        generatedWords: data.generatedWords
+      });
+    });
+    
+    // Listen for level up events
+    window.socket.on('level:up', function(data) {
+      showLevelUpNotification(data.level);
+      updateXPDisplay(data);
+    });
+  };
+
+  // Check if socket is already defined and connected
+  if (typeof window.socket !== 'undefined' && window.socket.connected) {
+    initSocketListeners();
+  } else {
+    // Wait for socket connection from custom event
+    window.addEventListener('socket:connected', function() {
+      console.log('Socket now connected, setting up XP listeners');
+      if (window.socket) {
+        initSocketListeners();
+      }
+    }, { once: true }); // Add once: true to prevent multiple handlers
+  }
+}
+
+/**
+ * Function to update XP display in real-time
+ * @param {object} data - XP data
+ */
+function updateXPDisplay(data) {
+  const { xp, level, nextLevelXP, xpEarned } = data;
+  
+  console.log('Updating XP display:', data);
+  
+  // Update level value in stats
+  const levelValueEl = document.querySelector('.level-value');
+  if (levelValueEl) levelValueEl.textContent = level;
+  
+  // Update XP progress bar in profile-system-controls
+  const xpProgressLabel = document.querySelector('.xp-progress-label');
+  if (xpProgressLabel) {
+    xpProgressLabel.textContent = `Level ${level} • ${xp} XP / ${nextLevelXP} XP`;
+  }
+  
+  // Update progress bar fill
+  const progressFill = document.querySelector('.xp-progress-fill');
+  if (progressFill) {
+    const percentage = Math.min(100, (xp / Math.max(1, nextLevelXP)) * 100);
+    progressFill.style.width = `${percentage}%`;
+  }
+  
+  // Update XP tooltip in profile page if it exists
+  const userStatXP = document.querySelector('.user-stat[data-xp]');
+  if (userStatXP) {
+    userStatXP.setAttribute('data-xp', xp);
+    userStatXP.setAttribute('data-next-level', nextLevelXP);
+    
+    const tooltipXP = userStatXP.querySelector('.xp-tooltip-content p:first-of-type');
+    if (tooltipXP) {
+      tooltipXP.textContent = `XP: ${xp}/${nextLevelXP}`;
+    }
+    
+    const tooltipLevel = userStatXP.querySelector('.xp-tooltip-content h4');
+    if (tooltipLevel) {
+      tooltipLevel.textContent = `Level ${level}`;
+    }
+    
+    const tooltipProgressBar = userStatXP.querySelector('.xp-bar');
+    if (tooltipProgressBar) {
+      const percentage = Math.min(100, (xp / Math.max(1, nextLevelXP)) * 100);
+      tooltipProgressBar.style.width = `${percentage}%`;
+    }
+  }
+  
+  // If XP was earned, show notification
+  if (xpEarned > 0) {
+    showXPNotification(xpEarned);
+  }
+}
+
+/**
+ * Function to show XP notification
+ * @param {number} xpEarned - XP earned
+ */
+function showXPNotification(xpEarned) {
+  // Create notification if it doesn't exist
+  let notification = document.querySelector('.xp-notification');
+  if (!notification) {
+    notification = document.createElement('div');
+    notification.className = 'xp-notification';
+    document.body.appendChild(notification);
+  }
+  
+  // Set notification content and show it
+  notification.textContent = `+${xpEarned} XP`;
+  notification.classList.add('show');
+  
+  // Remove notification after 3 seconds
+  setTimeout(() => {
+    notification.classList.add('fade-out');
+    setTimeout(() => {
+      notification.classList.remove('show', 'fade-out');
+    }, 300);
+  }, 3000);
+}
+
+/**
+ * Function to show level up notification
+ * @param {number} newLevel - New level
+ */
+function showLevelUpNotification(newLevel) {
+  // Create notification if it doesn't exist
+  let notification = document.querySelector('.level-up-notification');
+  if (!notification) {
+    notification = document.createElement('div');
+    notification.className = 'level-up-notification';
+    notification.innerHTML = `
+      <div class="level-up-icon">⭐</div>
+      <div class="level-up-text">Level Up!</div>
+      <div class="level-up-level">Level ${newLevel}</div>
+    `;
+    document.body.appendChild(notification);
+  } else {
+    notification.querySelector('.level-up-level').textContent = `Level ${newLevel}`;
+  }
+  
+  // Show the notification
+  notification.classList.add('show');
+  
+  // Remove notification after 5 seconds
+  setTimeout(() => {
+    notification.classList.add('fade-out');
+    setTimeout(() => {
+      notification.classList.remove('show', 'fade-out');
+    }, 500);
+  }, 5000);
 }
 
 // Initialize on DOM load - Setup form handlers and inline editing
 document.addEventListener('DOMContentLoaded', function() {
+  const socket = io();
+  
+  // Add event listener for trigger toggles
+  const triggerToggles = document.querySelectorAll('.toggle-input');
+  triggerToggles.forEach(toggle => {
+    toggle.addEventListener('change', function() {
+      if (this.checked) {
+        // Award +3 XP when a trigger is activated
+        const username = document.body.getAttribute('data-username');
+        if (username) {
+          socket.emit('award-xp', {
+            username: username,
+            amount: 3,
+            action: 'trigger_used'
+          });
+        }
+      }
+    });
+  });
+  
+  // Add event listener for collar use
+  const saveCollarBtn = document.getElementById('save-collar');
+  if (saveCollarBtn) {
+    saveCollarBtn.addEventListener('click', function() {
+      const collarEnable = document.getElementById('collar-enable');
+      if (collarEnable && collarEnable.checked) {
+        // Award +15 XP for using the collar
+        const username = document.body.getAttribute('data-username');
+        if (username) {
+          socket.emit('award-xp', {
+            username: username,
+            amount: 15,
+            action: 'collar_used'
+          });
+        }
+      }
+    });
+  }
+  
   // Initialize form handlers
   setupFormHandlers();
   
@@ -524,7 +1060,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Initialize system controls
-  setupSystemControls();
+  if (typeof setupSystemControls === 'function') {
+    setupSystemControls();
+  }
+  
+  // Set up real-time XP updates
+  setupXPUpdates();
   
   // Setup character counters for textareas
   const limitedTextareas = document.querySelectorAll('textarea[maxlength]');
@@ -563,6 +1104,55 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
+
+  // Tab functionality for edit modal
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  if (tabButtons.length > 0) {
+    tabButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        // Remove active class from all buttons and content
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        
+        // Add active class to clicked button
+        this.classList.add('active');
+        
+        // Show corresponding content
+        const tabId = this.getAttribute('data-tab') + '-tab';
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+  }
+  
+  // Edit profile button functionality
+  const editProfileBtn = document.getElementById('edit-profile-btn');
+  const profileModal = document.getElementById('profile-edit-modal');
+  if (editProfileBtn && profileModal) {
+    editProfileBtn.addEventListener('click', function() {
+      profileModal.style.display = 'block';
+      // Ensure the first tab is active
+      document.querySelector('.tab-btn[data-tab="profile-info"]').click();
+    });
+  }
+  
+  // See more history button
+  const seeMoreBtn = document.querySelector('.see-more-btn');
+  if (seeMoreBtn) {
+    seeMoreBtn.addEventListener('click', function() {
+      // Show all history entries by removing the slice limit
+      const historyGroups = document.querySelectorAll('.history-date-group');
+      historyGroups.forEach(group => {
+        group.style.display = 'flex';
+      });
+      
+      // Hide the see more button
+      this.parentElement.style.display = 'none';
+    });
+  }
 });
 
 // Make the functions available globally
@@ -573,3 +1163,8 @@ window.showNotification = showNotification;
 window.emitSocketPromise = emitSocketPromise;
 window.setupSystemControls = setupSystemControls;
 window.updateSystemControlsUI = updateSystemControlsUI;
+window.setupXPUpdates = setupXPUpdates;
+window.updateXPDisplay = updateXPDisplay;
+window.showXPNotification = showXPNotification;
+window.showLevelUpNotification = showLevelUpNotification;
+window.syncTriggersWithPages = syncTriggersWithPages;

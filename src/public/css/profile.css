@@ -218,7 +218,68 @@
 
 .profile-about.neon-text-subtle {
   color: var(--primary-alt);
-  text-shadow: 0 0 3px var(--tertiary-alt);
+  background-color: rgba(var(--primary-color-rgb), 0.3);
+  border-left: 2px solid var(--tertiary-color);
+  border-right: 1px solid var(--button-color);
+  line-height: 1.5;
+  position: relative;
+}
+
+.profile-about.neon-text-subtle::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    var(--tertiary-color), 
+    var(--button-color), 
+    var(--tertiary-color), 
+    transparent
+  );
+}
+
+.profile-about.neon-text-subtle:hover {
+  box-shadow: 0 0 15px rgba(var(--tertiary-color-rgb), 0.3);
+  border-left: 2px solid var(--button-color);
+}
+
+.profile-about.neon-text-subtle .neon-link,
+.profile-about.neon-text-subtle a {
+  color: var(--tertiary-color);
+  text-decoration: none;
+  position: relative;
+  transition: all 0.2s ease;
+  text-shadow: 0 0 2px rgba(var(--tertiary-color-rgb), 0.5);
+}
+
+.profile-about.neon-text-subtle .neon-link:hover,
+.profile-about.neon-text-subtle a:hover {
+  color: var(--nav-alt);
+  text-shadow: 0 0 5px var(--tertiary-color), 0 0 10px var(--button-color);
+}
+
+.profile-about.neon-text-subtle .neon-link::after,
+.profile-about.neon-text-subtle a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--tertiary-color);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s ease;
+}
+
+.profile-about.neon-text-subtle .neon-link:hover::after,
+.profile-about.neon-text-subtle a:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+  box-shadow: 0 0 8px var(--tertiary-color);
 }
 
 /* Enhanced link styling with neon effect */
@@ -1269,6 +1330,7 @@
   transition: all 0.3s ease;
   box-shadow: 0 0 5px var(--tertiary-color);
   letter-spacing: 1px;
+  position: relative;
 }
 
 .control-btn:hover {
@@ -1278,7 +1340,7 @@
   text-shadow: 0 0 5px var(--nav-alt);
 }
 
-.control-btn.active-button {
+.control-btn.active {
   background-color: rgba(23, 219, 216, 0.2);
   color: var(--nav-alt);
   box-shadow: 0 0 15px var(--tertiary-color), 0 0 25px var(--nav-alt);
@@ -1296,7 +1358,17 @@
   background-color: rgba(10, 38, 38, 0.4);
   border-radius: 4px;
   padding: 15px;
-  display: none;
+  display: none; /* Hide by default */
+  animation: fadeIn 0.3s ease;
+}
+
+.control-panel.active {
+  display: block; /* Show only active panel */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .control-panel h3 {
@@ -1305,6 +1377,28 @@
   margin-bottom: 15px;
   text-shadow: 0 0 5px var(--tertiary-color);
   font-size: 1.2rem;
+}
+
+/* Additional styles for toggles within panels */
+.collar-toggle, .spirals-toggle, .hypnosis-toggle {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.collar-toggle input[type="checkbox"],
+.spirals-toggle input[type="checkbox"],
+.hypnosis-toggle input[type="checkbox"] {
+  margin-right: 10px;
+  width: 18px;
+  height: 18px;
+}
+
+.collar-toggle label,
+.spirals-toggle label,
+.hypnosis-toggle label {
+  color: var(--primary-alt);
+  font-size: 1rem;
 }
 
 .secondary-btn {
@@ -1388,6 +1482,188 @@
 .toggle-input:checked + .toggle-label {
   color: var(--tertiary-alt);
   text-shadow: 0 0 5px var(--tertiary-color);
+}
+
+/* Trigger description styling */
+.trigger-description {
+  display: none; /* Hide by default */
+  font-size: 0.75rem;
+  color: var(--secondary-alt);
+  margin-top: 4px;
+  opacity: 0.8;
+  line-height: 1.2;
+  transition: all 0.3s ease;
+}
+
+/* Show descriptions only when in profile view */
+body[data-mode="view"] .profile-container .trigger-description,
+body[data-mode="edit"] .profile-edit-container .trigger-description {
+  display: block;
+}
+
+/* Styling for toggle labels with descriptions */
+.toggle-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.toggle-label .trigger-name {
+  font-weight: bold;
+}
+
+.toggle-input:checked + .toggle-label .trigger-description {
+  color: var(--primary-alt);
+  opacity: 1;
+  text-shadow: 0 0 3px var(--tertiary-color);
+}
+
+/* Display active triggers in profile view */
+.profile-active-triggers {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: rgba(10, 38, 38, 0.4);
+  border-radius: 8px;
+  border: 1px solid var(--tertiary-alt);
+}
+
+.profile-active-triggers h3 {
+  color: var(--tertiary-alt);
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.active-trigger-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.active-trigger-badge {
+  background-color: var(--tertiary-color);
+  color: var(--primary-alt);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 0 8px var(--tertiary-color);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.active-trigger-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px var(--tertiary-color), 0 0 20px var(--button-color);
+}
+
+.active-trigger-badge::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(transparent, rgba(255,255,255,0.2), transparent);
+  transform: rotate(30deg);
+  transition: all 0.5s ease;
+  opacity: 0;
+}
+
+.active-trigger-badge:hover::after {
+  opacity: 1;
+  transform: rotate(30deg) translate(50%, 50%);
+}
+
+.active-trigger-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  width: max-content;
+  max-width: 200px;
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+  font-size: 0.8rem;
+}
+
+.active-trigger-badge:hover .active-trigger-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Override and restore original trigger styles */
+#trigger-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: auto;
+    align-items: auto;
+    background-color: var(--primary-color);
+    color: var(--primary-alt);
+    border-top: 3px groove var(--button-color);
+    border-bottom: 3px groove var(--button-color);
+    border-left: 3px solid var(--button-alt);
+    border-right: 3px solid var(--button-alt);
+    border-radius: 6px;
+    margin-bottom: 0.7em;
+    font-size: 1rem;
+    padding: 0.4rem;
+}
+
+.toggle-label {
+    display: inline-block;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+    text-transform: capitalize;
+    border: var(--secondary-color) 3px ridge;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    margin: 0.105rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 13px;
+    text-shadow: var(--secondary-color) 2px 2px 2px;
+}
+
+.toggle-label:hover {
+    background-color: var(--primary-alt);
+    color: var(--secondary-color);
+    text-shadow: none;
+    margin: 0.105rem;
+    padding: 0.35rem 0.7rem;
+}
+
+.toggle-input {
+    display: none;
+}
+
+.toggle-input:checked+.toggle-label {
+    background-color: var(--secondary-color);
+    color: var(--button-color);
+    border-color: var(--button-color);
+}
+
+.toggle-input:disabled+.toggle-label {
+    background-color: var(--secondary-color);
+    color: var(--primary-color);
+}
+
+/* Ensuring no other styles override the trigger toggles */
+.trigger-toggle-item, .trigger-grid {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
 }
 
 #collar-form-inputs {
@@ -1476,6 +1752,523 @@
   }
   
   #multiplier-controls input[type="range"] {
+    width: 100%;
+  }
+}
+
+/* Tab styles for edit modal */
+.edit-modal-tabs {
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--tertiary-color);
+}
+
+.tab-btn {
+  background-color: transparent;
+  color: var(--primary-alt);
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  color: var(--tertiary-alt);
+  text-shadow: 0 0 5px var(--tertiary-color);
+}
+
+.tab-btn.active::after {
+  background-color: var(--tertiary-color);
+  box-shadow: 0 0 10px var(--tertiary-color);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Trigger history styles */
+.profile-trigger-history {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: rgba(10, 38, 38, 0.4);
+  border-radius: 8px;
+  border: 1px solid var(--tertiary-alt);
+}
+
+.profile-trigger-history h3 {
+  color: var(--tertiary-alt);
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.trigger-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.history-date {
+  font-size: 0.8rem;
+  color: var(--secondary-alt);
+  opacity: 0.8;
+}
+
+.history-triggers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.history-trigger-badge {
+  background-color: rgba(255, 0, 255, 0.2);
+  color: var(--primary-alt);
+  padding: 3px 8px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 0, 255, 0.3);
+}
+
+.see-more-btn {
+  background-color: transparent;
+  color: var(--tertiary-alt);
+  border: 1px solid var(--tertiary-alt);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+.see-more-btn:hover {
+  background-color: rgba(23, 219, 216, 0.1);
+  color: var(--nav-alt);
+  box-shadow: 0 0 10px var(--tertiary-color);
+}
+
+.no-history {
+  color: var(--secondary-alt);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Add these styles to handle the controls tooltip */
+.controls-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  min-width: 220px;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.controls-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 8px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+.controls-tooltip-content h4 {
+  margin: 0 0 8px;
+  text-align: center;
+  color: #ff00ff;
+  text-shadow: 0 0 5px #ff00ff;
+}
+
+.controls-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.controls-list li {
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.9rem;
+}
+
+.controls-list li:last-child {
+  border-bottom: none;
+}
+
+.controls-list .unlocked {
+  color: var(--tertiary-alt);
+  text-shadow: 0 0 3px var(--tertiary-color);
+}
+
+.controls-list .locked {
+  color: #888;
+  opacity: 0.7;
+}
+
+.user-stat:hover .controls-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Style for the locked features message */
+.locked-features-message {
+  background-color: rgba(10, 38, 38, 0.6);
+  border-radius: 6px;
+  padding: 20px;
+  text-align: center;
+  color: var(--primary-alt);
+  margin-top: 10px;
+}
+
+.locked-features-message p:first-child {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  color: var(--tertiary-alt);
+  text-shadow: 0 0 5px var(--tertiary-color);
+}
+
+/* Standardized button styling for all profile buttons to maintain size */
+.neon-button, 
+.save-btn, 
+.cancel-btn, 
+.secondary-btn,
+.edit-profile-btn,
+.delete-profile-btn,
+.view-profile-btn,
+.see-more-btn,
+.control-btn,
+#save-collar,
+#select-all-triggers,
+#clear-all-triggers,
+#llm-form #submit {
+  /* Base styling */
+  color: var(--secondary-color);
+  background-color: var(--button-color);
+  text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
+  border: var(--secondary-color) outset 0.3vw;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 0.6vw;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  box-sizing: border-box;
+  font-family: "Audiowide", sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  /* Fixed dimensions to prevent size changes */
+  box-shadow: 0 0 5px var(--tertiary-color);
+  margin: 5px;
+  /* Prevent text wrapping */
+  white-space: nowrap;
+  text-align: center;
+  z-index: 5;
+}
+
+/* Hover state with animation but maintaining size */
+.neon-button:hover, 
+.save-btn:hover, 
+.cancel-btn:hover, 
+.secondary-btn:hover,
+.edit-profile-btn:hover,
+.delete-profile-btn:hover,
+.view-profile-btn:hover,
+.see-more-btn:hover,
+.control-btn:hover,
+#save-collar:hover,
+#select-all-triggers:hover,
+#clear-all-triggers:hover,
+#llm-form #submit:hover {
+  color: var(--button-color);
+  background-color: var(--secondary-color);
+  text-shadow: var(--nav-color) 0.3vw 0.3vw 0.3vw;
+  border: var(--button-color) 0.3vw inset;
+  box-shadow: 0 0 10px var(--tertiary-color), 0 0 15px var(--button-color);
+  transform: translateY(-2px);
+  /* No size change */
+  padding: 0.75rem 1.5rem;
+}
+
+/* Button shimmer effect */
+.neon-button::before, 
+.save-btn::before, 
+.cancel-btn::before, 
+.secondary-btn::before,
+.edit-profile-btn::before,
+.delete-profile-btn::before,
+.view-profile-btn::before,
+.see-more-btn::before,
+.control-btn::before,
+#save-collar::before,
+#select-all-triggers::before,
+#clear-all-triggers::before,
+#llm-form #submit::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    transparent, 
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transform: rotate(45deg);
+  transition: all 0.5s ease;
+  opacity: 0;
+  z-index: -1;
+}
+
+.neon-button:hover::before, 
+.save-btn:hover::before, 
+.cancel-btn:hover::before, 
+.secondary-btn:hover::before,
+.edit-profile-btn:hover::before,
+.delete-profile-btn:hover::before,
+.view-profile-btn:hover::before,
+.see-more-btn:hover::before,
+.control-btn:hover::before,
+#save-collar:hover::before,
+#select-all-triggers:hover::before,
+#clear-all-triggers:hover::before,
+#llm-form #submit:hover::before {
+  animation: shimmer 1.5s infinite;
+  opacity: 1;
+}
+
+/* Active/click state */
+.neon-button:active, 
+.save-btn:active, 
+.cancel-btn:active, 
+.secondary-btn:active,
+.edit-profile-btn:active,
+.delete-profile-btn:active,
+.view-profile-btn:active,
+.see-more-btn:active,
+.control-btn:active,
+#save-collar:active,
+#select-all-triggers:active,
+#clear-all-triggers:active,
+#llm-form #submit:active {
+  background-color: var(--tertiary-alt);
+  color: var(--nav-alt);
+  border-color: var(--primary-alt);
+  box-shadow: 0 0 15px var(--tertiary-color), inset 0 0 10px rgba(0, 0, 0, 0.2);
+  transform: translateY(0);
+  /* No size change */
+  padding: 0.75rem 1.5rem;
+}
+
+/* Selected/active button state for controls */
+.control-btn.active {
+  background-color: var(--nav-color);
+  color: var(--tertiary-alt);
+  text-shadow: 0 0 8px var(--tertiary-color);
+  border: var(--tertiary-alt) 0.3vw inset;
+  box-shadow: 0 0 15px var(--tertiary-color), 0 0 25px var(--tertiary-alt);
+  /* No size change */
+  padding: 0.75rem 1.5rem;
+}
+
+/* Disabled button state */
+.control-btn.disabled,
+.neon-button:disabled,
+.save-btn:disabled,
+.cancel-btn:disabled,
+.secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: rgba(var(--button-color-rgb), 0.5);
+  color: var(--secondary-color);
+  text-shadow: none;
+  box-shadow: none;
+  border: var(--secondary-color) outset 0.3vw;
+}
+
+/* Danger button variant */
+.neon-button.danger,
+.delete-profile-btn {
+  background-color: var(--error);
+  color: white;
+  border-color: darkred;
+  text-shadow: 0 0 5px var(--error);
+}
+
+.neon-button.danger:hover,
+.delete-profile-btn:hover {
+  background-color: darkred;
+  border-color: var(--error);
+  box-shadow: 0 0 10px var(--error);
+}
+
+/* Fix LLM form and specifically its textarea and submit button */
+#llm-form {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+#llm-form #textarea {
+  flex: 1;
+  height: auto;
+  max-height: 200px;
+  padding: 12px;
+  background-color: var(--nav-color);
+  color: var(--primary-alt);
+  border-left: var(--primary-alt) 2px ridge;
+  border-right: var(--primary-alt) 2px ridge;
+  border-top: var(--button-color) 2px ridge;
+  border-bottom: var(--button-color) 2px ridge;
+  border-radius: 0.5rem;
+  resize: none;
+  outline: none;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  transition: all 0.3s ease;
+}
+
+#llm-form #textarea:focus {
+  border-color: var(--tertiary-color);
+  box-shadow: 0 0 10px var(--tertiary-color);
+}
+
+#llm-form #submit {
+  min-width: 90px;
+  flex-shrink: 0;
+  margin: 0 0 0 10px;
+  align-self: flex-end;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* Shimmer animation for buttons */
+@keyframes shimmer {
+  0% { transform: translateX(-150%) rotate(45deg); }
+  100% { transform: translateX(150%) rotate(45deg); }
+}
+
+/* Fix form submit actions layout */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+/* Media queries to maintain button size consistency on small screens */
+@media (max-width: 768px) {
+  .neon-button, 
+  .save-btn, 
+  .cancel-btn, 
+  .secondary-btn,
+  .edit-profile-btn,
+  .delete-profile-btn,
+  .view-profile-btn,
+  .see-more-btn,
+  .control-btn,
+  #save-collar,
+  #select-all-triggers,
+  #clear-all-triggers {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    min-width: 100px;
+  }
+  
+  .neon-button:hover, 
+  .save-btn:hover, 
+  .cancel-btn:hover, 
+  .secondary-btn:hover,
+  .edit-profile-btn:hover,
+  .delete-profile-btn:hover,
+  .view-profile-btn:hover,
+  .see-more-btn:hover,
+  .control-btn:hover,
+  #save-collar:hover,
+  #select-all-triggers:hover,
+  #clear-all-triggers:hover,
+  .neon-button:active, 
+  .save-btn:active, 
+  .cancel-btn:active, 
+  .secondary-btn:active,
+  .edit-profile-btn:active,
+  .delete-profile-btn:active,
+  .view-profile-btn:active,
+  .see-more-btn:active,
+  .control-btn:active,
+  #save-collar:active,
+  #select-all-triggers:active,
+  #clear-all-triggers:active,
+  .control-btn.active {
+    padding: 0.6rem 1.2rem; /* Maintain consistent padding */
+  }
+  
+  #llm-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  #llm-form #submit {
+    width: 100%;
+    margin: 10px 0 0 0;
+    align-self: center;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions button {
     width: 100%;
   }
 }

@@ -4,7 +4,8 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import Logger from '../utils/logger.js';
 import footerConfig from '../config/footer.config.js';
-import { getProfile } from '../models/Profile.js';
+import { getModel } from '../config/db.js'; // Add this import
+import ChatMessage from '../models/ChatMessage.js';
 
 const logger = new Logger('RouteManager');
 const router = express.Router();
@@ -83,22 +84,26 @@ router.get('/', async (req, res) => {
     // Get or create profile based on cookie
     let profile = null;
     if (bambiname) {
-      const Profile = getProfile();
+      const Profile = getModel('Profile');
       profile = await Profile.findOrCreateByCookie(bambiname);
     }
     
+    // Get the most recent chat messages
+    const chatMessages = await ChatMessage.getRecentMessages(15);
+    
     res.render('index', { 
       title: 'BambiSleep.Chat AIGF',
-      username: bambiname || 'anonbambi',
+      username: bambiname || 'anonBambi',
       profile: profile || null,
-      footer: footerConfig
+      footer: footerConfig,
+      chatMessages: chatMessages.reverse()
     });
   } catch (error) {
     logger.error('Error rendering home page:', error);
-    res.status(500).render('error', { 
-      message: 'Error loading home page',
-      error: req.app.get('env') === 'development' ? error : {},
-      title: 'Error - Server Error'
+    res.status(500).render('index', { 
+      title: 'BambiSleep.Chat AIGF',
+      profile: req.profile || {},
+      chatMessages: [] // Empty array if there's an error
     });
   }
 });

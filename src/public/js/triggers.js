@@ -83,26 +83,30 @@ function sendTriggers() {
   }
 
   const enabledToggleButtons = getEnabledToggleButtons();
-  if (!Array.isArray(enabledToggleButtons)) {
-    console.error("No triggers selected");
-    return;
+  if (!Array.isArray(enabledToggleButtons) || enabledToggleButtons.length === 0) {
+    console.log("No triggers selected");
+    return; // Don't try to emit if no triggers are selected
   }
 
   const triggers = enabledToggleButtons.map(
     (buttonId) => listOfTriggers[parseInt(buttonId.split("-")[1])]
-  );
+  ).filter(trigger => !!trigger); // Filter out any undefined values
+
   if (triggers.length === 0) {
-    console.error("No valid triggers found");
+    console.log("No valid triggers found");
     return;
   }
 
   socket.emit("triggers", triggers);
-  triggerTriggers(triggers); // Call the function to trigger the flash
+  triggerTriggers(triggers);
   console.log("Triggers sent:", triggers);
 }
 
 setInterval(() => {
-  sendTriggers();
+  const enabledToggleButtons = getEnabledToggleButtons();
+  if (Array.isArray(enabledToggleButtons) && enabledToggleButtons.length > 0) {
+    sendTriggers();
+  }
 }, 3000);
 
 function getEnabledToggleButtons() {
@@ -118,33 +122,46 @@ function getEnabledToggleButtons() {
 
 async function triggerTriggers(triggers) {
   if (!Array.isArray(triggers) || triggers.length === 0) {
-    console.error("No triggers to display.");
+    console.log("No triggers to display.");
     return;
   }
 
-  while (true) {
-    for (const trigger of triggers) {
-      for (const element of textElements) {
-        if (!element) continue;
+  // Instead of an infinite loop, just go through the list once
+  for (const trigger of triggers) {
+    for (const element of textElements) {
+      if (!element) continue;
 
-        // Set the text content to the current trigger
-        element.textContent = trigger;
+      // Set the text content to the current trigger
+      element.textContent = trigger;
 
-        // Randomly determine the animation duration (2-4 seconds)
-        const duration = Math.random() * 2 + 2; // 2 to 4 seconds
-        element.style.transition = `opacity ${duration}s`;
-        element.style.opacity = 1; // Fade in
+      // Randomly determine the animation duration (2-4 seconds)
+      const duration = Math.random() * 2 + 2; // 2 to 4 seconds
+      element.style.transition = `opacity ${duration}s`;
+      element.style.opacity = 1; // Fade in
 
-        // Wait for the animation to finish
-        await new Promise((resolve) => setTimeout(resolve, duration * 1000));
+      // Wait for the animation to finish
+      await new Promise((resolve) => setTimeout(resolve, duration * 1000));
 
-        // Fade out the element
-        element.style.opacity = 0;
+      // Fade out the element
+      element.style.opacity = 0;
 
-        // Wait for the fade-out animation to finish
-        await new Promise((resolve) => setTimeout(resolve, duration * 1000));
-      }
+      // Wait for the fade-out animation to finish
+      await new Promise((resolve) => setTimeout(resolve, duration * 1000));
     }
   }
+}
+
+// Updated activateTrigger function to handle descriptions
+function activateTrigger(trigger, description) {
+  // If trigger is an object with name and description properties
+  if (typeof trigger === 'object' && trigger.name) {
+    description = trigger.description;
+    trigger = trigger.name;
+  }
+  
+  console.log(`Activating trigger: ${trigger}${description ? ` (${description})` : ''}`);
+  
+  // Your existing implementation
+  // ...rest of the function
 }
 

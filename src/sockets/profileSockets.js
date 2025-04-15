@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
 import { getProfile } from '../models/Profile.js';
+import { getModel } from '../config/db.js'; // Import getModel from the correct location
 
 const logger = new Logger('ProfileSockets');
 
@@ -12,42 +13,138 @@ const logger = new Logger('ProfileSockets');
  * @param {string} username - Current username
  */
 export default function setupProfileSockets(socket, io, username) {
-  // Handle username prompt if anonymous
-  if (username === 'anonBambi') {
-    socket.emit('prompt username');
-  } else {
-    loadUserProfile(socket, username);
+  // Join a room specific to this user's profile
+  if (username && username !== 'anonBambi') {
+    socket.join(`profile:${username}`);
+    
+    // Store the username in the socket for later use
+    socket.bambiProfile = { username };
+    
+    // Handle profile update via socket
+    socket.on('update-profile', async (data) => {
+      try {
+        // Check authentication via cookie
+        if (data.username !== username) {
+          socket.emit('error', { message: 'You can only update your own profile' });
+          return;
+        }
+        
+        const Profile = getModel('Profile');
+        const profile = await Profile.findOne({ username: data.username });
+        
+        if (!profile) {
+          socket.emit('error', { message: 'Profile not found' });
+          return;
+        }
+        
+        // Update allowed fields
+        const allowedFields = [
+          'displayName', 'avatar', 'headerImage', 'headerColor',
+          'about', 'description', 'seasons'
+        ];
+        
+        allowedFields.forEach(field => {
+          if (data[field] !== undefined) {
+            profile[field] = data[field];
+          }
+        });
+        
+        await profile.save();
+        
+        // Emit success event
+        socket.emit('profile-updated', {
+          success: true,
+          message: 'Profile updated successfully',
+          data: profile
+        });
+        
+        logger.info(`Profile updated for ${username}`);
+      } catch (error) {
+        logger.error('Error updating profile:', error);
+        socket.emit('error', { message: 'Failed to update profile' });
+      }
+    });
+    
+    // Handle system controls update
+    socket.on('update-system-controls', async (data) => {
+      try {
+        // Check authentication via cookie
+        if (data.username !== username) {
+          socket.emit('error', { message: 'You can only update your own system controls' });
+          return;
+        }
+        
+        const Profile = getModel('Profile');
+        const profile = await Profile.findOne({ username: data.username });
+        
+        if (!profile) {
+          socket.emit('error', { message: 'Profile not found' });
+          return;
+        }
+        
+        // Initialize systemControls if not exists
+        if (!profile.systemControls) {
+          profile.systemControls = {};
+        }
+        
+        // Update system controls
+        const controlFields = [
+          'activeTriggers', 'collarEnabled', 'collarText', 
+          'multiplierSettings', 'colorSettings'
+        ];
+        
+        controlFields.forEach(field => {
+          if (data[field] !== undefined) {
+            profile.systemControls[field] = data[field];
+          }
+        });
+        
+        await profile.save();
+        
+        // Emit success event
+        socket.emit('system-controls-updated', {
+          success: true,
+          message: 'System controls updated successfully',
+          data: profile.systemControls
+        });
+        
+        // Also broadcast system controls update to LMStudio
+        // This ensures real-time updates to the worker
+        if (data.activeTriggers && data.triggerDescriptions) {
+          const triggersWithDescriptions = data.activeTriggers.map(trigger => {
+            const description = data.triggerDescriptions[trigger] || '';
+            return { name: trigger, description };
+          });
+          
+          io.to(socket.id).emit('triggers', {
+            triggerNames: data.activeTriggers.join(' '),
+            triggerDetails: triggersWithDescriptions
+          });
+        }
+        
+        if (data.collarText !== undefined) {
+          io.to(socket.id).emit('collar', {
+            data: data.collarText,
+            enabled: data.collarEnabled || false,
+            socketId: socket.id
+          });
+        }
+        
+        logger.info(`System controls updated for ${username}`);
+      } catch (error) {
+        logger.error('Error updating system controls:', error);
+        socket.emit('error', { message: 'Failed to update system controls' });
+      }
+    });
   }
-
-  // Connect to profile room for real-time updates
+  
+  // User joins a profile room (for profile updates in other tabs/windows)
   socket.on('join-profile', (profileUsername) => {
     if (profileUsername) {
-      socket.join(`profile-${profileUsername}`);
-      logger.info(`Socket ${socket.id} joined profile room: ${profileUsername}`);
+      socket.join(`profile:${profileUsername}`);
+      logger.info(`Socket ${socket.id} joined profile room for ${profileUsername}`);
     }
   });
-
-  // Handle username setting
-  socket.on('set username', handleSetUsername(socket));
-  
-  // Handle profile viewing
-  socket.on('profile:view', (profileUsername) => handleProfileView(socket, profileUsername));
-  
-  // Handle profile updates
-  socket.on('update profile', (profileData) => handleProfileUpdate(socket, io, username, profileData));
-  socket.on('profile:save', (profileData) => handleProfileSave(socket, io, username, profileData));
-  socket.on('profile:update', (data) => handleProfileFieldUpdate(socket, username, data));
-  
-  // Handle profile interactions
-  socket.on('toggle-trigger', (data) => handleTriggerToggle(socket, io, data));
-  socket.on('profile:heart', (data) => handleProfileHeart(socket, io, data, username));
-  socket.on('delete-profile', (data) => handleProfileDelete(socket, io, data));
-  
-  // Add handler for system controls updates
-  socket.on('update-system-controls', (data) => handleSystemControlsUpdate(socket, io, data));
-  
-  // Add a new handler for XP updates from LMStudio
-  socket.on('xp:update', (data) => handleXPUpdate(socket, io, data, username));
 }
 
 /**
@@ -420,54 +517,6 @@ async function handleProfileDelete(socket, io, { username }) {
   } catch (err) {
     logger.error(`Error deleting profile: ${err.message}`);
     socket.emit('error', { message: 'Failed to delete profile' });
-  }
-}
-
-/**
- * Handle system controls update
- * 
- * @param {Socket} socket - Socket.io socket instance
- * @param {SocketIO.Server} io - Socket.io server instance
- * @param {Object} data - System controls data to update
- */
-async function handleSystemControlsUpdate(socket, io, data) {
-  try {
-    const { username, ...controlsData } = data;
-    
-    if (!username) {
-      socket.emit('system-controls-error', 'No username provided');
-      return;
-    }
-    
-    // Get the profile
-    const ProfileModel = getProfile();
-    const profile = await ProfileModel.findOne({ username });
-    
-    if (!profile) {
-      socket.emit('system-controls-error', 'Profile not found');
-      return;
-    }
-    
-    // Update the system controls
-    profile.updateSystemControls(controlsData);
-    await profile.save();
-    
-    // Send success message
-    socket.emit('system-controls-updated', {
-      success: true,
-      systemControls: profile.systemControls
-    });
-    
-    // Notify other clients viewing this profile
-    io.to(`profile-${username}`).emit('profile-system-controls-updated', {
-      username,
-      systemControls: profile.systemControls
-    });
-    
-    logger.info(`System controls updated for ${username}`);
-  } catch (error) {
-    logger.error(`Error updating system controls: ${error.message}`);
-    socket.emit('system-controls-error', 'Failed to update system controls');
   }
 }
 

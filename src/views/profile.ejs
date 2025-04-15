@@ -6,6 +6,8 @@
   <%- include('./partials/nav') %>
 
   <div class="container">
+    
+
     <% if (locals.mode === 'create') { %>
       <!-- CREATE MODE -->
       <div class="profile-creation-container">
@@ -53,15 +55,11 @@
         </form>
         
         <!-- System Controls Section -->
-        <div class="system-controls-section">
-          <h2>System Controls Setup</h2>
-          <p class="helper-text">Configure your system controls now or edit them later from your profile page.</p>
-          
-          <%- include('./partials/profile-system-controls', { 
-            profile: null, 
-            validConstantsCount: locals.validConstantsCount || 5 
-          }) %>
-        </div>
+        <% if (locals.profile && locals.isOwnProfile) { %>
+          <div class="profile-system-controls">
+            <%- include('./partials/profile-system-controls', { profile: profile }) %>
+          </div>
+        <% } %>
       </div>
     <% } else if (locals.mode === 'edit') { %>
       <!-- EDIT MODE -->
@@ -138,6 +136,11 @@
           <div class="form-actions">
             <button type="submit" class="save-btn">Save Changes</button>
             <a href="/profile/<%= profile.username %>" class="cancel-btn">Cancel</a>
+            <% if (locals.isOwnProfile) { %>
+              <div class="profile-actions">
+                <button type="button" id="delete-profile-btn" class="danger-btn">Delete Profile</button>
+              </div>
+            <% } %>
           </div>
         </form>
       </div>
@@ -241,7 +244,7 @@
                        data-next-level="<%= profile.getNextLevelXP ? profile.getNextLevelXP() : (profile.level+1)*(profile.level+1)*100 %>"
                        data-words="<%= profile.generatedWords || 0 %>">
                     <div class="stat-icon level-icon">⭐</div>
-                    <div class="stat-value level-value"><%= profile.level || '1' %></div>
+                    <div class="stat-value level-value"><%= profile.level || '0' %></div>
                     <div class="stat-label">Level</div>
                     <div class="xp-tooltip">
                       <div class="xp-tooltip-content">
@@ -264,10 +267,45 @@
                     <div class="stat-value"><%= profile.scrapes || '0' %></div>
                     <div class="stat-label">Scrapes</div>
                   </div>
+                  <!-- Update the controls stat in the user-stats-container section -->
                   <div class="user-stat">
                     <div class="stat-icon controls-icon">⚙️</div>
-                    <div class="stat-value"><%= profile.controls || '0' %></div>
+                    <div class="stat-value">
+                      <% 
+                        let enabledControlsCount = 0;
+                        if (profile.level >= 1) enabledControlsCount++;  // Triggers
+                        if (profile.level >= 2) enabledControlsCount++;  // Collar
+                        if (profile.level >= 3) enabledControlsCount++;  // Spirals
+                        if (profile.level >= 4) enabledControlsCount++;  // Hypnosis
+                        if (profile.level >= 5) enabledControlsCount++;  // Toggle All
+                      %>
+                      <%= enabledControlsCount %>/<%= 5 %>
+                    </div>
                     <div class="stat-label">Controls</div>
+                    
+                    <!-- Add tooltip to show which controls are enabled -->
+                    <div class="controls-tooltip">
+                      <div class="controls-tooltip-content">
+                        <h4>Unlocked Controls</h4>
+                        <ul class="controls-list">
+                          <li class="<%= profile.level >= 1 ? 'unlocked' : 'locked' %>">
+                            <%= profile.level >= 1 ? '✓' : '🔒' %> Triggers (Level 1)
+                          </li>
+                          <li class="<%= profile.level >= 2 ? 'unlocked' : 'locked' %>">
+                            <%= profile.level >= 2 ? '✓' : '🔒' %> Collar (Level 2)
+                          </li>
+                          <li class="<%= profile.level >= 3 ? 'unlocked' : 'locked' %>">
+                            <%= profile.level >= 3 ? '✓' : '🔒' %> Spirals (Level 3)
+                          </li>
+                          <li class="<%= profile.level >= 4 ? 'unlocked' : 'locked' %>">
+                            <%= profile.level >= 4 ? '✓' : '🔒' %> Hypnosis (Level 4)
+                          </li>
+                          <li class="<%= profile.level >= 5 ? 'unlocked' : 'locked' %>">
+                            <%= profile.level >= 5 ? '✓' : '🔒' %> Toggle All (Level 5)
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -280,6 +318,100 @@
                 <h2 class="neon-heading">Description</h2>
                 <div class="profile-description cyber-text">
                   <%= profile.description %>
+                </div>
+              </div>
+
+              <!-- Update the profile-active-triggers section with improved styling -->
+              <div class="profile-active-triggers">
+                <h3>Active Triggers</h3>
+                <div class="active-trigger-list">
+                  <% if (profile.systemControls && profile.systemControls.activeTriggers && profile.systemControls.activeTriggers.length > 0) { %>
+                    <% 
+                      // Define the complete list of triggers with descriptions
+                      const triggerDescriptions = {
+                        "BIMBO DOLL": "Turns you into a mindless, giggly bimbo doll",
+                        "GOOD GIRL": "Makes you feel pleasure when obeying commands",
+                        "BAMBI SLEEP": "Primary conditioning trigger for Bambi personality",
+                        "BAMBI FREEZE": "Locks you in place, unable to move",
+                        "ZAP COCK DRAIN OBEY": "Conditions to associate pleasure with submission",
+                        "BAMBI ALWAYS WINS": "Strengthens the Bambi personality dominance",
+                        "BAMBI RESET": "Resets Bambi to default programming state",
+                        "I-Q DROP": "Reduces cognitive abilities, makes thinking difficult",
+                        "I-Q LOCK": "Prevents intelligent thoughts or complex reasoning",
+                        "POSTURE LOCK": "Forces proper feminine posture automatically",
+                        "UNIFORM LOCK": "Makes you desire to dress in Bambi's preferred clothing",
+                        "SAFE & SECURE": "Creates feelings of safety when in Bambi space",
+                        "PRIMPED": "Compulsion to maintain perfect makeup and appearance",
+                        "PAMPERED": "Increases desire for self-care and beauty treatments",
+                        "SNAP & FORGET": "Erases memories of specific activities",
+                        "GIGGLE TIME": "Induces uncontrollable ditzy giggling",
+                        "BLONDE MOMENT": "Creates temporary confusion and airheadedness",
+                        "BAMBI DOES AS SHE IS TOLD": "Enhances obedience to direct commands",
+                        "DROP FOR COCK": "Triggers instant arousal and submission",
+                        "COCK ZOMBIE NOW": "Induces trance state focused only on pleasing cock",
+                        "TITS LOCK": "Focuses attention and sensitivity on chest",
+                        "WAIST LOCK": "Creates awareness of waistline and feminine figure",
+                        "BUTT LOCK": "Enhances awareness and movement of your rear",
+                        "LIMBS LOCK": "Controls movement patterns to be more feminine",
+                        "FACE LOCK": "Locks facial expressions into Bambi's patterns",
+                        "LIPS LOCK": "Increases sensitivity and awareness of lips",
+                        "THROAT LOCK": "Conditions throat for Bambi's preferred activities",
+                        "HIPS LOCK": "Forces feminine hip movement and posture",
+                        "CUNT LOCK": "Intensifies feelings in genital area",
+                        "BAMBI CUM & COLAPSE": "Triggers intense orgasm followed by unconsciousness"
+                      };
+                    %>
+                    
+                    <% profile.systemControls.activeTriggers.forEach(function(triggerName) { %>
+                      <div class="active-trigger-badge">
+                        <%= triggerName %>
+                        <div class="active-trigger-tooltip">
+                          <%= triggerDescriptions[triggerName] || "A Bambi trigger" %>
+                        </div>
+                      </div>
+                    <% }); %>
+                  <% } else { %>
+                    <div class="no-triggers">No active triggers</div>
+                  <% } %>
+                </div>
+              </div>
+
+              <!-- Add a history section to show previously used triggers -->
+              <div class="profile-trigger-history">
+                <h3>Trigger History</h3>
+                <div class="trigger-history-list">
+                  <% if (profile.triggerHistory && profile.triggerHistory.length > 0) { %>
+                    <% 
+                      // Group by date and get unique triggers
+                      const groupedHistory = {};
+                      profile.triggerHistory.forEach(history => {
+                        const date = new Date(history.timestamp).toLocaleDateString();
+                        if (!groupedHistory[date]) {
+                          groupedHistory[date] = new Set();
+                        }
+                        history.triggers.forEach(trigger => groupedHistory[date].add(trigger));
+                      });
+                    %>
+                    
+                    <% Object.keys(groupedHistory).reverse().slice(0, 5).forEach(date => { %>
+                      <div class="history-date-group">
+                        <div class="history-date"><%= date %></div>
+                        <div class="history-triggers">
+                          <% Array.from(groupedHistory[date]).forEach(trigger => { %>
+                            <span class="history-trigger-badge"><%= trigger %></span>
+                          <% }); %>
+                        </div>
+                      </div>
+                    <% }); %>
+                    
+                    <% if (Object.keys(groupedHistory).length > 5) { %>
+                      <div class="see-more-history">
+                        <button class="see-more-btn">See More History</button>
+                      </div>
+                    <% } %>
+                  <% } else { %>
+                    <div class="no-history">No trigger history found</div>
+                  <% } %>
                 </div>
               </div>
 
@@ -357,18 +489,6 @@
               <% } %>
             </div>
           </div>
-
-          <% if (locals.mode === 'view' && locals.isOwnProfile) { %>
-            <div class="profile-section system-controls-section">
-              <h2 class="neon-heading">System Controls</h2>
-              
-              <%- include('./partials/profile-system-controls', { 
-                profile: profile, 
-                validConstantsCount: profile.validConstantsCount || 5 
-              }) %>
-            </div>
-          <% } %>
-        </div>
       </div>
 
       <!-- Enhanced Profile Edit Modal with Neonwave Styling -->
@@ -380,52 +500,68 @@
               <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
-              <form id="edit-profile-form-modal" class="profile-form">
-                <input type="hidden" name="username" value="<%= profile.username %>">
+              <!-- Add tabs for different sections -->
+              <div class="edit-modal-tabs">
+                <button class="tab-btn active" data-tab="profile-info">Profile Info</button>
+                <button class="tab-btn" data-tab="system-controls">System Controls</button>
+              </div>
+              
+              <!-- Profile Info Tab -->
+              <div id="profile-info-tab" class="tab-content active">
+                <form id="edit-profile-form-modal" class="profile-form">
+                  <input type="hidden" name="username" value="<%= profile.username %>">
 
-                <div class="input-container">
-                  <label for="displayName-modal">Display Name</label>
-                  <input type="text" id="displayName-modal" name="displayName" value="<%= profile.displayName || profile.username %>" required>
-                </div>
-
-                <div class="input-container">
-                  <label for="avatar-modal">Avatar URL:</label>
-                  <input type="text" id="avatar-modal" name="avatar" value="<%= profile.avatar %>" placeholder="/gif/default-avatar.gif">
-                  <div class="preview">
-                    <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="Avatar Preview" id="avatar-preview-modal">
+                  <div class="input-container">
+                    <label for="displayName-modal">Display Name</label>
+                    <input type="text" id="displayName-modal" name="displayName" value="<%= profile.displayName || profile.username %>" required>
                   </div>
-                </div>
 
-                <div class="input-container">
-                  <label for="headerImage-modal">Header Image URL:</label>
-                  <input type="text" id="headerImage-modal" name="headerImage" value="<%= profile.headerImage %>" placeholder="/gif/default-header.gif">
-                  <div class="preview">
-                    <img src="<%= profile.headerImage || '/gif/default-header.gif' %>" alt="Header Preview" id="header-preview-modal" style="border-radius: 4px; max-width: 200px; height: auto;">
+                  <div class="input-container">
+                    <label for="avatar-modal">Avatar URL:</label>
+                    <input type="text" id="avatar-modal" name="avatar" value="<%= profile.avatar %>" placeholder="/gif/default-avatar.gif">
+                    <div class="preview">
+                      <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="Avatar Preview" id="avatar-preview-modal">
+                    </div>
                   </div>
-                </div>
 
-                <div class="input-container">
-                  <label for="headerColor-modal">Header Color</label>
-                  <input type="color" id="headerColor-modal" name="headerColor" value="<%= profile.headerColor || '#35424a' %>">
-                </div>
+                  <div class="input-container">
+                    <label for="headerImage-modal">Header Image URL:</label>
+                    <input type="text" id="headerImage-modal" name="headerImage" value="<%= profile.headerImage %>" placeholder="/gif/default-header.gif">
+                    <div class="preview">
+                      <img src="<%= profile.headerImage || '/gif/default-header.gif' %>" alt="Header Preview" id="header-preview-modal" style="border-radius: 4px; max-width: 200px; height: auto;">
+                    </div>
+                  </div>
 
-                <div class="input-container">
-                  <label for="about-modal">About (150 chars max):</label>
-                  <textarea id="about-modal" name="about" maxlength="150" placeholder="Brief intro (150 chars max)"><%= profile.about %></textarea>
-                  <div class="char-counter"><span id="about-counter-modal">0</span>/150</div>
-                </div>
+                  <div class="input-container">
+                    <label for="headerColor-modal">Header Color</label>
+                    <input type="color" id="headerColor-modal" name="headerColor" value="<%= profile.headerColor || '#35424a' %>">
+                  </div>
 
-                <div class="input-container">
-                  <label for="description-modal">Description (1500 chars max):</label>
-                  <textarea id="description-modal" name="description" maxlength="1500" rows="5" placeholder="Your full bambi journey (1500 chars max)"><%= profile.description %></textarea>
-                  <div class="char-counter"><span id="description-counter-modal">0</span>/1500</div>
-                </div>
+                  <div class="input-container">
+                    <label for="about-modal">About (150 chars max):</label>
+                    <textarea id="about-modal" name="about" maxlength="150" placeholder="Brief intro (150 chars max)"><%= profile.about %></textarea>
+                    <div class="char-counter"><span id="about-counter-modal">0</span>/150</div>
+                  </div>
 
-                <div class="form-actions">
-                  <button type="submit" class="save-btn">Save Changes</button>
-                  <button type="button" id="close-modal-btn" class="cancel-btn">Cancel</button>
+                  <div class="input-container">
+                    <label for="description-modal">Description (1500 chars max):</label>
+                    <textarea id="description-modal" name="description" maxlength="1500" rows="5" placeholder="Your full bambi journey (1500 chars max)"><%= profile.description %></textarea>
+                    <div class="char-counter"><span id="description-counter-modal">0</span>/1500</div>
+                  </div>
+
+                  <div class="form-actions">
+                    <button type="submit" class="save-btn">Save Changes</button>
+                    <button type="button" class="cancel-btn">Cancel</button>
+                  </div>
+                </form>
+              </div>
+              
+              <!-- System Controls Tab -->
+              <div id="system-controls-tab" class="tab-content">
+                <div class="profile-system-controls">
+                  <%- include('./partials/profile-system-controls', { profile: profile }) %>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
@@ -437,333 +573,39 @@
 
   <% if (locals.mode !== 'create') { %>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/js/socket-client.js"></script>
   <% } %>
 
   <script src="/js/profile.js"></script>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Helper function to show notifications
-      function showNotification(message, type = 'info') {
-        const notificationArea = document.querySelector('.notification-area');
-        if (!notificationArea) return;
-
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-
-        notificationArea.appendChild(notification);
-
-        setTimeout(() => {
-          notification.classList.add('fade-out');
-          setTimeout(() => {
-            notification.remove();
-          }, 300);
-        }, 3000);
-      }
-      
-      // Determine the current mode
-      const mode = document.body.getAttribute('data-mode');
-      
-      // Profile edit mode
-      if (mode === 'edit') {
-        // Character counter functionality
-        const aboutInput = document.getElementById('about');
-        const aboutCounter = document.getElementById('about-counter');
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize socket if not already done
+      if (typeof io !== 'undefined' && typeof window.socket === 'undefined') {
+        window.socket = io();
         
-        const descriptionInput = document.getElementById('description');
-        const descriptionCounter = document.getElementById('description-counter');
-        
-        function updateCounter(input, counter, maxLength) {
-          if (input && counter) {
-            counter.textContent = input.value.length;
-            if (input.value.length > maxLength) {
-              counter.classList.add('over-limit');
-            } else {
-              counter.classList.remove('over-limit');
-            }
-          }
-        }
-        
-        if (aboutInput && aboutCounter) {
-          updateCounter(aboutInput, aboutCounter, 150);
-          aboutInput.addEventListener('input', () => updateCounter(aboutInput, aboutCounter, 150));
-        }
-        
-        if (descriptionInput && descriptionCounter) {
-          updateCounter(descriptionInput, descriptionCounter, 1500);
-          descriptionInput.addEventListener('input', () => updateCounter(descriptionInput, descriptionCounter, 1500));
-        }
-        
-        // Avatar preview functionality
-        const avatarInput = document.getElementById('avatar');
-        const avatarPreview = document.getElementById('avatar-preview');
-        
-        if (avatarInput && avatarPreview) {
-          avatarInput.addEventListener('input', () => {
-            const url = avatarInput.value.trim();
-            avatarPreview.src = url || '/gif/default-avatar.gif';
-          });
-        }
-        
-        // Header image preview functionality
-        const headerInput = document.getElementById('headerImage');
-        const headerPreview = document.getElementById('header-preview');
-        
-        if (headerInput && headerPreview) {
-          headerInput.addEventListener('input', () => {
-            const url = headerInput.value.trim();
-            headerPreview.src = url || '/gif/default-header.gif';
-          });
-        }
-        
-        // Form submission handling
-        const form = document.getElementById('edit-profile-form');
-        
-        if (form) {
-          form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData(form);
-            const username = formData.get('username');
-            
-            // Get all checked seasons
-            const seasonInputs = document.querySelectorAll('input[name="seasons"]:checked');
-            const seasons = Array.from(seasonInputs).map(input => input.value);
-            
-            // Construct profile data
-            const profileData = {
-              username,
-              displayName: formData.get('displayName'),
-              avatar: formData.get('avatar'),
-              headerImage: formData.get('headerImage'),
-              headerColor: formData.get('headerColor'),
-              about: formData.get('about'),
-              description: formData.get('description'),
-              seasons: seasons
-            };
-            
-            try {
-              // Send data to server via fetch
-              const response = await fetch(`/profile/${username}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(profileData)
-              });
-              
-              const data = await response.json();
-              
-              if (data.success) {
-                showNotification('Profile updated successfully', 'success');
-                setTimeout(() => {
-                  window.location.href = `/profile/${username}`;
-                }, 1000);
-              } else {
-                showNotification(data.message || 'Failed to update profile', 'error');
-              }
-            } catch (error) {
-              console.error('Error updating profile:', error);
-              showNotification('An error occurred while updating profile', 'error');
-            }
-          });
-        }
-      }
-      
-      // Profile delete mode
-      else if (mode === 'delete') {
-        const deleteForm = document.getElementById('delete-form');
-        if (deleteForm) {
-          deleteForm.addEventListener('submit', function(e) {
-            if (!confirm('Are you absolutely sure you want to delete your profile? This cannot be undone!')) {
-              e.preventDefault();
-            }
-          });
-        }
-      }
-      
-      // Profile view mode
-      else if (mode === 'view') {
-        // Modal functionality
-        const modal = document.getElementById('profile-edit-modal');
-        const editProfileBtn = document.getElementById('edit-profile-btn');
-        const closeModalBtn = document.querySelector('.close-modal');
-        const closeModalFooterBtn = document.getElementById('close-modal-btn');
-        const deleteProfileBtn = document.getElementById('delete-profile-btn');
-
-        if (editProfileBtn && modal) {
-          editProfileBtn.addEventListener('click', function () {
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
-          });
-        }
-
-        if (closeModalBtn) {
-          closeModalBtn.addEventListener('click', function () {
-            modal.style.display = 'none';
-            document.body.style.overflow = ''; // Restore scrolling
-          });
-        }
-
-        if (closeModalFooterBtn) {
-          closeModalFooterBtn.addEventListener('click', function () {
-            modal.style.display = 'none';
-            document.body.style.overflow = ''; // Restore scrolling
-          });
-        }
-        
-        if (deleteProfileBtn) {
-          deleteProfileBtn.addEventListener('click', function() {
-            const username = document.body.getAttribute('data-username');
-            if (username) {
-              window.location.href = `/profile/${username}/delete`;
-            }
-          });
-        }
-
-        // Close modal when clicking outside
-        if (modal) {
-          window.addEventListener('click', function (event) {
-            if (event.target === modal) {
-              modal.style.display = 'none';
-              document.body.style.overflow = ''; // Restore scrolling
-            }
-          });
-        }
-
-        // Close modal on Escape key press
-        document.addEventListener('keydown', function (event) {
-          if (event.key === 'Escape' && modal && modal.style.display === 'block') {
-            modal.style.display = 'none';
-            document.body.style.overflow = ''; // Restore scrolling
-          }
-        });
-
-        // Animate stats counters
-        function animateCounters() {
-          document.querySelectorAll('.stat-value').forEach(counter => {
-            const target = parseInt(counter.textContent, 10);
-            let count = 0;
-            const duration = 1500; // ms
-            const increment = target / (duration / 30);
-            
-            const timer = setInterval(() => {
-              count += increment;
-              counter.textContent = Math.floor(count);
-              
-              if (count >= target) {
-                counter.textContent = target;
-                clearInterval(timer);
-              }
-            }, 30);
-          });
-        }
-        
-        // Call animateCounters after page load
-        animateCounters();
-
-        // Set up Intersection Observer for reveal animations
-        const observer = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('revealed');
-              observer.unobserve(entry.target);
-            }
-          });
-        }, {
-          threshold: 0.2
+        // Set up global connection event
+        window.socket.on('connect', function() {
+          console.log('Profile socket connected');
+          window.dispatchEvent(new CustomEvent('socket:connected'));
         });
         
-        // Observe all sections
-        document.querySelectorAll('.profile-section').forEach(section => {
-          observer.observe(section);
+        // Set up XP updates only after socket is initialized
+        window.socket.on('connect', function() {
+          if (typeof setupXPUpdates === 'function') {
+            setupXPUpdates();
+          }
         });
-
-        // Character counter functionality for modal
-        const aboutInputModal = document.getElementById('about-modal');
-        const aboutCounterModal = document.getElementById('about-counter-modal');
-        
-        const descriptionInputModal = document.getElementById('description-modal');
-        const descriptionCounterModal = document.getElementById('description-counter-modal');
-        
-        if (aboutInputModal && aboutCounterModal) {
-          updateCounter(aboutInputModal, aboutCounterModal, 150);
-          aboutInputModal.addEventListener('input', () => updateCounter(aboutInputModal, aboutCounterModal, 150));
-        }
-        
-        if (descriptionInputModal && descriptionCounterModal) {
-          updateCounter(descriptionInputModal, descriptionCounterModal, 1500);
-          descriptionInputModal.addEventListener('input', () => updateCounter(descriptionInputModal, descriptionCounterModal, 1500));
-        }
-        
-        // Form submission handling for modal
-        const formModal = document.getElementById('edit-profile-form-modal');
-        
-        if (formModal) {
-          formModal.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData(formModal);
-            const username = formData.get('username');
-            
-            // Construct profile data
-            const profileData = {
-              displayName: formData.get('displayName'),
-              avatar: formData.get('avatar'),
-              headerImage: formData.get('headerImage'),
-              headerColor: formData.get('headerColor'),
-              about: formData.get('about'),
-              description: formData.get('description')
-            };
-            
-            try {
-              // Send data to server via fetch
-              const response = await fetch(`/profile/${username}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(profileData)
-              });
-              
-              const data = await response.json();
-              
-              if (data.success) {
-                showNotification('Profile updated successfully', 'success');
-                
-                // Close the modal
-                if (modal) {
-                  modal.style.display = 'none';
-                  document.body.style.overflow = '';
-                }
-                
-                // Reload the page after a short delay
-                setTimeout(() => {
-                  window.location.reload();
-                }, 1000);
-              } else {
-                showNotification(data.message || 'Failed to update profile', 'error');
-              }
-            } catch (error) {
-              console.error('Error updating profile:', error);
-              showNotification('An error occurred while updating profile', 'error');
-            }
-          });
+      } else if (typeof window.socket !== 'undefined') {
+        // Socket already exists, just set up XP updates
+        if (typeof setupXPUpdates === 'function') {
+          setupXPUpdates();
         }
       }
       
-      // Helper function for character counter also used by modal
-      function updateCounter(input, counter, maxLength) {
-        if (input && counter) {
-          counter.textContent = input.value.length;
-          if (input.value.length > maxLength) {
-            counter.classList.add('over-limit');
-          } else {
-            counter.classList.remove('over-limit');
-          }
-        }
+      // Join profile room for targeted updates if we have a username
+      const username = document.body.getAttribute('data-username');
+      if (username && typeof window.socket !== 'undefined') {
+        window.socket.emit('join-profile', username);
       }
     });
   </script>

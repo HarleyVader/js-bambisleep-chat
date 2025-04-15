@@ -25,6 +25,7 @@ import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js
 import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import profileRouter from './routes/profile.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 // Import worker coordinator
 import workerCoordinator from './workers/workerCoordinator.js';
@@ -38,6 +39,9 @@ import setupLMStudioSockets from './sockets/lmStudioSockets.js';
 import errorHandler from './middleware/error.js';
 import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
+
+// Import Profile model getter
+import { getProfile } from './models/Profile.js';
 
 // Initialize environment and paths
 dotenv.config();
@@ -62,12 +66,12 @@ async function initializeApp() {
     
     // Initialize Socket.io with configured timeouts
     const io = new Server(server, {
-      pingTimeout: config.SOCKET_PING_TIMEOUT || 300000,
+      pingTimeout: config.SOCKET_PING_TIMEOUT || 86400000, // 1 day in milliseconds
       pingInterval: config.SOCKET_PING_INTERVAL || 25000,
       cors: {
-        origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
-        methods: ['GET', 'POST'],
-        credentials: true
+      origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
+      methods: ['GET', 'POST'],
+      credentials: true
       }
     });
 
@@ -75,6 +79,12 @@ async function initializeApp() {
     const filteredWords = JSON.parse(await fsPromises.readFile(
       path.join(__dirname, 'filteredWords.json'), 'utf8'
     ));
+
+    // Make sure DB connection and models are loaded first
+    await connectDB();
+
+    // Then start worker processes
+    await workerCoordinator.initialize();
 
     // Set up view engine
     app.set('view engine', 'ejs');
@@ -189,6 +199,9 @@ function setupRoutes(app) {
   app.use('/api/scraper/submission', scrapersRoute);
   app.use('/api/scraper/stats', scrapersRoute);
   
+  // Add the chat routes
+  app.use('/api/chat', chatRoutes);
+  
   // Set up TTS API routes
   setupTTSRoutes(app);
   
@@ -297,7 +310,7 @@ function handleTTSError(error, res) {
  */
 async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
   try {
-    logger.info(`Fetching TTS from Kokoro: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+    logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
     
     const requestData = {
       model: "kokoro",
@@ -375,7 +388,6 @@ function handleScanRequest(req, res) {
  * @param {string[]} filteredWords - List of words to filter
  */
 function setupSocketHandlers(io, socketStore, filteredWords) {
-  // Connection event handler
   io.on('connection', (socket) => {
     try {
       // Parse cookies and get username
@@ -393,16 +405,17 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       // Set up content filter function
       const filterContent = (content) => filterWords(content, filteredWords);
       
-      // Set up modular socket handlers
-      setupChatSockets(socket, io, filterContent);
+      // Set up socket handlers for this specific connection
       setupLMStudioSockets(socket, io, lmstudio, filterContent);
       setupProfileSockets(socket, io, username);
+      
+      // Set up chat sockets for each connection
+      setupChatSockets(socket, io, socketStore, filteredWords);
       
       // Handle disconnection
       socket.on('disconnect', (reason) => {
         handleSocketDisconnect(socket, socketStore, reason);
       });
-      
     } catch (error) {
       logger.error(`Error handling socket connection: ${error.message}`);
     }

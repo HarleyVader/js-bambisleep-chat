@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { getModel } from '../config/db.js';
 
 // Standard BambiSleep triggers from triggers.js
 const STANDARD_TRIGGERS = [
@@ -163,7 +162,7 @@ const profileSchema = new mongoose.Schema({
   },
   level: {
     type: Number,
-    default: 1
+    default: 0 // Changed from 1 to 0
   },
   generatedWords: {
     type: Number,
@@ -327,8 +326,7 @@ profileSchema.methods.addXP = function(amount, source, description = '') {
 
 // Add method to get XP required for next level
 profileSchema.methods.getNextLevelXP = function() {
-  const nextLevel = this.level + 1;
-  return Math.pow(nextLevel - 1, 2) * 100;
+  return Math.pow(this.level, 2) * 100;
 };
 
 // Static method to find a profile by cookie name
@@ -336,32 +334,48 @@ profileSchema.statics.findByCookieName = async function(cookieName) {
   return this.findOne({ cookieName });
 };
 
-// Static method to create or update profile from cookie
-profileSchema.statics.findOrCreateByCookie = async function(cookieName) {
-  if (!cookieName) return null;
+// Fix the findOrCreateByCookie method:
+
+profileSchema.statics.findOrCreateByCookie = async function(username) {
+  if (!username) return null;
   
-  let profile = await this.findOne({ cookieName });
-  
-  if (!profile) {
-    // Create new profile with cookie name
+  try {
+    // Try to find existing profile
+    let profile = await this.findOne({ username });
+    
+    // If profile exists, return it
+    if (profile) {
+      return profile;
+    }
+    
+    // Otherwise create a new one
     profile = new this({
-      username: cookieName,
-      cookieName: cookieName,
-      displayName: cookieName
+      username,
+      displayName: username,
+      level: 0, // Changed from 1 to 0
+      xp: 0,
+      triggers: [{ name: "BAMBI SLEEP", active: true, description: "The foundational trigger for all bambi dolls" }],
+      about: 'Tell us about yourself...',
+      description: 'Share your bambi journey...',
+      avatar: '/gif/default-avatar.gif',
+      headerImage: '/gif/default-header.gif',
+      headerColor: '#35424a',
+      systemControls: {
+        activeTriggers: ["BAMBI SLEEP"],
+        collarEnabled: false,
+        collarText: ''
+      }
     });
     
-    // Initialize with standard triggers
-    profile.triggers = STANDARD_TRIGGERS.map(name => ({
-      name,
-      description: '',
-      active: false,
-      isStandard: true
-    }));
-    
     await profile.save();
+    return profile;
+  } catch (error) {
+    if (error.code === 11000) {
+      // Handle race condition where profile was created between our check and save
+      return await this.findOne({ username });
+    }
+    throw error;
   }
-  
-  return profile;
 };
 
 // Register the model directly instead of using registerModel

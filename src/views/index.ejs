@@ -19,7 +19,7 @@
           <div id="llm">
             <form id="llm-form">
               <textarea id="textarea" oninput="autoExpand(this)" placeholder="Prompt my AIGF"></textarea>
-              <button id="submit" type="submit">Send</button>
+              <button id="submit" type="submit" class="send-btn">Send</button>
             </form>
             <div id="user-prompt"></div>
             <div id="audiomessage">
@@ -41,7 +41,18 @@
                 <textarea id="textarea-chat" oninput="autoExpand(this)" placeholder="Send in Chat"></textarea>
                 <button id="send" type="submit" class="send-btn">Chat</button>
               </form>
-              <ul id="chat-response"></ul>
+              <!-- For existing messages in the initial page load -->
+              <ul id="chat-response">
+                <% if (chatMessages && chatMessages.length > 0) { %>
+                  <% chatMessages.forEach(function(msg) { %>
+                    <li <% if (locals.username) { %>class="neon-glow"<% } %>>
+                      <span class="chat-time"><%= new Date(msg.timestamp).toLocaleTimeString([], {hour12: false}) %></span> -
+                      <span class="chat-username"><a href="/profile/<%= msg.username %>" class="username-link"><%= msg.username %></a>:</span>
+                      <span class="chat-message"><%= msg.data %></span>
+                    </li>
+                  <% }); %>
+                <% } %>
+              </ul>
             </div>
           </div>
           <div id="eyeCursorContainer">
@@ -56,13 +67,13 @@
         </div>
       </div>
       <%- include('../views/partials/footer.ejs') %>
+        <!-- Make sure these scripts appear in exactly this order -->
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="js/aigf-core.js"></script>
         <script src="js/psychodelic-trigger-mania.js"></script>
         <script src="js/text2speech.js"></script>
         <script src="js/responsive.js"></script>
         <script src="js/triggers.js"></script>
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="js/socket-client.js"></script>
-        <script src="js/aigf-core.js"></script>
         <script>
           document.addEventListener("DOMContentLoaded", () => {
             const modal = document.getElementById('username-modal');
@@ -89,7 +100,7 @@
                 socket.emit('set username', username);
                 modal.style.display = 'none';
                 window.username = username;
-                
+
                 // Reload the page to update the profile data
                 window.location.reload();
               }
@@ -101,22 +112,67 @@
             // Set username data attribute for profile-system-controls.ejs
             document.body.setAttribute('data-username', username);
 
+            
+
             socket.on("chat message", (msg) => {
               const item = document.createElement("li");
-              const timestamp = new Date(msg.timestamp).toLocaleTimeString();
-              item.textContent = `${timestamp} - ${msg.username}: ${msg.data}`;
-              if (timestamp && window.username) {
+              const timestamp = new Date(msg.timestamp).toLocaleTimeString([], {hour12: false});
+              
+              const timeSpan = document.createElement("span");
+              timeSpan.classList.add("chat-time");
+              timeSpan.textContent = timestamp;
+              
+              const usernameSpan = document.createElement("span");
+              usernameSpan.classList.add("chat-username");
+              
+              // Create clickable username link
+              const usernameLink = document.createElement("a");
+              usernameLink.href = `/profile/${msg.username}`;
+              usernameLink.className = "username-link";
+              usernameLink.textContent = msg.username;
+              usernameSpan.appendChild(usernameLink);
+              usernameSpan.appendChild(document.createTextNode(":"));
+              
+              const messageSpan = document.createElement("span");
+              messageSpan.classList.add("chat-message");
+              messageSpan.textContent = msg.data;
+              
+              item.appendChild(timeSpan);
+              item.appendChild(document.createTextNode(" - "));
+              item.appendChild(usernameSpan);
+              item.appendChild(document.createTextNode(" "));
+              item.appendChild(messageSpan);
+              
+              if (window.username) {
                 item.classList.add("neon-glow");
               }
+              
               document.getElementById("chat-response").appendChild(item);
             });
 
+            // Update the chat form submission handler
             document.getElementById("chat-form").addEventListener("submit", (event) => {
               event.preventDefault();
-              const message = document.getElementById("textarea-chat").value;
-              if (message) {
-                socket.emit("chat message", { data: message, username: window.username });
-                document.getElementById("textarea-chat").value = "";
+              const messageInput = document.getElementById("textarea-chat");
+              const message = messageInput.value.trim();
+              
+              if (message && window.username) {
+                // Fix: Make sure socket is properly initialized before using it
+                if (typeof socket !== 'undefined' && socket.connected) {
+                  socket.emit("chat message", { 
+                    data: message, 
+                    username: window.username 
+                  });
+                  
+                  // Clear the input after sending
+                  messageInput.value = "";
+                  
+                  // Reset the height of the textarea
+                  messageInput.style.height = 'inherit';
+                } else {
+                  console.error("Socket connection not available");
+                  alert("Not connected to chat server. Please refresh the page.");
+                }
               }
             });
 
@@ -146,11 +202,269 @@
               }
               applyUppercaseStyle();
             });
+            
+            // Add this code to listen for chat message events and update XP
+            socket.on('profile-update', function(data) {
+              // Update XP display if it exists
+              updateXPDisplay(data);
+            });
+
+            socket.on('xp:update', function(data) {
+              // Update XP display and show notification
+              updateXPDisplay(data);
+              showXPNotification(data.xpEarned);
+            });
+
+            socket.on('level-up', function(data) {
+              showLevelUpNotification(data.level);
+            });
+
+            // Function to update XP display
+            function updateXPDisplay(data) {
+              const xpLabel = document.getElementById('xp-progress-label');
+              const xpFill = document.getElementById('xp-progress-fill');
+              
+              if (!xpLabel || !xpFill) return;
+              
+              const level = data.level || 0;
+              const xp = data.xp || 0;
+              const xpRequirements = window.xpRequirements || [100, 250, 450, 700, 1200];
+              
+              // Add animation class and then remove it
+              xpLabel.classList.add('updating');
+              setTimeout(() => xpLabel.classList.remove('updating'), 600);
+              
+              // Update the label text
+              if (level < xpRequirements.length) {
+                const nextLevelXP = xpRequirements[level];
+                xpLabel.textContent = `Level ${level} • ${xp} XP / ${nextLevelXP} XP`;
+                
+                // Update progress bar width
+                const percentage = Math.min(100, (xp / Math.max(1, nextLevelXP)) * 100);
+                xpFill.style.width = `${percentage}%`;
+              } else {
+                xpLabel.textContent = `Level ${level} • ${xp} XP (MAX LEVEL)`;
+                xpFill.style.width = '100%';
+              }
+            }
+
+            // Function to show XP notification
+            function showXPNotification(amount) {
+              if (!amount) return;
+              
+              // Create notification if it doesn't exist
+              let notification = document.querySelector('.xp-notification');
+              if (!notification) {
+                notification = document.createElement('div');
+                notification.className = 'xp-notification';
+                document.body.appendChild(notification);
+              }
+              
+              // Set notification content and show it
+              notification.textContent = `+${amount} XP`;
+              notification.classList.add('show');
+              
+              // Remove notification after 3 seconds
+              setTimeout(() => {
+                notification.classList.remove('show');
+                notification.classList.add('fade-out');
+              }, 3000);
+            }
+
+            // Function to show level up notification
+            function showLevelUpNotification(level) {
+              if (!level) return;
+              
+              // Create notification if it doesn't exist
+              let notification = document.querySelector('.level-up-notification');
+              if (!notification) {
+                notification = document.createElement('div');
+                notification.className = 'level-up-notification';
+                
+                const icon = document.createElement('div');
+                icon.className = 'level-up-icon';
+                icon.textContent = '⭐';
+                
+                const text = document.createElement('div');
+                text.className = 'level-up-text';
+                
+                notification.appendChild(icon);
+                notification.appendChild(text);
+                document.body.appendChild(notification);
+              }
+              
+              // Update text content
+              const textElement = notification.querySelector('.level-up-text');
+              if (textElement) {
+                textElement.textContent = `Level Up! You are now level ${level}!`;
+              }
+              
+              // Show the notification
+              notification.classList.add('show');
+              
+              // Remove notification after 5 seconds
+              setTimeout(() => {
+                notification.classList.remove('show');
+                notification.classList.add('fade-out');
+              }, 5000);
+            }
           });
         </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
         <script src="js/bootstrap.min.js"></script>
+        <script>
+          // Function to activate selected triggers from profile
+          function activateProfileTriggers() {
+            // Get the profile data from the page
+            const username = document.body.getAttribute('data-username');
+            if (!username) return;
+            
+            // First try to get triggers from localStorage (if recently set in profile page)
+            const storedTriggers = localStorage.getItem('bambiActiveTriggers');
+            if (storedTriggers) {
+              try {
+                const activeTriggers = JSON.parse(storedTriggers);
+                const triggerDescriptions = JSON.parse(localStorage.getItem('bambiTriggerDescriptions') || '{}');
+                
+                if (activeTriggers && activeTriggers.length > 0) {
+                  console.log('Activating triggers from local storage:', activeTriggers);
+                  
+                  // If there's a function to activate triggers, use it
+                  if (typeof activateTrigger === 'function') {
+                    activeTriggers.forEach(trigger => {
+                      activateTrigger(trigger);
+                    });
+                  } else {
+                    // Create custom event to activate triggers
+                    activeTriggers.forEach(trigger => {
+                      const triggerEvent = new CustomEvent('bambi-trigger', { 
+                        detail: { 
+                          trigger: trigger,
+                          description: triggerDescriptions[trigger] || ''
+                        }
+                      });
+                      document.dispatchEvent(triggerEvent);
+                    });
+                  }
+                  
+                  // If socket is available, send the triggers with descriptions
+                  if (typeof socket !== 'undefined' && socket.connected) {
+                    socket.emit('update-system-controls', {
+                      username: username,
+                      activeTriggers: activeTriggers,
+                      triggerDescriptions: triggerDescriptions
+                    });
+                  }
+                  
+                  return; // Don't continue to other methods if we successfully activated from localStorage
+                }
+              } catch (e) {
+                console.error('Error parsing stored triggers:', e);
+              }
+            }
+            
+            // If we couldn't get triggers from localStorage, use profile data or fetch from server
+            // Check if we already have the profile data
+            if (typeof profileData !== 'undefined' && 
+                profileData.systemControls && 
+                profileData.systemControls.activeTriggers) {
+              
+              // Activate each trigger that's in the profile
+              const activeTriggers = profileData.systemControls.activeTriggers;
+              if (activeTriggers && activeTriggers.length > 0) {
+                console.log('Activating triggers from profile:', activeTriggers);
+                
+                // If triggers.js exposes a function to activate triggers, use it
+                if (typeof activateTrigger === 'function') {
+                  activeTriggers.forEach(trigger => {
+                    activateTrigger(trigger);
+                  });
+                } else {
+                  // Create custom event to activate triggers
+                  activeTriggers.forEach(trigger => {
+                    const triggerEvent = new CustomEvent('bambi-trigger', { 
+                      detail: { trigger: trigger }
+                    });
+                    document.dispatchEvent(triggerEvent);
+                  });
+                }
+              }
+            } else {
+              // If we don't have the profile data yet, fetch it
+              fetch(`/profile/${username}/data`)
+                .then(response => response.json())
+                .then(data => {
+                  if (data && data.systemControls && data.systemControls.activeTriggers) {
+                    const activeTriggers = data.systemControls.activeTriggers;
+                    if (activeTriggers && activeTriggers.length > 0) {
+                      console.log('Fetched and activating triggers:', activeTriggers);
+                      
+                      // If triggers.js exposes a function to activate triggers, use it
+                      if (typeof activateTrigger === 'function') {
+                        activeTriggers.forEach(trigger => {
+                          activateTrigger(trigger);
+                        });
+                      } else {
+                        // Create custom event to activate triggers
+                        activeTriggers.forEach(trigger => {
+                          const triggerEvent = new CustomEvent('bambi-trigger', { 
+                            detail: { trigger: trigger }
+                          });
+                          document.dispatchEvent(triggerEvent);
+                        });
+                      }
+                    }
+                  }
+                })
+                .catch(error => console.error('Error fetching profile data:', error));
+            }
+          }
+
+          // Call the function when DOM is loaded and socket is connected
+          document.addEventListener('DOMContentLoaded', function() {
+            // Wait for socket to be connected before activating triggers
+            if (typeof socket !== 'undefined') {
+              socket.on('connect', function() {
+                setTimeout(activateProfileTriggers, 1000); // Wait a second to ensure other scripts are loaded
+              });
+            } else {
+              // Fallback if socket is not available
+              setTimeout(activateProfileTriggers, 2000);
+            }
+
+            // Listen for trigger updates from other tabs
+            const triggerSyncChannel = new BroadcastChannel('bambi-trigger-sync');
+            triggerSyncChannel.addEventListener('message', (event) => {
+              if (event.data.type === 'trigger-update') {
+                const { activeTriggers, triggerDescriptions } = event.data;
+                
+                // Update our page with the new triggers
+                if (activeTriggers && activeTriggers.length > 0) {
+                  console.log('Received trigger update from another tab:', activeTriggers);
+                  
+                  // If there's a function to activate triggers, use it
+                  if (typeof activateTrigger === 'function') {
+                    activeTriggers.forEach(trigger => {
+                      activateTrigger(trigger);
+                    });
+                  } else {
+                    // Create custom event to activate triggers
+                    activeTriggers.forEach(trigger => {
+                      const triggerEvent = new CustomEvent('bambi-trigger', { 
+                        detail: { 
+                          trigger: trigger,
+                          description: triggerDescriptions[trigger] || ''
+                        }
+                      });
+                      document.dispatchEvent(triggerEvent);
+                    });
+                  }
+                }
+              }
+            });
+          });
+        </script>
   </body>
 
 </html>
