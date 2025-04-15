@@ -1,0 +1,330 @@
+<div class="system-controls">
+  <div id="buttons" class="control-buttons">
+    <% if (validConstantsCount >= 1) { %>
+      <button id="triggers" class="control-btn active-button">Triggers</button>
+    <% } %>
+    <% if (validConstantsCount >= 2) { %>
+      <button id="toggle-collar" class="control-btn">Collar</button>
+    <% } %>
+    <% if (validConstantsCount >= 3) { %>
+      <button id="spirals" class="control-btn">Spirals</button>
+    <% } %>
+    <% if (validConstantsCount >= 4) { %>
+      <button id="hypnosis" class="control-btn">Hypnosis</button>
+    <% } %>
+    <% if (validConstantsCount >= 5) { %>
+      <button id="toggle-all-triggers" class="control-btn">Toggle All Triggers</button>
+    <% } %>
+  </div>
+
+  <div id="console" class="control-panels">
+    <% if (validConstantsCount >= 1) { %>
+      <div id="trigger-toggles" class="control-panel" style="display: block;">
+        <h3>Trigger Controls</h3>
+        <button id="activate-all" class="secondary-btn">Toggle All</button>
+        <div id="trigger-list" class="trigger-grid">
+          <!-- Triggers will be populated by JavaScript -->
+        </div>
+      </div>
+    <% } %>
+    
+    <% if (validConstantsCount >= 2) { %>
+      <div id="collar-form" class="control-panel" style="display: none;">
+        <h3>Collar System</h3>
+        <form id="collar-form-inputs">
+          <textarea id="textarea-collar" placeholder="System Collar for my AIGF"><%= profile && profile.systemControls && profile.systemControls.collarText ? profile.systemControls.collarText : '' %></textarea>
+          <button id="collar" type="submit" class="secondary-btn">Apply Collar</button>
+        </form>
+        <div id="user-collar" class="collar-messages"></div>
+        <div id="textarea-collar-response" class="collar-responses"></div>
+      </div>
+    <% } %>
+    
+    <% if (validConstantsCount >= 3) { %>
+      <div id="spirals-template" class="control-panel" style="display: none;">
+        <h3>Spiral Controls</h3>
+        <p>Spiral features coming soon...</p>
+      </div>
+    <% } %>
+    
+    <% if (validConstantsCount >= 4) { %>
+      <div id="hypnosis-template" class="control-panel" style="display: none;">
+        <h3>Hypnosis Controls</h3>
+        <p>Hypnosis features coming soon...</p>
+        <div id="multiplier-controls">
+          <label for="multiplierA1">Multiplier A1: </label>
+          <input type="range" id="multiplierA1" min="-5" max="5" value="<%= profile && profile.systemControls && profile.systemControls.multiplierSettings ? profile.systemControls.multiplierSettings.A1 : 1 %>" step="0.1">
+          <br>
+          <label for="multiplierA2">Multiplier A2: </label>
+          <input type="range" id="multiplierA2" min="-5" max="5" value="<%= profile && profile.systemControls && profile.systemControls.multiplierSettings ? profile.systemControls.multiplierSettings.A2 : 1 %>" step="0.1">
+          <br>
+          <label for="multiplierB1">Multiplier B1: </label>
+          <input type="range" id="multiplierB1" min="-5" max="5" value="<%= profile && profile.systemControls && profile.systemControls.multiplierSettings ? profile.systemControls.multiplierSettings.B1 : 1 %>" step="0.1">
+          <br>
+          <label for="multiplierB2">Multiplier B2: </label>
+          <input type="range" id="multiplierB2" min="-5" max="5" value="<%= profile && profile.systemControls && profile.systemControls.multiplierSettings ? profile.systemControls.multiplierSettings.B2 : 1 %>" step="0.1">
+          <br>
+          <label for="operation">Operation: </label>
+          <select id="operation">
+            <option value="add" <%= profile && profile.systemControls && profile.systemControls.multiplierSettings && profile.systemControls.multiplierSettings.operation === 'add' ? 'selected' : '' %>>Add</option>
+            <option value="subtract" <%= profile && profile.systemControls && profile.systemControls.multiplierSettings && profile.systemControls.multiplierSettings.operation === 'subtract' ? 'selected' : '' %>>Subtract</option>
+            <option value="multiply" <%= profile && profile.systemControls && profile.systemControls.multiplierSettings && profile.systemControls.multiplierSettings.operation === 'multiply' ? 'selected' : '' %>>Multiply</option>
+            <option value="divide" <%= profile && profile.systemControls && profile.systemControls.multiplierSettings && profile.systemControls.multiplierSettings.operation === 'divide' ? 'selected' : '' %>>Divide</option>
+          </select>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Set up system controls functionality
+    function toggleButton(button, target) {
+      var panels = document.querySelectorAll('.control-panel');
+      var buttons = document.querySelectorAll('.control-btn');
+      
+      // Hide all panels first
+      panels.forEach(panel => {
+        panel.style.display = 'none';
+      });
+      
+      // Remove active class from all buttons
+      buttons.forEach(btn => {
+        btn.classList.remove('active-button');
+      });
+      
+      // Show the target panel
+      var element = document.getElementById(target);
+      if (element) {
+        element.style.display = 'block';
+        button.classList.add('active-button');
+      }
+    }
+
+    // Setup button click handlers
+    var triggersButton = document.getElementById('triggers');
+    if (triggersButton) {
+      triggersButton.addEventListener('click', function() {
+        toggleButton(this, 'trigger-toggles');
+      });
+    }
+    
+    var toggleCollarButton = document.getElementById('toggle-collar');
+    if (toggleCollarButton) {
+      toggleCollarButton.addEventListener('click', function() {
+        toggleButton(this, 'collar-form');
+      });
+    }
+    
+    var spiralsButton = document.getElementById('spirals');
+    if (spiralsButton) {
+      spiralsButton.addEventListener('click', function() {
+        toggleButton(this, 'spirals-template');
+      });
+    }
+    
+    var hypnosisButton = document.getElementById('hypnosis');
+    if (hypnosisButton) {
+      hypnosisButton.addEventListener('click', function() {
+        toggleButton(this, 'hypnosis-template');
+      });
+    }
+    
+    // Set up collar form
+    var collarForm = document.getElementById('collar-form-inputs');
+    if (collarForm) {
+      collarForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        var collarText = document.getElementById('textarea-collar').value;
+        var username = document.body.getAttribute('data-username');
+        
+        // Save collar text via socket if available
+        if (typeof socket !== 'undefined' && socket.connected) {
+          socket.emit('update-system-controls', {
+            username: username,
+            collarText: collarText,
+            collarEnabled: true
+          });
+          
+          document.getElementById('user-collar').innerHTML = '<div class="collar-message">Collar applied successfully!</div>';
+        } else {
+          // Fallback to fetch API
+          fetch(`/profile/${username}/system-controls`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              collarText: collarText,
+              collarEnabled: true
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              document.getElementById('user-collar').innerHTML = '<div class="collar-message">Collar applied successfully!</div>';
+            } else {
+              document.getElementById('user-collar').innerHTML = `<div class="collar-message error">${data.message || 'Failed to apply collar'}</div>`;
+            }
+          })
+          .catch(error => {
+            document.getElementById('user-collar').innerHTML = '<div class="collar-message error">Error applying collar</div>';
+          });
+        }
+      });
+    }
+    
+    // Initialize trigger toggles
+    var triggerList = document.getElementById('trigger-list');
+    var activateAllButton = document.getElementById('activate-all');
+    
+    if (triggerList && !triggerList.hasChildNodes()) {
+      // Only initialize if not already populated
+      var bambiTriggers = [
+        "BIMBO DOLL", "GOOD GIRL", "BAMBI SLEEP", "BAMBI FREEZE",
+        "ZAP COCK DRAIN OBEY", "BAMBI ALWAYS WINS", "BAMBI RESET",
+        "I-Q DROP", "I-Q LOCK", "POSTURE LOCK", "UNIFORM LOCK",
+        "SAFE & SECURE", "PRIMPED", "PAMPERED", "SNAP & FORGET",
+        "GIGGLE TIME", "BLONDE MOMENT", "BAMBI DOES AS SHE IS TOLD",
+        "DROP FOR COCK", "COCK ZOMBIE NOW", "TITS LOCK", "WAIST LOCK",
+        "BUTT LOCK", "LIMBS LOCK", "FACE LOCK", "LIPS LOCK",
+        "THROAT LOCK", "HIPS LOCK", "CUNT LOCK", "BAMBI CUM & COLAPSE"
+      ];
+      
+      // Get pre-selected triggers if available
+      var activeTriggers = [];
+      if (typeof profileData !== 'undefined' && profileData.systemControls && profileData.systemControls.activeTriggers) {
+        activeTriggers = profileData.systemControls.activeTriggers;
+      }
+      
+      bambiTriggers.forEach((trigger, index) => {
+        var triggerItem = document.createElement('div');
+        triggerItem.className = 'trigger-toggle-item';
+        
+        var toggle = document.createElement('input');
+        toggle.type = 'checkbox';
+        toggle.id = `toggle-${index}`;
+        toggle.className = 'toggle-input';
+        toggle.setAttribute('data-trigger', trigger);
+        
+        // Check if this trigger is active
+        if (activeTriggers.includes(trigger)) {
+          toggle.checked = true;
+        }
+        
+        // Set up change handler to save state
+        toggle.addEventListener('change', function() {
+          saveTriggerState();
+        });
+        
+        var label = document.createElement('label');
+        label.textContent = trigger;
+        label.htmlFor = `toggle-${index}`;
+        label.className = 'toggle-label';
+        
+        triggerItem.appendChild(toggle);
+        triggerItem.appendChild(label);
+        triggerList.appendChild(triggerItem);
+      });
+    }
+    
+    if (activateAllButton) {
+      activateAllButton.addEventListener('click', function() {
+        var toggleInputs = document.querySelectorAll('.toggle-input');
+        var allChecked = true;
+        
+        // Check if all are already checked
+        toggleInputs.forEach(input => {
+          if (!input.checked) {
+            allChecked = false;
+          }
+        });
+        
+        // Toggle all
+        toggleInputs.forEach(input => {
+          input.checked = !allChecked;
+        });
+        
+        // Save state
+        saveTriggerState();
+      });
+    }
+    
+    // Setup multiplier controls
+    var multiplierControls = document.querySelectorAll('#multiplier-controls input[type="range"], #multiplier-controls select');
+    multiplierControls.forEach(control => {
+      control.addEventListener('change', function() {
+        saveMultiplierSettings();
+      });
+    });
+    
+    // Function to save trigger state
+    function saveTriggerState() {
+      var username = document.body.getAttribute('data-username');
+      if (!username) return;
+      
+      var toggleInputs = document.querySelectorAll('.toggle-input');
+      var activeTriggers = [];
+      
+      toggleInputs.forEach(input => {
+        if (input.checked) {
+          activeTriggers.push(input.getAttribute('data-trigger'));
+        }
+      });
+      
+      // Save via socket if available
+      if (typeof socket !== 'undefined' && socket.connected) {
+        socket.emit('update-system-controls', {
+          username: username,
+          activeTriggers: activeTriggers
+        });
+      } else {
+        // Fallback to fetch API
+        fetch(`/profile/${username}/system-controls`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            activeTriggers: activeTriggers
+          })
+        });
+      }
+    }
+    
+    // Function to save multiplier settings
+    function saveMultiplierSettings() {
+      var username = document.body.getAttribute('data-username');
+      if (!username) return;
+      
+      var multiplierSettings = {
+        A1: parseFloat(document.getElementById('multiplierA1').value),
+        A2: parseFloat(document.getElementById('multiplierA2').value),
+        B1: parseFloat(document.getElementById('multiplierB1').value),
+        B2: parseFloat(document.getElementById('multiplierB2').value),
+        operation: document.getElementById('operation').value
+      };
+      
+      // Save via socket if available
+      if (typeof socket !== 'undefined' && socket.connected) {
+        socket.emit('update-system-controls', {
+          username: username,
+          multiplierSettings: multiplierSettings
+        });
+      } else {
+        // Fallback to fetch API
+        fetch(`/profile/${username}/system-controls`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            multiplierSettings: multiplierSettings
+          })
+        });
+      }
+    }
+  });
+</script>

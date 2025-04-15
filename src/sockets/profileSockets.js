@@ -42,6 +42,9 @@ export default function setupProfileSockets(socket, io, username) {
   socket.on('toggle-trigger', (data) => handleTriggerToggle(socket, io, data));
   socket.on('profile:heart', (data) => handleProfileHeart(socket, io, data, username));
   socket.on('delete-profile', (data) => handleProfileDelete(socket, io, data));
+  
+  // Add handler for system controls updates
+  socket.on('update-system-controls', (data) => handleSystemControlsUpdate(socket, io, data));
 }
 
 /**
@@ -414,6 +417,54 @@ async function handleProfileDelete(socket, io, { username }) {
   } catch (err) {
     logger.error(`Error deleting profile: ${err.message}`);
     socket.emit('error', { message: 'Failed to delete profile' });
+  }
+}
+
+/**
+ * Handle system controls update
+ * 
+ * @param {Socket} socket - Socket.io socket instance
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {Object} data - System controls data to update
+ */
+async function handleSystemControlsUpdate(socket, io, data) {
+  try {
+    const { username, ...controlsData } = data;
+    
+    if (!username) {
+      socket.emit('system-controls-error', 'No username provided');
+      return;
+    }
+    
+    // Get the profile
+    const ProfileModel = getProfile();
+    const profile = await ProfileModel.findOne({ username });
+    
+    if (!profile) {
+      socket.emit('system-controls-error', 'Profile not found');
+      return;
+    }
+    
+    // Update the system controls
+    profile.updateSystemControls(controlsData);
+    await profile.save();
+    
+    // Send success message
+    socket.emit('system-controls-updated', {
+      success: true,
+      systemControls: profile.systemControls
+    });
+    
+    // Notify other clients viewing this profile
+    io.to(`profile-${username}`).emit('profile-system-controls-updated', {
+      username,
+      systemControls: profile.systemControls
+    });
+    
+    logger.info(`System controls updated for ${username}`);
+  } catch (error) {
+    logger.error(`Error updating system controls: ${error.message}`);
+    socket.emit('system-controls-error', 'Failed to update system controls');
   }
 }
 

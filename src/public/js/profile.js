@@ -438,6 +438,81 @@ function setupInlineEditing() {
   });
 }
 
+// =============== SYSTEM CONTROLS ===============
+
+/**
+ * Set up system controls functionality
+ */
+function setupSystemControls() {
+  // Check if we're on a profile page with system controls
+  const systemControls = document.querySelector('.system-controls');
+  if (!systemControls) return;
+  
+  // Set up socket handlers for real-time updates if socket is available
+  if (typeof socket !== 'undefined' && socket.connected) {
+    // Listen for system controls updates
+    socket.on('system-controls-updated', function(data) {
+      if (data.success) {
+        showNotification('System controls updated successfully', 'success');
+      }
+    });
+    
+    // Listen for errors
+    socket.on('system-controls-error', function(message) {
+      showNotification(message, 'error');
+    });
+    
+    // Listen for updates from other clients
+    socket.on('profile-system-controls-updated', function(data) {
+      // Update UI if needed
+      updateSystemControlsUI(data.systemControls);
+    });
+  }
+}
+
+/**
+ * Update system controls UI based on received data
+ */
+function updateSystemControlsUI(systemControls) {
+  if (!systemControls) return;
+  
+  // Update collar text if available
+  const collarTextarea = document.getElementById('textarea-collar');
+  if (collarTextarea && systemControls.collarText) {
+    collarTextarea.value = systemControls.collarText;
+  }
+  
+  // Update multiplier settings if available
+  if (systemControls.multiplierSettings) {
+    const { A1, A2, B1, B2, operation } = systemControls.multiplierSettings;
+    
+    const multiplierA1 = document.getElementById('multiplierA1');
+    if (multiplierA1 && A1 !== undefined) multiplierA1.value = A1;
+    
+    const multiplierA2 = document.getElementById('multiplierA2');
+    if (multiplierA2 && A2 !== undefined) multiplierA2.value = A2;
+    
+    const multiplierB1 = document.getElementById('multiplierB1');
+    if (multiplierB1 && B1 !== undefined) multiplierB1.value = B1;
+    
+    const multiplierB2 = document.getElementById('multiplierB2');
+    if (multiplierB2 && B2 !== undefined) multiplierB2.value = B2;
+    
+    const operationSelect = document.getElementById('operation');
+    if (operationSelect && operation) operationSelect.value = operation;
+  }
+  
+  // Update active triggers if available
+  if (systemControls.activeTriggers && systemControls.activeTriggers.length > 0) {
+    const triggerInputs = document.querySelectorAll('.toggle-input');
+    
+    triggerInputs.forEach(input => {
+      const triggerName = input.getAttribute('data-trigger');
+      input.checked = systemControls.activeTriggers.includes(triggerName);
+    });
+  }
+}
+
 // Initialize on DOM load - Setup form handlers and inline editing
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize form handlers
@@ -447,6 +522,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (document.querySelector('.editable-field')) {
     setupInlineEditing();
   }
+  
+  // Initialize system controls
+  setupSystemControls();
   
   // Setup character counters for textareas
   const limitedTextareas = document.querySelectorAll('textarea[maxlength]');
@@ -493,3 +571,5 @@ window.validateEmail = validateEmail;
 window.validateURL = validateURL;
 window.showNotification = showNotification;
 window.emitSocketPromise = emitSocketPromise;
+window.setupSystemControls = setupSystemControls;
+window.updateSystemControlsUI = updateSystemControlsUI;

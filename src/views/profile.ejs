@@ -57,67 +57,10 @@
           <h2>System Controls Setup</h2>
           <p class="helper-text">Configure your system controls now or edit them later from your profile page.</p>
           
-          <div class="system-controls-container">
-            <!-- Include system controls without the profile form part -->
-            <div class="system-controls">
-              <div id="buttons" class="control-buttons">
-                <% const validConstantsCount = locals.validConstantsCount || 5; %>
-                <% if (validConstantsCount >= 1) { %>
-                  <button id="triggers" class="control-btn">Triggers</button>
-                <% } %>
-                <% if (validConstantsCount >= 2) { %>
-                  <button id="toggle-collar" class="control-btn">Collar</button>
-                <% } %>
-                <% if (validConstantsCount >= 3) { %>
-                  <button id="spirals" class="control-btn">Spirals</button>
-                <% } %>
-                <% if (validConstantsCount >= 4) { %>
-                  <button id="hypnosis" class="control-btn">Hypnosis</button>
-                <% } %>
-                <% if (validConstantsCount >= 5) { %>
-                  <button id="toggle-all-triggers" class="control-btn">Toggle All Triggers</button>
-                <% } %>
-              </div>
-
-              <div id="console" class="control-panels">
-                <% if (validConstantsCount >= 1) { %>
-                  <div id="trigger-toggles" class="control-panel" style="display: none;">
-                    <h3>Trigger Controls</h3>
-                    <button id="activate-all" class="secondary-btn">Toggle All</button>
-                    <div id="trigger-list" class="trigger-grid">
-                      <!-- Triggers will be populated by JavaScript -->
-                    </div>
-                  </div>
-                <% } %>
-                
-                <% if (validConstantsCount >= 2) { %>
-                  <div id="collar-form" class="control-panel" style="display: none;">
-                    <h3>Collar System</h3>
-                    <form id="collar-form-inputs">
-                      <textarea id="textarea-collar" placeholder="System Collar for my AIGF"></textarea>
-                      <button id="collar" type="submit" class="secondary-btn">Apply Collar</button>
-                    </form>
-                    <div id="user-collar" class="collar-messages"></div>
-                    <div id="textarea-collar-response" class="collar-responses"></div>
-                  </div>
-                <% } %>
-                
-                <% if (validConstantsCount >= 3) { %>
-                  <div id="spirals-template" class="control-panel" style="display: none;">
-                    <h3>Spiral Controls</h3>
-                    <p>Spiral features coming soon...</p>
-                  </div>
-                <% } %>
-                
-                <% if (validConstantsCount >= 4) { %>
-                  <div id="hypnosis-template" class="control-panel" style="display: none;">
-                    <h3>Hypnosis Controls</h3>
-                    <p>Hypnosis features coming soon...</p>
-                  </div>
-                <% } %>
-              </div>
-            </div>
-          </div>
+          <%- include('./partials/profile-system-controls', { 
+            profile: null, 
+            validConstantsCount: locals.validConstantsCount || 5 
+          }) %>
         </div>
       </div>
     <% } else if (locals.mode === 'edit') { %>
@@ -190,20 +133,6 @@
                 <label for="winter">Winter</label>
               </div>
             </div>
-          </div>
-
-          <div class="editable-field">
-            <div id="fieldname-display">Current value</div>
-            <button class="edit-field-btn" data-field="fieldname">Edit</button>
-            
-            <form id="fieldname-form" style="display: none;" class="inline-form">
-              <input id="fieldname" name="fieldname" value="Current value">
-              <div id="fieldname-error" class="error-message"></div>
-              <div class="form-actions">
-                <button type="button" class="save-field-btn" data-field="fieldname">Save</button>
-                <button type="button" class="cancel-edit-btn" data-field="fieldname">Cancel</button>
-              </div>
-            </form>
           </div>
 
           <div class="form-actions">
@@ -415,6 +344,17 @@
               <% } %>
             </div>
           </div>
+
+          <% if (locals.mode === 'view' && locals.isOwnProfile) { %>
+            <div class="profile-section system-controls-section">
+              <h2 class="neon-heading">System Controls</h2>
+              
+              <%- include('./partials/profile-system-controls', { 
+                profile: profile, 
+                validConstantsCount: profile.validConstantsCount || 5 
+              }) %>
+            </div>
+          <% } %>
         </div>
       </div>
 
@@ -513,109 +453,8 @@
       // Determine the current mode
       const mode = document.body.getAttribute('data-mode');
       
-      // Profile creation mode
-      if (mode === 'create') {
-        // Toggle function for control panels
-        function toggleButton(button, target) {
-          const panels = document.querySelectorAll('.control-panel');
-          const buttons = document.querySelectorAll('.control-btn');
-          
-          // Hide all panels first
-          panels.forEach(panel => {
-            panel.style.display = 'none';
-          });
-          
-          // Remove active class from all buttons
-          buttons.forEach(btn => {
-            btn.classList.remove('active-button');
-          });
-          
-          // Show the target panel
-          const element = document.getElementById(target);
-          if (element) {
-            element.style.display = 'block';
-            button.classList.add('active-button');
-          }
-        }
-        
-        // Setup button click handlers
-        const triggersButton = document.getElementById('triggers');
-        if (triggersButton) {
-          triggersButton.addEventListener('click', function() {
-            toggleButton(this, 'trigger-toggles');
-          });
-        }
-        
-        const toggleCollarButton = document.getElementById('toggle-collar');
-        if (toggleCollarButton) {
-          toggleCollarButton.addEventListener('click', function() {
-            toggleButton(this, 'collar-form');
-          });
-        }
-        
-        const spiralsButton = document.getElementById('spirals');
-        if (spiralsButton) {
-          spiralsButton.addEventListener('click', function() {
-            toggleButton(this, 'spirals-template');
-          });
-        }
-        
-        const hypnosisButton = document.getElementById('hypnosis');
-        if (hypnosisButton) {
-          hypnosisButton.addEventListener('click', function() {
-            toggleButton(this, 'hypnosis-template');
-          });
-        }
-        
-        // Initialize triggers list
-        const triggerList = document.getElementById('trigger-list');
-        if (triggerList) {
-          const bambiTriggers = [
-            "BIMBO DOLL", "GOOD GIRL", "BAMBI SLEEP", "BAMBI FREEZE",
-            "ZAP COCK DRAIN OBEY", "BAMBI ALWAYS WINS", "BAMBI RESET",
-            "I-Q DROP", "I-Q LOCK", "POSTURE LOCK", "UNIFORM LOCK",
-            "SAFE & SECURE", "PRIMPED", "PAMPERED", "SNAP & FORGET",
-            "GIGGLE TIME", "BLONDE MOMENT", "BAMBI DOES AS SHE IS TOLD",
-            "DROP FOR COCK", "COCK ZOMBIE NOW", "TITS LOCK", "WAIST LOCK",
-            "BUTT LOCK", "LIMBS LOCK", "FACE LOCK", "LIPS LOCK",
-            "THROAT LOCK", "HIPS LOCK", "CUNT LOCK", "BAMBI CUM & COLAPSE"
-          ];
-          
-          bambiTriggers.forEach((trigger, index) => {
-            const triggerItem = document.createElement('div');
-            triggerItem.className = 'trigger-toggle-item';
-            
-            const toggle = document.createElement('input');
-            toggle.type = 'checkbox';
-            toggle.id = `toggle-${index}`;
-            toggle.className = 'toggle-input';
-            toggle.setAttribute('data-trigger', trigger);
-            
-            const label = document.createElement('label');
-            label.textContent = trigger;
-            label.htmlFor = `toggle-${index}`;
-            label.className = 'toggle-label';
-            
-            triggerItem.appendChild(toggle);
-            triggerItem.appendChild(label);
-            triggerList.appendChild(triggerItem);
-          });
-          
-          // Add toggle all functionality
-          const activateAllButton = document.getElementById('activate-all');
-          if (activateAllButton) {
-            activateAllButton.addEventListener('click', function() {
-              const toggleInputs = document.querySelectorAll('.toggle-input');
-              toggleInputs.forEach(input => {
-                input.checked = !input.checked;
-              });
-            });
-          }
-        }
-      }
-      
       // Profile edit mode
-      else if (mode === 'edit') {
+      if (mode === 'edit') {
         // Character counter functionality
         const aboutInput = document.getElementById('about');
         const aboutCounter = document.getElementById('about-counter');
@@ -733,7 +572,7 @@
       }
       
       // Profile view mode
-      else {
+      else if (mode === 'view') {
         // Modal functionality
         const modal = document.getElementById('profile-edit-modal');
         const editProfileBtn = document.getElementById('edit-profile-btn');
@@ -836,17 +675,6 @@
         const descriptionInputModal = document.getElementById('description-modal');
         const descriptionCounterModal = document.getElementById('description-counter-modal');
         
-        function updateCounter(input, counter, maxLength) {
-          if (input && counter) {
-            counter.textContent = input.value.length;
-            if (input.value.length > maxLength) {
-              counter.classList.add('over-limit');
-            } else {
-              counter.classList.remove('over-limit');
-            }
-          }
-        }
-        
         if (aboutInputModal && aboutCounterModal) {
           updateCounter(aboutInputModal, aboutCounterModal, 150);
           aboutInputModal.addEventListener('input', () => updateCounter(aboutInputModal, aboutCounterModal, 150));
@@ -855,28 +683,6 @@
         if (descriptionInputModal && descriptionCounterModal) {
           updateCounter(descriptionInputModal, descriptionCounterModal, 1500);
           descriptionInputModal.addEventListener('input', () => updateCounter(descriptionInputModal, descriptionCounterModal, 1500));
-        }
-        
-        // Avatar preview functionality for modal
-        const avatarInputModal = document.getElementById('avatar-modal');
-        const avatarPreviewModal = document.getElementById('avatar-preview-modal');
-        
-        if (avatarInputModal && avatarPreviewModal) {
-          avatarInputModal.addEventListener('input', () => {
-            const url = avatarInputModal.value.trim();
-            avatarPreviewModal.src = url || '/gif/default-avatar.gif';
-          });
-        }
-        
-        // Header image preview functionality for modal
-        const headerInputModal = document.getElementById('headerImage-modal');
-        const headerPreviewModal = document.getElementById('header-preview-modal');
-        
-        if (headerInputModal && headerPreviewModal) {
-          headerInputModal.addEventListener('input', () => {
-            const url = headerInputModal.value.trim();
-            headerPreviewModal.src = url || '/gif/default-header.gif';
-          });
         }
         
         // Form submission handling for modal
@@ -932,6 +738,18 @@
               showNotification('An error occurred while updating profile', 'error');
             }
           });
+        }
+      }
+      
+      // Helper function for character counter also used by modal
+      function updateCounter(input, counter, maxLength) {
+        if (input && counter) {
+          counter.textContent = input.value.length;
+          if (input.value.length > maxLength) {
+            counter.classList.add('over-limit');
+          } else {
+            counter.classList.remove('over-limit');
+          }
         }
       }
     });

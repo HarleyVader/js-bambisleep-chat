@@ -444,6 +444,50 @@ router.delete('/:username/delete', auth, async (req, res) => {
   }
 });
 
+// System Controls API route for HTTP updates
+router.post('/:username/system-controls', async (req, res) => {
+  try {
+    const Profile = getProfile();
+    const { username } = req.params;
+    const currentBambiname = getUsernameFromCookies(req);
+    
+    // Check if user is authorized
+    if (!currentBambiname || currentBambiname !== username) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You are not authorized to update these controls'
+      });
+    }
+    
+    // Find the profile
+    const profile = await Profile.findOne({ username });
+    
+    if (!profile) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Profile not found'
+      });
+    }
+    
+    // Update the system controls
+    profile.updateSystemControls(req.body);
+    await profile.save();
+    
+    // Return success
+    res.json({ 
+      success: true, 
+      message: 'System controls updated successfully',
+      systemControls: profile.systemControls
+    });
+  } catch (error) {
+    logger.error(`Error updating system controls: ${error.message}`);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error updating system controls'
+    });
+  }
+});
+
 // Trigger API routes
 router.get('/triggers/standard', triggerController.getAllTriggers);
 router.get('/:username/triggers', auth, triggerController.getProfileTriggers);

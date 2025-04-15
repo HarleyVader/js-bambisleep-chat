@@ -1,3 +1,4 @@
+```markdown
 # 🧠 [BambiSleep.Chat](https://bambisleep.chat) 👁️
 💖 A [r/bambisleep](https://www.reddit.com/r/BambiSleep/) targeted Hypnotic AIGF (AI Girlfriend) 🤖
 
@@ -10,6 +11,9 @@
 > - Trigger Mania
 > - Neurolinguistic Programing
 > - Cognitive Behavioural Therapy
+> - Enhanced Profile System
+> - Community Directory
+> - Custom Trigger Creation
 
 </details>
 
@@ -36,13 +40,14 @@
 
 > The Lawful Good Bambisleep Scrapers are designed to facilitate the scraping, processing, and analysis of content related to BambiSleep. It utilizes multiple worker 
 > threads to handle different content types, including text, images, and videos. The project is structured to allow for easy extension and integration of various models 
-> for enhanced performance and capabilities.
+> for enhanced performance and capabilities. With the new multi-mode profile system, users can now save and organize their favorite scraped content.
 
 </details>
 
 ```js
-Running Version: MK-X
+Running Version: MK-XI
 Monetization: Patreon
+Last Updated: April 2025
 ```
 
 ## Overview
@@ -57,18 +62,184 @@ Monetization: Patreon
 ![Node](https://img.shields.io/badge/node-%3E=18.0.0-purple?style=for-the-badge)
 
 
-[Getting Started](#-quick-start) •
-[Core Features](#-core-features) •
-[Architecture](#-architecture) •
-[Tech Stack](#-tech-stack) •
-[Security Features](#-security-features) •
-[Folder Structure](#-folder-structure) •
-[Contributing](#-contributing) •
-[License](#-license)
+Getting Started •
+Core Features •
+Architecture •
+Tech Stack •
+Security Features •
+Folder Structure •
+Contributing •
+License
 
 ## Simple logic ^^
 
+## Folder Structure
 
+```
+views/
+├── error.ejs            - Error page template
+├── help.ejs             - Help documentation page
+├── index.ejs            - Main chat interface
+├── profile.ejs          - User profile page (multi-mode)
+├── psychodelic-trigger-mania.ejs - Special effects page
+├── scrapers.ejs         - Content scraping interface
+└── partials/            - Reusable template components
+    ├── footer.ejs       - Site footer
+    ├── head.ejs         - HTML head section
+    ├── nav.ejs          - Navigation menu
+    └── system-controls.ejs - Control panel components
+```
+
+## Key Templates and Functionality
+
+### 1. Main Chat Interface (`index.ejs`)
+
+This is the primary interface where users can:
+- Enter their "bambi name" via a modal prompt
+- Send prompts to the AI
+- View AI responses
+- Interact with a chat system to talk with other users
+- Access system controls for various features
+
+**Key Features:**
+- Username modal for first-time visitors
+- Text-to-speech functionality
+- Real-time chat with other users
+- Visual effects including an eye cursor
+- Socket.IO integration for real-time communication
+
+### 2. User Profiles (`profile.ejs`)
+
+A multi-mode template that handles:
+- Profile creation
+- Profile viewing
+- Profile editing
+- Profile deletion
+- Profile listing (community directory)
+
+**Profile Features:**
+- Display name, avatar, and header image customization
+- Trigger management (adding/activating custom triggers)
+- Profile statistics (level, hearts, scrapes, controls)
+- Character-limited about and description sections
+- Modal-based editing interface
+
+### 3. Content Scrapers (`scrapers.ejs`)
+
+Allows users to submit URLs to scrape content related to BambiSleep from external sources:
+- Text content scraping
+- Image content scraping
+- Video content scraping
+
+**Scraper Features:**
+- Submission tracking with status indicators
+- Voting system (upvotes/downvotes)
+- Comment functionality
+- Content viewing modal
+- Sharing capabilities
+- Statistics dashboard
+
+### 4. Help Documentation (`help.ejs`)
+
+Provides information about:
+- How to use the AIGF (AI Girlfriend) functionality
+- Privacy information and cookie usage
+- Warnings about content and effects
+- Tips for using the system
+- Links to related resources
+
+### 5. Error Page (`error.ejs`)
+
+Custom error page with:
+- Error code display
+- Contextual error messages
+- Links to return to safe areas of the site
+- Debugging information in development mode
+
+### 6. Reusable Partials
+
+- head.ejs - Common meta tags, CSS, and font imports
+- nav.ejs - Navigation menu linking to main site sections
+- footer.ejs - Site footer with links and copyright info
+- system-controls.ejs - Common control panels for trigger management
+
+## How to Use the Functionality
+
+### 1. Getting Started
+
+1. **Access the main page**:
+   - Navigate to the root URL of the application
+   - You'll be prompted to enter a "bambi name" on first visit
+
+2. **Setting up your profile**:
+   - Click "Create Profile" in the navigation
+   - Fill out the profile form with your desired username and details
+   - Add custom triggers if desired
+   - Save your profile
+
+### 2. Using the Chat Interface
+
+1. **Interacting with the AIGF**:
+   - Type prompts in the main textarea 
+   - Click "Send" to submit your prompt
+   - View responses in the response container
+   - Listen to spoken responses via the audio player
+
+2. **Using the public chat**:
+   - Type messages in the "Send in Chat" textarea
+   - Click "Chat" to send messages to all users
+   - View incoming messages in the chat response list
+
+### 3. Managing Triggers
+
+1. **Using system controls**:
+   - Click the "Triggers" button to open trigger controls
+   - Toggle triggers on/off using the switches
+   - Use "Toggle All" to activate/deactivate all triggers at once
+
+2. **Using the collar system**:
+   - Click "Collar" to open the collar input
+   - Enter a system collar message
+   - Click "Apply Collar" to set it
+
+### 4. Using Content Scrapers
+
+1. **Submitting URLs**:
+   - Navigate to the Scrapers page
+   - Enter a URL in one of the scraper form textareas
+   - Click the corresponding "Scrape" button
+   - View results in the submissions list
+
+2. **Interacting with submissions**:
+   - Upvote/downvote submissions to rate quality
+   - Add comments to discuss content
+   - View extracted content using the "View" button
+   - Share content with others using the "Share" button
+
+### 5. Managing Your Profile
+
+1. **Editing your profile**:
+   - Go to your profile page
+   - Click "Edit Profile" to open the edit modal
+   - Update your display name, avatar, header, descriptions
+   - Click "Save Changes" to update
+
+2. **Adding triggers to your profile**:
+   - On your profile page, find the "Add Trigger" form
+   - Enter a trigger name and description
+   - Click "Add Trigger" to save it to your profile
+
+3. **Deleting your profile**:
+   - Go to your profile page
+   - Click "Delete Profile" 
+   - Confirm deletion on the confirmation page
+
+## Key Integration Points
+
+- **Socket.IO**: Used for real-time communication in chat and notifications
+- **Cookie-based authentication**: Stores the user's "bambi name" for session management
+- **Modal interfaces**: Used throughout for focused user interactions
+- **Dynamic content loading**: Most pages load content via JavaScript for a responsive experience
 
 ## 🌟 Core Features
 
@@ -79,6 +250,11 @@ Monetization: Patreon
 - 👑 Free for All Access
 - 📝 Custom Collar
 - 📈 Stream processing
+- 👥 Community Directory
+- 🔧 Custom Trigger Creation
+- 🌍 Public/Private Profiles
+- 🔄 Enhanced Content Scraping
+- 📌 Bookmark System
 
 ## 🏗️ Architecture
 
@@ -87,25 +263,34 @@ graph TD
     A[Webserver] -->|Connects to| B[LMStudio Machine with GPU]
     A -->|Connects to| C[Coqui Machine with GPU]
     A -->|Sends Data to| D[User Frontend]
+    A -->|Stores Data in| E[MongoDB]
 ```
 
 ### AIGF SKILLS:
-1. ### **text-to-text**  
-- Write your prompt & submit  
-- bambisleep will reply as bambisleep & call you bambi  
-- bambisleep will use the selected triggers to do a brainwashing session based on your  
-2. ### **Psychedelic Trigger Mania** 
-- Causes temporary Hallucination's lasting longer the longer you stare into it.   
+1. ### **text-to-text**  
+- Write your prompt & submit  
+- bambisleep will reply as bambisleep & call you bambi  
+- bambisleep will use the selected triggers to do a brainwashing session based on your profile preferences
+2. ### **Psychedelic Trigger Mania** 
+- Causes temporary Hallucination's lasting longer the longer you stare into it.   
 3. ### **Triggers:**
-- Enable the spiral to show the triggers replied by my AI GF  
-4. ### **Text2Audio**  
-- she will say out loud what she said with text.  
-- Now audio/text/spiral are in sync.   
-- Everything is synchronized  
+- Enable the spiral to show the triggers replied by my AI GF  
+- Create custom triggers in your profile
+- Share triggers with the community
+4. ### **Text2Audio**  
+- she will say out loud what she said with text.  
+- Now audio/text/spiral are in sync.   
+- Everything is synchronized  
 5. ### **Chat**
-- write in the global chat  
-- If you are logged i the chat will show your Patreon username  
-- Home Chat & Profile chat are the same chat, only difference is being logged into Patreon  
+- write in the global chat  
+- If you are logged in the chat will show your Patreon username  
+- Home Chat & Profile chat are the same chat, only difference is being logged into Patreon
+6. ### **Profiles**  
+- Create and customize your public profile  
+- Add custom triggers to your profile  
+- Join the community directory  
+- Track your brainwashing progress  
+- Share your favorite scraped content
 
 ### WHAT SHOULD I TEACH MY AI GF NEXT?
 
@@ -116,15 +301,22 @@ graph TD
 **Configure Environment Variables**
 Create a .env file in the root directory and add the necessary environment variables, such as database connection but most importantly the remote addesses & ports of your servers. 
 
-- LMS_HOST: Hostname for the LMStudio server.
-- LMS_PORT: Port for the LMStudio server.
-- MONGODB_URI: MongoDB connection string.
-- MODEL_1: Model 1 identifier.
-- MODEL_2: Model 2 identifier.
-- CACHE_ENABLED: Enable or disable caching (true/false).
-- CACHE_EXPIRY: Cache expiry time in seconds.
-- API_KEY: API key for authentication.
-- SECRET_KEY: Secret key for encryption.
+#### Port for webserver
+- SERVER_PORT=6969
+
+#### Port & Host Ip of LMStudio
+- LMS_HOST=192.168.0.178
+- LMS_PORT=7777
+
+#### Port & host for Kokoros voice 
+- KOKORO_PORT=8880
+- KOKORO_HOST=192.168.0.178
+- KOKORO_DEFAULT_VOICE=af_bella
+- KOKORO_API_KEY=not-needed
+
+#### Mongodb & Profile Database Locations
+- MONGODB_URI=mongodb://<USER>:<PASSWORD>@<IP-ADDRESS>:<PORT>/bambisleep?authSource=admin
+- MONGODB_PROFILES=mongodb://<USER>:<PASSWORD>@<IP-ADDRESS>:<PORT>/bambisleep-profiles?authSource=admin
 
 <details>
 
@@ -156,68 +348,6 @@ cuss you can share your rigs bambis
 
 ## Getting Started
 
-#### Creating a new python venv enviroment & activating it
-
-```bash
-python3 -m venv .f5-tts
-source .f5-tts/bin/activate
-```
-
-### Install PyTorch with matched device
-
-<details>
-<summary>NVIDIA GPU</summary>
-
-> ```bash
-> # Install pytorch with your CUDA version, e.g.
-> pip install torch==2.4.0+cu124 torchaudio==2.4.0+cu124 --extra-index-url https://download.pytorch.org/whl/cu124
-> ```
-
-</details>
-
-<details>
-<summary>AMD GPU</summary>
-
-> ```bash
-> # Install pytorch with your ROCm version (Linux only), e.g.
-> pip install torch==2.5.1+rocm6.2 torchaudio==2.5.1+rocm6.2 --extra-index-url https://download.pytorch.org/whl/rocm6.2
-> ```
-
-</details>
-
-<details>
-<summary>Intel GPU</summary>
-
-> ```bash
-> # Install pytorch with your XPU version, e.g.
-> # Intel® Deep Learning Essentials or Intel® oneAPI Base Toolkit must be installed
-> pip install torch torchaudio --index-url https://download.pytorch.org/whl/test/xpu
-> 
-> # Intel GPU support is also available through IPEX (Intel® Extension for PyTorch)
-> # IPEX does not require the Intel® Deep Learning Essentials or Intel® oneAPI Base Toolkit
-> # See: https://pytorch-extension.intel.com/installation?request=platform
-> ```
-
-</details>
-
-<details>
-<summary>Apple Silicon</summary>
-
-> ```bash
-> # Install the stable pytorch, e.g.
-> pip install torch torchaudio
-> ```
-
-</details>
-
-##### Installing into the system/actived environment using pip
-
-```bash
-pip install -e .
-```
-
-#### System dependencies
-
 # Node Version Manager
 ```bash
 # windows
@@ -248,31 +378,14 @@ npm run start
 > ### 1. As a pip package (if just for inference)
 > 
 > ```bash
-> pip install f5-tts
-> ```
-> 
-> ### 2. Local editable (if also do training, finetuning)
-> 
-> ```bash
-> git clone https://github.com/SWivid/F5-TTS.git
-> cd F5-TTS
-> # git submodule update --init --recursive  # (optional, if need > bigvgan)
-> pip install -e .
-> ```
+># Using pre-built Docker images for kokoro-fastapi
+>## For CPU:
+>docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
+>## For NVIDIA GPU:
+>docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest
+>```
 
 </details>
-
-### Docker usage also available
-```bash
-# Build from Dockerfile
-docker build -t f5tts:v1 .
-
-# Run from GitHub Container Registry
-docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,target=/root/.cache/huggingface/hub/' -p 7860:7860 ghcr.io/swivid/f5-tts:main
-
-# Quickstart if you want to just run the web interface (not CLI)
-docker container run --rm -it --gpus=all --mount 'type=volume,source=f5-tts,target=/root/.cache/huggingface/hub/' -p 7860:7860 ghcr.io/swivid/f5-tts:main f5-tts_infer-gradio --host 0.0.0.0
-```
 
 ```mermaid
 graph LR
@@ -306,6 +419,7 @@ graph LR
         Views --> ViewIndex[index.ejs]
         Views --> ViewPTM[psychodelic-trigger-mania.ejs]
         Views --> ViewScrapers[scrapers.ejs]
+        Views --> ViewProfile[profile.ejs]
         Views --> ViewPartials[partials/]
     end
 
@@ -334,6 +448,7 @@ graph LR
 
         Services --> InferenceService[inferenceService.js]
         Services --> ProcessingService[processingService.js]
+        Services --> ProfileService[profileService.js]
     end
 
     %% Bottom Row - Client-side JS, Workers and External Services
@@ -344,6 +459,7 @@ graph LR
         JavaScript --> Text2Speech[text2speech.js]
         JavaScript --> Triggers[triggers.js]
         JavaScript --> ScrapersScript[scrapers.js]
+        JavaScript --> ProfileScript[profile.js]
 
         Workers --> LMStudioWorker[lmstudio.js]
         Workers --> SpeecherWorker[speecher.js]
@@ -356,6 +472,8 @@ graph LR
         
         Database --> PatreonData[Patreon Auth]
         Database --> ScraperData[Scraper Data]
+        Database --> ProfileData[Profile Data]
+        Database --> TriggerData[Trigger Data]
     end
 
     %% Define styles using CSS variables from style.css
@@ -374,10 +492,11 @@ graph LR
 
 - 🔧 **Backend**: Node.js, Express, Socket.IO
 - ⚙️ **Processing**: Worker Threads, Child Process
-- 🤖 **AI**: Llama3 Lexi Uncensored
+- 🤖 **AI**: Llama3 Lexi Uncensored, Claude 3.7 Sonnet
 - 🔊 **Audio**: F5-TTS, Coqui-tts
 - 🖥️ **Frontend**: EJS, Express, Socket.io
 - 🛠️ **Utilities**: Axios
+- 📦 **Database**: MongoDB
 
 ## 🔒 Security Features
 
@@ -387,6 +506,8 @@ graph LR
 - 🌐 CORS configuration
 - 🚫 Protected routes
 - 🔒 Secure websockets
+- 🔐 Profile privacy controls
+- 🛡️ Enhanced data encryption
 
 ## 🗂️ Folder Structure
 
@@ -398,279 +519,5 @@ graph LR
 > tree -I "node_modules|.env|.vscode|package-lock.json|*.test.js|darkside|assets/audio|assets/text2speech|.f5-tts" --dirsfirst > folder-structure.md
 >```
 
-
-```bash
-.
-├── F5-TTS
-│   ├── ckpts
-│   │   └── README.md
-│   ├── data
-│   │   ├── Emilia_ZH_EN_pinyin
-│   │   │   └── vocab.txt
-│   │   └── librispeech_pc_test_clean_cross_sentence.lst
-│   ├── src
-│   │   ├── f5_tts
-│   │   │   ├── configs
-│   │   │   │   ├── E2TTS_Base.yaml
-│   │   │   │   ├── E2TTS_Small.yaml
-│   │   │   │   ├── F5TTS_Base.yaml
-│   │   │   │   ├── F5TTS_Small.yaml
-│   │   │   │   └── F5TTS_v1_Base.yaml
-│   │   │   ├── eval
-│   │   │   │   ├── README.md
-│   │   │   │   ├── ecapa_tdnn.py
-│   │   │   │   ├── eval_infer_batch.py
-│   │   │   │   ├── eval_infer_batch.sh
-│   │   │   │   ├── eval_librispeech_test_clean.py
-│   │   │   │   ├── eval_seedtts_testset.py
-│   │   │   │   ├── eval_utmos.py
-│   │   │   │   └── utils_eval.py
-│   │   │   ├── infer
-│   │   │   │   ├── examples
-│   │   │   │   │   ├── basic
-│   │   │   │   │   │   ├── basic.toml
-│   │   │   │   │   │   ├── basic_ref_en.wav
-│   │   │   │   │   │   └── basic_ref_zh.wav
-│   │   │   │   │   ├── multi
-│   │   │   │   │   │   ├── country.flac
-│   │   │   │   │   │   ├── main.flac
-│   │   │   │   │   │   ├── story.toml
-│   │   │   │   │   │   ├── story.txt
-│   │   │   │   │   │   └── town.flac
-│   │   │   │   │   └── vocab.txt
-│   │   │   │   ├── README.md
-│   │   │   │   ├── SHARED.md
-│   │   │   │   ├── infer_cli.py
-│   │   │   │   ├── infer_gradio.py
-│   │   │   │   ├── speech_edit.py
-│   │   │   │   └── utils_infer.py
-│   │   │   ├── model
-│   │   │   │   ├── backbones
-│   │   │   │   │   ├── README.md
-│   │   │   │   │   ├── dit.py
-│   │   │   │   │   ├── mmdit.py
-│   │   │   │   │   └── unett.py
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── cfm.py
-│   │   │   │   ├── dataset.py
-│   │   │   │   ├── modules.py
-│   │   │   │   ├── trainer.py
-│   │   │   │   └── utils.py
-│   │   │   ├── runtime
-│   │   │   │   └── triton_trtllm
-│   │   │   │       ├── model_repo_f5_tts
-│   │   │   │       │   ├── f5_tts
-│   │   │   │       │   │   ├── 1
-│   │   │   │       │   │   │   ├── f5_tts_trtllm.py
-│   │   │   │       │   │   │   └── model.py
-│   │   │   │       │   │   └── config.pbtxt
-│   │   │   │       │   └── vocoder
-│   │   │   │       │       ├── 1
-│   │   │   │       └── config.pbtxt
-│   │   │   │       ├── patch
-│   │   │   │       │   ├── f5tts
-│   │   │   │       │   │   ├── model.py
-│   │   │   │       │   │   └── modules.py
-│   │   │   │       │   └── __init__.py
-│   │   │   │       ├── scripts
-│   │   │   │       │   ├── conv_stft.py
-│   │   │   │       │   ├── convert_checkpoint.py
-│   │   │   │       │   ├── export_vocoder_to_onnx.py
-│   │   │   │       │   ├── export_vocos_trt.sh
-│   │   │   │       │   └── fill_template.py
-│   │   │   │       ├── Dockerfile.server
-│   │   │   │       ├── README.md
-│   │   │   │       ├── benchmark.py
-│   │   │   │       ├── client_grpc.py
-│   │   │   │       ├── client_http.py
-│   │   │   │       ├── docker-compose.yml
-│   │   │   │       ├── requirements-pytorch.txt
-│   │   │   │       └── run.sh
-│   │   │   ├── scripts
-│   │   │   │   ├── count_max_epoch.py
-│   │   │   │   └── count_params_gflops.py
-│   │   │   ├── train
-│   │   │   │   ├── datasets
-│   │   │   │   │   ├── prepare_csv_wavs.py
-│   │   │   │   │   ├── prepare_emilia.py
-│   │   │   │   │   ├── prepare_libritts.py
-│   │   │   │   │   ├── prepare_ljspeech.py
-│   │   │   │   │   └── prepare_wenetspeech4tts.py
-│   │   │   │   ├── README.md
-│   │   │   │   ├── finetune_cli.py
-│   │   │   │   ├── finetune_gradio.py
-│   │   │   │   └── train.py
-│   │   │   ├── api.py
-│   │   │   ├── socket_client.py
-│   │   │   └── socket_server.py
-│   │   └── third_party
-│   │       └── BigVGAN
-│   │           ├── alias_free_activation
-│   │           │   ├── cuda
-│   │           │   │   ├── __init__.py
-│   │           │   │   ├── activation1d.py
-│   │           │   │   ├── anti_alias_activation.cpp
-│   │           │   │   ├── anti_alias_activation_cuda.cu
-│   │           │   │   ├── compat.h
-│   │           │   │   ├── load.py
-│   │           │   │   └── type_shim.h
-│   │           │   └── torch
-│   │           │       ├── __init__.py
-│   │           │       ├── act.py
-│   │           │       ├── filter.py
-│   │           │       ├── resample.py
-│   │           │       └── utils.py
-│   │           ├── configs
-│   │           │   ├── bigvgan_22khz_80band.json
-│   │           │   ├── bigvgan_24khz_100band.json
-│   │           │   ├── bigvgan_base_22khz_80band.json
-│   │           │   ├── bigvgan_base_24khz_100band.json
-│   │           │   ├── bigvgan_v2_22khz_80band_256x.json
-│   │           │   ├── bigvgan_v2_22khz_80band_fmax8k_256x.json
-│   │           │   ├── bigvgan_v2_24khz_100band_256x.json
-│   │           │   ├── bigvgan_v2_44khz_128band_256x.json
-│   │           │   └── bigvgan_v2_44khz_128band_512x.json
-│   │           ├── demo
-│   │           │   ├── examples
-│   │           │   │   ├── dance_24k.wav
-│   │           │   │   ├── hifitts_44k.wav
-│   │           │   │   ├── jensen_24k.wav
-│   │           │   │   ├── libritts_24k.wav
-│   │           │   │   ├── megalovania_24k.wav
-│   │           │   │   ├── musdbhq_44k.wav
-│   │           │   │   ├── musiccaps1_44k.wav
-│   │           │   │   ├── musiccaps2_44k.wav
-│   │           │   │   └── queen_24k.wav
-│   │           │   ├── __init__.py
-│   │           │   ├── app.py
-│   │           │   └── requirements.txt
-│   │           ├── filelists
-│   │           │   └── LibriTTS
-│   │           │       ├── dev-clean.txt
-│   │           │       ├── dev-other.txt
-│   │           │       ├── parse_libritts.py
-│   │           │       ├── test-clean.txt
-│   │           │       ├── test-other.txt
-│   │           │       ├── train-full.txt
-│   │           │       └── val-full.txt
-│   │           ├── incl_licenses
-│   │           │   ├── LICENSE_1
-│   │           │   ├── LICENSE_2
-│   │           │   ├── LICENSE_3
-│   │           │   ├── LICENSE_4
-│   │           │   ├── LICENSE_5
-│   │           │   ├── LICENSE_6
-│   │           │   ├── LICENSE_7
-│   │           │   └── LICENSE_8
-│   │           ├── nv-modelcard++
-│   │           │   ├── bias.md
-│   │           │   ├── explainability.md
-│   │           │   ├── overview.md
-│   │           │   ├── privacy.md
-│   │           │   └── safety.md
-│   │           ├── tests
-│   │           │   ├── test_activation.py
-│   │           │   ├── test_activation_snake_beta.py
-│   │           │   └── test_cuda_vs_torch_model.py
-│   │           ├── LICENSE
-│   │           ├── README.md
-│   │           ├── activations.py
-│   │           ├── bigvgan.py
-│   │           ├── discriminators.py
-│   │           ├── env.py
-│   │           ├── inference.py
-│   │           ├── inference_e2e.py
-│   │           ├── loss.py
-│   │           ├── meldataset.py
-│   │           ├── requirements.txt
-│   │           ├── train.py
-│   │           └── utils.py
-│   ├── Dockerfile
-│   ├── LICENSE
-│   ├── README.md
-│   ├── pyproject.toml
-│   └── ruff.toml
-├── src
-│   ├── config
-│   │   ├── config.js
-│   │   ├── footer.config.js
-│   │   └── modelConfig.js
-│   ├── middleware
-│   │   ├── bambisleepChalk.js
-│   │   └── error.js
-│   ├── models
-│   │   ├── modelCache.js
-│   │   └── modelManager.js
-│   ├── public
-│   │   ├── css
-│   │   │   ├── bootstrap.min.css
-│   │   │   ├── bootstrap.min.css.map
-│   │   │   └── style.css
-│   │   ├── img
-│   │   │   ├── bambisleep-chat.gif
-│   │   │   ├── brandynette.gif
-│   │   │   └── in-her-bubble.gif
-│   │   ├── js
-│   │   │   ├── aigf-core.js
-│   │   │   ├── bootstrap.min.js
-│   │   │   ├── psychodelic-trigger-mania.js
-│   │   │   ├── responsive.js
-│   │   │   ├── scrapers.js
-│   │   │   ├── text2speech.js
-│   │   │   └── triggers.js
-│   │   ├── apple-touch-icon.png
-│   │   ├── favicon-16x16.png
-│   │   ├── favicon-32x32.png
-│   │   └── favicon.ico
-│   ├── routes
-│   │   ├── help.js
-│   │   ├── index.js
-│   │   ├── psychodelic-trigger-mania.js
-│   │   └── scrapers.js
-│   ├── schemas
-│   │   └── PatreonAuthSchema.js
-│   ├── services
-│   │   ├── inferenceService.js
-│   │   └── processingService.js
-│   ├── temp
-│   │   └── audio
-│   ├── utils
-│   │   ├── dbConnection.js
-│   │   ├── doxxerinator.js
-│   │   ├── gracefulShutdown.js
-│   │   ├── jsonSchemaGenerator.js
-│   │   ├── logger.js
-│   │   └── promptTemplates.js
-│   ├── views
-│   │   ├── partials
-│   │   │   ├── footer.ejs
-│   │   │   ├── head.ejs
-│   │   │   ├── nav.ejs
-│   │   │   └── system-controls.ejs
-│   │   ├── error.ejs
-│   │   ├── help.ejs
-│   │   ├── index.ejs
-│   │   ├── psychodelic-trigger-mania.ejs
-│   │   └── scrapers.ejs
-│   ├── workers
-│   │   ├── scrapers
-│   │   │   ├── baseWorker.js
-│   │   │   ├── imageScraping.js
-│   │   │   ├── textScraping.js
-│   │   │   └── videoScraping.js
-│   │   ├── lmstudio.js
-│   │   ├── speecher.js
-│   │   └── workerCoordinator.js
-│   ├── bambi.wav
-│   ├── filteredWords.json
-│   ├── server.js
-│   └── silence_100ms.wav
-├── LICENSE
-├── README.md
-├── folder-structure.md
-└── package.json
-
-59 directories, 209 files
-```
-
 </details>
+```

@@ -126,6 +126,18 @@ const profileSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    collarText: {
+      type: String,
+      default: ''
+    },
+    collarEnabled: {
+      type: Boolean,
+      default: false
+    },
+    collarLastUpdated: {
+      type: Date,
+      default: null
+    },
     multiplierSettings: {
       A1: { type: Number, default: 1 },
       A2: { type: Number, default: 1 },
@@ -136,7 +148,8 @@ const profileSchema = new mongoose.Schema({
         enum: ['add', 'subtract', 'multiply', 'divide'],
         default: 'add'
       }
-    }
+    },
+    activeTriggers: [String]
   },
   validConstantsCount: {
     type: Number,
@@ -224,6 +237,42 @@ profileSchema.methods.updateActiveTriggerSession = function() {
   } else {
     this.activeTriggerSession.activeTriggers = activeTriggers;
     this.activeTriggerSession.lastUpdated = new Date();
+  }
+};
+
+// Add a method to update system controls
+profileSchema.methods.updateSystemControls = function(controlsData) {
+  if (!this.systemControls) {
+    this.systemControls = {};
+  }
+  
+  // Update specific fields if provided
+  if (controlsData.spiralsEnabled !== undefined) {
+    this.systemControls.spiralsEnabled = controlsData.spiralsEnabled;
+  }
+  
+  if (controlsData.hypnosisEnabled !== undefined) {
+    this.systemControls.hypnosisEnabled = controlsData.hypnosisEnabled;
+  }
+  
+  if (controlsData.collarText !== undefined) {
+    this.systemControls.collarText = controlsData.collarText;
+    this.systemControls.collarLastUpdated = new Date();
+  }
+  
+  if (controlsData.collarEnabled !== undefined) {
+    this.systemControls.collarEnabled = controlsData.collarEnabled;
+  }
+  
+  if (controlsData.multiplierSettings) {
+    this.systemControls.multiplierSettings = {
+      ...this.systemControls.multiplierSettings,
+      ...controlsData.multiplierSettings
+    };
+  }
+  
+  if (controlsData.activeTriggers) {
+    this.systemControls.activeTriggers = controlsData.activeTriggers;
   }
 };
 
