@@ -6,6 +6,7 @@ import http from 'http';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import cookieParser from 'cookie-parser';
 
 // modules
 import { Worker } from 'worker_threads';
@@ -21,9 +22,13 @@ import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
 import bambisRouter from './routes/bambis.js';
+// Add profile routes
+import profileRouter from './routes/profile.js';
 
 //schemas
 import { Bambi } from './schemas/BambiSchema.js';
+// Add Profile model (after converting to ES module)
+import { Profile } from './models/Profile.js';
 
 //wokers
 import workerCoordinator from './workers/workerCoordinator.js';
@@ -32,8 +37,11 @@ import workerCoordinator from './workers/workerCoordinator.js';
 import errorHandler from './middleware/error.js';
 import footerConfig from './config/footer.config.js';
 import Logger from './utils/logger.js';
-import connectToMongoDB from './utils/dbConnection.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
+// Import profile socket handlers
+import socketProfileHandlers from './socket/profileHandlers.js';
+// Import new database connection utilities
+import { connectDB, getConnection } from './config/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,12 +56,21 @@ const server = http.createServer(app);
 const io = new Server(server, {
   pingTimeout: 86400000, // 1 day
   pingInterval: 25000, // 25 seconds
+  cors: {
+    origin: ['https://bambisleep.chat', 'https://fickdichselber.com'],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
 });
 
 //filteredWords
 const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
 
 logger.info('Loading environment variables...');
+
+// Setup view engine and middleware
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
 app.use(cors({
   origin: ['https://bambisleep.chat', 'https://fickdichselber.com'],
@@ -62,11 +79,90 @@ app.use(cors({
   credentials: true
 }));
 
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
 // Add file upload middleware for audio files
 app.use(fileUpload({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   abortOnLimit: true
 }));
+
+// Serve static files with proper MIME types
+app.use('/css', express.static(path.join(__dirname, 'public/css'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    }
+  }
+}));
+
+app.use('/js', express.static(path.join(__dirname, 'public/js'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+  }
+}));
+
+// Setup other static assets
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use('/gif', express.static(path.join(__dirname, 'public/gif')));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/workers', express.static(path.join(__dirname, 'workers')));
+
+app.get('/socket.io/socket.io.js', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
+});
+
+// Add redirects for backwards compatibility with existing file references
+app.get('/gif/default-header.jpg', (req, res) => {
+  res.redirect('/gif/default-header.gif');
+});
+
+// Redirect bambis route to profile page
+app.get('/bambis', (req, res) => {
+  res.redirect('/');
+});
+
+// Footer data configuration
+const profileFooterData = {
+  logo: {
+    url: '/',
+    image: '/images/logo.png',
+    alt: 'BambiSleep.Chat'
+  },
+  tagline: 'Customize your bambi experience',
+  primaryLinks: [
+    { label: 'Profiles', url: '/profiles' },
+    { label: 'Settings', url: '/settings' },
+    { label: 'Triggers', url: '/triggers' },
+  ],
+  secondaryLinks: [
+    { label: 'Home', url: '/' },
+    { label: 'About', url: '/about' },
+    { label: 'Privacy', url: '/privacy' },
+  ],
+  tertiaryLinks: [
+    { label: 'Discord', url: 'https://discord.gg/bambisleep', external: true },
+    { label: 'Forum', url: '/forum' },
+    { label: 'Share', url: '/share' },
+  ],
+  quaternaryLinks: [
+    { label: 'Melkanea', url: 'https://www.youtube.com/@Melkanea', external: true },
+    { label: 'Contributors', url: '/contributors' },
+    { label: 'Support', url: '/support' },
+  ]
+};
+
+// Make footer data available to all templates
+app.use((req, res, next) => {
+  res.locals.footer = footerConfig;
+  res.locals.profileFooter = profileFooterData;
+  next();
+});
 
 const MAX_LISTENERS_BASE = 10;
 let currentMaxListeners = MAX_LISTENERS_BASE;
@@ -86,32 +182,19 @@ function adjustMaxListeners(worker, increment = true) {
 
 Worker.prototype.setMaxListeners(currentMaxListeners);
 
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
 logger.info('Initializing server components...');
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/workers', express.static(path.join(__dirname, 'workers')));
-app.use('/images', express.static(path.join(__dirname, 'public/images')));
-
-app.get('/socket.io/socket.io.js', (req, res) => {
-  res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
-});
-
-app.locals.footer = footerConfig;
-
+// Configure routes
 const routes = [
   { path: '/', handler: indexRoute },
   { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
   { path: '/help', handler: helpRoute },
   { path: '/scrapers', handler: scrapersRoute },
-  { path: '/bambis', handler: bambisRouter }, // Add this line
+  { path: '/bambis', handler: bambisRouter },
+  { path: '/profile', handler: profileRouter }, // Add profile routes
 ];
 
-// Configure Kokoro TTS API settings - updated to use KOKORO_HOST and KOKORO_PORT from .env
+// Configure Kokoro TTS API settings
 const KOKORO_HOST = process.env.KOKORO_HOST || 'localhost';
 const KOKORO_PORT = process.env.KOKORO_PORT || 8880;
 const KOKORO_API_URL = process.env.KOKORO_API_URL || `http://${KOKORO_HOST}:${KOKORO_PORT}/v1`;
@@ -133,6 +216,7 @@ function setupRoutes() {
       res.render('index', { validConstantsCount: validConstantsCount });
     });
 
+    // Existing routes...
     app.post('/scrape', (req, res) => {
       const { url } = req.body;
       if (!url) {
@@ -280,6 +364,16 @@ function setupRoutes() {
       }
     });
 
+    // Add 404 handler from profile app
+    app.use((req, res, next) => {
+      res.status(404).render('error', {
+        message: 'Page not found',
+        error: { status: 404 },
+        validConstantsCount: 5,
+        title: 'Error - Page Not Found'
+      });
+    });
+
   } catch (error) {
     logger.error('Error in setupRoutes:', error);
   }
@@ -364,6 +458,7 @@ function setupSockets() {
         socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
         logger.success(`Client connected: ${socket.id} sockets: ${socketStore.size}`);
 
+        // Original socket events
         socket.on('chat message', async (msg) => {
           try {
             const timestamp = new Date().toISOString();
@@ -421,6 +516,67 @@ function setupSockets() {
             io.to(collarData.socketId).emit('collar', filteredCollar);
           } catch (error) {
             logger.error('Error in collar handler:', error);
+          }
+        });
+
+        // Add profile socket events
+        // Connect to profile room for real-time updates
+        socket.on('join-profile', (username) => {
+          if (username) {
+            socket.join(`profile-${username}`);
+            logger.info(`Socket ${socket.id} joined profile room: ${username}`);
+          }
+        });
+
+        // Profile trigger toggle event
+        socket.on('toggle-trigger', async ({ username, triggerName, active }) => {
+          try {
+            if (!username) return;
+            
+            const profile = await Profile.findOne({ username });
+            if (profile) {
+              profile.toggleTrigger(triggerName, active);
+              await profile.save();
+              
+              // Broadcast to anyone viewing this profile
+              io.to(`profile-${username}`).emit('trigger-toggled', {
+                triggerName,
+                active,
+                activeTriggerSession: profile.activeTriggerSession
+              });
+              
+              logger.info(`Trigger ${triggerName} ${active ? 'activated' : 'deactivated'} for ${username}`);
+            }
+          } catch (error) {
+            logger.error(`Error toggling trigger: ${error.message}`);
+            socket.emit('error', { message: 'Failed to toggle trigger' });
+          }
+        });
+
+        // Profile delete event
+        socket.on('delete-profile', async ({ username }) => {
+          try {
+            // Find and delete the profile
+            const deletedProfile = await Profile.findOneAndDelete({ username });
+            
+            if (deletedProfile) {
+              // Emit to all clients viewing this profile
+              io.to(`profile-${username}`).emit('profile-deleted', { username });
+              
+              // Emit to the user who deleted
+              socket.emit('profile-delete-success', {
+                success: true,
+                message: 'Profile deleted successfully',
+                redirectUrl: '/'
+              });
+              
+              logger.success(`Profile deleted for ${username}`);
+            } else {
+              socket.emit('error', { message: 'Profile not found' });
+            }
+          } catch (err) {
+            logger.error(`Error deleting profile: ${err.message}`);
+            socket.emit('error', { message: 'Failed to delete profile' });
           }
         });
 
@@ -648,57 +804,6 @@ function setupSockets() {
           }
         });
 
-        // Add this to your existing socket.io connection handler in setupSockets()
-        socket.on('profile:save', async (profileData) => {
-          try {
-            // Get username from socket connection
-            const username = socket.bambiProfile?.username || 
-                            decodeURIComponent(socket.handshake.headers.cookie?.split(';')
-                              .find(c => c.trim().startsWith('bambiname='))
-                              ?.split('=')[1] || '');
-            
-            if (!username || username === 'anonBambi') {
-              socket.emit('profile:error', 'You must be logged in to update your profile');
-              return;
-            }
-            
-            logger.info(`Socket profile update for user: ${username}`);
-            
-            // Find and update the user's profile
-            const bambi = await mongoose.model('Bambi').findOneAndUpdate(
-              { username },
-              { 
-                $set: {
-                  about: profileData.about,
-                  description: profileData.description,
-                  profilePictureUrl: profileData.profilePictureUrl,
-                  headerImageUrl: profileData.headerImageUrl,
-                  lastActive: new Date()
-                }
-              },
-              { new: true, upsert: true }
-            );
-            
-            // Send success message back to the client that made the update
-            socket.emit('profile:saved', {
-              success: true,
-              bambi: bambi,
-              message: 'Profile updated successfully'
-            });
-            
-            // Broadcast to all other clients viewing this profile
-            socket.broadcast.emit('profile:updated', {
-              username,
-              bambi: bambi
-            });
-            
-            logger.success(`Profile updated for ${username} via socket`);
-          } catch (error) {
-            logger.error('Socket profile update error:', error);
-            socket.emit('profile:error', 'Error updating profile');
-          }
-        });
-
         // Handle profile view request via socket
         socket.on('profile:view', async (username) => {
           try {
@@ -782,17 +887,38 @@ logger.success('Socket middleware setup complete');
 
 function setupErrorHandlers() {
   try {
-    app.use((err, req, res, next) => {
-      const status = err.status || 500;
-      logger.error(`[${status}] ${err.message}`);
-      res.status(status).json({
-        error:
-          process.env.NODE_ENV === 'production'
-            ? 'An error occurred'
-            : err.message
+    // 404 handler from profile app
+    app.use((req, res, next) => {
+      res.status(404).render('error', {
+        message: 'Page not found',
+        error: { status: 404 },
+        validConstantsCount: 5,
+        title: 'Error - Page Not Found'
       });
     });
 
+    // General error handler
+    app.use((err, req, res, next) => {
+      const status = err.status || 500;
+      logger.error(`[${status}] ${err.message}`);
+      
+      // Render error page for HTML requests
+      if (req.accepts('html')) {
+        res.status(status).render('error', {
+          message: err.message,
+          error: req.app.get('env') === 'development' ? err : {},
+          validConstantsCount: 5,
+          title: `Error - ${status}`
+        });
+      } else {
+        // JSON response for API requests
+        res.status(status).json({
+          error: process.env.NODE_ENV === 'production' ? 'An error occurred' : err.message
+        });
+      }
+    });
+    
+    // Special case for 503 errors
     app.use((err, req, res, next) => {
       if (err.status === 503) {
         res.status(503).render('profile', { error: true });
@@ -846,16 +972,14 @@ function delay(ms) {
 
 async function initializeServer() {
   try {
-    // Step 1: Connect to MongoDB ONCE
-    logger.info('Step 1/6: Connecting to MongoDB...');
-    await connectToMongoDB();
+    // Step 1: Connect to MongoDB databases
+    logger.info('Step 1/6: Connecting to MongoDB databases...');
+    await connectDB();
 
-    // Wait for mongoose connection to be fully established
-    while (mongoose.connection.readyState !== 1) {
-      logger.info('Waiting for MongoDB connection to be fully ready...');
-      await delay(500);
-    }
-    logger.success('MongoDB connection fully established and ready');
+    // Wait for connections to be fully established
+    logger.info('Waiting for MongoDB connections to be fully ready...');
+    await delay(500);
+    logger.success('MongoDB connections fully established and ready');
 
     // Step 2: Setup routes first to ensure models are defined
     logger.info('Step 2/6: Setting up server components...');

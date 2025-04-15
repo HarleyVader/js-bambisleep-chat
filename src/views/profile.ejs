@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('./partials/head', { title: locals.title || 'BambiSleep Profile' }) %>
+<body data-username="<%= locals.profile ? profile.username : '' %>" data-mode="<%= locals.mode || 'view' %>">
+  <%- include('./partials/nav') %>
+
+  <div class="container">
+    <% if (locals.mode === 'create') { %>
+      <!-- CREATE MODE -->
+      <div class="profile-creation-container">
+        <h1>Create Your Bambi Profile</h1>
+        
+        <% if (locals.error) { %>
+          <div class="error-message"><%= error %></div>
+        <% } %>
+        
+        <form id="create-profile-form" class="profile-form" method="POST" action="/profile/new">
+          <div class="input-container">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" value="<%= locals.formData ? formData.username : '' %>" required>
+            <p class="helper-text">This will be your unique identifier and cannot be changed later.</p>
+          </div>
+
+          <div class="input-container">
+            <label for="displayName">Display Name</label>
+            <input type="text" id="displayName" name="displayName" value="<%= locals.formData ? formData.displayName : '' %>">
+            <p class="helper-text">This is how you'll appear to others.</p>
+          </div>
+
+          <div class="input-container">
+            <label for="avatar">Avatar URL</label>
+            <input type="text" id="avatar" name="avatar" value="<%= locals.formData ? formData.avatar : '' %>" placeholder="https://example.com/your-avatar.jpg">
+            <p class="helper-text">Leave empty to use default avatar.</p>
+          </div>
+
+          <div class="input-container">
+            <label for="about">About</label>
+            <textarea id="about" name="about" rows="3"><%= locals.formData ? formData.about : '' %></textarea>
+            <p class="helper-text">Tell us a bit about yourself.</p>
+          </div>
+
+          <div class="input-container">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="5"><%= locals.formData ? formData.description : '' %></textarea>
+            <p class="helper-text">Share your bambi journey in more detail.</p>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="save-btn">Create Profile</button>
+            <a href="/" class="cancel-btn">Cancel</a>
+          </div>
+        </form>
+        
+        <!-- System Controls Section -->
+        <div class="system-controls-section">
+          <h2>System Controls Setup</h2>
+          <p class="helper-text">Configure your system controls now or edit them later from your profile page.</p>
+          
+          <div class="system-controls-container">
+            <!-- Include system controls without the profile form part -->
+            <div class="system-controls">
+              <div id="buttons" class="control-buttons">
+                <% const validConstantsCount = locals.validConstantsCount || 5; %>
+                <% if (validConstantsCount >= 1) { %>
+                  <button id="triggers" class="control-btn">Triggers</button>
+                <% } %>
+                <% if (validConstantsCount >= 2) { %>
+                  <button id="toggle-collar" class="control-btn">Collar</button>
+                <% } %>
+                <% if (validConstantsCount >= 3) { %>
+                  <button id="spirals" class="control-btn">Spirals</button>
+                <% } %>
+                <% if (validConstantsCount >= 4) { %>
+                  <button id="hypnosis" class="control-btn">Hypnosis</button>
+                <% } %>
+                <% if (validConstantsCount >= 5) { %>
+                  <button id="toggle-all-triggers" class="control-btn">Toggle All Triggers</button>
+                <% } %>
+              </div>
+
+              <div id="console" class="control-panels">
+                <% if (validConstantsCount >= 1) { %>
+                  <div id="trigger-toggles" class="control-panel" style="display: none;">
+                    <h3>Trigger Controls</h3>
+                    <button id="activate-all" class="secondary-btn">Toggle All</button>
+                    <div id="trigger-list" class="trigger-grid">
+                      <!-- Triggers will be populated by JavaScript -->
+                    </div>
+                  </div>
+                <% } %>
+                
+                <% if (validConstantsCount >= 2) { %>
+                  <div id="collar-form" class="control-panel" style="display: none;">
+                    <h3>Collar System</h3>
+                    <form id="collar-form-inputs">
+                      <textarea id="textarea-collar" placeholder="System Collar for my AIGF"></textarea>
+                      <button id="collar" type="submit" class="secondary-btn">Apply Collar</button>
+                    </form>
+                    <div id="user-collar" class="collar-messages"></div>
+                    <div id="textarea-collar-response" class="collar-responses"></div>
+                  </div>
+                <% } %>
+                
+                <% if (validConstantsCount >= 3) { %>
+                  <div id="spirals-template" class="control-panel" style="display: none;">
+                    <h3>Spiral Controls</h3>
+                    <p>Spiral features coming soon...</p>
+                  </div>
+                <% } %>
+                
+                <% if (validConstantsCount >= 4) { %>
+                  <div id="hypnosis-template" class="control-panel" style="display: none;">
+                    <h3>Hypnosis Controls</h3>
+                    <p>Hypnosis features coming soon...</p>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% } else if (locals.mode === 'edit') { %>
+      <!-- EDIT MODE -->
+      <div class="profile-edit-container">
+        <h1>Edit Your Profile</h1>
+        
+        <form data-submit-method="socket" data-socket-event="update-profile" action="/profile/update">
+          <input type="hidden" name="username" value="<%= profile.username %>">
+
+          <div class="input-container">
+            <label for="displayName">Display Name</label>
+            <input type="text" id="displayName" name="displayName" value="<%= profile.displayName || profile.username %>" required>
+          </div>
+
+          <div class="input-container">
+            <label for="avatar">Avatar URL:</label>
+            <input type="text" id="avatar" name="avatar" value="<%= profile.avatar %>" placeholder="/gif/default-avatar.gif">
+            <div class="preview">
+              <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="Avatar Preview" id="avatar-preview">
+            </div>
+          </div>
+
+          <div class="input-container">
+            <label for="headerImage">Header Image URL:</label>
+            <input type="text" id="headerImage" name="headerImage" value="<%= profile.headerImage %>" placeholder="/gif/default-header.gif">
+            <div class="preview">
+              <img src="<%= profile.headerImage || '/gif/default-header.gif' %>" alt="Header Preview" id="header-preview" style="border-radius: 4px; max-width: 200px; height: auto;">
+            </div>
+          </div>
+
+          <div class="input-container">
+            <label for="headerColor">Header Color</label>
+            <input type="color" id="headerColor" name="headerColor" value="<%= profile.headerColor || '#35424a' %>">
+          </div>
+
+          <div class="input-container">
+            <label for="about">About (150 chars max):</label>
+            <textarea id="about" name="about" maxlength="150" placeholder="Brief intro (150 chars max)"><%= profile.about %></textarea>
+            <div class="char-counter"><span id="about-counter">0</span>/150</div>
+          </div>
+
+          <div class="input-container">
+            <label for="description">Description (1500 chars max):</label>
+            <textarea id="description" name="description" maxlength="1500" rows="5" placeholder="Your full bambi journey (1500 chars max)"><%= profile.description %></textarea>
+            <div class="char-counter"><span id="description-counter">0</span>/1500</div>
+          </div>
+
+          <div class="input-container">
+            <label>Seasons</label>
+            <div class="checkbox-group">
+              <div class="checkbox-item">
+                <input type="checkbox" id="spring" name="seasons" value="spring" 
+                  <%= profile.seasons && profile.seasons.includes('spring') ? 'checked' : '' %>>
+                <label for="spring">Spring</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="summer" name="seasons" value="summer"
+                  <%= profile.seasons && profile.seasons.includes('summer') ? 'checked' : '' %>>
+                <label for="summer">Summer</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="autumn" name="seasons" value="autumn"
+                  <%= profile.seasons && profile.seasons.includes('autumn') ? 'checked' : '' %>>
+                <label for="autumn">Autumn</label>
+              </div>
+              <div class="checkbox-item">
+                <input type="checkbox" id="winter" name="seasons" value="winter"
+                  <%= profile.seasons && profile.seasons.includes('winter') ? 'checked' : '' %>>
+                <label for="winter">Winter</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="editable-field">
+            <div id="fieldname-display">Current value</div>
+            <button class="edit-field-btn" data-field="fieldname">Edit</button>
+            
+            <form id="fieldname-form" style="display: none;" class="inline-form">
+              <input id="fieldname" name="fieldname" value="Current value">
+              <div id="fieldname-error" class="error-message"></div>
+              <div class="form-actions">
+                <button type="button" class="save-field-btn" data-field="fieldname">Save</button>
+                <button type="button" class="cancel-edit-btn" data-field="fieldname">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="save-btn">Save Changes</button>
+            <a href="/profile/<%= profile.username %>" class="cancel-btn">Cancel</a>
+          </div>
+        </form>
+      </div>
+    <% } else if (locals.mode === 'delete') { %>
+      <!-- DELETE CONFIRMATION MODE -->
+      <div class="profile-container">
+        <h1>Delete Your Profile</h1>
+        
+        <div class="alert alert-warning">
+          <p><strong>Warning:</strong> You are about to delete your profile. This action cannot be undone.</p>
+        </div>
+        
+        <div class="profile-summary">
+          <h2>Profile Summary</h2>
+          <div class="profile-info">
+            <p><strong>Username:</strong> <%= profile.username %></p>
+            <p><strong>Display Name:</strong> <%= profile.displayName || 'Not set' %></p>
+            <p><strong>Created:</strong> <%= new Date(profile.createdAt).toLocaleDateString() %></p>
+            <p><strong>Triggers:</strong> <%= profile.triggers ? profile.triggers.length : 0 %></p>
+          </div>
+        </div>
+        
+        <div class="confirmation-actions">
+          <form id="delete-form" method="POST" action="/profile/<%= profile.username %>/delete">
+            <button type="submit" class="delete-profile-btn">Yes, Delete My Profile</button>
+          </form>
+          <a href="/profile/<%= profile.username %>" class="cancel-btn">Cancel</a>
+        </div>
+      </div>
+    <% } else { %>
+      <!-- VIEW MODE -->
+      <div class="profile-container">
+        <!-- User identity section with integrated header and neonwave styling -->
+        <div class="profile-identity-section neonwave">
+          <!-- Header image moved inside identity section -->
+          <div class="profile-header-image" style="background-image: url('<%= profile.headerImage || "/gif/default-header.gif" %>'); background-color: <%= profile.headerColor %>;">
+          </div>
+          
+          <!-- Profile content container that includes avatar and info -->
+          <div class="profile-info-container">
+            <div class="avatar-container">
+              <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>" class="profile-avatar neon-glow">
+              <div class="avatar-neon-ring"></div>
+            </div>
+            
+            <div class="profile-info">
+              <div class="profile-header-flex">
+                <h1 class="profile-username neon-text">
+                  <%= profile.displayName || profile.username %>
+                </h1>
+                
+                <div class="user-stats-container">
+                  <div class="user-stat">
+                    <div class="stat-icon level-icon">⭐</div>
+                    <div class="stat-value"><%= profile.level || '1' %></div>
+                    <div class="stat-label">Level</div>
+                  </div>
+                  <div class="user-stat">
+                    <div class="stat-icon hearts-icon">❤️</div>
+                    <div class="stat-value"><%= profile.hearts || '0' %></div>
+                    <div class="stat-label">Hearts</div>
+                  </div>
+                  <div class="user-stat">
+                    <div class="stat-icon scrapes-icon">🔄</div>
+                    <div class="stat-value"><%= profile.scrapes || '0' %></div>
+                    <div class="stat-label">Scrapes</div>
+                  </div>
+                  <div class="user-stat">
+                    <div class="stat-icon controls-icon">⚙️</div>
+                    <div class="stat-value"><%= profile.controls || '0' %></div>
+                    <div class="stat-label">Controls</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="profile-about clickable-links neon-text-subtle">
+                <%- profile.about.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>') %>
+              </div>
+
+              <div class="profile-description-container cyber-panel">
+                <h2 class="neon-heading">Description</h2>
+                <div class="profile-description cyber-text">
+                  <%= profile.description %>
+                </div>
+              </div>
+
+              <% if (locals.isOwnProfile) { %>
+              <div class="profile-actions">
+                <button id="edit-profile-btn" class="neon-button">Edit Profile</button>
+                <button id="delete-profile-btn" class="neon-button danger">Delete Profile</button>
+              </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-content">
+          <!-- Triggers Section - First content section -->
+          <div class="profile-section">
+            <h2>Triggers</h2>
+
+            <div id="active-trigger-session" style="display: block;" class="trigger-session-info">
+              <!-- Session info will be populated by JavaScript -->
+            </div>
+
+            <div class="triggers-container">
+              <div class="profile-triggers">
+                <% if (profile.triggers && profile.triggers.length > 0) { %>
+                  <% profile.triggers.forEach(trigger => { %>
+                    <div class="trigger-item <%= trigger.active ? 'active' : '' %>">
+                      <div class="trigger-header">
+                        <h4><%= trigger.name %></h4>
+                        <div class="trigger-controls">
+                          <% if (locals.isOwnProfile) { %>
+                            <label class="switch">
+                              <input type="checkbox" class="trigger-toggle" data-trigger="<%= trigger.name %>" <%= trigger.active ? 'checked' : '' %>>
+                              <span class="slider round"></span>
+                            </label>
+                          <% } %>
+                        </div>
+                      </div>
+                      <p class="trigger-description"><%= trigger.description || 'No description available' %></p>
+                    </div>
+                  <% }); %>
+                <% } else { %>
+                  <div class="trigger-item active">
+                    <div class="trigger-header">
+                      <h4>BAMBI SLEEP</h4>
+                      <div class="trigger-controls">
+                        <% if (locals.isOwnProfile) { %>
+                          <label class="switch">
+                            <input type="checkbox" class="trigger-toggle" data-trigger="BAMBI SLEEP" checked>
+                            <span class="slider round"></span>
+                          </label>
+                        <% } %>
+                      </div>
+                    </div>
+                    <p class="trigger-description">The foundational trigger for all bambi dolls</p>
+                  </div>
+                <% } %>
+              </div>
+
+              <% if (locals.isOwnProfile) { %>
+                <div class="add-trigger-container">
+                  <h3>Add Trigger</h3>
+                  <form class="trigger-form" id="add-trigger-form">
+                    <div class="form-group">
+                      <label for="trigger-name">Name</label>
+                      <input type="text" id="trigger-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="trigger-description">Description</label>
+                      <textarea id="trigger-description" name="description" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="add-trigger-btn">Add Trigger</button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enhanced Profile Edit Modal with Neonwave Styling -->
+      <% if (locals.isOwnProfile) { %>
+        <div id="profile-edit-modal" class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>Edit Profile</h2>
+              <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+              <form id="edit-profile-form-modal" class="profile-form">
+                <input type="hidden" name="username" value="<%= profile.username %>">
+
+                <div class="input-container">
+                  <label for="displayName-modal">Display Name</label>
+                  <input type="text" id="displayName-modal" name="displayName" value="<%= profile.displayName || profile.username %>" required>
+                </div>
+
+                <div class="input-container">
+                  <label for="avatar-modal">Avatar URL:</label>
+                  <input type="text" id="avatar-modal" name="avatar" value="<%= profile.avatar %>" placeholder="/gif/default-avatar.gif">
+                  <div class="preview">
+                    <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="Avatar Preview" id="avatar-preview-modal">
+                  </div>
+                </div>
+
+                <div class="input-container">
+                  <label for="headerImage-modal">Header Image URL:</label>
+                  <input type="text" id="headerImage-modal" name="headerImage" value="<%= profile.headerImage %>" placeholder="/gif/default-header.gif">
+                  <div class="preview">
+                    <img src="<%= profile.headerImage || '/gif/default-header.gif' %>" alt="Header Preview" id="header-preview-modal" style="border-radius: 4px; max-width: 200px; height: auto;">
+                  </div>
+                </div>
+
+                <div class="input-container">
+                  <label for="headerColor-modal">Header Color</label>
+                  <input type="color" id="headerColor-modal" name="headerColor" value="<%= profile.headerColor || '#35424a' %>">
+                </div>
+
+                <div class="input-container">
+                  <label for="about-modal">About (150 chars max):</label>
+                  <textarea id="about-modal" name="about" maxlength="150" placeholder="Brief intro (150 chars max)"><%= profile.about %></textarea>
+                  <div class="char-counter"><span id="about-counter-modal">0</span>/150</div>
+                </div>
+
+                <div class="input-container">
+                  <label for="description-modal">Description (1500 chars max):</label>
+                  <textarea id="description-modal" name="description" maxlength="1500" rows="5" placeholder="Your full bambi journey (1500 chars max)"><%= profile.description %></textarea>
+                  <div class="char-counter"><span id="description-counter-modal">0</span>/1500</div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="save-btn">Save Changes</button>
+                  <button type="button" id="close-modal-btn" class="cancel-btn">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    <% } %>
+  </div>
+
+  <div class="notification-area"></div>
+
+  <% if (locals.mode !== 'create') { %>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/socket-client.js"></script>
+  <% } %>
+
+  <script src="/js/profile.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Helper function to show notifications
+      function showNotification(message, type = 'info') {
+        const notificationArea = document.querySelector('.notification-area');
+        if (!notificationArea) return;
+
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+
+        notificationArea.appendChild(notification);
+
+        setTimeout(() => {
+          notification.classList.add('fade-out');
+          setTimeout(() => {
+            notification.remove();
+          }, 300);
+        }, 3000);
+      }
+      
+      // Determine the current mode
+      const mode = document.body.getAttribute('data-mode');
+      
+      // Profile creation mode
+      if (mode === 'create') {
+        // Toggle function for control panels
+        function toggleButton(button, target) {
+          const panels = document.querySelectorAll('.control-panel');
+          const buttons = document.querySelectorAll('.control-btn');
+          
+          // Hide all panels first
+          panels.forEach(panel => {
+            panel.style.display = 'none';
+          });
+          
+          // Remove active class from all buttons
+          buttons.forEach(btn => {
+            btn.classList.remove('active-button');
+          });
+          
+          // Show the target panel
+          const element = document.getElementById(target);
+          if (element) {
+            element.style.display = 'block';
+            button.classList.add('active-button');
+          }
+        }
+        
+        // Setup button click handlers
+        const triggersButton = document.getElementById('triggers');
+        if (triggersButton) {
+          triggersButton.addEventListener('click', function() {
+            toggleButton(this, 'trigger-toggles');
+          });
+        }
+        
+        const toggleCollarButton = document.getElementById('toggle-collar');
+        if (toggleCollarButton) {
+          toggleCollarButton.addEventListener('click', function() {
+            toggleButton(this, 'collar-form');
+          });
+        }
+        
+        const spiralsButton = document.getElementById('spirals');
+        if (spiralsButton) {
+          spiralsButton.addEventListener('click', function() {
+            toggleButton(this, 'spirals-template');
+          });
+        }
+        
+        const hypnosisButton = document.getElementById('hypnosis');
+        if (hypnosisButton) {
+          hypnosisButton.addEventListener('click', function() {
+            toggleButton(this, 'hypnosis-template');
+          });
+        }
+        
+        // Initialize triggers list
+        const triggerList = document.getElementById('trigger-list');
+        if (triggerList) {
+          const bambiTriggers = [
+            "BIMBO DOLL", "GOOD GIRL", "BAMBI SLEEP", "BAMBI FREEZE",
+            "ZAP COCK DRAIN OBEY", "BAMBI ALWAYS WINS", "BAMBI RESET",
+            "I-Q DROP", "I-Q LOCK", "POSTURE LOCK", "UNIFORM LOCK",
+            "SAFE & SECURE", "PRIMPED", "PAMPERED", "SNAP & FORGET",
+            "GIGGLE TIME", "BLONDE MOMENT", "BAMBI DOES AS SHE IS TOLD",
+            "DROP FOR COCK", "COCK ZOMBIE NOW", "TITS LOCK", "WAIST LOCK",
+            "BUTT LOCK", "LIMBS LOCK", "FACE LOCK", "LIPS LOCK",
+            "THROAT LOCK", "HIPS LOCK", "CUNT LOCK", "BAMBI CUM & COLAPSE"
+          ];
+          
+          bambiTriggers.forEach((trigger, index) => {
+            const triggerItem = document.createElement('div');
+            triggerItem.className = 'trigger-toggle-item';
+            
+            const toggle = document.createElement('input');
+            toggle.type = 'checkbox';
+            toggle.id = `toggle-${index}`;
+            toggle.className = 'toggle-input';
+            toggle.setAttribute('data-trigger', trigger);
+            
+            const label = document.createElement('label');
+            label.textContent = trigger;
+            label.htmlFor = `toggle-${index}`;
+            label.className = 'toggle-label';
+            
+            triggerItem.appendChild(toggle);
+            triggerItem.appendChild(label);
+            triggerList.appendChild(triggerItem);
+          });
+          
+          // Add toggle all functionality
+          const activateAllButton = document.getElementById('activate-all');
+          if (activateAllButton) {
+            activateAllButton.addEventListener('click', function() {
+              const toggleInputs = document.querySelectorAll('.toggle-input');
+              toggleInputs.forEach(input => {
+                input.checked = !input.checked;
+              });
+            });
+          }
+        }
+      }
+      
+      // Profile edit mode
+      else if (mode === 'edit') {
+        // Character counter functionality
+        const aboutInput = document.getElementById('about');
+        const aboutCounter = document.getElementById('about-counter');
+        
+        const descriptionInput = document.getElementById('description');
+        const descriptionCounter = document.getElementById('description-counter');
+        
+        function updateCounter(input, counter, maxLength) {
+          if (input && counter) {
+            counter.textContent = input.value.length;
+            if (input.value.length > maxLength) {
+              counter.classList.add('over-limit');
+            } else {
+              counter.classList.remove('over-limit');
+            }
+          }
+        }
+        
+        if (aboutInput && aboutCounter) {
+          updateCounter(aboutInput, aboutCounter, 150);
+          aboutInput.addEventListener('input', () => updateCounter(aboutInput, aboutCounter, 150));
+        }
+        
+        if (descriptionInput && descriptionCounter) {
+          updateCounter(descriptionInput, descriptionCounter, 1500);
+          descriptionInput.addEventListener('input', () => updateCounter(descriptionInput, descriptionCounter, 1500));
+        }
+        
+        // Avatar preview functionality
+        const avatarInput = document.getElementById('avatar');
+        const avatarPreview = document.getElementById('avatar-preview');
+        
+        if (avatarInput && avatarPreview) {
+          avatarInput.addEventListener('input', () => {
+            const url = avatarInput.value.trim();
+            avatarPreview.src = url || '/gif/default-avatar.gif';
+          });
+        }
+        
+        // Header image preview functionality
+        const headerInput = document.getElementById('headerImage');
+        const headerPreview = document.getElementById('header-preview');
+        
+        if (headerInput && headerPreview) {
+          headerInput.addEventListener('input', () => {
+            const url = headerInput.value.trim();
+            headerPreview.src = url || '/gif/default-header.gif';
+          });
+        }
+        
+        // Form submission handling
+        const form = document.getElementById('edit-profile-form');
+        
+        if (form) {
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const username = formData.get('username');
+            
+            // Get all checked seasons
+            const seasonInputs = document.querySelectorAll('input[name="seasons"]:checked');
+            const seasons = Array.from(seasonInputs).map(input => input.value);
+            
+            // Construct profile data
+            const profileData = {
+              username,
+              displayName: formData.get('displayName'),
+              avatar: formData.get('avatar'),
+              headerImage: formData.get('headerImage'),
+              headerColor: formData.get('headerColor'),
+              about: formData.get('about'),
+              description: formData.get('description'),
+              seasons: seasons
+            };
+            
+            try {
+              // Send data to server via fetch
+              const response = await fetch(`/profile/${username}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(profileData)
+              });
+              
+              const data = await response.json();
+              
+              if (data.success) {
+                showNotification('Profile updated successfully', 'success');
+                setTimeout(() => {
+                  window.location.href = `/profile/${username}`;
+                }, 1000);
+              } else {
+                showNotification(data.message || 'Failed to update profile', 'error');
+              }
+            } catch (error) {
+              console.error('Error updating profile:', error);
+              showNotification('An error occurred while updating profile', 'error');
+            }
+          });
+        }
+      }
+      
+      // Profile delete mode
+      else if (mode === 'delete') {
+        const deleteForm = document.getElementById('delete-form');
+        if (deleteForm) {
+          deleteForm.addEventListener('submit', function(e) {
+            if (!confirm('Are you absolutely sure you want to delete your profile? This cannot be undone!')) {
+              e.preventDefault();
+            }
+          });
+        }
+      }
+      
+      // Profile view mode
+      else {
+        // Modal functionality
+        const modal = document.getElementById('profile-edit-modal');
+        const editProfileBtn = document.getElementById('edit-profile-btn');
+        const closeModalBtn = document.querySelector('.close-modal');
+        const closeModalFooterBtn = document.getElementById('close-modal-btn');
+        const deleteProfileBtn = document.getElementById('delete-profile-btn');
+
+        if (editProfileBtn && modal) {
+          editProfileBtn.addEventListener('click', function () {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+          });
+        }
+
+        if (closeModalBtn) {
+          closeModalBtn.addEventListener('click', function () {
+            modal.style.display = 'none';
+            document.body.style.overflow = ''; // Restore scrolling
+          });
+        }
+
+        if (closeModalFooterBtn) {
+          closeModalFooterBtn.addEventListener('click', function () {
+            modal.style.display = 'none';
+            document.body.style.overflow = ''; // Restore scrolling
+          });
+        }
+        
+        if (deleteProfileBtn) {
+          deleteProfileBtn.addEventListener('click', function() {
+            const username = document.body.getAttribute('data-username');
+            if (username) {
+              window.location.href = `/profile/${username}/delete`;
+            }
+          });
+        }
+
+        // Close modal when clicking outside
+        if (modal) {
+          window.addEventListener('click', function (event) {
+            if (event.target === modal) {
+              modal.style.display = 'none';
+              document.body.style.overflow = ''; // Restore scrolling
+            }
+          });
+        }
+
+        // Close modal on Escape key press
+        document.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape' && modal && modal.style.display === 'block') {
+            modal.style.display = 'none';
+            document.body.style.overflow = ''; // Restore scrolling
+          }
+        });
+
+        // Animate stats counters
+        function animateCounters() {
+          document.querySelectorAll('.stat-value').forEach(counter => {
+            const target = parseInt(counter.textContent, 10);
+            let count = 0;
+            const duration = 1500; // ms
+            const increment = target / (duration / 30);
+            
+            const timer = setInterval(() => {
+              count += increment;
+              counter.textContent = Math.floor(count);
+              
+              if (count >= target) {
+                counter.textContent = target;
+                clearInterval(timer);
+              }
+            }, 30);
+          });
+        }
+        
+        // Call animateCounters after page load
+        animateCounters();
+
+        // Set up Intersection Observer for reveal animations
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('revealed');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, {
+          threshold: 0.2
+        });
+        
+        // Observe all sections
+        document.querySelectorAll('.profile-section').forEach(section => {
+          observer.observe(section);
+        });
+
+        // Character counter functionality for modal
+        const aboutInputModal = document.getElementById('about-modal');
+        const aboutCounterModal = document.getElementById('about-counter-modal');
+        
+        const descriptionInputModal = document.getElementById('description-modal');
+        const descriptionCounterModal = document.getElementById('description-counter-modal');
+        
+        function updateCounter(input, counter, maxLength) {
+          if (input && counter) {
+            counter.textContent = input.value.length;
+            if (input.value.length > maxLength) {
+              counter.classList.add('over-limit');
+            } else {
+              counter.classList.remove('over-limit');
+            }
+          }
+        }
+        
+        if (aboutInputModal && aboutCounterModal) {
+          updateCounter(aboutInputModal, aboutCounterModal, 150);
+          aboutInputModal.addEventListener('input', () => updateCounter(aboutInputModal, aboutCounterModal, 150));
+        }
+        
+        if (descriptionInputModal && descriptionCounterModal) {
+          updateCounter(descriptionInputModal, descriptionCounterModal, 1500);
+          descriptionInputModal.addEventListener('input', () => updateCounter(descriptionInputModal, descriptionCounterModal, 1500));
+        }
+        
+        // Avatar preview functionality for modal
+        const avatarInputModal = document.getElementById('avatar-modal');
+        const avatarPreviewModal = document.getElementById('avatar-preview-modal');
+        
+        if (avatarInputModal && avatarPreviewModal) {
+          avatarInputModal.addEventListener('input', () => {
+            const url = avatarInputModal.value.trim();
+            avatarPreviewModal.src = url || '/gif/default-avatar.gif';
+          });
+        }
+        
+        // Header image preview functionality for modal
+        const headerInputModal = document.getElementById('headerImage-modal');
+        const headerPreviewModal = document.getElementById('header-preview-modal');
+        
+        if (headerInputModal && headerPreviewModal) {
+          headerInputModal.addEventListener('input', () => {
+            const url = headerInputModal.value.trim();
+            headerPreviewModal.src = url || '/gif/default-header.gif';
+          });
+        }
+        
+        // Form submission handling for modal
+        const formModal = document.getElementById('edit-profile-form-modal');
+        
+        if (formModal) {
+          formModal.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(formModal);
+            const username = formData.get('username');
+            
+            // Construct profile data
+            const profileData = {
+              displayName: formData.get('displayName'),
+              avatar: formData.get('avatar'),
+              headerImage: formData.get('headerImage'),
+              headerColor: formData.get('headerColor'),
+              about: formData.get('about'),
+              description: formData.get('description')
+            };
+            
+            try {
+              // Send data to server via fetch
+              const response = await fetch(`/profile/${username}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(profileData)
+              });
+              
+              const data = await response.json();
+              
+              if (data.success) {
+                showNotification('Profile updated successfully', 'success');
+                
+                // Close the modal
+                if (modal) {
+                  modal.style.display = 'none';
+                  document.body.style.overflow = '';
+                }
+                
+                // Reload the page after a short delay
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1000);
+              } else {
+                showNotification(data.message || 'Failed to update profile', 'error');
+              }
+            } catch (error) {
+              console.error('Error updating profile:', error);
+              showNotification('An error occurred while updating profile', 'error');
+            }
+          });
+        }
+      }
+    });
+  </script>
+
+  <%- include('./partials/footer') %>
+</body>
+</html>
