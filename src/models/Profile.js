@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { getConnection } from '../config/db.js';
+import { getModel } from '../config/db.js';
 
 // Standard BambiSleep triggers from triggers.js
 const STANDARD_TRIGGERS = [
@@ -157,6 +157,10 @@ profileSchema.methods.toggleTrigger = function(triggerName, active) {
       trigger.lastActivated = new Date();
       trigger.activationCount += 1;
       
+      if (!this.triggerHistory) {
+        this.triggerHistory = [];
+      }
+      
       this.triggerHistory.push({
         timestamp: new Date(),
         triggers: [triggerName],
@@ -175,6 +179,39 @@ profileSchema.methods.toggleTrigger = function(triggerName, active) {
   return false;
 };
 
+profileSchema.methods.toggleAllTriggers = function(active) {
+  this.triggers.forEach(trigger => {
+    trigger.active = active;
+    
+    if (active) {
+      trigger.lastActivated = new Date();
+      trigger.activationCount += 1;
+    }
+  });
+  
+  this.updateActiveTriggerSession();
+  
+  if (active && this.triggers.length > 0) {
+    if (!this.triggerHistory) {
+      this.triggerHistory = [];
+    }
+    
+    this.triggerHistory.push({
+      timestamp: new Date(),
+      triggers: this.triggers.map(t => t.name),
+      source: 'toggleAllTriggers'
+    });
+    
+    if (this.triggerHistory.length > 100) {
+      this.triggerHistory = this.triggerHistory.slice(-100);
+    }
+  }
+};
+
+profileSchema.methods.setTriggerActive = function(triggerName, active) {
+  return this.toggleTrigger(triggerName, active);
+};
+
 profileSchema.methods.updateActiveTriggerSession = function() {
   const activeTriggers = this.triggers.filter(trigger => trigger.active).map(t => t.name);
   
@@ -190,9 +227,12 @@ profileSchema.methods.updateActiveTriggerSession = function() {
   }
 };
 
-// Use the profiles connection for the Profile model
-const profilesConnection = getConnection('profiles');
-const Profile = profilesConnection.model('Profile', profileSchema);
+// Register the model directly instead of using registerModel
+mongoose.model('Profile', profileSchema, 'profiles');
+
+// Get model function that will work after initialization
+export const getProfile = () => {
+  return mongoose.model('Profile');
+};
 
 export { STANDARD_TRIGGERS };
-export { Profile };

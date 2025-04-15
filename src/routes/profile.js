@@ -1,10 +1,14 @@
 import express from 'express';
-import { Profile } from '../models/Profile.js';
+import { getProfile } from '../models/Profile.js';
 import auth from '../middleware/auth.js';
-import logger from '../utils/logger.js';
+import Logger from '../utils/logger.js';
 import * as triggerController from '../controllers/trigger.js';
 
+const logger = new Logger('ProfileRoutes');
 const router = express.Router();
+
+// Define the base path for this router
+export const basePath = '/profile';
 
 // Helper function to get username from cookies
 const getUsernameFromCookies = (req) => {
@@ -28,7 +32,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Create profile page - Now handled as a section in profile.ejs with mode=create
+// Create profile page
 router.get('/new', (req, res) => {
   res.render('profile', { 
     title: 'Create New Profile',
@@ -49,6 +53,7 @@ router.get('/new', (req, res) => {
 // Create profile submission
 router.post('/new', async (req, res) => {
   try {
+    const Profile = getProfile();
     const { username, displayName, avatar, about, description, seasons } = req.body;
     
     // Check if username already exists
@@ -112,6 +117,7 @@ router.post('/new', async (req, res) => {
 // View profile
 router.get('/:username', async (req, res) => {
   try {
+    const Profile = getProfile(); // Get the model when needed
     const { username } = req.params;
     const profile = await Profile.findOne({ username });
     
@@ -154,6 +160,7 @@ router.get('/:username', async (req, res) => {
 // Edit profile - Now handled by profile page with mode=edit
 router.get('/edit/:username', async (req, res) => {
   try {
+    const Profile = getProfile(); // Get the model when needed
     const { username } = req.params;
     const currentBambiname = getUsernameFromCookies(req);
     
@@ -201,6 +208,7 @@ router.get('/edit/:username', async (req, res) => {
 // Update profile
 router.post('/:username', async (req, res) => {
   try {
+    const Profile = getProfile(); // Get the model when needed
     const { username } = req.params;
     const currentBambiname = getUsernameFromCookies(req);
     
@@ -257,6 +265,7 @@ router.post('/:username', async (req, res) => {
 // Delete confirmation page - Now uses profile.ejs with mode=delete
 router.get('/:username/delete', async (req, res) => {
   try {
+    const Profile = getProfile(); // Get the model when needed
     const { username } = req.params;
     const profile = await Profile.findOne({ username });
     
@@ -312,6 +321,7 @@ router.get('/:username/delete', async (req, res) => {
 // Delete profile (POST)
 router.post('/:username/delete', async (req, res) => {
   try {
+    const Profile = getProfile(); // Get the model when needed
     const { username } = req.params;
     
     // Check if user has permission (using cookies for now)
@@ -376,6 +386,7 @@ router.post('/:username/delete', async (req, res) => {
 // Delete profile (DELETE) - API route for programmatic deletion
 router.delete('/:username/delete', auth, async (req, res) => {
   try {
+    const Profile = getProfile(); // Get the model when needed
     const { username } = req.params;
     
     // Check if the authenticated user has permission to delete this profile

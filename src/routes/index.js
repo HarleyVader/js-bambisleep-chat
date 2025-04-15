@@ -1,46 +1,105 @@
 import express from 'express';
-import Profile from '../models/Profile.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs/promises';
+import Logger from '../utils/logger.js';
+import footerConfig from '../config/footer.config.js';
 
+const logger = new Logger('RouteManager');
 const router = express.Router();
 
-// Helper function to get username from cookies
-const getUsernameFromCookies = (req) => {
-  if (req.cookies && req.cookies.bambiname) {
-    return decodeURIComponent(req.cookies.bambiname);
+// Function to dynamically load all route modules
+export async function loadAllRoutes(app) {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    
+    // Get all route files
+    const files = await fs.readdir(__dirname);
+    const routeFiles = files.filter(file => 
+      file !== 'index.js' && 
+      file.endsWith('.js')
+    );
+    
+    logger.info(`Found ${routeFiles.length} route modules to load`);
+    
+    // Load each route module
+    for (const file of routeFiles) {
+      const moduleName = file.replace('.js', '');
+      try {
+        logger.info(`Loading route module: ${moduleName}`);
+        const routeModule = await import(`./${file}`);
+        
+        // Check if the module exports a setup function or a router
+        if (typeof routeModule.setup === 'function') {
+          // Use the setup function
+          const moduleRouter = routeModule.setup(app);
+          if (moduleRouter) {
+            // Check for corresponding view before registering
+            const basePath = routeModule.basePath || `/${moduleName}`;
+            app.use(basePath, moduleRouter);
+            logger.success(`Registered route module '${moduleName}' at path: ${basePath}`);
+          }
+        } else if (routeModule.default) {
+          // Use the default export directly - it should already be a router instance
+          const basePath = routeModule.basePath || `/${moduleName}`;
+          app.use(basePath, routeModule.default);
+          logger.success(`Registered route module '${moduleName}' at path: ${basePath}`);
+        } else {
+          logger.warning(`Module '${moduleName}' has no default export or setup function`);
+        }
+      } catch (error) {
+        logger.error(`Failed to load route module '${moduleName}': ${error.message}`);
+      }
+    }
+    
+    // Register the homepage routes
+    app.use('/', router);
+    
+    // Handle 404 routes - move this to the end after all routes are registered
+    app.use((req, res, next) => {
+      res.status(404).render('error', {
+        message: 'Page not found',
+        error: { status: 404 },
+        validConstantsCount: 5,
+        title: 'Error - Page Not Found'
+      });
+    });
+    
+    return true;
+  } catch (error) {
+    logger.error(`Error loading route modules: ${error.message}`);
+    return false;
   }
-  return null;
-};
+}
 
 // Home page - Shows profile list and welcome page
 router.get('/', async (req, res) => {
   try {
-    // Check if user is logged in (has bambiname cookie)
-    const bambiname = getUsernameFromCookies(req);
-    const validConstantsCount = 5; // This seems to be a consistent value across routes
+    const { getProfile } = await import('../models/Profile.js');
+    const Profile = getProfile();
+    const bambiname = req.cookies && req.cookies.bambiname 
+      ? decodeURIComponent(req.cookies.bambiname) 
+      : null;
+    const validConstantsCount = 5;
     
     // Get all profiles for display
     const profiles = await Profile.find().sort({ updatedAt: -1 });
     
-    // Render the home page with appropriate data
     res.render('index', { 
       title: 'BambiSleep Community Profiles',
       profiles,
       username: bambiname || 'Guest',
       validConstantsCount,
-      footer: {
-        logo: {
-          url: "https://brandynette.xxx/",
-          image: "/gif/brandynette.gif",
-          alt: "Brandynette.xxx"
-        },
-        tagline: "Connect with other Bambis and explore the forest together"
-      }
+      footer: footerConfig
     });
   } catch (error) {
-    console.error('Error fetching profiles:', error);
+    logger.error('Error fetching profiles:', error);
     res.status(500).render('error', { 
       message: 'Error fetching profiles',
-      error: req.app.get('env') === 'development' ? error : {}
+      error: req.app.get('env') === 'development' ? error : {},
+      validConstantsCount: 5,
+      title: 'Error - Server Error'
     });
   }
 });

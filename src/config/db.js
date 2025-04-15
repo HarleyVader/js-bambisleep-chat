@@ -1,130 +1,55 @@
 import mongoose from 'mongoose';
+import config from './config.js';
 import Logger from '../utils/logger.js';
 
-// Initialize logger
 const logger = new Logger('Database');
 
-// Database configurations for different purposes
-const DB_CONFIG = {
-  main: process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep',
-  profiles: process.env.PROFILES_MONGODB_URI || 'mongodb://localhost:27017/bambi-profiles'
-};
-
-// Configure mongoose
-mongoose.set('strictQuery', false);
-
 /**
- * Create mongoose connection
- * @param {string} uri - MongoDB connection URI
- * @param {Object} options - Connection options
- * @returns {Promise} Mongoose connection
- */
-async function createConnection(uri, options = {}) {
-  try {
-    // Default connection options
-    const connectionOptions = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      autoIndex: true,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      ...options
-    };
-    
-    const connection = await mongoose.createConnection(uri, connectionOptions);
-    
-    // Setup event handlers for this connection
-    connection.on('error', err => {
-      logger.error(`MongoDB connection error for ${uri}: ${err}`);
-    });
-    
-    connection.on('disconnected', () => {
-      logger.warning(`MongoDB disconnected for ${uri}, trying to reconnect...`);
-    });
-    
-    connection.on('reconnected', () => {
-      logger.success(`MongoDB reconnected successfully for ${uri}`);
-    });
-    
-    return connection;
-  } catch (error) {
-    logger.error(`Error creating MongoDB connection for ${uri}: ${error.message}`);
-    throw error;
-  }
-}
-
-// Connection objects
-const connections = {
-  main: null,
-  profiles: null
-};
-
-/**
- * Connect to all MongoDB databases
- * @returns {Promise} Object containing all connections
+ * Connects to MongoDB using the configured URI
+ * @returns {Promise} Mongoose connection promise
  */
 export async function connectDB() {
   try {
-    // Connect to main database
-    connections.main = await createConnection(DB_CONFIG.main);
-    logger.success(`Main MongoDB Connected: ${connections.main.host}`);
-    
-    // Connect to profiles database
-    connections.profiles = await createConnection(DB_CONFIG.profiles);
-    logger.success(`Profiles MongoDB Connected: ${connections.profiles.host}`);
-    
-    // Set default connection for backward compatibility
-    mongoose.connection = connections.main;
-    
-    // Handle process termination
-    process.on('SIGINT', async () => {
-      await closeDB();
-      logger.info('MongoDB connections closed due to app termination');
-      process.exit(0);
+    // Use MONGODB_URI instead of MONGO_URI
+    await mongoose.connect(config.MONGODB_URI, {
+      // MongoDB connection options
     });
     
-    return connections;
+    logger.success('MongoDB connection established');
+    return mongoose.connection;
   } catch (error) {
-    logger.error(`Error connecting to MongoDB databases: ${error.message}`);
-    throw error;
+    logger.error(`MongoDB connection error: ${error.message}`);
+    throw error; // Re-throw to allow server to handle it
   }
 }
 
 /**
- * Close all database connections
- * @returns {Promise}
+ * Gets a model by name
+ * @param {string} modelName - Name of the model to retrieve
+ * @returns {mongoose.Model} Mongoose model
  */
-export async function closeDB() {
+export function getModel(modelName) {
   try {
-    const promises = [];
-    
-    for (const [name, connection] of Object.entries(connections)) {
-      if (connection) {
-        promises.push(
-          connection.close().then(() => {
-            logger.info(`MongoDB ${name} connection closed successfully`);
-          })
-        );
-      }
-    }
-    
-    await Promise.all(promises);
+    return mongoose.model(modelName);
   } catch (error) {
-    logger.error(`Error closing MongoDB connections: ${error.message}`);
+    logger.error(`Error getting model ${modelName}: ${error.message}`);
     throw error;
   }
 }
 
 /**
- * Get connection by name
- * @param {string} name - Connection name ("main" or "profiles")
- * @returns {mongoose.Connection} Mongoose connection
+ * Gracefully close database connections
+ * @returns {Promise} Mongoose disconnect promise
  */
-export function getConnection(name = 'main') {
-  if (!connections[name]) {
-    throw new Error(`No connection exists with name: ${name}`);
+export async function closeConnections() {
+  try {
+    logger.info('Closing database connections...');
+    await mongoose.disconnect();
+    logger.success('Database connections closed');
+  } catch (error) {
+    logger.error(`Error closing database connections: ${error.message}`);
+    // Still resolve as we're shutting down anyway
   }
-  return connections[name];
 }
 
-export default { connectDB, closeDB, getConnection };
+export default { connectDB, getModel, closeConnections };

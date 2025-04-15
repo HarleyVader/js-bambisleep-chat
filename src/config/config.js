@@ -1,201 +1,148 @@
 // src/utils/config.js
 import dotenv from 'dotenv';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Logger from './logger.js';
+import Logger from '../utils/logger.js';
 
+// Initialize logger
 const logger = new Logger('Config');
+
+// Track if config has been logged already
+let configLogged = false;
+
+// Load environment variables
+dotenv.config();
+
+// Resolve paths
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env file
-dotenv.config();
-
-// Define required environment variables and their validators
-const envVars = {
-  // Server
-  SERVER_PORT: {
-    type: 'number',
-    default: 6969,
-    validator: (val) => val > 0 && val < 65536
-  },
-  NODE_ENV: {
-    type: 'string',
-    default: 'development',
-    validator: (val) => ['development', 'production', 'test'].includes(val)
-  },
-  
-  // Database
-  MONGODB_URI: {
-    type: 'string',
-    required: true,
-    validator: (val) => val.startsWith('mongodb://') || val.startsWith('mongodb+srv://')
-  },
-  
-  // LMS Settings
-  LMS_HOST: {
-    type: 'string',
-    required: true,
-    validator: (val) => val.length > 0
-  },
-  LMS_PORT: {
-    type: 'number',
-    required: true,
-    validator: (val) => val > 0 && val < 65536
-  },
-  
-  // Speech Settings
-  SPEECH_HOST: {
-    type: 'string',
-    required: true,
-    validator: (val) => val.length > 0
-  },
-  SPEECH_PORT: {
-    type: 'number',
-    required: true,
-    validator: (val) => val > 0 && val < 65536
-  },
-  
-  // JWT Auth
-  JWT_SECRET: {
-    type: 'string',
-    required: true,
-    validator: (val) => val.length >= 32
-  },
-  JWT_EXPIRES_IN: {
-    type: 'string',
-    default: '7d',
-    validator: (val) => /^\d+[smhdy]$/.test(val)
-  },
-  
-  // Session
-  SESSION_SECRET: {
-    type: 'string',
-    required: true,
-    validator: (val) => val.length >= 32
-  },
-  
-  // Worker Pool
-  WORKER_POOL_SIZE: {
-    type: 'number',
-    default: 0, // 0 means use CPU count - 1
-    validator: (val) => val >= 0
-  },
-  WORKER_MEMORY_LIMIT_MB: {
-    type: 'number',
-    default: 500,
-    validator: (val) => val > 0
-  },
-  
-  // Rate Limiting
-  RATE_LIMIT_WINDOW_MS: {
-    type: 'number',
-    default: 60000, // 1 minute
-    validator: (val) => val > 0
-  },
-  RATE_LIMIT_MAX_REQUESTS: {
-    type: 'number',
-    default: 100,
-    validator: (val) => val > 0
-  },
-  SOCKET_RATE_LIMIT_POINTS: {
-    type: 'number',
-    default: 50,
-    validator: (val) => val > 0
-  },
-  SOCKET_RATE_LIMIT_DURATION: {
-    type: 'number',
-    default: 60, // 60 seconds
-    validator: (val) => val > 0
-  }
+/**
+ * Configuration validation schemas
+ */
+const configSchemas = {
+  SERVER_PORT: { type: 'number', default: 6969, min: 1, max: 65535 },
+  NODE_ENV: { type: 'string', default: 'development', enum: ['development', 'production', 'test'] },
+  MONGODB_URI: { type: 'string', required: true },
+  KOKORO_HOST: { type: 'string', default: 'localhost' },
+  KOKORO_PORT: { type: 'number', default: 8880, min: 1, max: 65535 },
+  KOKORO_API_URL: { type: 'string', default: null },
+  KOKORO_DEFAULT_VOICE: { type: 'string', default: 'af_sky' },
+  KOKORO_API_KEY: { type: 'string', default: 'not-needed', sensitive: true },
+  SOCKET_PING_TIMEOUT: { type: 'number', default: 300000, min: 5000 },
+  SOCKET_PING_INTERVAL: { type: 'number', default: 25000, min: 1000 },
+  MAX_UPLOAD_SIZE: { type: 'number', default: 10485760, min: 1024 },
+  TTS_TIMEOUT: { type: 'number', default: 30000, min: 1000 },
+  ALLOWED_ORIGINS: { type: 'array', default: ['https://bambisleep.chat', 'https://fickdichselber.com'] },
+  MAX_WORKER_THREADS: { type: 'number', default: 4, min: 1, max: 16 },
+  WORKER_TIMEOUT: { type: 'number', default: 60000, min: 1000 },
+  LOG_LEVEL: { type: 'string', default: 'info', enum: ['error', 'warn', 'info', 'debug'] },
 };
 
-// Process environment variables
-function processEnvVars() {
-  const config = {};
-  const errors = [];
+/**
+ * Validate and parse a configuration value according to its schema
+ * 
+ * @param {string} key - Configuration key
+ * @param {any} value - Configuration value
+ * @param {Object} schema - Validation schema
+ * @returns {any} - Validated and parsed value
+ */
+function validateConfig(key, value, schema) {
+  // If value is not provided or null/undefined and we have a default, use default
+  if ((value === undefined || value === null || value === '') && 'default' in schema) {
+    return schema.default;
+  }
   
-  for (const [key, settings] of Object.entries(envVars)) {
-    let value = process.env[key];
-    
-    // Check if variable is missing but required
-    if (settings.required && (value === undefined || value === '')) {
-      errors.push(`Required environment variable ${key} is missing`);
-      continue;
-    }
-    
-    // Use default value if not provided
-    if ((value === undefined || value === '') && 'default' in settings) {
-      value = settings.default;
-    }
-    
-    // Skip if no value and not required
-    if (value === undefined || value === '') {
-      continue;
-    }
-    
-    // Convert to correct type
-    if (settings.type === 'number') {
+  // Required check
+  if (schema.required && (value === undefined || value === null || value === '')) {
+    throw new Error(`Required configuration "${key}" is missing`);
+  }
+  
+  // Type validation and conversion
+  switch (schema.type) {
+    case 'string':
+      value = String(value);
+      if (schema.enum && !schema.enum.includes(value)) {
+        throw new Error(`Value "${value}" for "${key}" must be one of: ${schema.enum.join(', ')}`);
+      }
+      break;
+      
+    case 'number':
       value = Number(value);
-    } else if (settings.type === 'boolean') {
-      value = String(value).toLowerCase() === 'true';
-    }
-    
-    // Validate
-    if (settings.validator && !settings.validator(value)) {
-      errors.push(`Environment variable ${key} failed validation`);
-      continue;
-    }
-    
-    config[key] = value;
+      if (isNaN(value)) {
+        throw new Error(`Value for "${key}" must be a number`);
+      }
+      if (schema.min !== undefined && value < schema.min) {
+        throw new Error(`Value for "${key}" must be at least ${schema.min}`);
+      }
+      if (schema.max !== undefined && value > schema.max) {
+        throw new Error(`Value for "${key}" must be at most ${schema.max}`);
+      }
+      break;
+      
+    case 'boolean':
+      if (typeof value === 'string') {
+        value = value.toLowerCase();
+        value = value === 'true' || value === '1' || value === 'yes';
+      } else {
+        value = Boolean(value);
+      }
+      break;
+      
+    case 'array':
+      if (typeof value === 'string') {
+        value = value.split(',').map(item => item.trim());
+      } else if (!Array.isArray(value)) {
+        value = schema.default || [];
+      }
+      break;
+      
+    default:
+      throw new Error(`Unknown type "${schema.type}" for configuration "${key}"`);
   }
   
-  // Exit if there are errors
-  if (errors.length > 0) {
-    for (const error of errors) {
-      logger.error(error);
-    }
-    
-    if (process.env.NODE_ENV === 'production') {
-      logger.error('Invalid environment configuration. Exiting...');
-      process.exit(1);
-    }
-  }
+  return value;
+}
+
+/**
+ * Build the configuration object
+ */
+function buildConfig() {
+  const config = {};
   
-  // Load secrets from files if specified
-  if (process.env.SECRETS_DIR) {
+  // Process each configuration schema
+  for (const [key, schema] of Object.entries(configSchemas)) {
     try {
-      const secretsDir = process.env.SECRETS_DIR;
-      for (const file of fs.readdirSync(secretsDir)) {
-        const key = file.toUpperCase();
-        if (key in envVars) {
-          const value = fs.readFileSync(path.join(secretsDir, file), 'utf8').trim();
-          config[key] = value;
-        }
-      }
+      config[key] = validateConfig(key, process.env[key], schema);
     } catch (error) {
-      logger.error(`Error loading secrets from directory: ${error.message}`);
-      if (process.env.NODE_ENV === 'production') {
-        process.exit(1);
-      }
+      logger.error(`Configuration error for ${key}: ${error.message}`);
+      throw error; // Re-throw to fail startup if a critical config is invalid
     }
+  }
+  
+  // Generate derived values
+  if (!config.KOKORO_API_URL) {
+    config.KOKORO_API_URL = `http://${config.KOKORO_HOST}:${config.KOKORO_PORT}/v1`;
+  }
+  
+  // Only log configuration once
+  if (!configLogged) {
+    logger.info('Configuration loaded:');
+    Object.entries(config).forEach(([key, value]) => {
+      const schema = configSchemas[key];
+      if (schema?.sensitive) {
+        logger.info(`  ${key}: ******`);
+      } else {
+        logger.info(`  ${key}: ${value}`);
+      }
+    });
+    configLogged = true;
   }
   
   return config;
 }
 
-const config = processEnvVars();
-
-// Log configuration (but hide secrets)
-if (process.env.NODE_ENV !== 'production') {
-  const safeConfig = { ...config };
-  for (const key of Object.keys(safeConfig)) {
-    if (key.includes('SECRET') || key.includes('KEY') || key.includes('PASSWORD')) {
-      safeConfig[key] = '********';
-    }
-  }
-  logger.info('Configuration loaded:', safeConfig);
-}
+// Use Node.js module caching to ensure config is only built once
+const config = buildConfig();
 
 export default config;

@@ -1,40 +1,39 @@
 import mongoose from 'mongoose';
-import Logger from '../utils/logger.js';
+import Logger from './logger.js';
+import { closeConnections } from '../config/db.js';
 
 // Initialize logger
-const logger = new Logger('WorkerShutdown');
+const logger = new Logger('Shutdown');
 
 /**
- * Handles graceful shutdown of a worker
- * @param {string} workerName - The name of the worker to identify it in logs
- * @param {function} customCleanup - Optional custom cleanup function
- * @returns {Promise<void>}
+ * Handle graceful server shutdown
+ * @param {string} signal - The signal that triggered the shutdown
+ * @param {http.Server} server - HTTP server instance
  */
-export default async function workerGracefulShutdown(workerName, customCleanup = null) {
+export default async function gracefulShutdown(signal, server) {
+  logger.warning(`Received ${signal}. Starting graceful shutdown...`);
+  
   try {
-    logger.info(`Shutting down ${workerName || 'worker'}...`);
+    // Step 1: Stop accepting new connections
+    logger.info('Closing HTTP server...');
+    const serverClosed = new Promise((resolve) => {
+      server.close(() => {
+        logger.success('HTTP server closed');
+        resolve();
+      });
+    });
     
-    // Run custom cleanup if provided
-    if (typeof customCleanup === 'function') {
-      logger.info(`Running custom cleanup for ${workerName}`);
-      await customCleanup();
-    }
+    // Step 2: Close database connections
+    logger.info('Closing database connections...');
+    await closeConnections();
     
-    // Close MongoDB connection if it's open
-    if (mongoose.connection.readyState === 1) {
-      logger.info(`Closing MongoDB connection for ${workerName}`);
-      await mongoose.connection.close(false);
-      logger.success(`MongoDB connection closed for ${workerName}`);
-    }
+    // Wait for server to close
+    await serverClosed;
     
-    logger.success(`${workerName || 'Worker'} shutdown complete`);
-    
-    // Exit with success code
+    logger.success('Graceful shutdown completed');
     process.exit(0);
   } catch (error) {
-    logger.error(`Error during ${workerName} shutdown:`, error);
-    
-    // Exit with error code
+    logger.error('Error during graceful shutdown:', error);
     process.exit(1);
   }
 }
@@ -45,22 +44,37 @@ export default async function workerGracefulShutdown(workerName, customCleanup =
  * @param {function} customCleanup - Optional custom cleanup function
  */
 export function setupWorkerShutdownHandlers(workerName, customCleanup = null) {
-  // Handle termination signals
-  process.on('SIGTERM', () => {
-    logger.warning(`${workerName}: Received SIGTERM`);
-    workerGracefulShutdown(workerName, customCleanup);
-  });
+  const logger = new Logger(workerName);
   
-  process.on('SIGINT', () => {
-    logger.warning(`${workerName}: Received SIGINT`);
-    workerGracefulShutdown(workerName, customCleanup);
-  });
-  
-  // Handle messages from parent (like shutdown command)
-  process.on('message', (msg) => {
-    if (msg === 'shutdown') {
-      logger.warning(`${workerName}: Received shutdown message from parent`);
-      workerGracefulShutdown(workerName, customCleanup);
+  async function shutdownHandler(signal) {
+    logger.warning(`Worker ${workerName} received ${signal}. Starting graceful shutdown...`);
+    
+    try {
+      // Run custom cleanup if provided
+      if (typeof customCleanup === 'function') {
+        logger.info('Running custom cleanup...');
+        await customCleanup();
+      }
+      
+      // Close mongoose connection if it exists in this context
+      if (mongoose.connection && mongoose.connection.readyState !== 0) {
+        logger.info('Closing database connection...');
+        await mongoose.connection.close();
+        logger.success('Database connection closed');
+      }
+      
+      logger.success(`Worker ${workerName} shutdown completed`);
+      process.exit(0);
+    } catch (error) {
+      logger.error(`Error during ${workerName} shutdown:`, error);
+      process.exit(1);
     }
+  }
+  
+  // Set up signal handlers
+  process.on('SIGTERM', () => shutdownHandler('SIGTERM'));
+  process.on('SIGINT', () => shutdownHandler('SIGINT'));
+  process.on('message', (msg) => {
+    if (msg === 'shutdown') shutdownHandler('shutdown message');
   });
 }

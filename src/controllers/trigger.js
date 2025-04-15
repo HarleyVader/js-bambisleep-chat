@@ -1,4 +1,5 @@
-import Profile from '../models/Profile.js';
+import { getProfile } from '../models/Profile.js';
+// Remove the immediate execution of getProfile()
 import logger from '../utils/logger.js';
 
 // Standard trigger list - keep in sync with triggers.js
@@ -35,6 +36,11 @@ const standardTriggers = [
   "BAMBI CUM & COLAPSE"
 ];
 
+// Use a function to get the Profile model when needed
+function getProfileModel() {
+  return getProfile();
+}
+
 // Get all standard triggers
 export const getAllTriggers = async (req, res) => {
   try {
@@ -49,6 +55,7 @@ export const getAllTriggers = async (req, res) => {
 // Get triggers for a specific profile
 export const getProfileTriggers = async (req, res) => {
   try {
+    const Profile = getProfileModel(); // Get Profile model when needed
     const { username } = req.params;
     const profile = await Profile.findOne({ username });
     
@@ -75,6 +82,7 @@ export const getProfileTriggers = async (req, res) => {
 // Add a new trigger to profile
 export const addTrigger = async (req, res) => {
   try {
+    const Profile = getProfileModel(); // Get Profile model when needed
     const { username } = req.params;
     const { name, description, active } = req.body;
     
@@ -139,6 +147,7 @@ export const addTrigger = async (req, res) => {
 // Toggle trigger active state
 export const toggleTrigger = async (req, res) => {
   try {
+    const Profile = getProfileModel(); // Get Profile model when needed
     const { username, triggerName } = req.params;
     const { active } = req.body;
     
@@ -199,6 +208,7 @@ export const toggleTrigger = async (req, res) => {
 // Toggle all triggers
 export const toggleAllTriggers = async (req, res) => {
   try {
+    const Profile = getProfileModel(); // Get Profile model when needed
     const { username } = req.params;
     const { active } = req.body;
     
@@ -247,6 +257,7 @@ export const toggleAllTriggers = async (req, res) => {
 // Get trigger history
 export const getTriggerHistory = async (req, res) => {
   try {
+    const Profile = getProfileModel(); // Get Profile model when needed
     const { username } = req.params;
     
     const profile = await Profile.findOne({ username });
@@ -265,6 +276,7 @@ export const getTriggerHistory = async (req, res) => {
 // Process trigger event
 export const processTriggerEvent = async (req, res) => {
   try {
+    const Profile = getProfileModel(); // Get Profile model when needed
     const { username } = req.params;
     const { triggers } = req.body;
     

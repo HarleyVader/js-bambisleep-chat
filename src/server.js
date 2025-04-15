@@ -1,408 +1,323 @@
 import { promises as fsPromises } from 'fs';
 import dotenv from 'dotenv';
 import express from 'express';
-import mongoose from 'mongoose';
 import http from 'http';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 
-// modules
+// Import modules
 import { Worker } from 'worker_threads';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import axios from 'axios';
 import fileUpload from 'express-fileupload';
 
-//routes
+// Import configuration
+import config from './config/config.js';
+import footerConfig from './config/footer.config.js';
+import { connectDB } from './config/db.js';
+
+// Import routes
 import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
 import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import scraperAPIRoutes from './routes/scraperRoutes.js';
-import bambisRouter from './routes/bambis.js';
-// Add profile routes
 import profileRouter from './routes/profile.js';
 
-//schemas
-import { Bambi } from './schemas/BambiSchema.js';
-// Add Profile model (after converting to ES module)
-import { Profile } from './models/Profile.js';
-
-//wokers
+// Import worker coordinator
 import workerCoordinator from './workers/workerCoordinator.js';
 
-//configs
+// Import socket handlers
+import setupProfileSockets from './sockets/profileSockets.js';
+import setupChatSockets from './sockets/chatSockets.js';
+import setupLMStudioSockets from './sockets/lmStudioSockets.js';
+
+// Import utilities and middleware
 import errorHandler from './middleware/error.js';
-import footerConfig from './config/footer.config.js';
 import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
-// Import profile socket handlers
-import socketProfileHandlers from './socket/profileHandlers.js';
-// Import new database connection utilities
-import { connectDB, getConnection } from './config/db.js';
 
+// Initialize environment and paths
+dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Initialize logger
 const logger = new Logger('Server');
+logger.info('Starting BambiSleep.chat server...');
 
-dotenv.config();
+/**
+ * Main application setup
+ * 
+ * Initializes Express app, HTTP server, and Socket.io
+ * Sets up middleware, routes, and socket handlers
+ */
+async function initializeApp() {
+  try {
+    // Create Express app and HTTP server
+    const app = express();
+    const server = http.createServer(app);
+    
+    // Initialize Socket.io with configured timeouts
+    const io = new Server(server, {
+      pingTimeout: config.SOCKET_PING_TIMEOUT || 300000,
+      pingInterval: config.SOCKET_PING_INTERVAL || 25000,
+      cors: {
+        origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
+        methods: ['GET', 'POST'],
+        credentials: true
+      }
+    });
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  pingTimeout: 86400000, // 1 day
-  pingInterval: 25000, // 25 seconds
-  cors: {
-    origin: ['https://bambisleep.chat', 'https://fickdichselber.com'],
+    // Load filtered words for content moderation
+    const filteredWords = JSON.parse(await fsPromises.readFile(
+      path.join(__dirname, 'filteredWords.json'), 'utf8'
+    ));
+
+    // Set up view engine
+    app.set('view engine', 'ejs');
+    app.set('views', path.join(__dirname, 'views'));
+
+    // Configure middleware
+    setupMiddleware(app);
+    
+    // Make config available to templates
+    app.locals.footer = footerConfig;
+    
+    // Set up routes and APIs
+    setupRoutes(app);
+    
+    // Set up socket handlers with shared store for workers
+    const socketStore = new Map();
+    setupSocketHandlers(io, socketStore, filteredWords);
+    
+    // Set up error handlers
+    setupErrorHandlers(app);
+    
+    return { app, server, io };
+  } catch (error) {
+    logger.error('Error in app initialization:', error);
+    throw error;
+  }
+}
+
+/**
+ * Configure Express middleware
+ * 
+ * @param {Express} app - Express application instance
+ */
+function setupMiddleware(app) {
+  // Parse request bodies
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(cookieParser());
+  
+  // Enable CORS
+  app.use(cors({
+    origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
     methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
     credentials: true
-  }
-});
-
-//filteredWords
-const filteredWords = JSON.parse(await fsPromises.readFile(path.join(__dirname, 'filteredWords.json'), 'utf8'));
-
-logger.info('Loading environment variables...');
-
-// Setup view engine and middleware
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
-app.use(cors({
-  origin: ['https://bambisleep.chat', 'https://fickdichselber.com'],
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type'],
-  credentials: true
-}));
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-// Add file upload middleware for audio files
-app.use(fileUpload({
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  abortOnLimit: true
-}));
-
-// Serve static files with proper MIME types
-app.use('/css', express.static(path.join(__dirname, 'public/css'), {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css');
+  }));
+  
+  // Handle file uploads
+  app.use(fileUpload({
+    limits: { fileSize: config.MAX_UPLOAD_SIZE || (10 * 1024 * 1024) },
+    abortOnLimit: true
+  }));
+  
+  // Serve static files with correct MIME types
+  app.use('/css', express.static(path.join(__dirname, 'public/css'), {
+    setHeaders: (res, path) => {
+      if (path.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+      }
     }
-  }
-}));
-
-app.use('/js', express.static(path.join(__dirname, 'public/js'), {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript');
+  }));
+  
+  app.use('/js', express.static(path.join(__dirname, 'public/js'), {
+    setHeaders: (res, path) => {
+      if (path.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      }
     }
-  }
-}));
-
-// Setup other static assets
-app.use('/images', express.static(path.join(__dirname, 'public/images')));
-app.use('/gif', express.static(path.join(__dirname, 'public/gif')));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/workers', express.static(path.join(__dirname, 'workers')));
-
-app.get('/socket.io/socket.io.js', (req, res) => {
-  res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
-});
-
-// Add redirects for backwards compatibility with existing file references
-app.get('/gif/default-header.jpg', (req, res) => {
-  res.redirect('/gif/default-header.gif');
-});
-
-// Redirect bambis route to profile page
-app.get('/bambis', (req, res) => {
-  res.redirect('/');
-});
-
-// Footer data configuration
-const profileFooterData = {
-  logo: {
-    url: '/',
-    image: '/images/logo.png',
-    alt: 'BambiSleep.Chat'
-  },
-  tagline: 'Customize your bambi experience',
-  primaryLinks: [
-    { label: 'Profiles', url: '/profiles' },
-    { label: 'Settings', url: '/settings' },
-    { label: 'Triggers', url: '/triggers' },
-  ],
-  secondaryLinks: [
-    { label: 'Home', url: '/' },
-    { label: 'About', url: '/about' },
-    { label: 'Privacy', url: '/privacy' },
-  ],
-  tertiaryLinks: [
-    { label: 'Discord', url: 'https://discord.gg/bambisleep', external: true },
-    { label: 'Forum', url: '/forum' },
-    { label: 'Share', url: '/share' },
-  ],
-  quaternaryLinks: [
-    { label: 'Melkanea', url: 'https://www.youtube.com/@Melkanea', external: true },
-    { label: 'Contributors', url: '/contributors' },
-    { label: 'Support', url: '/support' },
-  ]
-};
-
-// Make footer data available to all templates
-app.use((req, res, next) => {
-  res.locals.footer = footerConfig;
-  res.locals.profileFooter = profileFooterData;
-  next();
-});
-
-const MAX_LISTENERS_BASE = 10;
-let currentMaxListeners = MAX_LISTENERS_BASE;
-
-function adjustMaxListeners(worker, increment = true) {
-  try {
-    const adjustment = increment ? 1 : -1;
-    const currentListeners = worker.listenerCount('message');
-    if (currentListeners + adjustment > currentMaxListeners) {
-      currentMaxListeners = currentListeners + adjustment;
-      worker.setMaxListeners(currentMaxListeners);
-    }
-  } catch (error) {
-    logger.error('Error in adjustMaxListeners:', error);
-  }
+  }));
+  
+  // Set up other static asset paths
+  app.use('/images', express.static(path.join(__dirname, 'public/images')));
+  app.use('/gif', express.static(path.join(__dirname, 'public/gif')));
+  app.use(express.static(path.join(__dirname, 'src/public')));
+  app.use('/workers', express.static(path.join(__dirname, 'workers')));
+  
+  // Serve socket.io client script
+  app.get('/socket.io/socket.io.js', (req, res) => {
+    res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
+  });
+  
+  // Add backward compatibility redirects
+  app.get('/gif/default-header.jpg', (req, res) => {
+    res.redirect('/gif/default-header.gif');
+  });
+  
+  logger.info('Middleware configured');
 }
 
-Worker.prototype.setMaxListeners(currentMaxListeners);
-
-logger.info('Initializing server components...');
-
-// Configure routes
-const routes = [
-  { path: '/', handler: indexRoute },
-  { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
-  { path: '/help', handler: helpRoute },
-  { path: '/scrapers', handler: scrapersRoute },
-  { path: '/bambis', handler: bambisRouter },
-  { path: '/profile', handler: profileRouter }, // Add profile routes
-];
-
-// Configure Kokoro TTS API settings
-const KOKORO_HOST = process.env.KOKORO_HOST || 'localhost';
-const KOKORO_PORT = process.env.KOKORO_PORT || 8880;
-const KOKORO_API_URL = process.env.KOKORO_API_URL || `http://${KOKORO_HOST}:${KOKORO_PORT}/v1`;
-const KOKORO_DEFAULT_VOICE = process.env.KOKORO_DEFAULT_VOICE || 'af_sky';
-const KOKORO_API_KEY = process.env.KOKORO_API_KEY || 'not-needed';
-
-// Log TTS configuration during startup
-logger.info(`Kokoro TTS API configured with URL: ${KOKORO_API_URL}`);
-logger.info(`Using default voice: ${KOKORO_DEFAULT_VOICE}`);
-
-function setupRoutes() {
-  try {
-    routes.forEach(route => {
-      app.use(route.path, route.handler);
+/**
+ * Configure routes for the application
+ * 
+ * @param {Express} app - Express application instance
+ */
+function setupRoutes(app) {
+  // Register main routes
+  const routes = [
+    { path: '/', handler: indexRoute },
+    { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
+    { path: '/help', handler: helpRoute },
+    { path: '/scrapers', handler: scrapersRoute },
+    { path: '/profile', handler: profileRouter },
+  ];
+  
+  routes.forEach(route => {
+    app.use(route.path, route.handler);
+  });
+  
+  // Set up TTS API routes
+  setupTTSRoutes(app);
+  
+  // Set up scraper routes
+  app.post('/scrape', handleScrapeRequest);
+  app.post('/scan', handleScanRequest);
+  app.use('/api/scraper', scraperAPIRoutes);
+  
+  // Add 404 handler
+  app.use((req, res) => {
+    res.status(404).render('error', {
+      message: 'Page not found',
+      error: { status: 404 },
+      validConstantsCount: 5,
+      title: 'Error - Page Not Found'
     });
-
-    app.get('/', (req, res) => {
-      const validConstantsCount = 9;
-      res.render('index', { validConstantsCount: validConstantsCount });
-    });
-
-    // Existing routes...
-    app.post('/scrape', (req, res) => {
-      const { url } = req.body;
-      if (!url) {
-        return res.status(400).json({ error: 'URL is required' });
-      }
-
-      workerCoordinator.scrapeUrl(url, (error, results) => {
-        if (error) {
-          return res.status(500).json({ error: 'Error scraping content' });
-        }
-        res.json(results);
-      });
-    });
-
-    // Example route to scan a directory
-    app.post('/scan', (req, res) => {
-      const { directory } = req.body;
-      if (!directory) {
-        return res.status(400).json({ error: 'Directory path is required' });
-      }
-
-      workerCoordinator.scanDirectory(directory, (error, results) => {
-        if (error) {
-          return res.status(500).json({ error: 'Error scanning directory' });
-        }
-        res.json(results);
-      });
-    });
-
-    // Add voice listing endpoint
-    app.get('/api/tts/voices', async (req, res) => {
-      try {
-        const response = await axios({
-          method: 'get',
-          url: `${KOKORO_API_URL}/voices`,
-          headers: {
-            'Authorization': `Bearer ${KOKORO_API_KEY}`
-          }
-        });
-
-        res.json(response.data);
-      } catch (error) {
-        logger.error(`Voice listing error: ${error.message}`);
-        res.status(500).json({
-          error: 'Error fetching voice list',
-          details: process.env.NODE_ENV === 'production' ? null : error.message
-        });
-      }
-    });
-
-    // Replace your existing TTS route with this middleware-style implementation
-    app.get('/api/tts', async (req, res, next) => {
-      const text = req.query.text;
-      const voice = req.query.voice || KOKORO_DEFAULT_VOICE;
-
-      if (typeof text !== 'string' || text.trim() === '') {
-        return res.status(400).json({ error: 'Invalid input: text must be a non-empty string' });
-      }
-
-      try {
-        const response = await fetchTTSFromKokoro(text, voice);
-
-        // Set appropriate headers
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Length', response.data.length);
-        res.setHeader('Cache-Control', 'no-cache');
-
-        // Send the audio data
-        res.send(response.data);
-      } catch (error) {
-        logger.error(`TTS API Error: ${error.message}`);
-
-        if (error.response) {
-          const status = error.response.status;
-
-          if (status === 401) {
-            logger.error('Unauthorized access to Kokoro API - invalid API key');
-            return res.status(401).json({ error: 'Unauthorized access' });
-          } else {
-            // For other error types
-            const errorDetails = process.env.NODE_ENV === 'production' ? null : error.message;
-            return res.status(status).json({
-              error: 'Error generating speech',
-              details: errorDetails
-            });
-          }
-        }
-        return res.status(500).json({
-          error: 'Unexpected error in TTS service',
-          details: process.env.NODE_ENV === 'production' ? null : error.message
-        });
-      }
-    });
-
-    app.use('/api/scraper', scraperAPIRoutes);
-
-    // Handle profile updates
-    app.post('/bambis/update-profile', async (req, res) => {
-      try {
-        // Get username from session or cookie
-        const username = req.session?.user?.username || 
-                         decodeURIComponent(req.cookies['bambiname'] || '');
-        
-        if (!username) {
-          return res.status(401).json({ 
-              success: false, 
-              message: 'You must be logged in to update your profile' 
-          });
-        }
-        
-        // Find and update the user's profile
-        const bambi = await mongoose.model('Bambi').findOneAndUpdate(
-            { username },
-            { 
-                $set: {
-                    about: req.body.about,
-                    description: req.body.description,
-                    profilePictureUrl: req.body.profilePictureUrl,
-                    headerImageUrl: req.body.headerImageUrl,
-                    lastActive: new Date()
-                }
-            },
-            { new: true, upsert: true }
-        );
-        
-        // Respond with success
-        res.json({ 
-            success: true, 
-            message: 'Profile updated successfully',
-            bambi
-        });
-        
-        // Emit socket event for real-time updates
-        io.emit('profile:updated', {
-            username,
-            bambi
-        });
-        
-      } catch (error) {
-          logger.error('Profile update error:', error);
-          res.status(500).json({ 
-              success: false, 
-              message: 'Server error occurred while updating profile' 
-          });
-      }
-    });
-
-    // Add 404 handler from profile app
-    app.use((req, res, next) => {
-      res.status(404).render('error', {
-        message: 'Page not found',
-        error: { status: 404 },
-        validConstantsCount: 5,
-        title: 'Error - Page Not Found'
-      });
-    });
-
-  } catch (error) {
-    logger.error('Error in setupRoutes:', error);
-  }
+  });
+  
+  logger.info('Routes configured');
 }
 
-// Add a dedicated fetchTTS function for Kokoro
-async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE) {
+/**
+ * Configure Text-to-Speech API routes
+ * 
+ * @param {Express} app - Express application instance
+ */
+function setupTTSRoutes(app) {
+  // Get voice list
+  app.get('/api/tts/voices', async (req, res) => {
+    try {
+      const response = await axios({
+        method: 'get',
+        url: `${config.KOKORO_API_URL}/voices`,
+        headers: {
+          'Authorization': `Bearer ${config.KOKORO_API_KEY}`
+        }
+      });
+      
+      res.json(response.data);
+    } catch (error) {
+      logger.error(`Voice listing error: ${error.message}`);
+      res.status(500).json({
+        error: 'Error fetching voice list',
+        details: process.env.NODE_ENV === 'production' ? null : error.message
+      });
+    }
+  });
+  
+  // Generate speech
+  app.get('/api/tts', async (req, res) => {
+    const text = req.query.text;
+    const voice = req.query.voice || config.KOKORO_DEFAULT_VOICE;
+    
+    if (typeof text !== 'string' || text.trim() === '') {
+      return res.status(400).json({ error: 'Invalid input: text must be a non-empty string' });
+    }
+    
+    try {
+      const response = await fetchTTSFromKokoro(text, voice);
+      
+      // Set appropriate headers
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Length', response.data.length);
+      res.setHeader('Cache-Control', 'no-cache');
+      
+      // Send the audio data
+      res.send(response.data);
+    } catch (error) {
+      handleTTSError(error, res);
+    }
+  });
+}
+
+/**
+ * Handle errors from the TTS API
+ * 
+ * @param {Error} error - The error that occurred
+ * @param {Response} res - Express response object
+ */
+function handleTTSError(error, res) {
+  logger.error(`TTS API Error: ${error.message}`);
+  
+  if (error.response) {
+    const status = error.response.status;
+    
+    if (status === 401) {
+      logger.error('Unauthorized access to Kokoro API - invalid API key');
+      return res.status(401).json({ error: 'Unauthorized access' });
+    } else {
+      // For other error types
+      const errorDetails = process.env.NODE_ENV === 'production' ? null : error.message;
+      return res.status(status).json({
+        error: 'Error generating speech',
+        details: errorDetails
+      });
+    }
+  }
+  
+  return res.status(500).json({
+    error: 'Unexpected error in TTS service',
+    details: process.env.NODE_ENV === 'production' ? null : error.message
+  });
+}
+
+/**
+ * Fetches text-to-speech audio from Kokoro API
+ * 
+ * @param {string} text - Text to convert to speech
+ * @param {string} voice - Voice ID to use
+ * @returns {Promise<AxiosResponse>} - Response containing audio data
+ */
+async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
   try {
     logger.info(`Fetching TTS from Kokoro: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
-
+    
     const requestData = {
       model: "kokoro",
       voice: voice,
       input: text,
       response_format: "mp3"
     };
-
+    
     const response = await axios({
       method: 'post',
-      url: `${KOKORO_API_URL}/audio/speech`,
+      url: `${config.KOKORO_API_URL}/audio/speech`,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${KOKORO_API_KEY}`
+        'Authorization': `Bearer ${config.KOKORO_API_KEY}`
       },
       data: requestData,
       responseType: 'arraybuffer',
-      timeout: 30000
+      timeout: config.TTS_TIMEOUT || 30000
     });
-
+    
     return response;
   } catch (error) {
     logger.error(`Error fetching TTS audio: ${error.message}`);
@@ -410,549 +325,124 @@ async function fetchTTSFromKokoro(text, voice = KOKORO_DEFAULT_VOICE) {
   }
 }
 
-function setupSockets() {
-  try {
-    logger.info('Setting up socket middleware...');
-
-    const socketStore = new Map();
-
-    io.on('connection', (socket) => {
-      try {
-        const cookies = socket.handshake.headers.cookie
-          ? socket.handshake.headers.cookie
-            .split(';')
-            .map(cookie => cookie.trim().split('='))
-            .reduce((acc, [key, value]) => {
-              acc[key] = value;
-              return acc;
-            }, {})
-          : {};
-        let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
-        logger.info('Cookies received in handshake:', socket.handshake.headers.cookie);
-        
-        // IMPROVED USERNAME HANDLING
-        if (username === 'anonBambi') {
-          socket.emit('prompt username');
-        } else {
-          // Load user's Bambi profile if it exists
-          mongoose.model('Bambi').findOne({ username }).then(bambi => {
-            if (bambi) {
-              socket.bambiProfile = bambi;
-              socket.emit('profile loaded', {
-                username: bambi.username,
-                displayName: bambi.displayName,
-                level: bambi.level,
-                triggers: bambi.triggers
-              });
-              
-              // Update lastActive timestamp
-              bambi.lastActive = Date.now();
-              bambi.save().catch(err => logger.error('Error updating lastActive:', err));
-            }
-          }).catch(err => logger.error('Error loading Bambi profile:', err));
-        }
-
-        const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
-        adjustMaxListeners(lmstudio, true);
-
-        socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
-        logger.success(`Client connected: ${socket.id} sockets: ${socketStore.size}`);
-
-        // Original socket events
-        socket.on('chat message', async (msg) => {
-          try {
-            const timestamp = new Date().toISOString();
-            io.emit('chat message', {
-              ...msg,
-              timestamp: timestamp,
-              username: username,
-            });
-          } catch (error) {
-            logger.error('Error in chat message handler:', error);
-          }
-        });
-
-        socket.on('set username', (username) => {
-          try {
-            const encodedUsername = encodeURIComponent(username);
-            socket.handshake.headers.cookie = `bambiname=${encodedUsername}; path=/`;
-            socket.emit('username set', username);
-            logger.info('Username set:', username);
-          } catch (error) {
-            logger.error('Error in set username handler:', error);
-          }
-        });
-
-        socket.on("message", (message) => {
-          try {
-            const filteredMessage = filter(message);
-            lmstudio.postMessage({
-              type: "message",
-              data: filteredMessage,
-              socketId: socket.id,
-              username: username
-            });
-          } catch (error) {
-            logger.error('Error in message handler:', error);
-          }
-        });
-
-        socket.on("triggers", (triggers) => {
-          try {
-            lmstudio.postMessage({ type: "triggers", triggers });
-          } catch (error) {
-            logger.error('Error in triggers handler:', error);
-          }
-        });
-
-        socket.on('collar', async (collarData) => {
-          try {
-            const filteredCollar = filter(collarData.data);
-            lmstudio.postMessage({
-              type: 'collar',
-              data: filteredCollar,
-              socketId: socket.id
-            });
-            io.to(collarData.socketId).emit('collar', filteredCollar);
-          } catch (error) {
-            logger.error('Error in collar handler:', error);
-          }
-        });
-
-        // Add profile socket events
-        // Connect to profile room for real-time updates
-        socket.on('join-profile', (username) => {
-          if (username) {
-            socket.join(`profile-${username}`);
-            logger.info(`Socket ${socket.id} joined profile room: ${username}`);
-          }
-        });
-
-        // Profile trigger toggle event
-        socket.on('toggle-trigger', async ({ username, triggerName, active }) => {
-          try {
-            if (!username) return;
-            
-            const profile = await Profile.findOne({ username });
-            if (profile) {
-              profile.toggleTrigger(triggerName, active);
-              await profile.save();
-              
-              // Broadcast to anyone viewing this profile
-              io.to(`profile-${username}`).emit('trigger-toggled', {
-                triggerName,
-                active,
-                activeTriggerSession: profile.activeTriggerSession
-              });
-              
-              logger.info(`Trigger ${triggerName} ${active ? 'activated' : 'deactivated'} for ${username}`);
-            }
-          } catch (error) {
-            logger.error(`Error toggling trigger: ${error.message}`);
-            socket.emit('error', { message: 'Failed to toggle trigger' });
-          }
-        });
-
-        // Profile delete event
-        socket.on('delete-profile', async ({ username }) => {
-          try {
-            // Find and delete the profile
-            const deletedProfile = await Profile.findOneAndDelete({ username });
-            
-            if (deletedProfile) {
-              // Emit to all clients viewing this profile
-              io.to(`profile-${username}`).emit('profile-deleted', { username });
-              
-              // Emit to the user who deleted
-              socket.emit('profile-delete-success', {
-                success: true,
-                message: 'Profile deleted successfully',
-                redirectUrl: '/'
-              });
-              
-              logger.success(`Profile deleted for ${username}`);
-            } else {
-              socket.emit('error', { message: 'Profile not found' });
-            }
-          } catch (err) {
-            logger.error(`Error deleting profile: ${err.message}`);
-            socket.emit('error', { message: 'Failed to delete profile' });
-          }
-        });
-
-        // Add profile update event
-        socket.on('update profile', async (profileData) => {
-          try {
-            if (username === 'anonBambi') {
-              socket.emit('profile error', 'You need to set a username first');
-              return;
-            }
-        
-            // Don't duplicate functionality from the HTTP API
-            // Instead, notify the user to use the profile editor
-            socket.emit('redirect to profile editor', {
-              message: 'Please use the profile editor to update your profile',
-              url: '/bambis/edit'
-            });
-            
-            // Optionally, we can still update simple things like triggers
-            if (profileData.triggers && Array.isArray(profileData.triggers)) {
-              try {
-                const Bambi = mongoose.model('Bambi');
-                let bambi = await Bambi.findOne({ username });
-                
-                if (bambi) {
-                  // Use the manageTriggers method
-                  const triggers = profileData.triggers.slice(0, 10); // Max 10
-                  bambi.triggers = triggers;
-                  await bambi.save();
-                  socket.emit('triggers updated', bambi.triggers);
-                }
-              } catch (error) {
-                logger.error('Error updating triggers via socket:', error);
-                socket.emit('profile error', 'Failed to update triggers');
-              }
-            }
-          } catch (error) {
-            logger.error('Error handling profile update via socket:', error);
-            socket.emit('profile error', 'Server error occurred');
-          }
-        });
-
-        socket.on('profile:heart', async (data) => {
-          try {
-            const targetUsername = data.username;
-            const currentUsername = socket.bambiProfile?.username || 
-                                   decodeURIComponent(socket.handshake.headers.cookie
-                                     ?.split(';')
-                                     .find(c => c.trim().startsWith('bambiname='))
-                                     ?.split('=')[1] || '');
-            
-            if (!currentUsername || currentUsername === 'anonBambi') {
-              socket.emit('profile:error', 'You must be logged in to heart a profile');
-              return;
-            }
-            
-            const targetBambi = await mongoose.model('Bambi').findOne({ username: targetUsername });
-            
-            if (!targetBambi) {
-              socket.emit('profile:error', 'Profile not found');
-              return;
-            }
-            
-            // Check if user has already hearted this profile
-            const heartIndex = targetBambi.hearts.users.indexOf(currentUsername);
-            let hearted = false;
-            
-            if (heartIndex === -1 && data.action !== 'unheart') {
-              // Add heart
-              targetBambi.hearts.users.push(currentUsername);
-              targetBambi.hearts.count += 1;
-              hearted = true;
-            } else if (heartIndex !== -1 && data.action !== 'heart') {
-              // Remove heart
-              targetBambi.hearts.users.splice(heartIndex, 1);
-              targetBambi.hearts.count = Math.max(0, targetBambi.hearts.count - 1);
-            }
-            
-            await targetBambi.save();
-            
-            // Emit to all clients for real-time updates
-            io.emit('profile:hearted', {
-              username: targetUsername,
-              count: targetBambi.hearts.count,
-              hearted: hearted
-            });
-            
-            logger.info(`User ${currentUsername} ${hearted ? 'hearted' : 'unhearted'} profile ${targetUsername}`);
-          } catch (error) {
-            logger.error(`Heart socket error: ${error.message}`);
-            socket.emit('profile:error', 'Error processing heart action');
-          }
-        });
-
-        socket.on('profile:update', async (data) => {
-          try {
-            if (username === 'anonBambi') return;
-            
-            const bambi = await mongoose.model('Bambi').findOne({ username });
-            if (!bambi) return;
-            
-            // Only allow updates to certain fields via socket
-            if (data.field === 'favoriteSeasons' && Array.isArray(data.value)) {
-              bambi.favoriteSeasons = data.value.filter(season => 
-                ['spring', 'summer', 'autumn', 'winter'].includes(season));
-              await bambi.save();
-              
-              socket.emit('profile:updated', {
-                field: data.field,
-                value: bambi.favoriteSeasons
-              });
-            }
-            
-            // Update last active time
-            bambi.lastActive = Date.now();
-            await bambi.save();
-          } catch (error) {
-            logger.error('Error in profile:update handler:', error);
-          }
-        });
-
-        // Handle profile view request via socket with improved error handling
-        socket.on('profile:view', async (username) => {
-          try {
-            if (!username) {
-              socket.emit('profile:error', 'Invalid username provided');
-              return;
-            }
-            
-            const bambi = await mongoose.model('Bambi').findOne({ username });
-            
-            if (bambi) {
-              // Get current user for tracking who viewed this profile
-              const currentUser = socket.bambiProfile?.username || 
-                                 decodeURIComponent(socket.handshake.headers.cookie
-                                   ?.split(';')
-                                   .find(c => c.trim().startsWith('bambiname='))
-                                   ?.split('=')[1] || '');
-              
-              // Record the view if this isn't the profile owner
-              if (currentUser && currentUser !== username) {
-                bambi.lastViewed = new Date();
-                await bambi.save();
-                
-                // Only add view activity if we have the addActivity method
-                if (typeof bambi.addActivity === 'function') {
-                  bambi.addActivity('viewed', `Profile viewed by ${currentUser}`);
-                }
-              }
-              
-              socket.emit('profile:data', {
-                bambi: bambi
-              });
-            } else {
-              socket.emit('profile:error', 'Profile not found');
-            }
-          } catch (error) {
-            logger.error(`Error fetching profile data: ${error.message}`);
-            socket.emit('profile:error', 'Error loading profile');
-          }
-        });
-
-        // Add better error handling for profile:save
-        socket.on('profile:save', async (profileData) => {
-          try {
-            // Get username with better fallback logic
-            const username = socket.bambiProfile?.username || 
-                            decodeURIComponent(socket.handshake.headers.cookie?.split(';')
-                              .find(c => c.trim().startsWith('bambiname='))
-                              ?.split('=')[1] || '');
-            
-            if (!username || username === 'anonBambi') {
-              socket.emit('profile:error', 'You must be logged in to update your profile');
-              return;
-            }
-            
-            logger.info(`Socket profile update for user: ${username}`);
-            
-            // Sanitize input data
-            const sanitizedData = {
-              about: (profileData.about || '').substring(0, 2000),
-              description: (profileData.description || '').substring(0, 500),
-              profilePictureUrl: profileData.profilePictureUrl,
-              headerImageUrl: profileData.headerImageUrl
-            };
-            
-            // Only update with valid URLs
-            const urlPattern = /^(https?:\/\/|\/)[a-zA-Z0-9_\/.\-~:]+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
-            if (sanitizedData.profilePictureUrl && !urlPattern.test(sanitizedData.profilePictureUrl)) {
-              delete sanitizedData.profilePictureUrl;
-            }
-            if (sanitizedData.headerImageUrl && !urlPattern.test(sanitizedData.headerImageUrl)) {
-              delete sanitizedData.headerImageUrl;
-            }
-            
-            // Find and update the user's profile
-            const bambi = await mongoose.model('Bambi').findOneAndUpdate(
-              { username },
-              { 
-                $set: {
-                  ...sanitizedData,
-                  lastActive: new Date()
-                }
-              },
-              { new: true, upsert: true }
-            );
-            
-            // Send success message back to the client that made the update
-            socket.emit('profile:saved', {
-              success: true,
-              bambi: bambi,
-              message: 'Profile updated successfully'
-            });
-            
-            // Broadcast to all other clients viewing this profile
-            socket.broadcast.emit('profile:updated', {
-              username,
-              bambi: bambi
-            });
-            
-            logger.success(`Profile updated for ${username} via socket`);
-          } catch (error) {
-            logger.error('Socket profile update error:', error);
-            socket.emit('profile:error', 'Error updating profile');
-          }
-        });
-
-        // Handle profile view request via socket
-        socket.on('profile:view', async (username) => {
-          try {
-            if (!username) return;
-            
-            const bambi = await mongoose.model('Bambi').findOne({ username });
-            
-            if (bambi) {
-              socket.emit('profile:data', {
-                bambi: bambi
-              });
-              
-              // Update last viewed timestamp
-              bambi.lastViewed = new Date();
-              await bambi.save();
-            } else {
-              socket.emit('profile:error', 'Profile not found');
-            }
-          } catch (error) {
-            logger.error(`Error fetching profile data: ${error.message}`);
-            socket.emit('profile:error', 'Error loading profile');
-          }
-        });
-
-        lmstudio.on("message", async (msg) => {
-          try {
-            if (msg.type === "log") {
-              logger.info(msg.data, msg.socketId);
-            } else if (msg.type === 'response') {
-              const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
-              io.to(msg.socketId).emit("response", responseData);
-            }
-          } catch (error) {
-            logger.error('Error in lmstudio message handler:', error);
-          }
-        });
-
-        lmstudio.on('info', (info) => {
-          try {
-            logger.info('Worker info:', info);
-          } catch (error) {
-            logger.error('Error in lmstudio info handler:', error);
-          }
-        });
-
-        lmstudio.on('error', (err) => {
-          try {
-            logger.error('Worker error:', err);
-          } catch (error) {
-            logger.error('Error in lmstudio error handler:', error);
-          }
-        });
-
-        socket.on('disconnect', (reason) => {
-          logger.info(`Client disconnected: ${socket.id}, Reason: ${reason}`);
-          if (reason === 'transport error') {
-            logger.error('Transport error occurred. Possible network or configuration issue.');
-          }
-          try {
-            const { worker } = socketStore.get(socket.id);
-            if (worker) {
-              worker.terminate();
-              adjustMaxListeners(worker, false);
-            }
-            logger.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`);
-            socketStore.delete(socket.id);
-          } catch (error) {
-            logger.error('Error during disconnect cleanup:', error);
-          }
-        });
-      } catch (error) {
-        logger.error('Error in connection handler:', error);
-      }
-    });
-  } catch (error) {
-    logger.error('Error in setupSockets:', error);
+/**
+ * Handle scrape request
+ * 
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ */
+function handleScrapeRequest(req, res) {
+  const { url } = req.body;
+  
+  if (!url) {
+    return res.status(400).json({ error: 'URL is required' });
   }
+  
+  workerCoordinator.scrapeUrl(url, (error, results) => {
+    if (error) {
+      return res.status(500).json({ error: 'Error scraping content' });
+    }
+    res.json(results);
+  });
 }
 
-logger.success('Socket middleware setup complete');
+/**
+ * Handle directory scan request
+ * 
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ */
+function handleScanRequest(req, res) {
+  const { directory } = req.body;
+  
+  if (!directory) {
+    return res.status(400).json({ error: 'Directory path is required' });
+  }
+  
+  workerCoordinator.scanDirectory(directory, (error, results) => {
+    if (error) {
+      return res.status(500).json({ error: 'Error scanning directory' });
+    }
+    res.json(results);
+  });
+}
 
-function setupErrorHandlers() {
-  try {
-    // 404 handler from profile app
-    app.use((req, res, next) => {
-      res.status(404).render('error', {
-        message: 'Page not found',
-        error: { status: 404 },
-        validConstantsCount: 5,
-        title: 'Error - Page Not Found'
-      });
-    });
-
-    // General error handler
-    app.use((err, req, res, next) => {
-      const status = err.status || 500;
-      logger.error(`[${status}] ${err.message}`);
+/**
+ * Set up Socket.io event handlers
+ * 
+ * @param {SocketIO.Server} io - Socket.io server instance
+ * @param {Map} socketStore - Map to store socket and worker references
+ * @param {string[]} filteredWords - List of words to filter
+ */
+function setupSocketHandlers(io, socketStore, filteredWords) {
+  // Connection event handler
+  io.on('connection', (socket) => {
+    try {
+      // Parse cookies and get username
+      const cookies = parseCookies(socket.handshake.headers.cookie);
+      let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
       
-      // Render error page for HTML requests
-      if (req.accepts('html')) {
-        res.status(status).render('error', {
-          message: err.message,
-          error: req.app.get('env') === 'development' ? err : {},
-          validConstantsCount: 5,
-          title: `Error - ${status}`
-        });
-      } else {
-        // JSON response for API requests
-        res.status(status).json({
-          error: process.env.NODE_ENV === 'production' ? 'An error occurred' : err.message
-        });
-      }
-    });
+      logger.info(`Client connected: ${socket.id} (${username})`);
+      
+      // Create LMStudio worker for this connection
+      const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
+      
+      // Store socket and worker in the map
+      socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
+      
+      // Set up content filter function
+      const filterContent = (content) => filterWords(content, filteredWords);
+      
+      // Set up modular socket handlers
+      setupChatSockets(socket, io, filterContent);
+      setupLMStudioSockets(socket, io, lmstudio, filterContent);
+      setupProfileSockets(socket, io, username);
+      
+      // Handle disconnection
+      socket.on('disconnect', (reason) => {
+        handleSocketDisconnect(socket, socketStore, reason);
+      });
+      
+    } catch (error) {
+      logger.error(`Error handling socket connection: ${error.message}`);
+    }
+  });
+  
+  logger.info('Socket handlers configured');
+}
+
+/**
+ * Parse cookies from cookie header string
+ * 
+ * @param {string} cookieHeader - Cookie header string
+ * @returns {Object} - Object with cookie name-value pairs
+ */
+function parseCookies(cookieHeader) {
+  if (!cookieHeader) return {};
+  
+  return cookieHeader
+    .split(';')
+    .map(cookie => cookie.trim().split('='))
+    .reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+}
+
+/**
+ * Filter words in content
+ * 
+ * @param {string} content - Content to filter
+ * @param {string[]} filteredWords - Words to filter out
+ * @returns {string} - Filtered content
+ */
+function filterWords(content, filteredWords) {
+  try {
+    if (typeof content !== 'string') {
+      content = String(content);
+    }
     
-    // Special case for 503 errors
-    app.use((err, req, res, next) => {
-      if (err.status === 503) {
-        res.status(503).render('profile', { error: true });
-      } else {
-        next(err);
-      }
-    });
-  } catch (error) {
-    logger.error('Error in setupErrorHandlers:', error);
-  }
-}
-
-function getServerAddress() {
-  try {
-    const interfaces = os.networkInterfaces();
-    for (const name of Object.keys(interfaces)) {
-      for (const iface of interfaces[name]) {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          return iface.address;
-        }
-      }
-    }
-    return '127.0.0.1';
-  } catch (error) {
-    logger.error('Error in getServerAddress:', error);
-  }
-}
-
-function filter(message) {
-  try {
-    if (typeof message !== 'string') {
-      message = String(message);
-    }
-    return message
+    return content
       .split(' ')
       .map((word) => {
         return filteredWords.includes(word.toLowerCase()) ? '[filtered]' : word;
@@ -960,91 +450,123 @@ function filter(message) {
       .join(' ')
       .trim();
   } catch (error) {
-    logger.error('Error in filter:', error);
+    logger.error('Error in content filter:', error);
+    return content;
   }
 }
 
-let serverInstance;
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * Handle socket disconnection
+ * 
+ * @param {Socket} socket - Socket.io socket instance
+ * @param {Map} socketStore - Map storing socket data
+ * @param {string} reason - Disconnection reason
+ */
+function handleSocketDisconnect(socket, socketStore, reason) {
+  logger.info(`Client disconnected: ${socket.id}, Reason: ${reason}`);
+  
+  try {
+    const socketData = socketStore.get(socket.id);
+    
+    if (socketData && socketData.worker) {
+      socketData.worker.terminate();
+    }
+    
+    socketStore.delete(socket.id);
+    logger.info(`Socket removed from store. Active sockets: ${socketStore.size}`);
+  } catch (error) {
+    logger.error(`Error during socket cleanup: ${error.message}`);
+  }
 }
 
-async function initializeServer() {
+/**
+ * Set up error handlers for the application
+ * 
+ * @param {Express} app - Express application instance
+ */
+function setupErrorHandlers(app) {
+  // Use the error handler middleware
+  app.use(errorHandler);
+  
+  logger.info('Error handlers configured');
+}
+
+/**
+ * Get the server's IP address
+ * 
+ * @returns {string} - Server IP address
+ */
+function getServerAddress() {
   try {
-    // Step 1: Connect to MongoDB databases
-    logger.info('Step 1/6: Connecting to MongoDB databases...');
+    const interfaces = os.networkInterfaces();
+    
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name]) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          return iface.address;
+        }
+      }
+    }
+    
+    return '127.0.0.1';
+  } catch (error) {
+    logger.error('Error getting server address:', error);
+    return 'localhost';
+  }
+}
+
+/**
+ * Main server initialization sequence
+ */
+async function startServer() {
+  try {
+    // Step 1: Connect to the database
+    logger.info('Step 1/5: Connecting to MongoDB...');
     await connectDB();
-
-    // Wait for connections to be fully established
-    logger.info('Waiting for MongoDB connections to be fully ready...');
-    await delay(500);
-    logger.success('MongoDB connections fully established and ready');
-
-    // Step 2: Setup routes first to ensure models are defined
-    logger.info('Step 2/6: Setting up server components...');
-    setupRoutes();
-    await delay(150);
-
-    // Step 3: Now initialize scrapers system
-    logger.info('Step 3/6: Initializing scrapers system...');
-    await delay(150);
+    logger.success('MongoDB connection established');
+    
+    // Step 2: Initialize application
+    logger.info('Step 2/5: Initializing application...');
+    const { app, server } = await initializeApp();
+    logger.success('Application initialized');
+    
+    // Step 3: Initialize scrapers
+    logger.info('Step 3/5: Initializing scrapers...');
     const scrapersInitialized = await initializeScrapers();
     if (scrapersInitialized) {
-      logger.success('Scrapers system initialization successful');
+      logger.success('Scrapers initialized');
     } else {
-      logger.warning('Scrapers system initialization incomplete - continuing startup');
+      logger.warning('Scrapers initialization incomplete - continuing startup');
     }
-    await delay(200);
-
-    // Continue with the rest of initialization...
+    
     // Step 4: Initialize worker coordinator
-    logger.info('Step 4/6: Initializing worker coordinator...');
-    await delay(150);
+    logger.info('Step 4/5: Initializing worker coordinator...');
     await workerCoordinator.initialize();
-    await delay(200);
-
-    // Step 5: Initialize the speecher worker
-    logger.info('Step 5/6: Initializing speech synthesis worker and preloading model...');
-    await delay(150);
-    await delay(200);
-
-    // Step 6: Setup routes, sockets, and error handlers
-    logger.info('Step 6/6: Setting up server components...');
-    await delay(150);
-    setupSockets();
-    await delay(150);
-    setupErrorHandlers();
-    app.use(errorHandler);
-    await delay(200);
-
-    // Step 7: Start listening on port
-    logger.info('Step 7/7: Starting HTTP server...');
-
+    logger.success('Worker coordinator initialized');
+    
+    // Step 5: Start HTTP server
+    logger.info('Step 5/5: Starting HTTP server...');
+    const PORT = config.SERVER_PORT || 6969;
+    
+    server.listen(PORT, () => {
+      logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
+      logger.success('Server startup completed successfully');
+    });
+    
     // Set up signal handlers for graceful shutdown
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
-    process.on('uncaughtException', async (err) => {
-      logger.error('Uncaught Exception:', err);
-      try {
-        await gracefulShutdown('UNCAUGHT_EXCEPTION', server);
-      } catch (error) {
-        logger.error('Error during shutdown after uncaught exception:', error);
-        process.exit(1);
-      }
+    process.on('uncaughtException', (err) => {
+      logger.error('Uncaught exception:', err);
+      gracefulShutdown('UNCAUGHT_EXCEPTION', server);
     });
-
-    const PORT = process.env.SERVER_PORT || 6969;
-    await delay(200);
-
-    serverInstance = server.listen(PORT, async () => {
-      logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
-      logger.success('Server initialization sequence completed successfully');
-    });
-  } catch (err) {
-    logger.error('Error in server initialization sequence:', err);
+    
+    return server;
+  } catch (error) {
+    logger.error('Error during server startup:', error);
     process.exit(1);
   }
 }
 
-initializeServer();
+// Start the server
+startServer();
