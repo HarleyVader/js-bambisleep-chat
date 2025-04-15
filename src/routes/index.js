@@ -73,30 +73,24 @@ export async function loadAllRoutes(app) {
   }
 }
 
-// Home page - Shows profile list and welcome page
+// Home page - Shows the chat interface
 router.get('/', async (req, res) => {
   try {
-    const { getProfile } = await import('../models/Profile.js');
-    const Profile = getProfile();
     const bambiname = req.cookies && req.cookies.bambiname 
       ? decodeURIComponent(req.cookies.bambiname) 
       : null;
     const validConstantsCount = 5;
     
-    // Get all profiles for display
-    const profiles = await Profile.find().sort({ updatedAt: -1 });
-    
     res.render('index', { 
-      title: 'BambiSleep Community Profiles',
-      profiles,
-      username: bambiname || 'Guest',
+      title: 'BambiSleep.Chat AIGF',
+      username: bambiname || 'anonbambi',
       validConstantsCount,
       footer: footerConfig
     });
   } catch (error) {
-    logger.error('Error fetching profiles:', error);
+    logger.error('Error rendering home page:', error);
     res.status(500).render('error', { 
-      message: 'Error fetching profiles',
+      message: 'Error loading home page',
       error: req.app.get('env') === 'development' ? error : {},
       validConstantsCount: 5,
       title: 'Error - Server Error'

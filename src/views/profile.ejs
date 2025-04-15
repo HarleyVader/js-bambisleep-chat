@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <%- include('./partials/head', { title: locals.title || 'BambiSleep Profile' }) %>
+
 <body data-username="<%= locals.profile ? profile.username : '' %>" data-mode="<%= locals.mode || 'view' %>">
   <%- include('./partials/nav') %>
 
@@ -236,6 +237,52 @@
           </form>
           <a href="/profile/<%= profile.username %>" class="cancel-btn">Cancel</a>
         </div>
+      </div>
+    <% } else if (locals.mode === 'list') { %>
+      <!-- LIST MODE - For /profile URL -->
+      <div class="profiles-grid-container">
+        <h1>Bambi Community Profiles</h1>
+        
+        <div class="profiles-grid">
+          <% if (profiles && profiles.length > 0) { %>
+            <% profiles.forEach(profile => { %>
+              <div class="profile-card">
+                <div class="profile-header" style="background-color: <%= profile.headerColor || '#35424a' %>">
+                  <img src="<%= profile.headerImage || '/gif/default-header.gif' %>" alt="Header Image">
+                </div>
+                <div class="profile-avatar">
+                  <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>">
+                </div>
+                <div class="profile-info">
+                  <h3><%= profile.displayName || profile.username %></h3>
+                  <p class="username">@<%= profile.username %></p>
+                  <p class="about"><%= profile.about || "No description provided." %></p>
+                  <div class="triggers-preview">
+                    <% if (profile.triggers && profile.triggers.length > 0) { %>
+                      <p>Triggers: <%= profile.triggers.slice(0, 3).map(t => t.name).join(', ') %>
+                      <% if (profile.triggers.length > 3) { %>...<% } %>
+                      </p>
+                    <% } else { %>
+                      <p>No triggers set</p>
+                    <% } %>
+                  </div>
+                  <a href="/profile/<%= profile.username %>" class="view-profile-btn">View Profile</a>
+                </div>
+              </div>
+            <% }); %>
+          <% } else { %>
+            <div class="empty-state">
+              <div class="empty-icon">👻</div>
+              <h3>No Bambis Found</h3>
+              <p>It seems like there are no bambis in the community yet.</p>
+              <a href="/profile/new" class="btn-primary">Create Your Profile</a>
+            </div>
+          <% } %>
+        </div>
+        
+        <% if (profiles && profiles.length >= 20) { %>
+          <button id="load-more-btn" class="load-more-btn">Load More Bambis</button>
+        <% } %>
       </div>
     <% } else { %>
       <!-- VIEW MODE -->

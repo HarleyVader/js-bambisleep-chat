@@ -4,7 +4,7 @@ const baseUrl = process.env.BASE_URL || '';
 const footerConfig = {
   logo: {
     url: "https://brandynette.xxx/",
-    image: `${baseUrl}/images/bambisleep-chat.gif`,
+    image: `${baseUrl}/gif/bambisleep-chat.gif`,
     alt: "Brandynette.xxx"
   },
   tagline: "Pimp of [bambisleep.chat] at r/BambiSleep for Like Ra with Bellmar",

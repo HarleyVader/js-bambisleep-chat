@@ -554,11 +554,15 @@ async function startServer() {
     });
     
     // Set up signal handlers for graceful shutdown
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server, workerCoordinator));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT', server, workerCoordinator));
     process.on('uncaughtException', (err) => {
       logger.error('Uncaught exception:', err);
-      gracefulShutdown('UNCAUGHT_EXCEPTION', server);
+      gracefulShutdown('UNCAUGHT_EXCEPTION', server, workerCoordinator);
+    });
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.error('Unhandled rejection at:', promise, 'reason:', reason);
+      gracefulShutdown('UNHANDLED_REJECTION', server, workerCoordinator);
     });
     
     return server;

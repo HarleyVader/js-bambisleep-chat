@@ -55,7 +55,7 @@ body {
 }
 
 /* Standardized Container Styles from scrapers.css and bambis.css */
-.container, .profile-container, .create-profile-section, .scraper-column, .stats-dashboard {
+.container, .create-profile-section, .scraper-column, .stats-dashboard {
     background-color: var(--transparent);
     border-top: var(--button-color) 3px ridge;
     border-bottom: var(--button-color) 3px ridge;
@@ -65,40 +65,6 @@ body {
     box-shadow: 0 0 10px var(--button-color);
     padding: 20px;
     margin-bottom: 20px;
-}
-
-/* Profile section styling improvements */
-.profile-section {
-  position: relative;
-  padding: 25px;
-  margin-bottom: 30px;
-  background-color: var(--transparent);
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
-}
-
-.profile-section:hover {
-  box-shadow: 0 8px 25px rgba(var(--tertiary-color-rgb), 0.2);
-  transform: translateY(-5px);
-}
-
-.profile-section h2 {
-  margin-top: 0;
-  position: relative;
-  padding-bottom: 10px;
-}
-
-.profile-section h2::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 50px;
-  height: 3px;
-  background-color: var(--button-color);
-  border-radius: 3px;
 }
 
 /* Standardized Form Controls */
@@ -397,7 +363,7 @@ a:hover {
 }
 
 /* Card styling from bambis.css */
-.card, .profile-card, .submission-card, .activity-item, .stat-card {
+.card, .submission-card, .activity-item, .stat-card {
     background-color: var(--transparent);
     border-radius: 8px;
     overflow: hidden;
@@ -411,7 +377,7 @@ a:hover {
     margin-bottom: 10px;
 }
 
-.card:hover, .profile-card:hover, .submission-card:hover, .activity-item:hover, .stat-card:hover {
+.card:hover, .submission-card:hover, .activity-item:hover, .stat-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 0 15px var(--tertiary-color);
 }
@@ -1633,20 +1599,6 @@ a:hover {
     width: 9%;
 }
 
-.profile-container {
-    background-color: var(--transparent);
-    border-top: var(--button-color) 3px ridge;
-    border-bottom: var(--button-color) 3px ridge;
-    border-left: var(--secondary-alt) 1px groove;
-    border-right: var(--secondary-alt) 1px groove;
-    border-radius: 8px;
-    box-shadow: 0 0 5px var(--button-color);
-    padding: 0.175vh;
-    margin: 0.14vw;
-    width: 99%;
-    overflow-y: auto;
-}
-
 #session-histories,
 #session-details {
     background-color: var(--transparent);
@@ -1836,42 +1788,6 @@ audio {
   
   .online-indicator.offline {
     color: #9e9e9e;
-  }
-  
-  .profile-avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 60px;
-    border: 4px solid var(--button-color);
-    object-fit: cover;
-    box-shadow: 0 0 15px var(--tertiary-color);
-  }
-  
-  .profile-header {
-    text-align: center;
-    padding: 20px;
-    position: relative;
-  }
-  
-  .edit-btn {
-    position: absolute;
-    right: 15px;
-    top: 10px;
-    background-color: var(--button-color);
-    color: var(--secondary-color);
-    text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
-    border: var(--secondary-color) outset 0.3vw;
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
-    border-radius: 0.6vw;
-    cursor: pointer;
-  }
-  
-  .edit-btn:hover {
-    color: var(--button-color);
-    background-color: var(--secondary-color);
-    text-shadow: var(--nav-color) 0.3vw 0.3vw 0.3vw;
-    border: var(--button-color) 0.3vw inset;
   }
   
   .notification-area {

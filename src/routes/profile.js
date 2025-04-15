@@ -3,6 +3,8 @@ import { getProfile } from '../models/Profile.js';
 import auth from '../middleware/auth.js';
 import Logger from '../utils/logger.js';
 import * as triggerController from '../controllers/trigger.js';
+// Add the missing import for footerConfig
+import footerConfig from '../config/footer.config.js';
 
 const logger = new Logger('ProfileRoutes');
 const router = express.Router();
@@ -18,16 +20,33 @@ const getUsernameFromCookies = (req) => {
   return null;
 };
 
-// Profile listing page (now part of index route)
+// Profile listing page
 router.get('/', async (req, res) => {
   try {
-    // Redirect to home page which now shows profiles
-    res.redirect('/');
+    const Profile = getProfile();
+    
+    // Get all profiles, sorted by last activity
+    const profiles = await Profile.find()
+      .sort({ lastActive: -1 })
+      .limit(50);
+    
+    const bambiname = req.cookies?.bambiname ? decodeURIComponent(req.cookies.bambiname) : 'Anonymous';
+    
+    res.render('profile', { 
+      title: 'Bambi Community',
+      mode: 'list',
+      profiles,
+      bambiname,
+      validConstantsCount: 5,
+      footer: footerConfig
+    });
   } catch (error) {
-    logger.error(`Error redirecting to profiles: ${error.message}`);
+    logger.error(`Error fetching profiles: ${error.message}`);
     res.status(500).render('error', { 
-      message: 'Error processing request',
-      error: req.app.get('env') === 'development' ? error : {}
+      message: 'Error fetching profiles',
+      error: req.app.get('env') === 'development' ? error : {},
+      validConstantsCount: 5,
+      title: 'Error'
     });
   }
 });
