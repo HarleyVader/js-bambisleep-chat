@@ -138,8 +138,8 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Fetch content from server
-        fetch(`/api/scraper/submission/${submissionId}`)
+        // Fetch content from server - Fixed path by adding /scrapers prefix
+        fetch(`/scrapers/api/scraper/submission/${submissionId}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Failed to load content (Status: ${response.status})`);

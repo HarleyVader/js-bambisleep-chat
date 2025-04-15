@@ -24,7 +24,6 @@ import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
 import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
-import scraperAPIRoutes from './routes/scraperRoutes.js';
 import profileRouter from './routes/profile.js';
 
 // Import worker coordinator
@@ -146,10 +145,8 @@ function setupMiddleware(app) {
     }
   }));
   
-  // Set up other static asset paths
-  app.use('/images', express.static(path.join(__dirname, 'public/images')));
   app.use('/gif', express.static(path.join(__dirname, 'public/gif')));
-  app.use(express.static(path.join(__dirname, 'src/public')));
+  app.use(express.static(path.join(__dirname, 'public')));
   app.use('/workers', express.static(path.join(__dirname, 'workers')));
   
   // Serve socket.io client script
@@ -184,13 +181,16 @@ function setupRoutes(app) {
     app.use(route.path, route.handler);
   });
   
+  // Register API routes that are defined in the scrapers module
+  app.use('/api/scraper/submit', scrapersRoute);
+  app.use('/api/scraper/vote', scrapersRoute);
+  app.use('/api/scraper/comments', scrapersRoute);
+  app.use('/api/scraper/comment', scrapersRoute);
+  app.use('/api/scraper/submission', scrapersRoute);
+  app.use('/api/scraper/stats', scrapersRoute);
+  
   // Set up TTS API routes
   setupTTSRoutes(app);
-  
-  // Set up scraper routes
-  app.post('/scrape', handleScrapeRequest);
-  app.post('/scan', handleScanRequest);
-  app.use('/api/scraper', scraperAPIRoutes);
   
   // Add 404 handler
   app.use((req, res) => {
