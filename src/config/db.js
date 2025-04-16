@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
-import config from './config.js';
 import Logger from '../utils/logger.js';
-import connectToMongoDB, { withDbConnection } from './dbConnection.js';
+import { withDbConnection, getModel } from '../utils/dbTransaction.js';
 
 const logger = new Logger('Database');
 
@@ -12,7 +11,40 @@ const logger = new Logger('Database');
  */
 export async function connectDB() {
   try {
-    await connectToMongoDB();
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
+    
+    logger.info(`Connecting to MongoDB at ${mongoURI.replace(/\/\/([^:]+):[^@]+@/, '//$1:****@')}`);
+    
+    // Connection options with poolSize
+    const options = {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10, // Set the connection pool size
+      minPoolSize: 2,  // Keep at least 2 connections
+      family: 4        // Use IPv4, skip trying IPv6
+    };
+    
+    // Connect to MongoDB
+    await mongoose.connect(mongoURI, options);
+    
+    // Set up connection event handlers
+    mongoose.connection.on('error', (err) => {
+      logger.error(`MongoDB connection error: ${err.message}`);
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      logger.warning('MongoDB disconnected');
+    });
+    
+    mongoose.connection.on('reconnected', () => {
+      logger.info('MongoDB reconnected');
+    });
+    
+    logger.success(`MongoDB connected: ${mongoose.connection.host}`);
+    
     return true;
   } catch (error) {
     logger.error(`Database connection error: ${error.message}`);
@@ -36,44 +68,6 @@ export async function disconnectDB() {
   }
 }
 
-/**
- * Get a Mongoose model
- * Safely retrieves a model or creates it if it doesn't exist
- * 
- * @param {string} modelName - The name of the model to retrieve
- * @returns {mongoose.Model} - The Mongoose model
- */
-export function getModel(modelName) {
-  try {
-    // Try to get an existing model first
-    return mongoose.model(modelName);
-  } catch (error) {
-    // If the model doesn't exist, the error will indicate that
-    logger.warning(`Model ${modelName} not found, it should be registered before use`);
-    
-    // Instead of throwing, return a simple placeholder model
-    // This is a safety mechanism - proper models should be registered elsewhere
-    const schema = new mongoose.Schema({}, { strict: false });
-    return mongoose.model(modelName, schema);
-  }
-}
-
-/**
- * Register a model with mongoose
- * 
- * @param {string} modelName - Name of the model
- * @param {mongoose.Schema} schema - Mongoose schema for the model
- * @returns {mongoose.Model} - The registered model
- */
-export function registerModel(modelName, schema) {
-  try {
-    // Check if model already exists
-    return mongoose.model(modelName);
-  } catch (e) {
-    // If not, register it
-    return mongoose.model(modelName, schema);
-  }
-}
-
-export { withDbConnection };
-export default { connectDB, disconnectDB, withDbConnection, getModel, registerModel };
+// Re-export these functions for use elsewhere
+export { withDbConnection, getModel };
+export default { connectDB, disconnectDB, withDbConnection, getModel };

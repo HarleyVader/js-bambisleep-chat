@@ -389,7 +389,7 @@
               </div>
               
               <div class="profile-about clickable-links neon-text-subtle">
-                <%- profile.about.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>') %>
+                <%- (profile && profile.about) ? profile.about.replace(/https?:\/\/[^\s]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" class="neon-link">$&</a>') : 'No description provided.' %>
               </div>
 
               <div class="profile-description-container cyber-panel">

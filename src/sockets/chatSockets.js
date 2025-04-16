@@ -1,6 +1,8 @@
 import ChatMessage from '../models/ChatMessage.js';
-import { getProfile } from '../models/Profile.js';
 import Logger from '../utils/logger.js';
+import mongoose from 'mongoose';
+import { withDbConnection } from '../utils/dbTransaction.js';
+import Profile from '../models/Profile.js';  // Import the Profile model directly
 
 const logger = new Logger('ChatSockets');
 
@@ -73,7 +75,12 @@ function setupSocketHandlers(socket, io, socketStore, filteredWords = []) {
       
       // Award XP for sending a chat message if user is not anonymous
       if (username && username !== 'anonBambi') {
-        await awardXP(username, XP_REWARDS.CHAT_MESSAGE, 'chat_message', socket);
+        const xpResult = await awardXP(username, XP_REWARDS.CHAT_MESSAGE);
+        if (xpResult && xpResult.leveledUp) {
+          socket.emit('level-up', {
+            level: xpResult.level
+          });
+        }
       }
       
     } catch (error) {
@@ -86,7 +93,12 @@ function setupSocketHandlers(socket, io, socketStore, filteredWords = []) {
     try {
       if (!data.username || !data.amount) return;
       
-      await awardXP(data.username, data.amount, data.action, socket);
+      const xpResult = await awardXP(data.username, data.amount);
+      if (xpResult && xpResult.leveledUp) {
+        socket.emit('level-up', {
+          level: xpResult.level
+        });
+      }
     } catch (error) {
       logger.error(`Error awarding XP: ${error.message}`);
     }
@@ -97,7 +109,6 @@ function setupSocketHandlers(socket, io, socketStore, filteredWords = []) {
     try {
       if (!data.username) return;
       
-      const Profile = getProfile();
       const profile = await Profile.findOne({ username: data.username });
       
       if (!profile) {
@@ -120,69 +131,49 @@ function setupSocketHandlers(socket, io, socketStore, filteredWords = []) {
  * Award XP to a user and handle level up logic
  * @param {string} username - The username of the profile to award XP to
  * @param {number} amount - The amount of XP to award
- * @param {string} source - The source/reason for the XP award
- * @param {object} socket - The socket.io socket to emit updates to
  */
-async function awardXP(username, amount, source, socket) {
+async function awardXP(username, amount) {
+  if (!username || username === 'anonymous' || username === 'anonBambi') {
+    return null;
+  }
+  
   try {
-    const Profile = getProfile();
-    const profile = await Profile.findOne({ username });
-    
-    if (!profile) {
-      logger.warning(`Profile not found for XP award: ${username}`);
-      return;
-    }
-    
-    // Store current level for comparison
-    const currentLevel = profile.level;
-    
-    // Add XP to the profile
-    profile.xp = (profile.xp || 0) + amount;
-    
-    // Check if user should level up
-    while (profile.level < XP_REQUIREMENTS.length && 
-           profile.xp >= XP_REQUIREMENTS[profile.level]) {
-      // Remove XP needed for level up
-      profile.xp -= XP_REQUIREMENTS[profile.level];
-      // Increase level
-      profile.level++;
-    }
-    
-    // Add to XP history
-    if (!profile.xpHistory) {
-      profile.xpHistory = [];
-    }
-    
-    profile.xpHistory.push({
-      timestamp: new Date(),
-      amount,
-      source,
-      description: `Awarded for ${source}`
+    return await withDbConnection(async () => {
+      // Use the imported Profile model directly
+      const profile = await Profile.findOne({ username });
+      
+      if (!profile) {
+        logger.warning(`Attempted to award XP to non-existent profile: ${username}`);
+        return null;
+      }
+      
+      // Calculate current level
+      const currentLevel = profile.level || 1;
+      
+      // Add XP
+      profile.xp = (profile.xp || 0) + amount;
+      
+      // Calculate new level based on XP thresholds
+      // Simple formula: level = 1 + floor(xp / 100)
+      const newLevel = 1 + Math.floor(profile.xp / 100);
+      
+      // Check if user has leveled up
+      if (newLevel > currentLevel) {
+        profile.level = newLevel;
+        logger.info(`User ${username} leveled up to ${newLevel}!`);
+      }
+      
+      // Save profile changes
+      await profile.save();
+      
+      return {
+        xp: profile.xp,
+        level: profile.level,
+        leveledUp: newLevel > currentLevel
+      };
     });
-    
-    // Keep history to last 100 entries
-    if (profile.xpHistory.length > 100) {
-      profile.xpHistory = profile.xpHistory.slice(-100);
-    }
-    
-    await profile.save();
-    logger.info(`XP updated for ${username}: +${amount} XP, Level: ${profile.level}`);
-    
-    // Emit profile update
-    socket.emit('profile-update', {
-      level: profile.level,
-      xp: profile.xp,
-      systemControls: profile.systemControls
-    });
-    
-    // Notify about level up
-    if (profile.level > currentLevel) {
-      logger.info(`${username} leveled up to level ${profile.level}!`);
-      socket.emit('level-up', {
-        level: profile.level
-      });
-    }
   } catch (error) {
     logger.error(`Error in awardXP: ${error.message}`);
+    return null;
   }
 }
