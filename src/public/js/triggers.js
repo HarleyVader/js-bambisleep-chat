@@ -170,27 +170,3 @@ window.onload = function() {
   createToggleButtons();
 };
 
-/* Trigger flash animation */
-.trigger-flash {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 0, 255, 0.2);
-  color: #fff;
-  font-size: 5rem;
-  font-weight: bold;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-
-.trigger-flash.active {
-  opacity: 1;
-}
-
