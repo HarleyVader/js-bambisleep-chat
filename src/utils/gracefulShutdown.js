@@ -47,40 +47,92 @@ export default async function gracefulShutdown(signal, server, workerCoordinator
 }
 
 /**
+ * Cleans up memory resources for a worker
+ * @param {Object} workerContext - Context data specific to the worker (optional)
+ */
+export function cleanupWorkerResources(workerContext) {
+  // If the worker has in-memory sessions that need to be cleaned up
+  if (workerContext && workerContext.sessionHistories) {
+    const sessionCount = Object.keys(workerContext.sessionHistories).length;
+    if (sessionCount > 0) {
+      const logger = new Logger('Cleanup');
+      logger.info(`Cleaning up ${sessionCount} active sessions`);
+      
+      // Clear all sessions
+      for (const socketId in workerContext.sessionHistories) {
+        delete workerContext.sessionHistories[socketId];
+      }
+    }
+  }
+}
+
+/**
  * Handles immediate worker shutdown
  * @param {string} workerName - The name of the worker
+ * @param {Object} workerContext - Context data specific to the worker (optional)
  */
-export async function workerGracefulShutdown(workerName) {
+export async function workerGracefulShutdown(workerName, workerContext) {
   const workerLogger = new Logger(`Worker:${workerName}`);
   workerLogger.info('Terminating immediately...');
   
-  // Force exit after a very short timeout
-  setTimeout(() => process.exit(0), 100);
-  
   try {
+    // Clean up any in-memory resources
+    if (workerContext) {
+      cleanupWorkerResources(workerContext);
+      workerLogger.info('Worker resources cleaned up');
+    }
+    
     // Close database if connected
     if (mongoose.connection && mongoose.connection.readyState === 1) {
+      workerLogger.info('Closing database connection...');
       mongoose.connection.close(true); // force close
     }
   } catch (error) {
-    // Just exit anyway
-    process.exit(0);
+    workerLogger.error(`Error during worker shutdown: ${error.message}`);
   }
+  
+  // Force exit after a very short timeout
+  setTimeout(() => process.exit(0), 100);
 }
 
 /**
  * Sets up signal handlers for worker shutdown
  * @param {string} workerName - The name of the worker
+ * @param {Object} workerContext - Context data specific to the worker (optional)
  */
-export function setupWorkerShutdownHandlers(workerName) {
+export function setupWorkerShutdownHandlers(workerName, workerContext) {
   // Handle termination signals with immediate shutdown
-  process.on('SIGTERM', () => workerGracefulShutdown(workerName));
-  process.on('SIGINT', () => workerGracefulShutdown(workerName));
+  process.on('SIGTERM', () => workerGracefulShutdown(workerName, workerContext));
+  process.on('SIGINT', () => workerGracefulShutdown(workerName, workerContext));
   process.on('message', (msg) => {
-    if (msg === 'shutdown') workerGracefulShutdown(workerName);
+    if (msg === 'shutdown') workerGracefulShutdown(workerName, workerContext);
   });
   
   // Handle uncaught errors with immediate shutdown
-  process.on('uncaughtException', () => workerGracefulShutdown(workerName));
-  process.on('unhandledRejection', () => workerGracefulShutdown(workerName));
+  process.on('uncaughtException', (error) => {
+    const workerLogger = new Logger(`Worker:${workerName}`);
+    workerLogger.error(`Uncaught exception: ${error.message}`);
+    workerGracefulShutdown(workerName, workerContext);
+  });
+  
+  process.on('unhandledRejection', (reason) => {
+    const workerLogger = new Logger(`Worker:${workerName}`);
+    workerLogger.error(`Unhandled rejection: ${reason}`);
+    workerGracefulShutdown(workerName, workerContext);
+  });
+}
+
+/**
+ * Handles socket disconnect cleanup for worker sessions
+ * @param {string} socketId - The ID of the disconnected socket
+ * @param {Object} sessionHistories - The session histories object to clean up
+ */
+export function cleanupSocketSession(socketId, sessionHistories) {
+  if (sessionHistories && sessionHistories[socketId]) {
+    const logger = new Logger('SocketCleanup');
+    logger.debug(`Cleaning up session for disconnected socket: ${socketId}`);
+    delete sessionHistories[socketId];
+    return true;
+  }
+  return false;
 }

@@ -396,11 +396,26 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       
       logger.info(`Client connected: ${socket.id} (${username})`);
       
-      // Create LMStudio worker for this connection
+      // Create a dedicated LMStudio worker for this connection
       const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
       
-      // Store socket and worker in the map
-      socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
+      // Store socket and worker in the map with additional tracking data
+      socketStore.set(socket.id, { 
+        socket, 
+        worker: lmstudio, 
+        files: [],
+        username: username,
+        connectedAt: Date.now(),
+        lastActivity: Date.now()
+      });
+      
+      // Update last activity time on any message from this socket
+      socket.onAny(() => {
+        const socketData = socketStore.get(socket.id);
+        if (socketData) {
+          socketData.lastActivity = Date.now();
+        }
+      });
       
       // Set up content filter function
       const filterContent = (content) => filterWords(content, filteredWords);
@@ -469,7 +484,7 @@ function filterWords(content, filteredWords) {
 }
 
 /**
- * Handle socket disconnection
+ * Handle socket disconnection and clean up worker
  * 
  * @param {Socket} socket - Socket.io socket instance
  * @param {Map} socketStore - Map storing socket data
@@ -481,14 +496,90 @@ function handleSocketDisconnect(socket, socketStore, reason) {
   try {
     const socketData = socketStore.get(socket.id);
     
-    if (socketData && socketData.worker) {
-      socketData.worker.terminate();
+    // Double-check this is really disconnected
+    if (!socket.connected && socketData) {
+      if (socketData.worker) {
+        try {
+          // Set up a one-time message handler for cleanup confirmation
+          const messageHandler = (message) => {
+            if (message && message.type === 'cleanup:complete' && message.socketId === socket.id) {
+              logger.info(`Received cleanup confirmation for socket ${socket.id}`);
+              
+              // Clean up timeout
+              clearTimeout(timeoutId);
+              
+              // Remove message handler
+              socketData.worker.removeListener('message', messageHandler);
+              
+              // Terminate worker
+              try {
+                socketData.worker.terminate();
+                logger.info(`Worker for socket ${socket.id} terminated after cleanup confirmation`);
+              } catch (termError) {
+                logger.error(`Error terminating worker: ${termError.message}`);
+              }
+              
+              // Remove from socket store
+              socketStore.delete(socket.id);
+              logger.info(`Socket removed from store. Active sockets: ${socketStore.size}`);
+            }
+          };
+          
+          // Add the message handler
+          socketData.worker.on('message', messageHandler);
+          
+          // Send cleanup request to worker
+          socketData.worker.postMessage({
+            type: 'socket:disconnect',
+            socketId: socket.id,
+            requestCleanupConfirmation: true
+          });
+          
+          // Set timeout for worker response
+          const timeoutId = setTimeout(() => {
+            logger.warning(`Worker for socket ${socket.id} did not confirm cleanup, forcing termination`);
+            
+            // Remove listener
+            socketData.worker.removeListener('message', messageHandler);
+            
+            // Force terminate
+            try {
+              socketData.worker.terminate();
+              logger.info(`Worker for socket ${socket.id} force-terminated after timeout`);
+            } catch (termError) {
+              logger.error(`Error force-terminating worker: ${termError.message}`);
+            }
+            
+            // Remove from socket store
+            socketStore.delete(socket.id);
+            logger.info(`Socket removed from store. Active sockets: ${socketStore.size}`);
+          }, 5000); // 5 second timeout
+          
+        } catch (postError) {
+          logger.error(`Error sending disconnect message to worker: ${postError.message}`);
+          
+          // Try to terminate anyway
+          try {
+            socketData.worker.terminate();
+          } catch (termError) {
+            logger.error(`Also failed to terminate worker: ${termError.message}`);
+          }
+          
+          // Rely on garbage collector to clean up this worker later
+          socketStore.delete(socket.id);
+        }
+      } else {
+        socketStore.delete(socket.id);
+        logger.info(`Socket removed from store. Active sockets: ${socketStore.size}`);
+      }
+    } else if (socket.connected) {
+      logger.warning(`Socket ${socket.id} disconnect handler called but socket still appears connected. Not cleaning up yet.`);
     }
-    
-    socketStore.delete(socket.id);
-    logger.info(`Socket removed from store. Active sockets: ${socketStore.size}`);
   } catch (error) {
     logger.error(`Error during socket cleanup: ${error.message}`);
+    
+    // Mark for garbage collection later if cleanup fails
+    // We do NOT remove from socket store here to avoid potential data loss on active connections
   }
 }
 
@@ -526,6 +617,54 @@ function getServerAddress() {
     logger.error('Error getting server address:', error);
     return 'localhost';
   }
+}
+
+/**
+ * Monitor system resources and socket statistics
+ */
+function monitorResources() {
+  const memoryUsage = process.memoryUsage();
+  logger.info(`Memory usage: RSS ${Math.round(memoryUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}/${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
+  
+  if (!socketStore) return;
+  
+  // Calculate active vs idle sockets
+  const now = Date.now();
+  let activeCount = 0;
+  let idleCount = 0;
+  let longIdleCount = 0;
+  
+  // Socket ages
+  let youngest = Infinity;
+  let oldest = 0;
+  
+  // Calculate socket statistics
+  for (const [socketId, socketData] of socketStore.entries()) {
+    const age = now - socketData.connectedAt;
+    const idleTime = now - socketData.lastActivity;
+    
+    // Update stats
+    youngest = Math.min(youngest, age);
+    oldest = Math.max(oldest, age);
+    
+    if (idleTime < 300000) { // Less than 5 minutes idle
+      activeCount++;
+    } else if (idleTime < 1800000) { // Less than 30 minutes idle
+      idleCount++;
+    } else {
+      longIdleCount++;
+    }
+  }
+  
+  logger.info(`Sockets: ${socketStore.size} total (${activeCount} active, ${idleCount} idle, ${longIdleCount} long idle)`);
+  
+  if (socketStore.size > 0) {
+    logger.info(`Socket age: newest ${Math.round(youngest / 1000 / 60)}m, oldest ${Math.round(oldest / 1000 / 60)}m`);
+  }
+  
+  // Log database connection status
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  logger.info(`Database status: ${dbStatus}`);
 }
 
 /**

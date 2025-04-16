@@ -7,6 +7,42 @@ import mongoose from 'mongoose';
 import { connectDB, getModel } from '../config/db.js';
 import '../models/Profile.js';  // Import the model file to ensure schema registration
 
+// Health monitoring variables
+let lastActivityTimestamp = Date.now();
+let isHealthy = true;
+let lastHealthCheckResponse = Date.now();
+let healthCheckInterval = null;
+
+// Start health monitoring on worker initialization
+setupHealthMonitoring();
+
+/**
+ * Sets up worker health monitoring
+ */
+function setupHealthMonitoring() {
+  // Update activity timestamp whenever we process a message
+  const originalOnMessage = parentPort.onmessage;
+  
+  // Record last activity time on any message
+  parentPort.on('message', (msg) => {
+    lastActivityTimestamp = Date.now();
+    
+    // If we were previously unhealthy but received a message, we're likely healthy again
+    if (!isHealthy) {
+      isHealthy = true;
+      logger.info('Worker recovered from unhealthy state after receiving new message');
+    }
+  });
+  
+  // Setup interval to respond to health checks
+  healthCheckInterval = setInterval(() => {
+    // If we haven't received a health check request in 2 minutes, something may be wrong
+    if (Date.now() - lastHealthCheckResponse > 120000) {
+      logger.warning('No health check requests received in 2 minutes - possible communication issue');
+    }
+  }, 60000);
+}
+
 // Initialize logger
 const logger = new Logger('LMStudio');
 
@@ -32,8 +68,8 @@ let state = false;
 
 logger.info('Starting lmstudio worker...');
 
-// Set up shutdown handlers
-setupWorkerShutdownHandlers('LMStudio');
+// Set up shutdown handlers with context
+setupWorkerShutdownHandlers('LMStudio', { sessionHistories });
 
 parentPort.on('message', async (msg) => {
   try {
@@ -61,9 +97,85 @@ parentPort.on('message', async (msg) => {
         state = true;
         logger.info('Collar set:', collar);
         break;
+      case 'socket:disconnect':
+        if (msg.socketId) {
+          try {
+            const { cleanupSocketSession } = await import('../utils/gracefulShutdown.js');
+            const cleaned = cleanupSocketSession(msg.socketId, sessionHistories);
+            
+            // Delete the session history for this socket
+            if (sessionHistories[msg.socketId]) {
+              delete sessionHistories[msg.socketId];
+              logger.info(`Deleted session history for socket: ${msg.socketId}`);
+            }
+            
+            // Send confirmation of cleanup if requested
+            if (msg.requestCleanupConfirmation) {
+              parentPort.postMessage({
+                type: 'cleanup:complete',
+                socketId: msg.socketId,
+                success: true
+              });
+              logger.info(`Sent cleanup confirmation for socket: ${msg.socketId}`);
+            }
+            
+            if (cleaned) {
+              logger.info(`Cleaned up session for disconnected socket: ${msg.socketId}`);
+            }
+          } catch (error) {
+            logger.error(`Error during session cleanup for socket ${msg.socketId}: ${error.message}`);
+            
+            // Send failure notification if confirmation was requested
+            if (msg.requestCleanupConfirmation) {
+              parentPort.postMessage({
+                type: 'cleanup:complete',
+                socketId: msg.socketId,
+                success: false,
+                error: error.message
+              });
+            }
+          }
+        }
+        break;
       case 'shutdown':
         logger.info('Shutting down lmstudio worker...');
-        await workerGracefulShutdown('LMStudio');
+        await workerGracefulShutdown('LMStudio', { sessionHistories });
+        break;
+      case 'health:check':
+        lastHealthCheckResponse = Date.now();
+        
+        // Check if database connection is active
+        const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+        
+        // Perform self-diagnostics
+        const diagnostics = {
+          uptime: process.uptime(),
+          lastActivity: Date.now() - lastActivityTimestamp,
+          memoryUsage: process.memoryUsage(),
+          sessionCount: Object.keys(sessionHistories).length,
+          sessionSizes: {},
+          dbStatus
+        };
+        
+        // Sample some session sizes (limit to 5 for performance)
+        const sessionIds = Object.keys(sessionHistories).slice(0, 5);
+        sessionIds.forEach(id => {
+          diagnostics.sessionSizes[id] = {
+            messageCount: sessionHistories[id] ? sessionHistories[id].length : 0,
+            approximateSize: sessionHistories[id] ? 
+              JSON.stringify(sessionHistories[id]).length : 0
+          };
+        });
+        
+        // Send health status back
+        parentPort.postMessage({
+          type: 'health:status',
+          socketId: msg.socketId,
+          status: isHealthy ? 'healthy' : 'unhealthy',
+          diagnostics
+        });
+        
+        logger.debug(`Health check responded: ${isHealthy ? 'healthy' : 'unhealthy'}`);
         break;
       default:
         logger.warning(`Unknown message type: ${msg.type}`);
@@ -264,4 +376,10 @@ async function handleMessage(userPrompt, socketId, username) {
   } catch (error) {
     logger.error('Error in handleMessage:', error);
   }
+}
+
+// Add to the worker cleanup/shutdown code
+if (healthCheckInterval) {
+  clearInterval(healthCheckInterval);
+  healthCheckInterval = null;
 }
