@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Logger from './logger.js';
+import config from '../config/config.js';
 
 // Initialize logger
 const logger = new Logger('Shutdown');
@@ -73,11 +74,31 @@ export function cleanupWorkerResources(workerContext) {
  */
 export async function workerGracefulShutdown(workerName, workerContext) {
   const workerLogger = new Logger(`Worker:${workerName}`);
-  workerLogger.info('Terminating immediately...');
+  workerLogger.info('Terminating...');
   
   try {
     // Clean up any in-memory resources
     if (workerContext) {
+      // Save all session histories to database before cleanup
+      if (workerContext.sessionHistories) {
+        workerLogger.info('Saving session histories to database before shutdown...');
+        
+        const sessionIds = Object.keys(workerContext.sessionHistories);
+        if (sessionIds.length > 0) {
+          try {
+            // Save each session to database
+            for (const socketId of sessionIds) {
+              if (mongoose.connection.readyState === 1) {
+                await syncSessionWithDatabase(socketId);
+              }
+            }
+            workerLogger.info(`Successfully saved ${sessionIds.length} sessions to database`);
+          } catch (saveError) {
+            workerLogger.error(`Error saving sessions to database: ${saveError.message}`);
+          }
+        }
+      }
+      
       cleanupWorkerResources(workerContext);
       workerLogger.info('Worker resources cleaned up');
     }
@@ -91,8 +112,9 @@ export async function workerGracefulShutdown(workerName, workerContext) {
     workerLogger.error(`Error during worker shutdown: ${error.message}`);
   }
   
-  // Force exit after a very short timeout
-  setTimeout(() => process.exit(0), 100);
+  // Force exit after a short timeout, using a fraction of the worker timeout
+  // to ensure we exit before a parent process might force kill us
+  setTimeout(() => process.exit(0), Math.min(100, config.WORKER_TIMEOUT / 10));
 }
 
 /**

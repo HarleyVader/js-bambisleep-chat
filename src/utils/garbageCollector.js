@@ -1,5 +1,6 @@
 import Logger from './logger.js';
 import { Worker } from 'worker_threads';
+import config from '../config/config.js';
 
 // Initialize logger
 const logger = new Logger('GarbageCollector');
@@ -120,7 +121,6 @@ export default class GarbageCollector {
       
       // Add the message handler
       worker.on('message', messageHandler);
-      socketId.worker.on('message', messageHandler);
       
       // Send cleanup request to worker
       worker.postMessage({
@@ -130,9 +130,10 @@ export default class GarbageCollector {
       });
       
       // Set a timeout to force cleanup if worker doesn't respond
+      // Use the configured WORKER_TIMEOUT instead of hard-coded value
       const timeoutId = setTimeout(() => {
         if (this.pendingCleanups.has(socketId)) {
-          logger.warning(`Worker for socket ${socketId} did not confirm cleanup within timeout, forcing termination`);
+          logger.warning(`Worker for socket ${socketId} did not confirm cleanup within ${config.WORKER_TIMEOUT}ms, forcing termination`);
           
           // Remove the message handler
           worker.removeListener('message', messageHandler);
@@ -149,7 +150,7 @@ export default class GarbageCollector {
           socketStore.delete(socketId);
           this.pendingCleanups.delete(socketId);
         }
-      }, 5000); // 5 second timeout for worker to respond
+      }, config.WORKER_TIMEOUT);
       
       // Store the timeout ID
       const cleanupData = this.pendingCleanups.get(socketId);

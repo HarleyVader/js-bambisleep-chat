@@ -29,7 +29,7 @@ const configSchemas = {
   KOKORO_API_URL: { type: 'string', default: null },
   KOKORO_DEFAULT_VOICE: { type: 'string', default: 'af_sky' },
   KOKORO_API_KEY: { type: 'string', default: 'not-needed', sensitive: true },
-  SOCKET_PING_TIMEOUT: { type: 'number', default: 86400000, min: 500000 },
+  SOCKET_PING_TIMEOUT: { type: 'number', default: 6400000, min: 500000 },
   SOCKET_PING_INTERVAL: { type: 'number', default: 25000, min: 1000 },
   MAX_UPLOAD_SIZE: { type: 'number', default: 10485760, min: 1024 },
   TTS_TIMEOUT: { type: 'number', default: 300000, min: 100000 },

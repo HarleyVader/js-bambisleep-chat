@@ -630,7 +630,7 @@ function handleSocketDisconnect(socket, socketStore, reason) {
             // Remove from socket store
             socketStore.delete(socket.id);
             logger.info(`Socket removed from store. Active sockets: ${socketStore.size}`);
-          }, 5000); // 5 second timeout
+          }, config.WORKER_TIMEOUT);
           
         } catch (postError) {
           logger.error(`Error sending disconnect message to worker: ${postError.message}`);

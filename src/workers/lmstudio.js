@@ -6,6 +6,8 @@ import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../utils/gr
 import mongoose from 'mongoose';
 import { connectDB, getModel, withDbConnection } from '../config/db.js';
 import '../models/Profile.js';  // Import the model file to ensure schema registration
+import '../models/SessionHistory.js';  // Make sure to create this file first
+import config from '../config/config.js';
 
 // Health monitoring variables
 let lastActivityTimestamp = Date.now();
@@ -13,8 +15,51 @@ let isHealthy = true;
 let lastHealthCheckResponse = Date.now();
 let healthCheckInterval = null;
 
+// Add session management and garbage collection constants
+const MAX_SESSIONS = 200; // Maximum number of concurrent sessions
+const SESSION_IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
+let garbageCollectionInterval = null;
+
 // Start health monitoring on worker initialization
 setupHealthMonitoring();
+
+// Setup garbage collection interval on worker initialization
+function setupGarbageCollection() {
+  // Run garbage collection based on half the worker timeout to prevent unnecessary resource usage
+  const gcInterval = Math.min(5 * 60 * 1000, config.WORKER_TIMEOUT / 2);
+  
+  garbageCollectionInterval = setInterval(() => {
+    const sessionCount = Object.keys(sessionHistories).length;
+    logger.debug(`Running scheduled garbage collection. Current sessions: ${sessionCount}`);
+    
+    // Memory usage stats
+    const memoryUsage = process.memoryUsage();
+    logger.debug(`Memory usage: RSS ${Math.round(memoryUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}/${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
+    
+    // Only collect garbage if we have sessions
+    if (sessionCount > 0) {
+      // Use a more aggressive collection if memory usage is high
+      const heapUsageRatio = memoryUsage.heapUsed / memoryUsage.heapTotal;
+      const minToRemove = heapUsageRatio > 0.7 ? Math.ceil(sessionCount * 0.2) : 0;
+      
+      const removed = collectGarbage(minToRemove);
+      if (removed > 0) {
+        logger.info(`Scheduled garbage collection removed ${removed} idle sessions`);
+      }
+    }
+  }, gcInterval);
+  
+  // Create a function to clean up this interval when the worker shuts down
+  return () => {
+    if (garbageCollectionInterval) {
+      clearInterval(garbageCollectionInterval);
+      garbageCollectionInterval = null;
+    }
+  };
+}
+
+// Call this during initialization
+setupGarbageCollection();
 
 /**
  * Sets up worker health monitoring
@@ -39,6 +84,14 @@ function setupHealthMonitoring() {
     // If we haven't received a health check request in 2 minutes, something may be wrong
     if (Date.now() - lastHealthCheckResponse > 120000) {
       logger.warning('No health check requests received in 2 minutes - possible communication issue');
+    }
+  }, 60000);
+  
+  // Add session metrics to health monitoring
+  setInterval(() => {
+    const sessionCount = Object.keys(sessionHistories).length;
+    if (sessionCount > MAX_SESSIONS * 0.8) {
+      logger.warning(`Session count approaching limit: ${sessionCount}/${MAX_SESSIONS}`);
     }
   }, 60000);
 }
@@ -100,6 +153,9 @@ parentPort.on('message', async (msg) => {
       case 'socket:disconnect':
         if (msg.socketId) {
           try {
+            // Save the session to database before cleanup
+            await syncSessionWithDatabase(msg.socketId);
+            
             const { cleanupSocketSession } = await import('../utils/gracefulShutdown.js');
             const cleaned = cleanupSocketSession(msg.socketId, sessionHistories);
             
@@ -258,17 +314,171 @@ async function updateUserXP(username, wordCount, currentSocketId) {
   }
 }
 
-// Keep in-memory session history
-function updateSessionHistory(socketId, collarText, userPrompt, finalContent) {
+// Keep in-memory session history and store in database
+async function updateSessionHistory(socketId, collarText, userPrompt, finalContent, username) {
+  // In-memory operations (maintain existing functionality)
   if (!sessionHistories[socketId]) {
     sessionHistories[socketId] = [];
+    
+    // Add metadata for session management
+    sessionHistories[socketId].metadata = {
+      createdAt: Date.now(),
+      lastActivity: Date.now()
+    };
+  } else {
+    // Update last activity timestamp
+    sessionHistories[socketId].metadata.lastActivity = Date.now();
   }
+  
+  // Add the new messages to the in-memory session
   sessionHistories[socketId].push(
     { role: 'system', content: collarText },
     { role: 'user', content: userPrompt },
     { role: 'assistant', content: finalContent }
   );
+  
+  // Run garbage collection if we exceed the maximum number of sessions
+  if (Object.keys(sessionHistories).length > MAX_SESSIONS) {
+    collectGarbage(1); // Remove at least one session
+  }
+  
+  // Now store in database (if we have a valid username)
+  if (username && username !== 'anonBambi') {
+    try {
+      // Prepare session data for database
+      const sessionData = {
+        username,
+        socketId,
+        messages: [
+          { role: 'system', content: collarText },
+          { role: 'user', content: userPrompt },
+          { role: 'assistant', content: finalContent }
+        ],
+        metadata: {
+          lastActivity: new Date(),
+          triggers: Array.isArray(triggers) ? triggers : triggers.split(',').map(t => t.trim()),
+          collarActive: state,
+          collarText: collar
+        }
+      };
+
+      // Check if we already have a session for this socketId
+      const SessionHistory = mongoose.model('SessionHistory');
+      let sessionHistory = await SessionHistory.findOne({ socketId });
+      
+      if (sessionHistory) {
+        // Update existing session
+        sessionHistory.messages.push(...sessionData.messages);
+        sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
+        sessionHistory.metadata.triggers = sessionData.metadata.triggers;
+        sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
+        sessionHistory.metadata.collarText = sessionData.metadata.collarText;
+        
+        await sessionHistory.save();
+        logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
+      } else {
+        // Create new session history
+        sessionHistory = await SessionHistory.create(sessionData);
+        
+        // Add reference to user's profile
+        await mongoose.model('Profile').findOneAndUpdate(
+          { username },
+          { $addToSet: { sessionHistories: sessionHistory._id } }
+        );
+        
+        logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
+      }
+    } catch (error) {
+      logger.error(`Failed to save session history to database: ${error.message}`);
+    }
+  }
+  
   return sessionHistories[socketId];
+}
+
+/**
+ * Garbage collects idle sessions
+ * @param {number} minToRemove - Minimum number of sessions to remove
+ * @returns {number} - Number of sessions removed
+ */
+async function collectGarbage(minToRemove = 0) {
+  const now = Date.now();
+  const sessionIds = Object.keys(sessionHistories);
+  
+  if (sessionIds.length <= 0) return 0;
+  
+  // Calculate idle time for each session
+  const sessionsWithIdleTime = sessionIds.map(id => {
+    const metadata = sessionHistories[id].metadata || { lastActivity: 0 };
+    const idleTime = now - metadata.lastActivity;
+    return { id, idleTime };
+  });
+  
+  // Sort by idle time (most idle first)
+  sessionsWithIdleTime.sort((a, b) => b.idleTime - a.idleTime);
+  
+  let removed = 0;
+  
+  // First remove any session exceeding the idle timeout
+  for (const session of sessionsWithIdleTime) {
+    if (session.idleTime > SESSION_IDLE_TIMEOUT) {
+      // Before deleting, save to database if not already saved
+      await syncSessionWithDatabase(session.id);
+      
+      delete sessionHistories[session.id];
+      removed++;
+      logger.info(`Garbage collected idle session ${session.id} (idle for ${Math.round(session.idleTime/1000)}s)`);
+    } else if (removed >= minToRemove) {
+      // Stop if we've removed enough sessions and the rest are not idle
+      break;
+    }
+  }
+  
+  // If we still need to remove more sessions to meet the minimum, remove the most idle ones
+  if (removed < minToRemove) {
+    for (let i = 0; i < minToRemove - removed && i < sessionsWithIdleTime.length; i++) {
+      const session = sessionsWithIdleTime[i];
+      
+      // Before deleting, save to database if not already saved
+      await syncSessionWithDatabase(session.id);
+      
+      delete sessionHistories[session.id];
+      removed++;
+      logger.info(`Garbage collected session ${session.id} (idle for ${Math.round(session.idleTime/1000)}s) to maintain session limit`);
+    }
+  }
+  
+  return removed;
+}
+
+// New helper function to sync session with database before removal
+async function syncSessionWithDatabase(socketId) {
+  const session = sessionHistories[socketId];
+  if (!session || !session.username || session.username === 'anonBambi') {
+    return; // Skip anonymous sessions or invalid sessions
+  }
+  
+  try {
+    const SessionHistory = mongoose.model('SessionHistory');
+    const existingSession = await SessionHistory.findOne({ socketId });
+    
+    if (existingSession) {
+      // Update the existing session with any new messages
+      existingSession.metadata.lastActivity = new Date();
+      
+      // Find messages that aren't already in the database
+      const existingMessageContents = new Set(existingSession.messages.map(m => m.content));
+      const newMessages = session.filter(msg => !existingMessageContents.has(msg.content));
+      
+      if (newMessages.length > 0) {
+        existingSession.messages.push(...newMessages);
+        await existingSession.save();
+        logger.debug(`Synced ${newMessages.length} messages to database before removing session ${socketId}`);
+      }
+    }
+  } catch (error) {
+    logger.error(`Error syncing session to database: ${error.message}`);
+  }
 }
 
 async function getLoadedModels() {
@@ -439,7 +649,7 @@ async function handleMessage(userPrompt, socketId, username) {
 
     collarText = await checkRole(collar, triggers, username);
 
-    const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent);
+    const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent, username);
     if (messages.length === 0) {
       logger.error('No messages found for socketId:', socketId);
       return;
@@ -502,4 +712,18 @@ async function savePromptHistory(socketId, message) {
   } catch (error) {
     logger.error(`Error saving prompt history: ${error.message}`);
   }
+}
+
+// Add cleanup for garbage collection interval to the worker shutdown
+async function workerGracefulShutdown(workerName, context = {}) {
+  // ...existing code...
+  
+  // Clear garbage collection interval
+  if (garbageCollectionInterval) {
+    clearInterval(garbageCollectionInterval);
+    garbageCollectionInterval = null;
+    logger.info('Stopped garbage collection interval');
+  }
+  
+  // Rest of shutdown code
 }

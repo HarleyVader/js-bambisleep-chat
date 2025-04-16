@@ -193,6 +193,10 @@ const profileSchema = new mongoose.Schema({
     source: String,
     description: String
   }],
+  sessionHistories: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SessionHistory'
+  }],
   createdAt: {
     type: Date,
     default: Date.now
