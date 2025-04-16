@@ -206,8 +206,9 @@ class ClientRenderer {
     // Replace placeholder with container
     this.safeReplace(placeholder, container);
     
-    // Set up socket listener for new messages
+    // Remove any existing listeners before adding a new one
     if (window.socket) {
+      window.socket.off("chat message");
       window.socket.on("chat message", (msg) => {
         const item = this.createChatMessageElement(msg);
         container.appendChild(item);

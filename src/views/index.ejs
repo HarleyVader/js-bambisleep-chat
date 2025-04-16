@@ -114,42 +114,6 @@
 
             
 
-            socket.on("chat message", (msg) => {
-              const item = document.createElement("li");
-              const timestamp = new Date(msg.timestamp).toLocaleTimeString([], {hour12: false});
-              
-              const timeSpan = document.createElement("span");
-              timeSpan.classList.add("chat-time");
-              timeSpan.textContent = timestamp;
-              
-              const usernameSpan = document.createElement("span");
-              usernameSpan.classList.add("chat-username");
-              
-              // Create clickable username link
-              const usernameLink = document.createElement("a");
-              usernameLink.href = `/profile/${msg.username}`;
-              usernameLink.className = "username-link";
-              usernameLink.textContent = msg.username;
-              usernameSpan.appendChild(usernameLink);
-              usernameSpan.appendChild(document.createTextNode(":"));
-              
-              const messageSpan = document.createElement("span");
-              messageSpan.classList.add("chat-message");
-              messageSpan.textContent = msg.data;
-              
-              item.appendChild(timeSpan);
-              item.appendChild(document.createTextNode(" - "));
-              item.appendChild(usernameSpan);
-              item.appendChild(document.createTextNode(" "));
-              item.appendChild(messageSpan);
-              
-              if (window.username) {
-                item.classList.add("neon-glow");
-              }
-              
-              document.getElementById("chat-response").appendChild(item);
-            });
-
             // Update the chat form submission handler
             document.getElementById("chat-form").addEventListener("submit", (event) => {
               event.preventDefault();
