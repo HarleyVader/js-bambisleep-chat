@@ -1,6 +1,5 @@
 import ChatMessage from '../models/ChatMessage.js';
 import Logger from '../utils/logger.js';
-import mongoose from 'mongoose';
 import { withDbConnection } from '../utils/dbTransaction.js';
 import Profile from '../models/Profile.js';  // Import the Profile model directly
 
@@ -21,9 +20,6 @@ const registeredSockets = new Set();
 
 // Update to accept a socket directly rather than setting up its own connection handler
 export default function setupChatSockets(socket, io, socketStore, filteredWords = []) {
-  // Add detailed logging to track when this is called
-  logger.info(`Setting up chat socket handlers for socket ${socket.id} (registered: ${registeredSockets.has(socket.id)})`);
-  
   // Prevent duplicate handlers by checking if this socket already has handlers
   if (registeredSockets.has(socket.id)) {
     logger.info(`Chat socket handlers already set up for socket ${socket.id}, skipping`);
@@ -32,7 +28,9 @@ export default function setupChatSockets(socket, io, socketStore, filteredWords 
   
   // Mark this socket as having handlers registered
   registeredSockets.add(socket.id);
-  logger.info(`Registered socket ${socket.id} for chat handlers (total registered: ${registeredSockets.size})`);
+  
+  // Add detailed logging to track when this is called
+  logger.info(`Setting up chat socket handlers for socket ${socket.id} (registered: ${registeredSockets.has(socket.id)})`);
   
   // Clean up on disconnect
   socket.on('disconnect', () => {
@@ -44,33 +42,39 @@ export default function setupChatSockets(socket, io, socketStore, filteredWords 
 }
 
 function setupSocketHandlers(socket, io, socketStore, filteredWords = []) {
+  // Verify socket is connected
+  if (!socket.connected) {
+    logger.warning(`Attempting to set up handlers for disconnected socket: ${socket.id}`);
+  }
+  
   // Handle chat messages for this specific socket
   socket.on('chat message', async (msg) => {
     try {
       // Validate message format
       if (!msg || !msg.data || typeof msg.data !== 'string') {
-        logger.warning('Invalid message format received');
+        logger.warning('Invalid message format received:', msg);
         return;
       }
 
+      // Log more details
+      logger.info(`Processing chat message: ${JSON.stringify(msg)}`);
+      
       // Ensure username is set
       const username = msg.username || 'anonBambi';
       
       // Create and save the message
-      const chatMessage = new ChatMessage({
+      await ChatMessage.saveMessage({
         username: username,
         data: msg.data,
         timestamp: new Date()
       });
-      
-      await chatMessage.save();
       logger.info(`Chat message from ${username}: ${msg.data}`);
       
       // Broadcast the message to all clients
       io.emit('chat message', {
         username: username,
         data: msg.data,
-        timestamp: chatMessage.timestamp
+        timestamp: new Date()
       });
       
       // Award XP for sending a chat message if user is not anonymous
@@ -84,7 +88,7 @@ function setupSocketHandlers(socket, io, socketStore, filteredWords = []) {
       }
       
     } catch (error) {
-      logger.error(`Error handling chat message: ${error.message}`);
+      logger.error(`Error handling chat message: ${error.message}`, error.stack);
     }
   });
   
@@ -177,3 +181,11 @@ async function awardXP(username, amount) {
     return null;
   }
 }
+
+// Add static method to ChatMessage schema
+ChatMessage.statics.saveMessage = async function(messageData) {
+  return withDbConnection(async () => {
+    const message = new this(messageData);
+    return await message.save();
+  });
+};
