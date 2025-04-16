@@ -273,12 +273,8 @@
               }, 5000);
             }
           });
-        </script>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
-        <script src="js/bootstrap.min.js"></script>
-        <script>
-          // Function to activate selected triggers from profile
+
+          // Replace the existing activateProfileTriggers function
           function activateProfileTriggers() {
             // Get the profile data from the page
             const username = document.body.getAttribute('data-username');
@@ -294,33 +290,8 @@
                 if (activeTriggers && activeTriggers.length > 0) {
                   console.log('Activating triggers from local storage:', activeTriggers);
                   
-                  // If there's a function to activate triggers, use it
-                  if (typeof activateTrigger === 'function') {
-                    activeTriggers.forEach(trigger => {
-                      activateTrigger(trigger);
-                    });
-                  } else {
-                    // Create custom event to activate triggers
-                    activeTriggers.forEach(trigger => {
-                      const triggerEvent = new CustomEvent('bambi-trigger', { 
-                        detail: { 
-                          trigger: trigger,
-                          description: triggerDescriptions[trigger] || ''
-                        }
-                      });
-                      document.dispatchEvent(triggerEvent);
-                    });
-                  }
-                  
-                  // If socket is available, send the triggers with descriptions
-                  if (typeof socket !== 'undefined' && socket.connected) {
-                    socket.emit('update-system-controls', {
-                      username: username,
-                      activeTriggers: activeTriggers,
-                      triggerDescriptions: triggerDescriptions
-                    });
-                  }
-                  
+                  // Activate triggers
+                  activateTriggers(activeTriggers, triggerDescriptions);
                   return; // Don't continue to other methods if we successfully activated from localStorage
                 }
               } catch (e) {
@@ -328,7 +299,7 @@
               }
             }
             
-            // If we couldn't get triggers from localStorage, use profile data or fetch from server
+            // If we couldn't get triggers from localStorage, use profile data or fetch from socket
             // Check if we already have the profile data
             if (typeof profileData !== 'undefined' && 
                 profileData.systemControls && 
@@ -338,50 +309,61 @@
               const activeTriggers = profileData.systemControls.activeTriggers;
               if (activeTriggers && activeTriggers.length > 0) {
                 console.log('Activating triggers from profile:', activeTriggers);
-                
-                // If triggers.js exposes a function to activate triggers, use it
-                if (typeof activateTrigger === 'function') {
-                  activeTriggers.forEach(trigger => {
-                    activateTrigger(trigger);
-                  });
-                } else {
-                  // Create custom event to activate triggers
-                  activeTriggers.forEach(trigger => {
-                    const triggerEvent = new CustomEvent('bambi-trigger', { 
-                      detail: { trigger: trigger }
-                    });
-                    document.dispatchEvent(triggerEvent);
-                  });
-                }
+                activateTriggers(activeTriggers);
               }
             } else {
-              // If we don't have the profile data yet, fetch it
-              fetch(`/profile/${username}/data`)
-                .then(response => response.json())
-                .then(data => {
-                  if (data && data.systemControls && data.systemControls.activeTriggers) {
-                    const activeTriggers = data.systemControls.activeTriggers;
-                    if (activeTriggers && activeTriggers.length > 0) {
-                      console.log('Fetched and activating triggers:', activeTriggers);
-                      
-                      // If triggers.js exposes a function to activate triggers, use it
-                      if (typeof activateTrigger === 'function') {
-                        activeTriggers.forEach(trigger => {
-                          activateTrigger(trigger);
-                        });
-                      } else {
-                        // Create custom event to activate triggers
-                        activeTriggers.forEach(trigger => {
-                          const triggerEvent = new CustomEvent('bambi-trigger', { 
-                            detail: { trigger: trigger }
-                          });
-                          document.dispatchEvent(triggerEvent);
-                        });
+              // If we don't have the profile data yet, use socket to get it
+              if (typeof socket !== 'undefined' && socket.connected) {
+                console.log('Requesting profile data via socket');
+                socket.emit('get-profile-data', { username }, (response) => {
+                  if (response && response.success && response.profile) {
+                    const profile = response.profile;
+                    if (profile.systemControls && profile.systemControls.activeTriggers) {
+                      const activeTriggers = profile.systemControls.activeTriggers;
+                      if (activeTriggers && activeTriggers.length > 0) {
+                        console.log('Received and activating triggers:', activeTriggers);
+                        activateTriggers(activeTriggers);
                       }
                     }
+                  } else {
+                    console.log('No profile data returned from socket or no active triggers');
                   }
-                })
-                .catch(error => console.error('Error fetching profile data:', error));
+                });
+              } else {
+                console.warn('Socket not available for profile data');
+              }
+            }
+            
+            // Helper function to activate an array of triggers
+            function activateTriggers(triggers, descriptions = {}) {
+              if (!triggers || !triggers.length) return;
+              
+              if (typeof window.activateTrigger === 'function') {
+                // If triggers.js exposes a function to activate triggers, use it
+                triggers.forEach(trigger => {
+                  window.activateTrigger(trigger);
+                });
+              } else {
+                // Create custom event to activate triggers
+                triggers.forEach(trigger => {
+                  const triggerEvent = new CustomEvent('bambi-trigger', { 
+                    detail: { 
+                      trigger: trigger,
+                      description: descriptions[trigger] || ''
+                    }
+                  });
+                  document.dispatchEvent(triggerEvent);
+                });
+              }
+              
+              // If socket is available, send the triggers with descriptions
+              if (typeof socket !== 'undefined' && socket.connected) {
+                socket.emit('update-system-controls', {
+                  username: username,
+                  activeTriggers: triggers,
+                  triggerDescriptions: descriptions
+                });
+              }
             }
           }
 
@@ -429,6 +411,9 @@
             });
           });
         </script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
+        <script src="js/bootstrap.min.js"></script>
   </body>
 
 </html>

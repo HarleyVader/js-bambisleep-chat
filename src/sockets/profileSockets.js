@@ -144,6 +144,34 @@ export default function setupProfileSockets(socket, io, username) {
         socket.emit('error', { message: 'Failed to update system controls' });
       }
     });
+
+    // Handle fetching profile data via socket
+    socket.on('get-profile-data', async (data, callback) => {
+      try {
+        if (!data || !data.username) {
+          return callback({ success: false, message: 'Username is required' });
+        }
+        
+        const username = data.username;
+        const Profile = getModel('Profile');
+        
+        // Find profile by username
+        const profile = await Profile.findOne({ username });
+        
+        if (!profile) {
+          return callback({ success: false, message: 'Profile not found' });
+        }
+        
+        // Return profile data
+        callback({ 
+          success: true, 
+          profile: profile.toJSON() 
+        });
+      } catch (error) {
+        logger.error('Error fetching profile data via socket:', error);
+        callback({ success: false, message: 'Error fetching profile data' });
+      }
+    });
   }
   
   // User joins a profile room (for profile updates in other tabs/windows)
