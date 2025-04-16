@@ -1437,7 +1437,6 @@
 .control-panel {
   background-color: rgba(10, 38, 38, 0.4);
   border-radius: 4px;
-  padding: 15px;
   display: none; /* Hide by default */
   animation: fadeIn 0.3s ease;
 }
