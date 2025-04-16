@@ -7,7 +7,7 @@ import { BaseWorker } from './baseWorker.js';
 import Logger from '../../utils/logger.js';
 import connectToMongoDB from '../../utils/dbConnection.js';
 import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
-import withDbConnection from '../../utils/dbTransaction.js';
+import { withDbConnection } from '../../config/db.js';
 
 dotenv.config();
 
