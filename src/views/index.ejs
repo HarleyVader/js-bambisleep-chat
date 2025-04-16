@@ -299,6 +299,52 @@
                 notification.classList.add('fade-out');
               }, 5000);
             }
+
+            // Listen for chat message events
+            socket.on("chat message", function(msg) {
+              // Create a new list item
+              const item = document.createElement("li");
+              
+              // Create the time span
+              const timeSpan = document.createElement("span");
+              timeSpan.className = "chat-time";
+              timeSpan.textContent = new Date(msg.timestamp).toLocaleTimeString([], {hour12: false});
+              
+              // Create the username span with link
+              const usernameSpan = document.createElement("span");
+              usernameSpan.className = "chat-username";
+              
+              const usernameLink = document.createElement("a");
+              usernameLink.href = `/profile/${msg.username}`;
+              usernameLink.className = "username-link";
+              usernameLink.textContent = msg.username;
+              
+              usernameSpan.appendChild(usernameLink);
+              
+              // Create the message span
+              const messageSpan = document.createElement("span");
+              messageSpan.className = "chat-message";
+              messageSpan.textContent = msg.data;
+              
+              // Add all elements to the list item
+              item.appendChild(timeSpan);
+              item.appendChild(document.createTextNode(" - "));
+              item.appendChild(usernameSpan);
+              item.appendChild(document.createTextNode(": "));
+              item.appendChild(messageSpan);
+              
+              // Add neon-glow class if user is logged in
+              if (window.username) {
+                item.classList.add("neon-glow");
+              }
+              
+              // Add the item to the chat list
+              const chatList = document.getElementById("chat-response");
+              chatList.appendChild(item);
+              
+              // Scroll to the bottom
+              chatList.scrollTop = chatList.scrollHeight;
+            });
           });
 
           // Replace the existing activateProfileTriggers function
