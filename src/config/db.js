@@ -17,8 +17,6 @@ export async function connectDB() {
     
     // Connection options with poolSize
     const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       connectTimeoutMS: 10000,
       socketTimeoutMS: 45000,

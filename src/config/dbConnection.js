@@ -27,8 +27,6 @@ async function connectToMongoDB() {
     
     // Set up connection options
     const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       connectTimeoutMS: 10000,
       socketTimeoutMS: 45000,

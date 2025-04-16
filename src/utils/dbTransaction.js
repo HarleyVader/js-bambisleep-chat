@@ -24,8 +24,6 @@ export async function withDbConnection(operation, options = {}) {
     if (!wasConnected) {
       logger.debug('Opening new MongoDB connection for transaction');
       await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep', {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
         serverSelectionTimeoutMS: 5000,
         connectTimeoutMS: 10000,
         socketTimeoutMS: 45000,
