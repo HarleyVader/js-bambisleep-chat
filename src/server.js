@@ -40,6 +40,7 @@ import setupLMStudioSockets from './sockets/lmStudioSockets.js';
 import errorHandler from './middleware/error.js';
 import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
+import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 
 // Import Profile model getter
 import { getProfile } from './models/Profile.js';
@@ -209,8 +210,9 @@ function setupRoutes(app) {
       // Get requested limit with default of 50
       const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
       
-      // Get recent messages - replace with your actual implementation
-      const messages = await getRecentMessages(limit);
+      // Use the updated model method which handles connections properly
+      const ChatMessage = mongoose.model('ChatMessage');
+      const messages = await ChatMessage.getRecentMessages(limit);
       
       res.json({ messages });
     } catch (error) {
@@ -502,7 +504,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       setupChatSockets(socket, io, socketStore, filteredWords);
       
       // When sending chat messages, emit directly to clients instead of rendering on server
-      socket.on("chat message", (msg) => {
+      socket.on("chat message", async (msg) => {
         if (typeof msg !== 'object' || !msg.data) {
           return;
         }
@@ -517,15 +519,17 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           timestamp: timestamp
         };
         
-        // Save to database and then emit to all clients
-        saveMessage(messageObj)
-          .then(() => {
-            io.emit("chat message", messageObj);
-          })
-          .catch(err => {
-            logger.error('Error saving chat message:', err);
-            socket.emit('error', 'Error saving message');
-          });
+        try {
+          // Use the new method that manages connections properly
+          const ChatMessage = mongoose.model('ChatMessage');
+          await ChatMessage.saveMessage(messageObj);
+          
+          // Emit to all clients
+          io.emit("chat message", messageObj);
+        } catch (err) {
+          logger.error('Error saving chat message:', err);
+          socket.emit('error', 'Error saving message');
+        }
       });
       
       // Handle disconnection
@@ -875,6 +879,13 @@ async function startServer() {
       logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
       logger.success('Server startup completed successfully');
     });
+    
+    // Add connection monitoring in production
+    if (process.env.NODE_ENV === 'production') {
+      startConnectionMonitoring(300000); // Check every 5 minutes in production
+    } else {
+      startConnectionMonitoring(60000); // Check every minute in development
+    }
     
     // Set up signal handlers for graceful shutdown
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server, workerCoordinator));

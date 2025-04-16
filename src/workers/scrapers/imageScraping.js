@@ -7,6 +7,7 @@ import { BaseWorker } from './baseWorker.js';
 import Logger from '../../utils/logger.js';
 import connectToMongoDB from '../../utils/dbConnection.js';
 import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
+import withDbConnection from '../../utils/dbTransaction.js';
 
 dotenv.config();
 
@@ -35,20 +36,8 @@ const ImageContentSchema = new mongoose.Schema({
   }
 });
 
-// Set up MongoDB connection
-const setupMongoDB = async () => {
-  try {
-    await connectToMongoDB();
-    logger.success('Image scraper connected to MongoDB');
-    return mongoose.model('BambiImageContent', ImageContentSchema);
-  } catch (error) {
-    logger.error('Image scraper MongoDB setup error:', error.message);
-    throw error;
-  }
-};
-
 // Scrape image content from a web page
-const scrapeImageContent = async (url, ImageContentModel) => {
+const scrapeImageContent = async (url, saveImageData) => {
   try {
     logger.info(`Scraping ${url} for BambiSleep image content`);
     const response = await axios.get(url);
@@ -72,7 +61,7 @@ const scrapeImageContent = async (url, ImageContentModel) => {
 
     const savedImages = [];
     for (const img of images) {
-      const imageContent = new ImageContentModel({
+      const imageData = {
         type: 'image',
         url: img.url,
         source: url,
@@ -82,10 +71,9 @@ const scrapeImageContent = async (url, ImageContentModel) => {
           categories: ['web'],
           created: new Date()
         }
-      });
-      const savedImage = await imageContent.save();
-      // Convert Mongoose document to plain object and add to array
-      savedImages.push(savedImage.toObject ? savedImage.toObject() : savedImage);
+      };
+      const savedImage = await saveImageData(imageData);
+      savedImages.push(savedImage);
       logger.success(`Saved image content from ${img.url}`);
     }
 
@@ -107,7 +95,6 @@ const scrapeImageContent = async (url, ImageContentModel) => {
 };
 
 // Main function to handle worker messages
-let ImageContentModel;
 let isInitialized = false;
 
 // Set up shutdown handlers
@@ -117,13 +104,14 @@ parentPort.on('message', async (msg) => {
   try {
     // Initialize MongoDB connection if not already done
     if (!isInitialized) {
-      ImageContentModel = await setupMongoDB();
+      await connectToMongoDB();
       isInitialized = true;
     }
     
     switch (msg.type) {
       case 'scrape_images':
-        const imageResult = await scrapeImageContent(msg.url, ImageContentModel);
+        const imageScraperWorker = new ImageScraperWorker();
+        const imageResult = await scrapeImageContent(msg.url, imageScraperWorker.saveImageData.bind(imageScraperWorker));
         // Ensure we're sending serializable data
         parentPort.postMessage({
           type: 'scrape_result',
@@ -152,14 +140,15 @@ parentPort.on('message', async (msg) => {
 
 logger.info('Image scraping worker started and ready to receive messages');
 
-export class ImageScrapingWorker extends BaseWorker {
+export class ImageScraperWorker extends BaseWorker {
   constructor() {
     super('ImageScraper');
   }
   
-  // Worker-specific methods
-  processImage(url) {
-    this.logger.info(`Processing image from: ${url}`);
-    // Image processing logic
+  async saveImageData(imageData) {
+    return withDbConnection(async () => {
+      const ImageContent = mongoose.model('ImageContent', ImageContentSchema);
+      return await ImageContent.create(imageData);
+    });
   }
 }

@@ -6,6 +6,7 @@ import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../utils/gr
 import mongoose from 'mongoose';
 import { connectDB, getModel } from '../config/db.js';
 import '../models/Profile.js';  // Import the model file to ensure schema registration
+import withDbConnection from '../utils/dbTransaction.js'; // Import the new utility
 
 // Health monitoring variables
 let lastActivityTimestamp = Date.now();
@@ -486,4 +487,20 @@ async function handleMessage(userPrompt, socketId, username) {
 if (healthCheckInterval) {
   clearInterval(healthCheckInterval);
   healthCheckInterval = null;
+}
+
+// Replace savePromptHistory function with the updated version
+async function savePromptHistory(socketId, message) {
+  try {
+    await withDbConnection(async () => {
+      const PromptHistory = mongoose.model('PromptHistory');
+      await PromptHistory.create({
+        socketId,
+        message,
+        timestamp: new Date()
+      });
+    });
+  } catch (error) {
+    logger.error(`Error saving prompt history: ${error.message}`);
+  }
 }

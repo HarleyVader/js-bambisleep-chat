@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
 import { getProfile } from '../models/Profile.js';
 import { getModel } from '../config/db.js'; // Import getModel from the correct location
+import withDbConnection from '../utils/dbTransaction.js';
 
 const logger = new Logger('ProfileSockets');
 
@@ -155,24 +156,18 @@ export default function setupProfileSockets(socket, io, username) {
  */
 async function loadUserProfile(socket, username) {
   try {
-    const Profile = getProfile();
-    const profile = await Profile.findOne({ username });
+    const profile = await withDbConnection(async () => {
+      return await getProfile(username);
+    });
     
     if (profile) {
-      socket.bambiProfile = profile;
-      socket.emit('profile loaded', {
-        username: profile.username,
-        displayName: profile.displayName,
-        level: profile.level,
-        triggers: profile.triggers
-      });
-      
-      // Update lastActive timestamp
-      profile.lastActive = Date.now();
-      await profile.save();
+      socket.emit('profile:loaded', profile);
+    } else {
+      socket.emit('profile:error', { message: 'Profile not found' });
     }
-  } catch (err) {
-    logger.error(`Error loading profile for ${username}:`, err);
+  } catch (error) {
+    logger.error(`Error loading profile for ${username}:`, error);
+    socket.emit('profile:error', { message: 'Error loading profile' });
   }
 }
 
