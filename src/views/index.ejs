@@ -65,6 +65,9 @@
             </div>
           </div>
         </div>
+        <div id="collar-container" style="display: none;">
+          <div id="textarea-collar-response"></div>
+        </div>
       </div>
       <%- include('../views/partials/footer.ejs') %>
         <!-- Make sure these scripts appear in exactly this order -->
@@ -156,15 +159,39 @@
             }
 
             socket.on('collar', (message) => {
-              const collarResponse = document.getElementById('textarea-collar-response');
+              // Get or create the collar response element
+              let collarResponse = document.getElementById('textarea-collar-response');
+              
+              // If it doesn't exist, create and append it to the body
+              if (!collarResponse) {
+                collarResponse = document.createElement('div');
+                collarResponse.id = 'textarea-collar-response';
+                
+                // Create or find a container for it
+                let collarContainer = document.getElementById('collar-container');
+                if (!collarContainer) {
+                  collarContainer = document.createElement('div');
+                  collarContainer.id = 'collar-container';
+                  document.body.appendChild(collarContainer);
+                }
+                
+                collarContainer.appendChild(collarResponse);
+              }
+              
+              // Now add the message
               const messageElement = document.createElement('p');
               messageElement.textContent = message;
+              
               if (collarResponse.firstChild) {
                 collarResponse.insertBefore(messageElement, collarResponse.firstChild);
               } else {
                 collarResponse.appendChild(messageElement);
               }
-              applyUppercaseStyle();
+              
+              // Call applyUppercaseStyle if it exists
+              if (typeof applyUppercaseStyle === 'function') {
+                applyUppercaseStyle();
+              }
             });
             
             // Add this code to listen for chat message events and update XP
