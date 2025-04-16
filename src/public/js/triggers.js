@@ -1,10 +1,30 @@
-const listOfTriggers = [
+/**
+ * BambiSleep Triggers Management System
+ * Handles trigger display, activation, and state persistence
+ */
+
+// Standard triggers that most bambis will have
+const STANDARD_TRIGGERS = [
   "BIMBO DOLL",
-  "GOOD GIRL",
   "BAMBI SLEEP",
+  "GOOD GIRL",
   "BAMBI FREEZE",
-  "ZAP COCK DRAIN OBEY",
   "BAMBI ALWAYS WINS",
+  "ZAP COCK DRAIN OBEY",
+"BAMBI ALWAYS WINS",
+  "BAMBI RESET",
+  "I-Q DROP",
+  "I-Q LOCK",
+  "POSTURE LOCK",
+  "UNIFORM LOCK",
+  "SAFE & SECURE",
+  "PRIMPED",
+  "PAMPERED",
+  "SNAP & FORGET",
+  "GIGGLE TIME",
+  "BLONDE MOMENT",
+  "BAMBI DOES AS SHE IS TOLD",
+"BAMBI ALWAYS WINS",
   "BAMBI RESET",
   "I-Q DROP",
   "I-Q LOCK",
@@ -39,129 +59,138 @@ const textElements = [
 ].filter(element => element !== null);
 
 function createToggleButtons() {
-  const container = document.getElementById("trigger-toggles");
+  const container = document.getElementById('trigger-toggles');
   if (!container) {
-    console.error("Container with id 'trigger-toggles' not found.");
+    console.warn('Container with id \'trigger-toggles\' not found.');
     return;
   }
-
-  listOfTriggers.forEach((trigger, index) => {
-    const toggle = document.createElement("input");
-    toggle.type = "checkbox";
-    toggle.id = `toggle-${index}`;
-    toggle.className = "toggle-input";
-
-    const label = document.createElement("label");
-    label.textContent = trigger;
-    label.htmlFor = `toggle-${index}`;
-    label.className = "toggle-label";
-
-    container.appendChild(toggle);
-    container.appendChild(label);
+  
+  // Clear the container
+  container.innerHTML = '';
+  
+  // Create buttons for standard triggers
+  STANDARD_TRIGGERS.forEach(trigger => {
+    const button = document.createElement('button');
+    button.className = 'trigger-toggle' + (activeTriggers.includes(trigger) ? ' active' : '');
+    button.dataset.trigger = trigger;
+    button.textContent = trigger;
+    
+    // Add click handler
+    button.addEventListener('click', function() {
+      const isActive = this.classList.contains('active');
+      toggleTrigger(trigger, !isActive);
+    });
+    
+    container.appendChild(button);
   });
 }
 
-function toggleAllToggles() {
-  const toggleInputs = document.getElementsByClassName("toggle-input");
-  for (let i = 0; i < toggleInputs.length; i++) {
-    toggleInputs[i].checked = !toggleInputs[i].checked;
+// Toggle a trigger's active state
+function toggleTrigger(triggerName, active) {
+  // Default to true if not specified
+  active = (active !== false);
+  
+  // Update local state
+  if (active && !activeTriggers.includes(triggerName)) {
+    activeTriggers.push(triggerName);
+  } else if (!active) {
+    activeTriggers = activeTriggers.filter(t => t !== triggerName);
   }
+  
+  // Update UI to match state
+  updateTriggerUI();
+  
+  // Send to server if socket is available
+  if (window.socket && window.socket.connected) {
+    window.socket.emit('update-system-controls', {
+      username: window.username,
+      activeTriggers: activeTriggers
+    });
+    
+    // Also send directly to LMStudio for real-time response
+    window.socket.emit('triggers', {
+      triggerNames: activeTriggers.join(' '),
+      triggerDetails: activeTriggers.map(t => ({ name: t }))
+    });
+  }
+  
+  // Flash visual effect for trigger activation
+  if (active) {
+    flashTrigger(triggerName);
+  }
+  
+  // Synchronize with other tabs
+  const triggerSyncChannel = new BroadcastChannel('bambi-trigger-sync');
+  triggerSyncChannel.postMessage({
+    type: 'trigger-update',
+    activeTriggers: activeTriggers
+  });
+  
+  // Return the current active state
+  return active;
 }
 
-window.onload = function () {
+// Update UI to match current trigger state
+function updateTriggerUI() {
+  const buttons = document.querySelectorAll('.trigger-toggle');
+  buttons.forEach(button => {
+    const trigger = button.dataset.trigger;
+    const isActive = activeTriggers.includes(trigger);
+    button.classList.toggle('active', isActive);
+  });
+}
+
+// Visual effect for trigger activation
+function flashTrigger(trigger) {
+  // Create flash element
+  const flash = document.createElement('div');
+  flash.className = 'trigger-flash';
+  flash.textContent = trigger;
+  document.body.appendChild(flash);
+  
+  // Animate and remove
+  setTimeout(() => {
+    flash.classList.add('active');
+    setTimeout(() => {
+      flash.classList.remove('active');
+      setTimeout(() => {
+        document.body.removeChild(flash);
+      }, 500);
+    }, 1000);
+  }, 10);
+}
+
+// Make functions available globally
+window.toggleTrigger = toggleTrigger;
+window.createToggleButtons = createToggleButtons;
+window.getActiveTriggers = () => activeTriggers;
+
+// Initialize on window load to ensure all resources are loaded
+window.onload = function() {
   createToggleButtons();
-  const activateAllButton = document.getElementById("activate-all");
-  if (activateAllButton) {
-    activateAllButton.addEventListener("click", toggleAllToggles);
-  }
 };
 
-function sendTriggers() {
-  if (typeof socket === "undefined" || !socket.connected) {
-    console.error("Socket is not initialized or connected.");
-    return;
-  }
-
-  const enabledToggleButtons = getEnabledToggleButtons();
-  if (!Array.isArray(enabledToggleButtons) || enabledToggleButtons.length === 0) {
-    console.log("No triggers selected");
-    return; // Don't try to emit if no triggers are selected
-  }
-
-  const triggers = enabledToggleButtons.map(
-    (buttonId) => listOfTriggers[parseInt(buttonId.split("-")[1])]
-  ).filter(trigger => !!trigger); // Filter out any undefined values
-
-  if (triggers.length === 0) {
-    console.log("No valid triggers found");
-    return;
-  }
-
-  socket.emit("triggers", triggers);
-  triggerTriggers(triggers);
-  console.log("Triggers sent:", triggers);
+/* Trigger flash animation */
+.trigger-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 0, 255, 0.2);
+  color: #fff;
+  font-size: 5rem;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.5s ease;
 }
 
-setInterval(() => {
-  const enabledToggleButtons = getEnabledToggleButtons();
-  if (Array.isArray(enabledToggleButtons) && enabledToggleButtons.length > 0) {
-    sendTriggers();
-  }
-}, 3000);
-
-function getEnabledToggleButtons() {
-  const enabledToggleButtons = [];
-  const toggleInputs = document.getElementsByClassName("toggle-input");
-  for (let i = 0; i < toggleInputs.length; i++) {
-    if (toggleInputs[i].checked) {
-      enabledToggleButtons.push(toggleInputs[i].id);
-    }
-  }
-  return enabledToggleButtons;
-}
-
-async function triggerTriggers(triggers) {
-  if (!Array.isArray(triggers) || triggers.length === 0) {
-    console.log("No triggers to display.");
-    return;
-  }
-
-  // Instead of an infinite loop, just go through the list once
-  for (const trigger of triggers) {
-    for (const element of textElements) {
-      if (!element) continue;
-
-      // Set the text content to the current trigger
-      element.textContent = trigger;
-
-      // Randomly determine the animation duration (2-4 seconds)
-      const duration = Math.random() * 2 + 2; // 2 to 4 seconds
-      element.style.transition = `opacity ${duration}s`;
-      element.style.opacity = 1; // Fade in
-
-      // Wait for the animation to finish
-      await new Promise((resolve) => setTimeout(resolve, duration * 1000));
-
-      // Fade out the element
-      element.style.opacity = 0;
-
-      // Wait for the fade-out animation to finish
-      await new Promise((resolve) => setTimeout(resolve, duration * 1000));
-    }
-  }
-}
-
-// Updated activateTrigger function to handle descriptions
-function activateTrigger(trigger, description) {
-  // If trigger is an object with name and description properties
-  if (typeof trigger === 'object' && trigger.name) {
-    description = trigger.description;
-    trigger = trigger.name;
-  }
-  
-  console.log(`Activating trigger: ${trigger}${description ? ` (${description})` : ''}`);
-  
-  // Your existing implementation
-  // ...rest of the function
+.trigger-flash.active {
+  opacity: 1;
 }
 

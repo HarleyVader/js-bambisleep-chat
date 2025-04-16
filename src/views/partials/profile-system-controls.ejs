@@ -8,543 +8,235 @@ const xpRequirements = [100, 250, 450, 700, 1200];
 
 // Calculate next level XP requirement
 const getNextLevelXP = (level) => {
-  if (level < xpRequirements.length) {
-    return xpRequirements[level];
-  } else {
-    // After level 5, just keep adding XP & show total
-    return null;
-  }
+  return Math.pow(level + 1, 2) * 100;
 };
 
-const nextLevelXP = userLevel < xpRequirements.length ? getNextLevelXP(userLevel) : null;
+const nextLevelXP = getNextLevelXP(userLevel);
 const systemControls = profile && profile.systemControls ? profile.systemControls : {};
+const activeTriggers = profile && profile.activeTriggers ? profile.activeTriggers : [];
 %>
 
 <div class="system-controls">
-  <!-- Update the control buttons section -->
-  <div id="buttons" class="control-buttons">
-    <!-- Show triggers button only if level ≥ 1 -->
-    <% if (userLevel >= 1) { %>
-      <button id="triggers-btn" class="control-btn active" data-target="trigger-panel">Triggers</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 1 to unlock">Triggers 🔒</button>
-    <% } %>
-    
-    <!-- Show collar feature if user level ≥ 2 -->
-    <% if (userLevel >= 2) { %>
-      <button id="collar-btn" class="control-btn" data-target="collar-panel">Collar</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 2 to unlock">Collar 🔒</button>
-    <% } %>
-    
-    <!-- Show spirals feature if user level ≥ 3 -->
-    <% if (userLevel >= 3) { %>
-      <button id="spirals-btn" class="control-btn" data-target="spirals-panel">Spirals</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 3 to unlock">Spirals 🔒</button>
-    <% } %>
-    
-    <!-- Show hypnosis feature if user level ≥ 4 -->
-    <% if (userLevel >= 4) { %>
-      <button id="hypnosis-btn" class="control-btn" data-target="hypnosis-panel">Hypnosis</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 4 to unlock">Hypnosis 🔒</button>
-    <% } %>
-    
-    <!-- Show toggle all feature if user level ≥ 5 -->
-    <% if (userLevel >= 5) { %>
-      <button id="toggle-all-btn" class="control-btn" data-target="toggle-all-panel">Toggle All</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 5 to unlock">Toggle All 🔒</button>
-    <% } %>
+  <!-- Control buttons section -->
+  <div class="control-buttons">
+    <button id="triggers-btn" class="control-btn active" data-target="trigger-panel">Triggers</button>
+    <button id="collar-btn" class="control-btn" data-target="collar-panel">Collar</button>
   </div>
 
-  <!-- Update the control panels section to match the new button structure -->
-  <div id="console" class="control-panels">
-    <!-- Only render panels if the user has sufficient level -->
-    <% if (userLevel >= 1) { %>
-      <div id="trigger-panel" class="control-panel active">
-        <h3>Trigger Toggles</h3>
-        <div id="trigger-list" class="trigger-grid"></div>
-      </div>
-      
-      <% if (userLevel >= 2) { %>
-        <div id="collar-panel" class="control-panel">
-          <h3>Collar Control</h3>
-          <div id="collar-form-inputs">
-            <div class="collar-toggle">
-              <input type="checkbox" id="collar-enable" <%= systemControls.collarEnabled ? 'checked' : '' %>>
-              <label for="collar-enable">Enable Collar</label>
-            </div>
-            <textarea id="textarea-collar" placeholder="Enter collar instructions..."><%= systemControls.collarText || '' %></textarea>
-            <button id="save-collar" class="save-btn">Save Collar Settings</button>
-          </div>
-          <div class="collar-messages"></div>
-        </div>
-      <% } %>
-      
-      <% if (userLevel >= 3) { %>
-        <div id="spirals-panel" class="control-panel">
-          <h3>Spirals Settings</h3>
-          <div class="spirals-toggle">
-            <input type="checkbox" id="spirals-enable" <%= systemControls.spiralsEnabled ? 'checked' : '' %>>
-            <label for="spirals-enable">Enable Spirals</label>
-          </div>
-          <div class="spirals-preview">
-            <!-- Spiral preview or settings would go here -->
-            <p>Spiral settings will appear here in a future update.</p>
-          </div>
-        </div>
-      <% } %>
-      
-      <% if (userLevel >= 4) { %>
-        <div id="hypnosis-panel" class="control-panel">
-          <h3>Hypnosis Settings</h3>
-          <div class="hypnosis-toggle">
-            <input type="checkbox" id="hypnosis-enable" <%= systemControls.hypnosisEnabled ? 'checked' : '' %>>
-            <label for="hypnosis-enable">Enable Hypnosis</label>
-          </div>
-          <div class="hypnosis-settings">
-            <!-- Hypnosis settings would go here -->
-            <p>Hypnosis settings will appear here in a future update.</p>
-          </div>
-        </div>
-      <% } %>
-      
-      <% if (userLevel >= 5) { %>
-        <div id="toggle-all-panel" class="control-panel">
-          <h3>Toggle All Triggers</h3>
-          <div class="toggle-all-actions">
-            <button id="select-all-triggers" class="secondary-btn">Select All Triggers</button>
-            <button id="clear-all-triggers" class="secondary-btn">Clear All Triggers</button>
-          </div>
-        </div>
-      <% } %>
-    <% } else { %>
-      <div class="locked-features-message">
-        <p>🔒 Reach Level 1 to unlock trigger controls!</p>
-        <p>Keep chatting with Bambi to earn XP and level up.</p>
-      </div>
-    <% } %>
-  </div>
-
-  <!-- Add XP progress bar at the bottom of system controls -->
-  <% if (userXp !== undefined) { %>
-    <div class="xp-progress-container">
-      <div class="xp-progress-label" id="xp-progress-label">
-        <% if (userLevel < xpRequirements.length) { %>
-          Level <%= userLevel %> • <%= userXp %> XP / <%= nextLevelXP %> XP
-        <% } else { %>
-          Level <%= userLevel %> • <%= userXp %> XP (MAX LEVEL)
-        <% } %>
-      </div>
-      <div class="xp-progress-bar">
-        <% if (userLevel < xpRequirements.length) { %>
-          <div class="xp-progress-fill" id="xp-progress-fill" style="width: <%= Math.min(100, userXp / Math.max(1, nextLevelXP) * 100) %>%"></div>
-        <% } else { %>
-          <div class="xp-progress-fill" id="xp-progress-fill" style="width: 100%"></div>
-        <% } %>
+  <!-- Control panels section -->
+  <div class="control-panels">
+    <div id="trigger-panel" class="control-panel active">
+      <div id="trigger-toggles" class="trigger-toggles">
+        <!-- Triggers will be populated by JavaScript -->
+        <p>Loading triggers...</p>
       </div>
     </div>
-  <% } %>
+    
+    <div id="collar-panel" class="control-panel">
+      <div class="collar-container">
+        <label for="collar-text">Collar Text:</label>
+        <input type="text" id="collar-text" placeholder="Enter collar text..." 
+               value="<%= systemControls.collarText || '' %>">
+        <div class="collar-buttons">
+          <button id="collar-enable-btn" class="<%= systemControls.collarEnabled ? 'active' : '' %>">
+            <%= systemControls.collarEnabled ? 'Disable Collar' : 'Enable Collar' %>
+          </button>
+          <button id="collar-save-btn">Save Text</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- XP progress bar -->
+  <div class="xp-progress-container">
+    <span class="xp-progress-label">Level: <%= userLevel %> | XP: <%= userXp %>/<%= nextLevelXP %></span>
+    <div class="xp-progress-bar">
+      <div class="xp-progress-fill" style="width: <%= Math.min(100, (userXp / nextLevelXP) * 100) %>%"></div>
+    </div>
+  </div>
 </div>
 
 <style>
-  /* Add styles for disabled buttons */
+  /* Control buttons styling */
+  .control-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .control-btn {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .control-btn.active {
+    background-color: #ff00ff;
+    color: #000;
+    border-color: #ff00ff;
+  }
+  
   .control-btn.disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
-    background: #444;
-    color: #aaa;
-    position: relative;
+  }
+  
+  /* Control panels styling */
+  .control-panels {
+    background-color: #222;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .control-panel {
+    display: none;
+  }
+  
+  .control-panel.active {
+    display: block;
+  }
+  
+  /* Trigger toggles styling */
+  .trigger-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .trigger-toggle {
+    background-color: #333;
+    color: #ccc;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .trigger-toggle.active {
+    background-color: #ff00ff;
+    color: #000;
+    border-color: #ff00ff;
+  }
+  
+  /* Collar styling */
+  .collar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .collar-container input {
+    padding: 0.5rem;
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+  }
+  
+  .collar-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
   }
   
   /* XP progress bar styling */
   .xp-progress-container {
-    margin-top: 20px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 5px;
+    margin-top: 1rem;
   }
   
   .xp-progress-label {
-    margin-bottom: 5px;
-    font-size: 0.8em;
-    color: rgba(255, 255, 255, 0.7);
-    text-align: center;
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    color: #ccc;
   }
   
   .xp-progress-bar {
-    height: 8px;
-    background: rgba(255, 255, 255, 0.1);
+    height: 0.5rem;
+    background-color: #333;
     border-radius: 4px;
     overflow: hidden;
-    position: relative;
   }
   
   .xp-progress-fill {
     height: 100%;
-    background: linear-gradient(to right, #00ffff, #ff00ff);
-    border-radius: 4px;
-    transition: width 0.5s ease-in-out;
+    background-color: #ff00ff;
+    width: 0%;
+    transition: width 0.5s ease;
   }
 </style>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    // Store XP requirements in a global variable for access in socket updates
-    window.xpRequirements = [100, 250, 450, 700, 1200];
+    // Make active triggers data available to triggers.js
+    window.activeTriggers = <%= JSON.stringify(activeTriggers) %>;
     
-    // Handle control button clicks
-    const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
+    // Set up control panel toggling
+    const controlBtns = document.querySelectorAll('.control-btn');
+    const controlPanels = document.querySelectorAll('.control-panel');
     
-    controlButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        const targetId = this.getAttribute('data-target');
+    // Setup control button clicking
+    controlBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Skip if disabled
+        if (btn.classList.contains('disabled')) return;
         
-        // Remove active class from all buttons
-        controlButtons.forEach(btn => {
-          btn.classList.remove('active');
+        const target = btn.dataset.target;
+        
+        // Toggle active state on buttons
+        controlBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Show corresponding panel
+        controlPanels.forEach(panel => {
+          panel.classList.toggle('active', panel.id === target);
         });
-        
-        // Hide all panels
-        document.querySelectorAll('.control-panel').forEach(panel => {
-          panel.classList.remove('active');
-        });
-        
-        // Add active class to clicked button
-        this.classList.add('active');
-        
-        // Show target panel
-        const targetPanel = document.getElementById(targetId);
-        if (targetPanel) {
-          targetPanel.classList.add('active');
-        }
       });
     });
     
-    // Initialize trigger toggles
-    var triggerList = document.getElementById('trigger-list');
-    
-    if (triggerList && !triggerList.hasChildNodes()) {
-      var bambiTriggers = [
-        "BIMBO DOLL", 
-        "GOOD GIRL", 
-        "BAMBI SLEEP", 
-        "BAMBI FREEZE", 
-        "ZAP COCK DRAIN OBEY", 
-        "BAMBI ALWAYS WINS", 
-        "BAMBI RESET", 
-        "I-Q DROP", 
-        "I-Q LOCK", 
-        "POSTURE LOCK", 
-        "UNIFORM LOCK", 
-        "SAFE & SECURE", 
-        "PRIMPED", 
-        "PAMPERED", 
-        "SNAP & FORGET", 
-        "GIGGLE TIME", 
-        "BLONDE MOMENT", 
-        "BAMBI DOES AS SHE IS TOLD", 
-        "DROP FOR COCK", 
-        "COCK ZOMBIE NOW", 
-        "TITS LOCK", 
-        "WAIST LOCK", 
-        "BUTT LOCK", 
-        "LIMBS LOCK", 
-        "FACE LOCK", 
-        "LIPS LOCK", 
-        "THROAT LOCK", 
-        "HIPS LOCK", 
-        "CUNT LOCK", 
-        "BAMBI CUM & COLAPSE"
-      ];
-      
-      var activeTriggers = [];
-      if (typeof profileData !== 'undefined' && profileData.systemControls && profileData.systemControls.activeTriggers) {
-        activeTriggers = profileData.systemControls.activeTriggers;
-      }
-      
-      bambiTriggers.forEach((trigger, index) => {
-        var triggerItem = document.createElement('div');
-        triggerItem.className = 'trigger-toggle-item';
+    // Setup collar button
+    const collarEnableBtn = document.getElementById('collar-enable-btn');
+    if (collarEnableBtn) {
+      collarEnableBtn.addEventListener('click', () => {
+        const isEnabled = collarEnableBtn.classList.contains('active');
+        collarEnableBtn.classList.toggle('active');
+        collarEnableBtn.textContent = isEnabled ? 'Enable Collar' : 'Disable Collar';
         
-        var toggle = document.createElement('input');
-        toggle.type = 'checkbox';
-        toggle.id = `toggle-${index}`;
-        toggle.className = 'toggle-input';
-        toggle.setAttribute('data-trigger', trigger);
-        
-        if (activeTriggers.includes(trigger)) {
-          toggle.checked = true;
-        }
-        
-        toggle.addEventListener('change', function() {
-          saveTriggerState();
-          
-          // Award XP for using a trigger (+3 XP per trigger use)
-          if (typeof socket !== 'undefined' && socket.connected && toggle.checked) {
-            socket.emit('award-xp', {
-              username: document.body.getAttribute('data-username') || window.username,
-              amount: 3,
-              action: 'trigger_used'
-            });
-          }
-        });
-        
-        var label = document.createElement('label');
-        label.htmlFor = `toggle-${index}`;
-        label.className = 'toggle-label';
-        label.textContent = trigger;
-        
-        triggerItem.appendChild(toggle);
-        triggerItem.appendChild(label);
-        triggerList.appendChild(triggerItem);
-      });
-    }
-    
-    // Setup real-time XP updates
-    if (typeof socket !== 'undefined') {
-      // Listen for profile-update events to update XP display
-      socket.on('profile-update', function(data) {
-        updateXPDisplay(data);
-      });
-      
-      // Listen for xp:update events coming from lmStudio's XP awards
-      socket.on('xp:update', function(data) {
-        updateXPDisplay(data);
-        showXPNotification(data.xpEarned);
-      });
-      
-      // Listen for level-up events
-      socket.on('level-up', function(data) {
-        showLevelUpNotification(data.level);
-        // Reload the page after a level up to show new unlocked features
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
-      });
-    }
-    
-    function saveTriggerState() {
-      var username = document.body.getAttribute('data-username') || window.username;
-      if (!username) return;
-      
-      var toggleInputs = document.querySelectorAll('.toggle-input');
-      var activeTriggers = [];
-      
-      toggleInputs.forEach(input => {
-        if (input.checked) {
-          const triggerName = input.getAttribute('data-trigger');
-          activeTriggers.push(triggerName);
-        }
-      });
-      
-      if (typeof socket !== 'undefined' && socket.connected) {
-        socket.emit('update-system-controls', {
-          username: username,
-          activeTriggers: activeTriggers
-        });
-      } else {
-        fetch(`/api/profile/${username}/system-controls`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            activeTriggers: activeTriggers
-          })
-        });
-      }
-    }
-    
-    const collarEnable = document.getElementById('collar-enable');
-    const textareaCollar = document.getElementById('textarea-collar');
-    const saveCollarBtn = document.getElementById('save-collar');
-    
-    if (saveCollarBtn) {
-      saveCollarBtn.addEventListener('click', function() {
-        saveCollarSettings();
-        
-        // Award XP for using the collar (+15 XP)
-        if (typeof socket !== 'undefined' && socket.connected && collarEnable.checked) {
-          socket.emit('award-xp', {
-            username: document.body.getAttribute('data-username') || window.username,
-            amount: 15,
-            action: 'collar_used'
+        // Update via socket if available
+        if (window.socket && window.socket.connected) {
+          window.socket.emit('update-system-controls', {
+            username: '<%= profile ? profile.username : "" %>',
+            collarEnabled: !isEnabled
           });
         }
       });
     }
     
-    function saveCollarSettings() {
-      const username = document.body.getAttribute('data-username') || window.username;
-      if (!username) return;
-      
-      const collarEnabled = collarEnable && collarEnable.checked;
-      const collarText = textareaCollar ? textareaCollar.value.trim() : '';
-      
-      if (typeof socket !== 'undefined' && socket.connected) {
-        socket.emit('update-system-controls', {
-          username: username,
-          collarEnabled: collarEnabled,
-          collarText: collarText
-        });
-        
-        showCollarMessage('Collar settings saved!');
-      } else {
-        fetch(`/api/profile/${username}/system-controls`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            collarEnabled: collarEnabled,
-            collarText: collarText
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            showCollarMessage('Collar settings saved!');
-          } else {
-            showCollarMessage('Failed to save collar settings.', true);
-          }
-        })
-        .catch(error => {
-          showCollarMessage('Error saving collar settings: ' + error.message, true);
-        });
-      }
-    }
+    // Setup collar save
+    const collarSaveBtn = document.getElementById('collar-save-btn');
+    const collarText = document.getElementById('collar-text');
     
-    // Function to update XP display
-    function updateXPDisplay(data) {
-      const xpLabel = document.getElementById('xp-progress-label');
-      const xpFill = document.getElementById('xp-progress-fill');
-      
-      if (!xpLabel || !xpFill) return;
-      
-      const level = data.level || 0;
-      const xp = data.xp || 0;
-      const xpRequirements = window.xpRequirements || [100, 250, 450, 700, 1200];
-      
-      // Add animation class and then remove it
-      xpLabel.classList.add('updating');
-      setTimeout(() => xpLabel.classList.remove('updating'), 600);
-      
-      // Update the label text
-      if (level < xpRequirements.length) {
-        const nextLevelXP = xpRequirements[level];
-        xpLabel.textContent = `Level ${level} • ${xp} XP / ${nextLevelXP} XP`;
-        
-        // Update progress bar width
-        const percentage = Math.min(100, (xp / Math.max(1, nextLevelXP)) * 100);
-        xpFill.style.width = `${percentage}%`;
-      } else {
-        xpLabel.textContent = `Level ${level} • ${xp} XP (MAX LEVEL)`;
-        xpFill.style.width = '100%';
-      }
-    }
-    
-    function showCollarMessage(message, isError = false) {
-      const messagesContainer = document.querySelector('.collar-messages');
-      if (!messagesContainer) return;
-      
-      const messageElement = document.createElement('div');
-      messageElement.className = 'collar-message' + (isError ? ' error' : '');
-      messageElement.textContent = message;
-      
-      messagesContainer.prepend(messageElement);
-      
-      setTimeout(() => {
-        messageElement.style.opacity = '0';
-        setTimeout(() => {
-          messagesContainer.removeChild(messageElement);
-        }, 300);
-      }, 5000);
-    }
-    
-    function showXPNotification(amount) {
-      if (!amount) return;
-      
-      // Create notification if it doesn't exist
-      let notification = document.querySelector('.xp-notification');
-      if (!notification) {
-        notification = document.createElement('div');
-        notification.className = 'xp-notification';
-        document.body.appendChild(notification);
-      }
-      
-      // Set notification content and show it
-      notification.textContent = `+${amount} XP`;
-      notification.classList.add('show');
-      
-      // Remove notification after 3 seconds
-      setTimeout(() => {
-        notification.classList.remove('show');
-        notification.classList.add('fade-out');
-      }, 3000);
-    }
-    
-    function showLevelUpNotification(level) {
-      if (!level) return;
-      
-      // Create notification if it doesn't exist
-      let notification = document.querySelector('.level-up-notification');
-      if (!notification) {
-        notification = document.createElement('div');
-        notification.className = 'level-up-notification';
-        
-        const icon = document.createElement('div');
-        icon.className = 'level-up-icon';
-        icon.textContent = '⭐';
-        
-        const text = document.createElement('div');
-        text.className = 'level-up-text';
-        
-        notification.appendChild(icon);
-        notification.appendChild(text);
-        document.body.appendChild(notification);
-      }
-      
-      // Update text content
-      const textElement = notification.querySelector('.level-up-text');
-      if (textElement) {
-        textElement.textContent = `Level Up! You are now level ${level}!`;
-      }
-      
-      // Show the notification
-      notification.classList.add('show');
-      
-      // Remove notification after 5 seconds
-      setTimeout(() => {
-        notification.classList.remove('show');
-        notification.classList.add('fade-out');
-      }, 5000);
-    }
-    
-    const selectAllBtn = document.getElementById('select-all-triggers');
-    const clearAllBtn = document.getElementById('clear-all-triggers');
-    
-    if (selectAllBtn) {
-      selectAllBtn.addEventListener('click', function() {
-        const triggerToggles = document.querySelectorAll('.toggle-input');
-        triggerToggles.forEach(toggle => {
-          toggle.checked = true;
-        });
-        
-        saveTriggerState();
-      });
-    }
-    
-    if (clearAllBtn) {
-      clearAllBtn.addEventListener('click', function() {
-        const triggerToggles = document.querySelectorAll('.toggle-input');
-        triggerToggles.forEach(toggle => {
-          toggle.checked = false;
-        });
-        
-        saveTriggerState();
+    if (collarSaveBtn && collarText) {
+      collarSaveBtn.addEventListener('click', () => {
+        // Update via socket if available
+        if (window.socket && window.socket.connected) {
+          window.socket.emit('update-system-controls', {
+            username: '<%= profile ? profile.username : "" %>',
+            collarText: collarText.value
+          });
+          
+          // Visual feedback
+          collarSaveBtn.textContent = 'Saved!';
+          setTimeout(() => {
+            collarSaveBtn.textContent = 'Save Text';
+          }, 2000);
+        }
       });
     }
   });
