@@ -4,7 +4,8 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import Logger from '../utils/logger.js';
 import footerConfig from '../config/footer.config.js';
-import { getModel, withDbConnection } from '../config/db.js'; // Updated import
+import config from '../config/config.js'; // Add this import
+import { getModel, withDbConnection } from '../config/db.js';
 import ChatMessage from '../models/ChatMessage.js';
 
 const logger = new Logger('RouteManager');
@@ -74,8 +75,6 @@ export async function loadAllRoutes(app) {
   }
 }
 
-// Update the home route to fetch profile data
-
 /**
  * Home page route
  */
@@ -92,9 +91,19 @@ router.get('/', async (req, res) => {
       
       // Try to fetch the profile by username
       const Profile = getModel('Profile');
-      profile = await withDbConnection(async () => {
-        return await Profile.findOrCreateByUsername(username);
-      });
+      try {
+        profile = await withDbConnection(async () => {
+          return await Profile.findOrCreateByUsername(username);
+        });
+      } catch (error) {
+        logger.error(`Error getting profile by username ${username}: ${error.message}`);
+        // Fall back to cookie-based lookup if username lookup fails
+        if (cookie) {
+          profile = await withDbConnection(async () => {
+            return await Profile.findOrCreateByCookie(cookie);
+          });
+        }
+      }
     } 
     // Otherwise use the bambiid cookie
     else if (cookie) {
@@ -109,20 +118,109 @@ router.get('/', async (req, res) => {
       }
     }
     
+    // Get footer links from config, with fallback to imported footerConfig
+    const footerLinks = config?.FOOTER_LINKS || footerConfig?.links || [];
+    
     // Render the index view with profile data
     res.render('index', { 
       profile,
       username,
-      footerLinks: config.FOOTER_LINKS || [],
+      footerLinks,
       title: 'BambiSleep.Chat - Hypnotic AI Chat'
     });
   } catch (error) {
     logger.error('Error rendering home page:', error);
+    
+    // Fallback with minimal data
     res.render('index', { 
       profile: null, 
       username: '',
-      footerLinks: config.FOOTER_LINKS || [],
+      footerLinks: config?.FOOTER_LINKS || footerConfig?.links || [],
       title: 'BambiSleep.Chat - Hypnotic AI Chat'
+    });
+  }
+});
+
+// Add API endpoints for profile data and system controls
+router.get('/api/profile/:username/data', async (req, res) => {
+  try {
+    const username = req.params.username;
+    
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    // Verify that this is the user's own profile using the cookie
+    const cookie = req.cookies?.bambiid;
+    const bambinameCookie = req.cookies?.bambiname;
+    
+    if (bambinameCookie && decodeURIComponent(bambinameCookie) !== username) {
+      return res.status(403).json({ error: 'Unauthorized access to profile' });
+    }
+    
+    // Get profile by username
+    const Profile = getModel('Profile');
+    const profile = await withDbConnection(async () => {
+      return await Profile.findOne({ username });
+    });
+    
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+    
+    // Return sanitized profile data
+    res.json({
+      username: profile.username,
+      displayName: profile.displayName || profile.username,
+      level: profile.level || 0,
+      xp: profile.xp || 0,
+      activeTriggers: profile.activeTriggers || [],
+      systemControls: profile.systemControls || { 
+        activeTriggers: [],
+        collarEnabled: false,
+        collarText: ''
+      }
+    });
+  } catch (error) {
+    logger.error(`Error fetching profile data for ${req.params.username}:`, error);
+    res.status(500).json({ error: 'Error fetching profile data' });
+  }
+});
+
+router.get('/api/profile/:username/system-controls', async (req, res) => {
+  try {
+    const username = req.params.username;
+    
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    // Get profile by username
+    const Profile = getModel('Profile');
+    const profile = await withDbConnection(async () => {
+      return await Profile.findOne({ username });
+    });
+    
+    if (!profile) {
+      return res.status(404).json({ 
+        activeTriggers: [],
+        level: 0,
+        xp: 0
+      });
+    }
+    
+    // Return system controls data
+    res.json({
+      activeTriggers: profile.activeTriggers || [],
+      systemControls: profile.systemControls || {},
+      level: profile.level || 0,
+      xp: profile.xp || 0
+    });
+  } catch (error) {
+    logger.error(`Error fetching system controls for ${req.params.username}:`, error);
+    res.status(500).json({ 
+      error: 'Error fetching system controls',
+      activeTriggers: []
     });
   }
 });
