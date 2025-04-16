@@ -1010,6 +1010,82 @@ function showLevelUpNotification(newLevel) {
   }, 5000);
 }
 
+// Setup pagination controls
+function setupPaginationControls() {
+  // Set up pagination controls
+  const resultsDropdown = document.getElementById('results-per-page');
+  const sortByDropdown = document.getElementById('sort-by');
+  const sortDirDropdown = document.getElementById('sort-direction');
+  
+  if (resultsDropdown) {
+    resultsDropdown.addEventListener('change', function() {
+      updateProfileList();
+    });
+  }
+  
+  if (sortByDropdown) {
+    sortByDropdown.addEventListener('change', function() {
+      updateProfileList();
+    });
+  }
+  
+  if (sortDirDropdown) {
+    sortDirDropdown.addEventListener('change', function() {
+      updateProfileList();
+    });
+  }
+  
+  // Function to update the profile list based on controls
+  function updateProfileList() {
+    const currentUrl = new URL(window.location.href);
+    const searchParams = currentUrl.searchParams;
+    
+    // Get current values
+    const perPage = resultsDropdown ? resultsDropdown.value : searchParams.get('perPage') || 20;
+    const sortBy = sortByDropdown ? sortByDropdown.value : searchParams.get('sortBy') || 'createdAt';
+    const sortDir = sortDirDropdown ? sortDirDropdown.value : searchParams.get('sortDir') || 'desc';
+    
+    // Reset to page 1 when changing display settings
+    searchParams.set('page', 1);
+    searchParams.set('perPage', perPage);
+    searchParams.set('sortBy', sortBy);
+    searchParams.set('sortDir', sortDir);
+    
+    // Navigate to the new URL
+    window.location.href = currentUrl.toString();
+  }
+  
+  // Ensure current selections are reflected in dropdowns
+  function initializeControls() {
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    
+    if (resultsDropdown) {
+      const perPage = params.get('perPage') || 20;
+      // Make sure the option exists, otherwise add it
+      if (!Array.from(resultsDropdown.options).some(opt => opt.value === perPage)) {
+        const option = new Option(perPage, perPage, true, true);
+        resultsDropdown.add(option);
+      } else {
+        resultsDropdown.value = perPage;
+      }
+    }
+    
+    if (sortByDropdown) {
+      const sortBy = params.get('sortBy') || 'createdAt';
+      sortByDropdown.value = sortBy;
+    }
+    
+    if (sortDirDropdown) {
+      const sortDir = params.get('sortDir') || 'desc';
+      sortDirDropdown.value = sortDir;
+    }
+  }
+  
+  // Initialize controls on page load
+  initializeControls();
+}
+
 // Initialize on DOM load - Setup form handlers and inline editing
 document.addEventListener('DOMContentLoaded', function() {
   const socket = io();
@@ -1226,6 +1302,11 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize controls on page load
   initializeControls();
+  
+  // Setup pagination if we're on the list page
+  if (document.querySelector('.profiles-grid-container')) {
+    setupPaginationControls();
+  }
 });
 
 // Make the functions available globally

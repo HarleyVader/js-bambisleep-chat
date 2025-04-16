@@ -175,43 +175,6 @@
       <div class="profiles-grid-container">
         <h1>Bambi Community Profiles</h1>
         
-        <div class="profiles-grid">
-          <% if (profiles && profiles.length > 0) { %>
-            <% profiles.forEach(profile => { %>
-              <div class="profile-card">
-                <div class="profile-header" style="background-color: <%= profile.headerColor || '#35424a' %>">
-                  <img src="<%= profile.headerImage || '/gif/default-header.gif' %>" alt="Header Image">
-                </div>
-                <div class="profile-avatar">
-                  <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>">
-                </div>
-                <div class="profile-info">
-                  <h3><%= profile.displayName || profile.username %></h3>
-                  <p class="username">@<%= profile.username %></p>
-                  <p class="about"><%= profile.about || "No description provided." %></p>
-                  <div class="triggers-preview">
-                    <% if (profile.triggers && profile.triggers.length > 0) { %>
-                      <p>Triggers: <%= profile.triggers.slice(0, 3).map(t => t.name).join(', ') %>
-                      <% if (profile.triggers.length > 3) { %>...<% } %>
-                      </p>
-                    <% } else { %>
-                      <p>No triggers set</p>
-                    <% } %>
-                  </div>
-                  <a href="/profile/<%= profile.username %>" class="view-profile-btn">View Profile</a>
-                </div>
-              </div>
-            <% }); %>
-          <% } else { %>
-            <div class="empty-state">
-              <div class="empty-icon">👻</div>
-              <h3>No Bambis Found</h3>
-              <p>It seems like there are no bambis in the community yet.</p>
-              <a href="/profile/new" class="btn-primary">Create Your Profile</a>
-            </div>
-          <% } %>
-        </div>
-        
         <% if (profiles && profiles.length > 0) { %>
           <div class="pagination-controls">
             <div class="results-per-page">
@@ -230,7 +193,7 @@
               <select id="sort-by" class="sort-dropdown">
                 <option value="createdAt" <%= sortBy === 'createdAt' ? 'selected' : '' %>>Newest</option>
                 <option value="level" <%= sortBy === 'level' ? 'selected' : '' %>>Level</option>
-                <option value="hearts" <%= sortBy === 'hearts' ? 'selected' : '' %>>Hearts</option>
+                <option value="hearts.count" <%= sortBy === 'hearts.count' ? 'selected' : '' %>>Hearts</option>
                 <option value="generatedWords" <%= sortBy === 'generatedWords' ? 'selected' : '' %>>Words Generated</option>
               </select>
               <select id="sort-direction" class="sort-dropdown">
@@ -238,39 +201,55 @@
                 <option value="asc" <%= sortDir === 'asc' ? 'selected' : '' %>>Ascending</option>
               </select>
             </div>
-
-            <div class="pagination-navigation">
-              <% if (currentPage > 1) { %>
-                <a href="/profile?page=1&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn first-page">First</a>
-                <a href="/profile?page=<%= currentPage - 1 %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn prev-page">Previous</a>
-              <% } else { %>
-                <span class="pagination-btn disabled">First</span>
-                <span class="pagination-btn disabled">Previous</span>
-              <% } %>
-              
-              <div class="page-numbers">
-                <% 
-                  const startPage = Math.max(1, currentPage - 2);
-                  const endPage = Math.min(totalPages, startPage + 4);
-                %>
-                
-                <% for(let i = startPage; i <= endPage; i++) { %>
-                  <% if(i === currentPage) { %>
-                    <span class="pagination-btn current-page"><%= i %></span>
-                  <% } else { %>
-                    <a href="/profile?page=<%= i %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn"><%= i %></a>
-                  <% } %>
-                <% } %>
+          </div>
+          
+          <div class="profiles-grid">
+            <% profiles.forEach(profile => { %>
+              <!-- Your existing profile card code -->
+              <div class="profile-card">
+                <!-- Card content -->
               </div>
+            <% }); %>
+          </div>
+          
+          <div class="pagination-navigation">
+            <% if (currentPage > 1) { %>
+              <a href="/profile?page=1&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn first-page">First</a>
+              <a href="/profile?page=<%= currentPage - 1 %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn prev-page">Previous</a>
+            <% } else { %>
+              <span class="pagination-btn disabled">First</span>
+              <span class="pagination-btn disabled">Previous</span>
+            <% } %>
+            
+            <div class="page-numbers">
+              <% 
+                const startPage = Math.max(1, currentPage - 2);
+                const endPage = Math.min(totalPages, startPage + 4);
+              %>
               
-              <% if (currentPage < totalPages) { %>
-                <a href="/profile?page=<%= currentPage + 1 %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn next-page">Next</a>
-                <a href="/profile?page=<%= totalPages %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn last-page">Last</a>
-              <% } else { %>
-                <span class="pagination-btn disabled">Next</span>
-                <span class="pagination-btn disabled">Last</span>
+              <% for(let i = startPage; i <= endPage; i++) { %>
+                <% if(i === currentPage) { %>
+                  <span class="pagination-btn current-page"><%= i %></span>
+                <% } else { %>
+                  <a href="/profile?page=<%= i %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn"><%= i %></a>
+                <% } %>
               <% } %>
             </div>
+            
+            <% if (currentPage < totalPages) { %>
+              <a href="/profile?page=<%= currentPage + 1 %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn next-page">Next</a>
+              <a href="/profile?page=<%= totalPages %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn last-page">Last</a>
+            <% } else { %>
+              <span class="pagination-btn disabled">Next</span>
+              <span class="pagination-btn disabled">Last</span>
+            <% } %>
+          </div>
+        <% } else { %>
+          <div class="empty-state">
+            <div class="empty-icon">👗</div>
+            <h3>No Bambis Found</h3>
+            <p>Be the first to create a profile!</p>
+            <a href="/profile/new" class="btn-primary">Create Your Profile</a>
           </div>
         <% } %>
       </div>

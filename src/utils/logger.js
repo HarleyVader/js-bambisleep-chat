@@ -144,6 +144,21 @@ class Logger {
       data ? this.formatMessage(data) : ''
     );
   }
+
+  /**
+   * Log debug message with contrasting colors and special formatting
+   * @param {string} message - The message to log
+   * @param {...any} args - Optional arguments to log
+   */
+  debug(message, ...args) {
+    const timestamp = this.getTimestamp();
+    const prefix = this.getModulePrefix();
+    console.log(
+      patterns.server.info(`${timestamp} ${prefix} DEBUG:`), 
+      this.textColors.info(this.formatMessage(message)), 
+      ...args.map(arg => this.formatMessage(arg))
+    );
+  }
 }
 
 export default Logger;

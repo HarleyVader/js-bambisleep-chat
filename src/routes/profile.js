@@ -27,18 +27,48 @@ const isProfileOwner = (req, profileUsername) => {
   return cookieUsername === profileUsername;
 };
 
-// Profile listing page
+// Profile listing page with pagination and sorting
 router.get('/', async (req, res) => {
   try {
     const Profile = getModel('Profile');
+    
+    // Get query parameters with defaults
+    const page = parseInt(req.query.page) || 1;
+    const perPage = parseInt(req.query.perPage) || 20;
+    const sortBy = req.query.sortBy || 'createdAt';
+    const sortDir = req.query.sortDir || 'desc';
+    
+    // Validate sort field to prevent injection
+    const allowedSortFields = ['createdAt', 'level', 'xp', 'hearts.count', 'generatedWords'];
+    const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    
+    // Create sort object
+    const sort = {};
+    sort[validSortBy] = sortDir === 'asc' ? 1 : -1;
+    
+    // Calculate pagination values
+    const skip = (page - 1) * perPage;
+    
+    // Get total count for pagination
+    const totalProfiles = await Profile.countDocuments();
+    const totalPages = Math.ceil(totalProfiles / perPage);
+    
+    // Fetch paginated and sorted profiles
     const profiles = await Profile.find()
-      .sort({ createdAt: -1 })
-      .limit(50);
+      .sort(sort)
+      .skip(skip)
+      .limit(perPage);
     
     res.render('profile', { 
-      title: 'Bambi Profiles',
+      title: 'Bambi Community Profiles',
       mode: 'list',
       profiles,
+      currentPage: page,
+      perPage,
+      totalPages,
+      totalProfiles,
+      sortBy: validSortBy,
+      sortDir,
       footer: footerConfig
     });
   } catch (error) {
@@ -425,5 +455,7 @@ router.post('/new', async (req, res) => {
     });
   }
 });
+
+
 
 export default router;
