@@ -30,7 +30,7 @@
           </div>
           <br>
           <div id="system-controls-container">
-            <%- include('../views/partials/profile-system-controls.ejs', { profile: profile }) %>
+            <div data-client-render="SystemControls" data-props='<%= JSON.stringify({ username: locals.username || "" }) %>'></div>
           </div>
         </div>
         <div id="response-container">
@@ -41,18 +41,8 @@
                 <textarea id="textarea-chat" oninput="autoExpand(this)" placeholder="Send in Chat"></textarea>
                 <button id="send" type="submit" class="send-btn">Chat</button>
               </form>
-              <!-- For existing messages in the initial page load -->
-              <ul id="chat-response">
-                <% if (chatMessages && chatMessages.length > 0) { %>
-                  <% chatMessages.forEach(function(msg) { %>
-                    <li <% if (locals.username) { %>class="neon-glow"<% } %>>
-                      <span class="chat-time"><%= new Date(msg.timestamp).toLocaleTimeString([], {hour12: false}) %></span> -
-                      <span class="chat-username"><a href="/profile/<%= msg.username %>" class="username-link"><%= msg.username %></a>:</span>
-                      <span class="chat-message"><%= msg.data %></span>
-                    </li>
-                  <% }); %>
-                <% } %>
-              </ul>
+              <!-- Replace server-rendered chat messages with client-side placeholder -->
+              <div data-client-render="ChatMessages" data-props='<%= JSON.stringify({ messages: chatMessages || [] }) %>'></div>
             </div>
           </div>
           <div id="eyeCursorContainer">

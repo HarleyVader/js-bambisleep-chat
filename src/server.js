@@ -202,6 +202,52 @@ function setupRoutes(app) {
   // Add the chat routes
   app.use('/api/chat', chatRoutes);
   
+  // Add routes for client-side rendering data
+  app.get('/api/chat/messages', (req, res) => {
+    // Get only the most recent messages (limit to 50)
+    const limit = parseInt(req.query.limit || '50', 10);
+    
+    // Fetch from database instead of storing in memory
+    getMessages(limit)
+      .then(messages => {
+        res.json({ messages });
+      })
+      .catch(err => {
+        console.error('Error fetching messages:', err);
+        res.status(500).json({ error: 'Error fetching messages' });
+      });
+  });
+
+  app.get('/api/profile/:username/system-controls', (req, res) => {
+    const username = req.params.username;
+    
+    // Fetch profile from database
+    getProfile(username)
+      .then(profile => {
+        if (!profile) {
+          return res.status(404).json({ error: 'Profile not found' });
+        }
+        
+        // Return only system controls data
+        res.json(profile.systemControls || {});
+      })
+      .catch(err => {
+        console.error('Error fetching profile system controls:', err);
+        res.status(500).json({ error: 'Error fetching profile data' });
+      });
+  });
+
+  // Add performance metrics API endpoint
+  app.post('/api/performance', (req, res) => {
+    // Store metrics or log them
+    const metrics = req.body;
+    logger.info(`Performance metrics received from client: ${JSON.stringify(metrics.summary || {})}`);
+    
+    // You could store these in a database for later analysis
+    
+    res.json({ success: true });
+  });
+  
   // Set up TTS API routes
   setupTTSRoutes(app);
   
@@ -426,6 +472,33 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       
       // Set up chat sockets for each connection
       setupChatSockets(socket, io, socketStore, filteredWords);
+      
+      // When sending chat messages, emit directly to clients instead of rendering on server
+      socket.on("chat message", (msg) => {
+        if (typeof msg !== 'object' || !msg.data) {
+          return;
+        }
+        
+        const timestamp = Date.now();
+        const filteredMessage = filterWords(msg.data, filteredWords);
+        
+        // Create message object
+        const messageObj = {
+          data: filteredMessage,
+          username: msg.username || 'anonymous',
+          timestamp: timestamp
+        };
+        
+        // Save to database and then emit to all clients
+        saveMessage(messageObj)
+          .then(() => {
+            io.emit("chat message", messageObj);
+          })
+          .catch(err => {
+            logger.error('Error saving chat message:', err);
+            socket.emit('error', 'Error saving message');
+          });
+      });
       
       // Handle disconnection
       socket.on('disconnect', (reason) => {
@@ -665,6 +738,40 @@ function monitorResources() {
   // Log database connection status
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   logger.info(`Database status: ${dbStatus}`);
+}
+
+/**
+ * Helper function to fetch messages from the database
+ * 
+ * @param {number} limit - Maximum number of messages to fetch
+ * @returns {Promise<Array>} - Array of messages
+ */
+async function getMessages(limit = 50) {
+  try {
+    // Implement this function to fetch messages from your database
+    // This is a placeholder - replace with your actual database query
+    return [];
+  } catch (error) {
+    logger.error('Error getting messages:', error);
+    throw error;
+  }
+}
+
+/**
+ * Helper function to save a message to the database
+ * 
+ * @param {Object} message - Message object to save
+ * @returns {Promise<boolean>} - True if the message was saved successfully
+ */
+async function saveMessage(message) {
+  try {
+    // Implement this function to save messages to your database
+    // This is a placeholder - replace with your actual database code
+    return true;
+  } catch (error) {
+    logger.error('Error saving message:', error);
+    throw error;
+  }
 }
 
 /**
