@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
-import withDbConnection from '../utils/dbTransaction.js';
+import { withDbConnection } from '../config/db.js';
 
 const chatMessageSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
-    trim: true
+    default: 'anonymous'
   },
   data: {
     type: String,
@@ -15,14 +15,10 @@ const chatMessageSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-}, { timestamps: true });
+});
 
-// Create indexes for efficient querying
-chatMessageSchema.index({ timestamp: -1 });
-chatMessageSchema.index({ username: 1 });
-
-// Static method to get recent messages
-chatMessageSchema.statics.getRecentMessages = async function(limit = 15) {
+// Use the transaction pattern for database operations
+chatMessageSchema.statics.getRecentMessages = async function(limit = 50) {
   return withDbConnection(async () => {
     return this.find({})
       .sort({ timestamp: -1 })
@@ -31,7 +27,6 @@ chatMessageSchema.statics.getRecentMessages = async function(limit = 15) {
   });
 };
 
-// Add a new method to save messages with proper connection handling
 chatMessageSchema.statics.saveMessage = async function(messageData) {
   return withDbConnection(async () => {
     const message = new this(messageData);

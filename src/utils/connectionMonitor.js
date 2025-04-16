@@ -20,16 +20,27 @@ export function startConnectionMonitoring(interval = 60000) {
     // Log connection state
     logger.info(`MongoDB connection state: ${stateString} (${state})`);
     
-    // If we have active connections, log them
-    if (mongoose.connection.db) {
-      mongoose.connection.db.admin().serverStatus()
-        .then(status => {
-          const connections = status.connections;
-          logger.info(`MongoDB connections: ${JSON.stringify(connections)}`);
-        })
-        .catch(err => {
-          logger.error(`Error getting MongoDB server status: ${err.message}`);
-        });
+    // If we have active connections, log count
+    if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+      try {
+        mongoose.connection.db.admin().serverStatus()
+          .then(status => {
+            if (status && status.connections) {
+              const connections = status.connections;
+              logger.info(`MongoDB connections: current=${connections.current}, available=${connections.available}, active=${connections.active}`);
+              
+              // Alert on high connection usage
+              if (connections.current > (connections.available * 0.7)) {
+                logger.warning(`High MongoDB connection usage: ${connections.current}/${connections.available} (${Math.round(connections.current/connections.available*100)}%)`);
+              }
+            }
+          })
+          .catch(err => {
+            logger.error(`Error getting MongoDB server status: ${err.message}`);
+          });
+      } catch (error) {
+        logger.error(`Error checking MongoDB status: ${error.message}`);
+      }
     }
   }, interval);
   

@@ -13,11 +13,12 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import axios from 'axios';
 import fileUpload from 'express-fileupload';
+import mongoose from 'mongoose';
 
 // Import configuration
 import config from './config/config.js';
 import footerConfig from './config/footer.config.js';
-import { connectDB } from './config/db.js';
+import { connectDB, withDbConnection } from './config/db.js';
 
 // Import routes
 import indexRoute from './routes/index.js';
@@ -807,24 +808,28 @@ async function saveMessage(message) {
 }
 
 /**
- * Helper function to get profile by username - implement according to your data structure
+ * Helper function to get profile by username
  * 
  * @param {string} username - Username to fetch profile for
  * @returns {Promise<Object>} - Profile object
  */
 async function getProfileByUsername(username) {
-  // This is a placeholder - replace with your actual profile fetching logic
-  // If you're using MongoDB, might look like:
-  // return await db.collection('profiles').findOne({ username: username });
-  
-  // For now, return mock data to test if the endpoint works
-  return {
-    username: username,
-    activeTriggers: ['smooth', 'blank'],
-    settings: { theme: 'dark' },
-    xp: 150,
-    level: 2
-  };
+  return withDbConnection(async () => {
+    try {
+      const Profile = mongoose.model('Profile');
+      const profile = await Profile.findOne({ username });
+      
+      if (!profile) {
+        logger.warning(`Profile not found for username: ${username}`);
+        return null;
+      }
+      
+      return profile;
+    } catch (error) {
+      logger.error(`Error fetching profile for ${username}: ${error.message}`);
+      throw error;
+    }
+  });
 }
 
 /**
