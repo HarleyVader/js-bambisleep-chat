@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
-import { getProfile } from '../models/Profile.js';
+import { getProfile, updateProfile } from '../models/Profile.js';
 import { getModel } from '../config/db.js'; // Import getModel from the correct location
-import withDbConnection from '../utils/dbTransaction.js';
+import { withDbConnection } from '../utils/dbTransaction.js';
 
 const logger = new Logger('ProfileSockets');
 
@@ -31,7 +31,9 @@ export default function setupProfileSockets(socket, io, username) {
         }
         
         const Profile = getModel('Profile');
-        const profile = await Profile.findOne({ username: data.username });
+        const profile = await withDbConnection(async () => {
+          return await Profile.findOne({ username: data.username });
+        });
         
         if (!profile) {
           socket.emit('error', { message: 'Profile not found' });
@@ -50,7 +52,9 @@ export default function setupProfileSockets(socket, io, username) {
           }
         });
         
-        await profile.save();
+        await withDbConnection(async () => {
+          await profile.save();
+        });
         
         // Emit success event
         socket.emit('profile-updated', {
@@ -76,7 +80,9 @@ export default function setupProfileSockets(socket, io, username) {
         }
         
         const Profile = getModel('Profile');
-        const profile = await Profile.findOne({ username: data.username });
+        const profile = await withDbConnection(async () => {
+          return await Profile.findOne({ username: data.username });
+        });
         
         if (!profile) {
           socket.emit('error', { message: 'Profile not found' });
@@ -100,7 +106,9 @@ export default function setupProfileSockets(socket, io, username) {
           }
         });
         
-        await profile.save();
+        await withDbConnection(async () => {
+          await profile.save();
+        });
         
         // Emit success event
         socket.emit('system-controls-updated', {
@@ -145,6 +153,11 @@ export default function setupProfileSockets(socket, io, username) {
       socket.join(`profile:${profileUsername}`);
       logger.info(`Socket ${socket.id} joined profile room for ${profileUsername}`);
     }
+  });
+
+  // Handle profile loading
+  socket.on('profile:load', async () => {
+    await loadUserProfile(socket, username);
   });
 }
 
@@ -204,7 +217,9 @@ async function handleProfileView(socket, profileUsername) {
       return;
     }
     
-    const profile = await mongoose.model('Bambi').findOne({ username: profileUsername });
+    const profile = await withDbConnection(async () => {
+      return await mongoose.model('Bambi').findOne({ username: profileUsername });
+    });
     
     if (profile) {
       // Get current user for tracking who viewed this profile
@@ -217,7 +232,9 @@ async function handleProfileView(socket, profileUsername) {
       // Record the view if this isn't the profile owner
       if (currentUser && currentUser !== profileUsername) {
         profile.lastViewed = new Date();
-        await profile.save();
+        await withDbConnection(async () => {
+          await profile.save();
+        });
         
         // Only add view activity if we have the addActivity method
         if (typeof profile.addActivity === 'function') {
@@ -262,13 +279,17 @@ async function handleProfileUpdate(socket, io, username, profileData) {
     if (profileData.triggers && Array.isArray(profileData.triggers)) {
       try {
         const ProfileModel = mongoose.model('Bambi');
-        let profile = await ProfileModel.findOne({ username });
+        let profile = await withDbConnection(async () => {
+          return await ProfileModel.findOne({ username });
+        });
         
         if (profile) {
           // Maximum 10 triggers
           const triggers = profileData.triggers.slice(0, 10);
           profile.triggers = triggers;
-          await profile.save();
+          await withDbConnection(async () => {
+            await profile.save();
+          });
           socket.emit('triggers updated', profile.triggers);
           
           // Notify other clients
@@ -329,16 +350,18 @@ async function handleProfileSave(socket, io, username, profileData) {
     }
     
     // Find and update the user's profile
-    const profile = await mongoose.model('Bambi').findOneAndUpdate(
-      { username: currentUsername },
-      { 
-        $set: {
-          ...sanitizedData,
-          lastActive: new Date()
-        }
-      },
-      { new: true, upsert: true }
-    );
+    const profile = await withDbConnection(async () => {
+      return await mongoose.model('Bambi').findOneAndUpdate(
+        { username: currentUsername },
+        { 
+          $set: {
+            ...sanitizedData,
+            lastActive: new Date()
+          }
+        },
+        { new: true, upsert: true }
+      );
+    });
     
     // Send success message back to the client that made the update
     socket.emit('profile:saved', {
@@ -371,14 +394,18 @@ async function handleProfileFieldUpdate(socket, username, data) {
   try {
     if (username === 'anonBambi') return;
     
-    const profile = await mongoose.model('Bambi').findOne({ username });
+    const profile = await withDbConnection(async () => {
+      return await mongoose.model('Bambi').findOne({ username });
+    });
     if (!profile) return;
     
     // Only allow updates to certain fields via socket
     if (data.field === 'favoriteSeasons' && Array.isArray(data.value)) {
       profile.favoriteSeasons = data.value.filter(season => 
         ['spring', 'summer', 'autumn', 'winter'].includes(season));
-      await profile.save();
+      await withDbConnection(async () => {
+        await profile.save();
+      });
       
       socket.emit('profile:updated', {
         field: data.field,
@@ -388,7 +415,9 @@ async function handleProfileFieldUpdate(socket, username, data) {
     
     // Update last active time
     profile.lastActive = Date.now();
-    await profile.save();
+    await withDbConnection(async () => {
+      await profile.save();
+    });
   } catch (error) {
     logger.error('Error updating profile field:', error);
     socket.emit('profile:error', 'Failed to update profile field');
@@ -406,10 +435,14 @@ async function handleTriggerToggle(socket, io, { username, triggerName, active }
   try {
     if (!username) return;
     
-    const profile = await mongoose.model('Bambi').findOne({ username });
+    const profile = await withDbConnection(async () => {
+      return await mongoose.model('Bambi').findOne({ username });
+    });
     if (profile) {
       profile.toggleTrigger(triggerName, active);
-      await profile.save();
+      await withDbConnection(async () => {
+        await profile.save();
+      });
       
       // Broadcast to anyone viewing this profile
       io.to(`profile-${username}`).emit('trigger-toggled', {
@@ -444,7 +477,9 @@ async function handleProfileHeart(socket, io, data, currentUsername) {
       return;
     }
     
-    const targetProfile = await getProfile().findOne({ username: targetUsername });
+    const targetProfile = await withDbConnection(async () => {
+      return await getProfile().findOne({ username: targetUsername });
+    });
     
     if (!targetProfile) {
       socket.emit('profile:error', 'Profile not found');
@@ -466,7 +501,9 @@ async function handleProfileHeart(socket, io, data, currentUsername) {
       targetProfile.hearts.count = Math.max(0, targetProfile.hearts.count - 1);
     }
     
-    await targetProfile.save();
+    await withDbConnection(async () => {
+      await targetProfile.save();
+    });
     
     // Emit to all clients for real-time updates
     io.emit('profile:hearted', {
@@ -492,7 +529,9 @@ async function handleProfileHeart(socket, io, data, currentUsername) {
 async function handleProfileDelete(socket, io, { username }) {
   try {
     // Find and delete the profile
-    const deletedProfile = await mongoose.model('Bambi').findOneAndDelete({ username });
+    const deletedProfile = await withDbConnection(async () => {
+      return await mongoose.model('Bambi').findOneAndDelete({ username });
+    });
     
     if (deletedProfile) {
       // Emit to all clients viewing this profile
@@ -532,7 +571,9 @@ async function handleXPUpdate(socket, io, data, username) {
     }
     
     const Profile = getProfile();
-    const profile = await Profile.findOne({ username });
+    const profile = await withDbConnection(async () => {
+      return await Profile.findOne({ username });
+    });
     
     if (profile) {
       // If xpEarned is provided, use it, otherwise calculate (1 XP per 5 words)
@@ -547,7 +588,9 @@ async function handleXPUpdate(socket, io, data, username) {
       // Add XP
       profile.addXP(xp, 'message', `Generated ${wordCount} words`);
       
-      await profile.save();
+      await withDbConnection(async () => {
+        await profile.save();
+      });
       
       // Emit updated XP to the user
       socket.emit('xp:updated', {
