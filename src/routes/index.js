@@ -74,36 +74,55 @@ export async function loadAllRoutes(app) {
   }
 }
 
-// Home page - Shows the chat interface
+// Update the home route to fetch profile data
+
+/**
+ * Home page route
+ */
 router.get('/', async (req, res) => {
   try {
-    const bambiname = req.cookies && req.cookies.bambiname 
-      ? decodeURIComponent(req.cookies.bambiname) 
-      : null;
-    
-    // Get or create profile based on cookie
+    // Get profile from cookie
+    const cookie = req.cookies?.bambiid;
     let profile = null;
-    if (bambiname) {
+    let username = '';
+    
+    // Check for a bambiname cookie first
+    if (req.cookies?.bambiname) {
+      username = decodeURIComponent(req.cookies.bambiname);
+      
+      // Try to fetch the profile by username
       const Profile = getModel('Profile');
-      profile = await Profile.findOrCreateByCookie(bambiname);
+      profile = await withDbConnection(async () => {
+        return await Profile.findOrCreateByUsername(username);
+      });
+    } 
+    // Otherwise use the bambiid cookie
+    else if (cookie) {
+      const Profile = getModel('Profile');
+      profile = await withDbConnection(async () => {
+        return await Profile.findOrCreateByCookie(cookie);
+      });
+      
+      // Set username from profile
+      if (profile && profile.username) {
+        username = profile.username;
+      }
     }
     
-    // Get the most recent chat messages
-    const chatMessages = await ChatMessage.getRecentMessages(15);
-    
+    // Render the index view with profile data
     res.render('index', { 
-      title: 'BambiSleep.Chat AIGF',
-      username: bambiname || 'anonBambi',
-      profile: profile || null,
-      footer: footerConfig,
-      chatMessages: chatMessages.reverse()
+      profile,
+      username,
+      footerLinks: config.FOOTER_LINKS || [],
+      title: 'BambiSleep.Chat - Hypnotic AI Chat'
     });
   } catch (error) {
     logger.error('Error rendering home page:', error);
-    res.status(500).render('index', { 
-      title: 'BambiSleep.Chat AIGF',
-      profile: req.profile || {},
-      chatMessages: [] // Empty array if there's an error
+    res.render('index', { 
+      profile: null, 
+      username: '',
+      footerLinks: config.FOOTER_LINKS || [],
+      title: 'BambiSleep.Chat - Hypnotic AI Chat'
     });
   }
 });

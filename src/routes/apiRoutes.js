@@ -78,4 +78,154 @@ router.post('/performance', (req, res) => {
   }
 });
 
+/**
+ * Get profile data for a username
+ */
+router.get('/api/profile/:username/data', async (req, res) => {
+  try {
+    const username = req.params.username;
+    
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    // Get profile by username
+    const Profile = getModel('Profile');
+    const profile = await withDbConnection(async () => {
+      return await Profile.findOne({ username });
+    });
+    
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+    
+    // Return sanitized profile data
+    res.json({
+      username: profile.username,
+      displayName: profile.displayName || profile.username,
+      level: profile.level || 0,
+      xp: profile.xp || 0,
+      activeTriggers: profile.activeTriggers || [],
+      systemControls: profile.systemControls || { 
+        activeTriggers: [],
+        collarEnabled: false,
+        collarText: ''
+      }
+    });
+  } catch (error) {
+    logger.error(`Error fetching profile data for ${req.params.username}:`, error);
+    res.status(500).json({ error: 'Error fetching profile data' });
+  }
+});
+
+/**
+ * Get system controls for a username
+ */
+router.get('/api/profile/:username/system-controls', async (req, res) => {
+  try {
+    const username = req.params.username;
+    
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    // Get profile by username
+    const Profile = getModel('Profile');
+    const profile = await withDbConnection(async () => {
+      return await Profile.findOne({ username });
+    });
+    
+    if (!profile) {
+      return res.status(404).json({ 
+        activeTriggers: [],
+        level: 0,
+        xp: 0
+      });
+    }
+    
+    // Return system controls data
+    res.json({
+      activeTriggers: profile.activeTriggers || [],
+      systemControls: profile.systemControls || {},
+      level: profile.level || 0,
+      xp: profile.xp || 0
+    });
+  } catch (error) {
+    logger.error(`Error fetching system controls for ${req.params.username}:`, error);
+    res.status(500).json({ 
+      error: 'Error fetching system controls',
+      activeTriggers: []
+    });
+  }
+});
+
+/**
+ * Update system controls for a username
+ */
+router.post('/api/profile/:username/system-controls', async (req, res) => {
+  try {
+    const username = req.params.username;
+    
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    // Get profile by username
+    const Profile = getModel('Profile');
+    let profile = await withDbConnection(async () => {
+      return await Profile.findOne({ username });
+    });
+    
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+    
+    // Update system controls with request body
+    if (!profile.systemControls) {
+      profile.systemControls = {};
+    }
+    
+    // Update active triggers if provided
+    if (req.body.activeTriggers) {
+      profile.activeTriggers = req.body.activeTriggers;
+      profile.systemControls.activeTriggers = req.body.activeTriggers;
+    }
+    
+    // Update collar settings if provided
+    if (req.body.collarEnabled !== undefined) {
+      profile.systemControls.collarEnabled = !!req.body.collarEnabled;
+    }
+    
+    if (req.body.collarText !== undefined) {
+      profile.systemControls.collarText = req.body.collarText;
+      profile.systemControls.collarLastUpdated = new Date();
+    }
+    
+    // Update spirals settings if provided
+    if (req.body.spiralsEnabled !== undefined) {
+      profile.systemControls.spiralsEnabled = !!req.body.spiralsEnabled;
+    }
+    
+    // Update hypnosis settings if provided
+    if (req.body.hypnosisEnabled !== undefined) {
+      profile.systemControls.hypnosisEnabled = !!req.body.hypnosisEnabled;
+    }
+    
+    // Save the updated profile
+    await withDbConnection(async () => {
+      return await profile.save();
+    });
+    
+    // Return success response
+    res.json({
+      success: true,
+      activeTriggers: profile.activeTriggers || [],
+      systemControls: profile.systemControls
+    });
+  } catch (error) {
+    logger.error(`Error updating system controls for ${req.params.username}:`, error);
+    res.status(500).json({ error: 'Error updating system controls' });
+  }
+});
+
 export default router;

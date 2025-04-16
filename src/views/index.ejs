@@ -30,7 +30,30 @@
           </div>
           <br>
           <div id="system-controls-container">
+            <!-- First attempt: Client-side rendering -->
             <div data-client-render="SystemControls" data-props='<%= JSON.stringify({ username: locals.username || "" }) %>'></div>
+            
+            <!-- Second fallback: Server-side rendering -->
+            <% if (locals.profile) { %>
+              <%- include('../views/partials/profile-system-controls.ejs', { profile: locals.profile }) %>
+            <% } else { %>
+              <!-- Simplified system controls when profile is not available -->
+              <div class="system-controls">
+                <div class="control-buttons">
+                  <button class="control-btn disabled">Triggers 🔒</button>
+                  <button class="control-btn disabled">Collar 🔒</button>
+                  <button class="control-btn disabled">Spirals 🔒</button>
+                  <button class="control-btn disabled">Hypnosis 🔒</button>
+                  <button class="control-btn disabled">Toggle All 🔒</button>
+                </div>
+                <div class="control-panels">
+                  <div class="locked-features-message">
+                    <p>🔒 Log in to unlock trigger controls!</p>
+                    <p>Keep chatting with Bambi to earn XP and level up.</p>
+                  </div>
+                </div>
+              </div>
+            <% } %>
           </div>
         </div>
         <div id="response-container">
@@ -382,8 +405,13 @@
               }
             } else {
               // If we don't have the profile data yet, fetch it
-              fetch(`/profile/${username}/data`)
-                .then(response => response.json())
+              fetch(`/api/profile/${username}/data`)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                  }
+                  return response.json();
+                })
                 .then(data => {
                   if (data && data.systemControls && data.systemControls.activeTriggers) {
                     const activeTriggers = data.systemControls.activeTriggers;

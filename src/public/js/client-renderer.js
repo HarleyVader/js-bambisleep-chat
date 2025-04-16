@@ -297,7 +297,7 @@ class ClientRenderer {
       container.innerHTML = '<p>Loading system controls...</p>';
       this.safeReplace(placeholder, container);
       
-      // FIX: Change URL from /profile/[username]/system-controls to /api/profile/[username]/system-controls
+      // Change endpoint from /profile/${username}/system-controls to /api/profile/${username}/system-controls
       const response = await fetch(`/api/profile/${username}/system-controls`);
       
       if (!response.ok) {
