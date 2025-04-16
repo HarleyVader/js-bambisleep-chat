@@ -8,7 +8,7 @@ import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import connectToMongoDB from '../../utils/dbConnection.js';
-import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
+import gracefulShutdown, { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
 
 // Initialize logger
 const logger = new Logger('TextScraper');
@@ -508,7 +508,7 @@ parentPort.on('message', async (msg) => {
         
       case 'shutdown':
         logger.info('Received shutdown command from parent');
-        await workerGracefulShutdown('TextScraper');
+        await handleWorkerShutdown('TextScraper');
         break;
         
       default:

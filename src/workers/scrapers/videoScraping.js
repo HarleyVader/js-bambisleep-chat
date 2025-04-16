@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import { parentPort } from 'worker_threads';
 import Logger from '../../utils/logger.js';
 import connectToMongoDB from '../../utils/dbConnection.js';
-import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
+import gracefulShutdown, { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
 
 // Initialize logger
 const logger = new Logger('VideoScraper');
@@ -134,7 +134,7 @@ parentPort.on('message', async (msg) => {
         
       case 'shutdown':
         logger.info('Received shutdown command from parent');
-        await workerGracefulShutdown('VideoScraper');
+        await handleWorkerShutdown('VideoScraper');
         break;
         
       default:

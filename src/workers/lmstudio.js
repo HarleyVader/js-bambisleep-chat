@@ -2,7 +2,7 @@ import { parentPort } from 'worker_threads';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
-import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
+import gracefulShutdown, { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 import mongoose from 'mongoose';
 import { connectDB, getModel, withDbConnection } from '../config/db.js';
 import '../models/Profile.js';  // Import the model file to ensure schema registration
@@ -195,7 +195,7 @@ parentPort.on('message', async (msg) => {
         break;
       case 'shutdown':
         logger.info('Shutting down lmstudio worker...');
-        await workerGracefulShutdown('LMStudio', { sessionHistories });
+        await handleWorkerShutdown('LMStudio', { sessionHistories });
         break;
       case 'health:check':
         lastHealthCheckResponse = Date.now();
@@ -715,15 +715,8 @@ async function savePromptHistory(socketId, message) {
 }
 
 // Add cleanup for garbage collection interval to the worker shutdown
-async function workerGracefulShutdown(workerName, context = {}) {
-  // ...existing code...
-  
-  // Clear garbage collection interval
-  if (garbageCollectionInterval) {
-    clearInterval(garbageCollectionInterval);
-    garbageCollectionInterval = null;
-    logger.info('Stopped garbage collection interval');
-  }
-  
-  // Rest of shutdown code
+if (garbageCollectionInterval) {
+  clearInterval(garbageCollectionInterval);
+  garbageCollectionInterval = null;
+  logger.info('Stopped garbage collection interval');
 }

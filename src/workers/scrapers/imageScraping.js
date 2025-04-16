@@ -6,7 +6,7 @@ import * as cheerio from 'cheerio';
 import { BaseWorker } from './baseWorker.js';
 import Logger from '../../utils/logger.js';
 import connectToMongoDB from '../../utils/dbConnection.js';
-import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
+import gracefulShutdown, { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
 import { withDbConnection } from '../../config/db.js';
 
 dotenv.config();
@@ -122,7 +122,7 @@ parentPort.on('message', async (msg) => {
         
       case 'shutdown':
         logger.info('Received shutdown command from parent');
-        await workerGracefulShutdown('ImageScraper');
+        await handleWorkerShutdown('ImageScraper');
         break;
         
       default:

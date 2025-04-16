@@ -68,11 +68,25 @@ export function cleanupWorkerResources(workerContext) {
 }
 
 /**
- * Handles immediate worker shutdown
+ * Synchronizes session data to the database
+ * @param {string} socketId - The ID of the socket to sync
+ * @returns {Promise<void>}
+ */
+export async function syncSessionWithDatabase(socketId) {
+  const logger = new Logger('SessionSync');
+  logger.debug(`Syncing session for socket ${socketId} to database`);
+  
+  // Placeholder for actual implementation
+  // Will be implemented when SessionHistory model is created
+  return Promise.resolve();
+}
+
+/**
+ * Handles worker graceful shutdown
  * @param {string} workerName - The name of the worker
  * @param {Object} workerContext - Context data specific to the worker (optional)
  */
-export async function workerGracefulShutdown(workerName, workerContext) {
+export async function handleWorkerShutdown(workerName, workerContext) {
   const workerLogger = new Logger(`Worker:${workerName}`);
   workerLogger.info('Terminating...');
   
@@ -124,23 +138,23 @@ export async function workerGracefulShutdown(workerName, workerContext) {
  */
 export function setupWorkerShutdownHandlers(workerName, workerContext) {
   // Handle termination signals with immediate shutdown
-  process.on('SIGTERM', () => workerGracefulShutdown(workerName, workerContext));
-  process.on('SIGINT', () => workerGracefulShutdown(workerName, workerContext));
+  process.on('SIGTERM', () => handleWorkerShutdown(workerName, workerContext));
+  process.on('SIGINT', () => handleWorkerShutdown(workerName, workerContext));
   process.on('message', (msg) => {
-    if (msg === 'shutdown') workerGracefulShutdown(workerName, workerContext);
+    if (msg === 'shutdown') handleWorkerShutdown(workerName, workerContext);
   });
   
   // Handle uncaught errors with immediate shutdown
   process.on('uncaughtException', (error) => {
     const workerLogger = new Logger(`Worker:${workerName}`);
     workerLogger.error(`Uncaught exception: ${error.message}`);
-    workerGracefulShutdown(workerName, workerContext);
+    handleWorkerShutdown(workerName, workerContext);
   });
   
   process.on('unhandledRejection', (reason) => {
     const workerLogger = new Logger(`Worker:${workerName}`);
     workerLogger.error(`Unhandled rejection: ${reason}`);
-    workerGracefulShutdown(workerName, workerContext);
+    handleWorkerShutdown(workerName, workerContext);
   });
 }
 
