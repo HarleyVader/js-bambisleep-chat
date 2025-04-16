@@ -26,6 +26,7 @@ import helpRoute from './routes/help.js';
 import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import profileRouter from './routes/profile.js';
 import chatRoutes from './routes/chatRoutes.js';
+import apiRoutes from './routes/apiRoutes.js';
 
 // Import worker coordinator
 import workerCoordinator from './workers/workerCoordinator.js';
@@ -203,53 +204,80 @@ function setupRoutes(app) {
   app.use('/api/chat', chatRoutes);
   
   // Add routes for client-side rendering data
-  app.get('/api/chat/messages', (req, res) => {
-    // Get only the most recent messages (limit to 50)
-    const limit = parseInt(req.query.limit || '50', 10);
-    
-    // Fetch from database instead of storing in memory
-    getMessages(limit)
-      .then(messages => {
-        res.json({ messages });
-      })
-      .catch(err => {
-        console.error('Error fetching messages:', err);
-        res.status(500).json({ error: 'Error fetching messages' });
-      });
+  app.get('/api/chat/messages', async (req, res) => {
+    try {
+      // Get requested limit with default of 50
+      const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+      
+      // Get recent messages - replace with your actual implementation
+      const messages = await getRecentMessages(limit);
+      
+      res.json({ messages });
+    } catch (error) {
+      console.error('Error fetching chat messages:', error);
+      res.status(500).json({ error: 'Error fetching messages', messages: [] });
+    }
   });
 
-  app.get('/api/profile/:username/system-controls', (req, res) => {
-    const username = req.params.username;
-    
-    // Fetch profile from database
-    getProfile(username)
-      .then(profile => {
-        if (!profile) {
-          return res.status(404).json({ error: 'Profile not found' });
-        }
-        
-        // Return only system controls data
-        res.json(profile.systemControls || {});
-      })
-      .catch(err => {
-        console.error('Error fetching profile system controls:', err);
-        res.status(500).json({ error: 'Error fetching profile data' });
+  app.get('/api/profile/:username/system-controls', async (req, res) => {
+    try {
+      const username = req.params.username;
+      
+      if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+      }
+      
+      // Fetch profile data - replace with your actual data fetching logic
+      // If you have a Profile model, use it here
+      const profile = await getProfileByUsername(username);
+      
+      if (!profile) {
+        return res.status(404).json({ 
+          activeTriggers: [],
+          message: 'Profile not found' 
+        });
+      }
+      
+      // Return system controls data in the format expected by the client renderer
+      res.json({
+        activeTriggers: profile.activeTriggers || [],
+        systemSettings: profile.settings || {},
+        xp: profile.xp || 0,
+        level: profile.level || 0
       });
+    } catch (error) {
+      console.error(`Error fetching profile system controls for ${req.params.username}:`, error);
+      res.status(500).json({ 
+        error: 'Error fetching profile data',
+        activeTriggers: [] 
+      });
+    }
   });
 
   // Add performance metrics API endpoint
   app.post('/api/performance', (req, res) => {
-    // Store metrics or log them
-    const metrics = req.body;
-    logger.info(`Performance metrics received from client: ${JSON.stringify(metrics.summary || {})}`);
-    
-    // You could store these in a database for later analysis
-    
-    res.json({ success: true });
+    try {
+      const metrics = req.body;
+      
+      // Log summary of metrics if available
+      if (metrics && metrics.summary) {
+        console.log(`Performance metrics from client: ${JSON.stringify(metrics.summary)}`);
+      }
+      
+      // You could store metrics in a database for later analysis
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error processing performance metrics:', error);
+      res.status(500).json({ error: 'Error processing metrics' });
+    }
   });
   
   // Set up TTS API routes
   setupTTSRoutes(app);
+  
+  // Add API routes
+  app.use('/api', apiRoutes);
   
   // Add 404 handler
   app.use((req, res) => {
@@ -772,6 +800,42 @@ async function saveMessage(message) {
     logger.error('Error saving message:', error);
     throw error;
   }
+}
+
+/**
+ * Helper function to get profile by username - implement according to your data structure
+ * 
+ * @param {string} username - Username to fetch profile for
+ * @returns {Promise<Object>} - Profile object
+ */
+async function getProfileByUsername(username) {
+  // This is a placeholder - replace with your actual profile fetching logic
+  // If you're using MongoDB, might look like:
+  // return await db.collection('profiles').findOne({ username: username });
+  
+  // For now, return mock data to test if the endpoint works
+  return {
+    username: username,
+    activeTriggers: ['smooth', 'blank'],
+    settings: { theme: 'dark' },
+    xp: 150,
+    level: 2
+  };
+}
+
+/**
+ * Helper function to get recent messages
+ * 
+ * @param {number} limit - Maximum number of messages to fetch
+ * @returns {Promise<Array>} - Array of recent messages
+ */
+async function getRecentMessages(limit = 50) {
+  // This is a placeholder - replace with your actual message fetching logic
+  // For now, return some mock messages for testing
+  return [
+    { username: 'system', data: 'Welcome to BambiSleep.Chat!', timestamp: Date.now() - 60000 },
+    { username: 'bambi', data: 'Hello everyone!', timestamp: Date.now() - 30000 }
+  ];
 }
 
 /**

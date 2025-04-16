@@ -54,61 +54,75 @@ class PerformanceMonitor {
    * Setup resource observer to monitor network requests
    */
   setupResourceObserver() {
-    const resourceObserver = new PerformanceObserver(list => {
-      list.getEntries().forEach(entry => {
-        if (entry.initiatorType === 'fetch' || entry.initiatorType === 'xmlhttprequest') {
-          const url = new URL(entry.name).pathname;
-          if (!this.metrics.resources[url]) {
-            this.metrics.resources[url] = [];
-          }
-          this.metrics.resources[url].push({
-            duration: entry.duration,
-            startTime: entry.startTime,
-            transferSize: entry.transferSize
-          });
-        }
-      });
-    });
+    if (!PerformanceObserver) {
+      console.warn('PerformanceObserver not supported in this browser');
+      return;
+    }
     
-    resourceObserver.observe({ type: 'resource', buffered: true });
-    this.observers.add(resourceObserver);
+    try {
+      const resourceObserver = new PerformanceObserver(list => {
+        list.getEntries().forEach(entry => {
+          if (entry.initiatorType === 'fetch' || entry.initiatorType === 'xmlhttprequest') {
+            const url = new URL(entry.name).pathname;
+            if (!this.metrics.resources[url]) {
+              this.metrics.resources[url] = [];
+            }
+            this.metrics.resources[url].push({
+              duration: entry.duration,
+              startTime: entry.startTime,
+              transferSize: entry.transferSize
+            });
+          }
+        });
+      });
+      
+      resourceObserver.observe({ type: 'resource', buffered: true });
+      this.observers.add(resourceObserver);
+    } catch (err) {
+      console.warn('Error setting up resource observer:', err);
+    }
   }
   
   /**
    * Setup interaction observer to monitor user interactions
    */
   setupInteractionObserver() {
-    if (!PerformanceObserver.supportedEntryTypes.includes('event')) {
+    if (!PerformanceObserver || !PerformanceObserver.supportedEntryTypes || 
+        !PerformanceObserver.supportedEntryTypes.includes('event')) {
       console.warn('Event timing not supported in this browser');
       return;
     }
     
-    const interactionObserver = new PerformanceObserver(list => {
-      list.getEntries().forEach(entry => {
-        const target = entry.target ? entry.target.localName : 'unknown';
-        const type = entry.name;
-        const key = `${target}:${type}`;
-        
-        if (!this.metrics.interactions[key]) {
-          this.metrics.interactions[key] = [];
-        }
-        
-        this.metrics.interactions[key].push({
-          duration: entry.duration,
-          startTime: entry.startTime
+    try {
+      const interactionObserver = new PerformanceObserver(list => {
+        list.getEntries().forEach(entry => {
+          const target = entry.target ? entry.target.localName : 'unknown';
+          const type = entry.name;
+          const key = `${target}:${type}`;
+          
+          if (!this.metrics.interactions[key]) {
+            this.metrics.interactions[key] = [];
+          }
+          
+          this.metrics.interactions[key].push({
+            duration: entry.duration,
+            startTime: entry.startTime
+          });
         });
       });
-    });
-    
-    interactionObserver.observe({ type: 'event', buffered: true, durationThreshold: 16 });
-    this.observers.add(interactionObserver);
+      
+      interactionObserver.observe({ type: 'event', buffered: true, durationThreshold: 16 });
+      this.observers.add(interactionObserver);
+    } catch (err) {
+      console.warn('Error setting up interaction observer:', err);
+    }
   }
   
   /**
    * Setup memory monitoring if available
    */
   setupMemoryMonitoring() {
-    if (!performance.memory) {
+    if (typeof performance.memory === 'undefined') {
       console.warn('Memory API not available in this browser');
       return;
     }
@@ -164,12 +178,30 @@ class PerformanceMonitor {
    * Send metrics to server for analysis
    */
   sendMetricsToServer() {
+    // Create a summary with the most important metrics
+    const summary = {
+      totalDuration: this.metrics.duration,
+      averageRenderTimes: {},
+      resourceCount: Object.keys(this.metrics.resources).length,
+      interactionCount: Object.keys(this.metrics.interactions).length,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Calculate average render times
+    for (const [component, renders] of Object.entries(this.metrics.renders)) {
+      const totalTime = renders.reduce((sum, render) => sum + render.duration, 0);
+      summary.averageRenderTimes[component] = totalTime / renders.length;
+    }
+    
     fetch('/api/performance', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(this.metrics)
+      body: JSON.stringify({
+        metrics: this.metrics,
+        summary: summary
+      })
     })
     .then(response => response.json())
     .then(data => {
@@ -183,7 +215,10 @@ class PerformanceMonitor {
 
 // Initialize performance monitor
 window.performanceMonitor = new PerformanceMonitor();
-// Start recording on page load
+
+// Start recording on page load - with a small delay to ensure page is loaded
 window.addEventListener('load', () => {
-  window.performanceMonitor.startRecording();
+  setTimeout(() => {
+    window.performanceMonitor.startRecording();
+  }, 100);
 });

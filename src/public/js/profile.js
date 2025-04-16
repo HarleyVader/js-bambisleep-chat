@@ -545,7 +545,7 @@ function setupSystemControls() {
           });
         } else {
           // Fallback to fetch API
-          fetch(`/profile/${username}/system-controls`, {
+          fetch(`/api/profile/${username}/system-controls`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -658,7 +658,7 @@ function populateTriggerList(triggerList) {
       });
     } else {
       // Fallback to fetch API
-      fetch(`/profile/${username}/system-controls`, {
+      fetch(`/api/profile/${username}/system-controls`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -836,7 +836,7 @@ function updateSystemControlsUI(data) {
       });
     } else {
       // Fallback to fetch API
-      fetch(`/profile/${username}/system-controls`, {
+      fetch(`/api/profile/${username}/system-controls`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

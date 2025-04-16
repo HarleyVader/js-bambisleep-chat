@@ -42,7 +42,7 @@
                 <button id="send" type="submit" class="send-btn">Chat</button>
               </form>
               <!-- Replace server-rendered chat messages with client-side placeholder -->
-              <div data-client-render="ChatMessages" data-props='<%= JSON.stringify({ messages: chatMessages || [] }) %>'></div>
+              <div data-client-render="ChatMessages" data-props='{"messages": []}'></div>
             </div>
           </div>
           <div id="eyeCursorContainer">

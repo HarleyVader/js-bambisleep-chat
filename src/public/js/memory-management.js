@@ -4,16 +4,22 @@
 class MemoryManager {
   constructor() {
     this.gcPending = false;
-    this.trackedObjects = new WeakMap();
     this.intervals = [];
     this.eventListeners = new Map();
     this.lastWarningTime = 0;
+    this.isSupported = typeof performance !== 'undefined' && 
+                       typeof performance.memory !== 'undefined';
   }
   
   /**
    * Initialize memory manager
    */
   init() {
+    if (!this.isSupported) {
+      console.log('Memory management not supported in this browser');
+      return;
+    }
+    
     this.setupMemoryWatcher();
     this.setupEventListenerTracking();
     console.log('Memory manager initialized');
@@ -23,6 +29,8 @@ class MemoryManager {
    * Setup memory usage watcher
    */
   setupMemoryWatcher() {
+    if (!this.isSupported) return;
+    
     // Check memory usage every 30 seconds
     const interval = setInterval(() => {
       this.checkMemoryUsage();
@@ -42,7 +50,7 @@ class MemoryManager {
    * Check current memory usage and take action if needed
    */
   checkMemoryUsage() {
-    if (!performance.memory) return;
+    if (!this.isSupported || !performance.memory) return;
     
     const memoryUsage = performance.memory;
     const usedRatio = memoryUsage.usedJSHeapSize / memoryUsage.jsHeapSizeLimit;
@@ -74,70 +82,60 @@ class MemoryManager {
    * Attempt to clean up memory
    */
   attemptMemoryCleanup() {
-    // Clear image caches if possible
-    if (window.clientRenderer && window.clientRenderer.clearImageCache) {
-      window.clientRenderer.clearImageCache();
-    }
-    
     // Clear any object caches
     if (window.clientRenderer && window.clientRenderer.componentCache) {
       window.clientRenderer.componentCache.clear();
     }
     
-    // Force garbage collection if running in Chrome with --js-flags="--expose_gc"
-    if (window.gc) {
-      window.gc();
-      console.log('Forced garbage collection');
+    // Force garbage collection if supported
+    if (typeof window.gc === 'function') {
+      try {
+        window.gc();
+        console.log('Forced garbage collection');
+      } catch (e) {
+        console.log('Failed to force garbage collection', e);
+      }
     }
-  }
-  
-  /**
-   * Track object for potential memory leaks
-   * 
-   * @param {Object} obj - Object to track
-   * @param {string} name - Name for tracking
-   */
-  trackObject(obj, name) {
-    this.trackedObjects.set(obj, {
-      name,
-      createdAt: Date.now()
-    });
   }
   
   /**
    * Setup tracking of event listeners to detect leaks
    */
   setupEventListenerTracking() {
-    // Override addEventListener
-    const originalAddEventListener = EventTarget.prototype.addEventListener;
-    EventTarget.prototype.addEventListener = function(type, listener, options) {
-      const element = this;
-      const key = `${element.constructor.name}:${type}`;
-      
-      if (!window.memoryManager.eventListeners.has(key)) {
-        window.memoryManager.eventListeners.set(key, new Set());
-      }
-      
-      window.memoryManager.eventListeners.get(key).add(listener);
-      
-      return originalAddEventListener.call(this, type, listener, options);
-    };
-    
-    // Override removeEventListener
-    const originalRemoveEventListener = EventTarget.prototype.removeEventListener;
-    EventTarget.prototype.removeEventListener = function(type, listener, options) {
-      const element = this;
-      const key = `${element.constructor.name}:${type}`;
-      
-      if (window.memoryManager.eventListeners.has(key)) {
-        window.memoryManager.eventListeners.get(key).delete(listener);
-        if (window.memoryManager.eventListeners.get(key).size === 0) {
-          window.memoryManager.eventListeners.delete(key);
+    try {
+      // Override addEventListener
+      const originalAddEventListener = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function(type, listener, options) {
+        const element = this;
+        const key = `${element.constructor.name}:${type}`;
+        
+        if (!window.memoryManager.eventListeners.has(key)) {
+          window.memoryManager.eventListeners.set(key, new Set());
         }
-      }
+        
+        window.memoryManager.eventListeners.get(key).add(listener);
+        
+        return originalAddEventListener.call(this, type, listener, options);
+      };
       
-      return originalRemoveEventListener.call(this, type, listener, options);
-    };
+      // Override removeEventListener
+      const originalRemoveEventListener = EventTarget.prototype.removeEventListener;
+      EventTarget.prototype.removeEventListener = function(type, listener, options) {
+        const element = this;
+        const key = `${element.constructor.name}:${type}`;
+        
+        if (window.memoryManager.eventListeners.has(key)) {
+          window.memoryManager.eventListeners.get(key).delete(listener);
+          if (window.memoryManager.eventListeners.get(key).size === 0) {
+            window.memoryManager.eventListeners.delete(key);
+          }
+        }
+        
+        return originalRemoveEventListener.call(this, type, listener, options);
+      };
+    } catch (e) {
+      console.warn('Failed to set up event listener tracking', e);
+    }
   }
   
   /**

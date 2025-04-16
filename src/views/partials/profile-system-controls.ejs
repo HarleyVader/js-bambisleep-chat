@@ -346,7 +346,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           activeTriggers: activeTriggers
         });
       } else {
-        fetch(`/profile/${username}/system-controls`, {
+        fetch(`/api/profile/${username}/system-controls`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -393,7 +393,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         
         showCollarMessage('Collar settings saved!');
       } else {
-        fetch(`/profile/${username}/system-controls`, {
+        fetch(`/api/profile/${username}/system-controls`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
