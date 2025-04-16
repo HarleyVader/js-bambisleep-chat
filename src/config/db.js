@@ -36,5 +36,44 @@ export async function disconnectDB() {
   }
 }
 
+/**
+ * Get a Mongoose model
+ * Safely retrieves a model or creates it if it doesn't exist
+ * 
+ * @param {string} modelName - The name of the model to retrieve
+ * @returns {mongoose.Model} - The Mongoose model
+ */
+export function getModel(modelName) {
+  try {
+    // Try to get an existing model first
+    return mongoose.model(modelName);
+  } catch (error) {
+    // If the model doesn't exist, the error will indicate that
+    logger.warning(`Model ${modelName} not found, it should be registered before use`);
+    
+    // Instead of throwing, return a simple placeholder model
+    // This is a safety mechanism - proper models should be registered elsewhere
+    const schema = new mongoose.Schema({}, { strict: false });
+    return mongoose.model(modelName, schema);
+  }
+}
+
+/**
+ * Register a model with mongoose
+ * 
+ * @param {string} modelName - Name of the model
+ * @param {mongoose.Schema} schema - Mongoose schema for the model
+ * @returns {mongoose.Model} - The registered model
+ */
+export function registerModel(modelName, schema) {
+  try {
+    // Check if model already exists
+    return mongoose.model(modelName);
+  } catch (e) {
+    // If not, register it
+    return mongoose.model(modelName, schema);
+  }
+}
+
 export { withDbConnection };
-export default { connectDB, disconnectDB, withDbConnection };
+export default { connectDB, disconnectDB, withDbConnection, getModel, registerModel };

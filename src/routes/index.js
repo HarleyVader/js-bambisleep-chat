@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import Logger from '../utils/logger.js';
 import footerConfig from '../config/footer.config.js';
-import { getModel } from '../config/db.js'; // Add this import
+import { getModel, withDbConnection } from '../config/db.js'; // Updated import
 import ChatMessage from '../models/ChatMessage.js';
 
 const logger = new Logger('RouteManager');

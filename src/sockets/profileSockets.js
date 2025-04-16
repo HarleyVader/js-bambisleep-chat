@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
 import { getProfile, updateProfile } from '../models/Profile.js';
-import { getModel } from '../config/db.js'; // Import getModel from the correct location
-import { withDbConnection } from '../utils/dbTransaction.js';
+import { getModel, withDbConnection } from '../config/db.js'; // Import both from db.js
 
 const logger = new Logger('ProfileSockets');
 
