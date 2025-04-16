@@ -504,35 +504,6 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       // Set up chat sockets for each connection
       setupChatSockets(socket, io, socketStore, filteredWords);
       
-      // When sending chat messages, emit directly to clients instead of rendering on server
-      socket.on("chat message", async (msg) => {
-        if (typeof msg !== 'object' || !msg.data) {
-          return;
-        }
-        
-        const timestamp = Date.now();
-        const filteredMessage = filterWords(msg.data, filteredWords);
-        
-        // Create message object
-        const messageObj = {
-          data: filteredMessage,
-          username: msg.username || 'anonymous',
-          timestamp: timestamp
-        };
-        
-        try {
-          // Use the new method that manages connections properly
-          const ChatMessage = mongoose.model('ChatMessage');
-          await ChatMessage.saveMessage(messageObj);
-          
-          // Emit to all clients
-          io.emit("chat message", messageObj);
-        } catch (err) {
-          logger.error('Error saving chat message:', err);
-          socket.emit('error', 'Error saving message');
-        }
-      });
-      
       // Handle disconnection
       socket.on('disconnect', (reason) => {
         handleSocketDisconnect(socket, socketStore, reason);
