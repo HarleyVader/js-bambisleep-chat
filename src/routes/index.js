@@ -118,14 +118,18 @@ router.get('/', async (req, res) => {
       }
     }
     
+    // Fetch recent chat messages
+    const chatMessages = await ChatMessage.getRecentMessages(50);
+    
     // Get footer links from config, with fallback to imported footerConfig
     const footerLinks = config?.FOOTER_LINKS || footerConfig?.links || [];
     
-    // Render the index view with profile data
+    // Render the index view with profile data and chat messages
     res.render('index', { 
       profile,
       username,
       footerLinks,
+      chatMessages, // Pass the chat messages to the template
       title: 'BambiSleep.Chat - Hypnotic AI Chat'
     });
   } catch (error) {
@@ -136,6 +140,7 @@ router.get('/', async (req, res) => {
       profile: null, 
       username: '',
       footerLinks: config?.FOOTER_LINKS || footerConfig?.links || [],
+      chatMessages: [], // Pass empty array as fallback
       title: 'BambiSleep.Chat - Hypnotic AI Chat'
     });
   }
