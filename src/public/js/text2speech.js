@@ -12,8 +12,11 @@ const audio = document.getElementById('audio');
 function arrayPush(_audioArray, e) {
   document.querySelector("#audio").hidden = true;
   
-  // Create a proper URL with encoded text parameter
-  let URL = `/api/tts?text=${encodeURIComponent(e)}`;
+  // Sanitize text by removing everything except numbers and letters
+  const sanitizedText = e.replace(/[^a-zA-Z0-9\s]/g, '');
+  
+  // Create a proper URL with encoded sanitized text parameter
+  let URL = `/api/tts?text=${encodeURIComponent(sanitizedText)}`;
   _audioArray.push(URL);
   
   return _audioArray;

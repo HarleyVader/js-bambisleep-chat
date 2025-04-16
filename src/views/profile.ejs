@@ -212,8 +212,66 @@
           <% } %>
         </div>
         
-        <% if (profiles && profiles.length >= 20) { %>
-          <button id="load-more-btn" class="load-more-btn">Load More Bambis</button>
+        <% if (profiles && profiles.length > 0) { %>
+          <div class="pagination-controls">
+            <div class="results-per-page">
+              <label for="results-per-page">Show:</label>
+              <select id="results-per-page" class="results-dropdown">
+                <option value="<%= perPage %>"><%= perPage %></option>
+                <option value="<%= perPage * 2 %>"><%= perPage * 2 %></option>
+                <option value="<%= perPage * 3 %>"><%= perPage * 3 %></option>
+                <option value="<%= perPage * 4 %>"><%= perPage * 4 %></option>
+              </select>
+              <span>per page</span>
+            </div>
+
+            <div class="sort-controls">
+              <label for="sort-by">Sort by:</label>
+              <select id="sort-by" class="sort-dropdown">
+                <option value="createdAt" <%= sortBy === 'createdAt' ? 'selected' : '' %>>Newest</option>
+                <option value="level" <%= sortBy === 'level' ? 'selected' : '' %>>Level</option>
+                <option value="hearts" <%= sortBy === 'hearts' ? 'selected' : '' %>>Hearts</option>
+                <option value="generatedWords" <%= sortBy === 'generatedWords' ? 'selected' : '' %>>Words Generated</option>
+              </select>
+              <select id="sort-direction" class="sort-dropdown">
+                <option value="desc" <%= sortDir === 'desc' ? 'selected' : '' %>>Descending</option>
+                <option value="asc" <%= sortDir === 'asc' ? 'selected' : '' %>>Ascending</option>
+              </select>
+            </div>
+
+            <div class="pagination-navigation">
+              <% if (currentPage > 1) { %>
+                <a href="/profile?page=1&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn first-page">First</a>
+                <a href="/profile?page=<%= currentPage - 1 %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn prev-page">Previous</a>
+              <% } else { %>
+                <span class="pagination-btn disabled">First</span>
+                <span class="pagination-btn disabled">Previous</span>
+              <% } %>
+              
+              <div class="page-numbers">
+                <% 
+                  const startPage = Math.max(1, currentPage - 2);
+                  const endPage = Math.min(totalPages, startPage + 4);
+                %>
+                
+                <% for(let i = startPage; i <= endPage; i++) { %>
+                  <% if(i === currentPage) { %>
+                    <span class="pagination-btn current-page"><%= i %></span>
+                  <% } else { %>
+                    <a href="/profile?page=<%= i %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn"><%= i %></a>
+                  <% } %>
+                <% } %>
+              </div>
+              
+              <% if (currentPage < totalPages) { %>
+                <a href="/profile?page=<%= currentPage + 1 %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn next-page">Next</a>
+                <a href="/profile?page=<%= totalPages %>&perPage=<%= perPage %>&sortBy=<%= sortBy %>&sortDir=<%= sortDir %>" class="pagination-btn last-page">Last</a>
+              <% } else { %>
+                <span class="pagination-btn disabled">Next</span>
+                <span class="pagination-btn disabled">Last</span>
+              <% } %>
+            </div>
+          </div>
         <% } %>
       </div>
     <% } else { %>

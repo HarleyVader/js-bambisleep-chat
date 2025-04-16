@@ -1153,6 +1153,79 @@ document.addEventListener('DOMContentLoaded', function() {
       this.parentElement.style.display = 'none';
     });
   }
+
+  // Set up pagination controls
+  const resultsDropdown = document.getElementById('results-per-page');
+  const sortByDropdown = document.getElementById('sort-by');
+  const sortDirDropdown = document.getElementById('sort-direction');
+  
+  if (resultsDropdown) {
+    resultsDropdown.addEventListener('change', function() {
+      updateProfileList();
+    });
+  }
+  
+  if (sortByDropdown) {
+    sortByDropdown.addEventListener('change', function() {
+      updateProfileList();
+    });
+  }
+  
+  if (sortDirDropdown) {
+    sortDirDropdown.addEventListener('change', function() {
+      updateProfileList();
+    });
+  }
+  
+  // Function to update the profile list based on controls
+  function updateProfileList() {
+    const currentUrl = new URL(window.location.href);
+    const searchParams = currentUrl.searchParams;
+    
+    // Get current values
+    const perPage = resultsDropdown ? resultsDropdown.value : searchParams.get('perPage') || 20;
+    const sortBy = sortByDropdown ? sortByDropdown.value : searchParams.get('sortBy') || 'createdAt';
+    const sortDir = sortDirDropdown ? sortDirDropdown.value : searchParams.get('sortDir') || 'desc';
+    
+    // Reset to page 1 when changing display settings
+    searchParams.set('page', 1);
+    searchParams.set('perPage', perPage);
+    searchParams.set('sortBy', sortBy);
+    searchParams.set('sortDir', sortDir);
+    
+    // Navigate to the new URL
+    window.location.href = currentUrl.toString();
+  }
+  
+  // Ensure current selections are reflected in dropdowns
+  function initializeControls() {
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    
+    if (resultsDropdown) {
+      const perPage = params.get('perPage') || 20;
+      // Make sure the option exists, otherwise add it
+      if (!Array.from(resultsDropdown.options).some(opt => opt.value === perPage)) {
+        const option = new Option(perPage, perPage, true, true);
+        resultsDropdown.add(option);
+      } else {
+        resultsDropdown.value = perPage;
+      }
+    }
+    
+    if (sortByDropdown) {
+      const sortBy = params.get('sortBy') || 'createdAt';
+      sortByDropdown.value = sortBy;
+    }
+    
+    if (sortDirDropdown) {
+      const sortDir = params.get('sortDir') || 'desc';
+      sortDirDropdown.value = sortDir;
+    }
+  }
+  
+  // Initialize controls on page load
+  initializeControls();
 });
 
 // Make the functions available globally
@@ -1168,3 +1241,57 @@ window.updateXPDisplay = updateXPDisplay;
 window.showXPNotification = showXPNotification;
 window.showLevelUpNotification = showLevelUpNotification;
 window.syncTriggersWithPages = syncTriggersWithPages;
+
+// Profile listing page with pagination and sorting
+router.get('/', async (req, res) => {
+  try {
+    const Profile = getModel('Profile');
+    
+    // Get query parameters with defaults
+    const page = parseInt(req.query.page) || 1;
+    const perPage = parseInt(req.query.perPage) || 20;
+    const sortBy = req.query.sortBy || 'createdAt';
+    const sortDir = req.query.sortDir || 'desc';
+    
+    // Validate sort field to prevent injection
+    const allowedSortFields = ['createdAt', 'level', 'hearts', 'generatedWords'];
+    const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    
+    // Create sort object
+    const sort = {};
+    sort[validSortBy] = sortDir === 'asc' ? 1 : -1;
+    
+    // Calculate pagination values
+    const skip = (page - 1) * perPage;
+    
+    // Get total count for pagination
+    const totalProfiles = await Profile.countDocuments();
+    const totalPages = Math.ceil(totalProfiles / perPage);
+    
+    // Fetch paginated and sorted profiles
+    const profiles = await Profile.find()
+      .sort(sort)
+      .skip(skip)
+      .limit(perPage);
+    
+    res.render('profile', { 
+      title: 'Bambi Profiles',
+      mode: 'list',
+      profiles,
+      currentPage: page,
+      perPage,
+      totalPages,
+      totalProfiles,
+      sortBy: validSortBy,
+      sortDir,
+      footer: footerConfig
+    });
+  } catch (error) {
+    logger.error('Error loading profiles list:', error);
+    res.status(500).render('error', { 
+      message: 'Failed to load profiles',
+      error: req.app.get('env') === 'development' ? error : {},
+      title: 'Error'
+    });
+  }
+});
