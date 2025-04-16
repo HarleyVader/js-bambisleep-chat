@@ -181,11 +181,3 @@ async function awardXP(username, amount) {
     return null;
   }
 }
-
-// Add static method to ChatMessage schema
-ChatMessage.statics.saveMessage = async function(messageData) {
-  return withDbConnection(async () => {
-    const message = new this(messageData);
-    return await message.save();
-  });
-};
