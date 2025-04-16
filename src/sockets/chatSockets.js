@@ -1,6 +1,6 @@
 import ChatMessage from '../models/ChatMessage.js';
 import Logger from '../utils/logger.js';
-import { withDbConnection } from '../utils/dbTransaction.js';
+import { withDbConnection } from '../config/db.js';
 import Profile from '../models/Profile.js';  // Import the Profile model directly
 
 const logger = new Logger('ChatSockets');

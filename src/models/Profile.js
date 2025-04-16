@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { withDbConnection } from '../utils/dbTransaction.js';
+import { withDbConnection } from '../config/db.js';
 import Logger from '../utils/logger.js';
 import crypto from 'crypto';
 

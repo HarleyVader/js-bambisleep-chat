@@ -4,9 +4,8 @@ import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
 import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 import mongoose from 'mongoose';
-import { connectDB, getModel } from '../config/db.js';
+import { connectDB, getModel, withDbConnection } from '../config/db.js';
 import '../models/Profile.js';  // Import the model file to ensure schema registration
-import withDbConnection from '../utils/dbTransaction.js'; // Import the new utility
 
 // Health monitoring variables
 let lastActivityTimestamp = Date.now();
