@@ -448,9 +448,9 @@ async function handleMessage(userPrompt, socketId, username) {
     const requestData = {
       model: modelIds[0], // Use the first model for the request
       messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
-      max_tokens: 380,
-      temperature: 0.95,
-      top_p: 0.95,
+      max_tokens: 4096,
+      temperature: 0.87,
+      top_p: 0.91,
       frequency_penalty: 0,
       presence_penalty: 0,
       top_k: 40,
