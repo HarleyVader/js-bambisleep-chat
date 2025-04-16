@@ -205,9 +205,50 @@
           
           <div class="profiles-grid">
             <% profiles.forEach(profile => { %>
-              <!-- Your existing profile card code -->
               <div class="profile-card">
-                <!-- Card content -->
+                <div class="profile-header" style="background-image: url('<%= profile.headerImage || "/gif/default-header.gif" %>'); background-color: <%= profile.headerColor %>;">
+                  <% if (profile.hearts && profile.hearts.count > 0) { %>
+                    <div class="hearts-container">
+                      <span class="hearts-icon">❤️</span>
+                      <span class="hearts-count"><%= profile.hearts.count %></span>
+                    </div>
+                  <% } %>
+                </div>
+                
+                <div class="profile-avatar">
+                  <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>">
+                </div>
+                
+                <div class="profile-info">
+                  <h3><%= profile.displayName || profile.username %></h3>
+                  <div class="username">@<%= profile.username %></div>
+                  
+                  <div class="about">
+                    <%= profile.about || 'Tell us about yourself...' %>
+                  </div>
+                  
+                  <div class="profile-stats">
+                    <div class="stat">
+                      <div class="stat-icon">⭐</div>
+                      <div class="stat-value"><%= profile.level || '0' %></div>
+                      <div class="stat-label">Level</div>
+                    </div>
+                    
+                    <div class="stat">
+                      <div class="stat-icon">❤️</div>
+                      <div class="stat-value"><%= profile.hearts ? profile.hearts.count : '0' %></div>
+                      <div class="stat-label">Hearts</div>
+                    </div>
+                    
+                    <div class="stat">
+                      <div class="stat-icon">📝</div>
+                      <div class="stat-value"><%= profile.generatedWords || '0' %></div>
+                      <div class="stat-label">Words</div>
+                    </div>
+                  </div>
+                  
+                  <a href="/profile/<%= profile.username %>" class="view-profile-btn">View Profile</a>
+                </div>
               </div>
             <% }); %>
           </div>

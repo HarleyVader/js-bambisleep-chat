@@ -970,24 +970,102 @@
   margin-top: 20px;
 }
 
+/* Make entire profile card clickable */
 .profile-card {
-  background-color: var(--nav-color);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--tertiary-alt);
-  box-shadow: 0 0 15px var(--tertiary-color), 0 0 25px var(--button-color);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
   position: relative;
-  height: 380px;
+}
+
+/* Fix card height and improve layout consistency */
+.profile-card {
+  height: auto;
+  min-height: 380px;
   display: flex;
   flex-direction: column;
 }
 
-.profile-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 0 25px var(--tertiary-color), 0 0 40px var(--button-color), 0 0 60px var(--nav-alt);
+/* Fix profile avatar positioning */
+.profile-card .profile-avatar {
+  margin-top: -50px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background-color: var(--nav-color);
 }
 
+/* Improve profile info layout */
+.profile-card .profile-info {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: 60px;
+  margin-left: 0;
+}
+
+/* Fix about text overflow */
+.profile-card .profile-info .about {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Ensure view profile button stays at bottom */
+.profile-card .view-profile-btn {
+  margin-top: auto;
+  min-width: 150px;
+  align-self: center;
+}
+
+/* Handle content clickthrough properly */
+.profile-card a, 
+.profile-card button {
+  position: relative;
+  z-index: 5;
+}
+
+/* Add card click handler */
+.profile-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+/* Enhanced hover effects */
+.profile-card:hover .profile-header {
+  filter: brightness(1.1) saturate(1.2);
+}
+
+.profile-card:hover .profile-info h3 {
+  color: var(--nav-alt);
+  text-shadow: 0 0 8px var(--tertiary-color), 0 0 12px var(--button-color);
+}
+
+/* Improved stats display */
+.profile-card .profile-stats {
+  background-color: rgba(10, 38, 38, 0.4);
+  border-radius: 6px;
+  padding: 10px;
+  margin: 15px 0;
+  justify-content: space-around;
+}
+
+.profile-card .stat {
+  flex: 1;
+  text-align: center;
+  padding: 5px;
+}
+
+.profile-card .stat-icon {
+  font-size: 1.2rem;
+  margin-bottom: 5px;
+}
+
+/* Add glow effects to grid cards */
 .profile-card::before {
   content: '';
   position: absolute;
@@ -995,14 +1073,16 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(
-    circle at center,
-    rgba(255, 0, 255, 0.08) 0%,
-    rgba(0, 255, 255, 0.05) 40%,
-    transparent 70%
-  );
   z-index: 1;
   pointer-events: none;
+  border-radius: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 0 20px var(--tertiary-color), 0 0 30px var(--button-color);
+}
+
+.profile-card:hover::before {
+  opacity: 1;
 }
 
 .profile-card .profile-header {
