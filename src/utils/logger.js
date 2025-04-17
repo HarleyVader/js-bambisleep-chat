@@ -296,14 +296,14 @@ class Logger {
     const timestamp = this.getTimestamp();
     const prefix = this.getModulePrefix();
     
-    console.log(
-      patterns.server.success(`${timestamp} ${prefix} CONNECT:`),
-      this.textColors.success(`Client connected (${this.specialColors.number(totalConnections)} total)`)
-    );
+    // Show the actual socket ID and bambi name instead of placeholders
+    const clientInfo = bambiName ? 
+      `${this.specialColors.socket(socketId)} (${this.specialColors.bambi(bambiName)})` : 
+      `${this.specialColors.socket(socketId)} (unregistered)`;
     
     console.log(
-      patterns.server.info(`${timestamp} ${prefix} CLIENT INFO:`),
-      this.textColors.info(`Bambi: ${this.specialColors.bambi(bambiName || 'Unknown')}, Socket: ${this.specialColors.socket(socketId)}`)
+      patterns.server.success(`${timestamp} ${prefix} CONNECT:`),
+      this.textColors.success(`Client connected: ${clientInfo} (${this.specialColors.number(totalConnections)} total)`)
     );
     
     if (workers && workers.length) {
@@ -337,14 +337,14 @@ class Logger {
     const timestamp = this.getTimestamp();
     const prefix = this.getModulePrefix();
     
-    console.log(
-      patterns.server.warning(`${timestamp} ${prefix} DISCONNECT:`),
-      this.textColors.warning(`Client disconnected (${this.specialColors.number(totalConnections)} remaining)`)
-    );
+    // Show the actual socket ID and bambi name instead of placeholders
+    const clientInfo = bambiName ? 
+      `${this.specialColors.socket(socketId)} (${this.specialColors.bambi(bambiName)})` : 
+      `${this.specialColors.socket(socketId)} (unregistered)`;
     
     console.log(
-      patterns.server.info(`${timestamp} ${prefix} CLIENT INFO:`),
-      this.textColors.info(`Bambi: ${this.specialColors.bambi(bambiName || 'Unknown')}, Socket: ${this.specialColors.socket(socketId)}`)
+      patterns.server.warning(`${timestamp} ${prefix} DISCONNECT:`),
+      this.textColors.warning(`Client disconnected: ${clientInfo} (${this.specialColors.number(totalConnections)} remaining)`)
     );
     
     console.log(
@@ -362,14 +362,14 @@ class Logger {
     const timestamp = this.getTimestamp();
     const prefix = this.getModulePrefix();
     
-    console.log(
-      patterns.server.warning(`${timestamp} ${prefix} GARBAGE COLLECTION:`),
-      this.textColors.warning(`Cleaned up disconnected client`)
-    );
+    // Show the actual socket ID and bambi name instead of placeholders
+    const clientInfo = bambiName ? 
+      `${this.specialColors.socket(socketId)} (${this.specialColors.bambi(bambiName)})` : 
+      `${this.specialColors.socket(socketId)} (unregistered)`;
     
     console.log(
-      patterns.server.info(`${timestamp} ${prefix} CLIENT INFO:`),
-      this.textColors.info(`Bambi: ${this.specialColors.bambi(bambiName || 'Unknown')}, Socket: ${this.specialColors.socket(socketId)}`)
+      patterns.server.warning(`${timestamp} ${prefix} GARBAGE COLLECTION:`),
+      this.textColors.warning(`Cleaned up disconnected client: ${clientInfo}`)
     );
   }
 }
