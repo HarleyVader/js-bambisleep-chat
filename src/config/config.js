@@ -125,26 +125,21 @@ function buildConfig() {
     config.KOKORO_API_URL = `http://${config.KOKORO_HOST}:${config.KOKORO_PORT}/v1`;
   }
   
-  // Only log configuration once during server startup
-  if (!configLogged) {
-    // Use a dedicated method for config logging to bypass regular suppression
-    logger.logConfig('Configuration loaded:', config);
-    configLogged = true;
-  }
-  
   return config;
 }
 
 // Export a function to explicitly log the config (for server startup only)
 export function logConfigOnStartup() {
-  if (!configLogged) {
-    logger.info('===== SERVER STARTUP =====');
-    logger.logConfig('Configuration loaded:', config);
-    configLogged = true;
-  }
+  logger.info('===== SERVER STARTUP =====');
+  logger.logConfig('Configuration loaded:', config);
 }
 
 // Use Node.js module caching to ensure config is only built once
 const config = buildConfig();
+
+// Log the config once at import time, only when running the main server process
+if (process.argv[1] && process.argv[1].includes('server.js')) {
+  logger.logConfig('Configuration loaded:', config);
+}
 
 export default config;

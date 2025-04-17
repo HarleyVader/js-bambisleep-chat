@@ -116,17 +116,26 @@ class Logger {
       return true;
     }
     
-    // Check for config logs - be more specific about what config messages to suppress
+    // Check for config logs - more aggressive suppression
     if (this.suppressConfigLogs && 
-        ((message.toLowerCase().includes('config') || message.toLowerCase().includes('configuration')) &&
-         !message.includes('===== SERVER STARTUP ====='))) {
+       (message.toLowerCase().includes('config') || 
+        message.toLowerCase().includes('configuration'))) {
       
-      // Allow the first config log to pass through during startup
-      if (!this.configLoggedOnce) {
-        this.configLoggedOnce = true;
+      // Special case - always show server startup messages
+      if (message.includes('===== SERVER STARTUP =====')) {
         return false;
       }
       
+      // For config module specifically, only show the first config log
+      if (this.moduleName === 'Config') {
+        if (!Logger.configHasBeenLogged) {
+          Logger.configHasBeenLogged = true;
+          return false;
+        }
+        return true;
+      }
+      
+      // For all other modules, suppress all config-related logs
       return true;
     }
     
@@ -159,8 +168,10 @@ class Logger {
    * @param {any} configData - The configuration data
    */
   logConfig(message, configData) {
-    // Reset the config logged flag to ensure this message gets through
-    this.configLoggedOnce = false;
+    // If config has already been logged globally, don't log again
+    if (Logger.configHasBeenLogged && this.suppressConfigLogs) {
+      return;
+    }
     
     const timestamp = this.getTimestamp();
     const prefix = this.getModulePrefix();
@@ -192,8 +203,8 @@ class Logger {
       }
     }
     
-    // Mark that we've logged config and ensure it sticks
-    this.configLoggedOnce = true;
+    // Mark globally that config has been logged
+    Logger.configHasBeenLogged = true;
   }
 
   /**
@@ -362,5 +373,9 @@ class Logger {
     );
   }
 }
+
+// Add this static property at the end of the file, after the class declaration
+// This ensures config is only logged once across all logger instances
+Logger.configHasBeenLogged = false;
 
 export default Logger;
