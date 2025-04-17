@@ -26,8 +26,10 @@ class Logger {
       worker: chalk.hex('#f7d56e')          // Gold for worker names
     };
     
-    // Flag to control trigger update logging
+    // Flags to control suppression of repetitive logs
     this.suppressTriggerUpdates = true;
+    this.suppressConfigLogs = true;
+    this.configLoggedOnce = false;
   }
 
   /**
@@ -101,14 +103,44 @@ class Logger {
   }
 
   /**
+   * Check if a message contains config-related content that should be suppressed
+   * @param {string} message - The message to check
+   * @returns {boolean} True if message should be suppressed
+   */
+  shouldSuppressMessage(message) {
+    if (typeof message !== 'string') return false;
+    
+    // Check for trigger updates
+    if (this.suppressTriggerUpdates && 
+        (message.includes('triggers updated') || message.includes('Trigger updated'))) {
+      return true;
+    }
+    
+    // Check for config logs
+    if (this.suppressConfigLogs && 
+        (message.includes('config') || message.includes('Config') || 
+         message.includes('configuration') || message.includes('Configuration'))) {
+      
+      // Allow the first config log to pass through
+      if (!this.configLoggedOnce) {
+        this.configLoggedOnce = true;
+        return false;
+      }
+      
+      return true;
+    }
+    
+    return false;
+  }
+
+  /**
    * Log informational message with contrasting colors and special formatting
    * @param {string} message - The message to log
    * @param {any} data - Optional data to log
    */
   info(message, data) {
-    // Skip trigger update messages if suppression is enabled
-    if (this.suppressTriggerUpdates && 
-        (message.includes('triggers updated') || message.includes('Trigger updated'))) {
+    // Skip suppressed messages
+    if (this.shouldSuppressMessage(message)) {
       return;
     }
     
@@ -122,11 +154,37 @@ class Logger {
   }
 
   /**
+   * Log config information once at server startup
+   * @param {string} message - The message to log
+   * @param {any} configData - The configuration data
+   */
+  logConfig(message, configData) {
+    // Reset the config logged flag to ensure this message gets through
+    this.configLoggedOnce = false;
+    
+    const timestamp = this.getTimestamp();
+    const prefix = this.getModulePrefix();
+    console.log(
+      patterns.server.info(`${timestamp} ${prefix} CONFIG:`), 
+      this.textColors.info(this.formatMessage(message)), 
+      configData ? JSON.stringify(configData, null, 2) : ''
+    );
+    
+    // Mark that we've logged config
+    this.configLoggedOnce = true;
+  }
+
+  /**
    * Log success message with contrasting colors and special formatting
    * @param {string} message - The message to log
    * @param {any} data - Optional data to log
    */
   success(message, data) {
+    // Skip suppressed messages
+    if (this.shouldSuppressMessage(message)) {
+      return;
+    }
+    
     const timestamp = this.getTimestamp();
     const prefix = this.getModulePrefix();
     console.log(
@@ -142,6 +200,11 @@ class Logger {
    * @param {any} data - Optional data to log
    */
   warning(message, data) {
+    // Skip suppressed messages
+    if (this.shouldSuppressMessage(message)) {
+      return;
+    }
+    
     const timestamp = this.getTimestamp();
     const prefix = this.getModulePrefix();
     console.log(
@@ -157,6 +220,7 @@ class Logger {
    * @param {any} data - Optional data to log
    */
   error(message, data) {
+    // Errors should never be suppressed
     const timestamp = this.getTimestamp();
     const prefix = this.getModulePrefix();
     console.error(
@@ -172,9 +236,8 @@ class Logger {
    * @param {...any} args - Optional arguments to log
    */
   debug(message, ...args) {
-    // Skip trigger update messages if suppression is enabled
-    if (this.suppressTriggerUpdates && 
-        (message.includes('triggers updated') || message.includes('Trigger updated'))) {
+    // Skip suppressed messages
+    if (this.shouldSuppressMessage(message)) {
       return;
     }
     
@@ -202,52 +265,58 @@ class Logger {
     
     console.log(
       patterns.server.success(`${timestamp} ${prefix} CONNECT:`),
-      this.textColors.success(`New socket connection: ${this.specialColors.socket(socketId)}`)
+      this.textColors.success(`Client connected (${this.specialColors.number(totalConnections)} total)`)
     );
     
     console.log(
-      patterns.server.info(`${timestamp} ${prefix} SOCKET INFO:`),
-      this.textColors.info(`Bambi name: ${this.specialColors.bambi(bambiName || 'Unknown')}`)
+      patterns.server.info(`${timestamp} ${prefix} CLIENT INFO:`),
+      this.textColors.info(`Bambi: ${this.specialColors.bambi(bambiName || 'Unknown')}, Socket: ${this.specialColors.socket(socketId)}`)
     );
     
     if (workers && workers.length) {
       console.log(
-        patterns.server.info(`${timestamp} ${prefix} SOCKET INFO:`),
-        this.textColors.info(`Workers: ${this.specialColors.worker(workers.join(', '))}`)
+        patterns.server.info(`${timestamp} ${prefix} WORKERS:`),
+        this.textColors.info(`${this.specialColors.worker(workers.join(', '))}`)
       );
     }
     
     if (dbConnections && dbConnections.length) {
       console.log(
-        patterns.server.info(`${timestamp} ${prefix} SOCKET INFO:`),
-        this.textColors.info(`DB Connections: ${dbConnections.length}`)
+        patterns.server.info(`${timestamp} ${prefix} DB CONNECTIONS:`),
+        this.textColors.info(`Count: ${this.specialColors.number(dbConnections.length)}`)
       );
     }
     
     console.log(
-      patterns.server.info(`${timestamp} ${prefix} STATS:`),
-      this.textColors.info(`Total Connections: ${this.specialColors.number(totalConnections)}, Active Workers: ${this.specialColors.number(activeWorkers)}`)
+      patterns.server.info(`${timestamp} ${prefix} SERVER STATS:`),
+      this.textColors.info(`Active Connections: ${this.specialColors.number(totalConnections)}, Active Workers: ${this.specialColors.number(activeWorkers)}`)
     );
   }
   
   /**
    * Log socket disconnection
    * @param {string} socketId - The socket ID
+   * @param {string} bambiName - The name of the bambi
    * @param {number} totalConnections - Total number of active connections
    * @param {number} activeWorkers - Total number of active workers
    */
-  socketDisconnect(socketId, totalConnections, activeWorkers) {
+  socketDisconnect(socketId, bambiName, totalConnections, activeWorkers) {
     const timestamp = this.getTimestamp();
     const prefix = this.getModulePrefix();
     
     console.log(
       patterns.server.warning(`${timestamp} ${prefix} DISCONNECT:`),
-      this.textColors.warning(`Socket disconnected: ${this.specialColors.socket(socketId)}`)
+      this.textColors.warning(`Client disconnected (${this.specialColors.number(totalConnections)} remaining)`)
     );
     
     console.log(
-      patterns.server.info(`${timestamp} ${prefix} STATS:`),
-      this.textColors.info(`Total Connections: ${this.specialColors.number(totalConnections)}, Active Workers: ${this.specialColors.number(activeWorkers)}`)
+      patterns.server.info(`${timestamp} ${prefix} CLIENT INFO:`),
+      this.textColors.info(`Bambi: ${this.specialColors.bambi(bambiName || 'Unknown')}, Socket: ${this.specialColors.socket(socketId)}`)
+    );
+    
+    console.log(
+      patterns.server.info(`${timestamp} ${prefix} SERVER STATS:`),
+      this.textColors.info(`Active Connections: ${this.specialColors.number(totalConnections)}, Active Workers: ${this.specialColors.number(activeWorkers)}`)
     );
   }
   
@@ -262,7 +331,12 @@ class Logger {
     
     console.log(
       patterns.server.warning(`${timestamp} ${prefix} GARBAGE COLLECTION:`),
-      this.textColors.warning(`Socket cleaned: ${this.specialColors.socket(socketId)}, Bambi: ${this.specialColors.bambi(bambiName || 'Unknown')}`)
+      this.textColors.warning(`Cleaned up disconnected client`)
+    );
+    
+    console.log(
+      patterns.server.info(`${timestamp} ${prefix} CLIENT INFO:`),
+      this.textColors.info(`Bambi: ${this.specialColors.bambi(bambiName || 'Unknown')}, Socket: ${this.specialColors.socket(socketId)}`)
     );
   }
 }
