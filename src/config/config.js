@@ -7,7 +7,7 @@ import Logger from '../utils/logger.js';
 // Initialize logger
 const logger = new Logger('Config');
 
-// Track if config has been logged already
+// Track if config has been logged already - make this a module-level variable
 let configLogged = false;
 
 // Load environment variables
@@ -125,21 +125,23 @@ function buildConfig() {
     config.KOKORO_API_URL = `http://${config.KOKORO_HOST}:${config.KOKORO_PORT}/v1`;
   }
   
-  // Only log configuration once
+  // Only log configuration once during server startup
   if (!configLogged) {
-    logger.info('Configuration loaded:');
-    Object.entries(config).forEach(([key, value]) => {
-      const schema = configSchemas[key];
-      if (schema?.sensitive) {
-        logger.info(`  ${key}: ******`);
-      } else {
-        logger.info(`  ${key}: ${value}`);
-      }
-    });
+    // Use a dedicated method for config logging to bypass regular suppression
+    logger.logConfig('Configuration loaded:', config);
     configLogged = true;
   }
   
   return config;
+}
+
+// Export a function to explicitly log the config (for server startup only)
+export function logConfigOnStartup() {
+  if (!configLogged) {
+    logger.info('===== SERVER STARTUP =====');
+    logger.logConfig('Configuration loaded:', config);
+    configLogged = true;
+  }
 }
 
 // Use Node.js module caching to ensure config is only built once

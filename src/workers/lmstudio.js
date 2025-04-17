@@ -647,17 +647,29 @@ async function handleMessage(userPrompt, socketId, username) {
       throw new Error('No models loaded');
     }
 
-    collarText = await checkRole(collar, triggers, username);
+    collarText = await checkRole(collar, username, triggers);
 
-    const messages = updateSessionHistory(socketId, collarText, userPrompt, finalContent, username);
-    if (messages.length === 0) {
-      logger.error('No messages found for socketId:', socketId);
+    // Fix the issue with session history
+    // First update the session in memory
+    await updateSessionHistory(socketId, collarText, userPrompt, finalContent, username);
+    
+    // Then get the messages in proper format
+    const messages = sessionHistories[socketId] || [];
+    
+    // Verify we have messages to process
+    if (!Array.isArray(messages) || messages.length === 0) {
+      logger.error('No valid messages array found for socketId:', socketId);
       return;
     }
 
+    // Make sure all messages have the expected format
+    const formattedMessages = messages
+      .filter(msg => msg && typeof msg === 'object' && msg.role && msg.content)
+      .map(msg => ({ role: msg.role, content: msg.content }));
+
     const requestData = {
       model: modelIds[0], // Use the first model for the request
-      messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
+      messages: formattedMessages,
       max_tokens: 4096,
       temperature: 0.87,
       top_p: 0.91,

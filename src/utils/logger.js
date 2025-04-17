@@ -116,12 +116,12 @@ class Logger {
       return true;
     }
     
-    // Check for config logs
+    // Check for config logs - be more specific about what config messages to suppress
     if (this.suppressConfigLogs && 
-        (message.includes('config') || message.includes('Config') || 
-         message.includes('configuration') || message.includes('Configuration'))) {
+        ((message.toLowerCase().includes('config') || message.toLowerCase().includes('configuration')) &&
+         !message.includes('===== SERVER STARTUP ====='))) {
       
-      // Allow the first config log to pass through
+      // Allow the first config log to pass through during startup
       if (!this.configLoggedOnce) {
         this.configLoggedOnce = true;
         return false;
@@ -164,13 +164,35 @@ class Logger {
     
     const timestamp = this.getTimestamp();
     const prefix = this.getModulePrefix();
+    
     console.log(
       patterns.server.info(`${timestamp} ${prefix} CONFIG:`), 
-      this.textColors.info(this.formatMessage(message)), 
-      configData ? JSON.stringify(configData, null, 2) : ''
+      this.textColors.info(this.formatMessage(message))
     );
     
-    // Mark that we've logged config
+    // Log sensitive values with masking
+    if (configData) {
+      const maskedConfig = {...configData};
+      
+      // Mask sensitive values
+      for (const [key, value] of Object.entries(maskedConfig)) {
+        if (key.includes('KEY') || key.includes('SECRET') || 
+            key.includes('PASSWORD') || key.includes('TOKEN') ||
+            key.includes('URI') || key.includes('URL')) {
+          maskedConfig[key] = '******';
+        }
+      }
+      
+      // Print each config option on its own line for better readability
+      for (const [key, value] of Object.entries(maskedConfig)) {
+        console.log(
+          patterns.server.info(`${timestamp} ${prefix} CONFIG:`),
+          this.textColors.info(`  ${key}: ${value}`)
+        );
+      }
+    }
+    
+    // Mark that we've logged config and ensure it sticks
     this.configLoggedOnce = true;
   }
 
