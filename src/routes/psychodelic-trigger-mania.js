@@ -13,7 +13,8 @@ router.get('/', (req, res) => {
   res.render('psychodelic-trigger-mania', { 
     title: 'Psychodelic Trigger Mania',
     validConstantsCount: 5,
-    footer: footerConfig
+    footer: footerConfig,
+    req: req  // Pass the entire req object to the template
   });
 });
 
