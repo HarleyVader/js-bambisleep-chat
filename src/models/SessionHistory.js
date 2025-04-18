@@ -92,7 +92,6 @@ const sessionHistorySchema = new mongoose.Schema({
 // Index for faster queries
 sessionHistorySchema.index({ username: 1, 'metadata.lastActivity': -1 });
 sessionHistorySchema.index({ isPublic: 1, 'stats.likes': -1 });
-sessionHistorySchema.index({ shareToken: 1 });
 
 // TTL index to expire old sessions
 sessionHistorySchema.index({ 'metadata.lastActivity': 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
