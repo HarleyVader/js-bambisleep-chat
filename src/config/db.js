@@ -174,6 +174,27 @@ export async function withDbConnection(operation, options = {}) {
 }
 
 /**
+ * Ensure all models are registered
+ * Call this function at application startup to guarantee models are ready before routes
+ * 
+ * @returns {Promise<void>}
+ */
+export async function ensureModelsRegistered() {
+  try {
+    // Import models explicitly to ensure they're registered
+    await import('../models/SessionHistory.js');
+    
+    // You can add other model imports here as needed
+    // await import('../models/Profile.js');
+    
+    logger.info('All models registered successfully');
+  } catch (error) {
+    logger.error(`Error registering models: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
  * Get a Mongoose model
  * Safely retrieves a model or creates it if it doesn't exist
  * 
@@ -185,11 +206,23 @@ export function getModel(modelName) {
     // Try to get an existing model first
     return mongoose.model(modelName);
   } catch (error) {
-    // If the model doesn't exist, the error will indicate that
-    logger.warning(`Model ${modelName} not found, it should be registered before use`);
+    // If the model doesn't exist, log a warning
+    logger.warning(`Model ${modelName} not found, attempting to load it dynamically`);
     
-    // Return null instead of creating a placeholder model to avoid registration issues
-    return null;
+    // Try to import the model dynamically based on name
+    try {
+      // This is a safer approach than returning null
+      const modelPath = `../models/${modelName}.js`;
+      import(modelPath)
+        .then(() => logger.info(`Dynamically loaded model: ${modelName}`))
+        .catch(e => logger.error(`Failed to dynamically load model: ${modelName}`, e));
+      
+      // Try again after import attempt
+      return mongoose.model(modelName);
+    } catch (secondError) {
+      logger.error(`Could not retrieve or load model ${modelName}: ${secondError.message}`);
+      return null;
+    }
   }
 }
 
@@ -225,6 +258,7 @@ export default {
   connectDB, 
   disconnectDB, 
   withDbConnection, 
+  ensureModelsRegistered,
   getModel,
   checkDBHealth
 };

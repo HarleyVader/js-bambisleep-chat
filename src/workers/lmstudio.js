@@ -2,12 +2,13 @@ import { parentPort } from 'worker_threads';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
-import gracefulShutdown, { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
+import { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 import mongoose from 'mongoose';
-import { connectDB, getModel, withDbConnection } from '../config/db.js';
+import { connectDB, withDbConnection } from '../config/db.js';
 import '../models/Profile.js';  // Import the model file to ensure schema registration
 import '../models/SessionHistory.js';  // Make sure to create this file first
 import config from '../config/config.js';
+import SessionHistoryModel from '../models/SessionHistory.js';
 
 // Health monitoring variables
 let lastActivityTimestamp = Date.now();
@@ -368,8 +369,7 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
       };
 
       // Try to find existing session
-      const SessionHistory = mongoose.model('SessionHistory');
-      let sessionHistory = await SessionHistory.findOne({ socketId });
+      let sessionHistory = await SessionHistoryModel.findOne({ socketId });
       
       if (sessionHistory) {
         // Update existing session
@@ -384,7 +384,7 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
       } else {
         // Create new session with auto-generated title
         sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
-        sessionHistory = await SessionHistory.create(sessionData);
+        sessionHistory = await SessionHistoryModel.create(sessionData);
         
         // Add reference to user's profile
         await mongoose.model('Profile').findOneAndUpdate(
@@ -465,8 +465,7 @@ async function syncSessionWithDatabase(socketId) {
   }
   
   try {
-    const SessionHistory = mongoose.model('SessionHistory');
-    const existingSession = await SessionHistory.findOne({ socketId });
+    const existingSession = await SessionHistoryModel.findOne({ socketId });
     
     if (existingSession) {
       // Update the existing session with any new messages
@@ -726,8 +725,7 @@ async function handleMessage(userPrompt, socketId, username) {
           };
 
           // Find and update session in database
-          const SessionHistory = mongoose.model('SessionHistory');
-          let sessionHistory = await SessionHistory.findOne({ socketId });
+          let sessionHistory = await SessionHistoryModel.findOne({ socketId });
           
           if (sessionHistory) {
             // Update existing session
@@ -742,7 +740,7 @@ async function handleMessage(userPrompt, socketId, username) {
           } else {
             // Create new session with auto-generated title
             sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
-            sessionHistory = await SessionHistory.create(sessionData);
+            sessionHistory = await SessionHistoryModel.create(sessionData);
             
             // Add reference to user's profile
             await mongoose.model('Profile').findOneAndUpdate(

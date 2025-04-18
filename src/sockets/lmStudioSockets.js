@@ -46,6 +46,9 @@ export default function setupLMStudioSockets(socket, io, lmstudio, filterContent
   
   // Handle collar interactions for LMStudio processing
   socket.on('collar', (collarData) => handleCollarForLMStudio(socket, lmstudio, collarData, filterContent));
+  
+  // Add session sync handlers
+  setupSessionSyncHandlers(socket, lmstudio);
 }
 
 /**
@@ -163,6 +166,48 @@ function handleCollarForLMStudio(socket, lmstudio, collarData, filterContent) {
   } catch (error) {
     logger.error('Error in collar handler for LMStudio:', error);
   }
+}
+
+/**
+ * Handle session sync events
+ * Ensure session data is properly saved even when connections are lost
+ * 
+ * @param {Socket} socket - Socket.io socket instance
+ * @param {Worker} lmstudio - LMStudio worker thread
+ */
+function setupSessionSyncHandlers(socket, lmstudio) {
+  // Sync session on disconnection or page unload
+  socket.on('disconnect', () => {
+    try {
+      // Tell the worker to sync this session with the database
+      lmstudio.postMessage({
+        type: "syncSession",
+        socketId: socket.id,
+        username: socket.bambiUsername || 'anonBambi',
+        reason: "socketDisconnect"
+      });
+      
+      logger.info(`Requested session sync on disconnect for ${socket.bambiUsername || 'anonBambi'}`);
+    } catch (error) {
+      logger.error(`Error syncing session on disconnect: ${error.message}`);
+    }
+  });
+  
+  // Explicit session sync when user navigates away
+  socket.on('beforeunload', () => {
+    try {
+      lmstudio.postMessage({
+        type: "syncSession",
+        socketId: socket.id,
+        username: socket.bambiUsername || 'anonBambi',
+        reason: "pageUnload"
+      });
+      
+      logger.info(`Requested session sync on page unload for ${socket.bambiUsername || 'anonBambi'}`);
+    } catch (error) {
+      logger.error(`Error syncing session on page unload: ${error.message}`);
+    }
+  });
 }
 
 export { setupLMStudioSockets };

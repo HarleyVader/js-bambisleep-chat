@@ -1,6 +1,66 @@
 /* Session History Styling */
 @import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
 
+/* Sessions Subnav */
+.subnav {
+  background-color: rgba(10, 38, 38, 0.8);
+  border-top: 1px solid rgba(23, 219, 216, 0.15);
+  border-bottom: 1px solid rgba(23, 219, 216, 0.15);
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(23, 219, 216, 0.1);
+}
+
+.subnav ul {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  justify-content: center;
+}
+
+.subnav li {
+  margin: 0;
+}
+
+.subnav a {
+  display: flex;
+  align-items: center;
+  padding: 12px 18px;
+  color: var(--nav-alt);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.subnav a:hover {
+  color: var(--tertiary-alt);
+  background-color: rgba(23, 219, 216, 0.1);
+  box-shadow: 0 0 10px rgba(23, 219, 216, 0.2);
+}
+
+.subnav a.active {
+  color: var(--tertiary-alt);
+  border-bottom: 2px solid var(--tertiary-color);
+  background-color: rgba(23, 219, 216, 0.05);
+  box-shadow: 0 0 15px rgba(23, 219, 216, 0.3);
+}
+
+.subnav i {
+  margin-right: 6px;
+}
+
+/* Make subnav responsive */
+@media (max-width: 768px) {
+  .subnav ul {
+    flex-wrap: wrap;
+  }
+  
+  .subnav a {
+    padding: 10px 12px;
+    font-size: 0.8rem;
+  }
+}
+
 /* ---------- SESSION LIST PAGE ---------- */
 .session-card {
   background: rgba(10, 38, 38, 0.8);

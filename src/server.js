@@ -47,6 +47,9 @@ import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 // Import Profile model getter
 import { getProfile } from './models/Profile.js';
 
+// Add this before initializing routes
+import './models/SessionHistory.js';
+
 // Initialize environment and paths
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
