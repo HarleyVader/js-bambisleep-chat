@@ -8,16 +8,15 @@ let isConnected = false;
 let connectionPromise = null;
 
 // Standardized connection options to use across the application
-// Fixed keepAlive issue and updated for better compatibility
 const DEFAULT_CONNECTION_OPTIONS = {
-  serverSelectionTimeoutMS: 8000,     // Timeout for server selection
-  connectTimeoutMS: 12000,            // Timeout for initial connection
-  socketTimeoutMS: 60000,             // Timeout for operations
-  maxPoolSize: 15,                    // Connection pool size
-  minPoolSize: 3,                     // Minimum connections to maintain
+  serverSelectionTimeoutMS: 8000,     // Increased from 5000
+  connectTimeoutMS: 12000,            // Increased from 10000
+  socketTimeoutMS: 60000,             // Increased from 45000
+  maxPoolSize: 15,                    // Increased from 10
+  minPoolSize: 3,                     // Increased from 2
   family: 4,                          // Use IPv4, skip trying IPv6
   autoIndex: true,                    // Build indexes
-  // Removed keepAlive as it's not supported in current driver
+  keepAlive: true,                    // Keep connection alive
   maxIdleTimeMS: 120000               // Close idle connections after 2 minutes
 };
 
@@ -53,19 +52,19 @@ export async function connectDB() {
     // Mark as connected
     isConnected = true;
     
-    // Set up connection event handlers - using once for initial setup to avoid duplicate handlers
-    mongoose.connection.once('error', (err) => {
+    // Set up connection event handlers
+    mongoose.connection.on('error', (err) => {
       logger.error(`MongoDB connection error: ${err.message}`);
       isConnected = false;
     });
     
-    mongoose.connection.once('disconnected', () => {
+    mongoose.connection.on('disconnected', () => {
       logger.warning('MongoDB disconnected');
       isConnected = false;
       connectionPromise = null;
     });
     
-    mongoose.connection.once('reconnected', () => {
+    mongoose.connection.on('reconnected', () => {
       logger.info('MongoDB reconnected');
       isConnected = true;
     });
@@ -78,9 +77,6 @@ export async function connectDB() {
     isConnected = false;
     connectionPromise = null;
     return false;
-  } finally {
-    // Clear connectionPromise after connection attempt completes (success or failure)
-    connectionPromise = null;
   }
 }
 
@@ -115,7 +111,7 @@ export async function disconnectDB() {
  */
 export async function withDbConnection(operation, options = {}) {
   const { 
-    keepConnectionOpen = true,
+    keepConnectionOpen = true,  // Changed default to true for better performance
     timeout = 30000,
     retries = 1
   } = options;
@@ -132,10 +128,7 @@ export async function withDbConnection(operation, options = {}) {
       // Only connect if not already connected
       if (!wasConnected) {
         logger.debug('Opening new MongoDB connection for operation');
-        const connected = await connectDB();
-        if (!connected) {
-          throw new Error('Failed to establish database connection');
-        }
+        await connectDB();
       } else {
         logger.debug('Using existing MongoDB connection');
       }
@@ -147,11 +140,6 @@ export async function withDbConnection(operation, options = {}) {
           setTimeout(() => reject(new Error(`Database operation timed out after ${timeout}ms`)), timeout)
         )
       ]);
-      
-      // Don't close connection if it was already open or keepConnectionOpen is true
-      if (!wasConnected && !keepConnectionOpen) {
-        await disconnectDB();
-      }
       
       return result;
     } catch (error) {
@@ -204,10 +192,9 @@ export function getModel(modelName) {
 export async function checkDBHealth() {
   try {
     await withDbConnection(async (conn) => {
-      // Use a simpler ping approach that doesn't require admin privileges
-      // This works with restricted MongoDB users
-      await conn.db.command({ ping: 1 });
-    }, { timeout: 5000 });
+      // Simple ping to check connection
+      await conn.db.admin().ping();
+    });
     
     return {
       status: 'healthy',
