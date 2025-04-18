@@ -1,0 +1,399 @@
+<!-- filepath: f:\js-bambisleep-chat\views\sessions\view.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head', { title: session.title + ' | BambiSleep Chat' }) %>
+  <link rel="stylesheet" href="/css/sessions.css">
+  <link rel="stylesheet" href="/css/chat.css">
+</head>
+<body>
+  <%- include('../partials/navbar') %>
+
+  <div class="container py-4">
+    <div class="row">
+      <div class="col-12">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/sessions">Sessions</a></li>
+            <li class="breadcrumb-item active" aria-current="page"><%= session.title %></li>
+          </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1><%= session.title %></h1>
+          
+          <div class="session-actions">
+            <% if (isOwner) { %>
+              <% if (!session.isPublic) { %>
+                <button class="btn btn-outline-success" onclick="shareSession('<%= session._id %>')">
+                  <i class="bi bi-share me-1"></i> Share
+                </button>
+              <% } else { %>
+                <button class="btn btn-success" onclick="copyShareLink('<%= session.shareToken %>')">
+                  <i class="bi bi-share me-1"></i> Copy Share Link
+                </button>
+              <% } %>
+            <% } %>
+          </div>
+        </div>
+        
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <strong>Created by:</strong> <%= session.username %>
+              <span class="text-muted ms-3">
+                <small><%= new Date(session.metadata.createdAt).toLocaleString() %></small>
+              </span>
+            </div>
+            <div class="session-stats">
+              <span class="me-3" data-bs-toggle="tooltip" title="Views">
+                <i class="bi bi-eye"></i> <span id="viewCount"><%= session.stats.views || 0 %></span>
+              </span>
+              
+              <button class="btn btn-sm <%= session.stats.likedBy && session.stats.likedBy.includes(username) ? 'btn-primary' : 'btn-outline-primary' %>"
+                      onclick="reactToSession('like')"
+                      id="likeBtn"
+                      <%= !username ? 'disabled' : '' %>>
+                <i class="bi bi-hand-thumbs-up"></i> <span id="likeCount"><%= session.stats.likes || 0 %></span>
+              </button>
+              
+              <button class="btn btn-sm <%= session.stats.dislikedBy && session.stats.dislikedBy.includes(username) ? 'btn-danger' : 'btn-outline-danger' %>"
+                      onclick="reactToSession('dislike')"
+                      id="dislikeBtn"
+                      <%= !username ? 'disabled' : '' %>>
+                <i class="bi bi-hand-thumbs-down"></i> <span id="dislikeCount"><%= session.stats.dislikes || 0 %></span>
+              </button>
+            </div>
+          </div>
+          
+          <div class="card-body">
+            <% if (session.metadata && (session.metadata.triggers || session.metadata.collarActive)) { %>
+              <div class="session-metadata mb-4">
+                <% if (session.metadata.triggers && session.metadata.triggers.length > 0) { %>
+                  <h5>Active Triggers:</h5>
+                  <div class="trigger-tags mb-3">
+                    <% session.metadata.triggers.forEach(trigger => { %>
+                      <span class="badge bg-danger me-2 mb-2"><%= trigger %></span>
+                    <% }); %>
+                  </div>
+                <% } %>
+                
+                <% if (session.metadata.collarActive && session.metadata.collarText) { %>
+                  <h5>Collar Active:</h5>
+                  <div class="alert alert-info">
+                    <%= session.metadata.collarText %>
+                  </div>
+                <% } %>
+              </div>
+            <% } %>
+            
+            <div class="chat-container">
+              <% session.messages.forEach((message, index) => { %>
+                <% if (message.role === 'system') { %>
+                  <div class="system-message mb-3">
+                    <div class="card bg-light">
+                      <div class="card-header">System Prompt</div>
+                      <div class="card-body">
+                        <pre class="system-content"><%= message.content %></pre>
+                      </div>
+                    </div>
+                  </div>
+                <% } else if (message.role === 'user') { %>
+                  <div class="message user-message mb-3">
+                    <div class="message-header">
+                      <strong><%= session.username %></strong>
+                      <small class="text-muted ms-2">
+                        <%= message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : 'User' %>
+                      </small>
+                    </div>
+                    <div class="message-content">
+                      <%= message.content %>
+                    </div>
+                  </div>
+                <% } else if (message.role === 'assistant') { %>
+                  <div class="message assistant-message mb-3">
+                    <div class="message-header">
+                      <strong>BambiSleep</strong>
+                      <small class="text-muted ms-2">
+                        <%= message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : 'AI' %>
+                      </small>
+                    </div>
+                    <div class="message-content">
+                      <%= message.content %>
+                    </div>
+                  </div>
+                <% } %>
+              <% }); %>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Comments Section -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Comments (<span id="commentCount"><%= session.comments ? session.comments.length : 0 %></span>)</h5>
+          </div>
+          <div class="card-body">
+            <% if (username) { %>
+              <div class="mb-4">
+                <form id="commentForm">
+                  <div class="mb-3">
+                    <textarea class="form-control" id="commentContent" rows="3" placeholder="Add your comment..." required></textarea>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Post Comment</button>
+                </form>
+              </div>
+            <% } else { %>
+              <div class="alert alert-info mb-4">
+                <i class="bi bi-info-circle me-2"></i>
+                Please <a href="/login?redirect=<%= encodeURIComponent('/sessions/' + session._id) %>">log in</a> to post comments.
+              </div>
+            <% } %>
+            
+            <div id="commentsContainer">
+              <% if (session.comments && session.comments.length > 0) { %>
+                <% session.comments.forEach(comment => { %>
+                  <div class="comment mb-3">
+                    <div class="d-flex justify-content-between">
+                      <div class="comment-header">
+                        <strong><%= comment.username %></strong>
+                        <small class="text-muted ms-2">
+                          <%= new Date(comment.createdAt).toLocaleString() %>
+                        </small>
+                      </div>
+                    </div>
+                    <div class="comment-content mt-1">
+                      <%= comment.content %>
+                    </div>
+                  </div>
+                <% }); %>
+              <% } else { %>
+                <div class="text-center text-muted" id="noCommentsMessage">
+                  No comments yet. Be the first to comment!
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="shareModalLabel">Share This Session</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Share this session with others! They'll be able to view your conversation with BambiSleep.</p>
+          <div class="alert alert-success d-none" id="shareLinkContainer">
+            <p class="mb-2">Use this link to share your session:</p>
+            <div class="input-group">
+              <input type="text" class="form-control" id="shareLink" readonly>
+              <button class="btn btn-outline-success" type="button" id="copyBtn">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </div>
+          <div class="alert alert-danger d-none" id="shareError">
+            An error occurred while generating your share link. Please try again.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Share session function
+    async function shareSession(sessionId) {
+      try {
+        const response = await fetch(`/sessions/${sessionId}/share`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          document.getElementById('shareLinkContainer').classList.remove('d-none');
+          document.getElementById('shareError').classList.add('d-none');
+          document.getElementById('shareLink').value = data.shareUrl;
+          
+          // Show modal
+          const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+          shareModal.show();
+        } else {
+          document.getElementById('shareLinkContainer').classList.add('d-none');
+          document.getElementById('shareError').classList.remove('d-none');
+          document.getElementById('shareError').textContent = data.message || 'Failed to share session';
+          
+          // Show modal
+          const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+          shareModal.show();
+        }
+      } catch (error) {
+        console.error('Error sharing session:', error);
+        document.getElementById('shareLinkContainer').classList.add('d-none');
+        document.getElementById('shareError').classList.remove('d-none');
+        document.getElementById('shareError').textContent = 'An error occurred while sharing your session';
+        
+        // Show modal
+        const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+        shareModal.show();
+      }
+    }
+
+    // Copy share link function
+    function copyShareLink(token) {
+      const shareUrl = `${window.location.origin}/sessions/shared/${token}`;
+      document.getElementById('shareLink').value = shareUrl;
+      document.getElementById('shareLinkContainer').classList.remove('d-none');
+      document.getElementById('shareError').classList.add('d-none');
+      
+      // Show modal
+      const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+      shareModal.show();
+    }
+
+    // Copy button event listener
+    document.getElementById('copyBtn').addEventListener('click', function() {
+      const shareLink = document.getElementById('shareLink');
+      shareLink.select();
+      document.execCommand('copy');
+      
+      // Change button text temporarily
+      const copyBtn = this;
+      const originalHTML = copyBtn.innerHTML;
+      copyBtn.innerHTML = '<i class="bi bi-check"></i>';
+      copyBtn.classList.replace('btn-outline-success', 'btn-success');
+      
+      setTimeout(() => {
+        copyBtn.innerHTML = originalHTML;
+        copyBtn.classList.replace('btn-success', 'btn-outline-success');
+      }, 2000);
+    });
+    
+    // React to session function (like/dislike)
+    async function reactToSession(action) {
+      try {
+        const response = await fetch(`/sessions/<%= session._id %>/react`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ action })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Update UI
+          document.getElementById('likeCount').textContent = data.likes;
+          document.getElementById('dislikeCount').textContent = data.dislikes;
+          
+          const likeBtn = document.getElementById('likeBtn');
+          const dislikeBtn = document.getElementById('dislikeBtn');
+          
+          if (data.yourReaction === 'like') {
+            likeBtn.classList.remove('btn-outline-primary');
+            likeBtn.classList.add('btn-primary');
+            dislikeBtn.classList.remove('btn-danger');
+            dislikeBtn.classList.add('btn-outline-danger');
+          } else if (data.yourReaction === 'dislike') {
+            dislikeBtn.classList.remove('btn-outline-danger');
+            dislikeBtn.classList.add('btn-danger');
+            likeBtn.classList.remove('btn-primary');
+            likeBtn.classList.add('btn-outline-primary');
+          }
+        } else {
+          console.error('Failed to react:', data.message);
+          alert(data.message || 'Failed to process your reaction');
+        }
+      } catch (error) {
+        console.error('Error reacting to session:', error);
+        alert('An error occurred while processing your reaction');
+      }
+    }
+
+    // Comment form submission
+    document.getElementById('commentForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      
+      const content = document.getElementById('commentContent').value.trim();
+      
+      if (!content) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/sessions/<%= session._id %>/comment`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ content })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Clear form
+          document.getElementById('commentContent').value = '';
+          
+          // Hide no comments message if visible
+          const noCommentsMessage = document.getElementById('noCommentsMessage');
+          if (noCommentsMessage) {
+            noCommentsMessage.classList.add('d-none');
+          }
+          
+          // Add new comment to the list
+          const commentsContainer = document.getElementById('commentsContainer');
+          const newComment = document.createElement('div');
+          newComment.className = 'comment mb-3';
+          
+          const now = new Date().toLocaleString();
+          newComment.innerHTML = `
+            <div class="d-flex justify-content-between">
+              <div class="comment-header">
+                <strong><%= username %></strong>
+                <small class="text-muted ms-2">${now}</small>
+              </div>
+            </div>
+            <div class="comment-content mt-1">
+              ${content}
+            </div>
+          `;
+          
+          commentsContainer.prepend(newComment);
+          
+          // Update comment count
+          const commentCount = document.getElementById('commentCount');
+          commentCount.textContent = parseInt(commentCount.textContent) + 1;
+        } else {
+          console.error('Failed to add comment:', data.message);
+          alert(data.message || 'Failed to add your comment');
+        }
+      } catch (error) {
+        console.error('Error adding comment:', error);
+        alert('An error occurred while adding your comment');
+      }
+    });
+  </script>
+</body>
+</html>

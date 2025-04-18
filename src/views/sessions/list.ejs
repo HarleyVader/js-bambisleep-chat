@@ -1,0 +1,194 @@
+<!-- filepath: f:\js-bambisleep-chat\views\sessions\list.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head', { title: 'Your Sessions | BambiSleep Chat' }) %>
+  <link rel="stylesheet" href="/css/sessions.css">
+</head>
+<body>
+  <%- include('../partials/navbar') %>
+
+  <div class="container py-4">
+    <div class="row">
+      <div class="col-12">
+        <h1 class="mb-4 text-center">Your Chat Sessions</h1>
+        
+        <% if (sessions && sessions.length > 0) { %>
+          <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <% sessions.forEach(session => { %>
+              <div class="col">
+                <div class="card h-100 session-card <%= session.isPublic ? 'border-success' : '' %>">
+                  <div class="card-body">
+                    <h5 class="card-title text-truncate"><%= session.title %></h5>
+                    <p class="card-text mb-1 text-muted">
+                      <small>
+                        Created: <%= new Date(session.metadata.createdAt).toLocaleDateString() %>
+                      </small>
+                    </p>
+                    <p class="card-text text-muted">
+                      <small>
+                        Last activity: <%= new Date(session.metadata.lastActivity).toLocaleDateString() %>
+                      </small>
+                    </p>
+                    
+                    <% if (session.isPublic) { %>
+                      <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-success me-2">Public</span>
+                        <div class="d-flex align-items-center small text-muted">
+                          <i class="bi bi-eye me-1"></i> <%= session.stats.views || 0 %>
+                          <i class="bi bi-hand-thumbs-up ms-3 me-1"></i> <%= session.stats.likes || 0 %>
+                          <i class="bi bi-hand-thumbs-down ms-3 me-1"></i> <%= session.stats.dislikes || 0 %>
+                        </div>
+                      </div>
+                    <% } %>
+                  </div>
+                  <div class="card-footer bg-transparent d-flex justify-content-between">
+                    <a href="/sessions/<%= session._id %>" class="btn btn-sm btn-outline-primary">
+                      View Session
+                    </a>
+                    
+                    <% if (session.isPublic && session.shareToken) { %>
+                      <button class="btn btn-sm btn-outline-success" 
+                              onclick="copyShareLink('<%= session.shareToken %>')"
+                              data-bs-toggle="tooltip" 
+                              title="Copy share link">
+                        <i class="bi bi-share"></i>
+                      </button>
+                    <% } else { %>
+                      <button class="btn btn-sm btn-outline-secondary"
+                              onclick="shareSession('<%= session._id %>')"
+                              data-bs-toggle="tooltip" 
+                              title="Share this session">
+                        <i class="bi bi-share"></i>
+                      </button>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle me-2"></i>
+            You don't have any chat sessions yet. Start a new chat to create one!
+          </div>
+          <div class="text-center mt-4">
+            <a href="/chat" class="btn btn-primary">Start a New Chat</a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="shareModalLabel">Share Your Session</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Share this session with others! They'll be able to view your conversation with BambiSleep.</p>
+          <div class="alert alert-success d-none" id="shareLinkContainer">
+            <p class="mb-2">Use this link to share your session:</p>
+            <div class="input-group">
+              <input type="text" class="form-control" id="shareLink" readonly>
+              <button class="btn btn-outline-success" type="button" id="copyBtn">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </div>
+          <div class="alert alert-danger d-none" id="shareError">
+            An error occurred while generating your share link. Please try again.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Share session function
+    async function shareSession(sessionId) {
+      try {
+        const response = await fetch(`/sessions/${sessionId}/share`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          document.getElementById('shareLinkContainer').classList.remove('d-none');
+          document.getElementById('shareError').classList.add('d-none');
+          document.getElementById('shareLink').value = data.shareUrl;
+          
+          // Show modal
+          const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+          shareModal.show();
+        } else {
+          document.getElementById('shareLinkContainer').classList.add('d-none');
+          document.getElementById('shareError').classList.remove('d-none');
+          document.getElementById('shareError').textContent = data.message || 'Failed to share session';
+          
+          // Show modal
+          const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+          shareModal.show();
+        }
+      } catch (error) {
+        console.error('Error sharing session:', error);
+        document.getElementById('shareLinkContainer').classList.add('d-none');
+        document.getElementById('shareError').classList.remove('d-none');
+        document.getElementById('shareError').textContent = 'An error occurred while sharing your session';
+        
+        // Show modal
+        const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+        shareModal.show();
+      }
+    }
+
+    // Copy share link function
+    function copyShareLink(token) {
+      const shareUrl = `${window.location.origin}/sessions/shared/${token}`;
+      document.getElementById('shareLink').value = shareUrl;
+      document.getElementById('shareLinkContainer').classList.remove('d-none');
+      document.getElementById('shareError').classList.add('d-none');
+      
+      // Show modal
+      const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+      shareModal.show();
+    }
+
+    // Copy button event listener
+    document.getElementById('copyBtn').addEventListener('click', function() {
+      const shareLink = document.getElementById('shareLink');
+      shareLink.select();
+      document.execCommand('copy');
+      
+      // Change button text temporarily
+      const copyBtn = this;
+      const originalHTML = copyBtn.innerHTML;
+      copyBtn.innerHTML = '<i class="bi bi-check"></i>';
+      copyBtn.classList.replace('btn-outline-success', 'btn-success');
+      
+      setTimeout(() => {
+        copyBtn.innerHTML = originalHTML;
+        copyBtn.classList.replace('btn-success', 'btn-outline-success');
+      }, 2000);
+    });
+  </script>
+</body>
+</html>

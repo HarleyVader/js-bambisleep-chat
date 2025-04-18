@@ -1,0 +1,189 @@
+<!-- filepath: f:\js-bambisleep-chat\views\sessions\modal.ejs -->
+<div class="modal fade" id="sessionShareModal" tabindex="-1" aria-labelledby="sessionShareModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sessionShareModalLabel">Share Your Session</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Make your conversation with BambiSleep public so others can view it.</p>
+        
+        <div class="alert alert-info mb-3">
+          <i class="bi bi-info-circle me-2"></i>
+          <span>By sharing this session, others will be able to see your conversation with BambiSleep, including triggers and collar settings if applicable.</span>
+        </div>
+        
+        <div id="shareOptions" class="mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="makePublic" checked>
+            <label class="form-check-label" for="makePublic">
+              Make this session publicly viewable
+            </label>
+          </div>
+        </div>
+        
+        <div id="shareSuccessContainer" class="d-none">
+          <div class="alert alert-success">
+            <p class="mb-2">Your session is now public! Use this link to share it:</p>
+            <div class="input-group">
+              <input type="text" class="form-control" id="sessionShareLink" readonly>
+              <button class="btn btn-outline-success" type="button" id="sessionCopyBtn">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="social-share-buttons mt-3">
+            <p>Or share directly to:</p>
+            <div class="d-flex gap-2">
+              <a href="#" class="btn btn-sm btn-outline-primary" id="twitterShareBtn">
+                <i class="bi bi-twitter"></i> Twitter
+              </a>
+              <a href="#" class="btn btn-sm btn-outline-primary" id="facebookShareBtn">
+                <i class="bi bi-facebook"></i> Facebook
+              </a>
+              <a href="#" class="btn btn-sm btn-outline-success" id="whatsappShareBtn">
+                <i class="bi bi-whatsapp"></i> WhatsApp
+              </a>
+              <a href="#" class="btn btn-sm btn-outline-secondary" id="redditShareBtn">
+                <i class="bi bi-reddit"></i> Reddit
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <div id="shareErrorContainer" class="d-none">
+          <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <span id="shareErrorMessage">An error occurred while generating your share link.</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="generateShareBtn">Generate Share Link</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Initialize modal and sharing functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('sessionShareModal');
+    
+    if (!modal) return;
+    
+    const generateBtn = document.getElementById('generateShareBtn');
+    const copyBtn = document.getElementById('sessionCopyBtn');
+    const shareOptions = document.getElementById('shareOptions');
+    const successContainer = document.getElementById('shareSuccessContainer');
+    const errorContainer = document.getElementById('shareErrorContainer');
+    const errorMessage = document.getElementById('shareErrorMessage');
+    const shareLink = document.getElementById('sessionShareLink');
+    
+    // Set up social share buttons
+    const twitterBtn = document.getElementById('twitterShareBtn');
+    const facebookBtn = document.getElementById('facebookShareBtn');
+    const whatsappBtn = document.getElementById('whatsappShareBtn');
+    const redditBtn = document.getElementById('redditShareBtn');
+    
+    // Generate share link
+    generateBtn.addEventListener('click', async function() {
+      const sessionId = this.dataset.sessionId;
+      const makePublic = document.getElementById('makePublic').checked;
+      
+      if (!sessionId) {
+        showError('No session selected for sharing');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/sessions/${sessionId}/share`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ makePublic })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Show success container and hide generate options
+          shareOptions.classList.add('d-none');
+          generateBtn.classList.add('d-none');
+          successContainer.classList.remove('d-none');
+          errorContainer.classList.add('d-none');
+          
+          // Update share link
+          shareLink.value = data.shareUrl;
+          
+          // Update social share links
+          const encodedUrl = encodeURIComponent(data.shareUrl);
+          const sessionTitle = encodeURIComponent(document.getElementById('sessionShareModalLabel').textContent);
+          
+          twitterBtn.href = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${sessionTitle}`;
+          facebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+          whatsappBtn.href = `https://wa.me/?text=${sessionTitle}%20${encodedUrl}`;
+          redditBtn.href = `https://www.reddit.com/submit?url=${encodedUrl}&title=${sessionTitle}`;
+        } else {
+          showError(data.message || 'Failed to generate share link');
+        }
+      } catch (error) {
+        console.error('Error sharing session:', error);
+        showError('An error occurred while generating your share link');
+      }
+    });
+    
+    // Copy share link
+    copyBtn.addEventListener('click', function() {
+      shareLink.select();
+      document.execCommand('copy');
+      
+      // Visual feedback
+      const originalHtml = this.innerHTML;
+      this.innerHTML = '<i class="bi bi-check"></i>';
+      this.classList.replace('btn-outline-success', 'btn-success');
+      
+      setTimeout(() => {
+        this.innerHTML = originalHtml;
+        this.classList.replace('btn-success', 'btn-outline-success');
+      }, 2000);
+    });
+    
+    // Helper function to show error
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorContainer.classList.remove('d-none');
+      successContainer.classList.add('d-none');
+    }
+    
+    // Reset modal when closed
+    modal.addEventListener('hidden.bs.modal', function() {
+      shareOptions.classList.remove('d-none');
+      generateBtn.classList.remove('d-none');
+      successContainer.classList.add('d-none');
+      errorContainer.classList.add('d-none');
+    });
+  });
+  
+  // Function to open share modal for a specific session
+  function openShareModal(sessionId, sessionTitle) {
+    const modal = document.getElementById('sessionShareModal');
+    const generateBtn = document.getElementById('generateShareBtn');
+    const modalTitle = document.getElementById('sessionShareModalLabel');
+    
+    if (modal && generateBtn) {
+      generateBtn.dataset.sessionId = sessionId;
+      
+      if (sessionTitle && modalTitle) {
+        modalTitle.textContent = `Share: ${sessionTitle}`;
+      }
+      
+      const modalInstance = new bootstrap.Modal(modal);
+      modalInstance.show();
+    }
+  }
+</script>

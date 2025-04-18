@@ -78,46 +78,38 @@ export default function setupProfileSockets(socket, io, username) {
           return;
         }
         
+        // Use findOneAndUpdate instead of manually finding and saving
         const Profile = getModel('Profile');
-        const profile = await withDbConnection(async () => {
-          return await Profile.findOne({ username: data.username });
+        const updatedProfile = await withDbConnection(async () => {
+          return await Profile.findOneAndUpdate(
+            { username: data.username },
+            { 
+              $set: {
+                // Update specific fields directly
+                ...(data.activeTriggers !== undefined && { 'systemControls.activeTriggers': data.activeTriggers }),
+                ...(data.collarEnabled !== undefined && { 'systemControls.collarEnabled': data.collarEnabled }),
+                ...(data.collarText !== undefined && { 'systemControls.collarText': data.collarText }),
+                ...(data.multiplierSettings !== undefined && { 'systemControls.multiplierSettings': data.multiplierSettings }),
+                ...(data.colorSettings !== undefined && { 'systemControls.colorSettings': data.colorSettings }),
+              }
+            },
+            { new: true } // Return the updated document
+          );
         });
         
-        if (!profile) {
+        if (!updatedProfile) {
           socket.emit('error', { message: 'Profile not found' });
           return;
         }
-        
-        // Initialize systemControls if not exists
-        if (!profile.systemControls) {
-          profile.systemControls = {};
-        }
-        
-        // Update system controls
-        const controlFields = [
-          'activeTriggers', 'collarEnabled', 'collarText', 
-          'multiplierSettings', 'colorSettings'
-        ];
-        
-        controlFields.forEach(field => {
-          if (data[field] !== undefined) {
-            profile.systemControls[field] = data[field];
-          }
-        });
-        
-        await withDbConnection(async () => {
-          await profile.save();
-        });
         
         // Emit success event
         socket.emit('system-controls-updated', {
           success: true,
           message: 'System controls updated successfully',
-          data: profile.systemControls
+          data: updatedProfile.systemControls
         });
         
         // Also broadcast system controls update to LMStudio
-        // This ensures real-time updates to the worker
         if (data.activeTriggers && data.triggerDescriptions) {
           const triggersWithDescriptions = data.activeTriggers.map(trigger => {
             const description = data.triggerDescriptions[trigger] || '';

@@ -28,6 +28,7 @@ import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import profileRouter from './routes/profile.js';
 import chatRoutes from './routes/chatRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
+import sessionsRouter, { basePath as sessionsBasePath } from './routes/sessions.js';
 
 // Import worker coordinator
 import workerCoordinator from './workers/workerCoordinator.js';
@@ -281,6 +282,9 @@ function setupRoutes(app) {
   
   // Add API routes
   app.use('/api', apiRoutes);
+  
+  // Add sessions routes
+  app.use(sessionsBasePath, sessionsRouter);
   
   // Add 404 handler
   app.use((req, res) => {

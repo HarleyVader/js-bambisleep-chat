@@ -316,36 +316,40 @@ async function updateUserXP(username, wordCount, currentSocketId) {
 
 // Keep in-memory session history and store in database
 async function updateSessionHistory(socketId, collarText, userPrompt, finalContent, username) {
-  // In-memory operations (maintain existing functionality)
+  // In-memory operations remain the same
   if (!sessionHistories[socketId]) {
     sessionHistories[socketId] = [];
-    
-    // Add metadata for session management
     sessionHistories[socketId].metadata = {
       createdAt: Date.now(),
       lastActivity: Date.now()
     };
   } else {
-    // Update last activity timestamp
     sessionHistories[socketId].metadata.lastActivity = Date.now();
   }
   
-  // Add the new messages to the in-memory session
+  // Add messages to in-memory session
   sessionHistories[socketId].push(
     { role: 'system', content: collarText },
     { role: 'user', content: userPrompt },
     { role: 'assistant', content: finalContent }
   );
   
-  // Run garbage collection if we exceed the maximum number of sessions
+  // Run garbage collection if needed
   if (Object.keys(sessionHistories).length > MAX_SESSIONS) {
-    collectGarbage(1); // Remove at least one session
+    collectGarbage(1);
   }
   
-  // Now store in database (if we have a valid username)
+  // Store in database for registered users
   if (username && username !== 'anonBambi') {
     try {
-      // Prepare session data for database
+      // Process triggers into a usable format
+      const triggerList = Array.isArray(triggers) 
+        ? triggers 
+        : (typeof triggers === 'string' 
+            ? triggers.split(',').map(t => t.trim()) 
+            : ['BAMBI SLEEP']);
+      
+      // Prepare session data
       const sessionData = {
         username,
         socketId,
@@ -356,13 +360,14 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
         ],
         metadata: {
           lastActivity: new Date(),
-          triggers: Array.isArray(triggers) ? triggers : triggers.split(',').map(t => t.trim()),
+          triggers: triggerList,
           collarActive: state,
-          collarText: collar
+          collarText: collar,
+          modelName: 'Steno Maid Blackroot' // Get actual model name from your LMS response
         }
       };
 
-      // Check if we already have a session for this socketId
+      // Try to find existing session
       const SessionHistory = mongoose.model('SessionHistory');
       let sessionHistory = await SessionHistory.findOne({ socketId });
       
@@ -377,7 +382,8 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
         await sessionHistory.save();
         logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
       } else {
-        // Create new session history
+        // Create new session with auto-generated title
+        sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
         sessionHistory = await SessionHistory.create(sessionData);
         
         // Add reference to user's profile

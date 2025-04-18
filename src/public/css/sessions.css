@@ -1,0 +1,476 @@
+/* Session History Styling */
+@import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
+
+/* ---------- SESSION LIST PAGE ---------- */
+.session-card {
+  background: rgba(10, 38, 38, 0.8);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  box-shadow: 0 0 5px var(--tertiary-color);
+}
+
+.session-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 15px var(--tertiary-color), 0 0 20px var(--button-color);
+}
+
+.session-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 0 20px var(--tertiary-color), 0 0 30px var(--button-color);
+}
+
+.session-card:hover::before {
+  opacity: 1;
+}
+
+.session-card .card-title {
+  color: var(--tertiary-alt);
+  font-size: 1.1rem;
+  text-shadow: 0 0 5px var(--tertiary-color);
+  transition: all 0.3s ease;
+}
+
+.session-card:hover .card-title {
+  color: var(--nav-alt);
+  text-shadow: 0 0 8px var(--tertiary-color), 0 0 12px var(--button-color);
+}
+
+.session-card.border-success {
+  border-color: var(--tertiary-color);
+}
+
+.session-card .card-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Session stats with icon display */
+.session-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--nav-alt);
+  font-size: 0.85rem;
+}
+
+.session-stats i {
+  margin-right: 3px;
+}
+
+/* ---------- SESSION VIEW PAGE ---------- */
+.session-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-container {
+  margin-top: 25px;
+}
+
+/* System message styling */
+.system-message {
+  opacity: 0.8;
+  transition: all 0.3s ease;
+}
+
+.system-message:hover {
+  opacity: 1;
+}
+
+.system-content {
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: var(--primary-alt);
+  background-color: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+/* Message styling */
+.message {
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  animation: fadeInUp 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.message::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    transparent, 
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  transform: rotate(45deg);
+  transition: all 0.5s ease;
+  opacity: 0;
+  z-index: 0;
+}
+
+.message:hover::before {
+  animation: shimmer 1.5s infinite;
+  opacity: 1;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.message-content {
+  line-height: 1.5;
+  position: relative;
+  z-index: 1;
+}
+
+/* User message styling */
+.user-message {
+  background-color: rgba(204, 1, 116, 0.1);
+  border: 1px solid rgba(204, 1, 116, 0.2);
+  border-right: 3px solid var(--button-color);
+}
+
+.user-message .message-header strong {
+  color: var(--button-color);
+  text-shadow: 0 0 5px rgba(204, 1, 116, 0.5);
+}
+
+/* Assistant message styling */
+.assistant-message {
+  background-color: rgba(23, 219, 216, 0.1);
+  border: 1px solid rgba(23, 219, 216, 0.2);
+  border-left: 3px solid var(--tertiary-alt);
+}
+
+.assistant-message .message-header strong {
+  color: var(--tertiary-alt);
+  text-shadow: 0 0 5px rgba(23, 219, 216, 0.5);
+}
+
+/* Session metadata styling */
+.session-metadata {
+  padding: 15px;
+  background-color: rgba(10, 38, 38, 0.4);
+  border-radius: 8px;
+  border: 1px solid var(--tertiary-alt);
+}
+
+.trigger-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------- COMMENTS SECTION ---------- */
+.comment {
+  background-color: rgba(10, 38, 38, 0.4);
+  border-radius: 8px;
+  padding: 15px;
+  transition: all 0.3s ease;
+  border-left: 3px solid var(--tertiary-alt);
+}
+
+.comment:hover {
+  background-color: rgba(10, 38, 38, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.comment-header {
+  margin-bottom: 5px;
+}
+
+.comment-header strong {
+  color: var(--tertiary-alt);
+}
+
+.comment-content {
+  color: var(--primary-alt);
+}
+
+/* Share modal styling */
+#shareModal .modal-content {
+  background-color: rgba(12, 42, 42, 0.85);
+  border: 2px solid var(--tertiary-color);
+  box-shadow: 0 0 20px var(--tertiary-color), 0 0 30px var(--button-color);
+}
+
+#shareModal .modal-header {
+  border-bottom: 1px solid var(--tertiary-color);
+}
+
+#shareModal .modal-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--tertiary-color), var(--button-color), var(--tertiary-color), transparent);
+  box-shadow: 0 0 8px var(--tertiary-color);
+}
+
+#shareModal .modal-title {
+  color: var(--tertiary-color);
+  text-shadow: 0 0 10px var(--tertiary-color), 0 0 15px var(--button-color);
+  animation: flicker 5s infinite;
+}
+
+#shareModal .modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#shareLinkContainer, #shareError {
+  transition: all 0.3s ease;
+}
+
+/* Action buttons */
+.session-btn {
+  background-color: transparent;
+  color: var(--tertiary-alt);
+  border: 1px solid var(--tertiary-alt);
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 5px var(--tertiary-color);
+  position: relative;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.session-btn::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    transparent, 
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: rotate(45deg);
+  transition: all 0.5s ease;
+  opacity: 0;
+  z-index: -1;
+}
+
+.session-btn:hover::before {
+  animation: shimmer 1.5s infinite;
+  opacity: 1;
+}
+
+.session-btn:hover {
+  background-color: rgba(23, 219, 216, 0.1);
+  color: var(--nav-alt);
+  box-shadow: 0 0 10px var(--tertiary-color), 0 0 15px var(--nav-alt);
+  text-shadow: 0 0 5px var(--nav-alt);
+  transform: translateY(-2px);
+}
+
+.session-btn.btn-success {
+  color: #28a745;
+  border-color: #28a745;
+  box-shadow: 0 0 5px #28a745;
+}
+
+.session-btn.btn-success:hover {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #5cff7d;
+  box-shadow: 0 0 10px #28a745, 0 0 15px #5cff7d;
+  text-shadow: 0 0 5px #5cff7d;
+}
+
+.session-btn.btn-danger {
+  color: #dc3545;
+  border-color: #dc3545;
+  box-shadow: 0 0 5px #dc3545;
+}
+
+.session-btn.btn-danger:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #ff6b70;
+  box-shadow: 0 0 10px #dc3545, 0 0 15px #ff6b70;
+  text-shadow: 0 0 5px #ff6b70;
+}
+
+/* Empty state for no sessions */
+.empty-sessions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--nav-alt);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  margin: 40px 0;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  opacity: 0.3;
+  color: var(--tertiary-color);
+}
+
+/* Shared sessions badge */
+.shared-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, var(--tertiary-color) 0%, var(--button-color) 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  z-index: 2;
+  box-shadow: 0 0 5px var(--tertiary-color);
+  animation: pulse-glow 3s infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 5px var(--tertiary-color);
+  }
+  100% {
+    box-shadow: 0 0 15px var(--tertiary-color), 0 0 25px var(--nav-alt);
+  }
+}
+
+/* Session pagination */
+.session-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 30px auto;
+}
+
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pagination-btn {
+  display: inline-block;
+  background-color: transparent;
+  color: var(--tertiary-alt);
+  border: 1px solid var(--tertiary-alt);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 5px var(--tertiary-color);
+}
+
+.pagination-btn:hover {
+  background-color: rgba(23, 219, 216, 0.1);
+  color: var(--nav-alt);
+  box-shadow: 0 0 10px var(--tertiary-color), 0 0 15px var(--nav-alt);
+  text-shadow: 0 0 5px var(--nav-alt);
+}
+
+.pagination-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: rgba(10, 38, 38, 0.4);
+  box-shadow: none;
+}
+
+.pagination-btn.current-page {
+  background-color: var(--tertiary-color);
+  color: var(--primary-alt);
+  border-color: var(--tertiary-color);
+  box-shadow: 0 0 10px var(--tertiary-color), 0 0 15px var(--button-color);
+  pointer-events: none;
+}
+
+/* Animation keyframes */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-150%) rotate(45deg); }
+  100% { transform: translateX(150%) rotate(45deg); }
+}
+
+@keyframes flicker {
+  0%, 20%, 80%, 100% { text-shadow: 0 0 10px var(--tertiary-color), 0 0 15px var(--button-color); }
+  30%, 50%, 70% { text-shadow: 0 0 15px var(--tertiary-color), 0 0 25px var(--button-color), 0 0 35px var(--nav-alt); }
+  10%, 40%, 60%, 90% { text-shadow: 0 0 5px var(--tertiary-color), 0 0 10px var(--button-color); }
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+  .session-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .session-actions button {
+    width: 100%;
+    margin: 5px 0;
+  }
+  
+  .message {
+    padding: 10px;
+  }
+  
+  .session-pagination {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .session-card .card-footer {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .comment-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .trigger-tags .badge {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+}
