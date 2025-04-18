@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 import { withDbConnection } from '../config/db.js';
-import logger from '../utils/logger.js';
+import Logger from '../utils/logger.js';
+
+// Create a logger instance properly
+const logger = new Logger('ChatMessage');
 
 const chatMessageSchema = new mongoose.Schema({
   username: {
@@ -20,7 +23,7 @@ const chatMessageSchema = new mongoose.Schema({
 
 // Enhanced message retrieval with better debugging
 chatMessageSchema.statics.getRecentMessages = async function(limit = 50) {
-  logger.debug(`Attempting to retrieve ${limit} recent messages from database`);
+  logger.info(`Attempting to retrieve ${limit} recent messages from database`);
   try {
     return withDbConnection(async () => {
       // Track performance of database query
@@ -35,7 +38,7 @@ chatMessageSchema.statics.getRecentMessages = async function(limit = 50) {
       const queryTime = Date.now() - startTime;
       
       // Log detailed information about the retrieved messages
-      logger.debug(`Retrieved ${messages.length} messages in ${queryTime}ms`, {
+      logger.info(`Retrieved ${messages.length} messages in ${queryTime}ms`, {
         messageCount: messages.length,
         firstMessageId: messages.length > 0 ? messages[0]._id : null,
         lastMessageId: messages.length > 0 ? messages[messages.length-1]._id : null,
@@ -45,7 +48,7 @@ chatMessageSchema.statics.getRecentMessages = async function(limit = 50) {
       });
       
       if (messages.length === 0) {
-        logger.warn('No messages found in database, this could indicate a data issue');
+        logger.warning('No messages found in database, this could indicate a data issue');
       }
       
       // Return in chronological order (oldest first) for UI display
@@ -64,7 +67,7 @@ chatMessageSchema.statics.getRecentMessages = async function(limit = 50) {
 };
 
 chatMessageSchema.statics.saveMessage = async function(messageData) {
-  logger.debug(`Attempting to save message from user: ${messageData.username}`);
+  logger.info(`Attempting to save message from user: ${messageData.username}`);
   try {
     return withDbConnection(async () => {
       // Add validation check
@@ -77,7 +80,7 @@ chatMessageSchema.statics.saveMessage = async function(messageData) {
       const savedMessage = await message.save();
       const saveTime = Date.now() - startTime;
       
-      logger.debug(`Successfully saved message with ID: ${savedMessage._id} in ${saveTime}ms`, {
+      logger.info(`Successfully saved message with ID: ${savedMessage._id} in ${saveTime}ms`, {
         messageId: savedMessage._id,
         username: savedMessage.username,
         timestampSaved: savedMessage.timestamp,

@@ -9,7 +9,7 @@ import cookieParser from 'cookie-parser';
 
 // Import modules
 import { Worker } from 'worker_threads';
-import { Server } from 'socket.io';
+import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import axios from 'axios';
 import fileUpload from 'express-fileupload';
@@ -68,7 +68,7 @@ async function initializeApp() {
     const server = http.createServer(app);
     
     // Initialize Socket.io with configured timeouts
-    const io = new Server(server, {
+    const io = new SocketIOServer(server, {
       pingTimeout: config.SOCKET_PING_TIMEOUT || 86400000, // 1 day in milliseconds
       pingInterval: config.SOCKET_PING_INTERVAL || 25000,
       cors: {
@@ -505,9 +505,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       setupChatSockets(socket, io, socketStore, filteredWords);
       
       // Handle disconnection
-      socket.on('disconnect', (reason) => {
-        handleSocketDisconnect(socket, socketStore, reason);
-      });
+      socket.on('disconnect', () => handleSocketDisconnect(socket, io));
     } catch (error) {
       logger.error(`Error handling socket connection: ${error.message}`);
     }
@@ -564,10 +562,11 @@ function filterWords(content, filteredWords) {
  * Handle socket disconnection and clean up worker
  * 
  * @param {Socket} socket - Socket.io socket instance
- * @param {Map} socketStore - Map storing socket data
- * @param {string} reason - Disconnection reason
+ * @param {SocketIO.Server} io - Socket.io server instance
  */
-function handleSocketDisconnect(socket, socketStore, reason) {
+function handleSocketDisconnect(socket, io) {
+  io.emit('user_disconnect', { userId: socket.id });
+
   // Get the bambi name from the socket data or cookie
   const socketData = socketStore.get(socket.id);
   const bambiName = socketData?.username || 
@@ -577,7 +576,7 @@ function handleSocketDisconnect(socket, socketStore, reason) {
                      ?.split('=')[1] || 'unregistered';
   
   // Get the total connections and active workers count
-  const totalConnections = io.engine.clientsCount;
+  const totalConnections = socket.server.engine.clientsCount;
   const activeWorkers = socketStore.size; // Or use a more accurate count if available
   
   // Log the disconnect with detailed user information
@@ -612,7 +611,7 @@ function handleSocketDisconnect(socket, socketStore, reason) {
               // Remove from socket store
               socketStore.delete(socket.id);
               // Log removal from store with updated count
-              const updatedConnections = io.engine.clientsCount;
+              const updatedConnections = socket.server.engine.clientsCount;
               logger.socketCleanup(socket.id, bambiName, 'removed from store', updatedConnections);
             }
           };
@@ -644,7 +643,7 @@ function handleSocketDisconnect(socket, socketStore, reason) {
             
             // Remove from socket store
             socketStore.delete(socket.id);
-            const updatedConnections = io.engine.clientsCount;
+            const updatedConnections = socket.server.engine.clientsCount;
             logger.socketCleanup(socket.id, bambiName, 'removed from store', updatedConnections);
           }, config.WORKER_TIMEOUT);
           
@@ -661,12 +660,12 @@ function handleSocketDisconnect(socket, socketStore, reason) {
           
           // Rely on garbage collector to clean up this worker later
           socketStore.delete(socket.id);
-          const updatedConnections = io.engine.clientsCount;
+          const updatedConnections = socket.server.engine.clientsCount;
           logger.socketCleanup(socket.id, bambiName, 'removed from store', updatedConnections);
         }
       } else {
         socketStore.delete(socket.id);
-        const updatedConnections = io.engine.clientsCount;
+        const updatedConnections = socket.server.engine.clientsCount;
         logger.socketCleanup(socket.id, bambiName, 'removed from store', updatedConnections);
       }
     } else if (socket.connected) {
