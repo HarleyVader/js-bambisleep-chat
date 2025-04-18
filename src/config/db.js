@@ -9,14 +9,14 @@ let connectionPromise = null;
 
 // Standardized connection options to use across the application
 const DEFAULT_CONNECTION_OPTIONS = {
-  serverSelectionTimeoutMS: 8000,     // Increased from 5000
-  connectTimeoutMS: 12000,            // Increased from 10000
-  socketTimeoutMS: 60000,             // Increased from 45000
-  maxPoolSize: 15,                    // Increased from 10
-  minPoolSize: 3,                     // Increased from 2
+  serverSelectionTimeoutMS: 8000,     // Timeout for server selection
+  connectTimeoutMS: 12000,            // Timeout for initial connection
+  socketTimeoutMS: 60000,             // Timeout for operations
+  maxPoolSize: 15,                    // Connection pool size
+  minPoolSize: 3,                     // Minimum connections to maintain
   family: 4,                          // Use IPv4, skip trying IPv6
   autoIndex: true,                    // Build indexes
-  keepAlive: true,                    // Keep connection alive
+  // Removed keepAlive as it's not supported in current driver
   maxIdleTimeMS: 120000               // Close idle connections after 2 minutes
 };
 
@@ -52,19 +52,19 @@ export async function connectDB() {
     // Mark as connected
     isConnected = true;
     
-    // Set up connection event handlers
-    mongoose.connection.on('error', (err) => {
+    // Set up connection event handlers - using once for initial setup to avoid duplicate handlers
+    mongoose.connection.once('error', (err) => {
       logger.error(`MongoDB connection error: ${err.message}`);
       isConnected = false;
     });
     
-    mongoose.connection.on('disconnected', () => {
+    mongoose.connection.once('disconnected', () => {
       logger.warning('MongoDB disconnected');
       isConnected = false;
       connectionPromise = null;
     });
     
-    mongoose.connection.on('reconnected', () => {
+    mongoose.connection.once('reconnected', () => {
       logger.info('MongoDB reconnected');
       isConnected = true;
     });
@@ -77,6 +77,9 @@ export async function connectDB() {
     isConnected = false;
     connectionPromise = null;
     return false;
+  } finally {
+    // Clear connectionPromise after connection attempt completes (success or failure)
+    connectionPromise = null;
   }
 }
 
@@ -100,7 +103,7 @@ export async function disconnectDB() {
 
 /**
  * Executes a database operation with proper connection management
- * Reuses connections when possible for better performance
+ * Important: This is a key function that handles database operations safely
  * 
  * @param {Function} operation - Async function that performs the database operation
  * @param {Object} options - Options for the transaction
@@ -111,7 +114,7 @@ export async function disconnectDB() {
  */
 export async function withDbConnection(operation, options = {}) {
   const { 
-    keepConnectionOpen = true,  // Changed default to true for better performance
+    keepConnectionOpen = true,
     timeout = 30000,
     retries = 1
   } = options;
@@ -126,9 +129,12 @@ export async function withDbConnection(operation, options = {}) {
   while (attempt <= retries) {
     try {
       // Only connect if not already connected
-      if (!wasConnected) {
+      if (!wasConnected && mongoose.connection.readyState !== 1) {
         logger.debug('Opening new MongoDB connection for operation');
-        await connectDB();
+        const connected = await connectDB();
+        if (!connected) {
+          throw new Error('Failed to establish database connection');
+        }
       } else {
         logger.debug('Using existing MongoDB connection');
       }
@@ -140,6 +146,11 @@ export async function withDbConnection(operation, options = {}) {
           setTimeout(() => reject(new Error(`Database operation timed out after ${timeout}ms`)), timeout)
         )
       ]);
+      
+      // Don't close connection if it was already open or keepConnectionOpen is true
+      if (!wasConnected && !keepConnectionOpen) {
+        await disconnectDB();
+      }
       
       return result;
     } catch (error) {
@@ -177,10 +188,8 @@ export function getModel(modelName) {
     // If the model doesn't exist, the error will indicate that
     logger.warning(`Model ${modelName} not found, it should be registered before use`);
     
-    // Instead of throwing, return a simple placeholder model
-    // This is a safety mechanism - proper models should be registered elsewhere
-    const schema = new mongoose.Schema({}, { strict: false });
-    return mongoose.model(modelName, schema);
+    // Return null instead of creating a placeholder model to avoid registration issues
+    return null;
   }
 }
 
@@ -192,9 +201,9 @@ export function getModel(modelName) {
 export async function checkDBHealth() {
   try {
     await withDbConnection(async (conn) => {
-      // Simple ping to check connection
-      await conn.db.admin().ping();
-    });
+      // Use a simpler ping approach that doesn't require admin privileges
+      await conn.db.command({ ping: 1 });
+    }, { timeout: 5000 });
     
     return {
       status: 'healthy',
