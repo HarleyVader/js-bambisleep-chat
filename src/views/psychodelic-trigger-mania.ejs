@@ -11,6 +11,83 @@
                 width: 100%;
                 height: 100%;
             }
+            
+            .session-selector-container {
+                margin-top: 15px;
+                max-height: 300px;
+                overflow-y: auto;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 5px;
+                padding: 10px;
+                background: rgba(0, 0, 0, 0.2);
+            }
+            
+            .session-selector-container h4 {
+                margin-top: 0;
+                margin-bottom: 10px;
+                font-size: 0.9em;
+                color: rgba(255, 255, 255, 0.8);
+            }
+            
+            .session-list {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .session-item {
+                padding: 8px;
+                border-radius: 4px;
+                background: rgba(255, 255, 255, 0.05);
+                transition: background 0.2s ease;
+            }
+            
+            .session-item:hover {
+                background: rgba(255, 255, 255, 0.1);
+            }
+            
+            .session-checkbox-label {
+                display: flex;
+                align-items: flex-start;
+                cursor: pointer;
+                width: 100%;
+            }
+            
+            .session-checkbox {
+                margin-top: 3px;
+                margin-right: 10px;
+            }
+            
+            .session-info {
+                flex-grow: 1;
+            }
+            
+            .session-date {
+                font-weight: bold;
+                font-size: 0.85em;
+                color: #00ccff;
+            }
+            
+            .session-msg-count {
+                font-size: 0.75em;
+                color: rgba(255, 255, 255, 0.6);
+                margin: 2px 0;
+            }
+            
+            .session-preview {
+                font-size: 0.8em;
+                font-style: italic;
+                color: rgba(255, 255, 255, 0.7);
+                margin-top: 3px;
+                line-height: 1.3;
+            }
+            
+            .no-sessions {
+                padding: 15px;
+                text-align: center;
+                color: rgba(255, 255, 255, 0.5);
+                font-style: italic;
+            }
         </style>
 </head>
 
@@ -39,6 +116,48 @@
         <script src="js/triggers.js"></script>
         <script src="/socket.io/socket.io.js"></script>
         <script src="js/aigf-core.js"></script>
+        <!-- Add this script right after the aigf-core.js script -->
+        <script>
+            // Initialize socket connection and system controls
+            document.addEventListener("DOMContentLoaded", function() {
+                // Ensure username is available
+                const cookies = document.cookie.split(";").reduce((acc, cookie) => {
+                    const [name, value] = cookie.split("=").map(c => c.trim());
+                    acc[name] = value;
+                    return acc;
+                }, {});
+                
+                const username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
+                window.username = username;
+                
+                // Set username on body for system controls to access
+                document.body.setAttribute('data-username', username);
+                
+                console.log("Socket setup with username:", username);
+                
+                // Set up system controls after connection is established
+                if (typeof window.socket !== 'undefined') {
+                    if (window.socket.connected) {
+                        console.log("Socket already connected, setting up controls");
+                        setupSystemControls();
+                        setupXPUpdates();
+                    } else {
+                        window.socket.on('connect', function() {
+                            console.log("Socket connected, setting up controls");
+                            setupSystemControls();
+                            setupXPUpdates();
+                        });
+                    }
+                } else {
+                    console.error("Socket not found! Make sure aigf-core.js is loaded first.");
+                }
+                
+                // Join profile room for real-time updates
+                if (username && username !== 'anonBambi' && window.socket) {
+                    window.socket.emit('join-profile', username);
+                }
+            });
+        </script>
         <script>
             const audio = document.createElement('audio');
             document.body.appendChild(audio);
@@ -112,6 +231,324 @@
             audio.addEventListener('ended', handleAudioEnded);
             audio.addEventListener('play', handleAudioPlay);
         </script>
+        <!-- Replace the DOMContentLoaded event listener script with this enhanced version -->
+        <script>
+          // Session history replay functionality
+          document.addEventListener("DOMContentLoaded", function() {
+            const loadHistoryBtn = document.getElementById('load-history-btn');
+            const replayHistoryBtn = document.getElementById('replay-history-btn');
+            const sessionHistoryStatus = document.getElementById('session-history-status');
+            const sessionCountElem = document.getElementById('session-count');
+            const sessionListElem = document.getElementById('session-list');
+            
+            let allSessions = [];
+            let selectedSessions = new Set();
+            let sessionResponses = [];
+            
+            if (loadHistoryBtn) {
+              loadHistoryBtn.addEventListener('click', function() {
+                const username = document.body.getAttribute('data-username') || window.username;
+                if (!username || username === 'anonBambi') {
+                  setHistoryStatus('Please log in to load session history', true);
+                  return;
+                }
+                
+                setHistoryStatus('Loading session history...');
+                
+                // Fetch the session history from the server
+                fetch(`/api/profile/${username}/session-history`)
+                  .then(response => {
+                    if (!response.ok) {
+                      throw new Error('Failed to load session history');
+                    }
+                    return response.json();
+                  })
+                  .then(data => {
+                    if (!data.sessions || data.sessions.length === 0) {
+                      setHistoryStatus('No session history found', true);
+                      return;
+                    }
+                    
+                    allSessions = data.sessions;
+                    selectedSessions.clear();
+                    
+                    // Reset session list
+                    if (sessionListElem) {
+                      sessionListElem.innerHTML = '';
+                      
+                      // Create a session entry for each session with timestamp and preview
+                      allSessions.forEach((session, index) => {
+                        let aiMessageCount = 0;
+                        let previewText = '';
+                        
+                        // Count AI messages and get a preview
+                        if (session.messages && Array.isArray(session.messages)) {
+                          session.messages.forEach(message => {
+                            if (message.role === 'assistant' && message.content) {
+                              aiMessageCount++;
+                              if (!previewText && message.content.length > 0) {
+                                previewText = message.content.substring(0, 40) + (message.content.length > 40 ? '...' : '');
+                              }
+                            }
+                          });
+                        }
+                        
+                        if (aiMessageCount === 0) {
+                          return; // Skip sessions with no AI messages
+                        }
+                        
+                        // Format date
+                        let sessionDate = 'Unknown date';
+                        if (session.timestamp) {
+                          const date = new Date(session.timestamp);
+                          sessionDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                        }
+                        
+                        // Create session element
+                        const sessionElem = document.createElement('div');
+                        sessionElem.className = 'session-item';
+                        sessionElem.dataset.sessionIndex = index;
+                        sessionElem.innerHTML = `
+                          <label class="session-checkbox-label">
+                            <input type="checkbox" class="session-checkbox" data-index="${index}" />
+                            <div class="session-info">
+                              <div class="session-date">${sessionDate}</div>
+                              <div class="session-msg-count">${aiMessageCount} response${aiMessageCount !== 1 ? 's' : ''}</div>
+                              <div class="session-preview">${previewText || 'No preview available'}</div>
+                            </div>
+                          </label>
+                        `;
+                        
+                        sessionListElem.appendChild(sessionElem);
+                        
+                        // Add event listener to checkbox
+                        const checkbox = sessionElem.querySelector('.session-checkbox');
+                        checkbox.addEventListener('change', function() {
+                          if (this.checked) {
+                            selectedSessions.add(parseInt(this.dataset.index));
+                          } else {
+                            selectedSessions.delete(parseInt(this.dataset.index));
+                          }
+                          
+                          // Update UI and button state
+                          updateSessionSelection();
+                        });
+                      });
+                      
+                      if (sessionListElem.children.length === 0) {
+                        sessionListElem.innerHTML = '<div class="no-sessions">No sessions with AI responses found</div>';
+                      }
+                    }
+                    
+                    setHistoryStatus(`Loaded ${allSessions.length} sessions from history`);
+                    updateSessionSelection();
+                    
+                    // Award XP for using session history feature
+                    if (typeof socket !== 'undefined' && socket.connected) {
+                      socket.emit('award-xp', {
+                        username: username,
+                        amount: 5,
+                        action: 'history_loaded'
+                      });
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Error loading session history:', error);
+                    setHistoryStatus(`Error: ${error.message}`, true);
+                  });
+              });
+            }
+            
+            function updateSessionSelection() {
+              const selectedCount = selectedSessions.size;
+              
+              // Update session count display
+              if (sessionCountElem) {
+                sessionCountElem.textContent = selectedCount > 0 
+                  ? `${selectedCount} session${selectedCount !== 1 ? 's' : ''} selected` 
+                  : '';
+              }
+              
+              // Enable/disable replay button
+              if (replayHistoryBtn) {
+                replayHistoryBtn.disabled = selectedCount === 0;
+              }
+              
+              // Collect responses from selected sessions
+              sessionResponses = [];
+              
+              selectedSessions.forEach(index => {
+                const session = allSessions[index];
+                if (session && session.messages && Array.isArray(session.messages)) {
+                  session.messages.forEach(message => {
+                    if (message.role === 'assistant' && message.content) {
+                      sessionResponses.push(message.content);
+                    }
+                  });
+                }
+              });
+            }
+            
+            if (replayHistoryBtn) {
+              replayHistoryBtn.addEventListener('click', function() {
+                if (sessionResponses.length === 0) {
+                  setHistoryStatus('No responses to replay', true);
+                  return;
+                }
+                
+                // Disable replay button during playback
+                replayHistoryBtn.disabled = true;
+                setHistoryStatus(`Replaying ${sessionResponses.length} responses...`);
+                
+                // Process the text for TTS and replay
+                processSelectedResponses();
+                
+                // Award XP for replaying session history
+                const username = document.body.getAttribute('data-username') || window.username;
+                if (username && username !== 'anonBambi' && typeof socket !== 'undefined' && socket.connected) {
+                  socket.emit('award-xp', {
+                    username: username,
+                    amount: 10,
+                    action: 'history_replayed'
+                  });
+                }
+              });
+            }
+            
+            function processSelectedResponses() {
+              // Clear existing arrays
+              _textArray = [];
+              _urlArray = [];
+              
+              // Process all selected responses as one combined text
+              const combinedText = sessionResponses.join(' ');
+              
+              // Split into sentences for playback
+              _textArray = combinedText.split(/(?<=[:;,.!?]["']?)\s+|\n+/g).filter(sentence => sentence.trim() !== '');
+              
+              // Create URLs for TTS API
+              _urlArray = _textArray.map(sentence => `/api/tts?text=${encodeURIComponent(sentence)}`);
+              
+              // Start playback
+              if (_urlArray.length > 0) {
+                do_tts(_urlArray);
+              } else {
+                setHistoryStatus('No valid text to synthesize', true);
+                replayHistoryBtn.disabled = false;
+              }
+            }
+            
+            function setHistoryStatus(message, isError = false) {
+              if (sessionHistoryStatus) {
+                sessionHistoryStatus.textContent = message;
+                sessionHistoryStatus.className = 'session-history-status' + (isError ? ' error' : '');
+              }
+            }
+            
+            // Override handleAudioEnded to re-enable replay button when done
+            const originalHandleAudioEnded = handleAudioEnded;
+            if (typeof handleAudioEnded === 'function') {
+              handleAudioEnded = function() {
+                originalHandleAudioEnded.apply(this, arguments);
+                if (_urlArray.length === 0) {
+                  // Playback complete
+                  if (replayHistoryBtn) {
+                    replayHistoryBtn.disabled = false;
+                    setHistoryStatus('Replay complete');
+                  }
+                }
+              };
+            }
+          });
+        </script>
+
+        <style>
+          .session-history-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+          }
+          
+          .session-history-status {
+            padding: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-top: 10px;
+            color: #00ffff;
+          }
+          
+          .session-history-status.error {
+            background: rgba(255, 0, 0, 0.1);
+            color: #ff7777;
+          }
+          
+          .session-count {
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 5px;
+          }
+          
+          .secondary-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 15px;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+          }
+          
+          .secondary-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+          }
+          
+          .secondary-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+          
+          .session-selector-container {
+            margin-top: 15px;
+          }
+          
+          .session-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+          }
+          
+          .no-sessions {
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+          }
+        </style>
+
+        <% if (userLevel >= 3) { %>
+          <div id="session-history-panel" class="control-panel">
+            <h3>Session History Replay</h3>
+            
+            <div class="session-history-controls">
+              <button id="load-history-btn" class="secondary-btn">Load Session History</button>
+              <button id="replay-history-btn" class="secondary-btn" disabled>Replay Selected Responses</button>
+              <div class="session-count" id="session-count"></div>
+            </div>
+            
+            <div class="session-history-status" id="session-history-status"></div>
+            
+            <!-- Add session history selector container -->
+            <div id="session-selector-container" class="session-selector-container">
+              <h4>Select Sessions to Replay</h4>
+              <div id="session-list" class="session-list">
+                <!-- Sessions will be populated here -->
+                <div class="no-sessions">No sessions loaded yet</div>
+              </div>
+            </div>
+          </div>
+        <% } %>
 </body>
 
 </html>
