@@ -1,0 +1,744 @@
+<!-- filepath: f:\js-bambisleep-chat\src\views\sessions\dashboard.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head', { title: 'Sessions Dashboard | BambiSleep Chat' }) %>
+  <link rel="stylesheet" href="/css/sessions.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <%- include('../partials/navbar') %>
+
+  <div class="container-fluid py-4">
+    <div class="row">
+      <!-- Sidebar with filters and actions -->
+      <div class="col-lg-3 col-md-4 mb-4">
+        <div class="dashboard-sidebar p-3 rounded">
+          <h4 class="sidebar-title mb-4">Session Manager</h4>
+          
+          <!-- User stats summary -->
+          <div class="user-stats mb-4">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="bi bi-chat-dots"></i></div>
+              <div class="stat-info">
+                <span class="stat-value"><%= totalSessions %></span>
+                <span class="stat-label">Total Sessions</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="bi bi-eye"></i></div>
+              <div class="stat-info">
+                <span class="stat-value"><%= totalViews %></span>
+                <span class="stat-label">Total Views</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="bi bi-hand-thumbs-up"></i></div>
+              <div class="stat-info">
+                <span class="stat-value"><%= totalLikes %></span>
+                <span class="stat-label">Total Likes</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Search box -->
+          <div class="search-container mb-4">
+            <form id="searchForm">
+              <div class="input-group">
+                <input type="text" class="form-control" id="sessionSearch" 
+                       placeholder="Search sessions..." value="<%= searchQuery || '' %>">
+                <button class="btn btn-outline-primary" type="submit">
+                  <i class="bi bi-search"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+          
+          <!-- Filters -->
+          <div class="filters mb-4">
+            <h5 class="filter-title">Filters</h5>
+            <form id="filterForm">
+              <div class="mb-3">
+                <label class="form-label">Date Range</label>
+                <div class="d-flex gap-2">
+                  <input type="date" class="form-control form-control-sm" id="dateFrom" name="dateFrom" 
+                         value="<%= filters.dateFrom || '' %>">
+                  <input type="date" class="form-control form-control-sm" id="dateTo" name="dateTo"
+                         value="<%= filters.dateTo || '' %>">
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Visibility</label>
+                <select class="form-select form-select-sm" id="visibility" name="visibility">
+                  <option value="all" <%= filters.visibility === 'all' ? 'selected' : '' %>>All Sessions</option>
+                  <option value="public" <%= filters.visibility === 'public' ? 'selected' : '' %>>Public Only</option>
+                  <option value="private" <%= filters.visibility === 'private' ? 'selected' : '' %>>Private Only</option>
+                </select>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Sort By</label>
+                <select class="form-select form-select-sm" id="sortBy" name="sortBy">
+                  <option value="newest" <%= filters.sortBy === 'newest' ? 'selected' : '' %>>Newest First</option>
+                  <option value="oldest" <%= filters.sortBy === 'oldest' ? 'selected' : '' %>>Oldest First</option>
+                  <option value="most_views" <%= filters.sortBy === 'most_views' ? 'selected' : '' %>>Most Views</option>
+                  <option value="most_likes" <%= filters.sortBy === 'most_likes' ? 'selected' : '' %>>Most Likes</option>
+                  <option value="most_comments" <%= filters.sortBy === 'most_comments' ? 'selected' : '' %>>Most Comments</option>
+                </select>
+              </div>
+              
+              <button type="submit" class="btn btn-primary btn-sm w-100">Apply Filters</button>
+            </form>
+          </div>
+          
+          <!-- Batch actions -->
+          <div class="batch-actions">
+            <h5 class="action-title">Batch Actions</h5>
+            <button class="btn btn-outline-danger btn-sm mb-2 w-100" id="deleteSelectedBtn" disabled>
+              <i class="bi bi-trash"></i> Delete Selected
+            </button>
+            <button class="btn btn-outline-success btn-sm mb-2 w-100" id="shareSelectedBtn" disabled>
+              <i class="bi bi-share"></i> Share Selected
+            </button>
+            <button class="btn btn-outline-primary btn-sm w-100" id="exportSelectedBtn" disabled>
+              <i class="bi bi-download"></i> Export Selected
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Main content area -->
+      <div class="col-lg-9 col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 class="dashboard-title">Sessions Dashboard</h1>
+          
+          <div class="view-toggle btn-group">
+            <button class="btn btn-sm btn-outline-primary active" id="gridViewBtn">
+              <i class="bi bi-grid"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-primary" id="listViewBtn">
+              <i class="bi bi-list"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Select all control -->
+        <div class="select-control mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="selectAll">
+            <label class="form-check-label" for="selectAll">
+              Select All Sessions (<span id="selectedCount">0</span>/<span id="totalCount"><%= sessions.length %></span>)
+            </label>
+          </div>
+        </div>
+        
+        <% if (sessions && sessions.length > 0) { %>
+          <!-- Grid view (default) -->
+          <div class="session-grid" id="gridView">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+              <% sessions.forEach(session => { %>
+                <div class="col">
+                  <div class="card h-100 session-card <%= session.isPublic ? 'border-success' : '' %>">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <div class="form-check">
+                        <input class="form-check-input session-checkbox" type="checkbox" 
+                               value="<%= session._id %>" id="check<%= session._id %>">
+                        <label class="form-check-label" for="check<%= session._id %>">
+                          Select
+                        </label>
+                      </div>
+                      
+                      <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" 
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                          <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                          <li><a class="dropdown-item" href="/sessions/<%= session._id %>">
+                            <i class="bi bi-eye me-2"></i> View
+                          </a></li>
+                          <li><a class="dropdown-item" href="#" onclick="shareSession('<%= session._id %>'); return false;">
+                            <i class="bi bi-share me-2"></i> Share
+                          </a></li>
+                          <li><a class="dropdown-item" href="#" onclick="editSessionTitle('<%= session._id %>'); return false;">
+                            <i class="bi bi-pencil me-2"></i> Edit Title
+                          </a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#" 
+                                 onclick="confirmDelete('<%= session._id %>'); return false;">
+                            <i class="bi bi-trash me-2"></i> Delete
+                          </a></li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div class="card-body">
+                      <h5 class="card-title text-truncate"><%= session.title %></h5>
+                      
+                      <p class="card-text mb-1 text-muted">
+                        <small>
+                          Created: <%= new Date(session.metadata.createdAt).toLocaleDateString() %>
+                        </small>
+                      </p>
+                      
+                      <% if (session.isPublic) { %>
+                        <div class="shared-badge">
+                          <i class="bi bi-globe"></i> Public
+                        </div>
+                      <% } %>
+                      
+                      <div class="session-stats mt-3">
+                        <div class="stat-item">
+                          <i class="bi bi-eye"></i>
+                          <span><%= session.stats.views || 0 %> views</span>
+                        </div>
+                        <div class="stat-item">
+                          <i class="bi bi-hand-thumbs-up"></i>
+                          <span><%= session.stats.likes || 0 %> likes</span>
+                        </div>
+                        <div class="stat-item">
+                          <i class="bi bi-chat-dots"></i>
+                          <span><%= session.comments ? session.comments.length : 0 %> comments</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="card-footer bg-transparent">
+                      <a href="/sessions/<%= session._id %>" class="btn btn-sm btn-outline-primary w-100">
+                        View Session
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+          
+          <!-- List view (alternative) -->
+          <div class="session-list d-none" id="listView">
+            <div class="list-group">
+              <% sessions.forEach(session => { %>
+                <div class="list-group-item list-group-item-action session-list-item">
+                  <div class="d-flex w-100 justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                      <div class="form-check me-3">
+                        <input class="form-check-input session-checkbox" type="checkbox" 
+                               value="<%= session._id %>" id="listCheck<%= session._id %>">
+                        <label class="form-check-label" for="listCheck<%= session._id %>"></label>
+                      </div>
+                      
+                      <div>
+                        <h5 class="mb-1"><%= session.title %></h5>
+                        <small class="text-muted">
+                          Created: <%= new Date(session.metadata.createdAt).toLocaleDateString() %> | 
+                          Last activity: <%= new Date(session.metadata.lastActivity).toLocaleDateString() %>
+                        </small>
+                      </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center">
+                      <% if (session.isPublic) { %>
+                        <span class="badge bg-success me-3">Public</span>
+                      <% } %>
+                      
+                      <div class="d-flex gap-3 session-list-stats">
+                        <div title="Views"><i class="bi bi-eye"></i> <%= session.stats.views || 0 %></div>
+                        <div title="Likes"><i class="bi bi-hand-thumbs-up"></i> <%= session.stats.likes || 0 %></div>
+                        <div title="Comments"><i class="bi bi-chat-dots"></i> <%= session.comments ? session.comments.length : 0 %></div>
+                      </div>
+                      
+                      <div class="dropdown ms-3">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" 
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                          <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                          <li><a class="dropdown-item" href="/sessions/<%= session._id %>">
+                            <i class="bi bi-eye me-2"></i> View
+                          </a></li>
+                          <li><a class="dropdown-item" href="#" onclick="shareSession('<%= session._id %>'); return false;">
+                            <i class="bi bi-share me-2"></i> Share
+                          </a></li>
+                          <li><a class="dropdown-item" href="#" onclick="editSessionTitle('<%= session._id %>'); return false;">
+                            <i class="bi bi-pencil me-2"></i> Edit Title
+                          </a></li>
+                          <li><hr class="dropdown-divider"></li>
+                          <li><a class="dropdown-item text-danger" href="#" 
+                                 onclick="confirmDelete('<%= session._id %>'); return false;">
+                            <i class="bi bi-trash me-2"></i> Delete
+                          </a></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+          
+          <!-- Pagination -->
+          <% if (totalPages > 1) { %>
+            <div class="session-pagination mt-4">
+              <a href="?page=<%= currentPage > 1 ? currentPage - 1 : 1 %><%= paginationQuery %>" 
+                 class="pagination-btn <%= currentPage === 1 ? 'disabled' : '' %>">
+                <i class="bi bi-chevron-left"></i>
+              </a>
+              
+              <div class="page-numbers">
+                <% for(let i = startPage; i <= endPage; i++) { %>
+                  <a href="?page=<%= i %><%= paginationQuery %>" 
+                     class="pagination-btn <%= i === currentPage ? 'current-page' : '' %>">
+                    <%= i %>
+                  </a>
+                <% } %>
+              </div>
+              
+              <a href="?page=<%= currentPage < totalPages ? currentPage + 1 : totalPages %><%= paginationQuery %>" 
+                 class="pagination-btn <%= currentPage === totalPages ? 'disabled' : '' %>">
+                <i class="bi bi-chevron-right"></i>
+              </a>
+            </div>
+          <% } %>
+          
+        <% } else { %>
+          <div class="empty-sessions">
+            <div class="empty-icon"><i class="bi bi-chat-square-dots"></i></div>
+            <h3>No Sessions Found</h3>
+            <p>You don't have any sessions matching your filters.</p>
+            <a href="/sessions/dashboard" class="btn btn-primary mt-3">Clear Filters</a>
+            <a href="/chat" class="btn btn-outline-primary mt-3">Start a New Chat</a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete <span id="deleteCount">this session</span>? This action cannot be undone.</p>
+          <div class="alert alert-danger d-none" id="deleteError">
+            An error occurred while deleting. Please try again.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Title Modal -->
+  <div class="modal fade" id="editTitleModal" tabindex="-1" aria-labelledby="editTitleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editTitleModalLabel">Edit Session Title</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editTitleForm">
+            <div class="mb-3">
+              <label for="sessionTitle" class="form-label">Session Title</label>
+              <input type="text" class="form-control" id="sessionTitle" required>
+              <input type="hidden" id="sessionId">
+            </div>
+          </form>
+          <div class="alert alert-danger d-none" id="editTitleError">
+            An error occurred while updating the title. Please try again.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveTitleBtn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+  
+  <!-- Share Modal (reuse the existing one) -->
+  <%- include('./modal.ejs') %>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize tooltips and popovers
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+      
+      // Toggle between grid and list view
+      const gridViewBtn = document.getElementById('gridViewBtn');
+      const listViewBtn = document.getElementById('listViewBtn');
+      const gridView = document.getElementById('gridView');
+      const listView = document.getElementById('listView');
+      
+      gridViewBtn.addEventListener('click', function() {
+        gridView.classList.remove('d-none');
+        listView.classList.add('d-none');
+        gridViewBtn.classList.add('active');
+        listViewBtn.classList.remove('active');
+        localStorage.setItem('sessionViewMode', 'grid');
+      });
+      
+      listViewBtn.addEventListener('click', function() {
+        gridView.classList.add('d-none');
+        listView.classList.remove('d-none');
+        gridViewBtn.classList.remove('active');
+        listViewBtn.classList.add('active');
+        localStorage.setItem('sessionViewMode', 'list');
+      });
+      
+      // Restore last view preference
+      const lastViewMode = localStorage.getItem('sessionViewMode');
+      if (lastViewMode === 'list') {
+        listViewBtn.click();
+      }
+      
+      // Handle select all checkbox
+      const selectAllCheckbox = document.getElementById('selectAll');
+      const sessionCheckboxes = document.querySelectorAll('.session-checkbox');
+      const selectedCountElement = document.getElementById('selectedCount');
+      const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+      const shareSelectedBtn = document.getElementById('shareSelectedBtn');
+      const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+      
+      selectAllCheckbox.addEventListener('change', function() {
+        const isChecked = this.checked;
+        
+        sessionCheckboxes.forEach(checkbox => {
+          checkbox.checked = isChecked;
+          
+          // Sync checkboxes between views (grid and list)
+          const sessionId = checkbox.value;
+          const otherCheckbox = document.querySelector(`.session-checkbox[value="${sessionId}"]:not(#${checkbox.id})`);
+          if (otherCheckbox) {
+            otherCheckbox.checked = isChecked;
+          }
+        });
+        
+        updateSelectedCount();
+      });
+      
+      // Handle individual checkbox changes
+      sessionCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          // Sync checkboxes between views (grid and list)
+          const sessionId = this.value;
+          const otherCheckbox = document.querySelector(`.session-checkbox[value="${sessionId}"]:not(#${this.id})`);
+          if (otherCheckbox) {
+            otherCheckbox.checked = this.checked;
+          }
+          
+          updateSelectedCount();
+          
+          // Update select all checkbox state
+          const allChecked = [...sessionCheckboxes].every(cb => cb.checked);
+          const noneChecked = [...sessionCheckboxes].every(cb => !cb.checked);
+          
+          selectAllCheckbox.checked = allChecked;
+          selectAllCheckbox.indeterminate = !allChecked && !noneChecked;
+        });
+      });
+      
+      function updateSelectedCount() {
+        const checkedCount = [...sessionCheckboxes].filter(cb => cb.checked).length / 2; // Divide by 2 because we have duplicates in grid/list views
+        selectedCountElement.textContent = checkedCount;
+        
+        // Enable/disable batch action buttons
+        const hasSelections = checkedCount > 0;
+        deleteSelectedBtn.disabled = !hasSelections;
+        shareSelectedBtn.disabled = !hasSelections;
+        exportSelectedBtn.disabled = !hasSelections;
+      }
+      
+      // Handle batch delete action
+      deleteSelectedBtn.addEventListener('click', function() {
+        const selectedIds = [...sessionCheckboxes]
+          .filter(cb => cb.checked)
+          .map(cb => cb.value)
+          .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+        
+        if (selectedIds.length > 0) {
+          document.getElementById('deleteCount').textContent = 
+            selectedIds.length === 1 ? "this session" : `these ${selectedIds.length} sessions`;
+          
+          const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+          deleteModal.show();
+          
+          document.getElementById('confirmDeleteBtn').onclick = function() {
+            batchDeleteSessions(selectedIds);
+          };
+        }
+      });
+      
+      // Handle batch share action
+      shareSelectedBtn.addEventListener('click', function() {
+        const selectedIds = [...sessionCheckboxes]
+          .filter(cb => cb.checked)
+          .map(cb => cb.value)
+          .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+        
+        if (selectedIds.length === 1) {
+          // If only one selected, use the regular share function
+          shareSession(selectedIds[0]);
+        } else if (selectedIds.length > 1) {
+          // Handle batch sharing
+          batchShareSessions(selectedIds);
+        }
+      });
+      
+      // Handle batch export action
+      exportSelectedBtn.addEventListener('click', function() {
+        const selectedIds = [...sessionCheckboxes]
+          .filter(cb => cb.checked)
+          .map(cb => cb.value)
+          .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+        
+        if (selectedIds.length > 0) {
+          exportSessions(selectedIds);
+        }
+      });
+      
+      // Search form submission
+      const searchForm = document.getElementById('searchForm');
+      searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const searchQuery = document.getElementById('sessionSearch').value.trim();
+        
+        // Build the search URL with current filters
+        let searchUrl = '/sessions/dashboard?';
+        if (searchQuery) {
+          searchUrl += `q=${encodeURIComponent(searchQuery)}&`;
+        }
+        
+        // Add any active filters
+        const urlParams = new URLSearchParams(window.location.search);
+        ['dateFrom', 'dateTo', 'visibility', 'sortBy'].forEach(param => {
+          if (urlParams.has(param)) {
+            searchUrl += `${param}=${urlParams.get(param)}&`;
+          }
+        });
+        
+        // Remove trailing & and redirect
+        window.location.href = searchUrl.endsWith('&') ? searchUrl.slice(0, -1) : searchUrl;
+      });
+      
+      // Filter form submission
+      const filterForm = document.getElementById('filterForm');
+      filterForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+        const visibility = document.getElementById('visibility').value;
+        const sortBy = document.getElementById('sortBy').value;
+        
+        // Build the filter URL
+        let filterUrl = '/sessions/dashboard?';
+        
+        // Add search query if exists
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('q')) {
+          filterUrl += `q=${urlParams.get('q')}&`;
+        }
+        
+        // Add filters
+        if (dateFrom) filterUrl += `dateFrom=${dateFrom}&`;
+        if (dateTo) filterUrl += `dateTo=${dateTo}&`;
+        if (visibility !== 'all') filterUrl += `visibility=${visibility}&`;
+        if (sortBy !== 'newest') filterUrl += `sortBy=${sortBy}&`;
+        
+        // Remove trailing & and redirect
+        window.location.href = filterUrl.endsWith('&') ? filterUrl.slice(0, -1) : filterUrl;
+      });
+    });
+    
+    // Session management functions
+    function shareSession(sessionId) {
+      // Reuse the existing share modal functionality
+      openShareModal(sessionId);
+    }
+    
+    function editSessionTitle(sessionId) {
+      // Fetch the current title
+      fetch(`/sessions/${sessionId}/details`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('sessionTitle').value = data.title;
+            document.getElementById('sessionId').value = sessionId;
+            
+            const editTitleModal = new bootstrap.Modal(document.getElementById('editTitleModal'));
+            editTitleModal.show();
+          } else {
+            alert('Could not load session details.');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching session details:', error);
+          alert('An error occurred while loading session details.');
+        });
+    }
+    
+    function confirmDelete(sessionId) {
+      document.getElementById('deleteCount').textContent = "this session";
+      document.getElementById('deleteError').classList.add('d-none');
+      
+      const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+      deleteModal.show();
+      
+      document.getElementById('confirmDeleteBtn').onclick = function() {
+        deleteSession(sessionId);
+      };
+    }
+    
+    // API interaction functions
+    async function deleteSession(sessionId) {
+      try {
+        const response = await fetch(`/sessions/${sessionId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Close modal and refresh page
+          bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+          window.location.reload();
+        } else {
+          document.getElementById('deleteError').textContent = data.message || 'Failed to delete session';
+          document.getElementById('deleteError').classList.remove('d-none');
+        }
+      } catch (error) {
+        console.error('Error deleting session:', error);
+        document.getElementById('deleteError').textContent = 'An error occurred while deleting the session';
+        document.getElementById('deleteError').classList.remove('d-none');
+      }
+    }
+    
+    async function batchDeleteSessions(sessionIds) {
+      try {
+        const response = await fetch('/sessions/batch/delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ sessionIds })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Close modal and refresh page
+          bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+          window.location.reload();
+        } else {
+          document.getElementById('deleteError').textContent = data.message || 'Failed to delete sessions';
+          document.getElementById('deleteError').classList.remove('d-none');
+        }
+      } catch (error) {
+        console.error('Error batch deleting sessions:', error);
+        document.getElementById('deleteError').textContent = 'An error occurred while deleting sessions';
+        document.getElementById('deleteError').classList.remove('d-none');
+      }
+    }
+    
+    async function batchShareSessions(sessionIds) {
+      try {
+        const response = await fetch('/sessions/batch/share', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ sessionIds })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert('Sessions have been made public. You can share each one individually from your dashboard.');
+          window.location.reload();
+        } else {
+          alert(data.message || 'Failed to share sessions');
+        }
+      } catch (error) {
+        console.error('Error sharing sessions:', error);
+        alert('An error occurred while sharing sessions');
+      }
+    }
+    
+    async function exportSessions(sessionIds) {
+      try {
+        // Create form for file download
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/sessions/export';
+        form.target = '_blank';
+        
+        // Add session IDs
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'sessionIds';
+        input.value = JSON.stringify(sessionIds);
+        
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+      } catch (error) {
+        console.error('Error exporting sessions:', error);
+        alert('An error occurred while exporting sessions');
+      }
+    }
+    
+    // Update session title
+    document.getElementById('saveTitleBtn').addEventListener('click', async function() {
+      const sessionId = document.getElementById('sessionId').value;
+      const newTitle = document.getElementById('sessionTitle').value.trim();
+      
+      if (!newTitle) {
+        alert('Title cannot be empty');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/sessions/${sessionId}/update-title`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ title: newTitle })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('editTitleModal')).hide();
+          window.location.reload();
+        } else {
+          document.getElementById('editTitleError').textContent = data.message || 'Failed to update title';
+          document.getElementById('editTitleError').classList.remove('d-none');
+        }
+      } catch (error) {
+        console.error('Error updating title:', error);
+        document.getElementById('editTitleError').textContent = 'An error occurred while updating the title';
+        document.getElementById('editTitleError').classList.remove('d-none');
+      }
+    });
+  </script>
+</body>
+</html>
