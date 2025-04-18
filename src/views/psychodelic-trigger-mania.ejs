@@ -20,7 +20,7 @@
             <h1>Psychodelic Trigger Mania</h1>
             <input type="file" id="upload-file" accept=".txt">
             <div id="system-controls-container">
-                <%- include('../views/partials/system-controls.ejs', { validConstantsCount: validConstantsCount }) %>
+                <%- include('partials/profile-system-controls.ejs', { profile: req.user }) %>
             </div>
             <p id="message"></p>
         </div>
