@@ -527,7 +527,7 @@
           }
         </style>
 
-        <% if (userLevel >= 3) { %>
+        <% if (req && req.user && req.user.level >= 3) { %>
           <div id="session-history-panel" class="control-panel">
             <h3>Session History Replay</h3>
             
