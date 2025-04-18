@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { getModel } from '../config/db.js';
 import Logger from '../utils/logger.js';
 import crypto from 'crypto';
+import SessionHistoryModel from '../models/SessionHistory.js';  // Import the model directly
 
 const router = express.Router();
 const logger = new Logger('SessionRoutes');
@@ -29,8 +30,7 @@ router.get('/', async (req, res) => {
       return res.redirect('/login?redirect=/sessions');
     }
     
-    const SessionHistory = getModel('SessionHistory');
-    const sessions = await SessionHistory.find({ username })
+    const sessions = await SessionHistoryModel.find({ username })
       .sort({ 'metadata.lastActivity': -1 })
       .limit(20)
       .select('title metadata.createdAt metadata.lastActivity stats isPublic shareToken');
@@ -55,8 +55,7 @@ router.get('/:id', async (req, res) => {
     const username = getUsernameFromCookies(req);
     const sessionId = req.params.id;
     
-    const SessionHistory = getModel('SessionHistory');
-    const session = await SessionHistory.findById(sessionId);
+    const session = await SessionHistoryModel.findById(sessionId);
     
     if (!session) {
       return res.status(404).render('error', { 
@@ -109,8 +108,7 @@ router.post('/:id/share', async (req, res) => {
       });
     }
     
-    const SessionHistory = getModel('SessionHistory');
-    const session = await SessionHistory.findById(sessionId);
+    const session = await SessionHistoryModel.findById(sessionId);
     
     // Check if session exists
     if (!session) {
@@ -159,8 +157,7 @@ router.get('/shared/:token', async (req, res) => {
     const shareToken = req.params.token;
     const username = getUsernameFromCookies(req);
     
-    const SessionHistory = getModel('SessionHistory');
-    const session = await SessionHistory.findOne({ shareToken });
+    const session = await SessionHistoryModel.findOne({ shareToken });
     
     if (!session || !session.isPublic) {
       return res.status(404).render('error', { 
@@ -212,8 +209,7 @@ router.post('/:id/react', async (req, res) => {
       });
     }
     
-    const SessionHistory = getModel('SessionHistory');
-    const session = await SessionHistory.findById(sessionId);
+    const session = await SessionHistoryModel.findById(sessionId);
     
     if (!session) {
       return res.status(404).json({ 
@@ -269,8 +265,7 @@ router.post('/:id/comment', async (req, res) => {
       });
     }
     
-    const SessionHistory = getModel('SessionHistory');
-    const session = await SessionHistory.findById(sessionId);
+    const session = await SessionHistoryModel.findById(sessionId);
     
     if (!session) {
       return res.status(404).json({ 
@@ -377,7 +372,7 @@ router.get('/dashboard', async (req, res) => {
     const skip = (currentPage - 1) * limit;
     
     // Get total count for pagination
-    const totalSessions = await SessionHistory.countDocuments(query);
+    const totalSessions = await SessionHistoryModel.countDocuments(query);
     const totalPages = Math.ceil(totalSessions / limit);
     
     // Calculate pagination range
@@ -398,18 +393,18 @@ router.get('/dashboard', async (req, res) => {
     const paginationQuery = queryParams.toString() ? `&${queryParams.toString()}` : '';
     
     // Fetch sessions with pagination
-    const sessions = await SessionHistory.find(query)
+    const sessions = await SessionHistoryModel.find(query)
       .sort(sort)
       .limit(limit)
       .skip(skip);
     
     // Calculate user stats
-    const userSessionsCount = await SessionHistory.countDocuments({ username });
-    const totalViews = await SessionHistory.aggregate([
+    const userSessionsCount = await SessionHistoryModel.countDocuments({ username });
+    const totalViews = await SessionHistoryModel.aggregate([
       { $match: { username } },
       { $group: { _id: null, count: { $sum: "$stats.views" } } }
     ]);
-    const totalLikes = await SessionHistory.aggregate([
+    const totalLikes = await SessionHistoryModel.aggregate([
       { $match: { username } },
       { $group: { _id: null, count: { $sum: "$stats.likes" } } }
     ]);
@@ -457,8 +452,7 @@ router.get('/:id/details', async (req, res) => {
       });
     }
     
-    const SessionHistory = getModel('SessionHistory');
-    const session = await SessionHistory.findById(sessionId);
+    const session = await SessionHistoryModel.findById(sessionId);
     
     if (!session) {
       return res.status(404).json({ 
@@ -509,8 +503,7 @@ router.post('/:id/update-title', async (req, res) => {
       });
     }
     
-    const SessionHistory = getModel('SessionHistory');
-    const session = await SessionHistory.findById(sessionId);
+    const session = await SessionHistoryModel.findById(sessionId);
     
     if (!session) {
       return res.status(404).json({ 
@@ -555,8 +548,7 @@ router.delete('/:id', async (req, res) => {
       });
     }
     
-    const SessionHistory = getModel('SessionHistory');
-    const session = await SessionHistory.findById(sessionId);
+    const session = await SessionHistoryModel.findById(sessionId);
     
     if (!session) {
       return res.status(404).json({ 
@@ -614,10 +606,7 @@ router.post('/batch/delete', async (req, res) => {
       });
     }
     
-    const SessionHistory = getModel('SessionHistory');
-    
-    // Find sessions that belong to the user
-    const sessions = await SessionHistory.find({
+    const sessions = await SessionHistoryModel.find({
       _id: { $in: sessionIds },
       username
     });
@@ -639,7 +628,7 @@ router.post('/batch/delete', async (req, res) => {
     );
     
     // Delete the sessions
-    await SessionHistory.deleteMany({
+    await SessionHistoryModel.deleteMany({
       _id: { $in: idsToDelete }
     });
     
@@ -676,10 +665,7 @@ router.post('/batch/share', async (req, res) => {
       });
     }
     
-    const SessionHistory = getModel('SessionHistory');
-    
-    // Find sessions that belong to the user
-    const sessions = await SessionHistory.find({
+    const sessions = await SessionHistoryModel.find({
       _id: { $in: sessionIds },
       username
     });
@@ -743,10 +729,7 @@ router.post('/export', async (req, res) => {
       });
     }
     
-    const SessionHistory = getModel('SessionHistory');
-    
-    // Find sessions that belong to the user
-    const sessions = await SessionHistory.find({
+    const sessions = await SessionHistoryModel.find({
       _id: { $in: sessionIds },
       username
     }).select('-__v'); // Exclude version field
