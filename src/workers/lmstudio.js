@@ -655,26 +655,29 @@ async function handleMessage(userPrompt, socketId, username) {
 
     collarText = await checkRole(collar, username, triggers);
 
-    // Fix the issue with session history
-    // First update the session in memory
-    await updateSessionHistory(socketId, collarText, userPrompt, finalContent, username);
+    // Don't update session history with finalContent here - it's still undefined
+    // Instead, just initialize the session if needed or add the user message
     
-    // Then get the messages in proper format
-    const messages = sessionHistories[socketId] || [];
-    
-    // Verify we have messages to process
-    if (!Array.isArray(messages) || messages.length === 0) {
-      logger.error('No valid messages array found for socketId:', socketId);
-      return;
+    if (!sessionHistories[socketId]) {
+      sessionHistories[socketId] = [];
+      sessionHistories[socketId].metadata = {
+        createdAt: Date.now(),
+        lastActivity: Date.now()
+      };
+      sessionHistories[socketId].push({ role: 'system', content: collarText });
     }
+    
+    // Add user message to history
+    sessionHistories[socketId].push({ role: 'user', content: userPrompt });
+    sessionHistories[socketId].metadata.lastActivity = Date.now();
 
-    // Make sure all messages have the expected format
-    const formattedMessages = messages
+    // Format messages for API request
+    const formattedMessages = sessionHistories[socketId]
       .filter(msg => msg && typeof msg === 'object' && msg.role && msg.content)
       .map(msg => ({ role: msg.role, content: msg.content }));
 
     const requestData = {
-      model: modelIds[0], // Use the first model for the request
+      model: modelIds[0],
       messages: formattedMessages,
       max_tokens: 4096,
       temperature: 0.87,
@@ -688,8 +691,71 @@ async function handleMessage(userPrompt, socketId, username) {
     try {
       const response = await axios.post(`http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
 
-      let responseData = response.data.choices[0].message.content;
-      finalContent = responseData;
+      // Now we have the response, set finalContent
+      finalContent = response.data.choices[0].message.content;
+      
+      // NOW add the assistant response to the session history
+      sessionHistories[socketId].push({ role: 'assistant', content: finalContent });
+
+      // Now that we have valid finalContent, update the database
+      if (username && username !== 'anonBambi') {
+        try {
+          // Process triggers into a usable format
+          const triggerList = Array.isArray(triggers) 
+            ? triggers 
+            : (typeof triggers === 'string' 
+                ? triggers.split(',').map(t => t.trim()) 
+                : ['BAMBI SLEEP']);
+          
+          // Prepare session data
+          const sessionData = {
+            username,
+            socketId,
+            messages: [
+              { role: 'system', content: collarText },
+              { role: 'user', content: userPrompt },
+              { role: 'assistant', content: finalContent } // finalContent is now defined
+            ],
+            metadata: {
+              lastActivity: new Date(),
+              triggers: triggerList,
+              collarActive: state,
+              collarText: collar,
+              modelName: 'Steno Maid Blackroot'
+            }
+          };
+
+          // Find and update session in database
+          const SessionHistory = mongoose.model('SessionHistory');
+          let sessionHistory = await SessionHistory.findOne({ socketId });
+          
+          if (sessionHistory) {
+            // Update existing session
+            sessionHistory.messages.push(...sessionData.messages);
+            sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
+            sessionHistory.metadata.triggers = sessionData.metadata.triggers;
+            sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
+            sessionHistory.metadata.collarText = sessionData.metadata.collarText;
+            
+            await sessionHistory.save();
+            logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
+          } else {
+            // Create new session with auto-generated title
+            sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
+            sessionHistory = await SessionHistory.create(sessionData);
+            
+            // Add reference to user's profile
+            await mongoose.model('Profile').findOneAndUpdate(
+              { username },
+              { $addToSet: { sessionHistories: sessionHistory._id } }
+            );
+            
+            logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
+          }
+        } catch (error) {
+          logger.error(`Failed to save session history to database: ${error.message}`);
+        }
+      }
       
       // Count words in response and update XP
       const wordCount = countWords(finalContent);
@@ -697,7 +763,6 @@ async function handleMessage(userPrompt, socketId, username) {
       
       // Send response with wordCount
       handleResponse(finalContent, socketId, username, wordCount);
-      finalContent = '';
     } catch (error) {
       if (error.response) {
         logger.error('Error response data:', error.response.data);
