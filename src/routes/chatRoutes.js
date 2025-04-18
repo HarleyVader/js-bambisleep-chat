@@ -18,8 +18,8 @@ router.get('/messages', async (req, res) => {
     // Get the most recent messages
     const messages = await ChatMessage.getRecentMessages(limit);
     
-    // Return messages in chronological order (oldest first)
-    res.json(messages.reverse());
+    // Return messages in the order provided by getRecentMessages
+    res.json(messages);
   } catch (error) {
     logger.error(`Error fetching chat messages: ${error.message}`);
     res.status(500).json({ error: 'Server error occurred fetching chat messages' });

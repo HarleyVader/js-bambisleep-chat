@@ -452,8 +452,35 @@ class Logger {
    * @param {string} bambiName - The name of the bambi
    * @param {number} totalConnections - Total number of active connections
    * @param {number} activeWorkers - Total number of active workers
+   * @param {string} reason - Reason for disconnection
    */
-  socketDisconnect(socketId, bambiName, totalConnections, activeWorkers) {
+  socketDisconnect(socketId, bambiName, totalConnections, activeWorkers, reason) {
+    const timestamp = this.getTimestamp();
+    const prefix = this.getModulePrefix();
+    
+    // Full client details with actual values
+    const displayName = bambiName || 'unregistered';
+    const reasonText = reason ? `, Reason: ${reason}` : '';
+    
+    console.log(
+      patterns.server.warning(`${timestamp} ${prefix} DISCONNECT:`),
+      this.textColors.warning(`Socket ${this.specialColors.socket(socketId)} (${this.specialColors.bambi(displayName)}) disconnected${reasonText}`)
+    );
+    
+    console.log(
+      patterns.server.info(`${timestamp} ${prefix} SERVER STATS:`),
+      this.textColors.info(`Remaining Connections: ${this.specialColors.number(totalConnections)}, Active Workers: ${this.specialColors.number(activeWorkers)}`)
+    );
+  }
+
+  /**
+   * Log socket cleanup event with full details
+   * @param {string} socketId - The socket ID
+   * @param {string} bambiName - The name of the bambi
+   * @param {string} stage - Cleanup stage (e.g., "confirmation received", "worker terminated")
+   * @param {number} activeConnections - Number of remaining active connections
+   */
+  socketCleanup(socketId, bambiName, stage, activeConnections) {
     const timestamp = this.getTimestamp();
     const prefix = this.getModulePrefix();
     
@@ -461,13 +488,34 @@ class Logger {
     const displayName = bambiName || 'unregistered';
     
     console.log(
-      patterns.server.warning(`${timestamp} ${prefix} DISCONNECT:`),
-      this.textColors.warning(`Socket ${this.specialColors.socket(socketId)} disconnected (User: ${this.specialColors.bambi(displayName)})`)
+      patterns.server.info(`${timestamp} ${prefix} CLEANUP ${stage.toUpperCase()}:`),
+      this.textColors.info(`Socket ${this.specialColors.socket(socketId)} (${this.specialColors.bambi(displayName)}) - ${stage}`)
     );
     
+    if (stage.includes('store')) {
+      console.log(
+        patterns.server.info(`${timestamp} ${prefix} ACTIVE CONNECTIONS:`),
+        this.textColors.info(`${this.specialColors.number(activeConnections)} socket${activeConnections !== 1 ? 's' : ''} remaining`)
+      );
+    }
+  }
+
+  /**
+   * Log worker cleanup confirmation with full details
+   * @param {string} socketId - The socket ID
+   * @param {string} bambiName - The name of the bambi
+   * @param {string} workerType - Type of worker (e.g., "LMStudio", "TTS")
+   */
+  workerCleanup(socketId, bambiName, workerType) {
+    const timestamp = this.getTimestamp();
+    const prefix = this.getModulePrefix();
+    
+    // Full client details with actual values
+    const displayName = bambiName || 'unregistered';
+    
     console.log(
-      patterns.server.info(`${timestamp} ${prefix} SERVER STATS:`),
-      this.textColors.info(`Remaining Connections: ${this.specialColors.number(totalConnections)}, Active Workers: ${this.specialColors.number(activeWorkers)}`)
+      patterns.server.info(`${timestamp} ${prefix} WORKER CLEANUP:`),
+      this.textColors.info(`${workerType} worker for socket ${this.specialColors.socket(socketId)} (${this.specialColors.bambi(displayName)}) terminated`)
     );
   }
 
@@ -485,7 +533,7 @@ class Logger {
     
     console.log(
       patterns.server.warning(`${timestamp} ${prefix} GARBAGE COLLECTION:`),
-      this.textColors.warning(`Socket ${this.specialColors.socket(socketId)} cleaned up (User: ${this.specialColors.bambi(displayName)})`)
+      this.textColors.warning(`Socket ${this.specialColors.socket(socketId)} (${this.specialColors.bambi(displayName)}) cleaned up`)
     );
   }
 }

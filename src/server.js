@@ -568,11 +568,22 @@ function filterWords(content, filteredWords) {
  * @param {string} reason - Disconnection reason
  */
 function handleSocketDisconnect(socket, socketStore, reason) {
-  logger.info(`Client disconnected: ${socket.id}, Reason: ${reason}`);
+  // Get the bambi name from the socket data or cookie
+  const socketData = socketStore.get(socket.id);
+  const bambiName = socketData?.username || 
+                   socket.bambiUsername || 
+                   socket.handshake.headers.cookie?.split(';')
+                     .find(c => c.trim().startsWith('bambiname='))
+                     ?.split('=')[1] || 'unregistered';
+  
+  // Get the total connections and active workers count
+  const totalConnections = io.engine.clientsCount;
+  const activeWorkers = socketStore.size; // Or use a more accurate count if available
+  
+  // Log the disconnect with detailed user information
+  logger.socketDisconnect(socket.id, bambiName, totalConnections, activeWorkers, reason);
   
   try {
-    const socketData = socketStore.get(socket.id);
-    
     // Double-check this is really disconnected
     if (!socket.connected && socketData) {
       if (socketData.worker) {
@@ -580,7 +591,8 @@ function handleSocketDisconnect(socket, socketStore, reason) {
           // Set up a one-time message handler for cleanup confirmation
           const messageHandler = (message) => {
             if (message && message.type === 'cleanup:complete' && message.socketId === socket.id) {
-              logger.info(`Received cleanup confirmation for socket ${socket.id}`);
+              // Log cleanup confirmation
+              logger.socketCleanup(socket.id, bambiName, 'confirmation received', totalConnections);
               
               // Clean up timeout
               clearTimeout(timeoutId);
@@ -591,14 +603,17 @@ function handleSocketDisconnect(socket, socketStore, reason) {
               // Terminate worker
               try {
                 socketData.worker.terminate();
-                logger.info(`Worker for socket ${socket.id} terminated after cleanup confirmation`);
+                // Log worker cleanup
+                logger.workerCleanup(socket.id, bambiName, 'LMStudio');
               } catch (termError) {
                 logger.error(`Error terminating worker: ${termError.message}`);
               }
               
               // Remove from socket store
               socketStore.delete(socket.id);
-              logger.info(`Socket removed from store. Active sockets: ${socketStore.size}`);
+              // Log removal from store with updated count
+              const updatedConnections = io.engine.clientsCount;
+              logger.socketCleanup(socket.id, bambiName, 'removed from store', updatedConnections);
             }
           };
           
@@ -614,7 +629,7 @@ function handleSocketDisconnect(socket, socketStore, reason) {
           
           // Set timeout for worker response
           const timeoutId = setTimeout(() => {
-            logger.warning(`Worker for socket ${socket.id} did not confirm cleanup, forcing termination`);
+            logger.warning(`Worker for socket ${socket.id} (${bambiName}) did not confirm cleanup, forcing termination`);
             
             // Remove listener
             socketData.worker.removeListener('message', messageHandler);
@@ -622,14 +637,15 @@ function handleSocketDisconnect(socket, socketStore, reason) {
             // Force terminate
             try {
               socketData.worker.terminate();
-              logger.info(`Worker for socket ${socket.id} force-terminated after timeout`);
+              logger.workerCleanup(socket.id, bambiName, 'LMStudio');
             } catch (termError) {
               logger.error(`Error force-terminating worker: ${termError.message}`);
             }
             
             // Remove from socket store
             socketStore.delete(socket.id);
-            logger.info(`Socket removed from store. Active sockets: ${socketStore.size}`);
+            const updatedConnections = io.engine.clientsCount;
+            logger.socketCleanup(socket.id, bambiName, 'removed from store', updatedConnections);
           }, config.WORKER_TIMEOUT);
           
         } catch (postError) {
@@ -638,25 +654,30 @@ function handleSocketDisconnect(socket, socketStore, reason) {
           // Try to terminate anyway
           try {
             socketData.worker.terminate();
+            logger.workerCleanup(socket.id, bambiName, 'LMStudio');
           } catch (termError) {
             logger.error(`Also failed to terminate worker: ${termError.message}`);
           }
           
           // Rely on garbage collector to clean up this worker later
           socketStore.delete(socket.id);
+          const updatedConnections = io.engine.clientsCount;
+          logger.socketCleanup(socket.id, bambiName, 'removed from store', updatedConnections);
         }
       } else {
         socketStore.delete(socket.id);
-        logger.info(`Socket removed from store. Active sockets: ${socketStore.size}`);
+        const updatedConnections = io.engine.clientsCount;
+        logger.socketCleanup(socket.id, bambiName, 'removed from store', updatedConnections);
       }
     } else if (socket.connected) {
-      logger.warning(`Socket ${socket.id} disconnect handler called but socket still appears connected. Not cleaning up yet.`);
+      logger.warning(`Socket ${socket.id} (${bambiName}) disconnect handler called but socket still appears connected. Not cleaning up yet.`);
     }
   } catch (error) {
-    logger.error(`Error during socket cleanup: ${error.message}`);
+    logger.error(`Error during socket cleanup for ${socket.id} (${bambiName}): ${error.message}`);
     
     // Mark for garbage collection later if cleanup fails
     // We do NOT remove from socket store here to avoid potential data loss on active connections
+    logger.socketGarbageCollected(socket.id, bambiName);
   }
 }
 
