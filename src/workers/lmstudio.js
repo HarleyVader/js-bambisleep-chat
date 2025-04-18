@@ -770,6 +770,8 @@ async function handleMessage(userPrompt, socketId, username) {
     }
   } catch (error) {
     logger.error('Error in handleMessage:', error);
+    // Send an error response back to the client
+    handleResponse("I'm sorry, I encountered an error processing your request. Please try again.", socketId, username, 0);
   }
 }
 
