@@ -465,6 +465,9 @@ function handleScanRequest(req, res) {
  * @param {string[]} filteredWords - List of words to filter
  */
 function setupSocketHandlers(io, socketStore, filteredWords) {
+  // Store socketStore on the io object so it's accessible in disconnect handler
+  io.sockets.socketStore = socketStore;
+  
   io.on('connection', (socket) => {
     try {
       // Parse cookies and get username
@@ -504,7 +507,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       // Set up chat sockets for each connection
       setupChatSockets(socket, io, socketStore, filteredWords);
       
-      // Handle disconnection
+      // Handle disconnection - pass socketStore directly
       socket.on('disconnect', () => handleSocketDisconnect(socket, io));
     } catch (error) {
       logger.error(`Error handling socket connection: ${error.message}`);
