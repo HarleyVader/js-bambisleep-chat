@@ -147,7 +147,10 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           <h3>Trigger Audios</h3>
           <div class="playlist-actions">
             <button id="play-playlist" class="secondary-btn">Play Random Playlist</button>
-            <button id="loop-playlist" class="secondary-btn">Start Loop</button>
+            <div class="trigger-toggle-item">
+              <input type="checkbox" id="loop-toggle" class="toggle-input">
+              <label for="loop-toggle" class="toggle-label">Continuous Loop</label>
+            </div>
           </div>
         </div>
       <% } %>

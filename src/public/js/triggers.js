@@ -287,7 +287,18 @@ function playContinuousTriggers() {
   
   if (selectedTriggers.length === 0) {
     console.log("No triggers selected for continuous playback");
+    // Make sure toggle is unchecked if no triggers selected
+    const loopToggle = document.getElementById("loop-toggle");
+    if (loopToggle) {
+      loopToggle.checked = false;
+    }
     return;
+  }
+  
+  // Ensure toggle is checked when playback starts
+  const loopToggle = document.getElementById("loop-toggle");
+  if (loopToggle) {
+    loopToggle.checked = true;
   }
   
   continuousPlaybackActive = true;
@@ -351,27 +362,37 @@ function playContinuousTriggers() {
 // Stop continuous playback
 function stopContinuousPlayback() {
   continuousPlaybackActive = false;
+  
+  // Uncheck the toggle when stopping playback
+  const loopToggle = document.getElementById("loop-toggle");
+  if (loopToggle) {
+    loopToggle.checked = false;
+  }
 }
 
 // Initialize when window loads
 window.onload = function () {
   loadTriggerData();
   
-  // Add event listener for the loop button
-  const loopButton = document.getElementById("loop-playlist");
-  if (loopButton) {
-    loopButton.addEventListener("click", function() {
-      if (continuousPlaybackActive) {
-        stopContinuousPlayback();
-        this.textContent = "Start Loop";
-      } else {
+  // Add event listener for the loop toggle
+  const loopToggle = document.getElementById("loop-toggle");
+  if (loopToggle) {
+    loopToggle.addEventListener("change", function() {
+      if (this.checked) {
         playContinuousTriggers();
-        this.textContent = "Stop Loop";
+      } else {
+        stopContinuousPlayback();
       }
     });
   }
   
-  // Setup toggle listeners to stop playback when selection changes
+  // Add event listener for the play button
+  const playButton = document.getElementById("play-playlist");
+  if (playButton) {
+    playButton.addEventListener("click", playRandomPlaylist);
+  }
+  
+  // Setup toggle listeners
   setupToggleListeners();
   setupSocketListener();
 };
