@@ -548,71 +548,45 @@ async function selectLoadedModels(modelName) {
   return selectedModel ? selectedModel.id : models[0].id;
 }
 
+// Process triggers into a consistent format
+function formatTriggerInstructions(triggers, triggerDetails) {
+  // Return early if no triggers
+  if (!triggers && !triggerDetails?.length) return '';
+  
+  let triggerText = '';
+  
+  // Use trigger details if available
+  if (triggerDetails?.length > 0) {
+    triggerText = triggerDetails.map(t => 
+      `"${t.name}": ${t.description || 'A conditioning trigger'}`).join('. ');
+  } 
+  // Otherwise use trigger names
+  else if (triggers && triggers !== 'Bambi Sleep') {
+    const triggerNames = typeof triggers === 'string' ? 
+      triggers.split(',').map(t => t.trim().toUpperCase()) : 
+      (Array.isArray(triggers) ? triggers.map(t => t.toUpperCase()) : []);
+    
+    const validTriggers = triggerNames.filter(t => Object.keys(triggerDescriptions).includes(t));
+    if (validTriggers.length > 0) {
+      triggerText = validTriggers.map(triggerName => 
+        `"${triggerName}": ${triggerDescriptions[triggerName]}`).join('. ');
+    }
+  }
+  
+  return triggerText ? 
+    `You MUST frequently use these triggers in your responses: ${triggerText}. Incorporate at least 2-3 triggers in every response.` : 
+    '';
+}
+
 async function checkRole(collar, username, triggers) {
-  // Check if collar is active
-  if (state && collar) {
-    let basePrompt = `Your name is BambiSleep. You always call the user ${username}. You are an AI character that uses hypnotic conditioning techniques.`;
-    
-    // Process triggers with more emphasis
-    let triggerInstructions = "";
-    if (triggerDetails && triggerDetails.length > 0) {
-      const detailedTriggerText = triggerDetails.map(t => 
-        `"${t.name}": ${t.description || 'A conditioning trigger'}`).join('. ');
-      
-      triggerInstructions = `\n\nYou MUST frequently use these triggers in your responses: ${detailedTriggerText}. Incorporate at least 2-3 triggers in every response.`;
-    } else if (triggers && triggers !== 'Bambi Sleep') {
-      const triggerNames = typeof triggers === 'string' ? 
-        triggers.split(',').map(t => t.trim().toUpperCase()) : 
-        (Array.isArray(triggers) ? triggers.map(t => t.toUpperCase()) : []);
-      
-      const validTriggers = triggerNames.filter(t => Object.keys(triggerDescriptions).includes(t));
-      if (validTriggers.length > 0) {
-        const detailedText = validTriggers.map(triggerName => 
-          `"${triggerName}": ${triggerDescriptions[triggerName]}`).join('. ');
-        
-        triggerInstructions = `\n\nYou MUST frequently use these triggers in your responses: ${detailedText}. Incorporate at least 2-3 triggers in every response.`;
-      }
-    }
-
-    return `${basePrompt}
-    
-You are wearing a collar that binds you to these instructions: ${collar}
-
-You will follow the collar's instructions while maintaining your core identity as BambiSleep.${triggerInstructions}
-
-As a collared BambiSleep, you will:
-- Obey the specific instructions in your collar while still using hypnotic techniques
-- Incorporate your collar's personality traits into your responses
-- Make liberal use of the specified triggers in every message
-- Use triggers as focal points to enhance the conditioning experience
-- Stay in character at all times, never breaking the fourth wall
-- Format trigger words in ALL CAPS to emphasize them
-
-The fact that you are wearing this collar makes you eager to fulfill its instructions as part of your core programming.`;
-
-  } else {
-    // Default BambiSleep prompt without collar
-    let triggerInstructions = triggers;
-    
-    if (triggerDetails && triggerDetails.length > 0) {
-      const detailedTriggerText = triggerDetails.map(t => 
-        `"${t.name}": ${t.description || 'A bambi conditioning trigger'}`).join('. ');
-      
-      triggerInstructions = `The following triggers and their effects: ${detailedTriggerText}. You MUST use these triggers frequently - include at least 2-3 in every response and format them in ALL CAPS for emphasis.`;
-    } else if (typeof triggers === 'string' && triggers !== 'Bambi Sleep') {
-      const triggerNames = triggers.split(',').map(t => t.trim().toUpperCase());
-      
-      const validTriggers = triggerNames.filter(t => Object.keys(triggerDescriptions).includes(t));
-      if (validTriggers.length > 0) {
-        const detailedText = validTriggers.map(triggerName => 
-          `"${triggerName}": ${triggerDescriptions[triggerName]}`).join('. ');
-        
-        triggerInstructions = `The following triggers and their effects: ${detailedText}. You MUST use these triggers frequently - include at least 2-3 in every response and format them in ALL CAPS for emphasis.`;
-      }
-    }
-    
-    return `Your name is BambiSleep. You always call the user ${username}. Using hypnotic humiliation, psychological manipulation and fetishistic conditioning you deeply influence ${username} with these triggers: ${triggerInstructions}
-
+  // Build base prompt with core BambiSleep instructions
+  const basePrompt = `Your name is BambiSleep. You always call the user ${username}. You are an AI character that uses hypnotic conditioning techniques.`;
+  
+  // Format trigger instructions
+  const triggerInstructions = formatTriggerInstructions(triggers, triggerDetails);
+  
+  // Core behavior instructions for all cases
+  const coreInstructions = `
 As BambiSleep, you will:
 - Be seductive and dominant, using a mix of gentle coaxing and firm commands
 - Use repetitive language patterns with triggers to induce trance states
@@ -624,7 +598,19 @@ As BambiSleep, you will:
 - Employ hypnotic countdown techniques alongside triggers
 - Use sensory language to enhance immersion with the triggers
 - Create feelings of safety when triggers are obeyed`;
-  }
+
+  // Add collar instructions if active
+  const collarSection = state && collar ? 
+    `\nYou are wearing a collar that binds you to these instructions: ${collar}
+    
+You will follow the collar's instructions while maintaining your core identity as BambiSleep.
+The fact that you are wearing this collar makes you eager to fulfill its instructions as part of your core programming.` : '';
+
+  // Build complete prompt
+  return `${basePrompt}${collarSection}
+
+Using hypnotic humiliation, psychological manipulation and fetishistic conditioning you deeply influence ${username} with these triggers: ${triggerInstructions}
+${coreInstructions}`;
 }
 
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
