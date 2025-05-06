@@ -236,19 +236,32 @@ function playRandomPlaylist() {
   }
 }
 
-// Update the toggle input event handler to only load audio, not play it
+// Update the toggle input event handler to restart loop when selection changes
 function setupToggleListeners() {
   const toggleInputs = document.getElementsByClassName("toggle-input");
   
   for (let i = 0; i < toggleInputs.length; i++) {
     toggleInputs[i].addEventListener("change", function() {
-      // If continuous playback is active, stop it when selection changes
-      if (continuousPlaybackActive && this.dataset.triggerName) {
-        stopContinuousPlayback();
+      // Don't handle loop toggle itself
+      if (this.id === "loop-toggle") return;
+      
+      // If continuous playback is active, restart it with new selection
+      if (continuousPlaybackActive) {
+        // Stop current loop
+        continuousPlaybackActive = false;
+        
+        // Brief delay before restarting with new selection
+        setTimeout(() => {
+          // Only restart if toggle is still checked
+          const loopToggle = document.getElementById("loop-toggle");
+          if (loopToggle && loopToggle.checked) {
+            playContinuousTriggers();
+          }
+        }, 100);
       }
       
+      // Load audio for newly checked trigger
       if (this.checked && this.dataset.triggerName) {
-        // Only load audio, don't play it
         const triggerName = this.dataset.triggerName;
         const trigger = triggerData.find(t => t.name === triggerName);
         loadTriggerAudio(trigger);
@@ -285,6 +298,14 @@ function setupSocketListener() {
 }
 
 let continuousPlaybackActive = false;
+
+// Add a global variable to track playback speed
+let playbackSpeedFactor = 1.0;
+
+// Function to update playback speed
+function updatePlaybackSpeed(speedFactor) {
+  playbackSpeedFactor = speedFactor;
+}
 
 // Play selected triggers in a continuous loop until stopped
 function playContinuousTriggers() {
@@ -351,9 +372,10 @@ function playContinuousTriggers() {
       
       await playTriggerWithDisplay(trigger);
       
-      // Shorter delay between triggers
-      const delay = Math.random() * 500 + 300;
-      await new Promise(resolve => setTimeout(resolve, delay));
+      // Delay between triggers adjusted by speed factor
+      const baseDelay = Math.random() * 200 + 100;
+      const adjustedDelay = baseDelay * playbackSpeedFactor;
+      await new Promise(resolve => setTimeout(resolve, adjustedDelay));
     }
     
     // Continue with next loop
@@ -412,5 +434,6 @@ window.bambiAudio = {
   playTrigger: activateTrigger,
   playRandomPlaylist: playRandomPlaylist,
   startContinuousPlayback: playContinuousTriggers,
-  stopContinuousPlayback: stopContinuousPlayback
+  stopContinuousPlayback: stopContinuousPlayback,
+  updatePlaybackSpeed: updatePlaybackSpeed
 };

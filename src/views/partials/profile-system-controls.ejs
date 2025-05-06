@@ -147,10 +147,16 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           <h3>Trigger Audios</h3>
           <div class="playlist-actions">
             <button id="play-playlist" class="secondary-btn">Play Random Playlist</button>
-            <!-- Use the same layout as other trigger toggles -->
             <div class="trigger-toggle-item">
               <input type="checkbox" id="loop-toggle" class="toggle-input">
               <label for="loop-toggle" class="toggle-label">Continuous Loop</label>
+            </div>
+            
+            <!-- Add speed control slider -->
+            <div class="audio-speed-control">
+              <label for="loop-speed">Loop Speed:</label>
+              <input type="range" id="loop-speed" min="1" max="10" value="5" class="speed-slider">
+              <span id="speed-value">Normal</span>
             </div>
           </div>
         </div>
@@ -222,6 +228,49 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     background: linear-gradient(to right, #00ffff, #ff00ff);
     border-radius: 4px;
     transition: width 0.5s ease-in-out;
+  }
+  
+  /* Audio speed control styling */
+  .audio-speed-control {
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .speed-slider {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    outline: none;
+  }
+
+  .speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ff00ff;
+    cursor: pointer;
+  }
+
+  .speed-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ff00ff;
+    cursor: pointer;
+  }
+
+  #speed-value {
+    min-width: 80px;
+    text-align: center;
+    font-size: 0.9em;
+    color: #ff00ff;
   }
 </style>
 
@@ -573,6 +622,9 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     }
 
     const loopToggle = document.getElementById('loop-toggle');
+    const loopSpeed = document.getElementById('loop-speed');
+    const speedValue = document.getElementById('speed-value');
+
     if (loopToggle) {
       loopToggle.addEventListener('change', function() {
         if (this.checked) {
@@ -584,6 +636,65 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           if (window.bambiAudio && typeof window.bambiAudio.stopContinuousPlayback === 'function') {
             window.bambiAudio.stopContinuousPlayback();
           }
+        }
+      });
+    }
+
+    if (loopSpeed) {
+      loopSpeed.addEventListener('input', function() {
+        const speed = parseInt(this.value, 10);
+        let speedText = 'Normal';
+        if (speed < 5) {
+          speedText = 'Slow';
+        } else if (speed > 5) {
+          speedText = 'Fast';
+        }
+        speedValue.textContent = speedText;
+
+        // Use bambiAudio API to adjust playback speed
+        if (window.bambiAudio && typeof window.bambiAudio.setPlaybackSpeed === 'function') {
+          window.bambiAudio.setPlaybackSpeed(speed);
+        }
+      });
+    }
+
+    const loopSpeedSlider = document.getElementById('loop-speed');
+    const speedValueDisplay = document.getElementById('speed-value');
+
+    if (loopSpeedSlider) {
+      // Set initial speed value
+      window.loopSpeedFactor = 1.0;
+      
+      loopSpeedSlider.addEventListener('input', function() {
+        const value = parseInt(this.value);
+        let speedLabel = '';
+        
+        // Map slider values to speed factors (1-10 scale)
+        if (value <= 2) {
+          window.loopSpeedFactor = 2.0;
+          speedLabel = 'Very Slow';
+        } else if (value <= 4) {
+          window.loopSpeedFactor = 1.5;
+          speedLabel = 'Slow';
+        } else if (value <= 6) {
+          window.loopSpeedFactor = 1.0;
+          speedLabel = 'Normal';
+        } else if (value <= 8) {
+          window.loopSpeedFactor = 0.5;
+          speedLabel = 'Fast';
+        } else {
+          window.loopSpeedFactor = 0.25;
+          speedLabel = 'Very Fast';
+        }
+        
+        // Update display text
+        if (speedValueDisplay) {
+          speedValueDisplay.textContent = speedLabel;
+        }
+        
+        // Update any active playback
+        if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackSpeed === 'function') {
+          window.bambiAudio.updatePlaybackSpeed(window.loopSpeedFactor);
         }
       });
     }
