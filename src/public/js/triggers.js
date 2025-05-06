@@ -87,18 +87,34 @@ function playTriggerSound(triggerName) {
 
 // Display trigger text and return a promise
 async function displayTriggerText(triggerName, element) {
-  if (!element) return Promise.resolve();
+  // Find all eye cursor text elements
+  const textElements = [
+    document.getElementById("eyeCursorText"),
+    document.getElementById("eyeCursorText2"),
+    document.getElementById("eyeCursorText3"),
+    document.getElementById("eyeCursorText4")
+  ].filter(el => el !== null);
   
-  element.textContent = triggerName;
+  if (!textElements.length) return Promise.resolve();
+  
+  // Display the trigger name in all text elements
+  textElements.forEach(el => {
+    el.textContent = triggerName;
+    el.style.transition = `opacity ${Math.random() * 2 + 2}s`;
+    el.style.opacity = 1;
+  });
+  
+  // Use a single duration for all elements
   const duration = Math.random() * 2 + 2;
-  element.style.transition = `opacity ${duration}s`;
-  element.style.opacity = 1;
   
   // Wait for fade in
   await new Promise(resolve => setTimeout(resolve, duration * 1000));
   
-  // Fade out
-  element.style.opacity = 0;
+  // Fade out all elements
+  textElements.forEach(el => {
+    el.style.opacity = 0;
+  });
+  
   return new Promise(resolve => setTimeout(resolve, duration * 1000));
 }
 
@@ -124,25 +140,11 @@ async function playTriggerWithDisplay(trigger) {
   // Start audio playback
   const audioPromise = playTriggerSound(trigger.name);
   
-  // Display trigger in first available text element
-  const element = textElements.find(el => el !== null);
-  if (element) {
-    element.textContent = trigger.name;
-    element.style.opacity = 1;
-
-    // Wait for audio to finish
-    await audioPromise;
-    
-    // Keep text visible briefly after audio ends
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Fade out text
-    element.style.transition = "opacity 1s";
-    element.style.opacity = 0;
-  } else {
-    // If no display element, just wait for audio
-    await audioPromise;
-  }
+  // Display trigger text simultaneously with audio
+  await displayTriggerText(trigger.name);
+  
+  // Wait for audio to finish
+  return audioPromise;
 }
 
 // Create toggle buttons only if container exists
