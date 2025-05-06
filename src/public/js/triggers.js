@@ -100,22 +100,24 @@ async function displayTriggerText(triggerName, element) {
   // Display the trigger name in all text elements
   textElements.forEach(el => {
     el.textContent = triggerName;
-    el.style.transition = `opacity ${Math.random() * 2 + 2}s`;
+    // Faster transition speed
+    el.style.transition = `opacity ${Math.random() * 1 + 1}s`;
     el.style.opacity = 1;
   });
   
-  // Use a single duration for all elements
-  const duration = Math.random() * 2 + 2;
+  // Shorter duration for display
+  const duration = Math.random() * 1 + 1;
   
-  // Wait for fade in
-  await new Promise(resolve => setTimeout(resolve, duration * 1000));
+  // Wait for fade in (shorter wait)
+  await new Promise(resolve => setTimeout(resolve, duration * 500));
   
   // Fade out all elements
   textElements.forEach(el => {
     el.style.opacity = 0;
   });
   
-  return new Promise(resolve => setTimeout(resolve, duration * 1000));
+  // Shorter wait before resolving
+  return new Promise(resolve => setTimeout(resolve, duration * 500));
 }
 
 // Handle playing of triggers one by one
@@ -349,8 +351,8 @@ function playContinuousTriggers() {
       
       await playTriggerWithDisplay(trigger);
       
-      // Brief delay between triggers
-      const delay = Math.random() * 1000 + 500;
+      // Shorter delay between triggers
+      const delay = Math.random() * 500 + 300;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
     
