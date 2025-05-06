@@ -45,32 +45,27 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     <% } %>
     
     <!-- Show spirals feature if user level ≥ 3 -->
-    <% if (userLevel >= 3) { %>
+    <% if (userLevel >= 4) { %>
       <button id="spirals-btn" class="control-btn" data-target="spirals-panel">Spirals</button>
     <% } else { %>
       <button class="control-btn disabled" title="Reach Level 3 to unlock">Spirals 🔒</button>
     <% } %>
     
     <!-- Show hypnosis feature if user level ≥ 4 -->
-    <% if (userLevel >= 4) { %>
+    <% if (userLevel >= 5) { %>
       <button id="hypnosis-btn" class="control-btn" data-target="hypnosis-panel">Hypnosis</button>
     <% } else { %>
       <button class="control-btn disabled" title="Reach Level 4 to unlock">Hypnosis 🔒</button>
     <% } %>
     
-    <!-- Show toggle all feature if user level ≥ 5 -->
-    <% if (userLevel >= 5) { %>
-      <button id="toggle-all-btn" class="control-btn" data-target="toggle-all-panel">Toggle All</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 5 to unlock">Toggle All 🔒</button>
-    <% } %>
-    
-    <!-- Show playlist feature if user level ≥ 6 -->
+    <!-- Show audios feature if user level ≥ 6 (moved to 4th position) -->
     <% if (userLevel >= 6) { %>
-      <button id="playlist-btn" class="control-btn" data-target="playlist-panel">Playlist</button>
+      <button id="audios-btn" class="control-btn" data-target="audios-panel">Audios</button>
     <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 6 to unlock">Playlist 🔒</button>
+      <button class="control-btn disabled" title="Reach Level 6 to unlock">Audios 🔒</button>
     <% } %>
+    <!-- Show playlist feature if user level ≥ 6 -->
+    
   </div>
 
   <!-- Update the control panels section to match the new button structure -->
@@ -148,13 +143,11 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       <% } %>
       
       <% if (userLevel >= 6) { %>
-        <div id="playlist-panel" class="control-panel">
-          <h3>Random Playlist</h3>
+        <div id="audios-panel" class="control-panel">
+          <h3>Trigger Audios</h3>
           <div class="playlist-actions">
             <button id="play-playlist" class="secondary-btn">Play Random Playlist</button>
-          </div>
-          <div class="trigger-actions">
-            <button id="play-playlist" class="secondary-btn">Play Random Playlist</button>
+            <button id="loop-playlist" class="secondary-btn">Start Loop</button>
           </div>
         </div>
       <% } %>
@@ -478,7 +471,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       if (!messagesContainer) return;
       
       const messageElement = document.createElement('div');
-      messageElement.className = 'collar-message' + (isError ? ' error' : '');
+      messageElement.className = 'collar-message' + (isError ? ' error' : '' );
       messageElement.textContent = message;
       
       messagesContainer.prepend(messageElement);
