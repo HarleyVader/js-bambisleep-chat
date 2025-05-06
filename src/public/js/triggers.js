@@ -274,6 +274,85 @@ function setupSocketListener() {
   }
 }
 
+let continuousPlaybackActive = false;
+
+// Play selected triggers in a continuous loop until stopped
+function playContinuousTriggers() {
+  if (continuousPlaybackActive) {
+    console.log("Continuous playback already active");
+    return;
+  }
+
+  let selectedTriggers = getSelectedTriggers();
+  
+  if (selectedTriggers.length === 0) {
+    console.log("No triggers selected for continuous playback");
+    return;
+  }
+  
+  continuousPlaybackActive = true;
+  
+  // Function to check if trigger selection has changed
+  function hasSelectionChanged(originalSelection) {
+    const currentSelection = getSelectedTriggers();
+    
+    // Different number of triggers means selection changed
+    if (currentSelection.length !== originalSelection.length) {
+      return true;
+    }
+    
+    // Check if all current triggers were in original selection
+    return !currentSelection.every(current => 
+      originalSelection.some(original => original.name === current.name)
+    );
+  }
+  
+  // Recursive function to keep playing until stopped
+  async function playLoop(initialSelection) {
+    // Stop if continuous playback was deactivated or selection changed
+    if (!continuousPlaybackActive || hasSelectionChanged(initialSelection)) {
+      console.log("Continuous playback stopped");
+      continuousPlaybackActive = false;
+      return;
+    }
+    
+    // Shuffle the triggers again for each loop
+    const shuffledTriggers = [...initialSelection].sort(() => Math.random() - 0.5);
+    
+    // Play all triggers in the shuffled array
+    for (const trigger of shuffledTriggers) {
+      // Stop loop if selection changed during playback
+      if (!continuousPlaybackActive || hasSelectionChanged(initialSelection)) {
+        console.log("Continuous playback stopped mid-sequence");
+        continuousPlaybackActive = false;
+        return;
+      }
+      
+      await playTriggerWithDisplay(trigger);
+      
+      // Brief delay between triggers
+      const delay = Math.random() * 1000 + 500;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    // Continue with next loop
+    playLoop(initialSelection);
+  }
+  
+  // Preload audio for all selected triggers
+  selectedTriggers.forEach(trigger => {
+    loadTriggerAudio(trigger);
+  });
+  
+  // Start the continuous playback loop
+  playLoop(selectedTriggers);
+}
+
+// Stop continuous playback
+function stopContinuousPlayback() {
+  continuousPlaybackActive = false;
+}
+
 // Initialize when window loads
 window.onload = function () {
   loadTriggerData();
@@ -300,11 +379,48 @@ window.onload = function () {
     playButton.addEventListener("click", playRandomPlaylist);
   }
   
+  const loopButton = document.getElementById("loop-playlist");
+  if (loopButton) {
+    loopButton.addEventListener("click", function() {
+      if (continuousPlaybackActive) {
+        stopContinuousPlayback();
+        loopButton.textContent = "Start Loop";
+      } else {
+        playContinuousTriggers();
+        loopButton.textContent = "Stop Loop";
+      }
+    });
+  }
+  
+  // Setup listeners for toggle changes to stop continuous playback when selection changes
+  const toggleInputs = document.getElementsByClassName("toggle-input");
+  for (let i = 0; i < toggleInputs.length; i++) {
+    toggleInputs[i].addEventListener("change", function() {
+      // Selection changed, so stop continuous playback if active
+      if (continuousPlaybackActive) {
+        stopContinuousPlayback();
+        const loopButton = document.getElementById("loop-playlist");
+        if (loopButton) {
+          loopButton.textContent = "Start Loop";
+        }
+      }
+      
+      // Original toggle functionality - load audio when checked
+      if (this.checked) {
+        const triggerName = this.dataset.triggerName;
+        const trigger = triggerData.find(t => t.name === triggerName);
+        loadTriggerAudio(trigger);
+      }
+    });
+  }
+  
   setupSocketListener();
 };
 
 // Expose the API globally for use by other scripts
 window.bambiAudio = {
   playTrigger: activateTrigger,
-  playRandomPlaylist: playRandomPlaylist
+  playRandomPlaylist: playRandomPlaylist,
+  startContinuousPlayback: playContinuousTriggers,
+  stopContinuousPlayback: stopContinuousPlayback
 };
