@@ -15,36 +15,53 @@ function loadTriggerData() {
     .then(data => {
       triggerData = data.triggers;
       createToggleButtons();
-      preloadTriggerAudio();
     })
     .catch(error => console.error('Error loading trigger data:', error));
 }
 
-// Function to preload all trigger audio files
-function preloadTriggerAudio() {
-  if (!triggerData.length) return;
+// Load audio for a specific trigger
+function loadTriggerAudio(trigger) {
+  if (!trigger || !trigger.filename) return null;
   
-  triggerData.forEach(trigger => {
-    if (!trigger.filename) return;
-    
-    const audio = new Audio(`/audio/${trigger.filename}`);
-    audio.preload = 'auto';
-    audioCache[trigger.name] = audio;
-    
-    // Add load event to track loading status
-    audio.addEventListener('canplaythrough', () => {
-      console.log(`Audio loaded: ${trigger.filename}`);
-    });
-    
-    // Add error handler
-    audio.addEventListener('error', (e) => {
-      console.log(`Error loading audio for ${trigger.filename}: ${e.target.error.message}`);
-    });
+  if (audioCache[trigger.name]) return audioCache[trigger.name];
+  
+  const audio = new Audio(`/audio/${trigger.filename}`);
+  audio.preload = 'auto';
+  audioCache[trigger.name] = audio;
+  
+  // Log when loaded
+  audio.addEventListener('canplaythrough', () => {
+    console.log(`Audio loaded: ${trigger.filename}`);
+  });
+  
+  // Log errors
+  audio.addEventListener('error', (e) => {
+    console.log(`Error loading audio for ${trigger.filename}`);
+  });
+  
+  return audio;
+}
+
+// Only preload selected trigger audio files
+function preloadSelectedAudio() {
+  const selectedTriggers = getSelectedTriggers();
+  
+  if (!selectedTriggers.length) return;
+  
+  selectedTriggers.forEach(trigger => {
+    loadTriggerAudio(trigger);
   });
 }
 
-// Simple API to play a trigger sound and return a promise
+// Modified function to play trigger sound
 function playTriggerSound(triggerName) {
+  const trigger = triggerData.find(t => t.name === triggerName);
+  
+  // Load audio if not already loaded
+  if (trigger && !audioCache[triggerName]) {
+    loadTriggerAudio(trigger);
+  }
+  
   if (!audioCache[triggerName]) {
     console.log(`No audio found for trigger: ${triggerName}`);
     return Promise.resolve();
@@ -53,8 +70,7 @@ function playTriggerSound(triggerName) {
   const audio = audioCache[triggerName];
   audio.currentTime = 0;
   
-  // Return a promise that resolves when audio ends
-  return new Promise((resolve, reject) => {
+  return new Promise(resolve => {
     const onEnd = () => {
       audio.removeEventListener('ended', onEnd);
       resolve();
@@ -62,8 +78,8 @@ function playTriggerSound(triggerName) {
     
     audio.addEventListener('ended', onEnd);
     audio.play().catch(e => {
-      console.error(`Error playing audio for ${triggerName}: ${e.message}`);
-      resolve(); // Resolve anyway to prevent hanging
+      console.log(`Error playing audio: ${triggerName}`);
+      resolve();
     });
   });
 }
@@ -132,8 +148,6 @@ async function playTriggerWithDisplay(trigger) {
 function createToggleButtons() {
   const container = document.getElementById("trigger-toggles");
   if (!container) {
-    console.log("Container with id 'trigger-toggles' not found. Will try again later.");
-    // Try again after a short delay to allow DOM to load
     setTimeout(createToggleButtons, 500);
     return;
   }
@@ -153,7 +167,6 @@ function createToggleButtons() {
     label.htmlFor = `toggle-${index}`;
     label.className = "toggle-label";
     
-    // Add description as title for tooltip
     if (trigger.description) {
       label.title = trigger.description;
     }
@@ -161,6 +174,9 @@ function createToggleButtons() {
     container.appendChild(toggle);
     container.appendChild(label);
   });
+  
+  // Set up listeners after creating buttons
+  setupToggleListeners();
 }
 
 function toggleAllToggles() {
@@ -197,6 +213,11 @@ function playRandomPlaylist() {
     return;
   }
   
+  // Load audio for selected triggers
+  selectedTriggers.forEach(trigger => {
+    loadTriggerAudio(trigger);
+  });
+  
   // Shuffle the selected triggers
   const shuffledTriggers = [...selectedTriggers].sort(() => Math.random() - 0.5);
   
@@ -207,8 +228,22 @@ function playRandomPlaylist() {
   if (typeof socket !== "undefined" && socket.connected) {
     const triggerNames = shuffledTriggers.map(t => t.name);
     socket.emit("triggers", triggerNames);
-    socket.emit("trigger:play-audio", triggerNames);
-    console.log("Triggers sent:", triggerNames);
+  }
+}
+
+// Update the toggle input event handler to load audio when selected
+function setupToggleListeners() {
+  const toggleInputs = document.getElementsByClassName("toggle-input");
+  
+  for (let i = 0; i < toggleInputs.length; i++) {
+    toggleInputs[i].addEventListener("change", function() {
+      if (this.checked) {
+        // Load audio when toggle is checked
+        const triggerName = this.dataset.triggerName;
+        const trigger = triggerData.find(t => t.name === triggerName);
+        loadTriggerAudio(trigger);
+      }
+    });
   }
 }
 
@@ -243,20 +278,21 @@ function setupSocketListener() {
 window.onload = function () {
   loadTriggerData();
   
-  // Check if trigger container exists, create it if not
   let container = document.getElementById("trigger-toggles");
   if (!container && document.body) {
-    console.log("Creating missing trigger-toggles container");
     container = document.createElement("div");
     container.id = "trigger-toggles";
     container.className = "trigger-container";
     document.body.appendChild(container);
   }
   
-  // Set up button click handlers
   const activateAllButton = document.getElementById("activate-all");
   if (activateAllButton) {
-    activateAllButton.addEventListener("click", toggleAllToggles);
+    activateAllButton.addEventListener("click", function() {
+      toggleAllToggles();
+      // Load audio for all selected triggers after toggle
+      preloadSelectedAudio();
+    });
   }
   
   const playButton = document.getElementById("play-playlist");
