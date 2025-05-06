@@ -357,63 +357,22 @@ function stopContinuousPlayback() {
 window.onload = function () {
   loadTriggerData();
   
-  let container = document.getElementById("trigger-toggles");
-  if (!container && document.body) {
-    container = document.createElement("div");
-    container.id = "trigger-toggles";
-    container.className = "trigger-container";
-    document.body.appendChild(container);
-  }
-  
-  const activateAllButton = document.getElementById("activate-all");
-  if (activateAllButton) {
-    activateAllButton.addEventListener("click", function() {
-      toggleAllToggles();
-      // Load audio for all selected triggers after toggle
-      preloadSelectedAudio();
-    });
-  }
-  
-  const playButton = document.getElementById("play-playlist");
-  if (playButton) {
-    playButton.addEventListener("click", playRandomPlaylist);
-  }
-  
+  // Add event listener for the loop button
   const loopButton = document.getElementById("loop-playlist");
   if (loopButton) {
     loopButton.addEventListener("click", function() {
       if (continuousPlaybackActive) {
         stopContinuousPlayback();
-        loopButton.textContent = "Start Loop";
+        this.textContent = "Start Loop";
       } else {
         playContinuousTriggers();
-        loopButton.textContent = "Stop Loop";
+        this.textContent = "Stop Loop";
       }
     });
   }
   
-  // Setup listeners for toggle changes to stop continuous playback when selection changes
-  const toggleInputs = document.getElementsByClassName("toggle-input");
-  for (let i = 0; i < toggleInputs.length; i++) {
-    toggleInputs[i].addEventListener("change", function() {
-      // Selection changed, so stop continuous playback if active
-      if (continuousPlaybackActive) {
-        stopContinuousPlayback();
-        const loopButton = document.getElementById("loop-playlist");
-        if (loopButton) {
-          loopButton.textContent = "Start Loop";
-        }
-      }
-      
-      // Original toggle functionality - load audio when checked
-      if (this.checked) {
-        const triggerName = this.dataset.triggerName;
-        const trigger = triggerData.find(t => t.name === triggerName);
-        loadTriggerAudio(trigger);
-      }
-    });
-  }
-  
+  // Setup toggle listeners to stop playback when selection changes
+  setupToggleListeners();
   setupSocketListener();
 };
 
