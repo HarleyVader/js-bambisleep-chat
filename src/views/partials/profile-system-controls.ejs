@@ -64,6 +64,13 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     <% } else { %>
       <button class="control-btn disabled" title="Reach Level 5 to unlock">Toggle All 🔒</button>
     <% } %>
+    
+    <!-- Show playlist feature if user level ≥ 6 -->
+    <% if (userLevel >= 6) { %>
+      <button id="playlist-btn" class="control-btn" data-target="playlist-panel">Playlist</button>
+    <% } else { %>
+      <button class="control-btn disabled" title="Reach Level 6 to unlock">Playlist 🔒</button>
+    <% } %>
   </div>
 
   <!-- Update the control panels section to match the new button structure -->
@@ -136,6 +143,16 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           <div class="toggle-all-actions">
             <button id="select-all-triggers" class="secondary-btn">Select All Triggers</button>
             <button id="clear-all-triggers" class="secondary-btn">Clear All Triggers</button>
+          </div>
+        </div>
+      <% } %>
+      
+      <% if (userLevel >= 6) { %>
+        <div id="playlist-panel" class="control-panel">
+          <h3>Random Playlist</h3>
+          <div class="playlist-actions">
+            <button id="play-playlist" class="secondary-btn">Play Random Playlist</button>
+            <p class="playlist-info">Creates a random playlist from all selected triggers.</p>
           </div>
         </div>
       <% } %>
@@ -246,80 +263,69 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     var triggerList = document.getElementById('trigger-list');
     
     if (triggerList && !triggerList.hasChildNodes()) {
-      var bambiTriggers = [
-        "BIMBO DOLL", 
-        "GOOD GIRL", 
-        "BAMBI SLEEP", 
-        "BAMBI FREEZE", 
-        "ZAP COCK DRAIN OBEY", 
-        "BAMBI ALWAYS WINS", 
-        "BAMBI RESET", 
-        "I-Q DROP", 
-        "I-Q LOCK", 
-        "POSTURE LOCK", 
-        "UNIFORM LOCK", 
-        "SAFE & SECURE", 
-        "PRIMPED", 
-        "PAMPERED", 
-        "SNAP & FORGET", 
-        "GIGGLE TIME", 
-        "BLONDE MOMENT", 
-        "BAMBI DOES AS SHE IS TOLD", 
-        "DROP FOR COCK", 
-        "COCK ZOMBIE NOW", 
-        "TITS LOCK", 
-        "WAIST LOCK", 
-        "BUTT LOCK", 
-        "LIMBS LOCK", 
-        "FACE LOCK", 
-        "LIPS LOCK", 
-        "THROAT LOCK", 
-        "HIPS LOCK", 
-        "CUNT LOCK", 
-        "BAMBI CUM & COLAPSE"
-      ];
-      
-      var activeTriggers = [];
-      if (typeof profileData !== 'undefined' && profileData.systemControls && profileData.systemControls.activeTriggers) {
-        activeTriggers = profileData.systemControls.activeTriggers;
-      }
-      
-      bambiTriggers.forEach((trigger, index) => {
-        var triggerItem = document.createElement('div');
-        triggerItem.className = 'trigger-toggle-item';
-        
-        var toggle = document.createElement('input');
-        toggle.type = 'checkbox';
-        toggle.id = `toggle-${index}`;
-        toggle.className = 'toggle-input';
-        toggle.setAttribute('data-trigger', trigger);
-        
-        if (activeTriggers.includes(trigger)) {
-          toggle.checked = true;
-        }
-        
-        toggle.addEventListener('change', function() {
-          saveTriggerState();
+      // Fetch triggers from the JSON file instead of hardcoding
+      fetch('/config/triggers.json')
+        .then(response => response.json())
+        .then(data => {
+          const triggers = data.triggers;
+          var activeTriggers = [];
           
-          // Award XP for using a trigger (+3 XP per trigger use)
-          if (typeof socket !== 'undefined' && socket.connected && toggle.checked) {
-            socket.emit('award-xp', {
-              username: document.body.getAttribute('data-username') || window.username,
-              amount: 3,
-              action: 'trigger_used'
-            });
+          if (typeof profileData !== 'undefined' && profileData.systemControls && profileData.systemControls.activeTriggers) {
+            activeTriggers = profileData.systemControls.activeTriggers;
           }
+          
+          triggers.forEach((trigger, index) => {
+            var triggerItem = document.createElement('div');
+            triggerItem.className = 'trigger-toggle-item';
+            
+            var toggle = document.createElement('input');
+            toggle.type = 'checkbox';
+            toggle.id = `toggle-${index}`;
+            toggle.className = 'toggle-input';
+            toggle.setAttribute('data-trigger', trigger.name);
+            
+            // Set tooltip with description
+            if (trigger.description) {
+              toggle.title = trigger.description;
+            }
+            
+            if (activeTriggers.includes(trigger.name)) {
+              toggle.checked = true;
+            }
+            
+            toggle.addEventListener('change', function() {
+              saveTriggerState();
+              
+              // Award XP for using a trigger (+3 XP per trigger use)
+              if (typeof socket !== 'undefined' && socket.connected && toggle.checked) {
+                socket.emit('award-xp', {
+                  username: document.body.getAttribute('data-username') || window.username,
+                  amount: 3,
+                  action: 'trigger_used'
+                });
+              }
+            });
+            
+            var label = document.createElement('label');
+            label.htmlFor = `toggle-${index}`;
+            label.className = 'toggle-label';
+            label.textContent = trigger.name;
+            
+            // Add tooltip to label too
+            if (trigger.description) {
+              label.title = trigger.description;
+            }
+            
+            triggerItem.appendChild(toggle);
+            triggerItem.appendChild(label);
+            triggerList.appendChild(triggerItem);
+          });
+        })
+        .catch(error => {
+          console.error('Error loading triggers:', error);
+          // Fallback to a basic message if triggers can't be loaded
+          triggerList.innerHTML = '<p>Failed to load triggers. Please refresh the page.</p>';
         });
-        
-        var label = document.createElement('label');
-        label.htmlFor = `toggle-${index}`;
-        label.className = 'toggle-label';
-        label.textContent = trigger;
-        
-        triggerItem.appendChild(toggle);
-        triggerItem.appendChild(label);
-        triggerList.appendChild(triggerItem);
-      });
     }
     
     // Setup real-time XP updates
