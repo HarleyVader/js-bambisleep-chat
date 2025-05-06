@@ -57,10 +57,13 @@ function playTriggerSound(triggerName) {
   });
 }
 
+// Create toggle buttons only if container exists
 function createToggleButtons() {
   const container = document.getElementById("trigger-toggles");
   if (!container) {
-    console.error("Container with id 'trigger-toggles' not found.");
+    console.log("Container with id 'trigger-toggles' not found. Will try again later.");
+    // Try again after a short delay to allow DOM to load
+    setTimeout(createToggleButtons, 500);
     return;
   }
 
@@ -193,6 +196,16 @@ function setupSocketListener() {
 // Initialize when window loads
 window.onload = function () {
   loadTriggerData();
+  
+  // Check if trigger container exists, create it if not
+  let container = document.getElementById("trigger-toggles");
+  if (!container && document.body) {
+    console.log("Creating missing trigger-toggles container");
+    container = document.createElement("div");
+    container.id = "trigger-toggles";
+    container.className = "trigger-container";
+    document.body.appendChild(container);
+  }
   
   // Set up button click handlers
   const activateAllButton = document.getElementById("activate-all");

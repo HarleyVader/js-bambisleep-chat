@@ -506,6 +506,28 @@ async function syncSessionWithDatabase(socketId) {
         await existingSession.save();
         logger.debug(`Synced ${newMessages.length} messages to database before removing session ${socketId}`);
       }
+    } else if (session.username) {
+      // If no existing session found but we have a username, create a new one
+      try {
+        // Create basic session record
+        const newSession = new SessionHistoryModel({
+          username: session.username,
+          socketId,
+          messages: session,
+          title: `${session.username}'s saved session`,
+          metadata: {
+            lastActivity: new Date(),
+            triggers: triggers,
+            collarActive: state,
+            collarText: collar
+          }
+        });
+        
+        await newSession.save();
+        logger.info(`Created new session in database during cleanup for ${session.username}`);
+      } catch (innerError) {
+        logger.error(`Failed to create session during cleanup: ${innerError.message}`);
+      }
     }
   } catch (error) {
     logger.error(`Error syncing session to database: ${error.message}`);
