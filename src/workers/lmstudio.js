@@ -9,6 +9,32 @@ import '../models/Profile.js';  // Import the model file to ensure schema regist
 import '../models/SessionHistory.js';  // Make sure to create this file first
 import config from '../config/config.js';
 import SessionHistoryModel from '../models/SessionHistory.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get directory name in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load triggers from JSON file
+let triggerDescriptions = {};
+try {
+  const triggersPath = path.resolve(__dirname, '../../config/triggers.json');
+  const triggerData = JSON.parse(fs.readFileSync(triggersPath, 'utf8'));
+  
+  // Convert the array of trigger objects to a map for easy lookup
+  triggerDescriptions = triggerData.triggers.reduce((acc, trigger) => {
+    acc[trigger.name] = trigger.description;
+    return acc;
+  }, {});
+  
+  logger.info(`Loaded ${Object.keys(triggerDescriptions).length} triggers from config file`);
+} catch (error) {
+  logger.error(`Failed to load triggers from JSON: ${error.message}`);
+  // Fallback to empty object - will be populated with defaults if needed
+  triggerDescriptions = {};
+}
 
 // Health monitoring variables
 let lastActivityTimestamp = Date.now();
@@ -501,40 +527,8 @@ async function selectLoadedModels(modelName) {
 }
 
 async function checkRole(collar, username, triggers) {
-  // Define trigger descriptions
-  const triggerDescriptions = {
-    "BIMBO DOLL": "Turns you into a mindless, giggly bimbo doll",
-    "GOOD GIRL": "Makes you feel pleasure when obeying commands",
-    "BAMBI SLEEP": "Primary conditioning trigger for Bambi personality",
-    "BAMBI FREEZE": "Locks you in place, unable to move",
-    "ZAP COCK DRAIN OBEY": "Conditions to associate pleasure with submission",
-    "BAMBI ALWAYS WINS": "Strengthens the Bambi personality dominance",
-    "BAMBI RESET": "Resets Bambi to default programming state",
-    "I-Q DROP": "Reduces cognitive abilities, makes thinking difficult",
-    "I-Q LOCK": "Prevents intelligent thoughts or complex reasoning",
-    "POSTURE LOCK": "Forces proper feminine posture automatically",
-    "UNIFORM LOCK": "Makes you desire to dress in Bambi's preferred clothing",
-    "SAFE & SECURE": "Creates feelings of safety when in Bambi space",
-    "PRIMPED": "Compulsion to maintain perfect makeup and appearance",
-    "PAMPERED": "Increases desire for self-care and beauty treatments",
-    "SNAP & FORGET": "Erases memories of specific activities",
-    "GIGGLE TIME": "Induces uncontrollable ditzy giggling",
-    "BLONDE MOMENT": "Creates temporary confusion and airheadedness",
-    "BAMBI DOES AS SHE IS TOLD": "Enhances obedience to direct commands",
-    "DROP FOR COCK": "Triggers instant arousal and submission",
-    "COCK ZOMBIE NOW": "Induces trance state focused only on pleasing cock",
-    "TITS LOCK": "Focuses attention and sensitivity on chest",
-    "WAIST LOCK": "Creates awareness of waistline and feminine figure", 
-    "BUTT LOCK": "Enhances awareness and movement of your rear",
-    "LIMBS LOCK": "Controls movement patterns to be more feminine",
-    "FACE LOCK": "Locks facial expressions into Bambi's patterns",
-    "LIPS LOCK": "Increases sensitivity and awareness of lips",
-    "THROAT LOCK": "Conditions throat for Bambi's preferred activities",
-    "HIPS LOCK": "Forces feminine hip movement and posture",
-    "CUNT LOCK": "Intensifies feelings in genital area",
-    "BAMBI CUM & COLAPSE": "Triggers intense orgasm followed by unconsciousness"
-  };
-
+  // Use the imported triggerDescriptions object instead of redefining it here
+  
   // Check if collar is active (state is true)
   if (state && collar) {
     // Start with the base BambiSleep identity and add collar customizations
