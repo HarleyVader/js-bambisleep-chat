@@ -8,35 +8,72 @@ const textElements = [
   document.getElementById("eyeCursorText4")
 ].filter(element => element !== null);
 
-// Fetch trigger data from JSON file
+// Load trigger data from JSON file
 function loadTriggerData() {
   fetch('/config/triggers.json')
     .then(response => response.json())
     .then(data => {
       triggerData = data.triggers;
       createToggleButtons();
+      preloadSelectedAudio();
     })
-    .catch(error => console.error('Error loading trigger data:', error));
+    .catch(error => {
+      console.log('Error loading trigger data:', error);
+    });
+}
+
+// Create toggle buttons for each trigger
+function createToggleButtons() {
+  const container = document.getElementById('trigger-list');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  triggerData.forEach(trigger => {
+    const toggleItem = document.createElement('div');
+    toggleItem.className = 'trigger-toggle-item';
+    
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.className = 'toggle-input';
+    input.id = `trigger-${trigger.name.replace(/\s+/g, '-').toLowerCase()}`;
+    input.dataset.triggerName = trigger.name;
+    
+    const label = document.createElement('label');
+    label.className = 'toggle-label';
+    label.htmlFor = input.id;
+    label.textContent = trigger.name;
+    label.title = trigger.description || '';
+    
+    toggleItem.appendChild(input);
+    toggleItem.appendChild(label);
+    container.appendChild(toggleItem);
+  });
+  
+  // Setup toggle listeners
+  setupToggleListeners();
 }
 
 // Load audio for a specific trigger
 function loadTriggerAudio(trigger) {
-  if (!trigger || !trigger.filename) return null;
+  if (!trigger || !trigger.name) return null;
   
   if (audioCache[trigger.name]) return audioCache[trigger.name];
   
-  const audio = new Audio(`/audio/${trigger.filename}`);
-  audio.preload = 'auto';
+  const audio = new Audio();
+  
+  // Use filename from trigger data if available
+  if (trigger.filename) {
+    audio.src = `/audio/${trigger.filename}`;
+  } else {
+    const formattedName = trigger.name.replace(/\s+/g, '-');
+    audio.src = `/audio/${formattedName}.mp3`;
+  }
+  
   audioCache[trigger.name] = audio;
   
-  // Log when loaded
-  audio.addEventListener('canplaythrough', () => {
-    console.log(`Audio loaded: ${trigger.filename}`);
-  });
-  
-  // Log errors
-  audio.addEventListener('error', (e) => {
-    console.log(`Error loading audio for ${trigger.filename}`);
+  audio.addEventListener('error', () => {
+    console.log(`Failed to load audio: ${trigger.name}`);
   });
   
   return audio;
@@ -147,41 +184,6 @@ async function playTriggerWithDisplay(trigger) {
   
   // Wait for audio to finish
   return audioPromise;
-}
-
-// Create toggle buttons only if container exists
-function createToggleButtons() {
-  const container = document.getElementById("trigger-toggles");
-  if (!container) {
-    setTimeout(createToggleButtons, 500);
-    return;
-  }
-
-  // Clear existing buttons
-  container.innerHTML = "";
-
-  triggerData.forEach((trigger, index) => {
-    const toggle = document.createElement("input");
-    toggle.type = "checkbox";
-    toggle.id = `toggle-${index}`;
-    toggle.className = "toggle-input";
-    toggle.dataset.triggerName = trigger.name;
-
-    const label = document.createElement("label");
-    label.textContent = trigger.name;
-    label.htmlFor = `toggle-${index}`;
-    label.className = "toggle-label";
-    
-    if (trigger.description) {
-      label.title = trigger.description;
-    }
-
-    container.appendChild(toggle);
-    container.appendChild(label);
-  });
-  
-  // Set up listeners after creating buttons
-  setupToggleListeners();
 }
 
 function toggleAllToggles() {

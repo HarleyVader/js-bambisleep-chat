@@ -2,39 +2,14 @@ import { getProfile } from '../models/Profile.js';
 // Remove the immediate execution of getProfile()
 import logger from '../utils/logger.js';
 
-// Standard trigger list - keep in sync with triggers.js
-const standardTriggers = [
-  "BIMBO DOLL",
-  "GOOD GIRL",
-  "BAMBI SLEEP",
-  "BAMBI FREEZE",
-  "ZAP COCK DRAIN OBEY",
-  "BAMBI ALWAYS WINS",
-  "BAMBI RESET",
-  "I-Q DROP",
-  "I-Q LOCK",
-  "POSTURE LOCK",
-  "UNIFORM LOCK",
-  "SAFE & SECURE",
-  "PRIMPED",
-  "PAMPERED",
-  "SNAP & FORGET",
-  "GIGGLE TIME",
-  "BLONDE MOMENT",
-  "BAMBI DOES AS SHE IS TOLD",
-  "DROP FOR COCK",
-  "COCK ZOMBIE NOW",
-  "TITS LOCK",
-  "WAIST LOCK",
-  "BUTT LOCK",
-  "LIMBS LOCK",
-  "FACE LOCK",
-  "LIPS LOCK",
-  "THROAT LOCK",
-  "HIPS LOCK",
-  "CUNT LOCK",
-  "BAMBI CUM & COLAPSE"
-];
+// Use triggers from JSON file
+import triggerData from '../config/triggers.json' assert { type: 'json' };
+
+// Standard trigger list from JSON file
+const standardTriggers = triggerData.triggers.map(trigger => trigger.name);
+
+// Export the standard triggers list
+export const getStandardTriggers = () => standardTriggers;
 
 // Use a function to get the Profile model when needed
 function getProfileModel() {

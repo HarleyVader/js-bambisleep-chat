@@ -74,6 +74,9 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     <% if (userLevel >= 1) { %>
       <div id="trigger-panel" class="control-panel active">
         <h3>Trigger Toggles</h3>
+        <div class="trigger-actions">
+          <button id="activate-all" class="secondary-btn">Toggle All</button>
+        </div>
         <div id="trigger-list" class="trigger-grid"></div>
       </div>
       
@@ -698,6 +701,21 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         // Update any active playback
         if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackSpeed === 'function') {
           window.bambiAudio.updatePlaybackSpeed(window.loopSpeedFactor);
+        }
+      });
+    }
+
+    // Load triggers from the triggers.json file
+    if (window.bambiAudio && typeof window.bambiAudio.loadTriggers === 'function') {
+      window.bambiAudio.loadTriggers();
+    }
+    
+    // Toggle all button functionality
+    const activateAllBtn = document.getElementById('activate-all');
+    if (activateAllBtn) {
+      activateAllBtn.addEventListener('click', function() {
+        if (window.bambiAudio && typeof window.bambiAudio.toggleAllTriggers === 'function') {
+          window.bambiAudio.toggleAllTriggers();
         }
       });
     }

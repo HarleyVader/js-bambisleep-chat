@@ -39,7 +39,8 @@
     {
       "name": "BAMBI RESET",
       "audioFile": "Bambi Reset",
-      "description": "Resets Bambi to default programming state"
+      "description": "Resets Bambi to default programming state",
+      "filename": "Bambi-reset.mp3"
     },
     {
       "name": "I-Q DROP",
@@ -103,7 +104,7 @@
     },
     {
       "name": "BAMBI DOES AS SHE IS TOLD",
-      "audioFile": "BDASIT",
+      "audioFile": "Bambi Does As She Is Told",
       "description": "Enhances obedience to direct commands",
       "filename": "Bambi-does-as-she-is-told.mp3"
     },
@@ -127,9 +128,9 @@
     },
     {
       "name": "WAIST LOCK",
-      "audioFile": "Waste Lock",
+      "audioFile": "Waist Lock",
       "description": "Creates awareness of waistline and feminine figure",
-      "filename": "Waste-Lock.mp3"
+      "filename": "Waist-Lock.mp3"
     },
     {
       "name": "BUTT LOCK",
@@ -163,9 +164,9 @@
     },
     {
       "name": "HIPS LOCK",
-      "audioFile": "Hops Lock",
+      "audioFile": "Hips Lock",
       "description": "Forces feminine hip movement and posture",
-      "filename": "Hops-Lock.mp3"
+      "filename": "Hips-Lock.mp3"
     },
     {
       "name": "CUNT LOCK",
@@ -178,6 +179,18 @@
       "audioFile": "Come and Collapse",
       "description": "Triggers intense orgasm followed by unconsciousness",
       "filename": "Come-and-Collapse.mp3"
+    },
+    {
+      "name": "GIGGLE DOLL",
+      "audioFile": "Giggle Doll",
+      "description": "Turns you into a giggly, mindless doll",
+      "filename": "Giggle-Doll.mp3"
+    },
+    {
+      "name": "PRIMPED & PAMPERED",
+      "audioFile": "Primped and Pampered",
+      "description": "Enhances desire for beauty and self-care",
+      "filename": "Primped-and-Pampered.mp3"
     }
   ]
 }
