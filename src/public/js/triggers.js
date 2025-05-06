@@ -43,18 +43,89 @@ function preloadTriggerAudio() {
   });
 }
 
-// Simple API to play a trigger sound
+// Simple API to play a trigger sound and return a promise
 function playTriggerSound(triggerName) {
   if (!audioCache[triggerName]) {
     console.log(`No audio found for trigger: ${triggerName}`);
-    return;
+    return Promise.resolve();
   }
   
   const audio = audioCache[triggerName];
   audio.currentTime = 0;
-  audio.play().catch(e => {
-    console.error(`Error playing audio for ${triggerName}: ${e.message}`);
+  
+  // Return a promise that resolves when audio ends
+  return new Promise((resolve, reject) => {
+    const onEnd = () => {
+      audio.removeEventListener('ended', onEnd);
+      resolve();
+    };
+    
+    audio.addEventListener('ended', onEnd);
+    audio.play().catch(e => {
+      console.error(`Error playing audio for ${triggerName}: ${e.message}`);
+      resolve(); // Resolve anyway to prevent hanging
+    });
   });
+}
+
+// Display trigger text and return a promise
+async function displayTriggerText(triggerName, element) {
+  if (!element) return Promise.resolve();
+  
+  element.textContent = triggerName;
+  const duration = Math.random() * 2 + 2;
+  element.style.transition = `opacity ${duration}s`;
+  element.style.opacity = 1;
+  
+  // Wait for fade in
+  await new Promise(resolve => setTimeout(resolve, duration * 1000));
+  
+  // Fade out
+  element.style.opacity = 0;
+  return new Promise(resolve => setTimeout(resolve, duration * 1000));
+}
+
+// Handle playing of triggers one by one
+async function triggerTriggers(triggers) {
+  if (!Array.isArray(triggers) || triggers.length === 0) {
+    console.log("No triggers to display.");
+    return;
+  }
+
+  // Process triggers with delay between them
+  for (const trigger of triggers) {
+    await playTriggerWithDisplay(trigger);
+    
+    // Random delay between triggers (1-3 seconds)
+    const delay = Math.random() * 2000 + 1000;
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+}
+
+// Play single trigger with synchronized display
+async function playTriggerWithDisplay(trigger) {
+  // Start audio playback
+  const audioPromise = playTriggerSound(trigger.name);
+  
+  // Display trigger in first available text element
+  const element = textElements.find(el => el !== null);
+  if (element) {
+    element.textContent = trigger.name;
+    element.style.opacity = 1;
+
+    // Wait for audio to finish
+    await audioPromise;
+    
+    // Keep text visible briefly after audio ends
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Fade out text
+    element.style.transition = "opacity 1s";
+    element.style.opacity = 0;
+  } else {
+    // If no display element, just wait for audio
+    await audioPromise;
+  }
 }
 
 // Create toggle buttons only if container exists
@@ -141,45 +212,20 @@ function playRandomPlaylist() {
   }
 }
 
-// Handle playing of triggers one by one
-async function triggerTriggers(triggers) {
-  if (!Array.isArray(triggers) || triggers.length === 0) {
-    console.log("No triggers to display.");
-    return;
-  }
-
-  for (const trigger of triggers) {
-    // Play the trigger sound
-    playTriggerSound(trigger.name);
-    
-    // Display trigger on screen
-    for (const element of textElements) {
-      if (!element) continue;
-      element.textContent = trigger.name;
-      const duration = Math.random() * 2 + 2;
-      element.style.transition = `opacity ${duration}s`;
-      element.style.opacity = 1;
-      await new Promise(resolve => setTimeout(resolve, duration * 1000));
-      element.style.opacity = 0;
-      await new Promise(resolve => setTimeout(resolve, duration * 1000));
-    }
-  }
-}
-
 // Handle specific trigger activation
 function activateTrigger(trigger) {
   // If trigger is a string, find the matching trigger data
   if (typeof trigger === 'string') {
     const triggerObj = triggerData.find(t => t.name === trigger);
     if (triggerObj) {
-      console.log(`Activating trigger: ${triggerObj.name} (${triggerObj.description || 'No description'})`);
-      playTriggerSound(triggerObj.name);
+      console.log(`Activating trigger: ${triggerObj.name}`);
+      playTriggerWithDisplay(triggerObj);
     }
   } 
   // If trigger is an object, use it directly
   else if (typeof trigger === 'object' && trigger.name) {
-    console.log(`Activating trigger: ${trigger.name} (${trigger.description || 'No description'})`);
-    playTriggerSound(trigger.name);
+    console.log(`Activating trigger: ${trigger.name}`);
+    playTriggerWithDisplay(trigger);
   }
 }
 
