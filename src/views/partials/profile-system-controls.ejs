@@ -151,6 +151,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
               <input type="checkbox" id="loop-toggle" class="toggle-input">
               <label for="loop-toggle" class="toggle-label">Continuous Loop</label>
             </div>
+            <p class="audio-help">Select triggers in the Triggers panel to include them in playback</p>
           </div>
         </div>
       <% } %>
@@ -568,6 +569,22 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         });
         
         saveTriggerState();
+      });
+    }
+
+    const loopToggle = document.getElementById('loop-toggle');
+    if (loopToggle) {
+      loopToggle.addEventListener('change', function() {
+        if (this.checked) {
+          // Use bambiAudio API to control continuous playback
+          if (window.bambiAudio && typeof window.bambiAudio.startContinuousPlayback === 'function') {
+            window.bambiAudio.startContinuousPlayback();
+          }
+        } else {
+          if (window.bambiAudio && typeof window.bambiAudio.stopContinuousPlayback === 'function') {
+            window.bambiAudio.stopContinuousPlayback();
+          }
+        }
       });
     }
   });

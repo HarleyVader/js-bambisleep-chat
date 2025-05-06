@@ -193,7 +193,7 @@ function getSelectedTriggers() {
   
   for (let i = 0; i < toggleInputs.length; i++) {
     if (toggleInputs[i].checked) {
-      const triggerName = toggleInputs[i].dataset.triggerName;
+      const triggerName = toggleInputs[i].dataset.triggerName || toggleInputs[i].dataset.trigger;
       const trigger = triggerData.find(t => t.name === triggerName);
       if (trigger) {
         selectedTriggers.push(trigger);
@@ -237,9 +237,14 @@ function setupToggleListeners() {
   
   for (let i = 0; i < toggleInputs.length; i++) {
     toggleInputs[i].addEventListener("change", function() {
+      // If continuous playback is active, stop it when selection changes
+      if (continuousPlaybackActive) {
+        stopContinuousPlayback();
+      }
+      
       if (this.checked) {
         // Load audio when toggle is checked
-        const triggerName = this.dataset.triggerName;
+        const triggerName = this.dataset.triggerName || this.dataset.trigger;
         const trigger = triggerData.find(t => t.name === triggerName);
         loadTriggerAudio(trigger);
       }
