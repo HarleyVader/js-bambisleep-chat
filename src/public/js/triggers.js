@@ -42,13 +42,14 @@ function loadTriggerAudio(trigger) {
   return audio;
 }
 
-// Only preload selected trigger audio files
+// Only preload selected trigger audio files (don't play them)
 function preloadSelectedAudio() {
   const selectedTriggers = getSelectedTriggers();
   
   if (!selectedTriggers.length) return;
   
   selectedTriggers.forEach(trigger => {
+    // Just load the audio, don't play it
     loadTriggerAudio(trigger);
   });
 }
@@ -231,20 +232,20 @@ function playRandomPlaylist() {
   }
 }
 
-// Update the toggle input event handler to load audio when selected
+// Update the toggle input event handler to only load audio, not play it
 function setupToggleListeners() {
   const toggleInputs = document.getElementsByClassName("toggle-input");
   
   for (let i = 0; i < toggleInputs.length; i++) {
     toggleInputs[i].addEventListener("change", function() {
       // If continuous playback is active, stop it when selection changes
-      if (continuousPlaybackActive) {
+      if (continuousPlaybackActive && this.dataset.triggerName) {
         stopContinuousPlayback();
       }
       
-      if (this.checked) {
-        // Load audio when toggle is checked
-        const triggerName = this.dataset.triggerName || this.dataset.trigger;
+      if (this.checked && this.dataset.triggerName) {
+        // Only load audio, don't play it
+        const triggerName = this.dataset.triggerName;
         const trigger = triggerData.find(t => t.name === triggerName);
         loadTriggerAudio(trigger);
       }
