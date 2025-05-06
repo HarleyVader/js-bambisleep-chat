@@ -669,22 +669,25 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         const value = parseInt(this.value);
         let speedLabel = '';
         
-        // Map slider values to speed factors (1-10 scale)
+        // Map slider values to speed factors (1-10 scale) with more descriptive names
         if (value <= 2) {
           window.loopSpeedFactor = 2.0;
-          speedLabel = 'Very Slow';
+          speedLabel = 'Relaxation (Slow)';
         } else if (value <= 4) {
           window.loopSpeedFactor = 1.5;
-          speedLabel = 'Slow';
-        } else if (value <= 6) {
+          speedLabel = 'Gentle Drop';
+        } else if (value <= 5) {
           window.loopSpeedFactor = 1.0;
           speedLabel = 'Normal';
+        } else if (value <= 6) {
+          window.loopSpeedFactor = 0.36;
+          speedLabel = 'Trance (2.5x)';
         } else if (value <= 8) {
-          window.loopSpeedFactor = 0.5;
-          speedLabel = 'Fast';
+          window.loopSpeedFactor = 0.18;
+          speedLabel = 'Deep Trance (3x)';
         } else {
-          window.loopSpeedFactor = 0.25;
-          speedLabel = 'Very Fast';
+          window.loopSpeedFactor = 0.06;
+          speedLabel = 'Brainwash (4x)';
         }
         
         // Update display text
