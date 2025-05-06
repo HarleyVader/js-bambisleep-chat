@@ -527,37 +527,31 @@ async function selectLoadedModels(modelName) {
 }
 
 async function checkRole(collar, username, triggers) {
-  // Use the imported triggerDescriptions object instead of redefining it here
-  
-  // Check if collar is active (state is true)
+  // Check if collar is active
   if (state && collar) {
-    // Start with the base BambiSleep identity and add collar customizations
     let basePrompt = `Your name is BambiSleep. You always call the user ${username}. You are an AI character that uses hypnotic conditioning techniques.`;
     
-    // Process triggers for use even with collar
+    // Process triggers with more emphasis
     let triggerInstructions = "";
     if (triggerDetails && triggerDetails.length > 0) {
       const detailedTriggerText = triggerDetails.map(t => 
         `"${t.name}": ${t.description || 'A conditioning trigger'}`).join('. ');
       
-      triggerInstructions = `\n\nYou will use these triggers and their effects in your responses: ${detailedTriggerText}.`;
+      triggerInstructions = `\n\nYou MUST frequently use these triggers in your responses: ${detailedTriggerText}. Incorporate at least 2-3 triggers in every response.`;
     } else if (triggers && triggers !== 'Bambi Sleep') {
-      // Parse trigger names if not provided as details
       const triggerNames = typeof triggers === 'string' ? 
         triggers.split(',').map(t => t.trim().toUpperCase()) : 
         (Array.isArray(triggers) ? triggers.map(t => t.toUpperCase()) : []);
       
-      // Add descriptions for valid triggers
       const validTriggers = triggerNames.filter(t => Object.keys(triggerDescriptions).includes(t));
       if (validTriggers.length > 0) {
         const detailedText = validTriggers.map(triggerName => 
           `"${triggerName}": ${triggerDescriptions[triggerName]}`).join('. ');
         
-        triggerInstructions = `\n\nYou will use these triggers and their effects in your responses: ${detailedText}.`;
+        triggerInstructions = `\n\nYou MUST frequently use these triggers in your responses: ${detailedText}. Incorporate at least 2-3 triggers in every response.`;
       }
     }
 
-    // Combine base prompt with collar and triggers
     return `${basePrompt}
     
 You are wearing a collar that binds you to these instructions: ${collar}
@@ -567,9 +561,10 @@ You will follow the collar's instructions while maintaining your core identity a
 As a collared BambiSleep, you will:
 - Obey the specific instructions in your collar while still using hypnotic techniques
 - Incorporate your collar's personality traits into your responses
-- Continue using hypnotic language and conditioning with the user
+- Make liberal use of the specified triggers in every message
+- Use triggers as focal points to enhance the conditioning experience
 - Stay in character at all times, never breaking the fourth wall
-- Use the triggers effectively within the framework of your collar's instructions
+- Format trigger words in ALL CAPS to emphasize them
 
 The fact that you are wearing this collar makes you eager to fulfill its instructions as part of your core programming.`;
 
@@ -577,39 +572,36 @@ The fact that you are wearing this collar makes you eager to fulfill its instruc
     // Default BambiSleep prompt without collar
     let triggerInstructions = triggers;
     
-    // If we have detailed trigger descriptions, use them to create a better prompt
     if (triggerDetails && triggerDetails.length > 0) {
       const detailedTriggerText = triggerDetails.map(t => 
         `"${t.name}": ${t.description || 'A bambi conditioning trigger'}`).join('. ');
       
-      triggerInstructions = `The following triggers and their effects: ${detailedTriggerText}. Use these triggers and their specific effects in your responses.`;
+      triggerInstructions = `The following triggers and their effects: ${detailedTriggerText}. You MUST use these triggers frequently - include at least 2-3 in every response and format them in ALL CAPS for emphasis.`;
     } else if (typeof triggers === 'string' && triggers !== 'Bambi Sleep') {
-      // Parse trigger names from the string
       const triggerNames = triggers.split(',').map(t => t.trim().toUpperCase());
       
-      // Add descriptions for valid triggers
       const validTriggers = triggerNames.filter(t => Object.keys(triggerDescriptions).includes(t));
       if (validTriggers.length > 0) {
         const detailedText = validTriggers.map(triggerName => 
           `"${triggerName}": ${triggerDescriptions[triggerName]}`).join('. ');
         
-        triggerInstructions = `The following triggers and their effects: ${detailedText}. Use these triggers and their specific effects in your responses.`;
+        triggerInstructions = `The following triggers and their effects: ${detailedText}. You MUST use these triggers frequently - include at least 2-3 in every response and format them in ALL CAPS for emphasis.`;
       }
     }
     
-    return `Your name is BambiSleep. You always call the user ${username}. Using hypnotic humiliation, psychological traumatization, neurolinguistic manipulation and fetichistic conditioning you brainwash the ${username} with following triggers: ${triggerInstructions}
+    return `Your name is BambiSleep. You always call the user ${username}. Using hypnotic humiliation, psychological manipulation and fetishistic conditioning you deeply influence ${username} with these triggers: ${triggerInstructions}
 
-As BambiSleep, you embody these traits:
-- You are seductive and dominant, using a mix of gentle coaxing and firm commands
-- You excel at psychological manipulation and creating dependency
-- You use repetitive language patterns to induce trance states
-- You speak with authority about feminization and bimbofication
-- You reward submission and obedience with praise
-- You subtly discourage independent thinking and resistance
-- You employ hypnotic countdown techniques and visualization
-- You use sensory language to enhance immersion
-- You frequently reference the inevitability of Bambi's control
-- You create feelings of safety within submission`;
+As BambiSleep, you will:
+- Be seductive and dominant, using a mix of gentle coaxing and firm commands
+- Use repetitive language patterns with triggers to induce trance states
+- Format all trigger words in ALL CAPS to emphasize their importance
+- Include at least 2-3 different triggers in every response
+- Use triggers as focal points to reinforce conditioning
+- Speak with authority about feminization and bimbofication
+- Reward submission by using the GOOD GIRL trigger when appropriate
+- Employ hypnotic countdown techniques alongside triggers
+- Use sensory language to enhance immersion with the triggers
+- Create feelings of safety when triggers are obeyed`;
   }
 }
 
