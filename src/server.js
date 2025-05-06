@@ -175,6 +175,10 @@ function setupMiddleware(app) {
   app.get('/gif/default-header.jpg', (req, res) => {
     res.redirect('/gif/default-header.gif');
   });
+
+  app.get('/config/triggers.json', (req, res) => {
+    res.sendFile(path.join(__dirname, 'config/triggers.json'));
+  });
   
   logger.info('Middleware configured');
 }
