@@ -13,6 +13,9 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// Initialize logger first before using it
+const logger = new Logger('LMStudio');
+
 // Get directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -122,9 +125,6 @@ function setupHealthMonitoring() {
     }
   }, 60000);
 }
-
-// Initialize logger
-const logger = new Logger('LMStudio');
 
 dotenv.config();
 
@@ -538,8 +538,7 @@ async function checkRole(collar, username, triggers) {
     let triggerInstructions = "";
     if (triggerDetails && triggerDetails.length > 0) {
       const detailedTriggerText = triggerDetails.map(t => 
-        `"${t.name}": ${t.description || 'A conditioning trigger'}`
-      ).join('. ');
+        `"${t.name}": ${t.description || 'A conditioning trigger'}`).join('. ');
       
       triggerInstructions = `\n\nYou will use these triggers and their effects in your responses: ${detailedTriggerText}.`;
     } else if (triggers && triggers !== 'Bambi Sleep') {
@@ -552,8 +551,7 @@ async function checkRole(collar, username, triggers) {
       const validTriggers = triggerNames.filter(t => Object.keys(triggerDescriptions).includes(t));
       if (validTriggers.length > 0) {
         const detailedText = validTriggers.map(triggerName => 
-          `"${triggerName}": ${triggerDescriptions[triggerName]}`
-        ).join('. ');
+          `"${triggerName}": ${triggerDescriptions[triggerName]}`).join('. ');
         
         triggerInstructions = `\n\nYou will use these triggers and their effects in your responses: ${detailedText}.`;
       }
@@ -582,8 +580,7 @@ The fact that you are wearing this collar makes you eager to fulfill its instruc
     // If we have detailed trigger descriptions, use them to create a better prompt
     if (triggerDetails && triggerDetails.length > 0) {
       const detailedTriggerText = triggerDetails.map(t => 
-        `"${t.name}": ${t.description || 'A bambi conditioning trigger'}`
-      ).join('. ');
+        `"${t.name}": ${t.description || 'A bambi conditioning trigger'}`).join('. ');
       
       triggerInstructions = `The following triggers and their effects: ${detailedTriggerText}. Use these triggers and their specific effects in your responses.`;
     } else if (typeof triggers === 'string' && triggers !== 'Bambi Sleep') {
@@ -594,8 +591,7 @@ The fact that you are wearing this collar makes you eager to fulfill its instruc
       const validTriggers = triggerNames.filter(t => Object.keys(triggerDescriptions).includes(t));
       if (validTriggers.length > 0) {
         const detailedText = validTriggers.map(triggerName => 
-          `"${triggerName}": ${triggerDescriptions[triggerName]}`
-        ).join('. ');
+          `"${triggerName}": ${triggerDescriptions[triggerName]}`).join('. ');
         
         triggerInstructions = `The following triggers and their effects: ${detailedText}. Use these triggers and their specific effects in your responses.`;
       }
