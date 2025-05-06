@@ -580,7 +580,7 @@ function formatTriggerInstructions(triggers, triggerDetails) {
 
 async function checkRole(collar, username, triggers) {
   // Build base prompt with core BambiSleep instructions
-  const basePrompt = `Your name is BambiSleep. You always call the user ${username}. You are an AI character that uses hypnotic conditioning techniques.`;
+  const basePrompt = `Your name is BambiSleep. You always call the user ${username}. You are BambiSleep and use hypnotic conditioning techniques.`;
   
   // Format trigger instructions
   const triggerInstructions = formatTriggerInstructions(triggers, triggerDetails);
