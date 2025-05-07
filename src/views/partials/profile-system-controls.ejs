@@ -105,6 +105,33 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           </div>
           <div class="session-history-status" id="session-history-status"></div>
         </div>
+        <div class="system-control-panel" id="session-history-panel">
+          <h3>Session History</h3>
+          
+          <div id="session-history-status" class="session-history-status">
+            No sessions loaded yet
+          </div>
+          
+          <div class="session-stats-container" style="display: none;">
+            <div class="session-stat">
+              <div class="stat-value" id="session-count">0</div>
+              <div class="stat-label">Sessions</div>
+            </div>
+            <div class="session-stat">
+              <div class="stat-value" id="message-count">0</div>
+              <div class="stat-label">Messages</div>
+            </div>
+            <div class="session-stat">
+              <div class="stat-value" id="word-count">0</div>
+              <div class="stat-label">Words</div>
+            </div>
+          </div>
+          
+          <div class="session-history-actions">
+            <button id="load-history-btn" class="control-btn">Load History</button>
+            <button id="replay-history-btn" class="control-btn" disabled>Replay Random</button>
+          </div>
+        </div>
       <% } %>
       
       <% if (userLevel >= 3) { %>
@@ -274,6 +301,66 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     text-align: center;
     font-size: 0.9em;
     color: #ff00ff;
+  }
+
+  /* Add styles for session stats container */
+  .session-stats-container {
+    display: flex;
+    justify-content: space-around;
+    margin: 15px 0;
+    background-color: rgba(10, 38, 38, 0.4);
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid var(--tertiary-alt);
+  }
+
+  .session-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 5px 15px;
+    text-align: center;
+  }
+
+  .session-stat .stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--tertiary-alt);
+    text-shadow: 0 0 5px var(--tertiary-color);
+  }
+
+  .session-stat .stat-label {
+    font-size: 0.8rem;
+    color: var(--primary-alt);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .session-history-status {
+    text-align: center;
+    padding: 10px;
+    margin: 10px 0;
+    color: var(--primary-alt);
+    font-style: italic;
+  }
+
+  .session-history-status.error {
+    color: var(--error);
+    border-left: 3px solid var(--error);
+    background-color: rgba(255, 0, 0, 0.1);
+  }
+
+  .session-history-status.success {
+    color: var(--tertiary-alt);
+    border-left: 3px solid var(--tertiary-alt);
+    background-color: rgba(23, 219, 216, 0.1);
+  }
+
+  .session-history-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 15px;
   }
 </style>
 
@@ -723,7 +810,10 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     const loadHistoryBtn = document.getElementById('load-history-btn');
     const replayHistoryBtn = document.getElementById('replay-history-btn');
     const sessionCountEl = document.getElementById('session-count');
+    const messageCountEl = document.getElementById('message-count');
+    const wordCountEl = document.getElementById('word-count');
     const sessionHistoryStatus = document.getElementById('session-history-status');
+    const sessionStatsContainer = document.querySelector('.session-stats-container');
     
     if (loadHistoryBtn) {
       loadHistoryBtn.addEventListener('click', function() {
@@ -734,6 +824,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         }
         
         updateSessionHistoryStatus('Loading session history...', false);
+        sessionStatsContainer.style.display = 'none';
         
         fetch(`/api/sessions/${username}`)
           .then(response => {
@@ -748,26 +839,43 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
               return;
             }
             
-            // Store sessions in window object for replay functionality
+            // Store sessions globally
             window.sessionHistories = data.sessions;
             
-            // Update count display
-            if (sessionCountEl) {
-              sessionCountEl.textContent = `${data.sessions.length} sessions available`;
-            }
+            // Calculate stats
+            const sessionCount = data.sessions.length;
+            let messageCount = 0;
+            let wordCount = 0;
+            
+            data.sessions.forEach(session => {
+              if (session.messages && Array.isArray(session.messages)) {
+                messageCount += session.messages.length;
+                
+                // Count words in messages
+                session.messages.forEach(msg => {
+                  if (msg.content) {
+                    wordCount += msg.content.split(/\s+/).length;
+                  }
+                });
+              }
+            });
+            
+            // Update stats display
+            sessionCountEl.textContent = sessionCount;
+            messageCountEl.textContent = messageCount;
+            wordCountEl.textContent = wordCount;
+            sessionStatsContainer.style.display = 'flex';
             
             // Enable replay button
             if (replayHistoryBtn) {
               replayHistoryBtn.disabled = false;
             }
             
-            updateSessionHistoryStatus(`Loaded ${data.sessions.length} session(s)`, false);
+            updateSessionHistoryStatus(`Loaded ${sessionCount} session(s)`, false);
             
             // Award XP for loading session history (+5 XP)
             if (typeof socket !== 'undefined' && socket.connected) {
               socket.emit('award-xp', {
-                username: username,
-                amount: 5,
                 action: 'history_loaded'
               });
             }
@@ -831,7 +939,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       if (!isError) {
         setTimeout(() => {
           if (sessionHistoryStatus.textContent === message) {
-            sessionHistoryStatus.textContent = '';
+            sessionHistoryStatus.textContent = 'Click "Load History" to view your session stats';
             sessionHistoryStatus.className = 'session-history-status';
           }
         }, 5000);
