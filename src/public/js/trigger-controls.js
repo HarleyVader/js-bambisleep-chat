@@ -56,13 +56,16 @@
     
     // Try loading from bambiSystem first
     if (window.bambiSystem) {
-      // The collectSettings method exists in bambiSystem, not getState
-      const settings = window.bambiSystem.collectSettings();
-      if (settings && settings.activeTriggers) {
-        triggers = settings.activeTriggers;
+      if (typeof window.bambiSystem.collectSettings === 'function') {
+        const settings = window.bambiSystem.collectSettings();
+        if (settings && settings.activeTriggers) {
+          triggers = settings.activeTriggers;
+        }
       }
-    } else {
-      // Fallback to localStorage
+    }
+    
+    // Fallback to localStorage
+    if (!triggers.length) {
       try {
         const saved = localStorage.getItem('bambiActiveTriggers');
         if (saved) triggers = JSON.parse(saved);
@@ -93,22 +96,28 @@
       if (name) triggers.push({ name, description: desc });
     });
     
-    // Save with centralized system
-    if (window.bambiSystem) {
+    // Save with centralized system if available
+    if (window.bambiSystem && typeof window.bambiSystem.saveState === 'function') {
       window.bambiSystem.saveState('triggers', { triggers });
     } else {
       // Fallback to localStorage
       localStorage.setItem('bambiActiveTriggers', JSON.stringify(triggers.map(t => t.name)));
-      
-      // Send to server
-      if (socket && socket.connected) {
-        const username = document.body.getAttribute('data-username');
-        if (username) {
-          socket.emit('update-system-controls', {
-            username,
-            activeTriggers: triggers.map(t => t.name)
-          });
-        }
+    }
+    
+    // Always send to server to ensure backend gets updated
+    if (socket && socket.connected) {
+      const username = document.body.getAttribute('data-username');
+      if (username) {
+        socket.emit('update-system-controls', {
+          username,
+          activeTriggers: triggers.map(t => t.name)
+        });
+        
+        // Also send triggers to worker
+        socket.emit('triggers', {
+          triggerNames: triggers.map(t => t.name).join(','),
+          triggerDetails: triggers
+        });
       }
     }
   }
