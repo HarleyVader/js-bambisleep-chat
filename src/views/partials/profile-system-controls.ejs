@@ -221,17 +221,18 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
               <label for="loop-toggle" class="toggle-label">Continuous Loop</label>
             </div>
             
-            <!-- Add speed control slider -->
-            <div class="audio-speed-control">
-              <label for="loop-speed">Loop Speed:</label>
-              <input type="range" id="loop-speed" min="1" max="10" value="5" class="speed-slider">
-              <span id="speed-value">Normal</span>
+            <!-- Replace the existing audio-speed-control div with this -->
+            <div class="audio-controls">
+              <div class="audio-speed-control">
+                <label for="loop-speed">Loop Speed:</label>
+                <input type="range" id="loop-speed" min="1" max="10" value="5" class="speed-slider">
+                <span id="speed-value">Slower 4x</span>
+              </div>
               
-              <!-- Add volume control slider -->
               <div class="audio-volume-control">
                 <label for="loop-volume">Volume:</label>
                 <input type="range" id="loop-volume" min="0" max="10" value="10" class="volume-slider">
-                <span id="volume-value">100%</span>
+                <span id="volume-value">40%</span>
               </div>
             </div>
           </div>
@@ -307,18 +308,23 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
   }
   
   /* Audio speed control styling */
-  .audio-speed-control {
+  .audio-controls {
     margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .audio-speed-control, .audio-volume-control {
     display: flex;
     align-items: center;
     gap: 10px;
   }
 
-  .speed-slider {
+  .speed-slider, .volume-slider {
     flex: 1;
     height: 6px;
     -webkit-appearance: none;
-    appearance: none;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 3px;
     outline: none;
@@ -326,11 +332,19 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
 
   .speed-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    appearance: none;
     width: 16px;
     height: 16px;
     border-radius: 50%;
     background: #ff00ff;
+    cursor: pointer;
+  }
+
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #00ffff;
     cursor: pointer;
   }
 
@@ -342,41 +356,6 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     cursor: pointer;
   }
 
-  #speed-value {
-    min-width: 80px;
-    text-align: center;
-    font-size: 0.9em;
-    color: #ff00ff;
-  }
-
-  /* Add styles for volume control */
-  .audio-volume-control {
-    margin-top: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .volume-slider {
-    flex: 1;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-    outline: none;
-  }
-
-  .volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #00ffff;
-    cursor: pointer;
-  }
-
   .volume-slider::-moz-range-thumb {
     width: 16px;
     height: 16px;
@@ -385,10 +364,17 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     cursor: pointer;
   }
 
-  #volume-value {
-    min-width: 80px;
+  #speed-value, #volume-value {
+    min-width: 60px;
     text-align: center;
     font-size: 0.9em;
+  }
+
+  #speed-value {
+    color: #ff00ff;
+  }
+
+  #volume-value {
     color: #00ffff;
   }
 
@@ -498,7 +484,6 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     flex: 1;
     height: 6px;
     -webkit-appearance: none;
-    appearance: none;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 3px;
     outline: none;
@@ -506,7 +491,6 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
 
   .spiral-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    appearance: none;
     width: 16px;
     height: 16px;
     border-radius: 50%;
