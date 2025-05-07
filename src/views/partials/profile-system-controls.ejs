@@ -107,6 +107,10 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
             <select id="session-select">
               <option value="">Select a session...</option>
             </select>
+            <div id="active-session-info" class="active-session-info" style="display: none">
+              <span class="info-label">Active Session:</span>
+              <span id="active-session-date">None</span>
+            </div>
           </div>
           
           <div class="session-stats-container" style="display: none">
@@ -358,6 +362,22 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     justify-content: space-between;
     gap: 10px;
     margin-top: 15px;
+  }
+
+  /* Add styles for active session info */
+  .active-session-info {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background-color: rgba(0, 255, 255, 0.1);
+    border-left: 3px solid var(--tertiary-alt);
+    font-size: 0.85rem;
+    color: var(--primary-alt);
+  }
+
+  .info-label {
+    font-weight: bold;
+    margin-right: 5px;
+    color: var(--tertiary-alt);
   }
 </style>
 
