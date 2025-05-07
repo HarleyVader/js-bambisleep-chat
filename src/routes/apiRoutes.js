@@ -228,4 +228,42 @@ router.post('/api/profile/:username/system-controls', async (req, res) => {
   }
 });
 
+/**
+ * Route to get user's session history
+ * Endpoint: GET /api/sessions/:username
+ */
+router.get('/sessions/:username', async (req, res) => {
+  try {
+    const username = req.params.username;
+    
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    // Get sessions from SessionHistory model
+    const SessionHistory = mongoose.model('SessionHistory');
+    const sessions = await SessionHistory.find({ username })
+      .sort({ 'metadata.lastActivity': -1 })
+      .limit(20);
+    
+    if (!sessions || sessions.length === 0) {
+      return res.json({ sessions: [] });
+    }
+    
+    res.json({ 
+      success: true,
+      sessions: sessions.map(session => ({
+        _id: session._id,
+        title: session.title,
+        messages: session.messages,
+        metadata: session.metadata,
+        createdAt: session.metadata.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching session history:', error);
+    res.status(500).json({ error: 'Error fetching session history', sessions: [] });
+  }
+});
+
 export default router;

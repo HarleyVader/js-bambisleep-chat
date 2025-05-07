@@ -780,4 +780,33 @@ router.post('/export', async (req, res) => {
   }
 });
 
+// API endpoint to get session history for a user
+router.get('/api/sessions/:username', async (req, res) => {
+  try {
+    const username = req.params.username;
+    
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    const sessions = await SessionHistoryModel.find({ username })
+      .sort({ 'metadata.lastActivity': -1 })
+      .limit(20);
+    
+    res.json({ 
+      success: true,
+      sessions: sessions.map(session => ({
+        _id: session._id,
+        title: session.title,
+        messages: session.messages,
+        metadata: session.metadata,
+        createdAt: session.metadata.createdAt
+      }))
+    });
+  } catch (error) {
+    logger.error(`Error fetching session history for API: ${error.message}`);
+    res.status(500).json({ error: 'Error fetching session history', sessions: [] });
+  }
+});
+
 export default router;
