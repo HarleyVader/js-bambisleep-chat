@@ -1,16 +1,14 @@
-// Collar controls module for managing collar settings
-
+// Collar controls module
 (function () {
-  // Initialize collar controls
   function init() {
     const saveCollarBtn = document.getElementById('save-collar');
-
+    
     if (saveCollarBtn) {
       saveCollarBtn.addEventListener('click', function () {
         saveCollarSettings();
-
-        // Award XP for using the collar (+15 XP)
-        if (typeof socket !== 'undefined' && socket.connected) {
+        
+        // Award XP for using the collar
+        if (socket && socket.connected) {
           socket.emit('award-xp', {
             username: document.body.getAttribute('data-username') || window.username,
             amount: 15,
@@ -22,61 +20,45 @@
   }
 
   function saveCollarSettings() {
-    const collarEnable = document.getElementById('collar-enable');
-    const textareaCollar = document.getElementById('textarea-collar');
+    const enable = document.getElementById('collar-enable');
+    const textarea = document.getElementById('textarea-collar');
 
-    const collarEnabled = collarEnable && collarEnable.checked;
-    const collarText = textareaCollar ? textareaCollar.value.trim() : '';
+    const enabled = enable && enable.checked;
+    const text = textarea ? textarea.value.trim() : '';
 
     // Use centralized state management
     if (window.bambiSystem) {
-      window.bambiSystem.saveState('collar', {
-        enabled: collarEnabled,
-        text: collarText
-      });
+      window.bambiSystem.saveState('collar', { enabled, text });
       showCollarMessage('Collar settings saved!');
     } else {
       // Fallback to old method
       const username = document.body.getAttribute('data-username') || window.username;
 
-      if (typeof socket !== 'undefined' && socket.connected) {
+      if (socket && socket.connected) {
         socket.emit('update-system-controls', {
-          username: username,
-          collarEnabled: collarEnabled,
-          collarText: collarText
+          username,
+          collarEnabled: enabled,
+          collarText: text
         });
-
         showCollarMessage('Collar settings saved!');
       }
     }
   }
 
   // Show collar status message
-  function showCollarMessage(message, isError = false) {
-    const messagesContainer = document.querySelector('.collar-messages');
-    if (!messagesContainer) return;
+  function showCollarMessage(message, isError) {
+    const container = document.querySelector('.collar-messages');
+    if (!container) return;
 
-    const messageElement = document.createElement('div');
-    messageElement.className = 'collar-message' + (isError ? ' error' : '');
-    messageElement.textContent = message;
-
-    messagesContainer.prepend(messageElement);
-
-    setTimeout(() => {
-      messageElement.style.opacity = '0';
-      setTimeout(() => {
-        messagesContainer.removeChild(messageElement);
-      }, 300);
-    }, 5000);
+    const element = document.createElement('div');
+    element.className = 'collar-message' + (isError ? ' error' : '');
+    element.textContent = message;
+    container.prepend(element);
+    
+    // Remove message after 3s
+    setTimeout(() => element.remove(), 3000);
   }
 
-  // Export functions
-  window.bambiCollar = {
-    init,
-    saveCollarSettings,
-    showCollarMessage
-  };
-
-  // Auto-initialize on load
+  // Initialize on page load
   document.addEventListener('DOMContentLoaded', init);
 })();

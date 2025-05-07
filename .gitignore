@@ -1,9 +1,7 @@
 node_modules
 .env
+.env.dev*
 .vscode
 package-lock.json
 *.test.js
 darkside
-
-# audios
-.*
