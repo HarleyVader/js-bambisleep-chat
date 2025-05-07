@@ -23,7 +23,8 @@ const __dirname = path.dirname(__filename);
 // Load triggers from JSON file
 let triggerDescriptions = {};
 try {
-  const triggersPath = path.resolve(__dirname, '../../config/triggers.json');
+  // Update path to use src/config instead of config at root
+  const triggersPath = path.resolve(__dirname, '../config/triggers.json');
   const triggerData = JSON.parse(fs.readFileSync(triggersPath, 'utf8'));
   
   // Convert the array of trigger objects to a map for easy lookup
