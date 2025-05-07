@@ -678,6 +678,7 @@ async function pushMessages(collarText, userPrompt, finalContent, socketId) {
   return sessionHistories[socketId];
 }
 
+async function handleMessage(userPrompt, socketId, username) {
   try {
     const modelNames = [
       'l3-sthenomaidblackroot-8b-v1'
@@ -807,11 +808,6 @@ async function pushMessages(collarText, userPrompt, finalContent, socketId) {
 
       // Send response with wordCount
       handleResponse(finalContent, socketId, username, wordCount);
-
-      // Play audio trigger if available
-      if (window.bambiAudio && typeof window.bambiAudio.playTrigger === 'function') {
-        window.bambiAudio.playTrigger(triggers);
-      }
     } catch (error) {
       if (error.response) {
         logger.error('Error response data:', error.response.data);
