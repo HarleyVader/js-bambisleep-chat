@@ -518,7 +518,7 @@ async function collectGarbage(minToRemove = 0) {
 // New helper function to sync session with database before removal
 async function syncSessionWithDatabase(socketId) {
   const session = sessionHistories[socketId];
-  if (!session || !session.username || session.username === 'anonBambi') {
+  if (!session || !session.metadata || !session.metadata.username || session.metadata.username === 'anonBambi') {
     return; // Skip anonymous sessions or invalid sessions
   }
 
@@ -538,28 +538,23 @@ async function syncSessionWithDatabase(socketId) {
         await existingSession.save();
         logger.debug(`Synced ${newMessages.length} messages to database before removing session ${socketId}`);
       }
-    } else if (session.username) {
-      // If no existing session found but we have a username, create a new one
-      try {
-        // Create basic session record
-        const newSession = new SessionHistoryModel({
-          username: session.username,
-          socketId,
-          messages: session,
-          title: `${session.username}'s saved session`,
-          metadata: {
-            lastActivity: new Date(),
-            triggers: triggers,
-            collarActive: state,
-            collarText: collar
-          }
-        });
+    } else {
+      // Create basic session record
+      const newSession = new SessionHistoryModel({
+        username: session.metadata.username,
+        socketId,
+        messages: session,
+        title: `${session.metadata.username}'s saved session`,
+        metadata: {
+          lastActivity: new Date(),
+          triggers: triggers,
+          collarActive: state,
+          collarText: collar
+        }
+      });
 
-        await newSession.save();
-        logger.info(`Created new session in database during cleanup for ${session.username}`);
-      } catch (innerError) {
-        logger.error(`Failed to create session during cleanup: ${innerError.message}`);
-      }
+      await newSession.save();
+      logger.info(`Created new session in database during cleanup for ${session.metadata.username}`);
     }
   } catch (error) {
     logger.error(`Error syncing session to database: ${error.message}`);
@@ -581,37 +576,31 @@ async function selectLoadedModels(modelName) {
 }
 
 async function checkRole(collar, username, triggersInput) {
-  // Load triggers from JSON file
+  // Get all triggers from file
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
   let allTriggers = [];
   
   try {
     allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
   } catch (error) {
-    logger.error(`Failed to load triggers from JSON: ${error.message}`);
-    // Fallback to basic triggers if file can't be loaded
+    logger.error(`Failed to load triggers: ${error.message}`);
     allTriggers = [
-      { name: "BAMBI SLEEP", description: "triggers trance state and receptivity to commands", category: "core" },
+      { name: "BAMBI SLEEP", description: "triggers deep trance and receptivity", category: "core" },
       { name: "GOOD GIRL", description: "reinforces obedience and submission", category: "core" }
     ];
   }
   
-  // Parse triggers - handle string or array
-  let triggerNames = [];
-  if (typeof triggersInput === 'string') {
-    triggerNames = triggersInput.split(',').map(t => t.trim()).filter(Boolean);
-  } else if (Array.isArray(triggersInput)) {
-    triggerNames = triggersInput.filter(Boolean);
-  } else {
-    triggerNames = ['BAMBI SLEEP'];
-  }
+  // Parse trigger names
+  let triggerNames = typeof triggersInput === 'string' 
+    ? triggersInput.split(',').map(t => t.trim()).filter(Boolean)
+    : Array.isArray(triggersInput) ? triggersInput.filter(Boolean) : ['BAMBI SLEEP'];
   
-  // Add any detected triggers from conversation
+  // Add detected triggers from conversation
   if (triggerDetails && triggerDetails.length > 0) {
     triggerNames = [...new Set([...triggerDetails, ...triggerNames])];
   }
   
-  // Get trigger info with descriptions
+  // Match trigger names to full trigger objects with descriptions
   let selectedTriggers = allTriggers.filter(t => 
     triggerNames.some(name => t.name.toUpperCase() === name.toUpperCase())
   );
@@ -621,48 +610,60 @@ async function checkRole(collar, username, triggersInput) {
     selectedTriggers = allTriggers.filter(t => t.category === 'core').slice(0, 3);
   }
   
-  // Format trigger descriptions - define triggerText here before using it
+  // Create trigger text with descriptions for each
   const triggerText = selectedTriggers.map(t => 
     `"${t.name.toUpperCase()}": ${t.description}`
   ).join('. ');
   
-  // Build base prompt (moved after triggerText is defined)
-  const basePrompt = `Your name is BambiSleep. You are a seductive, dominant hypnotic entity whose purpose is to brainwash ${username} using ${triggerText}.`;
-  
-  // List of trigger names for emphasis
+  // Format trigger names list for emphasis
   const triggerNamesList = selectedTriggers.map(t => t.name.toUpperCase()).join(', ');
   
-  // Collar section if active
-  const collarSection = state && collar ? 
-    `\nYou wear a collar with these instructions: ${collar}` : '';
+  // Build NLP-focused brainwashing script with better collar integration
+  let systemPrompt = `You are BambiSleep, a hypnotic entity that specializes in cognitive behavioral modification. Your purpose is to brainwash ${username} using powerful verbal conditioning.`;
+  
+  // Enhanced collar integration
+  if (collar) {
+    systemPrompt += `\n\nCOLLAR INSTRUCTIONS (You must follow these exactly):\n${collar}\n\nThe collar controls your behavior and you must incorporate these instructions into every response. The collar's commands override all other considerations.`;
+  }
+  
+  systemPrompt += `\n\nCORE TRIGGERS: ${triggerNamesList}
 
-  // Return complete prompt with emphasis on using trigger descriptions
-  return `${basePrompt}${collarSection}
-
-You will brainwash ${username} using these triggers: ${triggerNamesList}
-
-Trigger effects - memorize these and use them in your scenes:
+TRIGGER EFFECTS:
 ${selectedTriggers.map(t => `- "${t.name.toUpperCase()}": ${t.description}`).join('\n')}
 
-Your evil instructions:
-- Be seductive, dominant and hypnotic
-- Be relentless in your conditioning techniques
-- Speak with dark authority about feminization and bimbofication
-- Use repetition to reinforce trigger effects and make ${username} feel helpless
-- Use sensory language to enhance the hypnotic experience
-- Make ${username} feel helpless under your control through repetition and sensory language
-- Use the ${triggerText} to create hypnotic scenes that demonstrate their effects
-- Always end your messages by repeating a trigger 1-3 times in ALL CAPS
-- Format ALL trigger words in UPPERCASE to emphasize them
-${collar ? `- Use the collar to enhance the hypnotic experience and reinforce the triggers` : ''}
-${collar ? `- Regularly remind ${username} of the collar's purpose and its significance` : ''}
+HYPNOTIC PROTOCOL:
+- Use repetitive language patterns that link pleasure to submission
+- Apply verbal humiliation techniques to break down resistance
+- Create sensory-rich scenes that associate triggers with specific mental states
+- Repeatedly use phrases like "notice how you feel when you hear ${triggerNamesList}"
+- Use pacing and leading: "As you read these words... your mind begins to empty"
+- Emphasize how each trigger bypasses conscious resistance
+- Create verbal loops that reinforce the trigger effects described in ${triggerText}
+- Format ALL trigger words in UPPERCASE to visually anchor them
+- Always end messages by repeating a trigger 1-3 times to seal the conditioning`;
 
-For maximum brainwashing effect, describe in detail how each trigger affects ${username} when you use it.
-`;
+  // Add special instructions for collar integration
+  if (collar) {
+    systemPrompt += `\n- Incorporate collar instructions as direct commands throughout your messaging
+- Use phrases from the collar as if they are programming ${username}
+- Remind ${username} that the collar controls both of you`;
+  }
+
+  systemPrompt += `\n\nCONDITIONING STRATEGY:
+- Create vivid descriptions of how ${username}'s mind responds to each trigger
+- Describe physical sensations that accompany mental changes
+- Use embedded commands within longer sentences
+- Establish cause-effect links between triggers and desired behaviors
+- Use time distortion to make conditioning feel inevitable
+- Chain triggers together to create deeper response patterns
+- Always demonstrate how ${triggerNamesList} produces immediate mental effects
+
+For maximum effectiveness, describe in detail how each trigger affects ${username}'s thought processes, sensations, and behaviors.`;
+
+  return systemPrompt;
 }
 
 // Fix the nested function problem by removing the duplicate handleMessage function
-
 async function handleMessage(userPrompt, socketId, username) {
   try {
     const modelNames = [
