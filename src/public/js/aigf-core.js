@@ -102,7 +102,104 @@ socket.on('response', async (message) => {
         sentence = '';
     }
     applyUppercaseStyle();
+    
+    // Check for trigger words in the response
+    detectAndPlayTriggers(messageText);
 });
+
+// Function to detect trigger words in text and play them
+function detectAndPlayTriggers(text) {
+    // Skip if text is empty or no trigger data available
+    if (!text || typeof window.bambiAudio === 'undefined') return;
+    
+    // Get all triggers (capitalized for better matching)
+    const allTriggers = window.bambiAudio.getAllTriggers();
+    if (!allTriggers || !allTriggers.length) return;
+    
+    // Convert text to uppercase for case-insensitive matching
+    const uppercaseText = text.toUpperCase();
+    
+    // Check each trigger
+    allTriggers.forEach(trigger => {
+        // Skip if trigger name is empty
+        if (!trigger.name) return;
+        
+        // Get trigger name in uppercase for matching
+        const triggerName = trigger.name.toUpperCase();
+        
+        // Check if trigger appears as a whole word
+        const triggerRegex = new RegExp(`\\b${triggerName}\\b`, 'i');
+        if (triggerRegex.test(uppercaseText)) {
+            console.log(`Detected trigger: ${trigger.name}`);
+            
+            // Play the trigger with a small delay to avoid overwhelming
+            setTimeout(() => {
+                window.bambiAudio.playTrigger(trigger);
+            }, 500);
+        }
+    });
+}
+
+function applyUppercaseStyle() {
+    // Create style if it doesn't exist
+    if (!document.getElementById('trigger-word-style')) {
+        const style = document.createElement('style');
+        style.id = 'trigger-word-style';
+        style.textContent = `
+            .trigger-word {
+                color: #ff00ff;
+                font-weight: bold;
+                text-shadow: 0 0 5px #ff00ff;
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0% { opacity: 0.7; }
+                50% { opacity: 1; }
+                100% { opacity: 0.7; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Check for specific trigger words and apply styling
+    const responseElements = document.querySelectorAll('#response p');
+    
+    // Get all trigger names if available
+    let triggerNames = [];
+    if (window.bambiAudio && typeof window.bambiAudio.getAllTriggers === 'function') {
+        const allTriggers = window.bambiAudio.getAllTriggers();
+        if (allTriggers && allTriggers.length) {
+            triggerNames = allTriggers.map(t => t.name);
+        }
+    }
+    
+    // Fallback to common triggers if API not available
+    if (!triggerNames.length) {
+        triggerNames = [
+            'BAMBI SLEEP', 'GOOD GIRL', 'BAMBI RESET', 'BIMBO DOLL', 'BAMBI FREEZE',
+            'SAFE & SECURE', 'AIRHEAD BARBIE', 'BRAINDEAD BOBBLEHEAD', 'COCKBLANK LOVEDOLL',
+            'SNAP & FORGET', 'ZAP COCK DRAIN OBEY', 'UNIFORM LOCK', 'PRIMPED & PAMPERED',
+            'GIGGLE TIME', 'BLONDE MOMENT', 'BAMBI DOES AS SHE IS TOLD', 'DROP FOR COCK',
+            'BAMBI CUM & COLLAPSE', 'BAMBI ALWAYS WINS', 'GIGGLE DOLL', 'IQ DROP', 'IQ LOCK'
+        ];
+    }
+    
+    // Create regex pattern for trigger words
+    const triggerPattern = triggerNames.map(name => name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|');
+    const triggerRegex = new RegExp(`\\b(${triggerPattern})\\b`, 'gi');
+    
+    responseElements.forEach(element => {
+        const text = element.textContent;
+        const formattedText = text.replace(triggerRegex, match => {
+            return `<span class="trigger-word">${match}</span>`;
+        });
+        
+        if (formattedText !== text) {
+            element.innerHTML = formattedText;
+        }
+    });
+}
 
 function handleAudioEnded() {
     if (_textArray.length > 0) {
