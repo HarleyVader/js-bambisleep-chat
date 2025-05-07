@@ -2,6 +2,12 @@
 function setupSocket(socket, io) {
   const username = socket.request.session.username;
   
+  // Log connection event
+  console.log(`Socket connected: ${socket.id} - User: ${username || 'anonymous'}`);
+  
+  // Handle connection setup
+  handleConnection(socket, username);
+  
   // Setup basic socket handlers
   setupChatHandlers(socket, username);
   setupSystemHandlers(socket, username);
@@ -13,6 +19,54 @@ function setupSocket(socket, io) {
   
   // Handle disconnection
   socket.on('disconnect', () => handleDisconnect(socket, username));
+}
+
+// Handle initial connection
+function handleConnection(socket, username) {
+  // Add username to socket object for easy reference
+  socket.bambiUsername = username || 'anonBambi';
+  
+  // Join room based on username if logged in
+  if (username && username !== 'anonBambi') {
+    socket.join(`user:${username}`);
+    
+    // Send connection acknowledgment
+    socket.emit('connection-established', {
+      socketId: socket.id,
+      username: username
+    });
+    
+    // Send pending notifications
+    sendPendingNotifications(socket, username);
+  } else {
+    // For anonymous users
+    socket.join('anonymous');
+    socket.emit('connection-established', {
+      socketId: socket.id,
+      username: 'anonBambi'
+    });
+  }
+  
+  // Log connection
+  console.log(`Socket connected: ${socket.id} - User: ${username || 'anonymous'}`);
+}
+
+// Send any pending notifications to the user
+function sendPendingNotifications(socket, username) {
+  try {
+    // This is where you'd fetch and send any pending notifications
+    // from a database or cache
+    const pendingNotifications = []; // Would normally come from DB
+    
+    if (pendingNotifications.length > 0) {
+      socket.emit('pending-notifications', {
+        count: pendingNotifications.length,
+        notifications: pendingNotifications
+      });
+    }
+  } catch (error) {
+    console.error('Error sending pending notifications:', error);
+  }
 }
 
 // Set up chat message handlers

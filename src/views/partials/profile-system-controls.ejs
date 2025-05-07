@@ -4,7 +4,7 @@ const userLevel = profile ? profile.level || 0 : 0;
 const userXp = profile ? profile.xp || 0 : 0;
 
 // Define XP requirements for each level
-const xpRequirements = [1000, 2500, 7500, 17000, 42000];
+const xpRequirements = [1000, 2500, 7500, 17000, 42000, 132000, 478000];
 
 // Calculate next level XP requirement
 const getNextLevelXP = (level) => {
@@ -17,9 +17,12 @@ const getNextLevelXP = (level) => {
 
 const nextLevelXP = userLevel < xpRequirements.length ? getNextLevelXP(userLevel) : null;
 const systemControls = profile && profile.systemControls ? profile.systemControls : {};
+
+// Calculate progress percentage
+const progressPercentage = nextLevelXP ? Math.min(100, (userXp / Math.max(1, nextLevelXP) * 100)) : 100;
 %>
 
-<div class="system-controls">
+<div class="system-controls" data-user-level="<%= userLevel %>">
   <!-- Control buttons section -->
   <div id="buttons" class="control-buttons">
     <!-- Show triggers button only if level ≥ 1 -->
@@ -93,6 +96,9 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
             <button id="save-collar" class="save-btn">Save Collar Settings</button>
           </div>
           <div class="collar-messages"></div>
+          <div id="collar-xp-info" class="feature-xp-info">
+            <i class="fas fa-star"></i> Using the collar earns you extra XP
+          </div>
         </div>
       <% } %>
       
@@ -106,6 +112,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           </div>
           
           <div class="session-select-container" style="display: none">
+            <input type="text" id="session-title" placeholder="Session Title" class="session-title-input">
             <select id="session-select">
               <option value="">Select a session...</option>
             </select>
@@ -133,6 +140,9 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           <div class="session-history-actions">
             <button id="load-history-btn" class="control-btn">Load History</button>
             <button id="replay-history-btn" class="control-btn" disabled>Replay Random</button>
+            <button id="save-session-btn" class="control-btn">Save Session</button>
+            <button id="share-session-btn" class="control-btn">Share Session</button>
+            <button id="delete-session-btn" class="control-btn">Delete Session</button>
           </div>
         </div>
       <% } %>
@@ -183,6 +193,9 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           <div class="spirals-actions">
             <button id="save-spirals" class="save-btn">Save Spiral Settings</button>
           </div>
+          <div id="spirals-xp-info" class="feature-xp-info">
+            <i class="fas fa-star"></i> Using spirals earns you extra XP
+          </div>
         </div>
       <% } %>
       
@@ -197,6 +210,9 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           <div class="hypnosis-settings">
             <!-- Hypnosis settings would go here -->
             <p>Hypnosis settings will appear here in a future update.</p>
+          </div>
+          <div id="hypnosis-xp-info" class="feature-xp-info">
+            <i class="fas fa-lock"></i> Hypnosis module is coming soon
           </div>
         </div>
       <% } %>
@@ -226,6 +242,10 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
               <span id="volume-value">80%</span>
             </div>
           </div>
+          
+          <div id="audio-xp-info" class="feature-xp-info">
+            <i class="fas fa-star"></i> Listening to triggers earns extra XP
+          </div>
         </div>
       <% } %>
     <% } else { %>
@@ -239,18 +259,41 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
   <!-- XP progress bar -->
   <% if (userXp !== undefined) { %>
     <div class="xp-progress-container">
+      <div class="xp-level-badge">
+        <span id="level-indicator">Level <%= userLevel %></span>
+      </div>
+      
       <div class="xp-progress-label" id="xp-progress-label">
         <% if (userLevel < xpRequirements.length) { %>
-          Level <%= userLevel %> • <%= userXp %> XP / <%= nextLevelXP %> XP
+          <%= userXp %> XP / <%= nextLevelXP %> XP
         <% } else { %>
-          Level <%= userLevel %> • <%= userXp %> XP (MAX LEVEL)
+          <%= userXp %> XP (MAX LEVEL)
         <% } %>
       </div>
+      
       <div class="xp-progress-bar">
         <% if (userLevel < xpRequirements.length) { %>
-          <div class="xp-progress-fill" id="xp-progress-fill" style="width: <%= Math.min(100, userXp / Math.max(1, nextLevelXP) * 100) %>%"></div>
+          <div class="xp-progress-fill" id="xp-progress-fill" style="width: <%= progressPercentage %>%"></div>
         <% } else { %>
           <div class="xp-progress-fill" id="xp-progress-fill" style="width: 100%"></div>
+        <% } %>
+      </div>
+      
+      <div class="xp-next-feature">
+        <% if (userLevel === 0) { %>
+          <span>Unlock Triggers at Level 1</span>
+        <% } else if (userLevel === 1) { %>
+          <span>Unlock Collar at Level 2</span>
+        <% } else if (userLevel === 2) { %>
+          <span>Unlock Session History at Level 3</span>
+        <% } else if (userLevel === 3) { %>
+          <span>Unlock Spirals at Level 4</span>
+        <% } else if (userLevel === 4) { %>
+          <span>Unlock Hypnosis at Level 5</span>
+        <% } else if (userLevel === 5) { %>
+          <span>Unlock Audio at Level 6</span>
+        <% } else { %>
+          <span>All features unlocked!</span>
         <% } %>
       </div>
     </div>
@@ -272,10 +315,25 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     padding: 10px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 5px;
+    position: relative;
+  }
+  
+  .xp-level-badge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #00ffff, #ff00ff);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.85em;
+    font-weight: bold;
+    color: #000;
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
   }
   
   .xp-progress-label {
-    margin-bottom: 5px;
+    margin: 15px 0 5px;
     font-size: 0.8em;
     color: rgba(255, 255, 255, 0.7);
     text-align: center;
@@ -294,6 +352,30 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     background: linear-gradient(to right, #00ffff, #ff00ff);
     border-radius: 4px;
     transition: width 0.5s ease-in-out;
+  }
+  
+  .xp-next-feature {
+    margin-top: 8px;
+    font-size: 0.75em;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    font-style: italic;
+  }
+  
+  /* Feature XP info */
+  .feature-xp-info {
+    margin-top: 10px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid var(--tertiary-alt);
+    font-size: 0.85rem;
+    color: #00ffff;
+    border-radius: 3px;
+  }
+  
+  .feature-xp-info i {
+    margin-right: 5px;
+    color: #ffff00;
   }
   
   /* Audio controls styling */
@@ -369,6 +451,23 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
   }
 
   /* Session controls styling */
+  .session-title-input {
+    width: 100%;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--tertiary-alt);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 1rem;
+  }
+
+  .session-title-input:focus {
+    outline: none;
+    border-color: #ff00ff;
+    box-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+  }
+
   .session-stats-container {
     display: flex;
     justify-content: space-around;
@@ -423,9 +522,14 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
 
   .session-history-actions {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
     gap: 10px;
     margin-top: 15px;
+  }
+
+  .session-history-actions button {
+    flex: 1;
+    min-width: calc(50% - 5px);
   }
 
   .active-session-info {
@@ -500,7 +604,48 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     // Store XP requirements globally
-    window.xpRequirements = [100, 250, 450, 700, 1200];
+    window.xpRequirements = [1000, 2500, 7500, 17000, 42000, 132000, 478000];
+    
+    // Handle XP notification animation
+    function showXpNotification(amount) {
+      try {
+        // Create the notification element
+        const xpNotification = document.createElement('div');
+        xpNotification.className = 'xp-notification';
+        xpNotification.innerHTML = `+${amount} XP`;
+        
+        // Add it to the document
+        document.body.appendChild(xpNotification);
+        
+        // Force reflow
+        xpNotification.offsetHeight;
+        
+        // Add the show class to start animation
+        xpNotification.classList.add('show');
+        
+        // Remove after animation
+        setTimeout(() => {
+          xpNotification.classList.remove('show');
+          setTimeout(() => {
+            document.body.removeChild(xpNotification);
+          }, 500);
+        }, 2000);
+      } catch (error) {
+        console.error('Error showing XP notification:', error);
+      }
+    }
+    
+    // Listen for XP gain events
+    document.addEventListener('xp-gained', function(event) {
+      if (event.detail && event.detail.amount) {
+        showXpNotification(event.detail.amount);
+        
+        // Update progress if needed
+        if (window.updateXpProgress) {
+          window.updateXpProgress(event.detail.amount);
+        }
+      }
+    });
     
     // Tab navigation system
     const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
@@ -520,8 +665,28 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         // Show target panel
         const targetPanel = document.getElementById(targetId);
         if (targetPanel) targetPanel.classList.add('active');
+        
+        // Store the active tab in localStorage
+        try {
+          localStorage.setItem('bambiActiveTab', targetId);
+        } catch (error) {
+          console.error('Error storing active tab:', error);
+        }
       });
     });
+    
+    // Restore the active tab from localStorage
+    try {
+      const activeTab = localStorage.getItem('bambiActiveTab');
+      if (activeTab) {
+        const tabButton = document.querySelector(`.control-btn[data-target="${activeTab}"]`);
+        if (tabButton && !tabButton.classList.contains('disabled')) {
+          tabButton.click();
+        }
+      }
+    } catch (error) {
+      console.error('Error restoring active tab:', error);
+    }
     
     // Set initial volume and speed from localStorage
     const volumeSlider = document.getElementById('loop-volume');
@@ -559,6 +724,16 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       }
     }
     
+    // Update spirals slider values on input
+    document.querySelectorAll('.spiral-slider').forEach(slider => {
+      const valueDisplay = document.getElementById(slider.id + '-value');
+      if (valueDisplay) {
+        slider.addEventListener('input', function() {
+          valueDisplay.textContent = this.value;
+        });
+      }
+    });
+    
     // Watch for trigger list changes to avoid duplicates
     const triggerList = document.getElementById('trigger-list');
     if (triggerList) {
@@ -571,6 +746,72 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       
       observer.observe(triggerList, { childList: true });
     }
+    
+    // Make XP progress bar global
+    window.updateXpProgress = function(xpGained) {
+      try {
+        // Get current values
+        const userLevel = parseInt(document.querySelector('.system-controls').getAttribute('data-user-level') || '0');
+        const xpProgressLabel = document.getElementById('xp-progress-label');
+        const xpProgressFill = document.getElementById('xp-progress-fill');
+        const levelIndicator = document.getElementById('level-indicator');
+        
+        if (!xpProgressLabel || !xpProgressFill || !levelIndicator) return;
+        
+        // Parse current XP from the label
+        const currentText = xpProgressLabel.textContent.trim();
+        const xpMatch = currentText.match(/(\d+)\s+XP\s*\/\s*(\d+)\s+XP/);
+        
+        if (!xpMatch) return;
+        
+        let currentXp = parseInt(xpMatch[1]);
+        const targetXp = parseInt(xpMatch[2]);
+        
+        // Add the gained XP
+        currentXp += xpGained;
+        
+        // Check if level up occurred
+        if (currentXp >= targetXp && userLevel < window.xpRequirements.length) {
+          // Level up!
+          const newLevel = userLevel + 1;
+          const nextTarget = window.xpRequirements[newLevel] || targetXp;
+          
+          // Update displays
+          levelIndicator.textContent = `Level ${newLevel}`;
+          xpProgressLabel.textContent = `${currentXp} XP / ${nextTarget} XP`;
+          xpProgressFill.style.width = `${Math.min(100, (currentXp / nextTarget) * 100)}%`;
+          
+          // Update data attribute
+          document.querySelector('.system-controls').setAttribute('data-user-level', newLevel.toString());
+          
+          // Show level up notification
+          const levelUpNotification = document.createElement('div');
+          levelUpNotification.className = 'level-up-notification';
+          levelUpNotification.innerHTML = `
+            <div class="level-up-title">Level Up!</div>
+            <div class="level-up-level">Level ${newLevel}</div>
+            <div class="level-up-message">Refresh to unlock new features</div>
+          `;
+          document.body.appendChild(levelUpNotification);
+          
+          setTimeout(() => {
+            levelUpNotification.classList.add('show');
+            setTimeout(() => {
+              levelUpNotification.classList.remove('show');
+              setTimeout(() => {
+                document.body.removeChild(levelUpNotification);
+              }, 500);
+            }, 5000);
+          }, 100);
+        } else {
+          // Regular XP update
+          xpProgressLabel.textContent = `${currentXp} XP / ${targetXp} XP`;
+          xpProgressFill.style.width = `${Math.min(100, (currentXp / targetXp) * 100)}%`;
+        }
+      } catch (error) {
+        console.error('Error updating XP progress:', error);
+      }
+    };
   });
 </script>
 

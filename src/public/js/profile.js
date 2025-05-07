@@ -94,7 +94,7 @@ function setupFormHandlers() {
   const forms = document.querySelectorAll('.profile-form');
   
   forms.forEach(form => {
-    form.addEventListener('submit', async function(event) {
+    const submitHandler = async function(event) {
       event.preventDefault();
       
       // Validate form before submission
@@ -174,13 +174,16 @@ function setupFormHandlers() {
         console.error('Error updating profile:', error);
         showNotification(error.message || 'Failed to update profile', 'error');
       }
-    });
+    };
+    
+    form.addEventListener('submit', submitHandler);
+    form._submitHandler = submitHandler;
   });
   
   // Add delete profile button handler
   const deleteBtn = document.getElementById('delete-profile-btn');
   if (deleteBtn) {
-    deleteBtn.addEventListener('click', async function() {
+    const clickHandler = async function() {
       // Confirm deletion
       if (!confirm('Are you sure you want to delete your profile? This cannot be undone.')) {
         return;
@@ -214,7 +217,10 @@ function setupFormHandlers() {
         console.error('Error deleting profile:', error);
         showNotification(error.message || 'Failed to delete profile', 'error');
       }
-    });
+    };
+    
+    deleteBtn.addEventListener('click', clickHandler);
+    deleteBtn._clickHandler = clickHandler;
   }
 }
 
@@ -346,7 +352,7 @@ function setupInlineEditing() {
   // Edit buttons
   const editButtons = document.querySelectorAll('.edit-field-btn');
   editButtons.forEach(button => {
-    button.addEventListener('click', function() {
+    const clickHandler = function() {
       const field = this.getAttribute('data-field');
       const displayEl = document.getElementById(`${field}-display`);
       const formEl = document.getElementById(`${field}-form`);
@@ -360,13 +366,16 @@ function setupInlineEditing() {
       if (inputEl) {
         inputEl.focus();
       }
-    });
+    };
+    
+    button.addEventListener('click', clickHandler);
+    button._clickHandler = clickHandler;
   });
   
   // Cancel buttons
   const cancelButtons = document.querySelectorAll('.cancel-edit-btn');
   cancelButtons.forEach(button => {
-    button.addEventListener('click', function() {
+    const clickHandler = function() {
       const field = this.getAttribute('data-field');
       const displayEl = document.getElementById(`${field}-display`);
       const formEl = document.getElementById(`${field}-form`);
@@ -374,13 +383,16 @@ function setupInlineEditing() {
       // Show display, hide form
       displayEl.closest('.editable-field').style.display = 'flex';
       formEl.style.display = 'none';
-    });
+    };
+    
+    button.addEventListener('click', clickHandler);
+    button._clickHandler = clickHandler;
   });
   
   // Save buttons with improved handling
   const saveButtons = document.querySelectorAll('.save-field-btn');
   saveButtons.forEach(button => {
-    button.addEventListener('click', async function() {
+    const clickHandler = async function() {
       const field = this.getAttribute('data-field');
       const inputEl = document.getElementById(field);
       const value = inputEl.value;
@@ -479,7 +491,10 @@ function setupInlineEditing() {
         this.disabled = false;
         this.textContent = 'Save';
       }
-    });
+    };
+    
+    button.addEventListener('click', clickHandler);
+    button._clickHandler = clickHandler;
   });
 }
 
@@ -493,7 +508,7 @@ function setupInlineEditing() {
 function syncTriggersWithPages(activeTriggers, triggerDescriptions) {
   // Use localStorage to persist the active triggers between pages
   localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers));
-  localStorage.setItem('bambiTriggerDescriptions', JSON.stringify(triggerDescriptions));
+  localStorage.setItem('triggerControlsDescriptions', JSON.stringify(triggerDescriptions));
   
   // If we're in the profile page, also update any other open tabs via BroadcastChannel
   if (window.location.pathname.includes('/profile/')) {
@@ -507,6 +522,16 @@ function syncTriggersWithPages(activeTriggers, triggerDescriptions) {
       type: 'trigger-update',
       activeTriggers: activeTriggers,
       triggerDescriptions: triggerDescriptions
+    });
+  }
+  
+  // Also update through bambiSystem if available
+  if (window.bambiSystem) {
+    window.bambiSystem.saveState('triggers', {
+      triggers: activeTriggers.map(t => ({
+        name: typeof t === 'string' ? t : t.name,
+        description: typeof t === 'string' ? 'Trigger effect' : (t.description || 'Trigger effect')
+      }))
     });
   }
 }
@@ -533,7 +558,7 @@ function setupSystemControls() {
     // Add event listeners to trigger toggles in the profile page
     const triggerToggles = document.querySelectorAll('.trigger-toggle');
     triggerToggles.forEach(toggle => {
-      toggle.addEventListener('change', function() {
+      const changeHandler = function() {
         const triggerName = this.getAttribute('data-trigger');
         const isActive = this.checked;
         
@@ -555,7 +580,10 @@ function setupSystemControls() {
             })
           });
         }
-      });
+      };
+      
+      toggle.addEventListener('change', changeHandler);
+      toggle._changeHandler = changeHandler;
     });
   }
   
@@ -615,9 +643,12 @@ function populateTriggerList(triggerList) {
     }
     
     // Set up change handler to save state
-    toggle.addEventListener('change', function() {
+    const changeHandler = function() {
       saveTriggerState(username);
-    });
+    };
+    
+    toggle.addEventListener('change', changeHandler);
+    toggle._changeHandler = changeHandler;
     
     const label = document.createElement('label');
     label.textContent = trigger;
@@ -753,12 +784,15 @@ function updateSystemControlsUI(data) {
       }
       
       // Set up change handler
-      toggle.addEventListener('change', function() {
+      const changeHandler = function() {
         const username = document.body.getAttribute('data-username');
         if (username) {
           saveTriggerState(username);
         }
-      });
+      };
+      
+      toggle.addEventListener('change', changeHandler);
+      toggle._changeHandler = changeHandler;
       
       const label = document.createElement('label');
       label.htmlFor = `toggle-${index}`;
@@ -797,12 +831,15 @@ function updateSystemControlsUI(data) {
       }
       
       // Set up change handler
-      toggle.addEventListener('change', function() {
+      const changeHandler = function() {
         const username = document.body.getAttribute('data-username');
         if (username) {
           saveTriggerState(username);
         }
-      });
+      };
+      
+      toggle.addEventListener('change', changeHandler);
+      toggle._changeHandler = changeHandler;
       
       const label = document.createElement('label');
       label.htmlFor = `toggle-${index}`;
@@ -1018,21 +1055,30 @@ function setupPaginationControls() {
   const sortDirDropdown = document.getElementById('sort-direction');
   
   if (resultsDropdown) {
-    resultsDropdown.addEventListener('change', function() {
+    const changeHandler = function() {
       updateProfileList();
-    });
+    };
+    
+    resultsDropdown.addEventListener('change', changeHandler);
+    resultsDropdown._changeHandler = changeHandler;
   }
   
   if (sortByDropdown) {
-    sortByDropdown.addEventListener('change', function() {
+    const changeHandler = function() {
       updateProfileList();
-    });
+    };
+    
+    sortByDropdown.addEventListener('change', changeHandler);
+    sortByDropdown._changeHandler = changeHandler;
   }
   
   if (sortDirDropdown) {
-    sortDirDropdown.addEventListener('change', function() {
+    const changeHandler = function() {
       updateProfileList();
-    });
+    };
+    
+    sortDirDropdown.addEventListener('change', changeHandler);
+    sortDirDropdown._changeHandler = changeHandler;
   }
   
   // Function to update the profile list based on controls
@@ -1093,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Add event listener for trigger toggles
   const triggerToggles = document.querySelectorAll('.toggle-input');
   triggerToggles.forEach(toggle => {
-    toggle.addEventListener('change', function() {
+    const changeHandler = function() {
       if (this.checked) {
         // Award +3 XP when a trigger is activated
         const username = document.body.getAttribute('data-username');
@@ -1105,13 +1151,16 @@ document.addEventListener('DOMContentLoaded', function() {
           });
         }
       }
-    });
+    };
+    
+    toggle.addEventListener('change', changeHandler);
+    toggle._changeHandler = changeHandler;
   });
   
   // Add event listener for collar use
   const saveCollarBtn = document.getElementById('save-collar');
   if (saveCollarBtn) {
-    saveCollarBtn.addEventListener('click', function() {
+    const clickHandler = function() {
       const collarEnable = document.getElementById('collar-enable');
       if (collarEnable && collarEnable.checked) {
         // Award +15 XP for using the collar
@@ -1124,7 +1173,10 @@ document.addEventListener('DOMContentLoaded', function() {
           });
         }
       }
-    });
+    };
+    
+    saveCollarBtn.addEventListener('click', clickHandler);
+    saveCollarBtn._clickHandler = clickHandler;
   }
   
   // Initialize form handlers
@@ -1236,21 +1288,30 @@ document.addEventListener('DOMContentLoaded', function() {
   const sortDirDropdown = document.getElementById('sort-direction');
   
   if (resultsDropdown) {
-    resultsDropdown.addEventListener('change', function() {
+    const changeHandler = function() {
       updateProfileList();
-    });
+    };
+    
+    resultsDropdown.addEventListener('change', changeHandler);
+    resultsDropdown._changeHandler = changeHandler;
   }
   
   if (sortByDropdown) {
-    sortByDropdown.addEventListener('change', function() {
+    const changeHandler = function() {
       updateProfileList();
-    });
+    };
+    
+    sortByDropdown.addEventListener('change', changeHandler);
+    sortByDropdown._changeHandler = changeHandler;
   }
   
   if (sortDirDropdown) {
-    sortDirDropdown.addEventListener('change', function() {
+    const changeHandler = function() {
       updateProfileList();
-    });
+    };
+    
+    sortDirDropdown.addEventListener('change', changeHandler);
+    sortDirDropdown._changeHandler = changeHandler;
   }
   
   // Function to update the profile list based on controls
@@ -1308,6 +1369,80 @@ document.addEventListener('DOMContentLoaded', function() {
     setupPaginationControls();
   }
 });
+
+// Function to clean up event listeners
+function tearDown() {
+  try {
+    // Clean up form handlers
+    const forms = document.querySelectorAll('.profile-form');
+    forms.forEach(form => {
+      form.removeEventListener('submit', form._submitHandler);
+    });
+    
+    // Clean up delete profile button handler
+    const deleteBtn = document.getElementById('delete-profile-btn');
+    if (deleteBtn) {
+      deleteBtn.removeEventListener('click', deleteBtn._clickHandler);
+    }
+    
+    // Clean up inline editing handlers
+    const editButtons = document.querySelectorAll('.edit-field-btn');
+    editButtons.forEach(button => {
+      button.removeEventListener('click', button._clickHandler);
+    });
+    
+    const cancelButtons = document.querySelectorAll('.cancel-edit-btn');
+    cancelButtons.forEach(button => {
+      button.removeEventListener('click', button._clickHandler);
+    });
+    
+    const saveButtons = document.querySelectorAll('.save-field-btn');
+    saveButtons.forEach(button => {
+      button.removeEventListener('click', button._clickHandler);
+    });
+    
+    // Clean up system controls
+    const triggerToggles = document.querySelectorAll('.toggle-input');
+    triggerToggles.forEach(toggle => {
+      toggle.removeEventListener('change', toggle._changeHandler);
+    });
+    
+    // Clean up pagination controls
+    const resultsDropdown = document.getElementById('results-per-page');
+    if (resultsDropdown) {
+      resultsDropdown.removeEventListener('change', resultsDropdown._changeHandler);
+    }
+    
+    const sortByDropdown = document.getElementById('sort-by');
+    if (sortByDropdown) {
+      sortByDropdown.removeEventListener('change', sortByDropdown._changeHandler);
+    }
+    
+    const sortDirDropdown = document.getElementById('sort-direction');
+    if (sortDirDropdown) {
+      sortDirDropdown.removeEventListener('change', sortDirDropdown._changeHandler);
+    }
+    
+    // Clean up BroadcastChannel
+    if (window.triggerSyncChannel) {
+      window.triggerSyncChannel.close();
+      window.triggerSyncChannel = null;
+    }
+    
+    // Clean up socket listeners
+    if (window.socket) {
+      window.socket.off('xp:update');
+      window.socket.off('level:up');
+    }
+    
+    console.log('Profile event listeners cleaned up');
+  } catch (error) {
+    console.error('Error during profile tearDown:', error);
+  }
+}
+
+// Add tearDown to the global exports
+window.tearDownProfile = tearDown;
 
 // Make the functions available globally
 window.validateForm = validateForm;

@@ -60,6 +60,9 @@ const __dirname = path.dirname(__filename);
 const logger = new Logger('Server');
 logger.info('Starting BambiSleep.chat server...');
 
+// Global socket store
+const socketStore = new Map();
+
 /**
  * Main application setup
  * 
@@ -77,11 +80,14 @@ async function initializeApp() {
       pingTimeout: config.SOCKET_PING_TIMEOUT || 86400000, // 1 day in milliseconds
       pingInterval: config.SOCKET_PING_INTERVAL || 25000,
       cors: {
-      origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
-      methods: ['GET', 'POST'],
-      credentials: true
+        origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
+        methods: ['GET', 'POST'],
+        credentials: true
       }
     });
+
+    // Make socket store accessible from io for use in disconnect handling
+    io.sockets.socketStore = socketStore;
 
     // Load filtered words for content moderation
     const filteredWords = JSON.parse(await fsPromises.readFile(
@@ -107,8 +113,7 @@ async function initializeApp() {
     // Set up routes and APIs
     setupRoutes(app);
     
-    // Set up socket handlers with shared store for workers
-    const socketStore = new Map();
+    // Set up socket handlers
     setupSocketHandlers(io, socketStore, filteredWords);
     
     // Set up error handlers
@@ -215,78 +220,13 @@ function setupRoutes(app) {
   // Add the chat routes
   app.use('/api/chat', chatRoutes);
   
-  // Add routes for client-side rendering data
-  app.get('/api/chat/messages', async (req, res) => {
-    try {
-      // Get requested limit with default of 50
-      const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
-      
-      // Use the updated model method which handles connections properly
-      const ChatMessage = mongoose.model('ChatMessage');
-      const messages = await ChatMessage.getRecentMessages(limit);
-      
-      res.json({ messages });
-    } catch (error) {
-      console.error('Error fetching chat messages:', error);
-      res.status(500).json({ error: 'Error fetching messages', messages: [] });
-    }
-  });
-
-  app.get('/api/profile/:username/system-controls', async (req, res) => {
-    try {
-      const username = req.params.username;
-      
-      if (!username) {
-        return res.status(400).json({ error: 'Username is required' });
-      }
-      
-      // Fetch profile data - replace with your actual data fetching logic
-      // If you have a Profile model, use it here
-      const profile = await getProfileByUsername(username);
-      
-      if (!profile) {
-        return res.status(404).json({ 
-          activeTriggers: [],
-          message: 'Profile not found' 
-        });
-      }
-      
-      // Return system controls data in the format expected by the client renderer
-      res.json({
-        activeTriggers: profile.activeTriggers || [],
-        systemSettings: profile.settings || {},
-        xp: profile.xp || 0,
-        level: profile.level || 0
-      });
-    } catch (error) {
-      console.error(`Error fetching profile system controls for ${req.params.username}:`, error);
-      res.status(500).json({ 
-        error: 'Error fetching profile data',
-        activeTriggers: [] 
-      });
-    }
-  });
-
-  // Add performance metrics API endpoint
-  app.post('/api/performance', (req, res) => {
-    try {
-      const metrics = req.body;
-      
-      // Log summary of metrics if available
-      if (metrics && metrics.summary) {
-        console.log(`Performance metrics from client: ${JSON.stringify(metrics.summary)}`);
-      }
-      
-      // You could store metrics in a database for later analysis
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error processing performance metrics:', error);
-      res.status(500).json({ error: 'Error processing metrics' });
-    }
-  });
+  // Add health check endpoint
+  setupHealthCheckRoutes(app);
   
-  // Set up TTS API routes
+  // Add routes for client-side rendering data
+  setupClientDataRoutes(app);
+  
+  // Add TTS API routes
   setupTTSRoutes(app);
   
   // Add API routes
@@ -306,6 +246,151 @@ function setupRoutes(app) {
   });
   
   logger.info('Routes configured');
+}
+
+/**
+ * Set up health check routes for monitoring
+ * 
+ * @param {Express} app - Express application instance
+ */
+function setupHealthCheckRoutes(app) {
+  // Simple ping endpoint
+  app.get('/health/ping', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: Date.now() });
+  });
+  
+  // Detailed health check including DB and worker status
+  app.get('/health/status', async (req, res) => {
+    try {
+      const memoryUsage = process.memoryUsage();
+      const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+      const workersStatus = await workerCoordinator.getStatus();
+      
+      // Get socket stats
+      const socketStats = {
+        connections: socketStore.size,
+        oldest: 0,
+        newest: 0
+      };
+      
+      if (socketStore.size > 0) {
+        const now = Date.now();
+        let youngest = Infinity;
+        let oldest = 0;
+        
+        for (const socketData of socketStore.values()) {
+          const age = now - socketData.connectedAt;
+          youngest = Math.min(youngest, age);
+          oldest = Math.max(oldest, age);
+        }
+        
+        socketStats.oldest = Math.round(oldest / 1000);
+        socketStats.newest = Math.round(youngest / 1000);
+      }
+      
+      res.status(200).json({
+        status: 'ok',
+        uptime: process.uptime(),
+        timestamp: Date.now(),
+        memory: {
+          rss: Math.round(memoryUsage.rss / 1024 / 1024),
+          heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+          heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024)
+        },
+        database: {
+          status: dbStatus,
+          connectionId: mongoose.connection.id
+        },
+        workers: workersStatus,
+        sockets: socketStats
+      });
+    } catch (error) {
+      logger.error('Health check error:', error);
+      res.status(500).json({
+        status: 'error',
+        error: error.message,
+        timestamp: Date.now()
+      });
+    }
+  });
+}
+
+/**
+ * Set up client-side data routes
+ * 
+ * @param {Express} app - Express application instance
+ */
+function setupClientDataRoutes(app) {
+  // Get chat messages
+  app.get('/api/chat/messages', async (req, res) => {
+    try {
+      // Get requested limit with default of 50
+      const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+      
+      // Use the updated model method which handles connections properly
+      const ChatMessage = mongoose.model('ChatMessage');
+      const messages = await ChatMessage.getRecentMessages(limit);
+      
+      res.json({ messages });
+    } catch (error) {
+      logger.error('Error fetching chat messages:', error);
+      res.status(500).json({ error: 'Error fetching messages', messages: [] });
+    }
+  });
+
+  // Get profile system controls
+  app.get('/api/profile/:username/system-controls', async (req, res) => {
+    try {
+      const username = req.params.username;
+      
+      if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+      }
+      
+      // Fetch profile data using the withDbConnection helper
+      const profile = await withDbConnection(() => getProfileByUsername(username));
+      
+      if (!profile) {
+        return res.status(404).json({ 
+          activeTriggers: [],
+          message: 'Profile not found' 
+        });
+      }
+      
+      // Return system controls data in the format expected by the client renderer
+      res.json({
+        activeTriggers: profile.activeTriggers || [],
+        systemSettings: profile.settings || {},
+        xp: profile.xp || 0,
+        level: profile.level || 0
+      });
+    } catch (error) {
+      logger.error(`Error fetching profile system controls for ${req.params.username}:`, error);
+      res.status(500).json({ 
+        error: 'Error fetching profile data',
+        activeTriggers: [] 
+      });
+    }
+  });
+
+  // Performance metrics API endpoint
+  app.post('/api/performance', (req, res) => {
+    try {
+      const metrics = req.body;
+      
+      // Log summary of metrics if available
+      if (metrics && metrics.summary) {
+        logger.info(`Performance metrics from client: ${JSON.stringify(metrics.summary)}`);
+      }
+      
+      // You could store metrics in a database for later analysis
+      
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error processing performance metrics:', error);
+      res.status(500).json({ error: 'Error processing metrics' });
+    }
+  });
 }
 
 /**
@@ -429,58 +514,13 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
 }
 
 /**
- * Handle scrape request
- * 
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- */
-function handleScrapeRequest(req, res) {
-  const { url } = req.body;
-  
-  if (!url) {
-    return res.status(400).json({ error: 'URL is required' });
-  }
-  
-  workerCoordinator.scrapeUrl(url, (error, results) => {
-    if (error) {
-      return res.status(500).json({ error: 'Error scraping content' });
-    }
-    res.json(results);
-  });
-}
-
-/**
- * Handle directory scan request
- * 
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- */
-function handleScanRequest(req, res) {
-  const { directory } = req.body;
-  
-  if (!directory) {
-    return res.status(400).json({ error: 'Directory path is required' });
-  }
-  
-  workerCoordinator.scanDirectory(directory, (error, results) => {
-    if (error) {
-      return res.status(500).json({ error: 'Error scanning directory' });
-    }
-    res.json(results);
-  });
-}
-
-/**
  * Set up Socket.io event handlers
  * 
  * @param {SocketIO.Server} io - Socket.io server instance
  * @param {Map} socketStore - Map to store socket and worker references
  * @param {string[]} filteredWords - List of words to filter
  */
-// Add to setupSocketHandlers function in server.js
 function setupSocketHandlers(io, socketStore, filteredWords) {
-  // Existing code...
-  
   io.on('connection', (socket) => {
     try {
       // Parse cookies and get username
@@ -518,13 +558,170 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       
       // Handle session-related events
       setupSessionEvents(socket, lmstudio);
+      
+      // Update activity timestamp on any event
+      const originalEmit = socket.emit;
+      socket.emit = function() {
+        const socketData = socketStore.get(socket.id);
+        if (socketData) {
+          socketData.lastActivity = Date.now();
+        }
+        return originalEmit.apply(socket, arguments);
+      };
+      
+      // Track user activity by monitoring events
+      socket.onAny(() => {
+        const socketData = socketStore.get(socket.id);
+        if (socketData) {
+          socketData.lastActivity = Date.now();
+        }
+      });
     } catch (error) {
       logger.error(`Error handling socket connection: ${error.message}`);
     }
   });
+  
+  // Set up periodic monitoring of socket connections
+  setInterval(() => {
+    const now = Date.now();
+    const idleTimeout = config.SOCKET_IDLE_TIMEOUT || 7200000; // 2 hours default
+    
+    // Check for idle sockets
+    for (const [socketId, socketData] of socketStore.entries()) {
+      const idleTime = now - socketData.lastActivity;
+      
+      // If socket has been idle for too long, disconnect it
+      if (idleTime > idleTimeout) {
+        logger.info(`Auto-disconnecting idle socket: ${socketId} (${socketData.username}), idle for ${Math.round(idleTime/1000/60)}m`);
+        try {
+          socketData.socket.disconnect(true);
+        } catch (error) {
+          logger.error(`Error disconnecting idle socket: ${error.message}`);
+          // Clean up anyway
+          cleanupSocket(socketId, socketData);
+        }
+      }
+    }
+  }, 300000); // Check every 5 minutes
 }
 
-// Simplify the setupSessionEvents function
+/**
+ * Clean up socket resources
+ * 
+ * @param {string} socketId - Socket ID
+ * @param {Object} socketData - Socket data from store
+ */
+function cleanupSocket(socketId, socketData) {
+  try {
+    if (socketData.worker) {
+      socketData.worker.terminate();
+    }
+    socketStore.delete(socketId);
+    logger.info(`Socket resources cleaned up: ${socketId}`);
+  } catch (error) {
+    logger.error(`Error cleaning up socket resources: ${error.message}`);
+  }
+}
+
+/**
+ * Handle socket disconnection and clean up worker
+ * 
+ * @param {Socket} socket - Socket.io socket instance
+ * @param {SocketIO.Server} io - Socket.io server instance
+ */
+function handleSocketDisconnect(socket, io) {
+  try {
+    // Get the socket store from io object
+    const socketStore = io.sockets.socketStore;
+    if (!socketStore) {
+      logger.error('Socket store not available in disconnect handler');
+      return;
+    }
+
+    io.emit('user_disconnect', { userId: socket.id });
+
+    // Get the socket data
+    const socketData = socketStore.get(socket.id);
+    if (!socketData) {
+      logger.warning(`No socket data found for disconnecting socket: ${socket.id}`);
+      return;
+    }
+    
+    const username = socketData.username || socket.bambiUsername || 'unknown';
+    
+    // Log the disconnect with details
+    logger.info(`Client disconnected: ${socket.id} (${username}) - Reason: ${socket.disconnectReason || 'unknown'}`);
+    
+    // Set up worker cleanup with confirmation pattern
+    if (socketData.worker) {
+      try {
+        // Set up a message handler for cleanup confirmation
+        const messageHandler = (message) => {
+          if (message && message.type === 'cleanup:complete' && message.socketId === socket.id) {
+            logger.info(`Worker cleanup confirmed: ${socket.id} (${username})`);
+            cleanup();
+          }
+        };
+        
+        // Function to perform final cleanup
+        const cleanup = () => {
+          try {
+            // Remove message handler
+            socketData.worker.removeListener('message', messageHandler);
+            
+            // Terminate worker
+            socketData.worker.terminate();
+            logger.info(`Worker terminated: ${socket.id} (${username})`);
+            
+            // Remove from socket store
+            socketStore.delete(socket.id);
+            logger.info(`Socket removed from store: ${socket.id} (${username})`);
+          } catch (error) {
+            logger.error(`Error in socket cleanup: ${error.message}`);
+          }
+        };
+        
+        // Add the message handler
+        socketData.worker.on('message', messageHandler);
+        
+        // Send cleanup request to worker
+        socketData.worker.postMessage({
+          type: 'socket:disconnect',
+          socketId: socket.id,
+          requestCleanupConfirmation: true
+        });
+        
+        // Set timeout for worker response
+        const timeoutId = setTimeout(() => {
+          logger.warning(`Worker cleanup timeout: ${socket.id} (${username})`);
+          cleanup();
+        }, config.WORKER_CLEANUP_TIMEOUT || 5000);
+        
+        // Store timeout ID for cancellation if needed
+        socketData.cleanupTimeoutId = timeoutId;
+        
+      } catch (error) {
+        logger.error(`Error in worker cleanup: ${error.message}`);
+        
+        // Clean up anyway
+        socketStore.delete(socket.id);
+      }
+    } else {
+      // No worker, just remove the socket
+      socketStore.delete(socket.id);
+      logger.info(`Socket removed from store: ${socket.id} (${username})`);
+    }
+  } catch (error) {
+    logger.error(`Error in handleSocketDisconnect: ${error.message}`);
+  }
+}
+
+/**
+ * Session-related socket event handlers
+ *
+ * @param {Socket} socket - Socket.io socket instance
+ * @param {Worker} lmstudio - Worker thread for LM Studio operations
+ */
 function setupSessionEvents(socket, lmstudio) {
   // Load session
   socket.on('load-session', function(sessionId) {
@@ -535,36 +732,61 @@ function setupSessionEvents(socket, lmstudio) {
         const SessionHistory = mongoose.model('SessionHistory');
         const session = await SessionHistory.findById(sessionId);
         
-        if (!session) return;
+        if (!session) {
+          socket.emit('session-error', { message: 'Session not found' });
+          return;
+        }
         
         // Send to worker
         lmstudio.postMessage({
           type: "load-history",
           messages: session.messages || [],
           socketId: socket.id,
-          username: socket.bambiUsername
+          username: socket.bambiUsername,
+          sessionId: sessionId
         });
         
         // Send to client
-        socket.emit('session-loaded', { session, sessionId });
+        socket.emit('session-loaded', { 
+          session, 
+          sessionId,
+          metadata: session.metadata || {}
+        });
+        
+        // Update last activity
+        await SessionHistory.findByIdAndUpdate(sessionId, {
+          $set: { 'metadata.lastActivity': new Date() }
+        });
+        
+        // Track this in user activity
+        const socketData = socketStore.get(socket.id);
+        if (socketData) {
+          socketData.lastActivity = Date.now();
+          socketData.currentSessionId = sessionId;
+        }
         
       } catch (error) {
         logger.error(`Session load error: ${error.message}`);
+        socket.emit('session-error', { message: 'Error loading session' });
       }
     });
   });
   
   // Save session
   socket.on('save-session', function(data) {
-    if (!data || !socket.bambiUsername || socket.bambiUsername === 'anonBambi') return;
+    if (!data || !socket.bambiUsername || socket.bambiUsername === 'anonBambi') {
+      socket.emit('session-error', { message: 'Cannot save session: not logged in' });
+      return;
+    }
     
     withDbConnection(async () => {
       try {
         const SessionHistory = mongoose.model('SessionHistory');
+        let sessionId = data.sessionId;
         
-        if (data.sessionId) {
+        if (sessionId) {
           // Update existing
-          await SessionHistory.findByIdAndUpdate(data.sessionId, {
+          const result = await SessionHistory.findByIdAndUpdate(sessionId, {
             $set: {
               'metadata.lastActivity': new Date(),
               'metadata.triggers': data.settings?.activeTriggers || [],
@@ -575,7 +797,14 @@ function setupSessionEvents(socket, lmstudio) {
             $push: {
               messages: { $each: data.messages || [] }
             }
-          });
+          }, { new: true });
+          
+          if (!result) {
+            socket.emit('session-error', { message: 'Session not found' });
+            return;
+          }
+          
+          socket.emit('session-saved', { sessionId });
           
         } else {
           // Create new
@@ -588,15 +817,98 @@ function setupSessionEvents(socket, lmstudio) {
               triggers: data.settings?.activeTriggers || [],
               collarActive: data.settings?.collarSettings?.enabled || false,
               collarText: data.settings?.collarSettings?.text || '',
-              spiralSettings: data.settings?.spiralSettings || {}
+              spiralSettings: data.settings?.spiralSettings || {},
+              createdAt: new Date(),
+              lastActivity: new Date()
             }
           });
           
           await session.save();
-          socket.emit('session-created', { sessionId: session._id });
+          
+          // Update socket data with current session
+          const socketData = socketStore.get(socket.id);
+          if (socketData) {
+            socketData.currentSessionId = session._id;
+          }
+          
+          socket.emit('session-created', { 
+            sessionId: session._id,
+            title: session.title 
+          });
         }
       } catch (error) {
         logger.error(`Session save error: ${error.message}`);
+        socket.emit('session-error', { message: 'Error saving session' });
+      }
+    });
+  });
+  
+  // Delete session
+  socket.on('delete-session', function(sessionId) {
+    if (!sessionId || !socket.bambiUsername || socket.bambiUsername === 'anonBambi') {
+      socket.emit('session-error', { message: 'Cannot delete session: not logged in' });
+      return;
+    }
+    
+    withDbConnection(async () => {
+      try {
+        const SessionHistory = mongoose.model('SessionHistory');
+        
+        // Verify ownership
+        const session = await SessionHistory.findOne({ 
+          _id: sessionId,
+          username: socket.bambiUsername
+        });
+        
+        if (!session) {
+          socket.emit('session-error', { message: 'Session not found or not yours' });
+          return;
+        }
+        
+        // Delete session
+        await SessionHistory.findByIdAndDelete(sessionId);
+        
+        // Clear current session if it was this one
+        const socketData = socketStore.get(socket.id);
+        if (socketData && socketData.currentSessionId === sessionId) {
+          delete socketData.currentSessionId;
+        }
+        
+        socket.emit('session-deleted', { sessionId });
+        
+      } catch (error) {
+        logger.error(`Session delete error: ${error.message}`);
+        socket.emit('session-error', { message: 'Error deleting session' });
+      }
+    });
+  });
+  
+  // Get sessions list
+  socket.on('get-sessions', function() {
+    if (!socket.bambiUsername || socket.bambiUsername === 'anonBambi') {
+      socket.emit('sessions-list', { sessions: [] });
+      return;
+    }
+    
+    withDbConnection(async () => {
+      try {
+        const SessionHistory = mongoose.model('SessionHistory');
+        
+        const sessions = await SessionHistory.find({ 
+          username: socket.bambiUsername 
+        }).sort({ 'metadata.lastActivity': -1 }).select({
+          _id: 1,
+          title: 1,
+          'metadata.createdAt': 1,
+          'metadata.lastActivity': 1,
+          'metadata.triggers': 1
+        });
+        
+        socket.emit('sessions-list', { sessions });
+        
+      } catch (error) {
+        logger.error(`Get sessions error: ${error.message}`);
+        socket.emit('sessions-list', { sessions: [] });
       }
     });
   });
@@ -643,136 +955,6 @@ function filterWords(content, filteredWords) {
   } catch (error) {
     logger.error('Error in content filter:', error);
     return content;
-  }
-}
-
-/**
- * Handle socket disconnection and clean up worker
- * 
- * @param {Socket} socket - Socket.io socket instance
- * @param {SocketIO.Server} io - Socket.io server instance
- */
-function handleSocketDisconnect(socket, io) {
-  try {
-    // The socketStore variable is not in scope here
-    // We need to access it from io.sockets
-    const socketStore = io.sockets.socketStore || new Map(); // Access the socket store from io object
-
-    io.emit('user_disconnect', { userId: socket.id });
-
-    // Get the bambi name from the socket data or cookie
-    const socketData = socketStore.get(socket.id);
-    const bambiName = socketData?.username || 
-                     socket.bambiUsername || 
-                     socket.handshake.headers.cookie?.split(';')
-                       .find(c => c.trim().startsWith('bambiname='))
-                       ?.split('=')[1] || 'unregistered';
-    
-    // Get the total connections and active workers count
-    const totalConnections = socket.server.engine.clientsCount;
-    const activeWorkers = socketStore.size; // Or use a more accurate count if available
-    
-    // Log the disconnect with detailed user information
-    const reason = socket.disconnectReason || 'unknown';
-    logger.info(`Client disconnected: ${socket.id} (${bambiName}) - Reason: ${reason}`);
-    
-    try {
-      // Double-check this is really disconnected
-      if (!socket.connected && socketData) {
-        if (socketData.worker) {
-          try {
-            // Set up a one-time message handler for cleanup confirmation
-            const messageHandler = (message) => {
-              if (message && message.type === 'cleanup:complete' && message.socketId === socket.id) {
-                // Log cleanup confirmation
-                logger.info(`Socket cleanup confirmed: ${socket.id} (${bambiName})`);
-                
-                // Clean up timeout
-                clearTimeout(timeoutId);
-                
-                // Remove message handler
-                socketData.worker.removeListener('message', messageHandler);
-                
-                // Terminate worker
-                try {
-                  socketData.worker.terminate();
-                  // Log worker cleanup
-                  logger.info(`Worker terminated: ${socket.id} (${bambiName})`);
-                } catch (termError) {
-                  logger.error(`Error terminating worker: ${termError.message}`);
-                }
-                
-                // Remove from socket store
-                socketStore.delete(socket.id);
-                // Log removal from store with updated count
-                const updatedConnections = socket.server.engine.clientsCount;
-                logger.info(`Socket removed from store: ${socket.id} (${bambiName}), remaining connections: ${updatedConnections}`);
-              }
-            };
-            
-            // Add the message handler
-            socketData.worker.on('message', messageHandler);
-            
-            // Send cleanup request to worker
-            socketData.worker.postMessage({
-              type: 'socket:disconnect',
-              socketId: socket.id,
-              requestCleanupConfirmation: true
-            });
-            
-            // Set timeout for worker response
-            const timeoutId = setTimeout(() => {
-              logger.warning(`Worker for socket ${socket.id} (${bambiName}) did not confirm cleanup, forcing termination`);
-              
-              // Remove listener
-              socketData.worker.removeListener('message', messageHandler);
-              
-              // Force terminate
-              try {
-                socketData.worker.terminate();
-                logger.info(`Worker force-terminated: ${socket.id} (${bambiName})`);
-              } catch (termError) {
-                logger.error(`Error force-terminating worker: ${termError.message}`);
-              }
-              
-              // Remove from socket store
-              socketStore.delete(socket.id);
-              const updatedConnections = socket.server.engine.clientsCount;
-              logger.info(`Socket removed from store: ${socket.id} (${bambiName}), remaining connections: ${updatedConnections}`);
-            }, 5000); // Default timeout of 5 seconds if config.WORKER_TIMEOUT isn't available
-            
-          } catch (postError) {
-            logger.error(`Error sending disconnect message to worker: ${postError.message}`);
-            
-            // Try to terminate anyway
-            try {
-              socketData.worker.terminate();
-              logger.info(`Worker terminated: ${socket.id} (${bambiName})`);
-            } catch (termError) {
-              logger.error(`Also failed to terminate worker: ${termError.message}`);
-            }
-            
-            // Rely on garbage collector to clean up this worker later
-            socketStore.delete(socket.id);
-            const updatedConnections = socket.server.engine.clientsCount;
-            logger.info(`Socket removed from store: ${socket.id} (${bambiName}), remaining connections: ${updatedConnections}`);
-          }
-        } else {
-          socketStore.delete(socket.id);
-          const updatedConnections = socket.server.engine.clientsCount;
-          logger.info(`Socket removed from store: ${socket.id} (${bambiName}), remaining connections: ${updatedConnections}`);
-        }
-      } else if (socket.connected) {
-        logger.warning(`Socket ${socket.id} (${bambiName}) disconnect handler called but socket still appears connected. Not cleaning up yet.`);
-      }
-    } catch (error) {
-      logger.error(`Error during socket cleanup for ${socket.id} (${bambiName}): ${error.message}`);
-      
-      // Mark for garbage collection later if cleanup fails
-      logger.info(`Socket ${socket.id} (${bambiName}) marked for garbage collection`);
-    }
-  } catch (error) {
-    logger.error(`Error in handleSocketDisconnect: ${error.message}`);
   }
 }
 
@@ -861,77 +1043,26 @@ function monitorResources() {
 }
 
 /**
- * Helper function to fetch messages from the database
- * 
- * @param {number} limit - Maximum number of messages to fetch
- * @returns {Promise<Array>} - Array of messages
- */
-async function getMessages(limit = 50) {
-  try {
-    // Implement this function to fetch messages from your database
-    // This is a placeholder - replace with your actual database query
-    return [];
-  } catch (error) {
-    logger.error('Error getting messages:', error);
-    throw error;
-  }
-}
-
-/**
- * Helper function to save a message to the database
- * 
- * @param {Object} message - Message object to save
- * @returns {Promise<boolean>} - True if the message was saved successfully
- */
-async function saveMessage(message) {
-  try {
-    // Implement this function to save messages to your database
-    // This is a placeholder - replace with your actual database code
-    return true;
-  } catch (error) {
-    logger.error('Error saving message:', error);
-    throw error;
-  }
-}
-
-/**
  * Helper function to get profile by username
  * 
  * @param {string} username - Username to fetch profile for
  * @returns {Promise<Object>} - Profile object
  */
 async function getProfileByUsername(username) {
-  return withDbConnection(async () => {
-    try {
-      const Profile = mongoose.model('Profile');
-      const profile = await Profile.findOne({ username });
-      
-      if (!profile) {
-        logger.warning(`Profile not found for username: ${username}`);
-        return null;
-      }
-      
-      return profile;
-    } catch (error) {
-      logger.error(`Error fetching profile for ${username}: ${error.message}`);
-      throw error;
+  try {
+    const Profile = mongoose.model('Profile');
+    const profile = await Profile.findOne({ username });
+    
+    if (!profile) {
+      logger.warning(`Profile not found for username: ${username}`);
+      return null;
     }
-  });
-}
-
-/**
- * Helper function to get recent messages
- * 
- * @param {number} limit - Maximum number of messages to fetch
- * @returns {Promise<Array>} - Array of recent messages
- */
-async function getRecentMessages(limit = 50) {
-  // This is a placeholder - replace with your actual message fetching logic
-  // For now, return some mock messages for testing
-  return [
-    { username: 'system', data: 'Welcome to BambiSleep.Chat!', timestamp: Date.now() - 60000 },
-    { username: 'bambi', data: 'Hello everyone!', timestamp: Date.now() - 30000 }
-  ];
+    
+    return profile;
+  } catch (error) {
+    logger.error(`Error fetching profile for ${username}: ${error.message}`);
+    throw error;
+  }
 }
 
 /**
@@ -972,12 +1103,12 @@ async function startServer() {
       logger.success('Server startup completed successfully');
     });
     
-    // Add connection monitoring in production
-    if (process.env.NODE_ENV === 'production') {
-      startConnectionMonitoring(300000); // Check every 5 minutes in production
-    } else {
-      startConnectionMonitoring(60000); // Check every minute in development
-    }
+    // Add connection monitoring
+    const monitoringInterval = process.env.NODE_ENV === 'production' ? 300000 : 60000;
+    startConnectionMonitoring(monitoringInterval);
+    
+    // Set up resource monitoring
+    setInterval(monitorResources, 600000); // Every 10 minutes
     
     // Set up signal handlers for graceful shutdown
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server, workerCoordinator));

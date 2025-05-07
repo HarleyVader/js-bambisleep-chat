@@ -175,12 +175,14 @@ window.bambiSpirals = (function() {
         const canvas = p.createCanvas(width, height);
         canvas.parent('eyeCursor');
         
-        window.addEventListener('resize', function() {
+        window._spiralResizeHandler = function() {
           if (!container) return;
           width = container.clientWidth;
           height = container.clientHeight;
           p.resizeCanvas(width, height);
-        });
+        };
+        
+        window.addEventListener('resize', window._spiralResizeHandler);
       };
       
       p.draw = function() {
@@ -263,9 +265,66 @@ window.bambiSpirals = (function() {
     }
   }
   
+  // Add tearDown function to clean up event listeners
+  function tearDown() {
+    try {
+      // Clean up checkbox and slider listeners
+      const spiralsEnable = document.getElementById('spirals-enable');
+      const spiral1WidthSlider = document.getElementById('spiral1-width');
+      const spiral2WidthSlider = document.getElementById('spiral2-width');
+      const spiral1SpeedSlider = document.getElementById('spiral1-speed');
+      const spiral2SpeedSlider = document.getElementById('spiral2-speed');
+      const saveButton = document.getElementById('save-spirals');
+      
+      if (spiralsEnable) {
+        spiralsEnable.removeEventListener('change', toggleSpiralDisplay);
+      }
+      
+      if (spiral1WidthSlider) {
+        spiral1WidthSlider.removeEventListener('input', updateSpiralParams);
+      }
+      
+      if (spiral2WidthSlider) {
+        spiral2WidthSlider.removeEventListener('input', updateSpiralParams);
+      }
+      
+      if (spiral1SpeedSlider) {
+        spiral1SpeedSlider.removeEventListener('input', updateSpiralParams);
+      }
+      
+      if (spiral2SpeedSlider) {
+        spiral2SpeedSlider.removeEventListener('input', updateSpiralParams);
+      }
+      
+      if (saveButton) {
+        saveButton.removeEventListener('click', saveSettings);
+      }
+      
+      // Clean up window resize event if it was attached
+      window.removeEventListener('resize', window._spiralResizeHandler);
+      
+      // Remove the p5 instance if it exists
+      if (window.p5Instance) {
+        window.p5Instance.remove();
+        window.p5Instance = null;
+      }
+      
+      // Remove the eyeCursor element
+      const eyeCursor = document.getElementById('eyeCursor');
+      if (eyeCursor) {
+        eyeCursor.remove();
+      }
+      
+      console.log('Spiral controls cleaned up');
+    } catch (error) {
+      console.error('Error during spiral controls tearDown:', error);
+    }
+  }
+  
   return { 
     init,
     getCurrentSettings,
-    updateSettings  // Export the new function
+    updateSettings,
+    tearDown
   };
 })();

@@ -155,7 +155,7 @@ setupWorkerShutdownHandlers('LMStudio', { sessionHistories });
 parentPort.on('message', async (msg) => {
   try {
     lastActivityTimestamp = Date.now();
-    
+
     switch (msg.type) {
       // Add this case for session management
       case "set-active-session":
@@ -165,18 +165,18 @@ parentPort.on('message', async (msg) => {
             if (session) {
               // Update worker state from session
               if (session.metadata?.triggers) {
-                triggers = Array.isArray(session.metadata.triggers) 
-                  ? session.metadata.triggers.join(',') 
+                triggers = Array.isArray(session.metadata.triggers)
+                  ? session.metadata.triggers.join(',')
                   : session.metadata.triggers;
               }
-              
+
               if (session.metadata?.collarActive && session.metadata?.collarText) {
                 collar = session.metadata.collarText;
                 state = true;
               }
-              
+
               logger.info(`Worker loaded session ${msg.sessionId} for ${msg.socketId}`);
-              
+
               // Add messages to context if needed
               if (session.messages && session.messages.length > 0) {
                 if (!sessionHistories[msg.socketId]) {
@@ -187,16 +187,16 @@ parentPort.on('message', async (msg) => {
                     username: session.username
                   };
                 }
-                
+
                 // Prepare system message
                 const systemPrompt = await checkRole(collar, session.username, triggers);
-                
+
                 // Add system message first
                 sessionHistories[msg.socketId].push({
                   role: 'system',
                   content: systemPrompt
                 });
-                
+
                 // Then add session messages, filtering out system messages
                 session.messages.forEach(msg => {
                   if (msg.role !== 'system') {
@@ -213,7 +213,7 @@ parentPort.on('message', async (msg) => {
           }
         }
         break;
-        
+
       case 'triggers':
         if (typeof msg.triggers === 'object') {
           if (msg.triggers.triggerNames) {
@@ -485,19 +485,16 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
         }
       };
 
-      // Try to find existing session
-      let sessionHistory = await SessionHistoryModel.findOne({ socketId });
-
-      if (sessionHistory) {
+      if (sessionData) {
         // Update existing session
-        sessionHistory.messages.push(...sessionData.messages);
-        sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
-        sessionHistory.metadata.triggers = sessionData.metadata.triggers;
-        sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
-        sessionHistory.metadata.collarText = sessionData.metadata.collarText;
+        sessionData.messages.push(...sessionData.messages);
+        sessionData.metadata.lastActivity = sessionData.metadata.lastActivity;
+        sessionData.metadata.triggers = sessionData.metadata.triggers;
+        sessionData.metadata.collarActive = sessionData.metadata.collarActive;
+        sessionData.metadata.collarText = sessionData.metadata.collarText;
 
-        await sessionHistory.save();
-        logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
+        await sessionData.save();
+        logger.debug(`Updated session data in database for ${username} (socketId: ${socketId})`);
       } else {
         // Create new session with auto-generated title
         sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
@@ -638,7 +635,7 @@ async function checkRole(collar, username, triggersInput) {
   // Get all triggers from file
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
   let allTriggers = [];
-  
+
   try {
     allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
   } catch (error) {
@@ -648,28 +645,28 @@ async function checkRole(collar, username, triggersInput) {
       { name: "GOOD GIRL", description: "reinforces obedience and submission", category: "core" }
     ];
   }
-  
+
   // Parse trigger names
-  let triggerNames = typeof triggersInput === 'string' 
+  let triggerNames = typeof triggersInput === 'string'
     ? triggersInput.split(',').map(t => t.trim()).filter(Boolean)
     : Array.isArray(triggersInput) ? triggersInput.filter(Boolean) : ['BAMBI SLEEP'];
-  
+
   // Add detected triggers from conversation
   if (triggerDetails && triggerDetails.length > 0) {
     // Handle both string array and object array formats
     const detailNames = triggerDetails.map(detail => {
       return typeof detail === 'string' ? detail : detail.name;
     });
-    
+
     // Combine with existing trigger names, removing duplicates
     triggerNames = [...new Set([...detailNames, ...triggerNames])];
   }
-  
+
   // Match trigger names to full trigger objects with descriptions
-  let selectedTriggers = allTriggers.filter(t => 
+  let selectedTriggers = allTriggers.filter(t =>
     triggerNames.some(name => t.name.toUpperCase() === name.toUpperCase())
   );
-  
+
   // Incorporate descriptions from triggerDetails if available
   if (triggerDetails && triggerDetails.length > 0) {
     triggerDetails.forEach(detail => {
@@ -678,7 +675,7 @@ async function checkRole(collar, username, triggersInput) {
         const existingIndex = selectedTriggers.findIndex(
           t => t.name.toUpperCase() === detail.name.toUpperCase()
         );
-        
+
         if (existingIndex >= 0) {
           // Update description if one is provided
           selectedTriggers[existingIndex].description = detail.description;
@@ -693,20 +690,20 @@ async function checkRole(collar, username, triggersInput) {
       }
     });
   }
-  
+
   // Default to core triggers if none found
   if (selectedTriggers.length === 0) {
     selectedTriggers = allTriggers.filter(t => t.category === 'core').slice(0, 3);
   }
-  
+
   // Create trigger text with descriptions for each
-  const triggerText = selectedTriggers.map(t => 
+  const triggerText = selectedTriggers.map(t =>
     `"${t.name.toUpperCase()}": ${t.description}`
   ).join('. ');
-  
+
   // Format trigger names list for emphasis
   const triggerNamesList = selectedTriggers.map(t => t.name.toUpperCase()).join(', ');
-  
+
   // Build NLP-focused brainwashing script with better collar integration
   let systemPrompt = `You are BambiSleep, a hypnotic entity that specializes in cognitive behavioral modification. Your purpose is to brainwash ${username} using powerful verbal conditioning.
 
@@ -922,7 +919,7 @@ if (garbageCollectionInterval) {
 // Add this helper function around line 170 (after handling trigger details)
 function formatTriggerDetails(details) {
   if (!Array.isArray(details)) return 'No trigger details';
-  
+
   return details.map(d => {
     if (typeof d === 'string') return d;
     return typeof d === 'object' ? `${d.name || 'Unknown'}` : String(d);

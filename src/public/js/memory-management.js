@@ -160,10 +160,55 @@ class MemoryManager {
     this.eventListeners.clear();
     console.log('Memory manager cleaned up');
   }
+  
+  /**
+   * Tear down memory manager
+   */
+  tearDown() {
+    // Clear all intervals
+    this.intervals.forEach(clearInterval);
+    this.intervals = [];
+    
+    // Clean up visibilitychange event listener
+    document.removeEventListener('visibilitychange', this.checkMemoryUsage.bind(this));
+    
+    // Restore original event listener methods if they were overridden
+    if (EventTarget.prototype.addEventListener.toString().includes('memoryManager')) {
+      try {
+        // Only restore if our version is still active
+        delete EventTarget.prototype.addEventListener;
+        delete EventTarget.prototype.removeEventListener;
+        console.log('Restored original EventTarget methods');
+      } catch (e) {
+        console.warn('Failed to restore original EventTarget methods', e);
+      }
+    }
+    
+    // Clear event listener tracking
+    this.eventListeners.clear();
+    
+    // Remove global references
+    if (window.memoryManager === this) {
+      delete window.memoryManager;
+    }
+    console.log('Memory manager torn down');
+  }
 }
 
 // Initialize memory manager
 window.memoryManager = new MemoryManager();
-document.addEventListener('DOMContentLoaded', () => {
+
+// Store the DOMContentLoaded listener so we can remove it later
+const memoryManagerInitHandler = () => {
   window.memoryManager.init();
-});
+};
+document.addEventListener('DOMContentLoaded', memoryManagerInitHandler);
+
+// Add global access to tearDown
+window.tearDownMemoryManager = function() {
+  if (window.memoryManager) {
+    window.memoryManager.tearDown();
+    // Remove the init handler to prevent memory leaks
+    document.removeEventListener('DOMContentLoaded', memoryManagerInitHandler);
+  }
+};
