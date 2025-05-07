@@ -477,9 +477,9 @@ function handleScanRequest(req, res) {
  * @param {Map} socketStore - Map to store socket and worker references
  * @param {string[]} filteredWords - List of words to filter
  */
+// Add to setupSocketHandlers function in server.js
 function setupSocketHandlers(io, socketStore, filteredWords) {
-  // Store socketStore on the io object so it's accessible in disconnect handler
-  io.sockets.socketStore = socketStore;
+  // Existing code...
   
   io.on('connection', (socket) => {
     try {
@@ -502,13 +502,8 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         lastActivity: Date.now()
       });
       
-      // Update last activity time on any message from this socket
-      socket.onAny(() => {
-        const socketData = socketStore.get(socket.id);
-        if (socketData) {
-          socketData.lastActivity = Date.now();
-        }
-      });
+      // Set username on socket for easy access
+      socket.bambiUsername = username;
       
       // Set up content filter function
       const filterContent = (content) => filterWords(content, filteredWords);
@@ -516,18 +511,101 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       // Set up socket handlers for this specific connection
       setupLMStudioSockets(socket, io, lmstudio, filterContent);
       setupProfileSockets(socket, io, username);
-      
-      // Set up chat sockets for each connection
       setupChatSockets(socket, io, socketStore, filteredWords);
       
-      // Handle disconnection - pass socketStore directly
+      // Handle disconnection
       socket.on('disconnect', () => handleSocketDisconnect(socket, io));
+      
+      // Handle session-related events
+      setupSessionEvents(socket, lmstudio);
     } catch (error) {
       logger.error(`Error handling socket connection: ${error.message}`);
     }
   });
+}
+
+// Add this function to handle session events
+function setupSessionEvents(socket, lmstudio) {
+  // Load session history
+  socket.on('load-session', function(sessionId) {
+    if (!sessionId) return;
+    
+    // Find session in database
+    withDbConnection(async () => {
+      try {
+        const SessionHistory = mongoose.model('SessionHistory');
+        const session = await SessionHistory.findById(sessionId);
+        
+        if (session) {
+          // Send session to worker
+          lmstudio.postMessage({
+            type: "load-history",
+            messages: session.messages,
+            socketId: socket.id,
+            username: socket.bambiUsername
+          });
+          
+          // Send session to client
+          socket.emit('session-loaded', {
+            session,
+            sessionId
+          });
+          
+          logger.info(`Session ${sessionId} loaded for ${socket.bambiUsername}`);
+        }
+      } catch (error) {
+        logger.error(`Error loading session ${sessionId}: ${error.message}`);
+      }
+    });
+  });
   
-  logger.info('Socket handlers configured');
+  // Create or update session
+  socket.on('save-session', function(data) {
+    if (!data || !socket.bambiUsername || socket.bambiUsername === 'anonBambi') return;
+    
+    withDbConnection(async () => {
+      try {
+        const SessionHistory = mongoose.model('SessionHistory');
+        
+        // Update existing or create new
+        if (data.sessionId) {
+          await SessionHistory.findByIdAndUpdate(data.sessionId, {
+            $set: {
+              'metadata.lastActivity': new Date(),
+              'metadata.triggers': data.settings?.activeTriggers || [],
+              'metadata.collarActive': data.settings?.collarSettings?.enabled || false,
+              'metadata.collarText': data.settings?.collarSettings?.text || '',
+              'metadata.spiralSettings': data.settings?.spiralSettings || {}
+            },
+            $push: {
+              messages: { $each: data.messages || [] }
+            }
+          });
+          logger.info(`Session ${data.sessionId} updated for ${socket.bambiUsername}`);
+        } else {
+          // Create new session
+          const session = new SessionHistory({
+            username: socket.bambiUsername,
+            socketId: socket.id,
+            title: data.title || `Session ${new Date().toLocaleString()}`,
+            messages: data.messages || [],
+            metadata: {
+              triggers: data.settings?.activeTriggers || [],
+              collarActive: data.settings?.collarSettings?.enabled || false,
+              collarText: data.settings?.collarSettings?.text || '',
+              spiralSettings: data.settings?.spiralSettings || {}
+            }
+          });
+          
+          await session.save();
+          logger.info(`New session created for ${socket.bambiUsername}`);
+          socket.emit('session-created', { sessionId: session._id });
+        }
+      } catch (error) {
+        logger.error(`Error saving session: ${error.message}`);
+      }
+    });
+  });
 }
 
 /**

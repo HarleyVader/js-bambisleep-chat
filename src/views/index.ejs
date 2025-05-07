@@ -381,10 +381,37 @@
                 socket.emit('system-settings', window.bambiSystem.collectSettings());
               }
             });
+
+            // Add these socket event handlers after other socket events
+
+            socket.on('session-loaded', function(data) {
+              if (!data || !data.session) return;
+              
+              // Notify system about loaded session
+              document.dispatchEvent(new CustomEvent('session-loaded', {
+                detail: { session: data.session, sessionId: data.sessionId }
+              }));
+            });
+
+            // When starting a conversation, send system settings to worker
+            socket.on('conversation-start', function() {
+              if (window.bambiSystem) {
+                const settings = window.bambiSystem.collectSettings();
+                socket.emit('system-settings', settings);
+              }
+            });
+
+            // Listen for session ID updates
+            socket.on('session-created', function(data) {
+              if (data && data.sessionId && window.bambiSessions) {
+                window.bambiSessions.setActiveSessionId(data.sessionId);
+              }
+            });
           });
         </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
         <script src="js/bootstrap.min.js"></script>
+        <script src="/js/bambi-sessions.js"></script>
   </body>
 </html>

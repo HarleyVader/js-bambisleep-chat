@@ -15,44 +15,76 @@ export default function setupLMStudioSockets(socket, io, lmstudio, filterContent
   let socketUsername;
   try {
     socketUsername = decodeURIComponent(socket.handshake.headers.cookie
-                    ?.split(';')
-                    .find(c => c.trim().startsWith('bambiname='))
-                    ?.split('=')[1] || 'anonBambi');
+      ?.split(';')
+      .find(c => c.trim().startsWith('bambiname='))
+      ?.split('=')[1] || 'anonBambi');
   } catch (error) {
     socketUsername = 'anonBambi';
     logger.warning('Could not extract username from socket:', error.message);
   }
-  
+
   // Make username available to socket instance
   socket.bambiUsername = socketUsername;
-  
+
   // Set up message handler for worker responses
   lmstudio.on("message", (msg) => handleWorkerMessage(socket, io, msg));
-  
+
   // Set up worker error handling
   lmstudio.on('error', (err) => {
     logger.error('Worker error:', err);
   });
-  
+
   lmstudio.on('info', (info) => {
     logger.info('Worker info:', info);
   });
-  
+
   // Handle user messages
   socket.on("message", (message) => handleUserMessage(socket, lmstudio, message, filterContent));
-  
-  // Handle trigger updates
-  socket.on("triggers", (triggers) => handleTriggerUpdate(lmstudio, triggers));
-  
-  // Handle collar interactions for LMStudio processing
-  socket.on('collar', (collarData) => handleCollarForLMStudio(socket, lmstudio, collarData, filterContent));
-  
+
+  // Handle system-settings event from bambi-sessions.js
+  socket.on('system-settings', (settings) => {
+    if (!settings) return;
+
+    // Forward trigger details to LMStudio worker
+    if (settings.triggerDetails) {
+      lmstudio.postMessage({
+        type: "triggers",
+        triggers: {
+          triggerNames: settings.activeTriggers.join(','),
+          triggerDetails: settings.triggerDetails
+        },
+        socketId: socket.id
+      });
+    }
+
+    // Forward collar settings if enabled
+    if (settings.collarSettings?.enabled && settings.collarSettings.text) {
+      lmstudio.postMessage({
+        type: 'collar',
+        data: settings.collarSettings.text,
+        socketId: socket.id
+      });
+    }
+
+    // Persist to active session if exists
+    if (socket.activeSessionId) {
+      persistSessionSettings(socket.activeSessionId, settings);
+    }
+  });
+
+  // Handle conversation-start event
+  socket.on('conversation-start', () => {
+    // Tell client to send system settings
+    socket.emit('request-system-settings');
+    logger.info('Requested system settings for new conversation');
+  });
+
   // Handle session history loading
   socket.on('load-history', (data) => {
     if (!data.messages || !data.messages.length) return;
-    
+
     logger.info(`Loading ${data.messages.length} historical messages for socket ${socket.id}`);
-    
+
     // Send message history to worker for context
     lmstudio.postMessage({
       type: "load-history",
@@ -61,7 +93,7 @@ export default function setupLMStudioSockets(socket, io, lmstudio, filterContent
       username: socketUsername
     });
   });
-  
+
   // Add session sync handlers
   setupSessionSyncHandlers(socket, lmstudio);
 }
@@ -90,7 +122,7 @@ function handleWorkerMessage(socket, io, msg) {
           generatedWords: msg.data.generatedWords,
           xpEarned: msg.data.xpEarned
         });
-        
+
         logger.info(`XP update for ${msg.username || 'unknown user'}: +${msg.data.xpEarned} XP`);
       }
     }
@@ -111,23 +143,23 @@ function handleUserMessage(socket, lmstudio, message, filterContent) {
   try {
     // Try to get username from the socket first if we already extracted it
     let username = socket.bambiUsername;
-    
+
     // If not available, try to extract from cookie again
     if (!username) {
       try {
         username = decodeURIComponent(socket.handshake.headers.cookie
-                    ?.split(';')
-                    .find(c => c.trim().startsWith('bambiname='))
-                    ?.split('=')[1] || 'anonBambi');
+          ?.split(';')
+          .find(c => c.trim().startsWith('bambiname='))
+          ?.split('=')[1] || 'anonBambi');
       } catch (error) {
         username = 'anonBambi';
         logger.warning('Could not extract username from cookie:', error.message);
       }
     }
-    
+
     // Filter message content
     const filteredMessage = filterContent(message);
-    
+
     // Send to LMStudio worker
     lmstudio.postMessage({
       type: "message",
@@ -135,7 +167,7 @@ function handleUserMessage(socket, lmstudio, message, filterContent) {
       socketId: socket.id,
       username: username
     });
-    
+
     logger.info(`Message from ${username} sent to LMStudio worker`);
   } catch (error) {
     logger.error('Error in message handler:', error);
@@ -152,14 +184,14 @@ function handleTriggerUpdate(lmstudio, triggers) {
   try {
     // Ensure consistent format before sending to worker
     let formattedTriggers = triggers;
-    
+
     // Normalize the format if needed
     if (typeof triggers === 'string') {
       formattedTriggers = { triggerNames: triggers };
     } else if (Array.isArray(triggers)) {
       formattedTriggers = { triggerNames: triggers.join(',') };
     }
-    
+
     lmstudio.postMessage({ type: "triggers", triggers: formattedTriggers });
     logger.info('Triggers updated for LMStudio worker');
   } catch (error) {
@@ -174,29 +206,29 @@ function handleCollarForLMStudio(socket, lmstudio, collarData, filterContent) {
   try {
     // Filter collar content
     const filteredCollar = filterContent(collarData.data);
-    
+
     // Extract uppercase words as potential triggers
     const triggerRegex = /\b([A-Z][A-Z\s&]+)\b/g;
     const potentialTriggers = filteredCollar.match(triggerRegex) || [];
-    
+
     // Simple trigger handling - no need for complex validation
     if (potentialTriggers.length > 0) {
       // Send trigger update to worker
-      lmstudio.postMessage({ 
-        type: "triggers", 
-        triggers: potentialTriggers.join(',') 
+      lmstudio.postMessage({
+        type: "triggers",
+        triggers: potentialTriggers.join(',')
       });
-      
+
       logger.info(`Collar triggers: ${potentialTriggers.join(', ')}`);
     }
-    
+
     // Send to LMStudio worker for processing
     lmstudio.postMessage({
       type: 'collar',
       data: filteredCollar,
       socketId: socket.id
     });
-    
+
     logger.info(`Collar: ${filteredCollar?.substring(0, 50)}...`);
   } catch (error) {
     logger.error('Collar handler error:', error);
@@ -221,13 +253,13 @@ function setupSessionSyncHandlers(socket, lmstudio) {
         username: socket.bambiUsername || 'anonBambi',
         reason: "socketDisconnect"
       });
-      
+
       logger.info(`Requested session sync on disconnect for ${socket.bambiUsername || 'anonBambi'}`);
     } catch (error) {
       logger.error(`Error syncing session on disconnect: ${error.message}`);
     }
   });
-  
+
   // Explicit session sync when user navigates away
   socket.on('beforeunload', () => {
     try {
@@ -237,12 +269,41 @@ function setupSessionSyncHandlers(socket, lmstudio) {
         username: socket.bambiUsername || 'anonBambi',
         reason: "pageUnload"
       });
-      
+
       logger.info(`Requested session sync on page unload for ${socket.bambiUsername || 'anonBambi'}`);
     } catch (error) {
       logger.error(`Error syncing session on page unload: ${error.message}`);
     }
   });
+}
+
+/**
+ * Persist session settings to the database
+ * 
+ * @param {string} sessionId - Active session ID
+ * @param {Object} settings - System settings to persist
+ */
+function persistSessionSettings(sessionId, settings) {
+  try {
+    mongoose.model('SessionHistory').findByIdAndUpdate(
+      sessionId,
+      {
+        $set: {
+          'metadata.lastActivity': new Date(),
+          'metadata.triggers': settings.activeTriggers || [],
+          'metadata.collarActive': settings.collarSettings?.enabled || false,
+          'metadata.collarText': settings.collarSettings?.text || '',
+          'metadata.spiralSettings': settings.spiralSettings || {}
+        }
+      },
+      { new: false },
+      function(err) {
+        if (err) logger.error(`Error persisting session settings: ${err.message}`);
+      }
+    );
+  } catch (error) {
+    logger.error(`Error updating session settings: ${error.message}`);
+  }
 }
 
 export { setupLMStudioSockets };

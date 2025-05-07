@@ -154,7 +154,66 @@ setupWorkerShutdownHandlers('LMStudio', { sessionHistories });
 
 parentPort.on('message', async (msg) => {
   try {
+    lastActivityTimestamp = Date.now();
+    
     switch (msg.type) {
+      // Add this case for session management
+      case "set-active-session":
+        if (msg.sessionId) {
+          try {
+            const session = await SessionHistoryModel.findById(msg.sessionId);
+            if (session) {
+              // Update worker state from session
+              if (session.metadata?.triggers) {
+                triggers = Array.isArray(session.metadata.triggers) 
+                  ? session.metadata.triggers.join(',') 
+                  : session.metadata.triggers;
+              }
+              
+              if (session.metadata?.collarActive && session.metadata?.collarText) {
+                collar = session.metadata.collarText;
+                state = true;
+              }
+              
+              logger.info(`Worker loaded session ${msg.sessionId} for ${msg.socketId}`);
+              
+              // Add messages to context if needed
+              if (session.messages && session.messages.length > 0) {
+                if (!sessionHistories[msg.socketId]) {
+                  sessionHistories[msg.socketId] = [];
+                  sessionHistories[msg.socketId].metadata = {
+                    createdAt: Date.now(),
+                    lastActivity: Date.now(),
+                    username: session.username
+                  };
+                }
+                
+                // Prepare system message
+                const systemPrompt = await checkRole(collar, session.username, triggers);
+                
+                // Add system message first
+                sessionHistories[msg.socketId].push({
+                  role: 'system',
+                  content: systemPrompt
+                });
+                
+                // Then add session messages, filtering out system messages
+                session.messages.forEach(msg => {
+                  if (msg.role !== 'system') {
+                    sessionHistories[msg.socketId].push({
+                      role: msg.role,
+                      content: msg.content
+                    });
+                  }
+                });
+              }
+            }
+          } catch (error) {
+            logger.error(`Error loading session ${msg.sessionId}: ${error.message}`);
+          }
+        }
+        break;
+        
       case 'triggers':
         if (typeof msg.triggers === 'object') {
           if (msg.triggers.triggerNames) {

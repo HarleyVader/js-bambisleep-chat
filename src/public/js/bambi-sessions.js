@@ -4,9 +4,6 @@ window.bambiSessions = (function() {
   let sessions = [];
   let activeSessionId = null;
 
-  // DOM references (lazy loaded when needed)
-  const el = {};
-
   // Init module
   function init() {
     setupEventListeners();
@@ -22,15 +19,16 @@ window.bambiSessions = (function() {
     const replayBtn = document.getElementById('replay-history-btn');
     if (replayBtn) replayBtn.addEventListener('click', replayRandom);
     
-    // Central event listener for system settings updates
-    document.addEventListener('system-update', function(e) {
-      const sessionSettings = collectSettings();
-      if (activeSessionId) {
-        updateActiveSession(sessionSettings);
-      }
-    });
+    const saveBtn = document.getElementById('save-session-btn');
+    if (saveBtn) saveBtn.addEventListener('click', saveSession);
     
-    // Create refresh button
+    const deleteBtn = document.getElementById('delete-session-btn');
+    if (deleteBtn) deleteBtn.addEventListener('click', deleteSession);
+    
+    const shareBtn = document.getElementById('share-session-btn');
+    if (shareBtn) shareBtn.addEventListener('click', shareSession);
+    
+    // Add refresh button to session container
     addRefreshButton();
   }
 
@@ -50,301 +48,263 @@ window.bambiSessions = (function() {
 
   // Check URL for shared session
   function checkUrlParams() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shareToken = urlParams.get('session');
+    const params = new URLSearchParams(window.location.search);
+    const sessionToken = params.get('session');
     
-    if (shareToken) loadSharedSession(shareToken);
+    if (sessionToken) loadSharedSession(sessionToken);
   }
 
   // Load sessions list
   function loadSessions() {
-    updateStatus('Loading sessions...');
-    
-    const username = getUsername();
+    const username = document.body.getAttribute('data-username');
     if (!username) {
-      updateStatus('Not logged in');
+      showToast('Please log in to view sessions');
       return;
     }
     
     fetch(`/sessions/api/sessions/${username}`)
       .then(res => res.json())
       .then(data => {
-        if (!data.success) throw new Error(data.message || 'Failed to load sessions');
+        if (!data.success) return;
         
         sessions = data.sessions || [];
-        populateSessionDropdown(sessions);
         
-        // Show UI elements
-        showElement('.session-select-container');
-        showElement('.session-stats-container');
+        // Update session dropdown
+        const select = document.getElementById('session-select');
+        if (!select) return;
         
-        // Update stats
-        updateSessionStats(sessions);
+        // Clear existing options
+        while (select.options.length > 1) select.remove(1);
         
-        // Update status
-        if (sessions.length > 0) {
-          updateStatus(`${sessions.length} sessions loaded`, 'success');
-          enableElement('#replay-history-btn');
-          
-          // Change load button behavior
-          const loadBtn = document.getElementById('load-history-btn');
-          if (loadBtn) {
-            loadBtn.removeEventListener('click', loadSessions);
-            loadBtn.addEventListener('click', loadSelectedSession);
-            loadBtn.textContent = 'Load Selected';
-          }
-        } else {
-          updateStatus('No sessions found');
-        }
+        // Add session options
+        sessions.forEach(s => {
+          const date = new Date(s.createdAt);
+          const option = document.createElement('option');
+          option.value = s._id;
+          option.textContent = `${date.toLocaleDateString()} ${date.toLocaleTimeString()} (${s.messages?.length || 0} msgs)`;
+          select.appendChild(option);
+        });
+        
+        // Show session select container
+        const container = document.querySelector('.session-select-container');
+        if (container) container.style.display = 'block';
+        
+        // Enable buttons
+        enableButton('load-selected-btn');
+        enableButton('replay-history-btn');
+        
+        showToast(`Loaded ${sessions.length} sessions`);
       })
       .catch(err => {
         console.error('Error loading sessions:', err);
-        updateStatus('Error loading sessions', 'error');
+        showToast('Error loading sessions');
       });
   }
 
-  // Show element by selector
-  function showElement(selector) {
-    const el = document.querySelector(selector);
-    if (el) el.style.display = 'block';
-  }
-
-  // Enable element by selector
-  function enableElement(selector) {
-    const el = document.querySelector(selector);
-    if (el) el.disabled = false;
-  }
-
-  // Update session stats display
-  function updateSessionStats(sessions) {
-    // Calculate totals
-    const totalMessages = sessions.reduce((sum, s) => sum + (s.messages?.length || 0), 0);
-    const totalWords = sessions.reduce((sum, s) => {
-      return sum + (s.messages || []).reduce((msgSum, msg) => {
-        return msgSum + (msg.content?.split(/\s+/).length || 0);
-      }, 0);
-    }, 0);
-    
-    // Update UI elements
-    updateElement('#session-count', sessions.length);
-    updateElement('#message-count', totalMessages);
-    updateElement('#word-count', totalWords);
-  }
-
-  // Update element content by selector
-  function updateElement(selector, value) {
-    const el = document.querySelector(selector);
-    if (el) el.textContent = value;
-  }
-
-  // Populate session dropdown
-  function populateSessionDropdown(sessions) {
-    const select = document.getElementById('session-select');
-    if (!select) return;
-    
-    // Clear existing options except first
-    while (select.options.length > 1) select.remove(1);
-    
-    sessions.forEach(session => {
-      const date = new Date(session.createdAt || session.metadata?.createdAt || Date.now());
-      const option = document.createElement('option');
-      option.value = session._id;
-      
-      // Format date: MM/DD HH:MM
-      const dateStr = `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
-      option.textContent = `${dateStr} (${session.messages?.length || 0} msgs)`;
-      
-      select.appendChild(option);
-    });
-  }
-
-  // Update status message
-  function updateStatus(message, type) {
-    const status = document.getElementById('session-history-status');
-    if (!status) return;
-    
-    status.textContent = message;
-    status.className = 'session-history-status';
-    
-    if (type) status.classList.add(type);
+  // Load a shared session by token
+  function loadSharedSession(token) {
+    fetch(`/sessions/shared/${token}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success || !data.session) return;
+        
+        const session = data.session;
+        activeSessionId = session._id;
+        
+        // Apply session settings to UI
+        applySessionSettings(session);
+        
+        // Notify other components
+        document.dispatchEvent(new CustomEvent('session-loaded', {
+          detail: { session, sessionId: session._id }
+        }));
+        
+        showToast('Shared session loaded');
+      })
+      .catch(err => {
+        console.error('Error loading shared session:', err);
+        showToast('Error loading shared session');
+      });
   }
 
   // Load selected session
   function loadSelectedSession() {
     const select = document.getElementById('session-select');
-    if (!select || !select.value || select.value === 'default') {
-      updateStatus('Please select a session');
+    if (!select || select.value === 'default') {
+      showToast('Select a session first');
       return;
     }
     
     const sessionId = select.value;
-    const session = sessions.find(s => s._id === sessionId);
     
-    if (!session) {
-      updateStatus('Session not found');
+    // Using socket is more efficient than fetch
+    if (socket && socket.connected) {
+      socket.emit('load-session', sessionId);
       return;
     }
     
-    activeSessionId = sessionId;
-    
-    // Update status
-    const date = new Date(session.createdAt || session.metadata?.createdAt || Date.now());
-    updateStatus(`Loaded session from ${date.toLocaleString()}`, 'success');
-    
-    // Apply settings
-    applySessionSettings(session);
-    
-    // Notify system
-    document.dispatchEvent(new CustomEvent('session-loaded', {
-      detail: { session, sessionId }
-    }));
-  }
-
-  // Apply session settings to UI
-  function applySessionSettings(session) {
-    // Apply collar settings
-    applyCollarSettings(session);
-    
-    // Apply spiral settings
-    applySpiralSettings(session);
-    
-    // Apply trigger settings
-    applyTriggerSettings(session);
-  }
-
-  // Apply collar settings
-  function applyCollarSettings(session) {
-    const collarSettings = session.collarSettings || {
-      enabled: session.metadata?.collarActive || false,
-      text: session.metadata?.collarText || ''
-    };
-    
-    const enable = document.getElementById('collar-enable');
-    const text = document.getElementById('textarea-collar');
-    
-    if (enable) enable.checked = collarSettings.enabled;
-    if (text) text.value = collarSettings.text || '';
-    
-    // Use bambiSystem if available
-    if (window.bambiSystem) {
-      window.bambiSystem.saveState('collar', {
-        enabled: collarSettings.enabled,
-        text: collarSettings.text || ''
-      });
-    }
-  }
-
-  // Apply spiral settings
-  function applySpiralSettings(session) {
-    const spiralSettings = session.spiralSettings || session.metadata?.spiralSettings || {
-      enabled: false,
-      spiral1Width: 5.0,
-      spiral2Width: 3.0,
-      spiral1Speed: 20,
-      spiral2Speed: 15
-    };
-    
-    // Use bambiSystem if available
-    if (window.bambiSystem) {
-      window.bambiSystem.saveState('spirals', spiralSettings);
-    }
-    
-    // Also update UI directly
-    if (window.bambiSpirals && typeof window.bambiSpirals.updateSettings === 'function') {
-      window.bambiSpirals.updateSettings(spiralSettings);
-    }
-  }
-
-  // Apply trigger settings
-  function applyTriggerSettings(session) {
-    const triggers = session.activeTriggers || session.metadata?.triggers || [];
-    
-    // Reset all triggers
-    document.querySelectorAll('.toggle-input').forEach(t => t.checked = false);
-    
-    // Enable active triggers
-    triggers.forEach(trigger => {
-      const name = typeof trigger === 'string' ? trigger : trigger.name;
-      const toggle = document.querySelector(`.toggle-input[data-trigger="${name}"]`);
-      if (toggle) toggle.checked = true;
-    });
-    
-    // Use bambiSystem if available
-    if (window.bambiSystem) {
-      // Format triggers as objects
-      const triggerObjs = triggers.map(t => {
-        if (typeof t === 'string') {
-          return { name: t, description: 'Trigger effect' };
-        }
-        return t;
-      });
-      
-      window.bambiSystem.saveState('triggers', { triggers: triggerObjs });
-    }
-  }
-
-  // Get current username
-  function getUsername() {
-    return document.body.getAttribute('data-username') || 
-           document.querySelector('.user-profile-name')?.textContent ||
-           getCookie('bambiname');
-  }
-
-  // Get cookie value
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-  }
-
-  // Replay random session
-  function replayRandom() {
-    if (sessions.length === 0) {
-      updateStatus('No sessions available');
-      return;
-    }
-    
-    const index = Math.floor(Math.random() * sessions.length);
-    const session = sessions[index];
-    
-    // Select in dropdown
-    const select = document.getElementById('session-select');
-    if (select) select.value = session._id;
-    
-    activeSessionId = session._id;
-    applySessionSettings(session);
-    
-    updateStatus(`Loaded random session from ${new Date(session.createdAt || session.metadata?.createdAt).toLocaleString()}`, 'success');
-  }
-
-  // Load shared session by token
-  function loadSharedSession(token) {
-    if (!token) return;
-    
-    fetch(`/sessions/shared/${token}`)
+    // Fallback to fetch
+    fetch(`/sessions/${sessionId}`)
       .then(res => res.json())
       .then(data => {
-        if (!data.success) throw new Error('Failed to load shared session');
+        if (!data.success || !data.session) return;
         
         const session = data.session;
+        activeSessionId = sessionId;
+        
+        // Apply session settings to UI
         applySessionSettings(session);
         
-        // Add to sessions list
-        sessions = [session];
-        populateSessionDropdown(sessions);
+        // Notify other components
+        document.dispatchEvent(new CustomEvent('session-loaded', {
+          detail: { session, sessionId }
+        }));
         
-        updateStatus('Shared session loaded successfully', 'success');
+        showToast('Session loaded');
       })
       .catch(err => {
-        console.error('Error loading shared session:', err);
-        updateStatus('Failed to load shared session', 'error');
+        console.error('Error loading session:', err);
+        showToast('Error loading session');
+      });
+  }
+
+  // Apply session settings to UI elements
+  function applySessionSettings(session) {
+    // Apply triggers
+    const triggers = session.activeTriggers || session.metadata?.triggers || [];
+    document.querySelectorAll('.toggle-input').forEach(input => {
+      const trigger = input.getAttribute('data-trigger');
+      if (trigger) {
+        input.checked = triggers.includes(trigger);
+      }
+    });
+    
+    // Apply collar settings
+    const collarEnabled = session.collarSettings?.enabled || session.metadata?.collarActive || false;
+    const collarText = session.collarSettings?.text || session.metadata?.collarText || '';
+    
+    const collarEnable = document.getElementById('collar-enable');
+    const collarTextarea = document.getElementById('textarea-collar');
+    
+    if (collarEnable) collarEnable.checked = collarEnabled;
+    if (collarTextarea) collarTextarea.value = collarText;
+    
+    // Apply spiral settings
+    const spiralSettings = session.spiralSettings || session.metadata?.spiralSettings || {};
+    const spiralEnable = document.getElementById('spirals-enable');
+    
+    if (spiralEnable) spiralEnable.checked = spiralSettings.enabled || false;
+    
+    // Update directly through system modules if available
+    if (window.bambiSystem) {
+      // Update triggers
+      window.bambiSystem.saveState('triggers', { 
+        triggers: triggers.map(t => ({
+          name: typeof t === 'string' ? t : t.name,
+          description: typeof t === 'string' ? 'Trigger effect' : (t.description || 'Trigger effect')
+        }))
+      });
+      
+      // Update collar
+      window.bambiSystem.saveState('collar', {
+        enabled: collarEnabled,
+        text: collarText
+      });
+      
+      // Update spirals
+      window.bambiSystem.saveState('spirals', spiralSettings);
+    }
+  }
+
+  // Get current settings for saving
+  function collectSettings() {
+    if (window.bambiSystem) {
+      return window.bambiSystem.collectSettings();
+    }
+    
+    // Fallback if bambiSystem isn't available
+    return {
+      activeTriggers: Array.from(document.querySelectorAll('.toggle-input:checked'))
+        .map(input => input.getAttribute('data-trigger'))
+        .filter(Boolean),
+      
+      collarSettings: {
+        enabled: document.getElementById('collar-enable')?.checked || false,
+        text: document.getElementById('textarea-collar')?.value || ''
+      },
+      
+      spiralSettings: {
+        enabled: document.getElementById('spirals-enable')?.checked || false,
+        spiral1Width: parseFloat(document.getElementById('spiral1-width')?.value || 5),
+        spiral2Width: parseFloat(document.getElementById('spiral2-width')?.value || 3),
+        spiral1Speed: parseInt(document.getElementById('spiral1-speed')?.value || 20),
+        spiral2Speed: parseInt(document.getElementById('spiral2-speed')?.value || 15)
+      }
+    };
+  }
+
+  // Save current session
+  function saveSession() {
+    const username = document.body.getAttribute('data-username');
+    if (!username) {
+      showToast('Please log in to save sessions');
+      return;
+    }
+    
+    // Get current settings
+    const settings = collectSettings();
+    
+    // Get chat history if available
+    let messages = [];
+    if (window.chatHistory && Array.isArray(window.chatHistory)) {
+      messages = window.chatHistory;
+    }
+    
+    const sessionData = {
+      username,
+      settings,
+      messages,
+      sessionId: activeSessionId,
+      title: `Session ${new Date().toLocaleString()}`
+    };
+    
+    socket.emit('save-session', sessionData);
+    showToast('Session saving...');
+  }
+
+  // Delete current session
+  function deleteSession() {
+    if (!activeSessionId) {
+      showToast('No active session to delete');
+      return;
+    }
+    
+    if (!confirm('Delete this session?')) return;
+    
+    fetch(`/sessions/${activeSessionId}`, {
+      method: 'DELETE'
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          activeSessionId = null;
+          const select = document.getElementById('session-select');
+          if (select) select.value = 'default';
+          
+          loadSessions();
+          showToast('Session deleted');
+        }
+      })
+      .catch(err => {
+        console.error('Error deleting session:', err);
+        showToast('Error deleting session');
       });
   }
 
   // Share current session
   function shareSession() {
     if (!activeSessionId) {
-      showToast('No active session to share', 'error');
+      showToast('No active session to share');
       return;
     }
     
@@ -353,173 +313,39 @@ window.bambiSessions = (function() {
     })
       .then(res => res.json())
       .then(data => {
-        if (!data.success) throw new Error(data.message || 'Failed to share session');
+        if (!data.success || !data.shareUrl) return;
         
-        const shareUrl = data.shareUrl;
-        navigator.clipboard.writeText(shareUrl);
+        // Copy to clipboard
+        navigator.clipboard.writeText(data.shareUrl);
         
-        showToast('Share link copied to clipboard', 'success');
+        showToast('Share link copied to clipboard');
       })
       .catch(err => {
         console.error('Error sharing session:', err);
-        showToast('Failed to share session', 'error');
+        showToast('Error sharing session');
       });
   }
 
-  // Delete session
-  function deleteSession(sessionId) {
-    if (!sessionId) sessionId = activeSessionId;
-    if (!sessionId) {
-      showToast('No session selected', 'error');
+  // Play random session
+  function replayRandom() {
+    if (!sessions.length) {
+      showToast('No sessions available');
       return;
     }
     
-    if (!confirm('Delete this session?')) return;
+    const randomIndex = Math.floor(Math.random() * sessions.length);
+    const session = sessions[randomIndex];
     
-    fetch(`/sessions/${sessionId}`, {
-      method: 'DELETE'
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (!data.success) throw new Error(data.message || 'Failed to delete session');
-        
-        if (sessionId === activeSessionId) activeSessionId = null;
-        
-        loadSessions();
-        showToast('Session deleted', 'success');
-      })
-      .catch(err => {
-        console.error('Error deleting session:', err);
-        showToast('Failed to delete session', 'error');
-      });
+    // Select in dropdown
+    const select = document.getElementById('session-select');
+    if (select) select.value = session._id;
+    
+    // Load session
+    socket.emit('load-session', session._id);
   }
 
-  // Update active session
-  function updateActiveSession(settings) {
-    if (!activeSessionId) return;
-    
-    fetch(`/sessions/${activeSessionId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(settings)
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (!data.success) {
-          console.warn('Failed to update session:', data.message);
-        }
-      })
-      .catch(err => {
-        console.error('Error updating session:', err);
-      });
-  }
-
-  // Collect current settings
-  function collectSettings() {
-    if (window.bambiSystem) {
-      return window.bambiSystem.collectSettings();
-    }
-    
-    // Fallback to manual collection
-    return {
-      activeTriggers: getActiveTriggers(),
-      collarSettings: getCollarSettings(),
-      spiralSettings: getSpiralSettings()
-    };
-  }
-
-  // Get active triggers
-  function getActiveTriggers() {
-    const triggers = [];
-    document.querySelectorAll('.toggle-input:checked').forEach(t => {
-      const name = t.getAttribute('data-trigger');
-      if (name) triggers.push(name);
-    });
-    return triggers;
-  }
-
-  // Get collar settings
-  function getCollarSettings() {
-    const enable = document.getElementById('collar-enable');
-    const text = document.getElementById('textarea-collar');
-    
-    return {
-      enabled: enable ? enable.checked : false,
-      text: text ? text.value : ''
-    };
-  }
-
-  // Get spiral settings
-  function getSpiralSettings() {
-    if (window.bambiSpirals && typeof window.bambiSpirals.getCurrentSettings === 'function') {
-      return window.bambiSpirals.getCurrentSettings();
-    }
-    
-    const enable = document.getElementById('spirals-enable');
-    
-    return {
-      enabled: enable ? enable.checked : false,
-      spiral1Width: parseFloat(document.getElementById('spiral1-width')?.value || 5),
-      spiral2Width: parseFloat(document.getElementById('spiral2-width')?.value || 3),
-      spiral1Speed: parseInt(document.getElementById('spiral1-speed')?.value || 20),
-      spiral2Speed: parseInt(document.getElementById('spiral2-speed')?.value || 15)
-    };
-  }
-
-  // Save current session
-  function saveCurrentSession(title) {
-    const username = getUsername();
-    if (!username) {
-      showToast('You must be logged in to save sessions', 'error');
-      return;
-    }
-    
-    const settings = collectSettings();
-    
-    // Add message history if available
-    const messages = window.chatHistory || [];
-    
-    const sessionData = {
-      username,
-      title: title || `Session ${new Date().toLocaleString()}`,
-      messages,
-      settings
-    };
-    
-    const method = activeSessionId ? 'PUT' : 'POST';
-    const url = activeSessionId ? 
-      `/sessions/${activeSessionId}` : 
-      `/sessions`;
-    
-    fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(sessionData)
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (!data.success) throw new Error(data.message || 'Failed to save session');
-        
-        if (!activeSessionId && data.sessionId) {
-          activeSessionId = data.sessionId;
-        }
-        
-        showToast(activeSessionId ? 'Session updated' : 'Session saved', 'success');
-        loadSessions();
-      })
-      .catch(err => {
-        console.error('Error saving session:', err);
-        showToast('Failed to save session', 'error');
-      });
-  }
-
-  // Show toast notification
-  function showToast(message, type) {
-    // Create toast if it doesn't exist
+  // Show toast message
+  function showToast(message) {
     let toast = document.getElementById('bambi-toast');
     
     if (!toast) {
@@ -527,7 +353,6 @@ window.bambiSessions = (function() {
       toast.id = 'bambi-toast';
       document.body.appendChild(toast);
       
-      // Add styles
       const style = document.createElement('style');
       style.textContent = `
         #bambi-toast {
@@ -542,43 +367,43 @@ window.bambiSessions = (function() {
           transition: opacity 0.3s;
           opacity: 0;
         }
-        #bambi-toast.visible {
+        #bambi-toast.show {
           opacity: 1;
-        }
-        #bambi-toast.success {
-          border-left: 4px solid #00ff00;
-        }
-        #bambi-toast.error {
-          border-left: 4px solid #ff0000;
         }
       `;
       document.head.appendChild(style);
     }
     
-    // Set content and type
     toast.textContent = message;
-    toast.className = type || '';
+    toast.className = 'show';
     
-    // Show and auto hide
-    setTimeout(() => toast.classList.add('visible'), 10);
     setTimeout(() => {
-      toast.classList.remove('visible');
-      setTimeout(() => toast.textContent = '', 300);
+      toast.className = '';
     }, 3000);
+  }
+
+  // Enable a button by ID
+  function enableButton(id) {
+    const button = document.getElementById(id);
+    if (button) button.disabled = false;
+  }
+
+  // Set active session ID
+  function setActiveSessionId(id) {
+    activeSessionId = id;
   }
 
   // Public API
   return {
     init,
     loadSessions,
-    saveSession: saveCurrentSession,
+    saveSession,
     deleteSession,
     shareSession,
     loadSharedSession,
-    getActiveSessionId: () => activeSessionId,
+    setActiveSessionId,
     collectSettings
   };
 })();
 
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', window.bambiSessions.init);

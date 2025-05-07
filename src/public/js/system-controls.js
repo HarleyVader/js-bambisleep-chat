@@ -17,6 +17,37 @@ window.bambiSystem = (function() {
   function init() {
     loadFromStorage();
     setupEvents();
+
+    // Listen for session load events
+    document.addEventListener('session-loaded', function(e) {
+      if (e.detail && e.detail.session) {
+        // Update state with session data
+        const session = e.detail.session;
+        
+        // Update triggers if available
+        if (session.activeTriggers || session.metadata?.triggers) {
+          const triggers = session.activeTriggers || session.metadata?.triggers || [];
+          updateTriggers(triggers);
+        }
+        
+        // Update collar if available
+        if (session.collarSettings || (session.metadata?.collarActive !== undefined)) {
+          const collarActive = session.collarSettings?.enabled || session.metadata?.collarActive || false;
+          const collarText = session.collarSettings?.text || session.metadata?.collarText || '';
+          
+          saveState('collar', { 
+            enabled: collarActive, 
+            text: collarText 
+          });
+        }
+        
+        // Update spirals if available
+        if (session.spiralSettings || session.metadata?.spiralSettings) {
+          const spiralSettings = session.spiralSettings || session.metadata?.spiralSettings || {};
+          saveState('spirals', spiralSettings);
+        }
+      }
+    });
   }
 
   // Load saved state
