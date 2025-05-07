@@ -159,11 +159,6 @@ function handleTriggerUpdate(lmstudio, triggers) {
 
 /**
  * Handle collar command for LMStudio processing
- * 
- * @param {Socket} socket - Socket.io socket instance
- * @param {Worker} lmstudio - LMStudio worker thread
- * @param {Object} collarData - Collar command data
- * @param {Function} filterContent - Content filter function
  */
 function handleCollarForLMStudio(socket, lmstudio, collarData, filterContent) {
   try {
