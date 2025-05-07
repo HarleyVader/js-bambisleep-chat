@@ -29,6 +29,7 @@ import profileRouter from './routes/profile.js';
 import chatRoutes from './routes/chatRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
 import sessionsRouter, { basePath as sessionsBasePath } from './routes/sessions.js';
+import triggerScriptsRouter from './routes/trigger-scripts.js';
 
 // Import worker coordinator
 import workerCoordinator from './workers/workerCoordinator.js';
@@ -196,6 +197,7 @@ function setupRoutes(app) {
     { path: '/help', handler: helpRoute },
     { path: '/scrapers', handler: scrapersRoute },
     { path: '/profile', handler: profileRouter },
+    { path: '/trigger-script', triggerScriptsRouter },
   ];
   
   routes.forEach(route => {
