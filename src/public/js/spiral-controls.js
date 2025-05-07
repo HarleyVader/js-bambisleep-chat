@@ -1,34 +1,37 @@
 window.bambiSpirals = (function() {
   // Default values
-  let speedValue = 5;
-  let widthValue = 5;
+  let spiral1Width = 5.0;
+  let spiral2Width = 3.0;
+  let spiral1Speed = 20;
+  let spiral2Speed = 15;
   
   function init() {
     const spiralsEnable = document.getElementById('spirals-enable');
-    const spiralSpeed = document.getElementById('spiral-speed');
-    const spiralWidth = document.getElementById('spiral-width');
+    const spiral1WidthSlider = document.getElementById('spiral1-width');
+    const spiral2WidthSlider = document.getElementById('spiral2-width');
+    const spiral1SpeedSlider = document.getElementById('spiral1-speed');
+    const spiral2SpeedSlider = document.getElementById('spiral2-speed');
     const saveButton = document.getElementById('save-spirals');
     
     if (spiralsEnable) {
       spiralsEnable.addEventListener('change', toggleSpiralDisplay);
     }
     
-    if (spiralSpeed) {
-      spiralSpeed.addEventListener('input', function() {
-        updateSpeedLabel(this.value);
-        speedValue = parseInt(this.value);
-        updateSpiralPreview();
-      });
-      updateSpeedLabel(spiralSpeed.value);
+    // Setup event listeners for all sliders
+    if (spiral1WidthSlider) {
+      spiral1WidthSlider.addEventListener('input', updateSpiralParams);
     }
     
-    if (spiralWidth) {
-      spiralWidth.addEventListener('input', function() {
-        updateWidthLabel(this.value);
-        widthValue = parseInt(this.value);
-        updateSpiralPreview();
-      });
-      updateWidthLabel(spiralWidth.value);
+    if (spiral2WidthSlider) {
+      spiral2WidthSlider.addEventListener('input', updateSpiralParams);
+    }
+    
+    if (spiral1SpeedSlider) {
+      spiral1SpeedSlider.addEventListener('input', updateSpiralParams);
+    }
+    
+    if (spiral2SpeedSlider) {
+      spiral2SpeedSlider.addEventListener('input', updateSpiralParams);
     }
     
     if (saveButton) {
@@ -41,35 +44,28 @@ window.bambiSpirals = (function() {
     }
   }
   
-  function updateSpeedLabel(value) {
-    const speedText = document.getElementById('spiral-speed-value');
-    if (!speedText) return;
+  function updateSpiralParams() {
+    // Get values from sliders
+    spiral1Width = parseFloat(document.getElementById('spiral1-width').value);
+    spiral2Width = parseFloat(document.getElementById('spiral2-width').value);
+    spiral1Speed = parseInt(document.getElementById('spiral1-speed').value);
+    spiral2Speed = parseInt(document.getElementById('spiral2-speed').value);
     
-    const labels = ['Very Slow', 'Slow', 'Moderate', 'Normal', 'Medium', 'Fast', 'Faster', 'Very Fast', 'Super Fast', 'Extreme'];
-    speedText.textContent = labels[parseInt(value) - 1] || 'Normal';
-  }
-  
-  function updateWidthLabel(value) {
-    const widthText = document.getElementById('spiral-width-value');
-    if (!widthText) return;
-    
-    const labels = ['Very Thin', 'Thin', 'Slender', 'Normal', 'Medium', 'Wide', 'Wider', 'Very Wide', 'Super Wide', 'Extreme'];
-    widthText.textContent = labels[parseInt(value) - 1] || 'Normal';
+    // Update the values in the spiral script if it exists
+    if (typeof updateSpiralParams === "function") {
+      updateSpiralParams(spiral1Width, spiral2Width, spiral1Speed, spiral2Speed);
+    }
   }
   
   function toggleSpiralDisplay() {
     const spiralsEnable = document.getElementById('spirals-enable');
+    const eyeCursor = document.getElementById('eyeCursor');
     
     if (spiralsEnable.checked) {
-      initSpiral();
-    } else if (window.p5Instance) {
-      window.p5Instance.remove();
-      window.p5Instance = null;
+      eyeCursor.style.display = 'block';
+    } else {
+      eyeCursor.style.display = 'none';
     }
-  }
-  
-  function updateSpiralPreview() {
-    // This will be handled by p5 draw loop
   }
   
   function initSpiral() {
@@ -105,15 +101,9 @@ window.bambiSpirals = (function() {
         p.clear();
         p.translate(width / 2, height / 2);
         
-        // Map slider values to actual spiral parameters
-        const speed = p.map(speedValue, 1, 10, 0.5, 2.5);
-        const spiralWidth = p.map(widthValue, 1, 10, 2, 10);
-        
-        p.rotate(p.frameCount / (11 - speedValue)); // Rotation speed based on slider
-        
         // Draw two spirals with different parameters
-        drawSpiral(p, speed, 1, [199, 0, 199], spiralWidth);
-        drawSpiral(p, speed * 0.8, 0.3, [255, 130, 255], spiralWidth * 0.7);
+        drawSpiral(p, spiral1Speed, 1, [199, 0, 199], spiral1Width);
+        drawSpiral(p, spiral2Speed, 0.3, [255, 130, 255], spiral2Width);
       };
       
       function drawSpiral(p, step, ang, color, width) {
@@ -146,38 +136,45 @@ window.bambiSpirals = (function() {
   
   function saveSettings() {
     const enable = document.getElementById('spirals-enable').checked;
-    const speed = document.getElementById('spiral-speed').value;
-    const width = document.getElementById('spiral-width').value;
     
     fetch('/api/profile/spirals', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         enabled: enable,
-        speed: speed,
-        width: width
+        spiral1Width: spiral1Width,
+        spiral2Width: spiral2Width,
+        spiral1Speed: spiral1Speed,
+        spiral2Speed: spiral2Speed
       })
     })
     .then(res => res.json())
     .then(data => {
       if (data.success) {
-        const msg = document.createElement('div');
-        msg.className = 'success-message';
-        msg.textContent = 'Settings saved!';
-        msg.style.position = 'absolute';
-        msg.style.bottom = '10px';
-        msg.style.left = '50%';
-        msg.style.transform = 'translateX(-50%)';
-        msg.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
-        msg.style.color = '#00ff00';
-        msg.style.padding = '5px 10px';
-        msg.style.borderRadius = '4px';
-        
-        document.querySelector('.spirals-preview').appendChild(msg);
-        setTimeout(() => msg.remove(), 3000);
+        showSuccessMessage('Settings saved!');
       }
     })
     .catch(err => console.error('Error saving spiral settings:', err));
+  }
+  
+  function showSuccessMessage(text) {
+    const msg = document.createElement('div');
+    msg.className = 'success-message';
+    msg.textContent = text;
+    msg.style.position = 'absolute';
+    msg.style.bottom = '10px';
+    msg.style.left = '50%';
+    msg.style.transform = 'translateX(-50%)';
+    msg.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
+    msg.style.color = '#00ff00';
+    msg.style.padding = '5px 10px';
+    msg.style.borderRadius = '4px';
+    
+    const panel = document.getElementById('spirals-panel');
+    if (panel) {
+      panel.appendChild(msg);
+      setTimeout(() => msg.remove(), 3000);
+    }
   }
   
   return { init };

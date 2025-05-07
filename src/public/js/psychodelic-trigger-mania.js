@@ -12,12 +12,11 @@ if (eyeCursor) {
   const xdPred = 0;
   const ydPred = 0;
 
-  let multiplierA1Value = 1;
-  let multiplierA2Value = 1;
-  let multiplierB1Value = 1;
-  let multiplierB2Value = 1;
-
-  let operationValue = 'add';
+  // Control parameters for spirals
+  let spiral1Width = 5.0;
+  let spiral2Width = 3.0;
+  let spiral1Speed = 20; // Speed for first spiral
+  let spiral2Speed = 15; // Speed for second spiral (slightly different)
 
   function setup() {
     // Get the #eyeCursor element
@@ -37,31 +36,14 @@ if (eyeCursor) {
   function draw() {
     clear();
     translate(width / 2, height / 2);
-    let a = map(sin(frameCount / 20), -1, 1, 0.5, 1.5);
-    let b = map(cos(frameCount / 20), -1, 1, 1, 1.5);
-
-    switch (operationValue) {
-      case 'add':
-        a += multiplierA1Value;
-        b += multiplierB1Value;
-        break;
-      case 'subtract':
-        a -= multiplierA2Value;
-        b -= multiplierB2Value;
-        break;
-      case 'multiply':
-        a *= multiplierA1Value;
-        b *= multiplierB1Value;
-        break;
-      case 'divide':
-        a /= multiplierA2Value;
-        b /= multiplierB2Value;
-        break;
-    }
+    
+    // Base values for spirals with separate speeds
+    let a = map(sin(frameCount / spiral1Speed), -1, 1, 0.5, 1.5);
+    let b = map(cos(frameCount / spiral2Speed), -1, 1, 1, 1.5);
 
     rotate(frameCount / 5);
-    spiral(a, 1, [199, 0, 199]);
-    spiral(b, 0.3, [255, 130, 255]);
+    spiral(a, 1, [199, 0, 199], spiral1Width);
+    spiral(b, 0.3, [255, 130, 255], spiral2Width);
     calibrationComplete();
     circle(trancePoint[0], trancePoint[1], 40);
   }
@@ -77,9 +59,12 @@ if (eyeCursor) {
     tranceAmt = dist(xdPred, ydPred, trancePoint[0], trancePoint[1]);
   }
 
-  function spiral(a, x, d) {
+  function spiral(a, x, d, baseWidth) {
     fill(d[0], d[1], d[2]); stroke(d[0], d[1], d[2]);
-    let r1 = 0, r2 = 2, step = a, spiralWidth = 5.0 * multiplierA1Value, dw = (spiralWidth / 350) * multiplierB1Value;
+    let r1 = 0, r2 = 2, step = a;
+    let spiralWidth = baseWidth;
+    let dw = (spiralWidth / 350);
+    
     beginShape(TRIANGLE_STRIP);
     for (let i = 0; i < 450; i++) {
       r1 += step;
@@ -94,6 +79,14 @@ if (eyeCursor) {
       vertex(r2x, r2y);
     }
     endShape();
+  }
+  
+  // Function to update spiral parameters
+  function updateSpiralParams(spiral1WidthValue, spiral2WidthValue, speedValue1, speedValue2) {
+    spiral1Width = spiral1WidthValue;
+    spiral2Width = spiral2WidthValue;
+    spiral1Speed = speedValue1;
+    spiral2Speed = speedValue2;
   }
 } else {
   console.error("Element with id 'eyeCursor' not found.");
