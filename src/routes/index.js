@@ -124,6 +124,10 @@ router.get('/', async (req, res) => {
     // Load trigger data for client
     let triggers = [];
     try {
+      // Define __dirname for this scope
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      
       // Read triggers from config file
       const triggersPath = path.resolve(path.dirname(__dirname), 'config', 'triggers.json');
       const triggerData = await fs.readFile(triggersPath, 'utf8');
@@ -167,6 +171,10 @@ router.get('/', async (req, res) => {
 // Add API endpoints for triggers
 router.get('/api/triggers', async (req, res) => {
   try {
+    // Define __dirname for this scope using the import.meta.url
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    
     // Read triggers from config file
     const triggersPath = path.resolve(path.dirname(__dirname), 'config', 'triggers.json');
     const triggerData = await fs.readFile(triggersPath, 'utf8');
