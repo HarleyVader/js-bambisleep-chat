@@ -197,7 +197,7 @@ function setupRoutes(app) {
     { path: '/help', handler: helpRoute },
     { path: '/scrapers', handler: scrapersRoute },
     { path: '/profile', handler: profileRouter },
-    { path: '/trigger-script', triggerScriptsRouter },
+    { path: '/trigger-script', handler: triggerScriptsRouter },
   ];
   
   routes.forEach(route => {
