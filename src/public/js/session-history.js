@@ -9,7 +9,16 @@ window.bambiHistory = (function() {
     
     if (loadBtn) loadBtn.addEventListener('click', loadHistory);
     if (replayBtn) replayBtn.addEventListener('click', replayRandom);
-    if (sessionSelect) sessionSelect.addEventListener('change', loadSession);
+    
+    // Create a refresh button for loading history list
+    const container = document.querySelector('.session-select-container');
+    if (container) {
+      const refreshBtn = document.createElement('button');
+      refreshBtn.textContent = 'Refresh List';
+      refreshBtn.className = 'refresh-history-btn';
+      refreshBtn.addEventListener('click', refreshHistory);
+      container.appendChild(refreshBtn);
+    }
   }
   
   function loadHistory() {
@@ -17,13 +26,12 @@ window.bambiHistory = (function() {
     status.textContent = 'Loading sessions...';
     status.className = 'session-history-status';
     
-    // Get current username from cookie or DOM element
+    // Get current username
     const currentUsername = 
       (document.cookie.split('; ').find(row => row.startsWith('bambiname=')) || '').split('=')[1] || 
       document.querySelector('.user-profile-name')?.textContent || 
       'anonBambi';
     
-    // Use the new standardized API endpoint pattern
     fetch(`/api/sessions/${currentUsername}`)
       .then(res => res.json())
       .then(data => {
@@ -31,15 +39,24 @@ window.bambiHistory = (function() {
         updateStats(data);
         populateDropdown(sessionData);
         
+        // Always show the dropdown
         document.querySelector('.session-select-container').style.display = 'block';
         document.querySelector('.session-stats-container').style.display = 'flex';
         
         if (sessionData.length > 0) {
-          status.textContent = `${sessionData.length} sessions loaded`;
+          status.textContent = `${sessionData.length} sessions available`;
           status.className = 'session-history-status success';
           document.getElementById('replay-history-btn').disabled = false;
         } else {
           status.textContent = 'No sessions found';
+        }
+        
+        // Change load button functionality
+        const loadBtn = document.getElementById('load-history-btn');
+        if (loadBtn) {
+          loadBtn.removeEventListener('click', loadHistory);
+          loadBtn.addEventListener('click', loadSession);
+          loadBtn.textContent = 'Load Selected';
         }
       })
       .catch(err => {
@@ -51,6 +68,19 @@ window.bambiHistory = (function() {
         updateStats({totalSessions: 0, totalMessages: 0, totalWords: 0});
         populateDropdown([]);
       });
+  }
+  
+  function refreshHistory() {
+    // Reset the load button
+    const loadBtn = document.getElementById('load-history-btn');
+    if (loadBtn) {
+      loadBtn.removeEventListener('click', loadSession);
+      loadBtn.addEventListener('click', loadHistory);
+      loadBtn.textContent = 'Load History';
+    }
+    
+    // Load sessions list
+    loadHistory();
   }
   
   function saveSession(sessionData) {
@@ -184,7 +214,12 @@ window.bambiHistory = (function() {
   
   function loadSession() {
     const sessionId = document.getElementById('session-select').value;
-    if (!sessionId) return;
+    if (!sessionId || sessionId === "default") {
+      const status = document.getElementById('session-history-status');
+      status.textContent = 'Please select a session';
+      status.className = 'session-history-status';
+      return;
+    }
     
     const session = sessionData.find(s => s._id === sessionId);
     if (!session) return;
