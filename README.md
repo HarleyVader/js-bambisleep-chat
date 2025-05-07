@@ -1,4 +1,4 @@
-
+```markdown
 # 🧠 [BambiSleep.Chat](https://bambisleep.chat) 👁️
 💖 A [r/bambisleep](https://www.reddit.com/r/BambiSleep/) targeted Hypnotic AIGF (AI Girlfriend) 🤖
 
@@ -16,12 +16,12 @@
 > - Custom Trigger Creation
 
 </details>
-```markdown
+```
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
 <!-- eslint-disable -->
 <!-- copilot:ignore -->
-
+```markdown
  _____ ______   _______   ___       ___  __    ________  ________   _______   ________
 |\   _ \  _   \|\  ___ \ |\  \     |\  \|\  \ |\   __  \|\   ___  \|\  ___ \ |\   __  \
 \ \ \ \ \_\ \  \ \   __/|\ \  \    \ \  \/  /|\ \  \|\  \ \ \ \ \  \ \   __/|\ \  \|\  \
@@ -29,12 +29,12 @@
   \ \  \    \ \  \ \  \_|\ \ \  \____\ \ \ \ \  \ \  \ \  \ \ \ \ \  \ \  \_|\ \ \  \ \  \
    \ \__\    \ \__\ \_______\ \_______\ \_\ \ \__\ \__\ \__\ \_\ \ \__\ \_______\ \__\ \__\
     \|__|     \|__|\|_______|\|_______|\|__| \|__|\|__|\|__| \|__|\|_______|\|__|\|__| |__|
-
+```
 <!-- copilot:end-ignore -->
 <!-- eslint-enable -->
 <!-- markdownlint-enable -->
 <!-- prettier-ignore-end -->
-```
+
 
 <details>
 <summary>Lawfull Good Scrapers</summary>
