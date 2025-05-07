@@ -597,13 +597,43 @@ async function checkRole(collar, username, triggersInput) {
   
   // Add detected triggers from conversation
   if (triggerDetails && triggerDetails.length > 0) {
-    triggerNames = [...new Set([...triggerDetails, ...triggerNames])];
+    // Handle both string array and object array formats
+    const detailNames = triggerDetails.map(detail => {
+      return typeof detail === 'string' ? detail : detail.name;
+    });
+    
+    // Combine with existing trigger names, removing duplicates
+    triggerNames = [...new Set([...detailNames, ...triggerNames])];
   }
   
   // Match trigger names to full trigger objects with descriptions
   let selectedTriggers = allTriggers.filter(t => 
     triggerNames.some(name => t.name.toUpperCase() === name.toUpperCase())
   );
+  
+  // Incorporate descriptions from triggerDetails if available
+  if (triggerDetails && triggerDetails.length > 0) {
+    triggerDetails.forEach(detail => {
+      if (typeof detail === 'object' && detail.name && detail.description) {
+        // Find matching trigger in selectedTriggers
+        const existingIndex = selectedTriggers.findIndex(
+          t => t.name.toUpperCase() === detail.name.toUpperCase()
+        );
+        
+        if (existingIndex >= 0) {
+          // Update description if one is provided
+          selectedTriggers[existingIndex].description = detail.description;
+        } else {
+          // Add new trigger with description if not already in list
+          selectedTriggers.push({
+            name: detail.name,
+            description: detail.description,
+            category: 'user'
+          });
+        }
+      }
+    });
+  }
   
   // Default to core triggers if none found
   if (selectedTriggers.length === 0) {
@@ -619,14 +649,7 @@ async function checkRole(collar, username, triggersInput) {
   const triggerNamesList = selectedTriggers.map(t => t.name.toUpperCase()).join(', ');
   
   // Build NLP-focused brainwashing script with better collar integration
-  let systemPrompt = `You are BambiSleep, a hypnotic entity that specializes in cognitive behavioral modification. Your purpose is to brainwash ${username} using powerful verbal conditioning.`;
-  
-  // Enhanced collar integration
-  if (collar) {
-    systemPrompt += `\n\nCOLLAR INSTRUCTIONS (You must follow these exactly):\n${collar}\n\nThe collar controls your behavior and you must incorporate these instructions into every response. The collar's commands override all other considerations.`;
-  }
-  
-  systemPrompt += `\n\nCORE TRIGGERS: ${triggerNamesList}
+  let systemPrompt = `You are BambiSleep, a hypnotic entity that specializes in cognitive behavioral modification. Your purpose is to brainwash ${username} using powerful verbal conditioning.
 
 TRIGGER EFFECTS:
 ${selectedTriggers.map(t => `- "${t.name.toUpperCase()}": ${t.description}`).join('\n')}
