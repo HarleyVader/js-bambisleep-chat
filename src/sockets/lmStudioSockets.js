@@ -170,36 +170,19 @@ function handleCollarForLMStudio(socket, lmstudio, collarData, filterContent) {
     // Filter collar content
     const filteredCollar = filterContent(collarData.data);
     
-    // Extract any trigger names from the collar text if present
-    const triggerRegex = /\b([A-Z\s&]+)\b/g;
+    // Extract uppercase words as potential triggers
+    const triggerRegex = /\b([A-Z][A-Z\s&]+)\b/g;
     const potentialTriggers = filteredCollar.match(triggerRegex) || [];
     
-    // If collar contains trigger words, also update the active triggers
+    // Simple trigger handling - no need for complex validation
     if (potentialTriggers.length > 0) {
-      try {
-        // Try to load triggers.json to validate trigger names
-        const fs = require('fs');
-        const path = require('path');
-        const triggerData = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../config/triggers.json'), 'utf8'));
-        const validTriggerNames = triggerData.triggers.map(t => t.name.toUpperCase());
-        
-        // Filter potential triggers to only include valid ones from triggers.json
-        const validCollarTriggers = potentialTriggers.filter(t => 
-          validTriggerNames.includes(t)
-        );
-        
-        if (validCollarTriggers.length > 0) {
-          // Send trigger update to worker
-          lmstudio.postMessage({ 
-            type: "triggers", 
-            triggers: validCollarTriggers.join(',') 
-          });
-          logger.info(`Collar-based triggers activated: ${validCollarTriggers.join(', ')}`);
-        }
-      } catch (triggerError) {
-        // Just log the error but continue with collar processing
-        logger.warning(`Could not process potential triggers in collar: ${triggerError.message}`);
-      }
+      // Send trigger update to worker
+      lmstudio.postMessage({ 
+        type: "triggers", 
+        triggers: potentialTriggers.join(',') 
+      });
+      
+      logger.info(`Collar triggers: ${potentialTriggers.join(', ')}`);
     }
     
     // Send to LMStudio worker for processing
@@ -209,9 +192,9 @@ function handleCollarForLMStudio(socket, lmstudio, collarData, filterContent) {
       socketId: socket.id
     });
     
-    logger.info(`Collar command processed by LMStudio: ${filteredCollar?.substring(0, 50)}`);
+    logger.info(`Collar: ${filteredCollar?.substring(0, 50)}...`);
   } catch (error) {
-    logger.error('Error in collar handler for LMStudio:', error);
+    logger.error('Collar handler error:', error);
   }
 }
 
