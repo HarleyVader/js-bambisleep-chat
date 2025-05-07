@@ -185,7 +185,23 @@ function preloadSelectedAudio() {
   });
 }
 
-// Modified function to play trigger sound with error handling
+// Add a global variable to track playback speed
+let playbackSpeedFactor = 1.0;
+
+// Function to update playback speed
+function updatePlaybackSpeed(speedFactor) {
+  playbackSpeedFactor = speedFactor;
+}
+
+// Add this after the playbackSpeedFactor variable
+let playbackVolumeFactor = 1.0;
+
+// Add this function after updatePlaybackSpeed
+function updatePlaybackVolume(volumeFactor) {
+  playbackVolumeFactor = volumeFactor;
+}
+
+// Modified function to play trigger sound with error handling and volume control
 function playTriggerSound(triggerName) {
   const trigger = triggerData.find(t => t.name === triggerName);
   
@@ -201,6 +217,9 @@ function playTriggerSound(triggerName) {
   }
   
   const audio = audioCache[triggerName];
+  
+  // Apply volume control
+  audio.volume = playbackVolumeFactor;
   
   // Reset audio to start
   try {
@@ -480,14 +499,6 @@ function updateTriggerToggles(activeTriggers) {
 
 let continuousPlaybackActive = false;
 
-// Add a global variable to track playback speed
-let playbackSpeedFactor = 1.0;
-
-// Function to update playback speed
-function updatePlaybackSpeed(speedFactor) {
-  playbackSpeedFactor = speedFactor;
-}
-
 // Play selected triggers in a continuous loop until stopped
 function playContinuousTriggers() {
   if (continuousPlaybackActive) {
@@ -645,8 +656,98 @@ window.bambiAudio = {
   startContinuousPlayback: playContinuousTriggers,
   stopContinuousPlayback: stopContinuousPlayback,
   updatePlaybackSpeed: updatePlaybackSpeed,
+  updatePlaybackVolume: updatePlaybackVolume,
   getSelectedTriggers: getSelectedTriggers,
   loadTriggerAudio: loadTriggerAudio,
   getAllTriggers: () => triggerData,
   refreshTriggers: loadTriggerData
 };
+
+// Add this to the bottom of profile-system-controls.ejs inside the existing script tag
+document.addEventListener("DOMContentLoaded", function() {
+  // Volume control
+  const volumeSlider = document.getElementById('loop-volume');
+  const volumeValue = document.getElementById('volume-value');
+  
+  if (volumeSlider && volumeValue) {
+    // Initialize with stored value or default
+    const storedVolume = localStorage.getItem('bambiAudioVolume');
+    if (storedVolume !== null) {
+      const volume = parseFloat(storedVolume);
+      volumeSlider.value = volume * 10; // Convert 0-1 to 0-10 for slider
+      volumeValue.textContent = Math.round(volume * 100) + '%';
+      
+      // Apply volume if audio API is available
+      if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackVolume === 'function') {
+        window.bambiAudio.updatePlaybackVolume(volume);
+      }
+    }
+    
+    // Update volume when slider changes
+    volumeSlider.addEventListener('input', function() {
+      const volumeFactor = this.value / 10; // Convert 0-10 to 0-1 for volume
+      volumeValue.textContent = Math.round(volumeFactor * 100) + '%';
+      
+      // Store in localStorage
+      localStorage.setItem('bambiAudioVolume', volumeFactor);
+      
+      // Update audio volume if API is available
+      if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackVolume === 'function') {
+        window.bambiAudio.updatePlaybackVolume(volumeFactor);
+      }
+    });
+  }
+  
+  // Existing speed slider might already be implemented
+  const speedSlider = document.getElementById('loop-speed');
+  const speedValue = document.getElementById('speed-value');
+  
+  if (speedSlider && speedValue) {
+    // Initialize with stored value or default
+    const storedSpeed = localStorage.getItem('bambiAudioSpeed');
+    if (storedSpeed !== null) {
+      speedSlider.value = storedSpeed;
+      updateSpeedLabel(storedSpeed);
+      
+      // Apply speed if audio API is available
+      if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackSpeed === 'function') {
+        const speedFactor = getSpeedFactor(storedSpeed);
+        window.bambiAudio.updatePlaybackSpeed(speedFactor);
+      }
+    }
+    
+    // Update speed when slider changes
+    speedSlider.addEventListener('input', function() {
+      updateSpeedLabel(this.value);
+      
+      // Store in localStorage
+      localStorage.setItem('bambiAudioSpeed', this.value);
+      
+      // Update audio speed if API is available
+      if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackSpeed === 'function') {
+        const speedFactor = getSpeedFactor(this.value);
+        window.bambiAudio.updatePlaybackSpeed(speedFactor);
+      }
+    });
+  }
+  
+  // Helper function for speed label display
+  function updateSpeedLabel(value) {
+    const speedVal = parseInt(value);
+    if (speedVal === 5) {
+      speedValue.textContent = 'Normal';
+    } else if (speedVal < 5) {
+      speedValue.textContent = 'Slower ' + (5 - speedVal) + 'x';
+    } else {
+      speedValue.textContent = 'Faster ' + (speedVal - 5) + 'x';
+    }
+  }
+  
+  // Helper function to convert slider value to speed factor
+  function getSpeedFactor(value) {
+    const speedVal = parseInt(value);
+    if (speedVal === 5) return 1.0;
+    if (speedVal < 5) return 1.0 + ((5 - speedVal) * 0.5); // Slower = higher number
+    return 1.0 - ((speedVal - 5) * 0.1); // Faster = lower number
+  }
+});

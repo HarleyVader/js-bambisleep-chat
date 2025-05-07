@@ -226,6 +226,13 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
               <label for="loop-speed">Loop Speed:</label>
               <input type="range" id="loop-speed" min="1" max="10" value="5" class="speed-slider">
               <span id="speed-value">Normal</span>
+              
+              <!-- Add volume control slider -->
+              <div class="audio-volume-control">
+                <label for="loop-volume">Volume:</label>
+                <input type="range" id="loop-volume" min="0" max="10" value="10" class="volume-slider">
+                <span id="volume-value">100%</span>
+              </div>
             </div>
           </div>
         </div>
@@ -340,6 +347,49 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     text-align: center;
     font-size: 0.9em;
     color: #ff00ff;
+  }
+
+  /* Add styles for volume control */
+  .audio-volume-control {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .volume-slider {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    outline: none;
+  }
+
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #00ffff;
+    cursor: pointer;
+  }
+
+  .volume-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #00ffff;
+    cursor: pointer;
+  }
+
+  #volume-value {
+    min-width: 80px;
+    text-align: center;
+    font-size: 0.9em;
+    color: #00ffff;
   }
 
   /* Add styles for session stats container */
