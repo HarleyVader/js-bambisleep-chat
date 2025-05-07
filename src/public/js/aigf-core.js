@@ -16,6 +16,9 @@ const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
 let currentMessage = '';
 
+// Track active triggers globally 
+let activeTriggers = [];
+
 document.addEventListener('DOMContentLoaded', function() {
     const cookies = document.cookie.split(";").reduce((acc, cookie) => {
         const [name, value] = cookie.split("=").map(c => c.trim());
@@ -50,6 +53,21 @@ socket.on('reconnect', () => {
 
 socket.on('reconnect_failed', () => {
     console.error('Failed to reconnect to server');
+});
+
+// Listen for detected triggers from server
+socket.on('detected-triggers', (data) => {
+    if (data && data.triggers && data.triggers.length) {
+        console.log('Server detected triggers:', data.triggers);
+        // Play each detected trigger
+        data.triggers.forEach((trigger, index) => {
+            setTimeout(() => {
+                // Try to find the full trigger object if available
+                const triggerObj = typeof trigger === 'string' ? { name: trigger } : trigger;
+                playTriggerAudio(triggerObj);
+            }, index * 350); // Stagger trigger audio
+        });
+    }
 });
 
 let debounceTimeout;
@@ -112,21 +130,34 @@ function detectAndPlayTriggers(text) {
     // Skip if text is empty
     if (!text) return;
     
+    // Log the received text for debugging
+    console.log(`Checking for triggers in: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
+    
     // Try to get triggers from server first
     fetch('/config/triggers.json')
         .then(response => response.json())
         .then(data => {
+            // Log available triggers for debugging
+            console.log(`Found ${data.triggers.length} triggers in config`);
+            
             // Get the active triggers
             const activeTriggers = getActiveTriggers();
+            console.log(`Active triggers: ${activeTriggers.length ? activeTriggers.join(', ') : 'none'}`);
+            
             processTriggersInText(text, data.triggers, activeTriggers);
         })
         .catch(error => {
+            console.warn('Could not load triggers from server, falling back to bambiAudio API');
+            
             // Fallback to bambiAudio if available
             if (typeof window.bambiAudio !== 'undefined') {
                 const allTriggers = window.bambiAudio.getAllTriggers();
                 if (allTriggers && allTriggers.length) {
+                    console.log(`Found ${allTriggers.length} triggers from bambiAudio API`);
                     const activeTriggers = getActiveTriggers();
                     processTriggersInText(text, allTriggers, activeTriggers);
+                } else {
+                    console.warn('No triggers found in bambiAudio API');
                 }
             } else {
                 console.error('Failed to load triggers:', error);
@@ -169,7 +200,7 @@ function processTriggersInText(text, allTriggers, activeTriggers) {
     // Check each trigger
     allTriggers.forEach(trigger => {
         // Skip if trigger name is empty
-        if (!trigger.name) return;
+        if (!trigger.name && typeof trigger !== 'string') return;
         
         // Use the name property directly
         const triggerName = typeof trigger === 'string' ? trigger : trigger.name;
@@ -207,7 +238,6 @@ function processTriggersInText(text, allTriggers, activeTriggers) {
     }
 
     // Send only trigger names to worker - no descriptions
-    // LMStudio.js will get descriptions from triggers.json directly
     socket.emit('triggers', {
         triggerNames: activeTriggers.join(','),
         triggerDetails: matchedTriggers
@@ -226,10 +256,28 @@ function playTriggerAudio(trigger) {
     const triggerName = typeof trigger === 'string' ? trigger : trigger.name;
     const filename = typeof trigger === 'object' && trigger.filename 
         ? trigger.filename 
-        : triggerName.replace(/\s+/g, '-') + '.mp3';
+        : triggerName.replace(/\s+/g, '-').toLowerCase() + '.mp3';
     
-    const audio = new Audio(`/audio/${filename}`);
+    console.log(`Playing trigger audio: ${triggerName} (${filename})`);
+    
+    // Create audio element
+    const audio = new Audio(`/audio/triggers/${filename}`);
     audio.volume = 0.8;
+    
+    // Add error handling to try alternate paths if the first one fails
+    audio.onerror = () => {
+        console.warn(`Could not load trigger from /audio/triggers/${filename}, trying alternate path`);
+        audio.src = `/audio/${filename}`;
+        
+        audio.onerror = () => {
+            console.warn(`Could not load trigger from /audio/${filename} either`);
+            flashTrigger(triggerName, 2000); // Flash trigger anyway even if audio fails
+        };
+        
+        audio.play().catch(err => console.warn('Could not play trigger:', err.message));
+    };
+    
+    // Play the audio
     audio.play().catch(err => console.warn('Could not play trigger:', err.message));
     
     // Flash trigger name on screen
