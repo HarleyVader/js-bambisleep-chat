@@ -5,6 +5,7 @@
   function init() {
     initTabSystem();
     loadControlModules();
+    initSessionHistoryControls();
   }
   
   // Initialize tab system
@@ -46,6 +47,18 @@
     
     if (window.bambiHistory) {
       window.bambiHistory.init();
+    }
+  }
+  
+  // Initialize session history controls
+  function initSessionHistoryControls() {
+    const sessionHistoryBtn = document.getElementById('session-history-btn');
+    
+    if (sessionHistoryBtn) {
+      sessionHistoryBtn.addEventListener('click', function() {
+        // If session-history.js is included, it will handle the functionality
+        console.log('Session history panel activated');
+      });
     }
   }
   
