@@ -1,8 +1,56 @@
-// Session history module for managing session history functionality
+// Session history module for handling session history functionality
 
 (function() {
   // Initialize session history controls
   function init() {
+    createSessionHistoryUI();
+    setupEventListeners();
+  }
+  
+  // Create session history UI if it doesn't exist
+  function createSessionHistoryUI() {
+    const panel = document.getElementById('session-history-panel');
+    if (!panel || panel.querySelector('.session-stats-container')) return;
+    
+    // Create basic structure
+    const content = `
+      <h3>Session History</h3>
+      
+      <div id="session-history-status" class="session-history-status">
+        No sessions loaded yet
+      </div>
+      
+      <div class="session-stats-container" style="display: none;">
+        <div class="session-stat">
+          <div class="stat-value" id="session-count">0</div>
+          <div class="stat-label">Sessions</div>
+        </div>
+        <div class="session-stat">
+          <div class="stat-value" id="message-count">0</div>
+          <div class="stat-label">Messages</div>
+        </div>
+        <div class="session-stat">
+          <div class="stat-value" id="word-count">0</div>
+          <div class="stat-label">Words</div>
+        </div>
+      </div>
+      
+      <div class="session-history-actions">
+        <button id="load-history-btn" class="control-btn">Load History</button>
+        <button id="replay-history-btn" class="control-btn" disabled>Replay Random</button>
+      </div>
+    `;
+    
+    // Replace existing content or append
+    if (panel.children.length === 0) {
+      panel.innerHTML = content;
+    } else if (!panel.querySelector('#session-history-status')) {
+      panel.innerHTML += content;
+    }
+  }
+  
+  // Set up event listeners for buttons
+  function setupEventListeners() {
     const loadHistoryBtn = document.getElementById('load-history-btn');
     const replayHistoryBtn = document.getElementById('replay-history-btn');
     
@@ -15,7 +63,7 @@
     }
   }
   
-  // Load session history
+  // Load session history from the server
   function loadSessionHistory() {
     const username = document.body.getAttribute('data-username') || window.username;
     if (!username) {
@@ -31,6 +79,7 @@
       sessionStatsContainer.style.display = 'none';
     }
     
+    // Fetch session history from API
     fetch(`/api/sessions/${username}`)
       .then(response => {
         if (!response.ok) {
@@ -69,16 +118,18 @@
         updateSessionStats(sessionCount, messageCount, wordCount);
         
         // Enable replay button
-        const replayHistoryBtn = document.getElementById('replay-history-btn');
-        if (replayHistoryBtn) {
-          replayHistoryBtn.disabled = false;
+        const replayBtn = document.getElementById('replay-history-btn');
+        if (replayBtn) {
+          replayBtn.disabled = false;
         }
         
         updateSessionHistoryStatus(`Loaded ${sessionCount} session(s)`, false);
         
-        // Award XP for loading session history (+5 XP)
+        // Award XP for loading session history
         if (typeof socket !== 'undefined' && socket.connected) {
           socket.emit('award-xp', {
+            username: username,
+            amount: 5,
             action: 'history_loaded'
           });
         }
@@ -135,7 +186,7 @@
       updateSessionHistoryStatus('Bambi says: ' + randomResponse.content.substring(0, 50) + '...', false);
     }
     
-    // Award XP for replaying session history (+10 XP)
+    // Award XP for replaying session history
     const username = document.body.getAttribute('data-username') || window.username;
     if (username && typeof socket !== 'undefined' && socket.connected) {
       socket.emit('award-xp', {
@@ -148,21 +199,28 @@
   
   // Update session history status message
   function updateSessionHistoryStatus(message, isError = false) {
-    const sessionHistoryStatus = document.getElementById('session-history-status');
-    if (!sessionHistoryStatus) return;
+    const statusEl = document.getElementById('session-history-status');
+    if (!statusEl) return;
     
-    sessionHistoryStatus.textContent = message;
-    sessionHistoryStatus.className = 'session-history-status' + (isError ? ' error' : ' success');
+    statusEl.textContent = message;
+    statusEl.className = 'session-history-status' + (isError ? ' error' : ' success');
     
     // Clear success message after 5 seconds, but keep errors visible
     if (!isError) {
       setTimeout(() => {
-        if (sessionHistoryStatus.textContent === message) {
-          sessionHistoryStatus.textContent = 'Click "Load History" to view your session stats';
-          sessionHistoryStatus.className = 'session-history-status';
+        if (statusEl.textContent === message) {
+          statusEl.textContent = 'Click "Load History" to view your session stats';
+          statusEl.className = 'session-history-status';
         }
       }, 5000);
     }
+  }
+  
+  // Mock data for testing - remove in production
+  function loadMockData() {
+    updateSessionStats(69, 8954, 42069);
+    document.getElementById('replay-history-btn').disabled = false;
+    updateSessionHistoryStatus('Loaded 69 sessions', false);
   }
   
   // Export functions
