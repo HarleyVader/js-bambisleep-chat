@@ -32,6 +32,7 @@
             toggle.id = `toggle-${index}`;
             toggle.className = 'toggle-input';
             toggle.setAttribute('data-trigger', trigger.name);
+            toggle.setAttribute('data-description', trigger.description || '');
             
             // Set tooltip with description
             if (trigger.description) {
@@ -53,6 +54,9 @@
                   action: 'trigger_used'
                 });
               }
+              
+              // Dispatch trigger toggle event
+              document.dispatchEvent(new Event('trigger-toggle'));
             });
             
             var label = document.createElement('label');
@@ -69,6 +73,9 @@
             triggerItem.appendChild(label);
             triggerList.appendChild(triggerItem);
           });
+          
+          // Dispatch trigger controls loaded event
+          document.dispatchEvent(new Event('trigger-controls-loaded'));
         })
         .catch(error => {
           console.error('Error loading triggers:', error);
@@ -162,6 +169,50 @@
       });
     }
   }
+  
+  // Add this function to consolidate trigger handling
+  function sendTriggerUpdate() {
+    // Get all active triggers
+    const triggerToggles = document.querySelectorAll('.toggle-input:checked');
+    const activeTriggers = Array.from(triggerToggles).map(toggle => {
+      return {
+        name: toggle.getAttribute('data-trigger'),
+        description: toggle.getAttribute('data-description') || ''
+      };
+    }).filter(t => t.name);
+    
+    // Save to localStorage for persistence
+    try {
+      localStorage.setItem('bambiActiveTriggers', 
+        JSON.stringify(activeTriggers.map(t => t.name)));
+    } catch(e) {}
+    
+    // Send via socket if available
+    if (window.socket && window.socket.connected) {
+      window.socket.emit('triggers', {
+        triggerNames: activeTriggers.map(t => t.name).join(','),
+        triggerDetails: activeTriggers
+      });
+    }
+    
+    // Dispatch event for other components
+    document.dispatchEvent(new CustomEvent('system-control-loaded', {
+      detail: {
+        type: 'triggers',
+        activeTriggers: activeTriggers.map(t => t.name)
+      }
+    }));
+  }
+  
+  // Call this function after initializing triggers
+  document.addEventListener('trigger-controls-loaded', sendTriggerUpdate);
+  
+  // Call this when any trigger is toggled
+  document.addEventListener('trigger-toggle', function() {
+    // Debounce to avoid too many updates
+    clearTimeout(window.triggerUpdateTimeout);
+    window.triggerUpdateTimeout = setTimeout(sendTriggerUpdate, 300);
+  });
   
   // Export functions
   window.bambiTriggers = {

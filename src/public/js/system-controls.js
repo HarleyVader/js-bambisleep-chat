@@ -5,6 +5,9 @@
   function init() {
     initTabSystem();
     loadControlModules();
+    
+    // Dispatch event when system controls are fully loaded
+    document.dispatchEvent(new CustomEvent('system-controls-loaded'));
   }
   
   // Initialize tab system
@@ -35,7 +38,7 @@
   
   // Load required modules
   function loadControlModules() {
-    // Check and initialize modules
+    // Initialize modules in proper order
     if (window.bambiTriggers) {
       window.bambiTriggers.init();
     }
@@ -53,9 +56,30 @@
     }
   }
   
+  // Send active triggers to server
+  function sendActiveTriggersToServer() {
+    const triggerToggles = document.querySelectorAll('.toggle-input:checked');
+    if (!triggerToggles.length) return;
+    
+    const activeTriggers = Array.from(triggerToggles).map(toggle => {
+      return {
+        name: toggle.getAttribute('data-trigger'),
+        description: toggle.getAttribute('data-description') || ''
+      };
+    }).filter(t => t.name);
+    
+    if (activeTriggers.length && window.socket) {
+      window.socket.emit('triggers', {
+        triggerNames: activeTriggers.map(t => t.name).join(','),
+        triggerDetails: activeTriggers
+      });
+    }
+  }
+  
   // Export functions
   window.bambiSystemControls = {
-    init
+    init,
+    sendActiveTriggersToServer
   };
   
   // Auto-initialize on load

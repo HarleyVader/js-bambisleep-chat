@@ -557,6 +557,23 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         if (targetPanel) targetPanel.classList.add('active');
       });
     });
+    
+    // When triggers are loaded, trigger a single event
+    const triggerList = document.getElementById('trigger-list');
+    if (triggerList) {
+      const observer = new MutationObserver(function(mutations) {
+        // Check if triggers were added
+        if (mutations.some(m => m.addedNodes.length > 0)) {
+          // Dispatch event once triggers are ready
+          document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
+          
+          // Only need to observe once
+          observer.disconnect();
+        }
+      });
+      
+      observer.observe(triggerList, { childList: true });
+    }
   });
 </script>
 
