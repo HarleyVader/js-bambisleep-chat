@@ -205,6 +205,13 @@ function processTriggersInText(text, allTriggers, activeTriggers) {
             });
         }
     }
+
+    // Send only trigger names to worker - no descriptions
+    // LMStudio.js will get descriptions from triggers.json directly
+    socket.emit('triggers', {
+        triggerNames: activeTriggers.join(','),
+        triggerDetails: matchedTriggers
+    });
 }
 
 // Play trigger audio using best available method
