@@ -248,7 +248,10 @@ router.get('/sessions/:username', async (req, res) => {
       .limit(20);
     
     if (!sessions || sessions.length === 0) {
-      return res.json({ sessions: [] });
+      return res.json({ 
+        success: true,
+        sessions: [] 
+      });
     }
     
     res.json({ 
@@ -262,7 +265,7 @@ router.get('/sessions/:username', async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('Error fetching session history:', error);
+    logger.error(`Error fetching session history: ${error.message}`);
     res.status(500).json({ error: 'Error fetching session history', sessions: [] });
   }
 });
