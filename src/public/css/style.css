@@ -60,10 +60,6 @@ body {
 #profile, 
 #session-histories, 
 #session-details {
-    @extend .container-card;
-}
-
-.container-card {
     background-color: var(--transparent);
     border-top: var(--button-color) 3px ridge;
     border-bottom: var(--button-color) 3px ridge;
@@ -111,7 +107,18 @@ button,
 .top-view-btn,
 #submit {
     /* Inherits all common button properties */
-    @extend .btn;
+    color: var(--secondary-color);
+    background-color: var(--button-color);
+    text-shadow: var(--tertiary-color) 0.3vw 0.3vw 0.3vw;
+    border: var(--secondary-color) outset 0.3vw;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 0.6vw;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+    box-sizing: border-box;
 }
 
 /* Special button modifiers */
@@ -702,15 +709,23 @@ a:hover {
 }
 
 @keyframes fadeOut {
-    to {
-        opacity: 0;
-        transform: translateY(20px);
-    }
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
 @keyframes shrink {
     from { width: 100%; }
     to { width: 0%; }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.2); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* XP notification styling */
@@ -1723,7 +1738,7 @@ a:hover {
     }
 
     #eyeCursor {
-        font-size: 24px;
+        font-size: 5vw;
         margin-top: 0.5em;
         height: auto;
     }
