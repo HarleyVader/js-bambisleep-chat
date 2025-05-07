@@ -709,7 +709,7 @@ async function handleMessage(userPrompt, socketId, username) {
     const requestData = {
       model: modelIds[0],
       messages: formattedMessages,
-      max_tokens: 1024,
+      max_tokens: 4096,
       temperature: 0.87,
       top_p: 0.91,
       frequency_penalty: 0,
