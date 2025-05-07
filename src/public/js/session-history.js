@@ -1,115 +1,135 @@
-// Session history module for handling chat history
-(function() {
-  // Initialize module
-  function init() {
-    setupListeners();
-    console.log("Session history module initialized");
-  }
+// Session history module
+window.bambiHistory = (function() {
+  let sessionData = [];
   
-  // Set up event listeners
-  function setupListeners() {
+  function init() {
     const loadBtn = document.getElementById('load-history-btn');
     const replayBtn = document.getElementById('replay-history-btn');
+    const sessionSelect = document.getElementById('session-select');
     
-    if (loadBtn) {
-      loadBtn.addEventListener('click', loadHistory);
-    }
-    
-    if (replayBtn) {
-      replayBtn.addEventListener('click', replayRandom);
-    }
+    if (loadBtn) loadBtn.addEventListener('click', loadHistory);
+    if (replayBtn) replayBtn.addEventListener('click', replayRandom);
+    if (sessionSelect) sessionSelect.addEventListener('change', loadSession);
   }
   
-  // Load session history
   function loadHistory() {
     const status = document.getElementById('session-history-status');
-    if (status) status.textContent = "Loading history...";
+    status.textContent = 'Loading sessions...';
+    status.className = 'session-history-status';
     
-    const username = document.body.getAttribute('data-username');
-    
-    // Fetch user's session history
-    fetch(`/api/sessions/${username}`)
-      .then(response => response.json())
+    fetch('/api/sessions')
+      .then(res => res.json())
       .then(data => {
-        if (data.success && data.sessions && data.sessions.length > 0) {
-          // Save sessions globally
-          window.sessionHistory = data.sessions;
-          
-          // Update status
-          if (status) status.textContent = `Loaded ${data.sessions.length} sessions!`;
-          
-          // Show stats
-          showStats(data.sessions);
-          
-          // Enable replay button
+        sessionData = data.sessions || [];
+        updateStats(data);
+        populateDropdown(sessionData);
+        
+        document.querySelector('.session-select-container').style.display = 'block';
+        document.querySelector('.session-stats-container').style.display = 'flex';
+        
+        if (sessionData.length > 0) {
+          status.textContent = `${sessionData.length} sessions loaded`;
+          status.className = 'session-history-status success';
           document.getElementById('replay-history-btn').disabled = false;
         } else {
-          if (status) status.textContent = "No sessions found";
+          status.textContent = 'No sessions found';
         }
       })
       .catch(err => {
-        console.error("Error loading history:", err);
-        if (status) status.textContent = "Error loading history";
+        status.textContent = 'Error loading sessions';
+        status.className = 'session-history-status error';
+        console.error(err);
       });
   }
   
-  // Show stats in UI
-  function showStats(sessions) {
-    // Count messages and words
-    let messageCount = 0;
-    let wordCount = 0;
+  function populateDropdown(sessions) {
+    const select = document.getElementById('session-select');
+    
+    // Clear options except first placeholder
+    while (select.options.length > 1) {
+      select.remove(1);
+    }
     
     sessions.forEach(session => {
-      if (session.messages) {
-        messageCount += session.messages.length;
-        session.messages.forEach(msg => {
-          if (msg.content) {
-            wordCount += msg.content.split(/\s+/).length;
-          }
-        });
+      const date = new Date(session.createdAt || session.date);
+      const option = document.createElement('option');
+      option.value = session._id;
+      option.textContent = `${date.toLocaleString()} (${session.messages?.length || 0} msgs)`;
+      select.appendChild(option);
+    });
+  }
+  
+  function updateStats(data) {
+    if (document.getElementById('session-count'))
+      document.getElementById('session-count').textContent = data.totalSessions || 0;
+    if (document.getElementById('message-count'))
+      document.getElementById('message-count').textContent = data.totalMessages || 0;
+    if (document.getElementById('word-count'))
+      document.getElementById('word-count').textContent = data.totalWords || 0;
+  }
+  
+  function loadSession() {
+    const sessionId = document.getElementById('session-select').value;
+    if (!sessionId) return;
+    
+    const session = sessionData.find(s => s._id === sessionId);
+    if (!session) return;
+    
+    // Show which session was loaded
+    const status = document.getElementById('session-history-status');
+    const date = new Date(session.createdAt || session.date).toLocaleString();
+    status.textContent = `Loaded session from ${date}`;
+    status.className = 'session-history-status success';
+    
+    // Set collar settings if available
+    if (session.collarSettings) {
+      const collarEnable = document.getElementById('collar-enable');
+      const collarText = document.getElementById('textarea-collar');
+      
+      if (collarEnable) collarEnable.checked = session.collarSettings.enabled;
+      if (collarText) collarText.value = session.collarSettings.text || '';
+      
+      // Show message
+      const collarMsg = document.querySelector('.collar-messages');
+      if (collarMsg) {
+        collarMsg.innerHTML = '<div class="success">Collar settings loaded from session</div>';
+        setTimeout(() => collarMsg.innerHTML = '', 3000);
       }
+    }
+    
+    // Activate triggers
+    if (session.activeTriggers && Array.isArray(session.activeTriggers)) {
+      activateTriggers(session.activeTriggers);
+    }
+  }
+  
+  function activateTriggers(triggers) {
+    const allToggles = document.querySelectorAll('.trigger-toggle-item input[type="checkbox"]');
+    
+    // Reset all triggers first
+    allToggles.forEach(toggle => toggle.checked = false);
+    
+    // Activate the ones from the session
+    triggers.forEach(triggerName => {
+      const toggle = document.getElementById(`${triggerName}-toggle`);
+      if (toggle) toggle.checked = true;
     });
     
-    // Update stats display
-    document.getElementById('session-count').textContent = sessions.length;
-    document.getElementById('message-count').textContent = messageCount;
-    document.getElementById('word-count').textContent = wordCount;
-    
-    // Show stats container
-    document.querySelector('.session-stats-container').style.display = 'flex';
+    // Navigate to triggers panel to show changes
+    const triggersBtn = document.getElementById('triggers-btn');
+    if (triggersBtn) triggersBtn.click();
   }
   
-  // Replay a random message
   function replayRandom() {
-    if (!window.sessionHistory || window.sessionHistory.length === 0) {
-      return;
-    }
+    if (sessionData.length === 0) return;
     
-    // Get a random session
-    const randomSession = window.sessionHistory[Math.floor(Math.random() * window.sessionHistory.length)];
-    
-    // Get assistant messages
-    const assistantMessages = randomSession.messages.filter(msg => msg.role === 'assistant');
-    
-    if (assistantMessages.length === 0) return;
-    
-    // Get a random message
-    const randomMessage = assistantMessages[Math.floor(Math.random() * assistantMessages.length)];
-    
-    // Display in chat area
-    const chatArea = document.getElementById('response');
-    if (chatArea) {
-      const messageEl = document.createElement('div');
-      messageEl.className = 'bambi-response historical';
-      messageEl.textContent = randomMessage.content;
-      chatArea.prepend(messageEl);
-    }
+    const randomIndex = Math.floor(Math.random() * sessionData.length);
+    const select = document.getElementById('session-select');
+    select.value = sessionData[randomIndex]._id;
+    loadSession();
   }
   
-  // Make public API
-  window.bambiHistory = {
-    init,
-    loadHistory,
-    replayRandom
+  return {
+    init
   };
 })();
