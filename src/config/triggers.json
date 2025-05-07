@@ -93,7 +93,7 @@
       "audioFile": "Primped and Pampered",
       "description": "Deep cravings to be dolled up and pretty, rewards with pleasure",
       "details": "Trained in: Bambi Fuckpuppet Freedom 02, Bambi Enforcement 08",
-      "filename": "Pampered.mp3",
+      "filename": "Primped-and-Pampered.mp3",
       "category": "appearance"
     },
     {
@@ -263,6 +263,22 @@
       "details": "Makes thinking difficult and increases suggestibility",
       "filename": "IQ-Lock.mp3",
       "category": "dumbdown"
+    },
+    {
+      "name": "COME & COLLAPSE",
+      "audioFile": "Come and Collapse",
+      "description": "Instant pleasure and sensations of collapsing",
+      "details": "Alternative to Bambi Cum & Collapse trigger",
+      "filename": "Come-and-Collapse.mp3",
+      "category": "pleasure"
+    },
+    {
+      "name": "PAMPERED",
+      "audioFile": "Pampered",
+      "description": "Cravings to be dolled up and pretty",
+      "details": "Makes you crave beauty treatments and feminine pampering",
+      "filename": "Pampered.mp3",
+      "category": "appearance"
     }
   ]
 }
