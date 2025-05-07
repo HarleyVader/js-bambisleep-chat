@@ -169,52 +169,70 @@ window.bambiSessions = (function() {
   }
 
   // Apply session settings to UI elements
-  function applySessionSettings(session) {
-    // Apply triggers
-    const triggers = session.activeTriggers || session.metadata?.triggers || [];
-    document.querySelectorAll('.toggle-input').forEach(input => {
-      const trigger = input.getAttribute('data-trigger');
-      if (trigger) {
-        input.checked = triggers.includes(trigger);
-      }
-    });
-    
-    // Apply collar settings
-    const collarEnabled = session.collarSettings?.enabled || session.metadata?.collarActive || false;
-    const collarText = session.collarSettings?.text || session.metadata?.collarText || '';
-    
-    const collarEnable = document.getElementById('collar-enable');
-    const collarTextarea = document.getElementById('textarea-collar');
-    
-    if (collarEnable) collarEnable.checked = collarEnabled;
-    if (collarTextarea) collarTextarea.value = collarText;
-    
-    // Apply spiral settings
-    const spiralSettings = session.spiralSettings || session.metadata?.spiralSettings || {};
-    const spiralEnable = document.getElementById('spirals-enable');
-    
-    if (spiralEnable) spiralEnable.checked = spiralSettings.enabled || false;
-    
-    // Update directly through system modules if available
-    if (window.bambiSystem) {
-      // Update triggers
-      window.bambiSystem.saveState('triggers', { 
-        triggers: triggers.map(t => ({
-          name: typeof t === 'string' ? t : t.name,
-          description: typeof t === 'string' ? 'Trigger effect' : (t.description || 'Trigger effect')
-        }))
+function applySessionSettings(session) {
+  // Apply triggers
+  const triggers = session.activeTriggers || session.metadata?.triggers || [];
+  document.querySelectorAll('.toggle-input').forEach(input => {
+    const trigger = input.getAttribute('data-trigger');
+    if (trigger) {
+      input.checked = triggers.includes(trigger);
+    }
+  });
+  
+  // Send triggers to server using standard format
+  if (window.socket && window.socket.connected) {
+    const username = document.body.getAttribute('data-username');
+    if (username) {
+      const triggerObjects = triggers.map(t => {
+        return typeof t === 'string' 
+          ? { name: t, description: 'Trigger effect' } 
+          : t;
       });
       
-      // Update collar
-      window.bambiSystem.saveState('collar', {
-        enabled: collarEnabled,
-        text: collarText
+      window.socket.emit('triggers', {
+        triggerNames: triggerObjects.map(t => t.name).join(','),
+        triggerDetails: triggerObjects,
+        username: username
       });
-      
-      // Update spirals
-      window.bambiSystem.saveState('spirals', spiralSettings);
     }
   }
+  
+  // Apply collar settings
+  const collarEnabled = session.collarSettings?.enabled || session.metadata?.collarActive || false;
+  const collarText = session.collarSettings?.text || session.metadata?.collarText || '';
+  
+  const collarEnable = document.getElementById('collar-enable');
+  const collarTextarea = document.getElementById('textarea-collar');
+  
+  if (collarEnable) collarEnable.checked = collarEnabled;
+  if (collarTextarea) collarTextarea.value = collarText;
+  
+  // Apply spiral settings
+  const spiralSettings = session.spiralSettings || session.metadata?.spiralSettings || {};
+  const spiralEnable = document.getElementById('spirals-enable');
+  
+  if (spiralEnable) spiralEnable.checked = spiralSettings.enabled || false;
+  
+  // Update directly through system modules if available
+  if (window.bambiSystem) {
+    // Update triggers
+    window.bambiSystem.saveState('triggers', { 
+      triggers: triggers.map(t => ({
+        name: typeof t === 'string' ? t : t.name,
+        description: typeof t === 'string' ? 'Trigger effect' : (t.description || 'Trigger effect')
+      }))
+    });
+    
+    // Update collar
+    window.bambiSystem.saveState('collar', {
+      enabled: collarEnabled,
+      text: collarText
+    });
+    
+    // Update spirals
+    window.bambiSystem.saveState('spirals', spiralSettings);
+  }
+}
 
   // Get current settings for saving
   function collectSettings() {
