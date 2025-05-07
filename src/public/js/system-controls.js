@@ -1,388 +1,365 @@
-// Dashboard interface for session management
-(function() {
-  // Initialize dashboard controls
+// Central management for system controls
+window.bambiSystem = (function() {
+  // State storage
+  const state = {
+    triggers: [],
+    collar: {
+      enabled: false,
+      text: ''
+    },
+    spirals: {
+      enabled: false,
+      spiral1Width: 5.0,
+      spiral2Width: 3.0,
+      spiral1Speed: 20,
+      spiral2Speed: 15
+    },
+    hypnosis: {
+      enabled: false
+    },
+    session: {
+      id: null,
+      active: false
+    }
+  };
+
+  // Initialize system
   function init() {
-    // Attach event listeners to action buttons
-    attachActionListeners();
+    loadStateFromLocalStorage();
+    setupEventListeners();
     
-    // Set up batch selection controls
-    setupBatchControls();
-    
-    // Initialize the unified session module if available
-    if (window.bambiSessions) {
-      window.bambiSessions.init();
+    // Dispatch ready event
+    document.dispatchEvent(new CustomEvent('system-ready'));
+  }
+
+  // Save state to localStorage and server
+  function saveState(section, data) {
+    // Update local state
+    if (section) {
+      state[section] = {...state[section], ...data};
     }
+
+    // Save to localStorage
+    localStorage.setItem('bambiSystemState', JSON.stringify(state));
+    
+    // Send to server if logged in
+    const username = document.body.getAttribute('data-username');
+    if (username && username !== 'anonBambi' && window.socket && window.socket.connected) {
+      window.socket.emit('system-update', {
+        username: username,
+        section: section,
+        data: section ? state[section] : state
+      });
+    }
+    
+    // Notify components
+    document.dispatchEvent(new CustomEvent('system-update', {
+      detail: { section, data: section ? state[section] : state }
+    }));
   }
-  
-  // Attach event listeners to session action buttons
-  function attachActionListeners() {
-    // Share buttons
-    document.querySelectorAll('.share-session-btn').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const sessionId = this.getAttribute('data-session-id');
-        shareSession(sessionId);
-      });
-    });
-    
-    // Edit buttons
-    document.querySelectorAll('.edit-session-btn').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const sessionId = this.getAttribute('data-session-id');
-        editSessionTitle(sessionId);
-      });
-    });
-    
-    // Delete buttons
-    document.querySelectorAll('.delete-session-btn').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const sessionId = this.getAttribute('data-session-id');
-        deleteSession(sessionId);
-      });
-    });
-  }
-  
-  // Set up batch selection controls
-  function setupBatchControls() {
-    const selectAllCheckbox = document.getElementById('select-all-sessions');
-    const sessionCheckboxes = document.querySelectorAll('.session-checkbox');
-    const batchActionButtons = document.querySelectorAll('.batch-action-btn');
-    
-    // Select all checkbox
-    if (selectAllCheckbox) {
-      selectAllCheckbox.addEventListener('change', function() {
-        const isChecked = this.checked;
-        sessionCheckboxes.forEach(checkbox => {
-          checkbox.checked = isChecked;
+
+  // Load state from localStorage
+  function loadStateFromLocalStorage() {
+    try {
+      const savedState = localStorage.getItem('bambiSystemState');
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        Object.keys(parsedState).forEach(key => {
+          if (state[key]) {
+            state[key] = {...state[key], ...parsedState[key]};
+          }
         });
-        updateBatchActions();
+      }
+    } catch (e) {
+      console.error('Error loading system state:', e);
+    }
+  }
+
+  // Load state from server
+  function loadStateFromServer() {
+    const username = document.body.getAttribute('data-username');
+    if (!username || username === 'anonBambi') return;
+    
+    if (window.socket && window.socket.connected) {
+      window.socket.emit('system-load', { username });
+    } else {
+      fetch(`/api/system/${username}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.systemControls) {
+            // Map server format to our state format
+            if (data.systemControls.activeTriggers) {
+              state.triggers = data.systemControls.activeTriggers;
+            }
+            if (data.systemControls.collarEnabled !== undefined) {
+              state.collar.enabled = data.systemControls.collarEnabled;
+              state.collar.text = data.systemControls.collarText || '';
+            }
+            if (data.systemControls.spiralsEnabled !== undefined) {
+              state.spirals.enabled = data.systemControls.spiralsEnabled;
+              state.spirals.spiral1Width = data.systemControls.spiral1Width || 5.0;
+              state.spirals.spiral2Width = data.systemControls.spiral2Width || 3.0;
+              state.spirals.spiral1Speed = data.systemControls.spiral1Speed || 20;
+              state.spirals.spiral2Speed = data.systemControls.spiral2Speed || 15;
+            }
+            
+            // Notify components
+            document.dispatchEvent(new CustomEvent('system-loaded', {
+              detail: { state }
+            }));
+          }
+        })
+        .catch(err => console.error('Error loading system state:', err));
+    }
+  }
+
+  // Setup event listeners
+  function setupEventListeners() {
+    // Listen for socket updates
+    if (window.socket) {
+      window.socket.on('system-update', function(data) {
+        if (data) {
+          if (data.section && state[data.section]) {
+            state[data.section] = {...state[data.section], ...data.data};
+          } else if (data.state) {
+            Object.keys(data.state).forEach(key => {
+              if (state[key]) {
+                state[key] = {...state[key], ...data.state[key]};
+              }
+            });
+          }
+          
+          // Notify components
+          document.dispatchEvent(new CustomEvent('system-loaded', {
+            detail: { state }
+          }));
+        }
       });
     }
     
-    // Individual checkboxes
-    sessionCheckboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', updateBatchActions);
+    // Listen for save requests from components
+    document.addEventListener('save-triggers', function(e) {
+      if (e.detail && e.detail.triggers) {
+        saveState('triggers', e.detail.triggers);
+      }
     });
     
-    // Batch action buttons
-    batchActionButtons.forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const action = this.getAttribute('data-action');
-        executeBatchAction(action);
-      });
+    document.addEventListener('save-collar', function(e) {
+      if (e.detail) {
+        saveState('collar', e.detail);
+      }
     });
     
-    // Initial update
-    updateBatchActions();
+    document.addEventListener('save-spirals', function(e) {
+      if (e.detail) {
+        saveState('spirals', e.detail);
+      }
+    });
+    
+    document.addEventListener('save-session', function(e) {
+      if (e.detail) {
+        saveState('session', e.detail);
+      }
+    });
+    
+    // Listen for UI tab changes to load specific data
+    document.addEventListener('tab-changed', function(e) {
+      if (e.detail && e.detail.tab) {
+        loadComponentData(e.detail.tab);
+      }
+    });
   }
-  
-  // Update batch action buttons state
-  function updateBatchActions() {
-    const sessionCheckboxes = document.querySelectorAll('.session-checkbox:checked');
-    const batchActionButtons = document.querySelectorAll('.batch-action-btn');
-    
-    // Enable/disable batch action buttons based on selection
-    batchActionButtons.forEach(btn => {
-      btn.disabled = sessionCheckboxes.length === 0;
-    });
-    
-    // Update count in button text
-    const countElement = document.getElementById('selected-count');
-    if (countElement) {
-      countElement.textContent = sessionCheckboxes.length;
-    }
-  }
-  
-  // Execute batch action
-  function executeBatchAction(action) {
-    const selectedIds = Array.from(
-      document.querySelectorAll('.session-checkbox:checked')
-    ).map(checkbox => checkbox.value);
-    
-    if (selectedIds.length === 0) return;
-    
-    switch (action) {
-      case 'delete':
-        if (confirm(`Are you sure you want to delete ${selectedIds.length} selected sessions?`)) {
-          batchDelete(selectedIds);
+
+  // Load component specific data when tab is selected
+  function loadComponentData(component) {
+    switch(component) {
+      case 'trigger-panel':
+        if (window.bambiTriggers && typeof window.bambiTriggers.init === 'function') {
+          window.bambiTriggers.init();
         }
         break;
-      case 'share':
-        batchShare(selectedIds);
+      case 'session-history-panel':
+        if (window.bambiHistory && typeof window.bambiHistory.init === 'function') {
+          window.bambiHistory.init();
+        }
         break;
-      case 'export':
-        exportSessions(selectedIds);
+      case 'spirals-panel':
+        updateSpiralUIFromState();
+        break;
+      case 'collar-panel':
+        updateCollarUIFromState();
         break;
     }
   }
-  
-  // Share a session
-  function shareSession(sessionId) {
-    // Use our unified module if available
-    if (window.bambiSessions && typeof window.bambiSessions.shareSession === 'function') {
-      window.bambiSessions.shareSession(sessionId);
-      return;
+
+  // Update collar UI from state
+  function updateCollarUIFromState() {
+    const enableCheckbox = document.getElementById('collar-enable');
+    const collarText = document.getElementById('textarea-collar');
+    
+    if (enableCheckbox) {
+      enableCheckbox.checked = state.collar.enabled;
     }
     
-    fetch(`/sessions/${sessionId}/share`, {
-      method: 'POST'
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        // Show share URL
-        alert(`Share this URL: ${data.shareUrl}`);
+    if (collarText) {
+      collarText.value = state.collar.text || '';
+    }
+  }
+
+  // Update spirals UI from state
+  function updateSpiralUIFromState() {
+    const enableCheckbox = document.getElementById('spirals-enable');
+    
+    if (enableCheckbox) {
+      enableCheckbox.checked = state.spirals.enabled;
+    }
+    
+    // Update slider values
+    const controls = [
+      { id: 'spiral1-width', value: state.spirals.spiral1Width, display: 'spiral1-width-value' },
+      { id: 'spiral2-width', value: state.spirals.spiral2Width, display: 'spiral2-width-value' },
+      { id: 'spiral1-speed', value: state.spirals.spiral1Speed, display: 'spiral1-speed-value' },
+      { id: 'spiral2-speed', value: state.spirals.spiral2Speed, display: 'spiral2-speed-value' }
+    ];
+    
+    controls.forEach(control => {
+      const slider = document.getElementById(control.id);
+      const display = document.getElementById(control.display);
+      
+      if (slider) {
+        slider.value = control.value;
+      }
+      
+      if (display) {
+        display.textContent = control.value;
+      }
+    });
+  }
+
+  // Collect all settings for worker communication
+  function collectAllSettings() {
+    return {
+      activeTriggers: state.triggers,
+      collarSettings: {
+        enabled: state.collar.enabled,
+        text: state.collar.text
+      },
+      spiralSettings: {
+        enabled: state.spirals.enabled,
+        spiral1Width: state.spirals.spiral1Width,
+        spiral2Width: state.spirals.spiral2Width,
+        spiral1Speed: state.spirals.spiral1Speed,
+        spiral2Speed: state.spirals.spiral2Speed
+      },
+      hypnosisSettings: {
+        enabled: state.hypnosis.enabled
+      },
+      sessionId: state.session.id
+    };
+  }
+
+  // Update specific section of state
+  function updateState(section, data) {
+    if (section && state[section]) {
+      state[section] = {...state[section], ...data};
+      
+      // Notify components
+      document.dispatchEvent(new CustomEvent('system-update', {
+        detail: { section, data: state[section] }
+      }));
+    }
+  }
+
+  // Connect UI save buttons to state manager
+  function connectSaveButtons() {
+    // Connect collar save button
+    const saveCollarBtn = document.getElementById('save-collar');
+    if (saveCollarBtn) {
+      saveCollarBtn.addEventListener('click', function() {
+        const enableCheckbox = document.getElementById('collar-enable');
+        const collarText = document.getElementById('textarea-collar');
         
-        // Copy to clipboard
-        navigator.clipboard.writeText(data.shareUrl)
-          .then(() => {
-            showMessage('Share URL copied to clipboard!', 'success');
-          })
-          .catch(err => {
-            console.error('Could not copy URL:', err);
+        if (enableCheckbox && collarText) {
+          saveState('collar', {
+            enabled: enableCheckbox.checked,
+            text: collarText.value
           });
-      } else {
-        showMessage(`Failed to share: ${data.message}`, 'error');
-      }
-    })
-    .catch(err => {
-      console.error('Error sharing session:', err);
-      showMessage('Error sharing session', 'error');
-    });
-  }
-  
-  // Edit session title
-  function editSessionTitle(sessionId) {
-    fetch(`/sessions/${sessionId}/details`, {
-      method: 'GET'
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        const newTitle = prompt('Enter new title:', data.title);
-        
-        if (newTitle !== null && newTitle.trim() !== '') {
-          updateSessionTitle(sessionId, newTitle);
         }
-      } else {
-        showMessage(`Failed to get session details: ${data.message}`, 'error');
-      }
-    })
-    .catch(err => {
-      console.error('Error getting session details:', err);
-      showMessage('Error loading session details', 'error');
-    });
-  }
-  
-  // Update session title
-  function updateSessionTitle(sessionId, title) {
-    fetch(`/sessions/${sessionId}/update-title`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ title })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        showMessage('Title updated successfully', 'success');
-        
-        // Update title in the DOM
-        const titleElement = document.querySelector(`.session-card[data-session-id="${sessionId}"] .card-title`);
-        if (titleElement) {
-          titleElement.textContent = title;
-        }
-      } else {
-        showMessage(`Failed to update title: ${data.message}`, 'error');
-      }
-    })
-    .catch(err => {
-      console.error('Error updating session title:', err);
-      showMessage('Error updating title', 'error');
-    });
-  }
-  
-  // Delete a session
-  function deleteSession(sessionId) {
-    // Use our unified module if available
-    if (window.bambiSessions && typeof window.bambiSessions.deleteSession === 'function') {
-      window.bambiSessions.deleteSession(sessionId);
-      return;
+      });
     }
     
-    if (!confirm('Are you sure you want to delete this session?')) return;
-    
-    fetch(`/sessions/${sessionId}`, {
-      method: 'DELETE'
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        showMessage('Session deleted successfully', 'success');
+    // Connect spirals save button
+    const saveSpiralsBtn = document.getElementById('save-spirals');
+    if (saveSpiralsBtn) {
+      saveSpiralsBtn.addEventListener('click', function() {
+        const enableCheckbox = document.getElementById('spirals-enable');
         
-        // Remove from DOM
-        const sessionCard = document.querySelector(`.session-card[data-session-id="${sessionId}"]`);
-        if (sessionCard) {
-          sessionCard.remove();
+        if (enableCheckbox) {
+          const settings = {
+            enabled: enableCheckbox.checked,
+            spiral1Width: parseFloat(document.getElementById('spiral1-width').value),
+            spiral2Width: parseFloat(document.getElementById('spiral2-width').value),
+            spiral1Speed: parseInt(document.getElementById('spiral1-speed').value),
+            spiral2Speed: parseInt(document.getElementById('spiral2-speed').value)
+          };
+          
+          saveState('spirals', settings);
         }
-        
-        // Update session count
-        updateSessionCount();
-      } else {
-        showMessage(`Failed to delete: ${data.message}`, 'error');
-      }
-    })
-    .catch(err => {
-      console.error('Error deleting session:', err);
-      showMessage('Error deleting session', 'error');
-    });
-  }
-  
-  // Batch delete sessions
-  function batchDelete(sessionIds) {
-    fetch('/sessions/batch/delete', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ sessionIds })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        showMessage(data.message, 'success');
-        
-        // Remove deleted sessions from DOM
-        sessionIds.forEach(id => {
-          const sessionCard = document.querySelector(`.session-card[data-session-id="${id}"]`);
-          if (sessionCard) {
-            sessionCard.remove();
-          }
-        });
-        
-        // Reset checkboxes
-        const selectAllCheckbox = document.getElementById('select-all-sessions');
-        if (selectAllCheckbox) {
-          selectAllCheckbox.checked = false;
-        }
-        
-        // Update session count
-        updateSessionCount();
-      } else {
-        showMessage(`Failed to delete sessions: ${data.message}`, 'error');
-      }
-    })
-    .catch(err => {
-      console.error('Error batch deleting sessions:', err);
-      showMessage('Error deleting sessions', 'error');
-    });
-  }
-  
-  // Batch share sessions
-  function batchShare(sessionIds) {
-    fetch('/sessions/batch/share', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ sessionIds })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        showMessage(data.message, 'success');
-        
-        // Update UI to show shared status
-        sessionIds.forEach(id => {
-          const shareBtn = document.querySelector(`.session-card[data-session-id="${id}"] .share-session-btn`);
-          if (shareBtn) {
-            shareBtn.classList.add('shared');
-            shareBtn.setAttribute('title', 'Session is shared');
-          }
-        });
-      } else {
-        showMessage(`Failed to share sessions: ${data.message}`, 'error');
-      }
-    })
-    .catch(err => {
-      console.error('Error batch sharing sessions:', err);
-      showMessage('Error sharing sessions', 'error');
-    });
-  }
-  
-  // Export sessions
-  function exportSessions(sessionIds) {
-    // Create form for POST submission
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/sessions/export';
-    
-    // Add session IDs as hidden inputs
-    sessionIds.forEach(id => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'sessionIds[]';
-      input.value = id;
-      form.appendChild(input);
-    });
-    
-    // Add to document and submit
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-  }
-  
-  // Update session count display
-  function updateSessionCount() {
-    const sessionCards = document.querySelectorAll('.session-card');
-    const countElement = document.getElementById('total-sessions-count');
-    
-    if (countElement) {
-      countElement.textContent = sessionCards.length;
+      });
     }
   }
-  
-  // Show message notification
-  function showMessage(message, type) {
-    // Use notification function from unified sessions module if available
-    if (window.bambiSessions && typeof window.bambiSessions.showNotification === 'function') {
-      window.bambiSessions.showNotification(message, type);
-      return;
-    }
+
+  // Add tab change handlers
+  function setupTabHandlers() {
+    const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
     
-    // Otherwise create a simple notification
-    const notificationContainer = document.querySelector('.notification-container') || 
-                                  document.createElement('div');
-    
-    if (!document.body.contains(notificationContainer)) {
-      notificationContainer.className = 'notification-container';
-      document.body.appendChild(notificationContainer);
-    }
-    
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    
-    notificationContainer.appendChild(notification);
-    
-    // Auto remove after 4 seconds
-    setTimeout(() => {
-      notification.classList.add('fade-out');
-      setTimeout(() => {
-        notification.remove();
-        
-        // Remove container if empty
-        if (notificationContainer.children.length === 0) {
-          notificationContainer.remove();
+    controlButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const targetId = this.getAttribute('data-target');
+        if (targetId) {
+          document.dispatchEvent(new CustomEvent('tab-changed', {
+            detail: { tab: targetId }
+          }));
         }
-      }, 300);
-    }, 4000);
+      });
+    });
   }
-  
-  // Initialize when the DOM is loaded
-  document.addEventListener('DOMContentLoaded', init);
+
+  // Public API
+  return {
+    init,
+    getState: () => ({...state}),
+    saveState,
+    updateState,
+    collectAllSettings,
+    loadStateFromServer,
+    connectSaveButtons,
+    setupTabHandlers
+  };
 })();
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize system
+  window.bambiSystem.init();
+  
+  // Connect save buttons to state manager
+  window.bambiSystem.connectSaveButtons();
+  
+  // Setup tab change handlers
+  window.bambiSystem.setupTabHandlers();
+  
+  // Load state from server if user is logged in
+  window.bambiSystem.loadStateFromServer();
+  
+  // On first load, make sure the active tab data is loaded
+  const activeTab = document.querySelector('.control-btn.active');
+  if (activeTab) {
+    const targetId = activeTab.getAttribute('data-target');
+    if (targetId) {
+      document.dispatchEvent(new CustomEvent('tab-changed', {
+        detail: { tab: targetId }
+      }));
+    }
+  }
+});

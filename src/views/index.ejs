@@ -336,6 +336,41 @@
               chatList.appendChild(item);
               chatList.scrollTop = chatList.scrollHeight;
             });
+
+            // Central socket handling for system controls
+            socket.on('system-update', function(data) {
+              if (window.bambiSystem) {
+                window.bambiSystem.updateState(data.section, data.data);
+              }
+            });
+
+            // When starting a conversation, send all system settings to worker
+            socket.on('conversation-start', function() {
+              if (window.bambiSystem) {
+                const allSettings = window.bambiSystem.collectAllSettings();
+                socket.emit('system-settings', allSettings);
+              }
+            });
+
+            // Listen for system ready event
+            document.addEventListener('system-ready', function() {
+              console.log('System controls initialized');
+            });
+
+            // Listen for state changes to apply updates
+            document.addEventListener('system-update', function(e) {
+              const { section, data } = e.detail;
+              
+              // Apply spiral changes if they're updated
+              if (section === 'spirals' && window.bambiSpirals) {
+                window.bambiSpirals.updateSettings(data);
+              }
+              
+              // Send updated settings to worker
+              if (socket && socket.connected) {
+                socket.emit('system-settings', window.bambiSystem.collectAllSettings());
+              }
+            });
           });
 
           // Listen for system control events
