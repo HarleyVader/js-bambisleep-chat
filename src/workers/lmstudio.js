@@ -678,7 +678,6 @@ async function pushMessages(collarText, userPrompt, finalContent, socketId) {
   return sessionHistories[socketId];
 }
 
-async function handleMessage(userPrompt, socketId, username) {
   try {
     const modelNames = [
       'l3-sthenomaidblackroot-8b-v1'
