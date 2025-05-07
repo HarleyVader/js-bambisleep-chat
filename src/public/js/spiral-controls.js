@@ -17,6 +17,37 @@ window.bambiSpirals = (function() {
     };
   }
   
+  // Add this method to update spirals from system settings
+  function updateSettings(data) {
+    if (!data) return;
+    
+    // Update local variables
+    spiral1Width = data.spiral1Width || spiral1Width;
+    spiral2Width = data.spiral2Width || spiral2Width;
+    spiral1Speed = data.spiral1Speed || spiral1Speed;
+    spiral2Speed = data.spiral2Speed || spiral2Speed;
+    
+    // Update UI if exists
+    const spiralsEnable = document.getElementById('spirals-enable');
+    if (spiralsEnable && data.enabled !== undefined) {
+      spiralsEnable.checked = data.enabled;
+      
+      // Show/hide spiral based on enabled state
+      if (data.enabled) showSpiral();
+      else hideSpiral();
+    }
+    
+    // Update sliders
+    ['spiral1-width', 'spiral2-width', 'spiral1-speed', 'spiral2-speed'].forEach((id, i) => {
+      const slider = document.getElementById(id);
+      const value = [spiral1Width, spiral2Width, spiral1Speed, spiral2Speed][i];
+      if (slider) slider.value = value;
+      
+      const valueDisplay = document.getElementById(`${id}-value`);
+      if (valueDisplay) valueDisplay.textContent = value;
+    });
+  }
+  
   function init() {
     const spiralsEnable = document.getElementById('spirals-enable');
     const spiral1WidthSlider = document.getElementById('spiral1-width');
@@ -234,6 +265,7 @@ window.bambiSpirals = (function() {
   
   return { 
     init,
-    getCurrentSettings  // Export the new function
+    getCurrentSettings,
+    updateSettings  // Export the new function
   };
 })();
