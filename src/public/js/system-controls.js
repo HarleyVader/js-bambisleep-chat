@@ -123,20 +123,44 @@ window.bambiSystem = (function () {
     document.addEventListener('trigger-controls-loaded', setupTriggers);
   }
 
-  // Save triggers
+  // Save trigger state
   function saveTriggers() {
+    // Get all checked trigger toggles using both naming conventions
     const toggles = document.querySelectorAll('.toggle-input:checked');
-    const activeTriggers = Array.from(toggles).map(toggle => {
-      return {
-        name: toggle.value,
-        description: toggle.dataset.description || 'Trigger effect'
-      };
-    });
-    
+
+    // Convert to array of objects with name and description
+    const activeTriggers = Array.from(toggles)
+      .map(toggle => {
+        // Check all possible attribute names for trigger
+        const name = toggle.getAttribute('data-trigger') || 
+                     toggle.getAttribute('data-trigger-name') || 
+                     toggle.value || 
+                     toggle.id;
+                     
+        const description = toggle.getAttribute('data-description') || 'Trigger effect';
+        return { name, description };
+      })
+      .filter(t => t.name); // Only keep triggers with a name
+
+    // Save to state
     saveState('triggers', { triggers: activeTriggers });
-    
-    // Log active triggers (for debugging, can be removed)
-    console.log('Saved triggers:', activeTriggers.map(t => t.name));
+
+    // Send to server if socket is available
+    if (window.socket && window.socket.connected) {
+      const username = document.body.getAttribute('data-username');
+      
+      if (username) {
+        const triggerNames = activeTriggers.map(t => t.name);
+        window.socket.emit('triggers', {
+          triggerNames: triggerNames.join(','),
+          triggerDetails: activeTriggers,
+          username: username
+        });
+        
+        // Log for debugging
+        console.log('Sent active triggers to server:', triggerNames);
+      }
+    }
   }
 
   // Set up trigger controls
@@ -146,19 +170,23 @@ window.bambiSystem = (function () {
     toggles.forEach(t => t.addEventListener('change', saveTriggers));
 
     // Connect bulk buttons
-    const selectAll = document.getElementById('select-all-triggers');
-    if (selectAll) {
-      selectAll.addEventListener('click', function () {
-        toggles.forEach(t => t.checked = true);
+    const activateAll = document.getElementById('activate-all');
+    if (activateAll) {
+      activateAll.addEventListener('click', function () {
+        document.querySelectorAll('.toggle-input').forEach(t => {
+          // Toggle the current state
+          t.checked = !t.checked;
+        });
         saveTriggers();
       });
     }
 
-    const clearAll = document.getElementById('clear-all-triggers');
-    if (clearAll) {
-      clearAll.addEventListener('click', function () {
-        toggles.forEach(t => t.checked = false);
-        saveTriggers();
+    const playTriggers = document.getElementById('play-triggers');
+    if (playTriggers) {
+      playTriggers.addEventListener('click', function () {
+        if (window.bambiAudio && typeof window.bambiAudio.playRandomPlaylist === 'function') {
+          window.bambiAudio.playRandomPlaylist();
+        }
       });
     }
   }
