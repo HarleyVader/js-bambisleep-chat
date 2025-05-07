@@ -150,7 +150,17 @@ function handleUserMessage(socket, lmstudio, message, filterContent) {
  */
 function handleTriggerUpdate(lmstudio, triggers) {
   try {
-    lmstudio.postMessage({ type: "triggers", triggers });
+    // Ensure consistent format before sending to worker
+    let formattedTriggers = triggers;
+    
+    // Normalize the format if needed
+    if (typeof triggers === 'string') {
+      formattedTriggers = { triggerNames: triggers };
+    } else if (Array.isArray(triggers)) {
+      formattedTriggers = { triggerNames: triggers.join(',') };
+    }
+    
+    lmstudio.postMessage({ type: "triggers", triggers: formattedTriggers });
     logger.info('Triggers updated for LMStudio worker');
   } catch (error) {
     logger.error('Error in triggers handler:', error);
