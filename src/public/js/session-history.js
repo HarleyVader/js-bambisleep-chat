@@ -18,7 +18,17 @@ window.bambiHistory = (function() {
     status.className = 'session-history-status';
     
     fetch('/api/sessions')
-      .then(res => res.json())
+      .then(res => {
+        // Check response type before trying to parse JSON
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return res.json();
+        } else {
+          // Got HTML or other content instead of JSON
+          console.log('Server returned non-JSON response');
+          throw new Error('Invalid response format from server');
+        }
+      })
       .then(data => {
         sessionData = data.sessions || [];
         updateStats(data);
@@ -39,6 +49,16 @@ window.bambiHistory = (function() {
         status.textContent = 'Error loading sessions';
         status.className = 'session-history-status error';
         console.error(err);
+        
+        // Show more specific error message when possible
+        if (err.message === 'Invalid response format from server') {
+          status.textContent = 'Server returned invalid data. Try again or reload the page.';
+        }
+        
+        // Initialize with empty data to prevent further errors
+        sessionData = [];
+        updateStats({totalSessions: 0, totalMessages: 0, totalWords: 0});
+        populateDropdown([]);
       });
   }
   

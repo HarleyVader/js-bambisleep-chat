@@ -1,5 +1,16 @@
 let triggerData = []; // Will hold the data from triggers.json
 const audioCache = {};
+let audioLoadAttempts = {};
+const MAX_LOAD_ATTEMPTS = 2;
+
+// Static fallback trigger data if JSON fails to load
+const fallbackTriggerData = [
+  { name: "BAMBI SLEEP", description: "Primary conditioning trigger for Bambi personality" },
+  { name: "GOOD GIRL", description: "Makes you feel pleasure when obeying commands" },
+  { name: "BAMBI RESET", description: "Resets Bambi to default programming state" },
+  { name: "BIMBO DOLL", description: "Turns you into a mindless, giggly bimbo doll" },
+  { name: "BAMBI FREEZE", description: "Locks you in place, unable to move" }
+];
 
 const textElements = [
   document.getElementById("eyeCursorText"),
@@ -8,17 +19,41 @@ const textElements = [
   document.getElementById("eyeCursorText4")
 ].filter(element => element !== null);
 
-// Load trigger data from JSON file
+// Load trigger data from JSON file with error handling
 function loadTriggerData() {
   fetch('/config/triggers.json')
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to load triggers.json: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    })
     .then(data => {
       triggerData = data.triggers;
       createToggleButtons();
       preloadSelectedAudio();
     })
     .catch(error => {
-      console.log('Error loading trigger data:', error);
+      console.log('Error loading trigger data, using fallback:', error);
+      
+      // Use fallback trigger data
+      triggerData = fallbackTriggerData;
+      createToggleButtons();
+      
+      // Try loading from localStorage if available
+      try {
+        const storedTriggers = localStorage.getItem('bambiTriggers');
+        if (storedTriggers) {
+          const parsedTriggers = JSON.parse(storedTriggers);
+          if (Array.isArray(parsedTriggers) && parsedTriggers.length > 0) {
+            triggerData = parsedTriggers;
+            // Recreate buttons with loaded data
+            createToggleButtons();
+          }
+        }
+      } catch (storageError) {
+        console.log('Error loading triggers from localStorage:', storageError);
+      }
     });
 }
 
@@ -29,6 +64,17 @@ function createToggleButtons() {
   
   container.innerHTML = '';
   
+  // Check if we have active triggers in localStorage
+  let activeTriggerNames = [];
+  try {
+    const storedActiveTriggers = localStorage.getItem('bambiActiveTriggers');
+    if (storedActiveTriggers) {
+      activeTriggerNames = JSON.parse(storedActiveTriggers);
+    }
+  } catch (error) {
+    console.log('Error loading active triggers from localStorage:', error);
+  }
+  
   triggerData.forEach(trigger => {
     const toggleItem = document.createElement('div');
     toggleItem.className = 'trigger-toggle-item';
@@ -38,6 +84,11 @@ function createToggleButtons() {
     input.className = 'toggle-input';
     input.id = `trigger-${trigger.name.replace(/\s+/g, '-').toLowerCase()}`;
     input.dataset.triggerName = trigger.name;
+    
+    // Check the toggle if this trigger is active
+    if (Array.isArray(activeTriggerNames) && activeTriggerNames.includes(trigger.name)) {
+      input.checked = true;
+    }
     
     const label = document.createElement('label');
     label.className = 'toggle-label';
@@ -54,26 +105,69 @@ function createToggleButtons() {
   setupToggleListeners();
 }
 
-// Load audio for a specific trigger
+// Load audio for a specific trigger with better error handling
 function loadTriggerAudio(trigger) {
   if (!trigger || !trigger.name) return null;
   
+  // Return cached audio if available
   if (audioCache[trigger.name]) return audioCache[trigger.name];
+  
+  // Track load attempts
+  if (!audioLoadAttempts[trigger.name]) {
+    audioLoadAttempts[trigger.name] = 0;
+  }
+  
+  // Don't try loading again if we've exceeded max attempts
+  if (audioLoadAttempts[trigger.name] >= MAX_LOAD_ATTEMPTS) {
+    return null;
+  }
+  
+  audioLoadAttempts[trigger.name]++;
   
   const audio = new Audio();
   
+  // Try multiple file patterns for better compatibility
+  let audioLocations = [];
+  
   // Use filename from trigger data if available
   if (trigger.filename) {
-    audio.src = `/audio/${trigger.filename}`;
-  } else {
-    const formattedName = trigger.name.replace(/\s+/g, '-');
-    audio.src = `/audio/${formattedName}.mp3`;
-  }
+    audioLocations.push(`/audio/${trigger.filename}`);
+  } 
   
+  // Add standard naming patterns
+  const formattedName = trigger.name.replace(/\s+/g, '-');
+  audioLocations.push(`/audio/${formattedName}.mp3`);
+  audioLocations.push(`/audio/${formattedName}.wav`);
+  audioLocations.push(`/audio/${formattedName.toLowerCase()}.mp3`);
+  
+  // Try camel case variant
+  const camelCase = formattedName.replace(/-([a-z])/g, g => g[1].toUpperCase());
+  audioLocations.push(`/audio/${camelCase}.mp3`);
+  
+  // Use the first location for initial attempt
+  audio.src = audioLocations[0];
+  
+  // Cache audio reference
   audioCache[trigger.name] = audio;
   
+  // Track the current location attempt
+  let currentLocationIndex = 0;
+  
+  // Handle errors - try next location pattern on failure
   audio.addEventListener('error', () => {
-    console.log(`Failed to load audio: ${trigger.name}`);
+    currentLocationIndex++;
+    
+    if (currentLocationIndex < audioLocations.length) {
+      // Try the next location
+      audio.src = audioLocations[currentLocationIndex];
+    } else {
+      // All locations failed
+      if (window.errorHandler) {
+        window.errorHandler.handleAudioError(audio.src, trigger.name);
+      } else {
+        console.log(`Failed to load audio: ${trigger.name}`);
+      }
+    }
   });
   
   return audio;
@@ -91,7 +185,7 @@ function preloadSelectedAudio() {
   });
 }
 
-// Modified function to play trigger sound
+// Modified function to play trigger sound with error handling
 function playTriggerSound(triggerName) {
   const trigger = triggerData.find(t => t.name === triggerName);
   
@@ -100,13 +194,21 @@ function playTriggerSound(triggerName) {
     loadTriggerAudio(trigger);
   }
   
+  // Check if audio is available
   if (!audioCache[triggerName]) {
     console.log(`No audio found for trigger: ${triggerName}`);
     return Promise.resolve();
   }
   
   const audio = audioCache[triggerName];
-  audio.currentTime = 0;
+  
+  // Reset audio to start
+  try {
+    audio.currentTime = 0;
+  } catch (e) {
+    // Some browsers throw errors if audio isn't loaded yet
+    console.log(`Error resetting audio position for ${triggerName}`);
+  }
   
   return new Promise(resolve => {
     const onEnd = () => {
@@ -115,9 +217,11 @@ function playTriggerSound(triggerName) {
     };
     
     audio.addEventListener('ended', onEnd);
+    
+    // Add error handling to the play method
     audio.play().catch(e => {
-      console.log(`Error playing audio: ${triggerName}`);
-      resolve();
+      console.log(`Error playing audio: ${triggerName}`, e);
+      resolve(); // Resolve the promise anyway to continue sequence
     });
   });
 }
@@ -186,11 +290,15 @@ async function playTriggerWithDisplay(trigger) {
   return audioPromise;
 }
 
+// Toggle all trigger checkboxes
 function toggleAllToggles() {
   const toggleInputs = document.getElementsByClassName("toggle-input");
   for (let i = 0; i < toggleInputs.length; i++) {
     toggleInputs[i].checked = !toggleInputs[i].checked;
   }
+  
+  // Save the toggle states
+  saveToggleStatesToLocalStorage();
 }
 
 // Get all selected triggers
@@ -211,12 +319,43 @@ function getSelectedTriggers() {
   return selectedTriggers;
 }
 
+// Save toggle states to localStorage
+function saveToggleStatesToLocalStorage() {
+  try {
+    const selectedTriggers = getSelectedTriggers();
+    const triggerNames = selectedTriggers.map(t => t.name);
+    localStorage.setItem('bambiActiveTriggers', JSON.stringify(triggerNames));
+    
+    // Create trigger descriptions object
+    const triggerDescriptions = {};
+    selectedTriggers.forEach(trigger => {
+      if (trigger.description) {
+        triggerDescriptions[trigger.name] = trigger.description;
+      }
+    });
+    
+    localStorage.setItem('bambiTriggerDescriptions', JSON.stringify(triggerDescriptions));
+    
+    // Sync with other pages if the sync function exists
+    if (typeof window.syncTriggersWithPages === 'function') {
+      window.syncTriggersWithPages(triggerNames, triggerDescriptions);
+    }
+  } catch (error) {
+    console.log('Error saving trigger selection to localStorage:', error);
+  }
+}
+
 // Create and play a random playlist from selected triggers
 function playRandomPlaylist() {
   const selectedTriggers = getSelectedTriggers();
   
   if (selectedTriggers.length === 0) {
     console.log("No triggers selected");
+    
+    // Show notification if available
+    if (typeof window.showNotification === 'function') {
+      window.showNotification('Please select at least one trigger first', 'warning');
+    }
     return;
   }
   
@@ -234,11 +373,17 @@ function playRandomPlaylist() {
   // Send triggers to server if socket is available
   if (typeof socket !== "undefined" && socket.connected) {
     const triggerNames = shuffledTriggers.map(t => t.name);
-    socket.emit("triggers", triggerNames);
+    socket.emit("triggers", { 
+      triggerNames: triggerNames.join(' '),
+      triggerDetails: shuffledTriggers.map(t => ({ 
+        name: t.name, 
+        description: t.description || '' 
+      }))
+    });
   }
 }
 
-// Update the toggle input event handler to restart loop when selection changes
+// Update the toggle input event handler with improved localStorage support
 function setupToggleListeners() {
   const toggleInputs = document.getElementsByClassName("toggle-input");
   
@@ -246,6 +391,9 @@ function setupToggleListeners() {
     toggleInputs[i].addEventListener("change", function() {
       // Don't handle loop toggle itself
       if (this.id === "loop-toggle") return;
+      
+      // Save toggle states
+      saveToggleStatesToLocalStorage();
       
       // If continuous playback is active, restart it with new selection
       if (continuousPlaybackActive) {
@@ -272,7 +420,7 @@ function setupToggleListeners() {
   }
 }
 
-// Handle specific trigger activation
+// Handle specific trigger activation with error handling
 function activateTrigger(trigger) {
   // If trigger is a string, find the matching trigger data
   if (typeof trigger === 'string') {
@@ -280,6 +428,14 @@ function activateTrigger(trigger) {
     if (triggerObj) {
       console.log(`Activating trigger: ${triggerObj.name}`);
       playTriggerWithDisplay(triggerObj);
+    } else {
+      console.log(`Trigger not found: ${trigger}`);
+      
+      // Create a temporary trigger object for display
+      const tempTrigger = { name: trigger };
+      
+      // Show text even if we don't have audio
+      displayTriggerText(trigger);
     }
   } 
   // If trigger is an object, use it directly
@@ -292,10 +448,33 @@ function activateTrigger(trigger) {
 // Set up socket event listener if socket exists
 function setupSocketListener() {
   if (typeof socket !== "undefined") {
+    // Clean up any existing listeners to avoid duplicates
+    socket.off("trigger:audio");
+    
+    // Add listener for trigger audio events
     socket.on("trigger:audio", (triggerName) => {
       if (!triggerName) return;
       activateTrigger(triggerName);
     });
+    
+    // Listen for active triggers from server/other tabs
+    socket.on("active-triggers", (data) => {
+      if (data && Array.isArray(data.activeTriggers)) {
+        updateTriggerToggles(data.activeTriggers);
+      }
+    });
+  }
+}
+
+// Update trigger toggles based on received active triggers
+function updateTriggerToggles(activeTriggers) {
+  const toggleInputs = document.getElementsByClassName("toggle-input");
+  
+  for (let i = 0; i < toggleInputs.length; i++) {
+    const triggerName = toggleInputs[i].dataset.triggerName || toggleInputs[i].dataset.trigger;
+    
+    // Set checked state based on active triggers
+    toggleInputs[i].checked = activeTriggers.includes(triggerName);
   }
 }
 
@@ -320,6 +499,11 @@ function playContinuousTriggers() {
   
   if (selectedTriggers.length === 0) {
     console.log("No triggers selected for continuous playback");
+    // Show notification if available
+    if (typeof window.showNotification === 'function') {
+      window.showNotification('Please select at least one trigger for continuous playback', 'warning');
+    }
+    
     // Make sure toggle is unchecked if no triggers selected
     const loopToggle = document.getElementById("loop-toggle");
     if (loopToggle) {
@@ -404,8 +588,12 @@ function stopContinuousPlayback() {
   }
 }
 
-// Initialize when window loads
+// Initialize when window loads with improved error handling
 window.onload = function () {
+  // Add global audio cache for other scripts to access
+  window.audioCache = audioCache;
+  
+  // Load trigger data
   loadTriggerData();
   
   // Add event listener for the loop toggle
@@ -426,9 +614,28 @@ window.onload = function () {
     playButton.addEventListener("click", playRandomPlaylist);
   }
   
+  // Add event listener for toggle all button
+  const toggleAllButton = document.getElementById("toggle-all");
+  if (toggleAllButton) {
+    toggleAllButton.addEventListener("click", toggleAllToggles);
+  }
+  
   // Setup toggle listeners
   setupToggleListeners();
-  setupSocketListener();
+  
+  // Add a retry button for audio loading if we have error handler
+  if (typeof window.errorHandler !== 'undefined') {
+    const retryButton = document.getElementById('retry-audio');
+    if (retryButton) {
+      retryButton.addEventListener('click', function() {
+        window.errorHandler.clearAllFailedResources();
+        preloadSelectedAudio();
+      });
+    }
+  }
+  
+  // Setup socket listener with delay to ensure socket is initialized
+  setTimeout(setupSocketListener, 1000);
 };
 
 // Expose the API globally for use by other scripts
@@ -437,5 +644,9 @@ window.bambiAudio = {
   playRandomPlaylist: playRandomPlaylist,
   startContinuousPlayback: playContinuousTriggers,
   stopContinuousPlayback: stopContinuousPlayback,
-  updatePlaybackSpeed: updatePlaybackSpeed
+  updatePlaybackSpeed: updatePlaybackSpeed,
+  getSelectedTriggers: getSelectedTriggers,
+  loadTriggerAudio: loadTriggerAudio,
+  getAllTriggers: () => triggerData,
+  refreshTriggers: loadTriggerData
 };
