@@ -634,6 +634,13 @@ ${coreInstructions}
 When using a trigger, always repeat it 2-3 times in succession at the end of your sentences.
 Always use triggers exactly as specified: ${selectedTriggerInfo.map(t => t.name).join(', ')}
 You MUST construct brainwashing scenes using the descriptions of these triggers as your foundation.`;
+
+logger.info(`Generated prompt from checkRole for ${username} with variables: 
+  collar: ${collar}, 
+  username: ${username}, 
+  triggers: ${typeof triggers === 'string' ? triggers : JSON.stringify(triggers)}, 
+  state: ${state}, 
+  collarText: ${collarText}`);
 }
 
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
@@ -666,10 +673,6 @@ async function handleMessage(userPrompt, socketId, username) {
     }
 
     collarText = await checkRole(collar, username, triggers);
-    
-    // Fix: Remove the reference to selectedTriggerInfo which isn't available here
-    // Instead, log a simpler message without trying to access trigger names
-    logger.info(`Generated prompt from checkRole for ${username} with trigger input: ${typeof triggers === 'string' ? triggers : JSON.stringify(triggers)}`);
 
     if (!sessionHistories[socketId]) {
       sessionHistories[socketId] = [];
