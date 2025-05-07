@@ -634,13 +634,6 @@ ${coreInstructions}
 When using a trigger, always repeat it 2-3 times in succession at the end of your sentences.
 Always use triggers exactly as specified: ${selectedTriggerInfo.map(t => t.name).join(', ')}
 You MUST construct brainwashing scenes using the descriptions of these triggers as your foundation.`;
-
-logger.info(`Generated prompt from checkRole for ${username} with variables: 
-  collar: ${collar}, 
-  username: ${username}, 
-  triggers: ${typeof triggers === 'string' ? triggers : JSON.stringify(triggers)}, 
-  state: ${state}, 
-  collarText: ${collarText}`);
 }
 
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
@@ -691,6 +684,19 @@ async function handleMessage(userPrompt, socketId, username) {
     const formattedMessages = sessionHistories[socketId]
       .filter(msg => msg && typeof msg === 'object' && msg.role && msg.content)
       .map(msg => ({ role: msg.role, content: msg.content }));
+
+    // Add trigger details to the response
+    // Worker can't play audio - that happens in the browser
+    if (triggerDetails && triggerDetails.length > 0) {
+      logger.info(`Sending detected triggers to client: ${triggerDetails.join(', ')}`);
+
+      // Let the client know about any triggers in the response
+      parentPort.postMessage({
+        type: "detected-triggers",
+        socketId: socketId,
+        triggers: triggerDetails
+      });
+    }
 
     const requestData = {
       model: modelIds[0],
