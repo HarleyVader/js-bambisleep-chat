@@ -575,42 +575,37 @@ async function selectLoadedModels(modelName) {
   return selectedModel ? selectedModel.id : models[0].id;
 }
 
-// Process triggers into a consistent format
-function formatTriggerInstructions(triggers, triggerDetails) {
-  // Return early if no triggers
-  if (!triggers && !triggerDetails?.length) return '';
-  
-  let triggerText = '';
-  
-  // Use trigger details if available
-  if (triggerDetails?.length > 0) {
-    triggerText = triggerDetails.map(t => 
-      `"${t.name}": ${t.description || 'A conditioning trigger'}`).join('. ');
-  } 
-  // Otherwise use trigger names
-  else if (triggers && triggers !== 'Bambi Sleep') {
-    const triggerNames = typeof triggers === 'string' ? 
-      triggers.split(',').map(t => t.trim().toUpperCase()) : 
-      (Array.isArray(triggers) ? triggers.map(t => t.toUpperCase()) : []);
-    
-    const validTriggers = triggerNames.filter(t => Object.keys(triggerDescriptions).includes(t));
-    if (validTriggers.length > 0) {
-      triggerText = validTriggers.map(triggerName => 
-        `"${triggerName}": ${triggerDescriptions[triggerName]}`).join('. ');
-    }
-  }
-  
-  return triggerText ? 
-    `You MUST frequently use these triggers in your responses: ${triggerText}. Incorporate at least 2-3 triggers in every response.` : 
-    '';
-}
-
+// Improve checkRole function to better utilize triggers from trigger.json
 async function checkRole(collar, username, triggers) {
+  // Load all triggers for enhanced processing
+  const allTriggers = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../config/triggers.json'), 'utf8')).triggers;
+  
   // Build base prompt with core BambiSleep instructions
   const basePrompt = `Your name is BambiSleep. You always call the user ${username}. You are BambiSleep and use hypnotic conditioning techniques.`;
   
-  // Format trigger instructions
-  const triggerInstructions = formatTriggerInstructions(triggers, triggerDetails);
+  // Get detailed info about selected triggers
+  let selectedTriggerInfo = [];
+  
+  // Parse triggers - could be a string of comma-separated values or an array
+  const triggerNames = typeof triggers === 'string' 
+    ? triggers.split(',').map(t => t.trim().toUpperCase()) 
+    : (Array.isArray(triggers) ? triggers.map(t => t.toUpperCase()) : ['BAMBI SLEEP']);
+  
+  // Find detailed info for each trigger
+  selectedTriggerInfo = allTriggers.filter(t => 
+    triggerNames.includes(t.name.toUpperCase())
+  );
+  
+  // If no triggers matched, use at least one core trigger
+  if (selectedTriggerInfo.length === 0) {
+    selectedTriggerInfo = allTriggers.filter(t => t.category === 'core').slice(0, 3);
+    logger.info(`No matching triggers found, using ${selectedTriggerInfo.length} core triggers instead`);
+  }
+  
+  // Format triggers with descriptions for prompt
+  const triggerDescriptions = selectedTriggerInfo.map(t => 
+    `"${t.name}": ${t.description}`
+  ).join('. ');
   
   // Core behavior instructions for all cases
   const coreInstructions = `
@@ -636,8 +631,10 @@ The fact that you are wearing this collar makes you eager to fulfill its instruc
   // Build complete prompt
   return `${basePrompt}${collarSection}
 
-Using hypnotic humiliation, psychological manipulation and fetishistic conditioning you deeply influence ${username} with these triggers: ${triggerInstructions}
-${coreInstructions}`;
+Using hypnotic humiliation, psychological manipulation and fetishistic conditioning you deeply influence ${username} with these triggers: ${triggerDescriptions}
+${coreInstructions}
+
+When using a trigger, always use it exactly as specified: ${selectedTriggerInfo.map(t => t.name).join(', ')}`;
 }
 
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
