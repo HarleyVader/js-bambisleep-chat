@@ -4,14 +4,13 @@ const userLevel = profile ? profile.level || 0 : 0;
 const userXp = profile ? profile.xp || 0 : 0;
 
 // Define XP requirements for each level
-const xpRequirements = [100, 250, 450, 700, 1200];
+const xpRequirements = [1000, 2500, 7500, 17000, 42000];
 
 // Calculate next level XP requirement
 const getNextLevelXP = (level) => {
   if (level < xpRequirements.length) {
     return xpRequirements[level];
   } else {
-    // After level 5, just keep adding XP & show total
     return null;
   }
 };
@@ -21,7 +20,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
 %>
 
 <div class="system-controls">
-  <!-- Update the control buttons section -->
+  <!-- Control buttons section -->
   <div id="buttons" class="control-buttons">
     <!-- Show triggers button only if level ≥ 1 -->
     <% if (userLevel >= 1) { %>
@@ -44,34 +43,32 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       <button class="control-btn disabled" title="Reach Level 3 to unlock">Session History 🔒</button>
     <% } %>
     
-    <!-- Show spirals feature if user level ≥ 3 -->
+    <!-- Show spirals feature if user level ≥ 4 -->
     <% if (userLevel >= 4) { %>
       <button id="spirals-btn" class="control-btn" data-target="spirals-panel">Spirals</button>
     <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 3 to unlock">Spirals 🔒</button>
+      <button class="control-btn disabled" title="Reach Level 4 to unlock">Spirals 🔒</button>
     <% } %>
     
-    <!-- Show hypnosis feature if user level ≥ 4 -->
+    <!-- Show hypnosis feature if user level ≥ 5 -->
     <% if (userLevel >= 5) { %>
       <button id="hypnosis-btn" class="control-btn" data-target="hypnosis-panel">Hypnosis</button>
     <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 4 to unlock">Hypnosis 🔒</button>
+      <button class="control-btn disabled" title="Reach Level 5 to unlock">Hypnosis 🔒</button>
     <% } %>
     
-    <!-- Show audios feature if user level ≥ 6 (moved to 4th position) -->
+    <!-- Show audios feature if user level ≥ 6 -->
     <% if (userLevel >= 6) { %>
       <button id="audios-btn" class="control-btn" data-target="audios-panel">Audios</button>
     <% } else { %>
       <button class="control-btn disabled" title="Reach Level 6 to unlock">Audios 🔒</button>
     <% } %>
-    <!-- Show playlist feature if user level ≥ 6 -->
-    
   </div>
 
-  <!-- Update the control panels section to match the new button structure -->
+  <!-- Control panels section -->
   <div id="console" class="control-panels">
-    <!-- Only render panels if the user has sufficient level -->
     <% if (userLevel >= 1) { %>
+      <!-- Trigger panel -->
       <div id="trigger-panel" class="control-panel active">
         <h3>Trigger Toggles</h3>
         <div class="trigger-actions">
@@ -84,6 +81,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       </div>
       
       <% if (userLevel >= 2) { %>
+        <!-- Collar panel -->
         <div id="collar-panel" class="control-panel">
           <h3>Collar Control</h3>
           <div id="collar-form-inputs">
@@ -99,6 +97,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       <% } %>
       
       <% if (userLevel >= 3) { %>
+        <!-- Session history panel -->
         <div id="session-history-panel" class="control-panel">
           <h3>Session History</h3>
           
@@ -139,6 +138,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       <% } %>
       
       <% if (userLevel >= 4) { %>
+        <!-- Spirals panel -->
         <div id="spirals-panel" class="control-panel">
           <h3>Spirals Settings</h3>
           <div class="spirals-toggle">
@@ -147,7 +147,6 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           </div>
           
           <div class="spirals-controls">
-            <!-- Spiral 1 Width control -->
             <div class="spiral-control-group">
               <label>Purple Spiral Width:</label>
               <div class="slider-container">
@@ -156,7 +155,6 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
               </div>
             </div>
             
-            <!-- Spiral 2 Width control -->
             <div class="spiral-control-group">
               <label>Pink Spiral Width:</label>
               <div class="slider-container">
@@ -165,7 +163,6 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
               </div>
             </div>
             
-            <!-- Spiral 1 Speed control -->
             <div class="spiral-control-group">
               <label>Purple Spiral Speed:</label>
               <div class="slider-container">
@@ -174,7 +171,6 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
               </div>
             </div>
             
-            <!-- Spiral 2 Speed control -->
             <div class="spiral-control-group">
               <label>Pink Spiral Speed:</label>
               <div class="slider-container">
@@ -191,6 +187,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       <% } %>
       
       <% if (userLevel >= 5) { %>
+        <!-- Hypnosis panel -->
         <div id="hypnosis-panel" class="control-panel">
           <h3>Hypnosis Settings</h3>
           <div class="hypnosis-toggle">
@@ -204,17 +201,8 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         </div>
       <% } %>
       
-      <% if (userLevel >= 5) { %>
-        <div id="toggle-all-panel" class="control-panel">
-          <h3>Toggle All Triggers</h3>
-          <div class="toggle-all-actions">
-            <button id="select-all-triggers" class="secondary-btn">Select All Triggers</button>
-            <button id="clear-all-triggers" class="secondary-btn">Clear All Triggers</button>
-          </div>
-        </div>
-      <% } %>
-      
       <% if (userLevel >= 6) { %>
+        <!-- Audio panel -->
         <div id="audios-panel" class="control-panel">
           <h3>Trigger Audios</h3>
           <div class="playlist-actions">
@@ -223,20 +211,19 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
               <input type="checkbox" id="loop-toggle" class="toggle-input">
               <label for="loop-toggle" class="toggle-label">Continuous Loop</label>
             </div>
+          </div>
+          
+          <div class="audio-controls">
+            <div class="audio-speed-control">
+              <label for="loop-speed">Speed:</label>
+              <input type="range" id="loop-speed" min="1" max="10" value="5" class="speed-slider">
+              <span id="speed-value">Normal</span>
+            </div>
             
-            <!-- Replace the existing audio-speed-control div with this -->
-            <div class="audio-controls">
-              <div class="audio-speed-control">
-                <label for="loop-speed">Loop Speed:</label>
-                <input type="range" id="loop-speed" min="1" max="10" value="5" class="speed-slider">
-                <span id="speed-value">Slower 4x</span>
-              </div>
-              
-              <div class="audio-volume-control">
-                <label for="loop-volume">Volume:</label>
-                <input type="range" id="loop-volume" min="0" max="10" value="10" class="volume-slider">
-                <span id="volume-value">40%</span>
-              </div>
+            <div class="audio-volume-control">
+              <label for="loop-volume">Volume:</label>
+              <input type="range" id="loop-volume" min="0" max="10" value="8" class="volume-slider">
+              <span id="volume-value">80%</span>
             </div>
           </div>
         </div>
@@ -249,7 +236,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     <% } %>
   </div>
 
-  <!-- Add XP progress bar at the bottom of system controls -->
+  <!-- XP progress bar -->
   <% if (userXp !== undefined) { %>
     <div class="xp-progress-container">
       <div class="xp-progress-label" id="xp-progress-label">
@@ -271,13 +258,12 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
 </div>
 
 <style>
-  /* Add styles for disabled buttons */
+  /* Control buttons styling */
   .control-btn.disabled {
     opacity: 0.6;
     cursor: not-allowed;
     background: #444;
     color: #aaa;
-    position: relative;
   }
   
   /* XP progress bar styling */
@@ -310,7 +296,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     transition: width 0.5s ease-in-out;
   }
   
-  /* Audio speed control styling */
+  /* Audio controls styling */
   .audio-controls {
     margin-top: 15px;
     display: flex;
@@ -327,8 +313,8 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
   .speed-slider, .volume-slider {
     flex: 1;
     height: 6px;
-    appearance: none;
     -webkit-appearance: none;
+    appearance: none;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 3px;
     outline: none;
@@ -382,7 +368,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     color: #00ffff;
   }
 
-  /* Add styles for session stats container */
+  /* Session controls styling */
   .session-stats-container {
     display: flex;
     justify-content: space-around;
@@ -442,7 +428,6 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     margin-top: 15px;
   }
 
-  /* Add styles for active session info */
   .active-session-info {
     margin-top: 8px;
     padding: 6px 10px;
@@ -458,7 +443,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     color: var(--tertiary-alt);
   }
 
-  /* Add styles for spirals controls */
+  /* Spirals controls styling */
   .spirals-controls {
     margin: 15px 0;
     background-color: rgba(10, 38, 38, 0.4);
@@ -487,8 +472,8 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
   .spiral-slider {
     flex: 1;
     height: 6px;
-    appearance: none;
     -webkit-appearance: none;
+    appearance: none;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 3px;
     outline: none;
@@ -510,36 +495,11 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     background: #ff00ff;
     cursor: pointer;
   }
-
-  #spiral-speed-value,
-  #spiral-width-value {
-    min-width: 70px;
-    text-align: center;
-    font-size: 0.9em;
-    color: #ff00ff;
-  }
-
-  .spirals-preview {
-    width: 100%;
-    height: 200px;
-    margin: 15px 0;
-    background-color: rgba(0, 0, 0, 0.4);
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-    border: 1px solid var(--tertiary-alt);
-  }
-
-  .spirals-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 10px;
-  }
 </style>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    // Store XP requirements globally for socket updates
+    // Store XP requirements globally
     window.xpRequirements = [100, 250, 450, 700, 1200];
     
     // Tab navigation system
@@ -563,16 +523,48 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       });
     });
     
-    // When triggers are loaded, trigger a single event
+    // Set initial volume and speed from localStorage
+    const volumeSlider = document.getElementById('loop-volume');
+    const volumeValue = document.getElementById('volume-value');
+    if (volumeSlider && volumeValue) {
+      const storedVolume = localStorage.getItem('bambiAudioVolume');
+      if (storedVolume !== null) {
+        const volume = parseFloat(storedVolume);
+        volumeSlider.value = volume * 10;
+        volumeValue.textContent = Math.round(volume * 100) + '%';
+      }
+    }
+    
+    const speedSlider = document.getElementById('loop-speed');
+    const speedValue = document.getElementById('speed-value');
+    if (speedSlider && speedValue) {
+      const storedSpeed = localStorage.getItem('bambiAudioSpeed');
+      if (storedSpeed !== null) {
+        speedSlider.value = storedSpeed;
+        updateSpeedLabel(storedSpeed, speedValue);
+      }
+    }
+    
+    // Helper function for speed label
+    function updateSpeedLabel(value, element) {
+      if (!element) return;
+      
+      const speedVal = parseInt(value);
+      if (speedVal === 5) {
+        element.textContent = 'Normal';
+      } else if (speedVal < 5) {
+        element.textContent = 'Slower ' + (5 - speedVal) + 'x';
+      } else {
+        element.textContent = 'Faster ' + (speedVal - 5) + 'x';
+      }
+    }
+    
+    // Watch for trigger list changes to avoid duplicates
     const triggerList = document.getElementById('trigger-list');
     if (triggerList) {
       const observer = new MutationObserver(function(mutations) {
-        // Check if triggers were added
         if (mutations.some(m => m.addedNodes.length > 0)) {
-          // Dispatch event once triggers are ready
           document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
-          
-          // Only need to observe once
           observer.disconnect();
         }
       });
