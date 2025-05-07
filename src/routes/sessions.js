@@ -820,6 +820,51 @@ router.get('/api/sessions/:username', async (req, res) => {
     logger.error(`Error fetching session history for API: ${error.message}`);
     res.status(500).json({ error: 'Error fetching session history', sessions: [] });
   }
+}
+);
+// API endpoint to get session history for a specific session
+router.get('/api/sessions/:username/:sessionId', async (req, res) => {
+  try {
+    const { username, sessionId } = req.params;
+    
+    if (!username || !sessionId) {
+      return res.status(400).json({ error: 'Username and session ID are required' });
+    }
+    
+    const session = await SessionHistoryModel.findOne({ 
+      _id: sessionId, 
+      username 
+    });
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    res.json({ 
+      success: true,
+      session: {
+        _id: session._id,
+        title: session.title,
+        messages: session.messages,
+        metadata: session.metadata,
+        createdAt: session.metadata.createdAt,
+        // Add these settings to the response
+        activeTriggers: session.metadata.triggers || [],
+        collarSettings: {
+          enabled: session.metadata.collarActive || false,
+          text: session.metadata.collarText || ''
+        },
+        spiralSettings: session.metadata.spiralSettings || {
+          enabled: false,
+          spiral1Width: 5.0,
+          spiral2Width: 3.0,
+          spiral1Speed: 20,
+          spiral2Speed: 15
+        }
+      }
+    });
+  } catch (error) {
+    logger.error(`Error fetching specific session history for API: ${error.message}`);
+    res.status(500).json({ error: 'Error fetching specific session history' });
+  }
 });
-
-export default router;
