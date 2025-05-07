@@ -11,7 +11,10 @@
   function initTriggerList() {
     const triggerList = document.getElementById('trigger-list');
     
-    if (triggerList && !triggerList.hasChildNodes()) {
+    // Clear any existing content to avoid duplicates
+    if (triggerList) {
+      triggerList.innerHTML = '';
+      
       // Fetch triggers from the JSON file
       fetch('/config/triggers.json')
         .then(response => response.json())
@@ -45,9 +48,9 @@
                   action: 'trigger_used'
                 });
                 
-                // Play trigger audio if newly checked and audio API available
-                if (window.bambiAudio && typeof window.bambiAudio.playTrigger === 'function') {
-                  window.bambiAudio.playTrigger(trigger.name);
+                // Play trigger sound if available in triggers.js
+                if (window.playTriggerSound && typeof window.playTriggerSound === 'function') {
+                  window.playTriggerSound(trigger.name);
                 }
               }
               
@@ -74,7 +77,7 @@
           document.dispatchEvent(new Event('trigger-controls-loaded'));
         })
         .catch(error => {
-          console.log('Error loading triggers:', error);
+          console.error('Error loading triggers:', error);
           triggerList.innerHTML = '<p>Failed to load triggers. Please refresh the page.</p>';
         });
     }
@@ -85,6 +88,19 @@
     const selectAllBtn = document.getElementById('select-all-triggers');
     const clearAllBtn = document.getElementById('clear-all-triggers');
     const playBtn = document.getElementById('play-triggers');
+    const activateAllBtn = document.getElementById('activate-all');
+    
+    if (activateAllBtn) {
+      let allActive = false;
+      activateAllBtn.addEventListener('click', function() {
+        allActive = !allActive;
+        document.querySelectorAll('.toggle-input').forEach(toggle => {
+          toggle.checked = allActive;
+        });
+        saveTriggerState();
+        sendTriggerUpdate();
+      });
+    }
     
     if (selectAllBtn) {
       selectAllBtn.addEventListener('click', function() {
@@ -107,12 +123,7 @@
     }
     
     if (playBtn) {
-      playBtn.addEventListener('click', function() {
-        // Play random playlist if triggers.js API is available
-        if (window.bambiAudio && typeof window.bambiAudio.playRandomPlaylist === 'function') {
-          window.bambiAudio.playRandomPlaylist();
-        }
-      });
+      playBtn.addEventListener('click', playActiveTriggers);
     }
   }
   
@@ -172,9 +183,39 @@
   
   // Play all active triggers in sequence
   function playActiveTriggers() {
-    if (window.bambiAudio && typeof window.bambiAudio.playRandomPlaylist === 'function') {
-      window.bambiAudio.playRandomPlaylist();
+    const activeTriggers = Array.from(document.querySelectorAll('.toggle-input:checked')).map(toggle => ({
+      name: toggle.getAttribute('data-trigger'),
+      description: toggle.getAttribute('data-description') || ''
+    })).filter(t => t.name);
+    
+    if (activeTriggers.length === 0) {
+      console.log("No triggers selected");
+      return;
     }
+    
+    // Use playRandomPlaylist from triggers.js if available
+    if (window.playRandomPlaylist && typeof window.playRandomPlaylist === 'function') {
+      window.playRandomPlaylist();
+      return;
+    }
+    
+    // Simple fallback player
+    const playNext = (index) => {
+      if (index >= activeTriggers.length) return;
+      
+      const trigger = activeTriggers[index];
+      
+      // Use playTriggerSound from triggers.js if available
+      if (window.playTriggerSound && typeof window.playTriggerSound === 'function') {
+        window.playTriggerSound(trigger.name);
+        
+        // Play next after delay
+        setTimeout(() => playNext(index + 1), 2000);
+      }
+    };
+    
+    // Start playing
+    playNext(0);
   }
   
   // Export functions
