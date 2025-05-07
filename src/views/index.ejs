@@ -340,15 +340,47 @@
             // Central socket handling for system controls
             socket.on('system-update', function(data) {
               if (window.bambiSystem) {
-                window.bambiSystem.updateState(data.section, data.data);
+                window.bambiSystem.saveState(data.section, data.data);
               }
             });
 
             // When starting a conversation, send all system settings to worker
             socket.on('conversation-start', function() {
               if (window.bambiSystem) {
-                const allSettings = window.bambiSystem.collectAllSettings();
-                socket.emit('system-settings', allSettings);
+                const settings = window.bambiSystem.collectSettings();
+                socket.emit('system-settings', settings);
+              }
+            });
+
+            // Listen for system control events
+            document.addEventListener('system-control-loaded', function(e) {
+              if (e.detail && e.detail.type === 'triggers') {
+                // Get active triggers from system controls
+                const activeTriggers = e.detail.activeTriggers || [];
+                
+                // Format triggers properly with names and descriptions
+                const triggerDetails = activeTriggers.map(trigger => {
+                  if (typeof trigger === 'string') {
+                    return { name: trigger, description: "Trigger effect" };
+                  }
+                  return trigger;
+                });
+                
+                // Update system state
+                if (window.bambiSystem) {
+                  window.bambiSystem.updateTriggers(triggerDetails);
+                }
+                
+                // Store basic trigger names in localStorage for compatibility
+                localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers));
+                
+                // Send to server
+                if (window.socket) {
+                  socket.emit('triggers', {
+                    triggerNames: activeTriggers.join(','),
+                    triggerDetails: triggerDetails
+                  });
+                }
               }
             });
 
