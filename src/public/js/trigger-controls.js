@@ -33,21 +33,12 @@
             toggle.className = 'toggle-input';
             toggle.setAttribute('data-trigger', trigger.name);
             toggle.setAttribute('data-description', trigger.description || '');
-            
-            // Set tooltip with description
-            if (trigger.description) {
-              toggle.title = trigger.description;
-            }
-            
-            if (activeTriggers.includes(trigger.name)) {
-              toggle.checked = true;
-            }
+            toggle.title = trigger.description || '';
+            toggle.checked = activeTriggers.includes(trigger.name);
             
             toggle.addEventListener('change', function() {
-              saveTriggerState();
-              
-              // Award XP for using a trigger (+3 XP per trigger use)
-              if (typeof socket !== 'undefined' && socket.connected && toggle.checked) {
+              // Award XP when enabling a trigger
+              if (toggle.checked && window.socket && window.socket.connected) {
                 socket.emit('award-xp', {
                   username: document.body.getAttribute('data-username') || window.username,
                   amount: 3,
@@ -55,24 +46,24 @@
                 });
               }
               
-              // Dispatch trigger toggle event
-              document.dispatchEvent(new Event('trigger-toggle'));
+              // Save and broadcast the change
+              saveTriggerState();
+              sendTriggerUpdate();
             });
             
             var label = document.createElement('label');
             label.htmlFor = `toggle-${index}`;
             label.className = 'toggle-label';
             label.textContent = trigger.name;
-            
-            // Add tooltip to label too
-            if (trigger.description) {
-              label.title = trigger.description;
-            }
+            label.title = trigger.description || '';
             
             triggerItem.appendChild(toggle);
             triggerItem.appendChild(label);
             triggerList.appendChild(triggerItem);
           });
+          
+          // Initial sync of trigger state
+          sendTriggerUpdate();
           
           // Dispatch trigger controls loaded event
           document.dispatchEvent(new Event('trigger-controls-loaded'));
@@ -88,71 +79,40 @@
   function initTriggerButtons() {
     const selectAllBtn = document.getElementById('select-all-triggers');
     const clearAllBtn = document.getElementById('clear-all-triggers');
-    const activateAllBtn = document.getElementById('activate-all');
     
     if (selectAllBtn) {
       selectAllBtn.addEventListener('click', function() {
-        const triggerToggles = document.querySelectorAll('.toggle-input');
-        triggerToggles.forEach(toggle => {
+        document.querySelectorAll('.toggle-input').forEach(toggle => {
           toggle.checked = true;
         });
-        
         saveTriggerState();
+        sendTriggerUpdate();
       });
     }
     
     if (clearAllBtn) {
       clearAllBtn.addEventListener('click', function() {
-        const triggerToggles = document.querySelectorAll('.toggle-input');
-        triggerToggles.forEach(toggle => {
+        document.querySelectorAll('.toggle-input').forEach(toggle => {
           toggle.checked = false;
         });
-        
         saveTriggerState();
-      });
-    }
-    
-    if (activateAllBtn) {
-      activateAllBtn.addEventListener('click', function() {
-        if (window.bambiAudio && typeof window.bambiAudio.toggleAllTriggers === 'function') {
-          window.bambiAudio.toggleAllTriggers();
-        } else {
-          // Fallback toggle behavior
-          const triggerToggles = document.querySelectorAll('.toggle-input');
-          let allChecked = true;
-          
-          // Check if all are checked
-          triggerToggles.forEach(toggle => {
-            if (!toggle.checked) allChecked = false;
-          });
-          
-          // Toggle all based on current state
-          triggerToggles.forEach(toggle => {
-            toggle.checked = !allChecked;
-          });
-          
-          saveTriggerState();
-        }
+        sendTriggerUpdate();
       });
     }
   }
   
-  // Save trigger state
+  // Save trigger state to profile
   function saveTriggerState() {
     var username = document.body.getAttribute('data-username') || window.username;
     if (!username) return;
     
-    var toggleInputs = document.querySelectorAll('.toggle-input');
     var activeTriggers = [];
-    
-    toggleInputs.forEach(input => {
-      if (input.checked) {
-        const triggerName = input.getAttribute('data-trigger');
-        activeTriggers.push(triggerName);
-      }
+    document.querySelectorAll('.toggle-input:checked').forEach(input => {
+      activeTriggers.push(input.getAttribute('data-trigger'));
     });
     
-    if (typeof socket !== 'undefined' && socket.connected) {
+    // Update profile via socket or fetch
+    if (window.socket && window.socket.connected) {
       socket.emit('update-system-controls', {
         username: username,
         activeTriggers: activeTriggers
@@ -160,42 +120,33 @@
     } else {
       fetch(`/profile/${username}/system-controls`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          activeTriggers: activeTriggers
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activeTriggers: activeTriggers })
       });
     }
   }
   
-  // Add this function to consolidate trigger handling
+  // Send trigger info to LMStudio worker
   function sendTriggerUpdate() {
-    // Get all active triggers
-    const triggerToggles = document.querySelectorAll('.toggle-input:checked');
-    const activeTriggers = Array.from(triggerToggles).map(toggle => {
-      return {
-        name: toggle.getAttribute('data-trigger'),
-        description: toggle.getAttribute('data-description') || ''
-      };
-    }).filter(t => t.name);
+    const activeTriggers = Array.from(document.querySelectorAll('.toggle-input:checked')).map(toggle => ({
+      name: toggle.getAttribute('data-trigger'),
+      description: toggle.getAttribute('data-description') || ''
+    })).filter(t => t.name);
     
-    // Save to localStorage for persistence
+    // Save to localStorage
     try {
-      localStorage.setItem('bambiActiveTriggers', 
-        JSON.stringify(activeTriggers.map(t => t.name)));
+      localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers.map(t => t.name)));
     } catch(e) {}
     
-    // Send via socket if available
+    // Send to worker via socket
     if (window.socket && window.socket.connected) {
-      window.socket.emit('triggers', {
+      socket.emit('triggers', {
         triggerNames: activeTriggers.map(t => t.name).join(','),
         triggerDetails: activeTriggers
       });
     }
     
-    // Dispatch event for other components
+    // Notify other components
     document.dispatchEvent(new CustomEvent('system-control-loaded', {
       detail: {
         type: 'triggers',
@@ -204,20 +155,11 @@
     }));
   }
   
-  // Call this function after initializing triggers
-  document.addEventListener('trigger-controls-loaded', sendTriggerUpdate);
-  
-  // Call this when any trigger is toggled
-  document.addEventListener('trigger-toggle', function() {
-    // Debounce to avoid too many updates
-    clearTimeout(window.triggerUpdateTimeout);
-    window.triggerUpdateTimeout = setTimeout(sendTriggerUpdate, 300);
-  });
-  
   // Export functions
   window.bambiTriggers = {
     init,
-    saveTriggerState
+    saveTriggerState,
+    sendTriggerUpdate
   };
   
   // Auto-initialize on load
