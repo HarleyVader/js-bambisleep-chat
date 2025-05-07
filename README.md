@@ -1,4 +1,4 @@
-```markdown
+
 # 🧠 [BambiSleep.Chat](https://bambisleep.chat) 👁️
 💖 A [r/bambisleep](https://www.reddit.com/r/BambiSleep/) targeted Hypnotic AIGF (AI Girlfriend) 🤖
 
@@ -16,7 +16,7 @@
 > - Custom Trigger Creation
 
 </details>
-
+```markdown
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
 <!-- eslint-disable -->
