@@ -19,8 +19,8 @@
         saveTriggerState();
         
         // Award XP when enabling a trigger
-        if (this.checked && socket && socket.connected) {
-          socket.emit('award-xp', {
+        if (this.checked && window.socket && window.socket.connected) {
+          window.socket.emit('award-xp', {
             username: document.body.getAttribute('data-username'),
             amount: 3,
             action: 'trigger_used'
@@ -56,11 +56,9 @@
     
     // Try loading from bambiSystem first
     if (window.bambiSystem) {
-      if (typeof window.bambiSystem.collectSettings === 'function') {
-        const settings = window.bambiSystem.collectSettings();
-        if (settings && settings.activeTriggers) {
-          triggers = settings.activeTriggers;
-        }
+      const settings = window.bambiSystem.collectSettings ? window.bambiSystem.collectSettings() : null;
+      if (settings && settings.activeTriggers) {
+        triggers = settings.activeTriggers;
       }
     }
     
@@ -105,18 +103,19 @@
     }
     
     // Always send to server to ensure backend gets updated
-    if (socket && socket.connected) {
+    if (window.socket && window.socket.connected) {
       const username = document.body.getAttribute('data-username');
       if (username) {
-        socket.emit('update-system-controls', {
+        // Update profile system controls
+        window.socket.emit('update-system-controls', {
           username,
           activeTriggers: triggers.map(t => t.name)
         });
         
-        // Also send triggers to worker
-        socket.emit('triggers', {
-          triggerNames: triggers.map(t => t.name).join(','),
-          triggerDetails: triggers
+        // Send to LMStudio worker via system-settings event
+        window.socket.emit('system-settings', {
+          triggerDetails: triggers,
+          triggerNames: triggers.map(t => t.name).join(',')
         });
       }
     }
