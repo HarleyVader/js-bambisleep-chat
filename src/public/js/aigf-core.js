@@ -109,35 +109,124 @@ socket.on('response', async (message) => {
 
 // Function to detect trigger words in text and play them
 function detectAndPlayTriggers(text) {
-    // Skip if text is empty or no trigger data available
-    if (!text || typeof window.bambiAudio === 'undefined') return;
+    // Skip if text is empty
+    if (!text) return;
     
-    // Get all triggers (capitalized for better matching)
-    const allTriggers = window.bambiAudio.getAllTriggers();
-    if (!allTriggers || !allTriggers.length) return;
+    // Try to get triggers from server first
+    fetch('/config/triggers.json')
+        .then(response => response.json())
+        .then(data => {
+            // Get the active triggers
+            const activeTriggers = getActiveTriggers();
+            processTriggersInText(text, data.triggers, activeTriggers);
+        })
+        .catch(error => {
+            // Fallback to bambiAudio if available
+            if (typeof window.bambiAudio !== 'undefined') {
+                const allTriggers = window.bambiAudio.getAllTriggers();
+                if (allTriggers && allTriggers.length) {
+                    const activeTriggers = getActiveTriggers();
+                    processTriggersInText(text, allTriggers, activeTriggers);
+                }
+            } else {
+                console.error('Failed to load triggers:', error);
+            }
+        });
+}
+
+// Get active triggers from DOM or localStorage
+function getActiveTriggers() {
+    // Try to get from toggles first
+    const activeTriggerElements = document.querySelectorAll('.toggle-input:checked');
+    if (activeTriggerElements.length > 0) {
+        return Array.from(activeTriggerElements).map(el => 
+            el.getAttribute('data-trigger')
+        ).filter(Boolean);
+    }
     
+    // Try localStorage next
+    try {
+        const storedTriggers = localStorage.getItem('bambiActiveTriggers');
+        if (storedTriggers) {
+            return JSON.parse(storedTriggers);
+        }
+    } catch (e) {
+        console.warn('Error reading stored triggers:', e);
+    }
+    
+    // Return empty array if nothing found
+    return [];
+}
+
+// Process triggers in text and play matching ones
+function processTriggersInText(text, allTriggers, activeTriggers) {
     // Convert text to uppercase for case-insensitive matching
     const uppercaseText = text.toUpperCase();
+    
+    // Track matched triggers to avoid duplicates
+    const matchedTriggers = [];
     
     // Check each trigger
     allTriggers.forEach(trigger => {
         // Skip if trigger name is empty
         if (!trigger.name) return;
         
-        // Get trigger name in uppercase for matching
-        const triggerName = trigger.name.toUpperCase();
+        // Use the name property directly
+        const triggerName = typeof trigger === 'string' ? trigger : trigger.name;
+        
+        // Skip if this trigger isn't active (unless no active triggers specified)
+        if (activeTriggers.length > 0 && !activeTriggers.includes(triggerName)) {
+            return;
+        }
         
         // Check if trigger appears as a whole word
-        const triggerRegex = new RegExp(`\\b${triggerName}\\b`, 'i');
-        if (triggerRegex.test(uppercaseText)) {
-            console.log(`Detected trigger: ${trigger.name}`);
+        const escapedName = triggerName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const triggerRegex = new RegExp(`\\b${escapedName}\\b`, 'i');
+        
+        if (triggerRegex.test(uppercaseText) && !matchedTriggers.includes(triggerName)) {
+            console.log(`Detected trigger: ${triggerName}`);
+            matchedTriggers.push(triggerName);
             
-            // Play the trigger with a small delay to avoid overwhelming
+            // Play trigger with small delay between each
             setTimeout(() => {
-                window.bambiAudio.playTrigger(trigger);
-            }, 500);
+                playTriggerAudio(trigger);
+            }, matchedTriggers.length * 500);
         }
     });
+    
+    // Track trigger events for profile if matches found
+    if (matchedTriggers.length > 0 && socket.connected) {
+        const username = document.body.getAttribute('data-username') || window.username;
+        if (username) {
+            socket.emit('trigger-event', {
+                username,
+                triggers: matchedTriggers,
+                source: 'chat'
+            });
+        }
+    }
+}
+
+// Play trigger audio using best available method
+function playTriggerAudio(trigger) {
+    // If bambiAudio API available, use it
+    if (window.bambiAudio && typeof window.bambiAudio.playTrigger === 'function') {
+        window.bambiAudio.playTrigger(trigger);
+        return;
+    }
+    
+    // Fallback to direct audio playback
+    const triggerName = typeof trigger === 'string' ? trigger : trigger.name;
+    const filename = typeof trigger === 'object' && trigger.filename 
+        ? trigger.filename 
+        : triggerName.replace(/\s+/g, '-') + '.mp3';
+    
+    const audio = new Audio(`/audio/${filename}`);
+    audio.volume = 0.8;
+    audio.play().catch(err => console.warn('Could not play trigger:', err.message));
+    
+    // Flash trigger name on screen
+    flashTrigger(triggerName, 2000);
 }
 
 function applyUppercaseStyle() {
