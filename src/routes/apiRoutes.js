@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { getProfile } from '../models/Profile.js';
 import Logger from '../utils/logger.js';
 
