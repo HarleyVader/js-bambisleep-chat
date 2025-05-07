@@ -825,7 +825,152 @@ async function handleMessage(userPrompt, socketId, username) {
     // Send an error response back to the client
     handleResponse("I'm sorry, I encountered an error processing your request. Please try again.", socketId, username, 0);
   }
-}
+  async function handleMessage(userPrompt, socketId, username) {
+    try {
+      const modelNames = [
+        'l3-sthenomaidblackroot-8b-v1'
+      ];
+  
+      const modelIds = await Promise.all(modelNames.map(name => selectLoadedModels(name)));
+      if (!modelIds || modelIds.length === 0) {
+        throw new Error('No models loaded');
+      }
+  
+      collarText = await checkRole(collar, username, triggers);
+  
+      if (!sessionHistories[socketId]) {
+        sessionHistories[socketId] = [];
+        sessionHistories[socketId].metadata = {
+          createdAt: Date.now(),
+          lastActivity: Date.now()
+        };
+        sessionHistories[socketId].push({ role: 'system', content: collarText });
+      }
+  
+      // Add user message to history
+      sessionHistories[socketId].push({ role: 'user', content: userPrompt });
+      sessionHistories[socketId].metadata.lastActivity = Date.now();
+  
+      // Format messages for API request
+      const formattedMessages = sessionHistories[socketId]
+        .filter(msg => msg && typeof msg === 'object' && msg.role && msg.content)
+        .map(msg => ({ role: msg.role, content: msg.content }));
+  
+      // Add trigger details to the response
+      if (triggerDetails && triggerDetails.length > 0) {
+        logger.info(`Sending detected triggers to client: ${triggerDetails.join(', ')}`);
+  
+        // Let the client know about any triggers in the response
+        parentPort.postMessage({
+          type: "detected-triggers",
+          socketId: socketId,
+          triggers: triggerDetails
+        });
+      }
+  
+      const requestData = {
+        model: modelIds[0],
+        messages: formattedMessages,
+        max_tokens: 4096,
+        temperature: 0.87,
+        top_p: 0.91,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        top_k: 40,
+        stream: false,
+      };
+  
+      try {
+        const response = await axios.post(`http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
+  
+        // Now we have the response, set finalContent
+        finalContent = response.data.choices[0].message.content;
+  
+        // NOW add the assistant response to the session history
+        sessionHistories[socketId].push({ role: 'assistant', content: finalContent });
+  
+        // Update session in database if needed
+        if (username && username !== 'anonBambi') {
+          try {
+            // Process triggers into a usable format
+            const triggerList = Array.isArray(triggers)
+              ? triggers
+              : (typeof triggers === 'string'
+                ? triggers.split(',').map(t => t.trim())
+                : ['BAMBI SLEEP']);
+  
+            // Prepare session data
+            const sessionData = {
+              username,
+              socketId,
+              messages: [
+                { role: 'system', content: collarText },
+                { role: 'user', content: userPrompt },
+                { role: 'assistant', content: finalContent }
+              ],
+              metadata: {
+                lastActivity: new Date(),
+                triggers: triggerList,
+                collarActive: state,
+                collarText: collar,
+                modelName: 'Steno Maid Blackroot'
+              }
+            };
+  
+            // Find and update session in database
+            let sessionHistory = await SessionHistoryModel.findOne({ socketId });
+  
+            if (sessionHistory) {
+              // Update existing session
+              sessionHistory.messages.push(...sessionData.messages);
+              sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
+              sessionHistory.metadata.triggers = sessionData.metadata.triggers;
+              sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
+              sessionHistory.metadata.collarText = sessionData.metadata.collarText;
+  
+              await sessionHistory.save();
+              logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
+            } else {
+              // Create new session with auto-generated title
+              sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
+              sessionHistory = await SessionHistoryModel.create(sessionData);
+  
+              // Add reference to user's profile
+              await mongoose.model('Profile').findOneAndUpdate(
+                { username },
+                { $addToSet: { sessionHistories: sessionHistory._id } }
+              );
+  
+              logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
+            }
+          } catch (error) {
+            logger.error(`Failed to save session history to database: ${error.message}`);
+          }
+        }
+  
+        // Count words in response and update XP
+        const wordCount = countWords(finalContent);
+        await updateUserXP(username, wordCount, socketId);
+  
+        // Send response with wordCount
+        handleResponse(finalContent, socketId, username, wordCount);
+  
+        // REMOVED: Browser-specific code that was causing the error
+        // window.bambiAudio is not available in Node.js worker threads
+        
+      } catch (error) {
+        if (error.response) {
+          logger.error('Error response data:', error.response.data);
+        } else {
+          logger.error('Error in request:', error.message);
+        }
+      }
+    } catch (error) {
+      logger.error('Error in handleMessage:', error);
+      // Send an error response back to the client
+      handleResponse("I'm sorry, I encountered an error processing your request. Please try again.", socketId, username, 0);
+    }
+  }
 
 // Add to the worker cleanup/shutdown code
 if (healthCheckInterval) {
