@@ -549,6 +549,82 @@
             </div>
           </div>
         <% } %>
+
+        <!-- Add this right before the closing </body> tag -->
+        <div id="spirals-panel" class="control-panel">
+          <h3>Spiral Controls</h3>
+          <div class="control-group">
+            <label class="toggle-switch">
+              <input type="checkbox" id="spirals-enable" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-label">Enable Spirals</span>
+            </label>
+          </div>
+          
+          <div class="control-group">
+            <label for="spiral1-width">Spiral 1 Width: <span id="spiral1-width-value">5.0</span></label>
+            <input type="range" id="spiral1-width" min="1" max="10" step="0.1" value="5.0">
+          </div>
+          
+          <div class="control-group">
+            <label for="spiral2-width">Spiral 2 Width: <span id="spiral2-width-value">3.0</span></label>
+            <input type="range" id="spiral2-width" min="1" max="10" step="0.1" value="3.0">
+          </div>
+          
+          <div class="control-group">
+            <label for="spiral1-speed">Spiral 1 Speed: <span id="spiral1-speed-value">20</span></label>
+            <input type="range" id="spiral1-speed" min="5" max="50" step="1" value="20">
+          </div>
+          
+          <div class="control-group">
+            <label for="spiral2-speed">Spiral 2 Speed: <span id="spiral2-speed-value">15</span></label>
+            <input type="range" id="spiral2-speed" min="5" max="50" step="1" value="15">
+          </div>
+          
+          <button id="save-spirals" class="secondary-btn">Save Settings</button>
+        </div>
+
+        <!-- Add script to initialize system controls -->
+        <script src="js/spiral-controls.js"></script>
+        <script src="js/system-controls.js"></script>
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            // Update value displays when sliders change
+            document.querySelectorAll('#spirals-panel input[type="range"]').forEach(slider => {
+              const valueDisplay = document.getElementById(slider.id + '-value');
+              if (valueDisplay) {
+                // Update display on change
+                slider.addEventListener('input', function() {
+                  valueDisplay.textContent = this.value;
+                });
+              }
+            });
+            
+            // Connect p5.js sketch with control values
+            if (window.bambiSpirals) {
+              const updateP5Spirals = function() {
+                const settings = window.bambiSpirals.getCurrentSettings();
+                if (typeof updateSpiralParams === 'function') {
+                  updateSpiralParams(
+                    settings.spiral1Width,
+                    settings.spiral2Width,
+                    settings.spiral1Speed,
+                    settings.spiral2Speed
+                  );
+                }
+              };
+              
+              // Run initially and on any control change
+              document.querySelectorAll('#spirals-panel input').forEach(input => {
+                input.addEventListener('change', updateP5Spirals);
+              });
+              
+              // Run after a brief delay to ensure p5.js is initialized
+              setTimeout(updateP5Spirals, 500);
+            }
+          });
+        </script>
 </body>
 
 </html>
+``` 
