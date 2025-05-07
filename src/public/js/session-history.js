@@ -23,18 +23,9 @@ window.bambiHistory = (function() {
       document.querySelector('.user-profile-name')?.textContent || 
       'anonBambi';
     
-    // Use the API endpoint pattern consistent with other calls
+    // Use the new standardized API endpoint pattern
     fetch(`/api/sessions/${currentUsername}`)
-      .then(res => {
-        // Check response type before trying to parse JSON
-        const contentType = res.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          return res.json();
-        } else {
-          console.log('Server returned non-JSON response');
-          throw new Error('Invalid response format from server');
-        }
-      })
+      .then(res => res.json())
       .then(data => {
         sessionData = data.sessions || [];
         updateStats(data);
@@ -52,13 +43,116 @@ window.bambiHistory = (function() {
         }
       })
       .catch(err => {
+        console.error(err);
         status.textContent = 'Error loading sessions';
         status.className = 'session-history-status error';
-        console.error(err);
         
         sessionData = [];
         updateStats({totalSessions: 0, totalMessages: 0, totalWords: 0});
         populateDropdown([]);
+      });
+  }
+  
+  function saveSession(sessionData) {
+    const username = 
+      (document.cookie.split('; ').find(row => row.startsWith('bambiname=')) || '').split('=')[1] || 
+      document.querySelector('.user-profile-name')?.textContent || 
+      'anonBambi';
+      
+    fetch(`/api/sessions/${username}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(sessionData)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        console.log('Session saved successfully');
+        // Reload history to show the new session
+        loadHistory();
+      } else {
+        console.error('Failed to save session:', data.message);
+      }
+    })
+    .catch(err => {
+      console.error('Error saving session:', err);
+    });
+  }
+  
+  function deleteSession(sessionId) {
+    if (!sessionId || !confirm('Are you sure you want to delete this session?')) return;
+    
+    const username = 
+      (document.cookie.split('; ').find(row => row.startsWith('bambiname=')) || '').split('=')[1] || 
+      document.querySelector('.user-profile-name')?.textContent || 
+      'anonBambi';
+      
+    fetch(`/api/sessions/${username}/${sessionId}`, {
+      method: 'DELETE'
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        console.log('Session deleted successfully');
+        // Reload history to update the list
+        loadHistory();
+      } else {
+        console.error('Failed to delete session:', data.message);
+      }
+    })
+    .catch(err => {
+      console.error('Error deleting session:', err);
+    });
+  }
+  
+  function shareSession(sessionId) {
+    if (!sessionId) return;
+    
+    const username = 
+      (document.cookie.split('; ').find(row => row.startsWith('bambiname=')) || '').split('=')[1] || 
+      document.querySelector('.user-profile-name')?.textContent || 
+      'anonBambi';
+      
+    fetch(`/api/sessions/${username}/${sessionId}/share`, {
+      method: 'POST'
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.token) {
+        const shareUrl = `${window.location.origin}/shared-session/${data.token}`;
+        // Show share dialog with the URL
+        alert(`Share this link: ${shareUrl}`);
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(shareUrl)
+          .then(() => console.log('URL copied to clipboard'))
+          .catch(err => console.error('Could not copy URL:', err));
+      } else {
+        console.error('Failed to generate share token:', data.message);
+      }
+    })
+    .catch(err => {
+      console.error('Error sharing session:', err);
+    });
+  }
+  
+  function loadSharedSession(token) {
+    if (!token) return;
+    
+    fetch(`/api/shared-sessions/${token}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.session) {
+          // Apply the shared session
+          applySession(data.session);
+        } else {
+          console.error('Failed to load shared session:', data.message);
+        }
+      })
+      .catch(err => {
+        console.error('Error loading shared session:', err);
       });
   }
   
@@ -236,6 +330,10 @@ window.bambiHistory = (function() {
   
   return {
     init,
-    collectSessionSettings
+    collectSessionSettings,
+    saveSession,
+    deleteSession,
+    shareSession,
+    loadSharedSession
   };
 })();
