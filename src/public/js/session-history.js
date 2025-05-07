@@ -372,3 +372,208 @@ window.bambiHistory = (function() {
     loadSharedSession
   };
 })();
+
+// Connect session history panel UI to backend functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize session history module if available
+  if (window.bambiHistory && typeof window.bambiHistory.init === 'function') {
+    window.bambiHistory.init();
+  } else {
+    console.warn('BambiHistory module not available');
+  }
+  
+  // Connect UI elements to functions
+  const loadHistoryBtn = document.getElementById('load-history-btn');
+  const replayHistoryBtn = document.getElementById('replay-history-btn');
+  const sessionSelect = document.getElementById('session-select');
+  const sessionHistoryStatus = document.getElementById('session-history-status');
+  const sessionStatsContainer = document.querySelector('.session-stats-container');
+  
+  // Setup load history button
+  if (loadHistoryBtn) {
+    loadHistoryBtn.addEventListener('click', function() {
+      // Show status
+      if (sessionHistoryStatus) {
+        sessionHistoryStatus.textContent = 'Loading sessions...';
+        sessionHistoryStatus.className = 'session-history-status';
+      }
+      
+      // Use existing bambiHistory.loadHistory function
+      if (window.bambiHistory && typeof window.bambiHistory.loadHistory === 'function') {
+        window.bambiHistory.loadHistory();
+      } else {
+        // Fallback to basic implementation
+        loadSessions();
+      }
+    });
+  }
+  
+  // Setup replay button
+  if (replayHistoryBtn) {
+    replayHistoryBtn.disabled = true; // Disabled by default until sessions loaded
+    replayHistoryBtn.addEventListener('click', function() {
+      if (window.bambiHistory && typeof window.bambiHistory.replayRandom === 'function') {
+        window.bambiHistory.replayRandom();
+      } else {
+        // Fallback implementation
+        replayRandomSession();
+      }
+    });
+  }
+  
+  // Setup session select change handler
+  if (sessionSelect) {
+    sessionSelect.addEventListener('change', function() {
+      const sessionId = this.value;
+      if (!sessionId || sessionId === '') return;
+      
+      // Load the selected session
+      loadSelectedSession(sessionId);
+    });
+  }
+  
+  // Fallback implementation if bambiHistory module isn't working
+  function loadSessions() {
+    const username = document.body.getAttribute('data-username');
+    if (!username) {
+      updateStatus('Please log in to view sessions', true);
+      return;
+    }
+    
+    fetch(`/api/sessions/${username}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.sessions || data.sessions.length === 0) {
+          updateStatus('No sessions found', true);
+          return;
+        }
+        
+        // Populate select dropdown
+        populateSessionSelect(data.sessions);
+        
+        // Show stats
+        updateStats({
+          totalSessions: data.sessions.length,
+          totalMessages: data.sessions.reduce((sum, s) => sum + (s.messages?.length || 0), 0),
+          totalWords: data.sessions.reduce((sum, s) => {
+            if (!s.messages) return sum;
+            return sum + s.messages.reduce((wSum, m) => wSum + (m.content?.split(/\s+/).length || 0), 0);
+          }, 0)
+        });
+        
+        // Show stats container
+        if (sessionStatsContainer) {
+          sessionStatsContainer.style.display = 'flex';
+        }
+        
+        // Enable replay button
+        if (replayHistoryBtn) {
+          replayHistoryBtn.disabled = false;
+        }
+        
+        updateStatus(`${data.sessions.length} sessions available`);
+      })
+      .catch(err => {
+        console.error('Error loading sessions:', err);
+        updateStatus('Error loading sessions', true);
+      });
+  }
+  
+  function populateSessionSelect(sessions) {
+    if (!sessionSelect) return;
+    
+    // Clear existing options except first placeholder
+    while (sessionSelect.options.length > 1) {
+      sessionSelect.remove(1);
+    }
+    
+    // Add session options
+    sessions.forEach(session => {
+      const date = new Date(session.createdAt || session.metadata?.lastActivity);
+      const option = document.createElement('option');
+      option.value = session._id;
+      option.textContent = `${date.toLocaleDateString()} ${date.toLocaleTimeString()} (${session.messages?.length || 0} msgs)`;
+      sessionSelect.appendChild(option);
+    });
+  }
+  
+  function updateStatus(message, isError = false) {
+    if (!sessionHistoryStatus) return;
+    
+    sessionHistoryStatus.textContent = message;
+    sessionHistoryStatus.className = 'session-history-status' + (isError ? ' error' : ' success');
+  }
+  
+  function updateStats(data) {
+    if (document.getElementById('session-count')) {
+      document.getElementById('session-count').textContent = data.totalSessions || 0;
+    }
+    if (document.getElementById('message-count')) {
+      document.getElementById('message-count').textContent = data.totalMessages || 0;
+    }
+    if (document.getElementById('word-count')) {
+      document.getElementById('word-count').textContent = data.totalWords || 0;
+    }
+  }
+  
+  function loadSelectedSession(sessionId) {
+    if (!sessionId) return;
+    
+    // Use socket if available for more efficient loading
+    if (window.socket && window.socket.connected) {
+      window.socket.emit('load-session', sessionId);
+      updateStatus('Loading session...');
+      return;
+    }
+    
+    // Fallback to fetch
+    fetch(`/sessions/${sessionId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success || !data.session) {
+          updateStatus('Failed to load session', true);
+          return;
+        }
+        
+        const session = data.session;
+        
+        // Notify other components
+        document.dispatchEvent(new CustomEvent('session-loaded', {
+          detail: { session, sessionId }
+        }));
+        
+        updateStatus('Session loaded');
+      })
+      .catch(err => {
+        console.error('Error loading session:', err);
+        updateStatus('Error loading session', true);
+      });
+  }
+  
+  function replayRandomSession() {
+    // Get all option values except the first placeholder
+    const options = Array.from(sessionSelect.options).slice(1);
+    if (!options.length) {
+      updateStatus('No sessions available to replay', true);
+      return;
+    }
+    
+    // Pick a random option
+    const randomIndex = Math.floor(Math.random() * options.length);
+    const sessionId = options[randomIndex].value;
+    
+    // Select in dropdown to show what's playing
+    sessionSelect.value = sessionId;
+    
+    // Load this session
+    loadSelectedSession(sessionId);
+  }
+  
+  // Auto-load history if panel is active
+  const panel = document.getElementById('session-history-panel');
+  if (panel && panel.classList.contains('active')) {
+    setTimeout(() => {
+      if (loadHistoryBtn) loadHistoryBtn.click();
+    }, 500);
+  }
+});
