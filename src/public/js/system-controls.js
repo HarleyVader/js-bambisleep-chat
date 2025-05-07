@@ -1,6 +1,6 @@
-// Central management for system controls
+// Central state management for all system controls
 window.bambiSystem = (function() {
-  // State storage
+  // Central state storage
   const state = {
     triggers: [],
     collar: {
@@ -14,25 +14,19 @@ window.bambiSystem = (function() {
       spiral1Speed: 20,
       spiral2Speed: 15
     },
-    hypnosis: {
-      enabled: false
-    },
     session: {
-      id: null,
-      active: false
+      id: null
     }
   };
 
   // Initialize system
   function init() {
-    loadStateFromLocalStorage();
+    loadFromLocalStorage();
     setupEventListeners();
-    
-    // Dispatch ready event
-    document.dispatchEvent(new CustomEvent('system-ready'));
+    document.dispatchEvent(new Event('system-ready'));
   }
 
-  // Save state to localStorage and server
+  // Save state to local storage and server
   function saveState(section, data) {
     // Update local state
     if (section) {
@@ -46,8 +40,8 @@ window.bambiSystem = (function() {
     const username = document.body.getAttribute('data-username');
     if (username && username !== 'anonBambi' && window.socket && window.socket.connected) {
       window.socket.emit('system-update', {
-        username: username,
-        section: section,
+        username,
+        section,
         data: section ? state[section] : state
       });
     }
@@ -58,12 +52,12 @@ window.bambiSystem = (function() {
     }));
   }
 
-  // Load state from localStorage
-  function loadStateFromLocalStorage() {
+  // Load from local storage
+  function loadFromLocalStorage() {
     try {
-      const savedState = localStorage.getItem('bambiSystemState');
-      if (savedState) {
-        const parsedState = JSON.parse(savedState);
+      const saved = localStorage.getItem('bambiSystemState');
+      if (saved) {
+        const parsedState = JSON.parse(saved);
         Object.keys(parsedState).forEach(key => {
           if (state[key]) {
             state[key] = {...state[key], ...parsedState[key]};
@@ -71,129 +65,124 @@ window.bambiSystem = (function() {
         });
       }
     } catch (e) {
-      console.error('Error loading system state:', e);
+      console.error('Error loading state:', e);
     }
   }
 
-  // Load state from server
-  function loadStateFromServer() {
+  // Load from server
+  function loadFromServer() {
     const username = document.body.getAttribute('data-username');
     if (!username || username === 'anonBambi') return;
     
     if (window.socket && window.socket.connected) {
-      window.socket.emit('system-load', { username });
-    } else {
-      fetch(`/api/system/${username}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.systemControls) {
-            // Map server format to our state format
-            if (data.systemControls.activeTriggers) {
-              state.triggers = data.systemControls.activeTriggers;
-            }
-            if (data.systemControls.collarEnabled !== undefined) {
-              state.collar.enabled = data.systemControls.collarEnabled;
-              state.collar.text = data.systemControls.collarText || '';
-            }
-            if (data.systemControls.spiralsEnabled !== undefined) {
-              state.spirals.enabled = data.systemControls.spiralsEnabled;
-              state.spirals.spiral1Width = data.systemControls.spiral1Width || 5.0;
-              state.spirals.spiral2Width = data.systemControls.spiral2Width || 3.0;
-              state.spirals.spiral1Speed = data.systemControls.spiral1Speed || 20;
-              state.spirals.spiral2Speed = data.systemControls.spiral2Speed || 15;
-            }
-            
-            // Notify components
-            document.dispatchEvent(new CustomEvent('system-loaded', {
-              detail: { state }
-            }));
-          }
-        })
-        .catch(err => console.error('Error loading system state:', err));
-    }
-  }
-
-  // Setup event listeners
-  function setupEventListeners() {
-    // Listen for socket updates
-    if (window.socket) {
-      window.socket.on('system-update', function(data) {
-        if (data) {
-          if (data.section && state[data.section]) {
-            state[data.section] = {...state[data.section], ...data.data};
-          } else if (data.state) {
-            Object.keys(data.state).forEach(key => {
-              if (state[key]) {
-                state[key] = {...state[key], ...data.state[key]};
-              }
-            });
-          }
-          
-          // Notify components
-          document.dispatchEvent(new CustomEvent('system-loaded', {
-            detail: { state }
-          }));
+      window.socket.emit('get-profile-data', { username }, function(response) {
+        if (response && response.success && response.profile) {
+          updateFromProfile(response.profile);
         }
       });
     }
-    
-    // Listen for save requests from components
-    document.addEventListener('save-triggers', function(e) {
+  }
+  
+  // Update state from profile data
+  function updateFromProfile(profile) {
+    if (profile.systemControls) {
+      // Update triggers
+      if (profile.systemControls.activeTriggers) {
+        state.triggers = profile.systemControls.activeTriggers;
+      }
+      
+      // Update collar
+      if (profile.systemControls.collarEnabled !== undefined) {
+        state.collar.enabled = profile.systemControls.collarEnabled;
+        state.collar.text = profile.systemControls.collarText || '';
+      }
+      
+      // Update spirals
+      if (profile.systemControls.spiralsEnabled !== undefined) {
+        state.spirals.enabled = profile.systemControls.spiralsEnabled;
+        state.spirals.spiral1Width = profile.systemControls.spiral1Width || 5.0;
+        state.spirals.spiral2Width = profile.systemControls.spiral2Width || 3.0;
+        state.spirals.spiral1Speed = profile.systemControls.spiral1Speed || 20;
+        state.spirals.spiral2Speed = profile.systemControls.spiral2Speed || 15;
+      }
+      
+      // Notify components
+      document.dispatchEvent(new CustomEvent('system-loaded', {
+        detail: { state }
+      }));
+    }
+  }
+
+  // Set up event listeners
+  function setupEventListeners() {
+    // Listen for UI events from components
+    document.addEventListener('save-triggers', e => {
       if (e.detail && e.detail.triggers) {
-        saveState('triggers', e.detail.triggers);
+        saveState('triggers', { triggers: e.detail.triggers });
       }
     });
     
-    document.addEventListener('save-collar', function(e) {
+    document.addEventListener('save-collar', e => {
       if (e.detail) {
         saveState('collar', e.detail);
+        // Fire collar-update event for compatibility
+        document.dispatchEvent(new CustomEvent('collar-update', {
+          detail: { text: e.detail.text }
+        }));
       }
     });
     
-    document.addEventListener('save-spirals', function(e) {
+    document.addEventListener('save-spirals', e => {
       if (e.detail) {
         saveState('spirals', e.detail);
       }
     });
     
-    document.addEventListener('save-session', function(e) {
+    document.addEventListener('save-session', e => {
       if (e.detail) {
         saveState('session', e.detail);
       }
     });
     
-    // Listen for UI tab changes to load specific data
-    document.addEventListener('tab-changed', function(e) {
+    // Listen for tab changes
+    document.addEventListener('tab-changed', e => {
       if (e.detail && e.detail.tab) {
         loadComponentData(e.detail.tab);
       }
     });
   }
 
-  // Load component specific data when tab is selected
+  // Load data for specific component
   function loadComponentData(component) {
     switch(component) {
       case 'trigger-panel':
-        if (window.bambiTriggers && typeof window.bambiTriggers.init === 'function') {
-          window.bambiTriggers.init();
-        }
-        break;
-      case 'session-history-panel':
-        if (window.bambiHistory && typeof window.bambiHistory.init === 'function') {
-          window.bambiHistory.init();
-        }
-        break;
-      case 'spirals-panel':
-        updateSpiralUIFromState();
+        updateTriggerUI();
         break;
       case 'collar-panel':
-        updateCollarUIFromState();
+        updateCollarUI();
+        break;
+      case 'spirals-panel':
+        updateSpiralsUI();
+        break;
+      case 'session-history-panel':
+        // Let the session history component handle its own loading
         break;
     }
   }
 
-  // Update collar UI from state
-  function updateCollarUIFromState() {
+  // Update UI for triggers
+  function updateTriggerUI() {
+    const toggles = document.querySelectorAll('.toggle-input');
+    toggles.forEach(toggle => {
+      const trigger = toggle.getAttribute('data-trigger');
+      if (trigger) {
+        toggle.checked = state.triggers.includes(trigger);
+      }
+    });
+  }
+
+  // Update UI for collar
+  function updateCollarUI() {
     const enableCheckbox = document.getElementById('collar-enable');
     const collarText = document.getElementById('textarea-collar');
     
@@ -206,37 +195,30 @@ window.bambiSystem = (function() {
     }
   }
 
-  // Update spirals UI from state
-  function updateSpiralUIFromState() {
+  // Update UI for spirals
+  function updateSpiralsUI() {
     const enableCheckbox = document.getElementById('spirals-enable');
     
     if (enableCheckbox) {
       enableCheckbox.checked = state.spirals.enabled;
     }
     
-    // Update slider values
-    const controls = [
-      { id: 'spiral1-width', value: state.spirals.spiral1Width, display: 'spiral1-width-value' },
-      { id: 'spiral2-width', value: state.spirals.spiral2Width, display: 'spiral2-width-value' },
-      { id: 'spiral1-speed', value: state.spirals.spiral1Speed, display: 'spiral1-speed-value' },
-      { id: 'spiral2-speed', value: state.spirals.spiral2Speed, display: 'spiral2-speed-value' }
+    const sliders = [
+      { id: 'spiral1-width', value: state.spirals.spiral1Width },
+      { id: 'spiral2-width', value: state.spirals.spiral2Width },
+      { id: 'spiral1-speed', value: state.spirals.spiral1Speed },
+      { id: 'spiral2-speed', value: state.spirals.spiral2Speed }
     ];
     
-    controls.forEach(control => {
-      const slider = document.getElementById(control.id);
-      const display = document.getElementById(control.display);
-      
-      if (slider) {
-        slider.value = control.value;
-      }
-      
-      if (display) {
-        display.textContent = control.value;
+    sliders.forEach(slider => {
+      const el = document.getElementById(slider.id);
+      if (el) {
+        el.value = slider.value;
       }
     });
   }
 
-  // Collect all settings for worker communication
+  // Collect all settings for worker
   function collectAllSettings() {
     return {
       activeTriggers: state.triggers,
@@ -244,21 +226,12 @@ window.bambiSystem = (function() {
         enabled: state.collar.enabled,
         text: state.collar.text
       },
-      spiralSettings: {
-        enabled: state.spirals.enabled,
-        spiral1Width: state.spirals.spiral1Width,
-        spiral2Width: state.spirals.spiral2Width,
-        spiral1Speed: state.spirals.spiral1Speed,
-        spiral2Speed: state.spirals.spiral2Speed
-      },
-      hypnosisSettings: {
-        enabled: state.hypnosis.enabled
-      },
+      spiralSettings: state.spirals,
       sessionId: state.session.id
     };
   }
 
-  // Update specific section of state
+  // Update state section
   function updateState(section, data) {
     if (section && state[section]) {
       state[section] = {...state[section], ...data};
@@ -270,9 +243,9 @@ window.bambiSystem = (function() {
     }
   }
 
-  // Connect UI save buttons to state manager
+  // Connect save buttons to state
   function connectSaveButtons() {
-    // Connect collar save button
+    // Collar save button
     const saveCollarBtn = document.getElementById('save-collar');
     if (saveCollarBtn) {
       saveCollarBtn.addEventListener('click', function() {
@@ -288,39 +261,36 @@ window.bambiSystem = (function() {
       });
     }
     
-    // Connect spirals save button
+    // Spirals save button
     const saveSpiralsBtn = document.getElementById('save-spirals');
     if (saveSpiralsBtn) {
       saveSpiralsBtn.addEventListener('click', function() {
         const enableCheckbox = document.getElementById('spirals-enable');
         
         if (enableCheckbox) {
-          const settings = {
+          saveState('spirals', {
             enabled: enableCheckbox.checked,
             spiral1Width: parseFloat(document.getElementById('spiral1-width').value),
             spiral2Width: parseFloat(document.getElementById('spiral2-width').value),
             spiral1Speed: parseInt(document.getElementById('spiral1-speed').value),
             spiral2Speed: parseInt(document.getElementById('spiral2-speed').value)
-          };
-          
-          saveState('spirals', settings);
+          });
         }
       });
     }
-  }
-
-  // Add tab change handlers
-  function setupTabHandlers() {
-    const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
     
-    controlButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        const targetId = this.getAttribute('data-target');
-        if (targetId) {
-          document.dispatchEvent(new CustomEvent('tab-changed', {
-            detail: { tab: targetId }
-          }));
-        }
+    // Connect trigger toggles
+    const triggerToggles = document.querySelectorAll('.toggle-input');
+    triggerToggles.forEach(toggle => {
+      toggle.addEventListener('change', function() {
+        const triggers = [];
+        document.querySelectorAll('.toggle-input:checked').forEach(input => {
+          const trigger = input.getAttribute('data-trigger');
+          if (trigger) {
+            triggers.push(trigger);
+          }
+        });
+        saveState('triggers', { triggers });
       });
     });
   }
@@ -332,34 +302,14 @@ window.bambiSystem = (function() {
     saveState,
     updateState,
     collectAllSettings,
-    loadStateFromServer,
-    connectSaveButtons,
-    setupTabHandlers
+    loadFromServer,
+    connectSaveButtons
   };
 })();
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize system
   window.bambiSystem.init();
-  
-  // Connect save buttons to state manager
   window.bambiSystem.connectSaveButtons();
-  
-  // Setup tab change handlers
-  window.bambiSystem.setupTabHandlers();
-  
-  // Load state from server if user is logged in
-  window.bambiSystem.loadStateFromServer();
-  
-  // On first load, make sure the active tab data is loaded
-  const activeTab = document.querySelector('.control-btn.active');
-  if (activeTab) {
-    const targetId = activeTab.getAttribute('data-target');
-    if (targetId) {
-      document.dispatchEvent(new CustomEvent('tab-changed', {
-        detail: { tab: targetId }
-      }));
-    }
-  }
+  window.bambiSystem.loadFromServer();
 });

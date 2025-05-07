@@ -231,59 +231,51 @@
     }
   }
   
-  // Save trigger state to profile
-  function saveTriggerState() {
-    var username = document.body.getAttribute('data-username') || window.username;
-    if (!username) return;
-    
-    var activeTriggers = [];
-    document.querySelectorAll('.toggle-input:checked').forEach(input => {
-      activeTriggers.push(input.getAttribute('data-trigger'));
-    });
+ // Replace saveTriggerState function with:
+function saveTriggerState() {
+  // Get active triggers
+  var activeTriggers = [];
+  document.querySelectorAll('.toggle-input:checked').forEach(input => {
+    activeTriggers.push(input.getAttribute('data-trigger'));
+  });
+  
+  // Use centralized state management
+  if (window.bambiSystem) {
+    window.bambiSystem.saveState('triggers', { triggers: activeTriggers });
+  } else {
+    // Fallback for backward compatibility
+    localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers));
     
     // Update profile via socket or fetch
-    if (window.socket && window.socket.connected) {
-      socket.emit('update-system-controls', {
-        username: username,
-        activeTriggers: activeTriggers
-      });
-    } else {
-      fetch(`/profile/${username}/system-controls`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activeTriggers: activeTriggers })
-      });
-    }
-  }
-  
-  // Send trigger info to LMStudio worker
-  function sendTriggerUpdate() {
-    const activeTriggers = Array.from(document.querySelectorAll('.toggle-input:checked')).map(toggle => ({
-      name: toggle.getAttribute('data-trigger'),
-      description: toggle.getAttribute('data-description') || ''
-    })).filter(t => t.name);
-    
-    // Save to localStorage
-    try {
-      localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers.map(t => t.name)));
-    } catch(e) {}
-    
-    // Send to worker via socket
-    if (window.socket && window.socket.connected) {
-      socket.emit('triggers', {
-        triggerNames: activeTriggers.map(t => t.name).join(','),
-        triggerDetails: activeTriggers
-      });
-    }
-    
-    // Notify other components
-    document.dispatchEvent(new CustomEvent('system-control-loaded', {
-      detail: {
-        type: 'triggers',
-        activeTriggers: activeTriggers.map(t => t.name)
+    const username = document.body.getAttribute('data-username') || window.username;
+    if (username) {
+      if (window.socket && window.socket.connected) {
+        socket.emit('update-system-controls', {
+          username: username,
+          activeTriggers: activeTriggers
+        });
       }
-    }));
+    }
   }
+}
+
+// Replace sendTriggerUpdate function with:
+function sendTriggerUpdate() {
+  // Get active triggers
+  var activeTriggers = [];
+  document.querySelectorAll('.toggle-input:checked').forEach(input => {
+    activeTriggers.push(input.getAttribute('data-trigger'));
+  });
+  
+  // Send to LMStudio worker
+  if (window.socket && window.socket.connected) {
+    socket.emit('triggers', {
+      triggerNames: activeTriggers.join(','),
+      triggerDetails: activeTriggers.map(t => ({ name: t }))
+    });
+  }
+}
+
   
   // Play all active triggers in sequence
   function playActiveTriggers() {
