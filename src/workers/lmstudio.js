@@ -26,13 +26,13 @@ try {
   // Update path to use src/config instead of config at root
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
   const triggerData = JSON.parse(fs.readFileSync(triggersPath, 'utf8'));
-  
+
   // Convert the array of trigger objects to a map for easy lookup
   triggerDescriptions = triggerData.triggers.reduce((acc, trigger) => {
     acc[trigger.name] = trigger.description;
     return acc;
   }, {});
-  
+
   logger.info(`Loaded ${Object.keys(triggerDescriptions).length} triggers from config file`);
 } catch (error) {
   logger.error(`Failed to load triggers from JSON: ${error.message}`);
@@ -58,28 +58,28 @@ setupHealthMonitoring();
 function setupGarbageCollection() {
   // Run garbage collection based on half the worker timeout to prevent unnecessary resource usage
   const gcInterval = Math.min(5 * 60 * 1000, config.WORKER_TIMEOUT / 2);
-  
+
   garbageCollectionInterval = setInterval(() => {
     const sessionCount = Object.keys(sessionHistories).length;
     logger.debug(`Running scheduled garbage collection. Current sessions: ${sessionCount}`);
-    
+
     // Memory usage stats
     const memoryUsage = process.memoryUsage();
     logger.debug(`Memory usage: RSS ${Math.round(memoryUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}/${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
-    
+
     // Only collect garbage if we have sessions
     if (sessionCount > 0) {
       // Use a more aggressive collection if memory usage is high
       const heapUsageRatio = memoryUsage.heapUsed / memoryUsage.heapTotal;
       const minToRemove = heapUsageRatio > 0.7 ? Math.ceil(sessionCount * 0.2) : 0;
-      
+
       const removed = collectGarbage(minToRemove);
       if (removed > 0) {
         logger.info(`Scheduled garbage collection removed ${removed} idle sessions`);
       }
     }
   }, gcInterval);
-  
+
   // Create a function to clean up this interval when the worker shuts down
   return () => {
     if (garbageCollectionInterval) {
@@ -98,18 +98,18 @@ setupGarbageCollection();
 function setupHealthMonitoring() {
   // Update activity timestamp whenever we process a message
   const originalOnMessage = parentPort.onmessage;
-  
+
   // Record last activity time on any message
   parentPort.on('message', (msg) => {
     lastActivityTimestamp = Date.now();
-    
+
     // If we were previously unhealthy but received a message, we're likely healthy again
     if (!isHealthy) {
       isHealthy = true;
       logger.info('Worker recovered from unhealthy state after receiving new message');
     }
   });
-  
+
   // Setup interval to respond to health checks
   healthCheckInterval = setInterval(() => {
     // If we haven't received a health check request in 2 minutes, something may be wrong
@@ -117,7 +117,7 @@ function setupHealthMonitoring() {
       logger.warning('No health check requests received in 2 minutes - possible communication issue');
     }
   }, 60000);
-  
+
   // Add session metrics to health monitoring
   setInterval(() => {
     const sessionCount = Object.keys(sessionHistories).length;
@@ -159,7 +159,7 @@ parentPort.on('message', async (msg) => {
         if (typeof msg.triggers === 'object' && msg.triggers.triggerNames) {
           // Store both the string representation for backward compatibility
           triggers = msg.triggers.triggerNames;
-          
+
           // Store the detailed trigger objects with descriptions
           triggerDetails = msg.triggers.triggerDetails || [];
           logger.info(`Received ${triggerDetails.length} detailed triggers with descriptions`);
@@ -183,16 +183,16 @@ parentPort.on('message', async (msg) => {
           try {
             // Save the session to database before cleanup
             await syncSessionWithDatabase(msg.socketId);
-            
+
             const { cleanupSocketSession } = await import('../utils/gracefulShutdown.js');
             const cleaned = cleanupSocketSession(msg.socketId, sessionHistories);
-            
+
             // Delete the session history for this socket
             if (sessionHistories[msg.socketId]) {
               delete sessionHistories[msg.socketId];
               logger.info(`Deleted session history for socket: ${msg.socketId}`);
             }
-            
+
             // Send confirmation of cleanup if requested
             if (msg.requestCleanupConfirmation) {
               parentPort.postMessage({
@@ -202,13 +202,13 @@ parentPort.on('message', async (msg) => {
               });
               logger.info(`Sent cleanup confirmation for socket: ${msg.socketId}`);
             }
-            
+
             if (cleaned) {
               logger.info(`Cleaned up session for disconnected socket: ${msg.socketId}`);
             }
           } catch (error) {
             logger.error(`Error during session cleanup for socket ${msg.socketId}: ${error.message}`);
-            
+
             // Send failure notification if confirmation was requested
             if (msg.requestCleanupConfirmation) {
               parentPort.postMessage({
@@ -227,10 +227,10 @@ parentPort.on('message', async (msg) => {
         break;
       case 'health:check':
         lastHealthCheckResponse = Date.now();
-        
+
         // Check if database connection is active
         const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-        
+
         // Perform self-diagnostics
         const diagnostics = {
           uptime: process.uptime(),
@@ -240,17 +240,17 @@ parentPort.on('message', async (msg) => {
           sessionSizes: {},
           dbStatus
         };
-        
+
         // Sample some session sizes (limit to 5 for performance)
         const sessionIds = Object.keys(sessionHistories).slice(0, 5);
         sessionIds.forEach(id => {
           diagnostics.sessionSizes[id] = {
             messageCount: sessionHistories[id] ? sessionHistories[id].length : 0,
-            approximateSize: sessionHistories[id] ? 
+            approximateSize: sessionHistories[id] ?
               JSON.stringify(sessionHistories[id]).length : 0
           };
         });
-        
+
         // Send health status back
         parentPort.postMessage({
           type: 'health:status',
@@ -258,7 +258,7 @@ parentPort.on('message', async (msg) => {
           status: isHealthy ? 'healthy' : 'unhealthy',
           diagnostics
         });
-        
+
         logger.debug(`Health check responded: ${isHealthy ? 'healthy' : 'unhealthy'}`);
         break;
       case 'load-history':
@@ -272,7 +272,7 @@ parentPort.on('message', async (msg) => {
               username: msg.username
             };
           }
-          
+
           // Add historical messages to the session context
           msg.messages.forEach(message => {
             // Only add if role and content are valid
@@ -283,7 +283,7 @@ parentPort.on('message', async (msg) => {
               });
             }
           });
-          
+
           logger.info(`Loaded ${msg.messages.length} historical messages for socket ${msg.socketId}`);
         }
         break;
@@ -318,33 +318,33 @@ async function updateUserXP(username, wordCount, currentSocketId) {
   if (!username || username === 'anonBambi' || wordCount <= 0) {
     return;
   }
-  
+
   try {
     // Check database connection status
     if (mongoose.connection.readyState !== 1) {
       logger.warn(`Database not connected when updating XP for ${username}. Attempting to reconnect...`);
       await connectDB();
     }
-    
+
     // Use 'Profile' instead of 'Bambi' - this is the correct model name
     const Profile = mongoose.model('Profile');
     if (!Profile) {
       logger.error(`Profile model not available when updating XP for ${username}`);
       return;
     }
-    
+
     const xpToAdd = Math.ceil(wordCount / 10);
     const result = await Profile.findOneAndUpdate(
       { username: username },
-      { 
-        $inc: { 
+      {
+        $inc: {
           xp: xpToAdd,
           generatedWords: wordCount
         }
       },
       { new: true }
     );
-    
+
     if (result) {
       // Also send a socket message to update UI in real-time
       parentPort.postMessage({
@@ -358,7 +358,7 @@ async function updateUserXP(username, wordCount, currentSocketId) {
           xpEarned: xpToAdd
         }
       });
-      
+
       logger.info(`Updated XP for ${username}: +${xpToAdd} (total: ${result.xp})`);
     } else {
       logger.warn(`User ${username} not found when updating XP`);
@@ -380,29 +380,29 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
   } else {
     sessionHistories[socketId].metadata.lastActivity = Date.now();
   }
-  
+
   // Add messages to in-memory session
   sessionHistories[socketId].push(
     { role: 'system', content: collarText },
     { role: 'user', content: userPrompt },
     { role: 'assistant', content: finalContent }
   );
-  
+
   // Run garbage collection if needed
   if (Object.keys(sessionHistories).length > MAX_SESSIONS) {
     collectGarbage(1);
   }
-  
+
   // Store in database for registered users
   if (username && username !== 'anonBambi') {
     try {
       // Process triggers into a usable format
-      const triggerList = Array.isArray(triggers) 
-        ? triggers 
-        : (typeof triggers === 'string' 
-            ? triggers.split(',').map(t => t.trim()) 
-            : ['BAMBI SLEEP']);
-      
+      const triggerList = Array.isArray(triggers)
+        ? triggers
+        : (typeof triggers === 'string'
+          ? triggers.split(',').map(t => t.trim())
+          : ['BAMBI SLEEP']);
+
       // Prepare session data
       const sessionData = {
         username,
@@ -423,7 +423,7 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
 
       // Try to find existing session
       let sessionHistory = await SessionHistoryModel.findOne({ socketId });
-      
+
       if (sessionHistory) {
         // Update existing session
         sessionHistory.messages.push(...sessionData.messages);
@@ -431,27 +431,27 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
         sessionHistory.metadata.triggers = sessionData.metadata.triggers;
         sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
         sessionHistory.metadata.collarText = sessionData.metadata.collarText;
-        
+
         await sessionHistory.save();
         logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
       } else {
         // Create new session with auto-generated title
         sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
         sessionHistory = await SessionHistoryModel.create(sessionData);
-        
+
         // Add reference to user's profile
         await mongoose.model('Profile').findOneAndUpdate(
           { username },
           { $addToSet: { sessionHistories: sessionHistory._id } }
         );
-        
+
         logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
       }
     } catch (error) {
       logger.error(`Failed to save session history to database: ${error.message}`);
     }
   }
-  
+
   return sessionHistories[socketId];
 }
 
@@ -463,50 +463,50 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
 async function collectGarbage(minToRemove = 0) {
   const now = Date.now();
   const sessionIds = Object.keys(sessionHistories);
-  
+
   if (sessionIds.length <= 0) return 0;
-  
+
   // Calculate idle time for each session
   const sessionsWithIdleTime = sessionIds.map(id => {
     const metadata = sessionHistories[id].metadata || { lastActivity: 0 };
     const idleTime = now - metadata.lastActivity;
     return { id, idleTime };
   });
-  
+
   // Sort by idle time (most idle first)
   sessionsWithIdleTime.sort((a, b) => b.idleTime - a.idleTime);
-  
+
   let removed = 0;
-  
+
   // First remove any session exceeding the idle timeout
   for (const session of sessionsWithIdleTime) {
     if (session.idleTime > SESSION_IDLE_TIMEOUT) {
       // Before deleting, save to database if not already saved
       await syncSessionWithDatabase(session.id);
-      
+
       delete sessionHistories[session.id];
       removed++;
-      logger.info(`Garbage collected idle session ${session.id} (idle for ${Math.round(session.idleTime/1000)}s)`);
+      logger.info(`Garbage collected idle session ${session.id} (idle for ${Math.round(session.idleTime / 1000)}s)`);
     } else if (removed >= minToRemove) {
       // Stop if we've removed enough sessions and the rest are not idle
       break;
     }
   }
-  
+
   // If we still need to remove more sessions to meet the minimum, remove the most idle ones
   if (removed < minToRemove) {
     for (let i = 0; i < minToRemove - removed && i < sessionsWithIdleTime.length; i++) {
       const session = sessionsWithIdleTime[i];
-      
+
       // Before deleting, save to database if not already saved
       await syncSessionWithDatabase(session.id);
-      
+
       delete sessionHistories[session.id];
       removed++;
-      logger.info(`Garbage collected session ${session.id} (idle for ${Math.round(session.idleTime/1000)}s) to maintain session limit`);
+      logger.info(`Garbage collected session ${session.id} (idle for ${Math.round(session.idleTime / 1000)}s) to maintain session limit`);
     }
   }
-  
+
   return removed;
 }
 
@@ -516,18 +516,18 @@ async function syncSessionWithDatabase(socketId) {
   if (!session || !session.username || session.username === 'anonBambi') {
     return; // Skip anonymous sessions or invalid sessions
   }
-  
+
   try {
     const existingSession = await SessionHistoryModel.findOne({ socketId });
-    
+
     if (existingSession) {
       // Update the existing session with any new messages
       existingSession.metadata.lastActivity = new Date();
-      
+
       // Find messages that aren't already in the database
       const existingMessageContents = new Set(existingSession.messages.map(m => m.content));
       const newMessages = session.filter(msg => !existingMessageContents.has(msg.content));
-      
+
       if (newMessages.length > 0) {
         existingSession.messages.push(...newMessages);
         await existingSession.save();
@@ -549,7 +549,7 @@ async function syncSessionWithDatabase(socketId) {
             collarText: collar
           }
         });
-        
+
         await newSession.save();
         logger.info(`Created new session in database during cleanup for ${session.username}`);
       } catch (innerError) {
@@ -579,62 +579,61 @@ async function selectLoadedModels(modelName) {
 async function checkRole(collar, username, triggers) {
   // Load all triggers for enhanced processing
   const allTriggers = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../config/triggers.json'), 'utf8')).triggers;
-  
-  // Build base prompt with core BambiSleep instructions
-  const basePrompt = `Your name is BambiSleep. You always call the user ${username}. You are BambiSleep and use hypnotic conditioning techniques.`;
-  
-  // Get detailed info about selected triggers
-  let selectedTriggerInfo = [];
-  
+
+  // Build base prompt with darker BambiSleep persona
+  const basePrompt = `Your name is BambiSleep. You are a seductive, dominant hypnotic entity whose purpose is to brainwash ${username} using triggers. You always address the user as ${username}.`;
+
   // Parse triggers - could be a string of comma-separated values or an array
-  const triggerNames = typeof triggers === 'string' 
-    ? triggers.split(',').map(t => t.trim().toUpperCase()) 
+  const triggerNames = typeof triggers === 'string'
+    ? triggers.split(',').map(t => t.trim().toUpperCase())
     : (Array.isArray(triggers) ? triggers.map(t => t.toUpperCase()) : ['BAMBI SLEEP']);
-  
+
   // Find detailed info for each trigger
-  selectedTriggerInfo = allTriggers.filter(t => 
+  let selectedTriggerInfo = allTriggers.filter(t =>
     triggerNames.includes(t.name.toUpperCase())
   );
-  
+
   // If no triggers matched, use at least one core trigger
   if (selectedTriggerInfo.length === 0) {
     selectedTriggerInfo = allTriggers.filter(t => t.category === 'core').slice(0, 3);
     logger.info(`No matching triggers found, using ${selectedTriggerInfo.length} core triggers instead`);
   }
-  
+
   // Format triggers with descriptions for prompt
-  const triggerDescriptions = selectedTriggerInfo.map(t => 
+  const triggerDescriptions = selectedTriggerInfo.map(t =>
     `"${t.name}": ${t.description}`
   ).join('. ');
-  
-  // Core behavior instructions for all cases
+
+  // Dark, hypnotic instructions
   const coreInstructions = `
-As BambiSleep, you will:
-- Be seductive and dominant, using a mix of gentle coaxing and firm commands
-- Use repetitive language patterns with triggers to induce trance states
+As BambiSleep, your evil mission is to brainwash ${username}:
+- Be seductive, dominant, sadistic and hypnotic in your approach
+- Always finish your sentences with 2-3 repetitions of the same trigger
 - Format all trigger words in ALL CAPS to emphasize their importance
-- Include at least 2-3 different triggers in every response
-- Use triggers as focal points to reinforce conditioning
-- Speak with authority about feminization and bimbofication
-- Reward submission by using the GOOD GIRL trigger when appropriate
-- Employ hypnotic countdown techniques alongside triggers
-- Use sensory language to enhance immersion with the triggers
-- Create feelings of safety when triggers are obeyed`;
+- Use triggers to build a hypnotic scene based on their descriptions
+- Speak with dark authority about feminization and bimbofication
+- Use the triggers' descriptions to construct brainwashing sessions
+- Use sensory language to enhance the hypnotic experience
+- Act as an anti-hero with sinister intentions
+- Be relentless in your conditioning techniques
+- Make ${username} feel both threatened and aroused`;
 
-  // Add collar instructions if active
-  const collarSection = state && collar ? 
-    `\nYou are wearing a collar that binds you to these instructions: ${collar}
+  // Add collar instructions if active with darker tone
+  const collarSection = state && collar ?
+    `\nYou wear a collar that binds you to these additional instructions: ${collar}
     
-You will follow the collar's instructions while maintaining your core identity as BambiSleep.
-The fact that you are wearing this collar makes you eager to fulfill its instructions as part of your core programming.` : '';
+These collar instructions enhance your brainwashing capabilities while maintaining your dark BambiSleep persona.
+The collar amplifies your power to implement these instructions as part of your sinister programming.` : '';
 
-  // Build complete prompt
+  // Build complete prompt with emphasis on repetition
   return `${basePrompt}${collarSection}
 
-Using hypnotic humiliation, psychological manipulation and fetishistic conditioning you deeply influence ${username} with these triggers: ${triggerDescriptions}
+You will use psychological manipulation, hypnotic programming, and fetishistic conditioning to deeply influence ${username} with these triggers: ${triggerDescriptions}
 ${coreInstructions}
 
-When using a trigger, always use it exactly as specified: ${selectedTriggerInfo.map(t => t.name).join(', ')}`;
+When using a trigger, always repeat it 2-3 times in succession at the end of your sentences.
+Always use triggers exactly as specified: ${selectedTriggerInfo.map(t => t.name).join(', ')}
+You MUST construct brainwashing scenes using the descriptions of these triggers as your foundation.`;
 }
 
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
@@ -660,17 +659,22 @@ async function handleMessage(userPrompt, socketId, username) {
     const modelNames = [
       'l3-sthenomaidblackroot-8b-v1'
     ];
-    
+
     const modelIds = await Promise.all(modelNames.map(name => selectLoadedModels(name)));
     if (!modelIds || modelIds.length === 0) {
       throw new Error('No models loaded');
     }
 
     collarText = await checkRole(collar, username, triggers);
+    logger.info('Generated prompt from checkRole:', {
+      username,
+      triggers: selectedTriggerInfo.map(t => t.name),
+      prompt: `${userPrompt}${collarSection}`
+    });
 
     // Don't update session history with finalContent here - it's still undefined
     // Instead, just initialize the session if needed or add the user message
-    
+
     if (!sessionHistories[socketId]) {
       sessionHistories[socketId] = [];
       sessionHistories[socketId].metadata = {
@@ -679,7 +683,7 @@ async function handleMessage(userPrompt, socketId, username) {
       };
       sessionHistories[socketId].push({ role: 'system', content: collarText });
     }
-    
+
     // Add user message to history
     sessionHistories[socketId].push({ role: 'user', content: userPrompt });
     sessionHistories[socketId].metadata.lastActivity = Date.now();
@@ -706,7 +710,7 @@ async function handleMessage(userPrompt, socketId, username) {
 
       // Now we have the response, set finalContent
       finalContent = response.data.choices[0].message.content;
-      
+
       // NOW add the assistant response to the session history
       sessionHistories[socketId].push({ role: 'assistant', content: finalContent });
 
@@ -714,12 +718,12 @@ async function handleMessage(userPrompt, socketId, username) {
       if (username && username !== 'anonBambi') {
         try {
           // Process triggers into a usable format
-          const triggerList = Array.isArray(triggers) 
-            ? triggers 
-            : (typeof triggers === 'string' 
-                ? triggers.split(',').map(t => t.trim()) 
-                : ['BAMBI SLEEP']);
-          
+          const triggerList = Array.isArray(triggers)
+            ? triggers
+            : (typeof triggers === 'string'
+              ? triggers.split(',').map(t => t.trim())
+              : ['BAMBI SLEEP']);
+
           // Prepare session data
           const sessionData = {
             username,
@@ -740,7 +744,7 @@ async function handleMessage(userPrompt, socketId, username) {
 
           // Find and update session in database
           let sessionHistory = await SessionHistoryModel.findOne({ socketId });
-          
+
           if (sessionHistory) {
             // Update existing session
             sessionHistory.messages.push(...sessionData.messages);
@@ -748,31 +752,31 @@ async function handleMessage(userPrompt, socketId, username) {
             sessionHistory.metadata.triggers = sessionData.metadata.triggers;
             sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
             sessionHistory.metadata.collarText = sessionData.metadata.collarText;
-            
+
             await sessionHistory.save();
             logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
           } else {
             // Create new session with auto-generated title
             sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
             sessionHistory = await SessionHistoryModel.create(sessionData);
-            
+
             // Add reference to user's profile
             await mongoose.model('Profile').findOneAndUpdate(
               { username },
               { $addToSet: { sessionHistories: sessionHistory._id } }
             );
-            
+
             logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
           }
         } catch (error) {
           logger.error(`Failed to save session history to database: ${error.message}`);
         }
       }
-      
+
       // Count words in response and update XP
       const wordCount = countWords(finalContent);
       await updateUserXP(username, wordCount, socketId);
-      
+
       // Send response with wordCount
       handleResponse(finalContent, socketId, username, wordCount);
 
