@@ -150,18 +150,30 @@ window.bambiSystem = (function() {
     }
   }
 
-  // Format for worker
-  function collectSettings() {
-    return {
-      activeTriggers: state.triggers.map(t => t.name),
-      triggerDetails: state.triggers.map(t => ({
-        name: t.name,
-        description: t.description || 'Trigger effect'
-      })),
-      collarSettings: state.collar,
-      spiralSettings: state.spirals
-    };
-  }
+    // Format for worker
+    function collectSettings() {
+      // Ensure triggers is always an array
+      const triggersArray = Array.isArray(state.triggers) 
+        ? state.triggers 
+        : (state.triggers ? [state.triggers] : []);
+      
+      return {
+        activeTriggers: triggersArray.map(t => typeof t === 'object' ? t.name : t),
+        triggerDetails: triggersArray.map(t => {
+          if (typeof t === 'string') {
+            return { name: t, description: 'Trigger effect' };
+          } else if (typeof t === 'object') {
+            return {
+              name: t.name || 'Unknown',
+              description: t.description || 'Trigger effect'
+            };
+          }
+          return { name: String(t), description: 'Trigger effect' };
+        }),
+        collarSettings: state.collar,
+        spiralSettings: state.spirals
+      };
+    }
 
   // Load from profile
   function loadFromProfile(profile) {
