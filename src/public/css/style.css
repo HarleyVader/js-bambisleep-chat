@@ -2351,9 +2351,3 @@ audio {
     width: auto;
     margin-left: 0.5rem;
 }
-
-#chat-form, 
-#llm-form {
-    display: flex;
-    flex-direction: column;
-}
