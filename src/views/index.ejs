@@ -352,38 +352,6 @@
               }
             });
 
-            // Listen for system control events
-            document.addEventListener('system-control-loaded', function(e) {
-              if (e.detail && e.detail.type === 'triggers') {
-                // Get active triggers from system controls
-                const activeTriggers = e.detail.activeTriggers || [];
-                
-                // Format triggers properly with names and descriptions
-                const triggerDetails = activeTriggers.map(trigger => {
-                  if (typeof trigger === 'string') {
-                    return { name: trigger, description: "Trigger effect" };
-                  }
-                  return trigger;
-                });
-                
-                // Update system state
-                if (window.bambiSystem) {
-                  window.bambiSystem.updateTriggers(triggerDetails);
-                }
-                
-                // Store basic trigger names in localStorage for compatibility
-                localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers));
-                
-                // Send to server
-                if (window.socket) {
-                  socket.emit('triggers', {
-                    triggerNames: activeTriggers.join(','),
-                    triggerDetails: triggerDetails
-                  });
-                }
-              }
-            });
-
             // Listen for system ready event
             document.addEventListener('system-ready', function() {
               console.log('System controls initialized');
