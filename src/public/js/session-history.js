@@ -17,14 +17,20 @@ window.bambiHistory = (function() {
     status.textContent = 'Loading sessions...';
     status.className = 'session-history-status';
     
-    fetch('/api/sessions')
+    // Get current username from cookie or DOM element
+    const currentUsername = 
+      (document.cookie.split('; ').find(row => row.startsWith('bambiname=')) || '').split('=')[1] || 
+      document.querySelector('.user-profile-name')?.textContent || 
+      'anonBambi';
+    
+    // Use the API endpoint pattern consistent with other calls
+    fetch(`/api/sessions/${currentUsername}`)
       .then(res => {
         // Check response type before trying to parse JSON
         const contentType = res.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           return res.json();
         } else {
-          // Got HTML or other content instead of JSON
           console.log('Server returned non-JSON response');
           throw new Error('Invalid response format from server');
         }
@@ -50,12 +56,6 @@ window.bambiHistory = (function() {
         status.className = 'session-history-status error';
         console.error(err);
         
-        // Show more specific error message when possible
-        if (err.message === 'Invalid response format from server') {
-          status.textContent = 'Server returned invalid data. Try again or reload the page.';
-        }
-        
-        // Initialize with empty data to prevent further errors
         sessionData = [];
         updateStats({totalSessions: 0, totalMessages: 0, totalWords: 0});
         populateDropdown([]);
