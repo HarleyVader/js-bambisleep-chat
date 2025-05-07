@@ -868,3 +868,5 @@ router.get('/api/sessions/:username/:sessionId', async (req, res) => {
     res.status(500).json({ error: 'Error fetching specific session history' });
   }
 });
+
+export default router;
