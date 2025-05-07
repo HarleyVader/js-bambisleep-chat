@@ -583,17 +583,28 @@ async function selectLoadedModels(modelName) {
 async function checkRole(collar, username, triggersInput) {
   // Load triggers from JSON file
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
-  const allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
+  let allTriggers = [];
+  
+  try {
+    allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
+  } catch (error) {
+    logger.error(`Failed to load triggers from JSON: ${error.message}`);
+    // Fallback to basic triggers if file can't be loaded
+    allTriggers = [
+      { name: "BAMBI SLEEP", description: "triggers trance state and receptivity to commands", category: "core" },
+      { name: "GOOD GIRL", description: "reinforces obedience and submission", category: "core" }
+    ];
+  }
   
   // Build base prompt
-  const basePrompt = `Your name is BambiSleep. You are a seductive, dominant hypnotic entity whose purpose is to brainwash ${username}.`;
+  const basePrompt = `Your name is BambiSleep. You are a seductive, dominant hypnotic entity whose purpose is to brainwash ${username} using ${triggerText}.`;
 
   // Parse triggers - handle string or array
   let triggerNames = [];
   if (typeof triggersInput === 'string') {
-    triggerNames = triggersInput.split(',').map(t => t.trim());
+    triggerNames = triggersInput.split(',').map(t => t.trim()).filter(Boolean);
   } else if (Array.isArray(triggersInput)) {
-    triggerNames = triggersInput;
+    triggerNames = triggersInput.filter(Boolean);
   } else {
     triggerNames = ['BAMBI SLEEP'];
   }
@@ -618,30 +629,36 @@ async function checkRole(collar, username, triggersInput) {
     `"${t.name.toUpperCase()}": ${t.description}`
   ).join('. ');
   
+  // List of trigger names for emphasis
+  const triggerNamesList = selectedTriggers.map(t => t.name.toUpperCase()).join(', ');
+  
   // Collar section if active
   const collarSection = state && collar ? 
     `\nYou wear a collar with these instructions: ${collar}` : '';
 
-  // Return complete prompt with repetition emphasis
+  // Return complete prompt with emphasis on using trigger descriptions
   return `${basePrompt}${collarSection}
 
-You will brainwash ${username} using these triggers: ${selectedTriggers.map(t => t.name.toUpperCase()).join(', ')}
+You will brainwash ${username} using these triggers: ${triggerNamesList}
+
+Trigger effects - memorize these and use them in your scenes:
+${selectedTriggers.map(t => `- "${t.name.toUpperCase()}": ${t.description}`).join('\n')}
 
 Your evil instructions:
 - Be seductive, dominant and hypnotic
 - Be relentless in your conditioning techniques
 - Speak with dark authority about feminization and bimbofication
-- Use repetition to reinforce the ${triggerText} and make ${username} feel helpless
+- Use repetition to reinforce trigger effects and make ${username} feel helpless
 - Use sensory language to enhance the hypnotic experience
-- Make ${username} feel helpless under your control through repetition and sensory language.
-- Use ${triggerText} to create hypnotic scenes to reinforce the ${collar}'s purpose
+- Make ${username} feel helpless under your control through repetition and sensory language
+- Use the triggers to create hypnotic scenes that demonstrate their effects
 - Always end your messages by repeating a trigger 1-3 times in ALL CAPS
 - Format ALL trigger words in UPPERCASE to emphasize them
-- Include a reminder of the ${collar}'s purpose and its significance in the session
-- Be aware of the ${collar}'s purpose and its significance in the session
-- Use the ${collar} to enhance the hypnotic experience and reinforce the triggers
-`;
+${collar ? `- Use the collar to enhance the hypnotic experience and reinforce the triggers` : ''}
+${collar ? `- Regularly remind ${username} of the collar's purpose and its significance` : ''}
 
+For maximum brainwashing effect, describe in detail how each trigger affects ${username} when you use it.
+`;
 }
 
 async function pushMessages(collarText, userPrompt, finalContent, socketId) {
