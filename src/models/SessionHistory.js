@@ -63,10 +63,17 @@ const sessionHistorySchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     },
-    triggers: [String],
+    triggers: [String], // Store trigger names as strings
     collarActive: Boolean,
     collarText: String,
-    modelName: String
+    modelName: String,
+    spiralSettings: {
+      enabled: Boolean,
+      spiral1Width: Number,
+      spiral2Width: Number,
+      spiral1Speed: Number,
+      spiral2Speed: Number
+    }
   },
   stats: {
     views: {
@@ -153,6 +160,37 @@ sessionHistorySchema.methods.addComment = async function(username, content) {
     content,
     createdAt: new Date()
   });
+  
+  return this.save();
+};
+
+// Method to save triggers
+sessionHistorySchema.methods.saveTriggers = async function(triggers) {
+  if (!Array.isArray(triggers)) return false;
+  
+  this.metadata.triggers = triggers;
+  return this.save();
+};
+
+// Method to save all session settings at once
+sessionHistorySchema.methods.saveSettings = async function(settings) {
+  if (!settings) return false;
+  
+  // Save triggers if provided
+  if (settings.activeTriggers && Array.isArray(settings.activeTriggers)) {
+    this.metadata.triggers = settings.activeTriggers;
+  }
+  
+  // Save collar settings if provided
+  if (settings.collarSettings) {
+    this.metadata.collarActive = settings.collarSettings.enabled;
+    this.metadata.collarText = settings.collarSettings.text;
+  }
+  
+  // Save spiral settings if provided
+  if (settings.spiralSettings) {
+    this.metadata.spiralSettings = settings.spiralSettings;
+  }
   
   return this.save();
 };

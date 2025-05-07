@@ -800,7 +800,20 @@ router.get('/api/sessions/:username', async (req, res) => {
         title: session.title,
         messages: session.messages,
         metadata: session.metadata,
-        createdAt: session.metadata.createdAt
+        createdAt: session.metadata.createdAt,
+        // Add these settings to the response
+        activeTriggers: session.metadata.triggers || [],
+        collarSettings: {
+          enabled: session.metadata.collarActive || false,
+          text: session.metadata.collarText || ''
+        },
+        spiralSettings: session.metadata.spiralSettings || {
+          enabled: false,
+          spiral1Width: 5.0,
+          spiral2Width: 3.0,
+          spiral1Speed: 20,
+          spiral2Speed: 15
+        }
       }))
     });
   } catch (error) {

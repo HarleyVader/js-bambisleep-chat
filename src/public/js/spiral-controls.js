@@ -5,6 +5,18 @@ window.bambiSpirals = (function() {
   let spiral1Speed = 20;
   let spiral2Speed = 15;
   
+  // Add function to get current spiral settings
+  function getCurrentSettings() {
+    const spiralsEnable = document.getElementById('spirals-enable');
+    return {
+      enabled: spiralsEnable ? spiralsEnable.checked : false,
+      spiral1Width: spiral1Width,
+      spiral2Width: spiral2Width,
+      spiral1Speed: spiral1Speed,
+      spiral2Speed: spiral2Speed
+    };
+  }
+  
   function init() {
     const spiralsEnable = document.getElementById('spirals-enable');
     const spiral1WidthSlider = document.getElementById('spiral1-width');
@@ -15,6 +27,16 @@ window.bambiSpirals = (function() {
     
     if (spiralsEnable) {
       spiralsEnable.addEventListener('change', toggleSpiralDisplay);
+      
+      // Create or ensure the eyeCursor element exists
+      ensureEyeCursorExists();
+      
+      // Initialize spiral display based on checkbox state
+      if (spiralsEnable.checked) {
+        showSpiral();
+      } else {
+        hideSpiral();
+      }
     }
     
     // Setup event listeners for all sliders
@@ -59,12 +81,45 @@ window.bambiSpirals = (function() {
   
   function toggleSpiralDisplay() {
     const spiralsEnable = document.getElementById('spirals-enable');
-    const eyeCursor = document.getElementById('eyeCursor');
     
     if (spiralsEnable.checked) {
-      eyeCursor.style.display = 'block';
+      showSpiral();
     } else {
+      hideSpiral();
+    }
+  }
+  
+  function showSpiral() {
+    ensureEyeCursorExists();
+    const eyeCursor = document.getElementById('eyeCursor');
+    if (eyeCursor) {
+      eyeCursor.style.display = 'block';
+      if (!window.p5Instance) {
+        initSpiral();
+      }
+    }
+  }
+  
+  function hideSpiral() {
+    const eyeCursor = document.getElementById('eyeCursor');
+    if (eyeCursor) {
       eyeCursor.style.display = 'none';
+    }
+  }
+  
+  function ensureEyeCursorExists() {
+    if (!document.getElementById('eyeCursor')) {
+      const eyeCursor = document.createElement('div');
+      eyeCursor.id = 'eyeCursor';
+      eyeCursor.style.position = 'fixed';
+      eyeCursor.style.top = '0';
+      eyeCursor.style.left = '0';
+      eyeCursor.style.width = '100%';
+      eyeCursor.style.height = '100%';
+      eyeCursor.style.pointerEvents = 'none';
+      eyeCursor.style.zIndex = '1000';
+      eyeCursor.style.display = 'none';
+      document.body.appendChild(eyeCursor);
     }
   }
   
@@ -177,5 +232,8 @@ window.bambiSpirals = (function() {
     }
   }
   
-  return { init };
+  return { 
+    init,
+    getCurrentSettings  // Export the new function
+  };
 })();

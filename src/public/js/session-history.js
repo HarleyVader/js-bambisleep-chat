@@ -97,13 +97,55 @@ window.bambiHistory = (function() {
       }
     }
     
+    // Load spiral settings if available
+    if (session.spiralSettings) {
+      loadSpiralSettings(session.spiralSettings);
+    }
+    
     // Activate triggers
     if (session.activeTriggers && Array.isArray(session.activeTriggers)) {
       activateTriggers(session.activeTriggers);
     }
   }
   
+  function loadSpiralSettings(settings) {
+    if (!settings) return;
+    
+    const spiralsEnable = document.getElementById('spirals-enable');
+    const spiral1Width = document.getElementById('spiral1-width');
+    const spiral2Width = document.getElementById('spiral2-width');
+    const spiral1Speed = document.getElementById('spiral1-speed');
+    const spiral2Speed = document.getElementById('spiral2-speed');
+    
+    // Set values from saved settings
+    if (spiralsEnable && 'enabled' in settings) {
+      spiralsEnable.checked = settings.enabled;
+      spiralsEnable.dispatchEvent(new Event('change'));
+    }
+    
+    if (spiral1Width && settings.spiral1Width) {
+      spiral1Width.value = settings.spiral1Width;
+      document.getElementById('spiral1-width-value').textContent = settings.spiral1Width;
+    }
+    
+    if (spiral2Width && settings.spiral2Width) {
+      spiral2Width.value = settings.spiral2Width;
+      document.getElementById('spiral2-width-value').textContent = settings.spiral2Width;
+    }
+    
+    if (spiral1Speed && settings.spiral1Speed) {
+      spiral1Speed.value = settings.spiral1Speed;
+      document.getElementById('spiral1-speed-value').textContent = settings.spiral1Speed;
+    }
+    
+    if (spiral2Speed && settings.spiral2Speed) {
+      spiral2Speed.value = settings.spiral2Speed;
+      document.getElementById('spiral2-speed-value').textContent = settings.spiral2Speed;
+    }
+  }
+  
   function activateTriggers(triggers) {
+    // Get all trigger toggles
     const allToggles = document.querySelectorAll('.trigger-toggle-item input[type="checkbox"]');
     
     // Reset all triggers first
@@ -111,13 +153,22 @@ window.bambiHistory = (function() {
     
     // Activate the ones from the session
     triggers.forEach(triggerName => {
-      const toggle = document.getElementById(`${triggerName}-toggle`);
+      // Find toggle by looking at data-trigger attribute
+      const toggle = Array.from(allToggles).find(t => 
+        t.getAttribute('data-trigger') === triggerName || 
+        t.getAttribute('data-trigger-name') === triggerName);
+      
       if (toggle) toggle.checked = true;
     });
     
     // Navigate to triggers panel to show changes
     const triggersBtn = document.getElementById('triggers-btn');
     if (triggersBtn) triggersBtn.click();
+    
+    // Save the trigger state
+    if (window.bambiTriggers && typeof window.bambiTriggers.saveTriggerState === 'function') {
+      window.bambiTriggers.saveTriggerState();
+    }
   }
   
   function replayRandom() {
@@ -129,7 +180,42 @@ window.bambiHistory = (function() {
     loadSession();
   }
   
+  // Function to collect current settings for saving
+  function collectSessionSettings() {
+    // Get active triggers from all trigger toggles
+    const activeTriggers = [];
+    const triggerToggles = document.querySelectorAll('.trigger-toggle-item input[type="checkbox"]:checked');
+    
+    triggerToggles.forEach(toggle => {
+      // Try to get trigger name from data attributes
+      const triggerName = toggle.getAttribute('data-trigger') || toggle.getAttribute('data-trigger-name');
+      if (triggerName) {
+        activeTriggers.push(triggerName);
+      }
+    });
+    
+    // Get collar settings
+    const collarEnabled = document.getElementById('collar-enable');
+    const collarText = document.getElementById('textarea-collar');
+    const collarSettings = {
+      enabled: collarEnabled ? collarEnabled.checked : false,
+      text: collarText ? collarText.value : ''
+    };
+    
+    // Get spiral settings
+    const spiralSettings = window.bambiSpirals && typeof window.bambiSpirals.getCurrentSettings === 'function' ?
+      window.bambiSpirals.getCurrentSettings() : 
+      { enabled: false };
+    
+    return {
+      activeTriggers,
+      collarSettings,
+      spiralSettings
+    };
+  }
+  
   return {
-    init
+    init,
+    collectSessionSettings
   };
 })();
