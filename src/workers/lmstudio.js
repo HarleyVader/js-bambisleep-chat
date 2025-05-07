@@ -167,7 +167,7 @@ parentPort.on('message', async (msg) => {
             triggerDetails = Array.isArray(msg.triggers.triggerDetails)
               ? msg.triggers.triggerDetails
               : [];
-            logger.info(`Received trigger details: ${triggerDetails.join(', ')}`);
+            logger.info(`Received trigger details: ${formatTriggerDetails(triggerDetails)}`);
           }
         } else if (typeof msg.triggers === 'string') {
           // Fallback for backward compatibility
@@ -721,7 +721,7 @@ async function handleMessage(userPrompt, socketId, username) {
     // Add trigger details to the response
     // Worker can't play audio - that happens in the browser
     if (triggerDetails && triggerDetails.length > 0) {
-      logger.info(`Sending detected triggers to client: ${triggerDetails.join(', ')}`);
+      logger.info(`Sending detected triggers to client: ${formatTriggerDetails(triggerDetails)}`);
 
       // Let the client know about any triggers in the response
       parentPort.postMessage({
@@ -858,4 +858,14 @@ if (garbageCollectionInterval) {
   clearInterval(garbageCollectionInterval);
   garbageCollectionInterval = null;
   logger.info('Stopped garbage collection interval');
+}
+
+// Add this helper function around line 170 (after handling trigger details)
+function formatTriggerDetails(details) {
+  if (!Array.isArray(details)) return 'No trigger details';
+  
+  return details.map(d => {
+    if (typeof d === 'string') return d;
+    return typeof d === 'object' ? `${d.name || 'Unknown'}` : String(d);
+  }).join(', ');
 }

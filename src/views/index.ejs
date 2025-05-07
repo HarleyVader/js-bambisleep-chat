@@ -405,27 +405,6 @@
             });
           });
 
-          // Listen for system control events
-          document.addEventListener('system-control-loaded', function(e) {
-            if (e.detail && e.detail.type === 'triggers') {
-              // Get active triggers from system controls
-              const activeTriggers = e.detail.activeTriggers || [];
-              
-              // Store in localStorage
-              localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers));
-              
-              // Send to server
-              if (typeof socket !== 'undefined' && socket.connected) {
-                socket.emit('triggers', {
-                  triggerNames: activeTriggers.join(','),
-                  triggerDetails: activeTriggers.map(t => ({ name: t }))
-                });
-                
-                console.log('Synced triggers from system controls:', activeTriggers);
-              }
-            }
-          });
-
           // Listen for collar changes
           document.addEventListener('collar-update', function(e) {
             if (e.detail && e.detail.text) {
