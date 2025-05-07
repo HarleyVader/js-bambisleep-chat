@@ -190,7 +190,7 @@ function processTriggersInText(text, allTriggers, activeTriggers) {
             // Play trigger with small delay between each
             setTimeout(() => {
                 playTriggerAudio(trigger);
-            }, matchedTriggers.length * 500);
+            }, matchedTriggers.length * 350);
         }
     });
     
