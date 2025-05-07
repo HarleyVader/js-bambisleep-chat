@@ -666,14 +666,10 @@ async function handleMessage(userPrompt, socketId, username) {
     }
 
     collarText = await checkRole(collar, username, triggers);
-    logger.info('Generated prompt from checkRole:', {
-      username,
-      triggers: selectedTriggerInfo.map(t => t.name),
-      prompt: `${userPrompt}${collarSection}`
-    });
-
-    // Don't update session history with finalContent here - it's still undefined
-    // Instead, just initialize the session if needed or add the user message
+    
+    // Fix: Remove the reference to selectedTriggerInfo which isn't available here
+    // Instead, log a simpler message without trying to access trigger names
+    logger.info(`Generated prompt from checkRole for ${username} with trigger input: ${typeof triggers === 'string' ? triggers : JSON.stringify(triggers)}`);
 
     if (!sessionHistories[socketId]) {
       sessionHistories[socketId] = [];
