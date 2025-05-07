@@ -524,42 +524,37 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
   });
 }
 
-// Add this function to handle session events
+// Simplify the setupSessionEvents function
 function setupSessionEvents(socket, lmstudio) {
-  // Load session history
+  // Load session
   socket.on('load-session', function(sessionId) {
     if (!sessionId) return;
     
-    // Find session in database
     withDbConnection(async () => {
       try {
         const SessionHistory = mongoose.model('SessionHistory');
         const session = await SessionHistory.findById(sessionId);
         
-        if (session) {
-          // Send session to worker
-          lmstudio.postMessage({
-            type: "load-history",
-            messages: session.messages,
-            socketId: socket.id,
-            username: socket.bambiUsername
-          });
-          
-          // Send session to client
-          socket.emit('session-loaded', {
-            session,
-            sessionId
-          });
-          
-          logger.info(`Session ${sessionId} loaded for ${socket.bambiUsername}`);
-        }
+        if (!session) return;
+        
+        // Send to worker
+        lmstudio.postMessage({
+          type: "load-history",
+          messages: session.messages || [],
+          socketId: socket.id,
+          username: socket.bambiUsername
+        });
+        
+        // Send to client
+        socket.emit('session-loaded', { session, sessionId });
+        
       } catch (error) {
-        logger.error(`Error loading session ${sessionId}: ${error.message}`);
+        logger.error(`Session load error: ${error.message}`);
       }
     });
   });
   
-  // Create or update session
+  // Save session
   socket.on('save-session', function(data) {
     if (!data || !socket.bambiUsername || socket.bambiUsername === 'anonBambi') return;
     
@@ -567,8 +562,8 @@ function setupSessionEvents(socket, lmstudio) {
       try {
         const SessionHistory = mongoose.model('SessionHistory');
         
-        // Update existing or create new
         if (data.sessionId) {
+          // Update existing
           await SessionHistory.findByIdAndUpdate(data.sessionId, {
             $set: {
               'metadata.lastActivity': new Date(),
@@ -581,9 +576,9 @@ function setupSessionEvents(socket, lmstudio) {
               messages: { $each: data.messages || [] }
             }
           });
-          logger.info(`Session ${data.sessionId} updated for ${socket.bambiUsername}`);
+          
         } else {
-          // Create new session
+          // Create new
           const session = new SessionHistory({
             username: socket.bambiUsername,
             socketId: socket.id,
@@ -598,11 +593,10 @@ function setupSessionEvents(socket, lmstudio) {
           });
           
           await session.save();
-          logger.info(`New session created for ${socket.bambiUsername}`);
           socket.emit('session-created', { sessionId: session._id });
         }
       } catch (error) {
-        logger.error(`Error saving session: ${error.message}`);
+        logger.error(`Session save error: ${error.message}`);
       }
     });
   });
