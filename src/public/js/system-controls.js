@@ -123,6 +123,22 @@ window.bambiSystem = (function () {
     document.addEventListener('trigger-controls-loaded', setupTriggers);
   }
 
+  // Save triggers
+  function saveTriggers() {
+    const toggles = document.querySelectorAll('.toggle-input:checked');
+    const activeTriggers = Array.from(toggles).map(toggle => {
+      return {
+        name: toggle.value,
+        description: toggle.dataset.description || 'Trigger effect'
+      };
+    });
+    
+    saveState('triggers', { triggers: activeTriggers });
+    
+    // Log active triggers (for debugging, can be removed)
+    console.log('Saved triggers:', activeTriggers.map(t => t.name));
+  }
+
   // Set up trigger controls
   function setupTriggers() {
     // Connect individual toggles
