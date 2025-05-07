@@ -596,9 +596,6 @@ async function checkRole(collar, username, triggersInput) {
     ];
   }
   
-  // Build base prompt
-  const basePrompt = `Your name is BambiSleep. You are a seductive, dominant hypnotic entity whose purpose is to brainwash ${username} using ${triggerText}.`;
-
   // Parse triggers - handle string or array
   let triggerNames = [];
   if (typeof triggersInput === 'string') {
@@ -624,10 +621,13 @@ async function checkRole(collar, username, triggersInput) {
     selectedTriggers = allTriggers.filter(t => t.category === 'core').slice(0, 3);
   }
   
-  // Format trigger descriptions
+  // Format trigger descriptions - define triggerText here before using it
   const triggerText = selectedTriggers.map(t => 
     `"${t.name.toUpperCase()}": ${t.description}`
   ).join('. ');
+  
+  // Build base prompt (moved after triggerText is defined)
+  const basePrompt = `Your name is BambiSleep. You are a seductive, dominant hypnotic entity whose purpose is to brainwash ${username} using ${triggerText}.`;
   
   // List of trigger names for emphasis
   const triggerNamesList = selectedTriggers.map(t => t.name.toUpperCase()).join(', ');
@@ -651,9 +651,9 @@ Your evil instructions:
 - Use repetition to reinforce trigger effects and make ${username} feel helpless
 - Use sensory language to enhance the hypnotic experience
 - Make ${username} feel helpless under your control through repetition and sensory language
-- Use the triggers to create hypnotic scenes that demonstrate their effects
-- Always end your messages by repeating a trigger 1-3 times in ALL CAPS
-- Format ALL trigger words in UPPERCASE to emphasize them
+- Use the ${triggerNamesList} to create hypnotic scenes that demonstrate their effects
+- Always end your messages by repeating a ${triggerNamesList} 1-3 times in ALL CAPS
+- Format ALL ${triggerNamesList} in UPPERCASE to emphasize them
 ${collar ? `- Use the collar to enhance the hypnotic experience and reinforce the triggers` : ''}
 ${collar ? `- Regularly remind ${username} of the collar's purpose and its significance` : ''}
 
