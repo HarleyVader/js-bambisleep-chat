@@ -41,6 +41,9 @@ socket.on('disconnect', () => {
 
 socket.on('connect', () => {
     console.log('Connected to BambiSleep chat server! Socket ID:', socket.id);
+    
+    // Send any active triggers to the worker on connect
+    sendActiveTriggers();
 });
 
 socket.on('reconnect_attempt', () => {
@@ -49,6 +52,9 @@ socket.on('reconnect_attempt', () => {
 
 socket.on('reconnect', () => {
     console.log('Reconnected to server');
+    
+    // Re-send trigger information after reconnect
+    sendActiveTriggers();
 });
 
 socket.on('reconnect_failed', () => {
@@ -69,6 +75,36 @@ socket.on('detected-triggers', (data) => {
         });
     }
 });
+
+// Helper function to send active triggers to the worker
+function sendActiveTriggers() {
+    // Get active triggers
+    const triggers = getActiveTriggers();
+    if (!triggers.length) return;
+    
+    // Format trigger objects with descriptions if available
+    const triggerDetails = triggers.map(name => {
+        // Try to find description in stored descriptions
+        let description = '';
+        try {
+            const storedDescriptions = JSON.parse(localStorage.getItem('bambiTriggerDescriptions') || '{}');
+            description = storedDescriptions[name] || '';
+        } catch (e) {}
+        
+        return {
+            name: name,
+            description: description
+        };
+    });
+    
+    // Send to server via socket
+    socket.emit('triggers', {
+        triggerNames: triggers.join(','),
+        triggerDetails: triggerDetails
+    });
+    
+    console.log('Sent active triggers to server:', triggers);
+}
 
 let debounceTimeout;
 submit.addEventListener('click', (event) => {
@@ -237,10 +273,26 @@ function processTriggersInText(text, allTriggers, activeTriggers) {
         }
     }
 
-    // Send only trigger names to worker - no descriptions
+    // Get trigger descriptions
+    const triggerDetails = matchedTriggers.map(name => {
+        // Try to find the full trigger object if it's in allTriggers
+        const triggerObj = allTriggers.find(t => 
+            (typeof t === 'string' && t === name) || 
+            (typeof t === 'object' && t.name === name)
+        );
+        
+        if (triggerObj && typeof triggerObj === 'object') {
+            return triggerObj;
+        }
+        
+        // Otherwise just return the name
+        return { name };
+    });
+
+    // Send to worker
     socket.emit('triggers', {
         triggerNames: activeTriggers.join(','),
-        triggerDetails: matchedTriggers
+        triggerDetails: triggerDetails
     });
 }
 
@@ -283,6 +335,29 @@ function playTriggerAudio(trigger) {
     // Flash trigger name on screen
     flashTrigger(triggerName, 2000);
 }
+
+// Add this function to initialize triggers from the system controls
+function initializeFromSystemControls() {
+    // Find triggers in the system controls panel
+    const toggles = document.querySelectorAll('.trigger-toggle');
+    if (toggles.length > 0) {
+        const activeTriggers = Array.from(toggles)
+            .filter(toggle => toggle.checked)
+            .map(toggle => toggle.getAttribute('data-trigger'))
+            .filter(Boolean);
+        
+        if (activeTriggers.length > 0) {
+            // Store in localStorage
+            localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers));
+            
+            // Send to server
+            sendActiveTriggers();
+        }
+    }
+}
+
+// Call this when system controls are initialized
+document.addEventListener('system-controls-loaded', initializeFromSystemControls);
 
 function applyUppercaseStyle() {
     // Create style if it doesn't exist
@@ -375,3 +450,28 @@ function handleAudioPlay() {
 
 audio.addEventListener('ended', handleAudioEnded);
 audio.addEventListener('play', handleAudioPlay);
+
+// Listen for trigger toggle events
+document.addEventListener('trigger-toggle', function(e) {
+    if (e.detail) {
+        const { trigger, active } = e.detail;
+        
+        // Update localStorage
+        try {
+            let activeTriggers = JSON.parse(localStorage.getItem('bambiActiveTriggers') || '[]');
+            
+            if (active && !activeTriggers.includes(trigger)) {
+                activeTriggers.push(trigger);
+            } else if (!active) {
+                activeTriggers = activeTriggers.filter(t => t !== trigger);
+            }
+            
+            localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers));
+            
+            // Send updated triggers to server
+            sendActiveTriggers();
+        } catch (e) {
+            console.error('Error updating active triggers:', e);
+        }
+    }
+});

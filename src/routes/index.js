@@ -121,6 +121,22 @@ router.get('/', async (req, res) => {
     // Fetch recent chat messages
     const chatMessages = await ChatMessage.getRecentMessages(50);
     
+    // Load trigger data for client
+    let triggers = [];
+    try {
+      // Read triggers from config file
+      const triggersPath = path.resolve(path.dirname(__dirname), 'config', 'triggers.json');
+      const triggerData = await fs.readFile(triggersPath, 'utf8');
+      triggers = JSON.parse(triggerData).triggers;
+    } catch (error) {
+      logger.error('Error loading triggers:', error);
+      // Use fallback triggers
+      triggers = [
+        { name: "BAMBI SLEEP", description: "triggers deep trance and receptivity", category: "core" },
+        { name: "GOOD GIRL", description: "reinforces obedience and submission", category: "core" }
+      ];
+    }
+    
     // Get footer links from config, with fallback to imported footerConfig
     const footerLinks = config?.FOOTER_LINKS || footerConfig?.links || [];
     
@@ -129,7 +145,8 @@ router.get('/', async (req, res) => {
       profile,
       username,
       footerLinks,
-      chatMessages, // Pass the chat messages to the template
+      chatMessages,
+      triggers,
       title: 'BambiSleep.Chat - Hypnotic AI Chat'
     });
   } catch (error) {
@@ -140,8 +157,31 @@ router.get('/', async (req, res) => {
       profile: null, 
       username: '',
       footerLinks: config?.FOOTER_LINKS || footerConfig?.links || [],
-      chatMessages: [], // Pass empty array as fallback
+      chatMessages: [],
+      triggers: [],
       title: 'BambiSleep.Chat - Hypnotic AI Chat'
+    });
+  }
+});
+
+// Add API endpoints for triggers
+router.get('/api/triggers', async (req, res) => {
+  try {
+    // Read triggers from config file
+    const triggersPath = path.resolve(path.dirname(__dirname), 'config', 'triggers.json');
+    const triggerData = await fs.readFile(triggersPath, 'utf8');
+    const triggers = JSON.parse(triggerData).triggers;
+    
+    res.json({ triggers });
+  } catch (error) {
+    logger.error('Error loading triggers:', error);
+    
+    // Return fallback triggers
+    res.json({
+      triggers: [
+        { name: "BAMBI SLEEP", description: "triggers deep trance and receptivity", category: "core" },
+        { name: "GOOD GIRL", description: "reinforces obedience and submission", category: "core" }
+      ]
     });
   }
 });

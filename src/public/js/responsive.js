@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+  
+  // Sync triggers with system controls if available
+  syncTriggersWithSystemControls();
 });
 
 function applyUppercaseStyle() {
@@ -63,6 +66,51 @@ function colorMatchingUsernameResponses(profileUsername) {
   responseParagraphs.forEach(paragraph => {
     if (paragraph.textContent.includes(profileUsername)) {
       paragraph.style.color = 'var(--tertiary-color)';
+    }
+  });
+}
+
+// Function to sync triggers with system controls
+function syncTriggersWithSystemControls() {
+  // Wait for system controls to be fully loaded
+  document.addEventListener('system-controls-loaded', function() {
+    // Find the active trigger toggles
+    const triggerToggles = document.querySelectorAll('.trigger-toggle');
+    
+    if (triggerToggles.length > 0) {
+      // Get active triggers
+      const activeTriggers = Array.from(triggerToggles)
+        .filter(toggle => toggle.checked)
+        .map(toggle => toggle.getAttribute('data-trigger'))
+        .filter(Boolean);
+      
+      // Get trigger descriptions if available
+      const descriptions = {};
+      triggerToggles.forEach(toggle => {
+        const trigger = toggle.getAttribute('data-trigger');
+        const description = toggle.getAttribute('data-description');
+        
+        if (trigger && description) {
+          descriptions[trigger] = description;
+        }
+      });
+      
+      // Store in localStorage for persistence
+      localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers));
+      localStorage.setItem('bambiTriggerDescriptions', JSON.stringify(descriptions));
+      
+      // Send to server if socket is available
+      if (typeof window.socket !== 'undefined' && window.socket.connected) {
+        window.socket.emit('triggers', {
+          triggerNames: activeTriggers.join(','),
+          triggerDetails: activeTriggers.map(t => ({ 
+            name: t, 
+            description: descriptions[t] || '' 
+          }))
+        });
+        
+        console.log('Synced triggers with system controls:', activeTriggers);
+      }
     }
   });
 }
