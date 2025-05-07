@@ -29,7 +29,7 @@ import profileRouter from './routes/profile.js';
 import chatRoutes from './routes/chatRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
 import sessionsRouter, { basePath as sessionsBasePath } from './routes/sessions.js';
-import triggerScriptsRouter from './routes/trigger-scripts.js';
+import { router as triggerScriptsRouter } from './routes/trigger-scripts.js';
 
 // Import worker coordinator
 import workerCoordinator from './workers/workerCoordinator.js';

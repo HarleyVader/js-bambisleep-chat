@@ -1,7 +1,12 @@
-const express = require('express');
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import Profile from '../models/Profile.js';
+import fs from 'fs';
+
 const router = express.Router();
-const path = require('path');
-const Profile = require('../models/Profile');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 router.get('/', async (req, res) => {
   try {
@@ -60,4 +65,4 @@ When you're ready, click "Start Session" to begin your programming.`;
   }
 });
 
-module.exports = router;
+export { router };
