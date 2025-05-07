@@ -1,21 +1,6 @@
 import mongoose from 'mongoose';
 
-const commentSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: true
-  },
-  content: {
-    type: String,
-    required: true,
-    maxlength: 500
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});
-
+// Simple schema definition
 const sessionHistorySchema = new mongoose.Schema({
   username: { 
     type: String, 
@@ -63,7 +48,7 @@ const sessionHistorySchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     },
-    triggers: [String], // Store trigger names as strings
+    triggers: [String],
     collarActive: Boolean,
     collarText: String,
     modelName: String,
@@ -83,118 +68,26 @@ const sessionHistorySchema = new mongoose.Schema({
     likes: {
       type: Number,
       default: 0
-    },
-    dislikes: {
-      type: Number,
-      default: 0
-    },
-    likedBy: [String],
-    dislikedBy: [String]
-  },
-  comments: [commentSchema]
+    }
+  }
 }, { 
   timestamps: true 
 });
 
-// Index for faster queries
+// Simple indexes
 sessionHistorySchema.index({ username: 1, 'metadata.lastActivity': -1 });
 sessionHistorySchema.index({ isPublic: 1, 'stats.likes': -1 });
 
-// TTL index to expire old sessions
-sessionHistorySchema.index({ 'metadata.lastActivity': 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
-
-// Method to generate a share token
-sessionHistorySchema.methods.generateShareToken = function() {
-  if (!this.shareToken) {
-    const randomBytes = require('crypto').randomBytes(16);
-    this.shareToken = randomBytes.toString('hex');
-  }
-  return this.shareToken;
-};
-
-// Method to toggle session visibility
-sessionHistorySchema.methods.toggleVisibility = async function() {
-  this.isPublic = !this.isPublic;
-  return this.save();
-};
-
-// Method to handle likes/dislikes
-sessionHistorySchema.methods.handleReaction = async function(username, action) {
-  if (!username) return false;
-  
-  if (action === 'like') {
-    // Remove from dislikedBy if present
-    if (this.stats.dislikedBy.includes(username)) {
-      this.stats.dislikedBy = this.stats.dislikedBy.filter(u => u !== username);
-      this.stats.dislikes = Math.max(0, this.stats.dislikes - 1);
-    }
-    
-    // Add to likedBy if not already there
-    if (!this.stats.likedBy.includes(username)) {
-      this.stats.likedBy.push(username);
-      this.stats.likes += 1;
-    }
-  } else if (action === 'dislike') {
-    // Remove from likedBy if present
-    if (this.stats.likedBy.includes(username)) {
-      this.stats.likedBy = this.stats.likedBy.filter(u => u !== username);
-      this.stats.likes = Math.max(0, this.stats.likes - 1);
-    }
-    
-    // Add to dislikedBy if not already there
-    if (!this.stats.dislikedBy.includes(username)) {
-      this.stats.dislikedBy.push(username);
-      this.stats.dislikes += 1;
-    }
+// Create model or get existing
+export function getSessionHistoryModel() {
+  // Return existing model if already registered
+  if (mongoose.models.SessionHistory) {
+    return mongoose.models.SessionHistory;
   }
   
-  return this.save();
-};
+  // Create and return new model
+  return mongoose.model('SessionHistory', sessionHistorySchema);
+}
 
-// Method to add a comment
-sessionHistorySchema.methods.addComment = async function(username, content) {
-  if (!username || !content) return false;
-  
-  this.comments.push({
-    username,
-    content,
-    createdAt: new Date()
-  });
-  
-  return this.save();
-};
-
-// Method to save triggers
-sessionHistorySchema.methods.saveTriggers = async function(triggers) {
-  if (!Array.isArray(triggers)) return false;
-  
-  this.metadata.triggers = triggers;
-  return this.save();
-};
-
-// Method to save all session settings at once
-sessionHistorySchema.methods.saveSettings = async function(settings) {
-  if (!settings) return false;
-  
-  // Save triggers if provided
-  if (settings.activeTriggers && Array.isArray(settings.activeTriggers)) {
-    this.metadata.triggers = settings.activeTriggers;
-  }
-  
-  // Save collar settings if provided
-  if (settings.collarSettings) {
-    this.metadata.collarActive = settings.collarSettings.enabled;
-    this.metadata.collarText = settings.collarSettings.text;
-  }
-  
-  // Save spiral settings if provided
-  if (settings.spiralSettings) {
-    this.metadata.spiralSettings = settings.spiralSettings;
-  }
-  
-  return this.save();
-};
-
-const SessionHistory = mongoose.model('SessionHistory', sessionHistorySchema);
-
-export default SessionHistory;
+// Default export
+export default mongoose.model('SessionHistory', sessionHistorySchema);

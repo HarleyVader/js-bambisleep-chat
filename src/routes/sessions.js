@@ -9,9 +9,9 @@ const logger = new Logger('SessionRoutes');
 // Get sessions for a user
 router.get('/api/sessions/:username', async (req, res) => {
   try {
-    const SessionHistory = await getSessionHistoryModel();
+    const SessionHistory = getSessionHistoryModel();
     const sessions = await SessionHistory.find({ username: req.params.username })
-      .sort({ createdAt: -1 })
+      .sort({ 'metadata.lastActivity': -1 })
       .limit(50);
     
     res.json({ success: true, sessions });
@@ -37,7 +37,7 @@ router.get('/:sessionId', async (req, res) => {
 // Add share route
 router.post('/:sessionId/share', async (req, res) => {
   try {
-    const SessionHistory = await getSessionHistoryModel();
+    const SessionHistory = getSessionHistoryModel();
     const session = await SessionHistory.findById(req.params.sessionId);
     
     if (!session) {
@@ -65,7 +65,7 @@ router.post('/:sessionId/share', async (req, res) => {
 // Get shared session by token
 router.get('/shared/:token', async (req, res) => {
   try {
-    const SessionHistory = await getSessionHistoryModel();
+    const SessionHistory = getSessionHistoryModel();
     const session = await SessionHistory.findOne({ shareToken: req.params.token });
     
     if (!session) {
