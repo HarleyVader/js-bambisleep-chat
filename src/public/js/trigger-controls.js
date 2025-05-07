@@ -56,9 +56,10 @@
     
     // Try loading from bambiSystem first
     if (window.bambiSystem) {
-      const state = window.bambiSystem.getState();
-      if (state && state.triggers) {
-        triggers = state.triggers.map(t => t.name);
+      // The collectSettings method exists in bambiSystem, not getState
+      const settings = window.bambiSystem.collectSettings();
+      if (settings && settings.activeTriggers) {
+        triggers = settings.activeTriggers;
       }
     } else {
       // Fallback to localStorage
