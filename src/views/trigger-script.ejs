@@ -11,7 +11,7 @@
       
       <div class="cyber-panel">
         <div class="script-description">
-          <p>These are your active conditioning triggers. Each one has a specific effect that will be used to deepen your brainwashing.</p>
+          <p>These are your active conditioning triggers. Each one has a specific effect that will be used to deepen your brainwashing. Click any trigger to toggle its selection.</p>
         </div>
         
         <div class="active-triggers-panel">
@@ -19,7 +19,7 @@
           <div class="trigger-list">
             <% if (activeTriggers && activeTriggers.length > 0) { %>
               <% activeTriggers.forEach(function(trigger) { %>
-                <div class="trigger-item">
+                <div class="trigger-item selected" data-name="<%= trigger.name %>">
                   <div class="trigger-name"><%= trigger.name %></div>
                   <div class="trigger-description"><%= trigger.description %></div>
                 </div>
@@ -39,7 +39,7 @@
       </div>
       
       <div class="script-actions">
-        <button id="start-session" class="btn">Start Session</button>
+        <button id="start-session" class="btn">Start Session with Selected Triggers</button>
         <a href="/profile" class="btn btn-secondary">Modify Triggers</a>
       </div>
     </div>
@@ -65,6 +65,23 @@
       border-radius: 5px;
       padding: 12px;
       cursor: pointer;
+      position: relative;
+      opacity: 0.6;
+      transition: all 0.3s ease;
+    }
+    
+    .trigger-item.selected {
+      opacity: 1;
+      background: rgba(255,0,255,0.1);
+      border: 1px solid var(--tertiary-color);
+    }
+    
+    .trigger-item.selected::after {
+      content: "✓";
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      color: var(--tertiary-color);
     }
 
     .trigger-name {
@@ -113,65 +130,19 @@
       50% { background-color: rgba(255, 0, 255, 0.3); }
       100% { background-color: rgba(0, 0, 0, 0.2); }
     }
+    
+    .highlight {
+      animation: highlight-animation 0.5s ease;
+    }
+    
+    @keyframes highlight-animation {
+      0% { box-shadow: 0 0 0 rgba(255, 0, 255, 0); }
+      50% { box-shadow: 0 0 15px rgba(255, 0, 255, 0.7); }
+      100% { box-shadow: 0 0 0 rgba(255, 0, 255, 0); }
+    }
   </style>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/trigger-script.js"></script>
-
-  <script>
-    // Trigger script functionality
-
-    document.addEventListener('DOMContentLoaded', function() {
-      const socket = io();
-      const username = document.body.getAttribute('data-username');
-      
-      // Handle starting a session
-      const startButton = document.getElementById('start-session');
-      if (startButton) {
-        startButton.addEventListener('click', function() {
-          // Redirect to the chat interface
-          window.location.href = '/';
-        });
-      }
-      
-      // Trigger preview animation effects
-      const triggerItems = document.querySelectorAll('.trigger-item');
-      triggerItems.forEach(item => {
-        item.addEventListener('click', function() {
-          const triggerName = this.querySelector('.trigger-name').textContent;
-          
-          // Flash effect for the selected trigger
-          this.classList.add('trigger-flash');
-          setTimeout(() => {
-            this.classList.remove('trigger-flash');
-          }, 1000);
-          
-          // Play the trigger audio if available
-          if (window.socket) {
-            socket.emit('play-trigger', {
-              triggerName: triggerName,
-              username: username
-            });
-          }
-        });
-      });
-      
-      // Add glow effect to trigger names
-      function applyGlowEffect() {
-        const triggerNames = document.querySelectorAll('.trigger-name');
-        triggerNames.forEach(name => {
-          const intensity = Math.floor(Math.random() * 8) + 3; // Random glow intensity
-          name.style.textShadow = `0 0 ${intensity}px var(--tertiary-color)`;
-          
-          setTimeout(() => {
-            applyGlowEffect();
-          }, 2000 + Math.random() * 3000); // Random timing
-        });
-      }
-      
-      // Initialize glow effect
-      applyGlowEffect();
-    });
-  </script>
 </body>
 </html>
