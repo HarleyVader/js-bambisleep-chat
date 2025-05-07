@@ -76,6 +76,9 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         <h3>Trigger Toggles</h3>
         <div class="trigger-actions">
           <button id="activate-all" class="secondary-btn">Toggle All</button>
+          <button id="play-triggers" class="btn btn-accent">
+            <i class="fas fa-play"></i> Play Triggers
+          </button>
         </div>
         <div id="trigger-list" class="trigger-grid"></div>
       </div>
@@ -324,6 +327,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
   .speed-slider, .volume-slider {
     flex: 1;
     height: 6px;
+    appearance: none;
     -webkit-appearance: none;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 3px;
@@ -483,6 +487,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
   .spiral-slider {
     flex: 1;
     height: 6px;
+    appearance: none;
     -webkit-appearance: none;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 3px;

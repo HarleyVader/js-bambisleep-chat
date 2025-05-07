@@ -44,6 +44,11 @@
                   amount: 3,
                   action: 'trigger_used'
                 });
+                
+                // Play trigger audio if newly checked and audio API available
+                if (window.bambiAudio && typeof window.bambiAudio.playTrigger === 'function') {
+                  window.bambiAudio.playTrigger(trigger.name);
+                }
               }
               
               // Save and broadcast the change
@@ -69,7 +74,7 @@
           document.dispatchEvent(new Event('trigger-controls-loaded'));
         })
         .catch(error => {
-          console.error('Error loading triggers:', error);
+          console.log('Error loading triggers:', error);
           triggerList.innerHTML = '<p>Failed to load triggers. Please refresh the page.</p>';
         });
     }
@@ -79,6 +84,7 @@
   function initTriggerButtons() {
     const selectAllBtn = document.getElementById('select-all-triggers');
     const clearAllBtn = document.getElementById('clear-all-triggers');
+    const playBtn = document.getElementById('play-triggers');
     
     if (selectAllBtn) {
       selectAllBtn.addEventListener('click', function() {
@@ -97,6 +103,15 @@
         });
         saveTriggerState();
         sendTriggerUpdate();
+      });
+    }
+    
+    if (playBtn) {
+      playBtn.addEventListener('click', function() {
+        // Play random playlist if triggers.js API is available
+        if (window.bambiAudio && typeof window.bambiAudio.playRandomPlaylist === 'function') {
+          window.bambiAudio.playRandomPlaylist();
+        }
       });
     }
   }
@@ -155,11 +170,19 @@
     }));
   }
   
+  // Play all active triggers in sequence
+  function playActiveTriggers() {
+    if (window.bambiAudio && typeof window.bambiAudio.playRandomPlaylist === 'function') {
+      window.bambiAudio.playRandomPlaylist();
+    }
+  }
+  
   // Export functions
   window.bambiTriggers = {
     init,
     saveTriggerState,
-    sendTriggerUpdate
+    sendTriggerUpdate,
+    playActiveTriggers
   };
   
   // Auto-initialize on load
