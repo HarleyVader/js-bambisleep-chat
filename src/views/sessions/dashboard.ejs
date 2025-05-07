@@ -151,16 +151,16 @@
                     <a href="/sessions/<%= session._id %>" class="btn btn-sm btn-primary">
                       <i class="fas fa-eye"></i> View
                     </a>
-                    <div class="btn-group">
-                      <button class="btn btn-sm btn-outline-success edit-title-btn" 
-                              data-id="<%= session._id %>" 
-                              data-title="<%= session.title %>">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button class="btn btn-sm btn-outline-danger delete-session-btn" 
-                              data-id="<%= session._id %>">
-                        <i class="fas fa-trash"></i>
-                      </button>
+                    <div class="d-flex gap-2 align-items-center">
+                      <span class="trigger-count">
+                        <i class="fas fa-bolt"></i> <%= session.metadata?.triggers?.length || 0 %>
+                      </span>
+                      <i class="fas fa-thumbs-up <%= session.stats.likedBy && session.stats.likedBy.includes(username) ? 'active' : '' %>"
+                         data-id="<%= session._id %>"></i>
+                      <span class="like-count"><%= session.stats.likes || 0 %></span>
+                      <i class="fas fa-thumbs-down <%= session.stats.dislikedBy && session.stats.dislikedBy.includes(username) ? 'active' : '' %>"
+                         data-id="<%= session._id %>"></i>
+                      <span class="dislike-count"><%= session.stats.dislikes || 0 %></span>
                     </div>
                   </div>
                 </div>

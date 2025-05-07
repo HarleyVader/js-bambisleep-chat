@@ -58,9 +58,40 @@
     if (loadBtn) loadBtn.addEventListener('click', loadSessions);
     if (replayBtn) replayBtn.addEventListener('click', replayRandom);
     if (sessionSelect) sessionSelect.addEventListener('change', loadSession);
+    
+    // Add view toggle listeners if on dashboard/list pages
+    setupViewToggle();
   }
   
-  // Load all sessions - game save functionality
+  // Setup view toggle between grid and list
+  function setupViewToggle() {
+    const gridBtn = document.getElementById('grid-view-btn');
+    const listBtn = document.getElementById('list-view-btn');
+    
+    if (gridBtn && listBtn) {
+      gridBtn.addEventListener('click', () => {
+        document.getElementById('grid-view')?.classList.remove('d-none');
+        document.getElementById('list-view')?.classList.add('d-none');
+        gridBtn.classList.add('active');
+        listBtn.classList.remove('active');
+        localStorage.setItem('session-view', 'grid');
+      });
+      
+      listBtn.addEventListener('click', () => {
+        document.getElementById('grid-view')?.classList.add('d-none');
+        document.getElementById('list-view')?.classList.remove('d-none');
+        listBtn.classList.add('active');
+        gridBtn.classList.remove('active');
+        localStorage.setItem('session-view', 'list');
+      });
+      
+      // Load previous preference
+      const savedView = localStorage.getItem('session-view');
+      if (savedView === 'list') listBtn.click();
+    }
+  }
+  
+  // Load all sessions
   function loadSessions() {
     const username = document.body.getAttribute('data-username') || window.username;
     if (!username) {
@@ -68,7 +99,7 @@
       return;
     }
     
-    showStatus('Loading save data...', false);
+    showStatus('Loading sessions...', false);
     hideElements();
     
     fetch(`/api/sessions/${username}`)
@@ -79,10 +110,10 @@
           return;
         }
         
-        // Store sessions globally for other modules to access
+        // Store sessions globally
         window.sessionHistory = data.sessions;
         
-        // Fill session dropdown - like save slots
+        // Fill session dropdown
         fillSessionDropdown(data.sessions);
         
         // Count stats
@@ -90,51 +121,13 @@
         showStats(stats.sessions, stats.messages, stats.words);
         enableReplay();
         
-        // Restore triggers from last session if exists
-        restoreTriggersFromLastSession(data.sessions);
-        
-        showStatus(`Loaded ${stats.sessions} save files`, false);
+        showStatus(`Loaded ${stats.sessions} sessions`, false);
         awardXp(5, 'history_loaded');
       })
       .catch(err => showStatus(err, true));
   }
   
-  // Restore trigger states from most recent session
-  function restoreTriggersFromLastSession(sessions) {
-    if (!sessions || !sessions.length) return;
-    
-    // Sort by date to get the most recent session
-    const sortedSessions = [...sessions].sort((a, b) => 
-      new Date(b.metadata.lastActivity) - new Date(a.metadata.lastActivity));
-    
-    const lastSession = sortedSessions[0];
-    
-    // Check if the session has trigger data
-    if (lastSession.metadata && lastSession.metadata.triggers && lastSession.metadata.triggers.length) {
-      // Apply these triggers to the UI
-      applyTriggerState(lastSession.metadata.triggers);
-    }
-  }
-  
-  // Apply trigger state to checkboxes
-  function applyTriggerState(triggers) {
-    if (!triggers || !triggers.length) return;
-    
-    const toggles = document.querySelectorAll('.toggle-input[data-trigger]');
-    toggles.forEach(toggle => {
-      const triggerName = toggle.getAttribute('data-trigger');
-      toggle.checked = triggers.includes(triggerName);
-    });
-    
-    // Save the restored state
-    if (window.bambiTriggers && typeof window.bambiTriggers.saveTriggerState === 'function') {
-      window.bambiTriggers.saveTriggerState();
-    }
-    
-    showStatus('Restored triggers from last session', false);
-  }
-  
-  // Fill the session dropdown like save slots
+  // Fill the session dropdown
   function fillSessionDropdown(sessions) {
     const select = document.getElementById('session-select');
     const container = document.querySelector('.session-select-container');
@@ -149,14 +142,17 @@
       const time = new Date(session.metadata.createdAt).toLocaleTimeString();
       const option = document.createElement('option');
       option.value = session._id;
-      option.textContent = `${session.title || 'Untitled Save'} (${date} ${time})`;
+      
+      const triggerCount = session.metadata?.triggers?.length || 0;
+      option.textContent = `${session.title || 'Untitled'} (${triggerCount} triggers) - ${date}`;
+      
       select.appendChild(option);
     });
     
     container.style.display = 'block';
   }
   
-  // Count messages and words in all sessions
+  // Count messages and words in sessions
   function countStats(sessions) {
     let messages = 0, words = 0;
     
@@ -172,7 +168,7 @@
     return { sessions: sessions.length, messages, words };
   }
   
-  // Load a specific session save
+  // Load a specific session
   function loadSession(e) {
     const id = e.target.value;
     if (!id || !window.sessionHistory) return;
@@ -191,26 +187,61 @@
     
     // Update UI
     showStats(1, messages, words);
-    showStatus(`Loaded save: ${session.title || 'Untitled Save'}`, false);
+    showStatus(`Loaded: ${session.title || 'Untitled'}`, false);
     
     // Store for replay
     window.currentSession = session;
     
-    // Apply session-specific settings
+    // Apply session settings
     applySessionSettings(session);
+    
+    // Send to LMStudio if available
+    sendSessionToLMStudio(session);
   }
   
-  // Apply settings from saved session
+  // Send session data to LMStudio workers
+  function sendSessionToLMStudio(session) {
+    if (!session || !window.socket) return;
+    
+    // Send collar settings
+    if (session.metadata?.collarActive && session.metadata?.collarText) {
+      socket.emit('collar', {
+        enabled: session.metadata.collarActive,
+        data: session.metadata.collarText
+      });
+    }
+    
+    // Send trigger settings
+    if (session.metadata?.triggers && session.metadata.triggers.length) {
+      socket.emit('triggers', {
+        triggerNames: session.metadata.triggers.join(','),
+        triggerDetails: session.metadata.triggers.map(t => ({ name: t }))
+      });
+    }
+    
+    // Send message history for context
+    if (session.messages && session.messages.length) {
+      // Only send up to last 5 messages for context
+      const contextMessages = session.messages.slice(-5);
+      socket.emit('load-history', {
+        messages: contextMessages
+      });
+    }
+    
+    showStatus('Session loaded into active chat', false);
+  }
+  
+  // Apply session settings to UI
   function applySessionSettings(session) {
     if (!session) return;
     
     // Apply trigger settings if available
-    if (session.metadata && session.metadata.triggers) {
+    if (session.metadata?.triggers) {
       applyTriggerState(session.metadata.triggers);
     }
     
     // Apply collar settings if available
-    if (session.metadata && session.metadata.collarActive !== undefined) {
+    if (session.metadata?.collarActive !== undefined) {
       const collarEnable = document.getElementById('collar-enable');
       if (collarEnable) collarEnable.checked = session.metadata.collarActive;
       
@@ -231,6 +262,22 @@
     }
   }
   
+  // Apply trigger state to checkboxes
+  function applyTriggerState(triggers) {
+    if (!triggers || !triggers.length) return;
+    
+    const toggles = document.querySelectorAll('.toggle-input[data-trigger]');
+    toggles.forEach(toggle => {
+      const triggerName = toggle.getAttribute('data-trigger');
+      toggle.checked = triggers.includes(triggerName);
+    });
+    
+    // Save the restored state
+    if (window.bambiTriggers && typeof window.bambiTriggers.saveTriggerState === 'function') {
+      window.bambiTriggers.saveTriggerState();
+    }
+  }
+  
   // Restore chat from session
   function restoreChatFromSession(session) {
     if (!session.messages || !session.messages.length) return;
@@ -242,24 +289,22 @@
     // Display last 5 messages (or fewer if not available)
     const messagesToShow = session.messages.slice(-5);
     
-    // Show the messages in reverse order (oldest first)
+    // Show the messages in order
     messagesToShow.forEach(msg => {
-      if (msg.role === 'user') {
+      if (msg.role === 'user' || msg.role === 'system') {
         const userPrompt = document.getElementById('user-prompt');
         if (userPrompt) userPrompt.textContent = msg.content;
       } else if (msg.role === 'assistant') {
         displayHistoricalMessage(msg.content);
       }
     });
-    
-    showStatus('Restored chat from save', false);
   }
   
-  // Replay a random message from history
+  // Replay a random message
   function replayRandom() {
     const session = window.currentSession || getRandomSession();
     if (!session) {
-      showStatus('No saves available', true);
+      showStatus('No sessions available', true);
       return;
     }
     
@@ -318,25 +363,6 @@
     } else {
       response.appendChild(messageElement);
     }
-    
-    // Process triggers in the message
-    processTriggers(content);
-  }
-  
-  // Process triggers in message content
-  function processTriggers(content) {
-    if (!content) return;
-    
-    // Look for capitalized words that might be triggers
-    const matches = content.match(/\b[A-Z]{2,}(?:\s+[A-Z]+)*\b/g);
-    if (!matches) return;
-    
-    // Check if any matches are valid triggers
-    matches.forEach(match => {
-      if (window.bambiAudio && typeof window.bambiAudio.playTrigger === 'function') {
-        window.bambiAudio.playTrigger(match);
-      }
-    });
   }
   
   // Show stats in the UI
@@ -372,7 +398,7 @@
     if (!isError) {
       setTimeout(() => {
         if (status.textContent === message) {
-          status.textContent = 'Click "Load History" to view your saves';
+          status.textContent = 'Click "Load History" to view your sessions';
           status.className = 'session-history-status';
         }
       }, 5000);
@@ -393,7 +419,63 @@
     }
   }
   
-  // Extend AIGF core with our historical message display
+  // Replace like buttons with thumbs up/down icons
+  function setupThumbsForSessions() {
+    document.querySelectorAll('.session-card, .session-list-item').forEach(item => {
+      const likeBtn = item.querySelector('.btn-like');
+      const dislikeBtn = item.querySelector('.btn-dislike');
+      
+      if (likeBtn) {
+        const sessionId = likeBtn.getAttribute('data-id');
+        const thumbUp = document.createElement('i');
+        thumbUp.className = 'fas fa-thumbs-up';
+        thumbUp.onclick = () => reactToSession(sessionId, 'like');
+        likeBtn.parentNode.replaceChild(thumbUp, likeBtn);
+      }
+      
+      if (dislikeBtn) {
+        const sessionId = dislikeBtn.getAttribute('data-id');
+        const thumbDown = document.createElement('i');
+        thumbDown.className = 'fas fa-thumbs-down';
+        thumbDown.onclick = () => reactToSession(sessionId, 'dislike');
+        dislikeBtn.parentNode.replaceChild(thumbDown, dislikeBtn);
+      }
+    });
+  }
+  
+  // React to a session (like/dislike)
+  function reactToSession(sessionId, action) {
+    if (!sessionId) return;
+    
+    fetch(`/sessions/${sessionId}/react`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Update the UI
+        const likeCount = document.querySelector(`[data-id="${sessionId}"] .like-count`);
+        const dislikeCount = document.querySelector(`[data-id="${sessionId}"] .dislike-count`);
+        
+        if (likeCount) likeCount.textContent = data.likes;
+        if (dislikeCount) dislikeCount.textContent = data.dislikes;
+        
+        // Update active state
+        if (data.yourReaction === 'like') {
+          document.querySelector(`[data-id="${sessionId}"] .fa-thumbs-up`)?.classList.add('active');
+          document.querySelector(`[data-id="${sessionId}"] .fa-thumbs-down`)?.classList.remove('active');
+        } else if (data.yourReaction === 'dislike') {
+          document.querySelector(`[data-id="${sessionId}"] .fa-thumbs-down`)?.classList.add('active');
+          document.querySelector(`[data-id="${sessionId}"] .fa-thumbs-up`)?.classList.remove('active');
+        }
+      }
+    })
+    .catch(error => console.error('Error reacting to session:', error));
+  }
+  
+  // Global display function
   window.displayHistoricalMessage = function(content) {
     const response = document.getElementById('response');
     if (!response) return;
@@ -407,15 +489,13 @@
     } else {
       response.appendChild(messageElement);
     }
-    
-    // Process triggers in the message
-    processTriggers(content);
   };
   
   // Public API
   window.bambiHistory = { 
     load: loadSessions, 
     replay: replayRandom,
-    loadSession
+    loadSession,
+    setupThumbsForSessions
   };
 })();

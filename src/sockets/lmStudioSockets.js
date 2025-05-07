@@ -47,6 +47,21 @@ export default function setupLMStudioSockets(socket, io, lmstudio, filterContent
   // Handle collar interactions for LMStudio processing
   socket.on('collar', (collarData) => handleCollarForLMStudio(socket, lmstudio, collarData, filterContent));
   
+  // Handle session history loading
+  socket.on('load-history', (data) => {
+    if (!data.messages || !data.messages.length) return;
+    
+    logger.info(`Loading ${data.messages.length} historical messages for socket ${socket.id}`);
+    
+    // Send message history to worker for context
+    lmstudio.postMessage({
+      type: "load-history",
+      messages: data.messages,
+      socketId: socket.id,
+      username: socketUsername
+    });
+  });
+  
   // Add session sync handlers
   setupSessionSyncHandlers(socket, lmstudio);
 }

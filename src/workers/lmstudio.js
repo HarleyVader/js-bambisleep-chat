@@ -261,6 +261,32 @@ parentPort.on('message', async (msg) => {
         
         logger.debug(`Health check responded: ${isHealthy ? 'healthy' : 'unhealthy'}`);
         break;
+      case 'load-history':
+        if (msg.messages && msg.socketId) {
+          // Initialize session history if needed
+          if (!sessionHistories[msg.socketId]) {
+            sessionHistories[msg.socketId] = [];
+            sessionHistories[msg.socketId].metadata = {
+              createdAt: Date.now(),
+              lastActivity: Date.now(),
+              username: msg.username
+            };
+          }
+          
+          // Add historical messages to the session context
+          msg.messages.forEach(message => {
+            // Only add if role and content are valid
+            if (message.role && message.content) {
+              sessionHistories[msg.socketId].push({
+                role: message.role,
+                content: message.content
+              });
+            }
+          });
+          
+          logger.info(`Loaded ${msg.messages.length} historical messages for socket ${msg.socketId}`);
+        }
+        break;
       default:
         logger.warning(`Unknown message type: ${msg.type}`);
     }
