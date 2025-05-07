@@ -96,45 +96,6 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       <% } %>
       
       <% if (userLevel >= 3) { %>
-        <div id="session-history-panel" class="control-panel">
-          <h3>Session History Replay</h3>
-          <div class="session-history-controls">
-            <button id="load-history-btn" class="secondary-btn">Load Session History</button>
-            <button id="replay-history-btn" class="secondary-btn" disabled>Replay Bambi's Responses</button>
-            <div class="session-count" id="session-count"></div>
-          </div>
-          <div class="session-history-status" id="session-history-status"></div>
-        </div>
-        <div class="system-control-panel" id="session-history-panel">
-          <h3>Session History</h3>
-          
-          <div id="session-history-status" class="session-history-status">
-            No sessions loaded yet
-          </div>
-          
-          <div class="session-stats-container" style="display: none;">
-            <div class="session-stat">
-              <div class="stat-value" id="session-count">0</div>
-              <div class="stat-label">Sessions</div>
-            </div>
-            <div class="session-stat">
-              <div class="stat-value" id="message-count">0</div>
-              <div class="stat-label">Messages</div>
-            </div>
-            <div class="session-stat">
-              <div class="stat-value" id="word-count">0</div>
-              <div class="stat-label">Words</div>
-            </div>
-          </div>
-          
-          <div class="session-history-actions">
-            <button id="load-history-btn" class="control-btn">Load History</button>
-            <button id="replay-history-btn" class="control-btn" disabled>Replay Random</button>
-          </div>
-        </div>
-      <% } %>
-      
-      <% if (userLevel >= 3) { %>
         <div id="spirals-panel" class="control-panel">
           <h3>Spirals Settings</h3>
           <div class="spirals-toggle">
