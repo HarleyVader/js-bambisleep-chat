@@ -635,7 +635,7 @@ async function pushMessages(collarText, userPrompt, finalContent, socketId) {
 async function handleMessage(userPrompt, socketId, username) {
   try {
     const modelNames = [
-      'L3-SthenoMaidBlackroot-8B-V1@q2_k'
+      'l3-sthenomaidblackroot-8b-v1'
     ];
     
     const modelIds = await Promise.all(modelNames.map(name => selectLoadedModels(name)));
