@@ -6,7 +6,7 @@ import Logger from '../utils/logger.js';
 import footerConfig from '../config/footer.config.js';
 import config from '../config/config.js'; // Add this import
 import { getModel, withDbConnection } from '../config/db.js';
-import ChatMessage from '../models/ChatMessage.js';
+import { User, Profile, ChatMessage } from '../models/models.js';
 
 const logger = new Logger('RouteManager');
 const router = express.Router();

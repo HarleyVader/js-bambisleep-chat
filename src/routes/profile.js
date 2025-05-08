@@ -4,7 +4,7 @@ import Logger from '../utils/logger.js';
 import { getModel } from '../config/db.js';
 import footerConfig from '../config/footer.config.js';
 import { requireLogin } from '../middleware/auth.js';
-import { User, getUser, updateUser } from '../models/User.js';
+import { User, Profile, ChatMessage } from '../models/models.js';
 
 const logger = new Logger('ProfileRoutes');
 const router = express.Router();

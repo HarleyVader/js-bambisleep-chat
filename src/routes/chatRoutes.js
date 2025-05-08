@@ -1,5 +1,5 @@
 import express from 'express';
-import ChatMessage from '../models/ChatMessage.js';
+import { User, Profile, ChatMessage } from '../models/models.js';
 import Logger from '../utils/logger.js';
 
 const router = express.Router();

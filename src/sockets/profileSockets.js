@@ -1,9 +1,8 @@
 import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
-import { getProfile, updateProfile } from '../models/Profile.js';
+import { User, Profile, ChatMessage } from '../models/models.js';
 import { getModel, withDbConnection } from '../config/db.js'; // Import both from db.js
-import { User, getUser } from '../models/User.js';
-import { Profile, getProfile, getOrCreateProfile, updateProfile } from '../models/Profile.js';
+
 
 const logger = new Logger('ProfileSockets');
 
