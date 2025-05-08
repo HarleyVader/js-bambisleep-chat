@@ -357,6 +357,26 @@ chatMessageSchema.statics.getRecentMessages = async function(limit = 50) {
   }
 };
 
+// Add static method to ChatMessage model
+chatMessageSchema.statics.saveMessage = async function(messageData) {
+  try {
+    const newMessage = new this(messageData);
+    return await newMessage.save();
+  } catch (error) {
+    throw new Error(`Failed to save chat message: ${error.message}`);
+  }
+};
+
+chatMessageSchema.statics.getRecentMessages = async function(limit) {
+  try {
+    return await this.find()
+      .sort({ timestamp: -1 })
+      .limit(limit || 100);
+  } catch (error) {
+    throw new Error(`Failed to retrieve recent messages: ${error.message}`);
+  }
+};
+
 // === SESSION HISTORY SCHEMA ===
 const sessionHistorySchema = new mongoose.Schema({
   username: { type: String, required: true, index: true },
@@ -656,6 +676,15 @@ async function updateUser(username, updates) {
   });
 }
 
+// Add static method to User model
+User.getUserByUsername = async function(username) {
+  try {
+    return await User.findOne({ username });
+  } catch (error) {
+    throw new Error(`Failed to find user by username: ${error.message}`);
+  }
+};
+
 // === PROFILE FUNCTIONS ===
 async function getProfile(username) {
   return withDbConnection(async () => {
@@ -724,6 +753,7 @@ async function updateProfile(username, updates) {
     }
   });
 }
+
 
 // Initialize all models
 initModels();

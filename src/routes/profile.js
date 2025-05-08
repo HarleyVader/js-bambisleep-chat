@@ -112,8 +112,8 @@ router.get('/:username', async (req, res) => {
     const { username } = req.params;
     const cookieUsername = getUsernameFromCookies(req);
     
-    // First try to find the user with the getUserByUsername method
-    let user = await User.getUserByUsername(username);
+    // First try to find the user with the findOne method
+    let user = await User.findOne({ username });
     
     // If user doesn't exist, but the username matches the cookie
     // (meaning user is trying to view their own profile that doesn't exist yet),

@@ -63,11 +63,12 @@ function setupSocketHandlers(socket, io, socketStore, filteredWords = []) {
       const username = msg.username || 'anonBambi';
       
       // Create and save the message
-      await ChatMessage.saveMessage({
+      const newMessage = new ChatMessage({
         username: username,
         data: msg.data,
         timestamp: new Date()
       });
+      await newMessage.save();
       logger.info(`Chat message from ${username}: ${msg.data}`);
       
       // Broadcast the message to all clients
