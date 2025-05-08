@@ -151,29 +151,32 @@ userSchema.statics.findOrCreateByCookie = async function(cookie) {
 
 // Find or create a user by username
 userSchema.statics.findOrCreateByUsername = async function(username) {
-  if (!username) return null;
-  
-  return withDbConnection(async () => {
-    try {
-      let user = await this.findOne({ username });
-      
-      if (user) return user;
-      
+  try {
+    let user = await this.findOne({ username });
+    
+    if (!user) {
       user = new this({
         username,
-        displayName: username
+        createdAt: new Date(),
+        level: 1,
+        xp: 0
       });
-      
       await user.save();
-      return user;
-    } catch (error) {
-      if (error.code === 11000) {
-        return await this.findOne({ username });
-      }
-      logger.error(`Error in findOrCreateByUsername: ${error.message}`);
-      throw error;
     }
-  });
+    
+    return user;
+  } catch (error) {
+    throw new Error(`Failed to find or create user: ${error.message}`);
+  }
+};
+
+// Static method to get user by username
+userSchema.statics.getUserByUsername = async function(username) {
+  try {
+    return await this.findOne({ username });
+  } catch (error) {
+    throw new Error(`Failed to find user by username: ${error.message}`);
+  }
 };
 
 // === PROFILE SCHEMA ===
@@ -676,15 +679,6 @@ async function updateUser(username, updates) {
   });
 }
 
-// Add static method to User model
-User.getUserByUsername = async function(username) {
-  try {
-    return await User.findOne({ username });
-  } catch (error) {
-    throw new Error(`Failed to find user by username: ${error.message}`);
-  }
-};
-
 // === PROFILE FUNCTIONS ===
 async function getProfile(username) {
   return withDbConnection(async () => {
@@ -753,7 +747,6 @@ async function updateProfile(username, updates) {
     }
   });
 }
-
 
 // Initialize all models
 initModels();
