@@ -5,8 +5,8 @@ import mongoose from 'mongoose';
 import * as cheerio from 'cheerio';
 import { BaseWorker } from './baseWorker.js';
 import Logger from '../../utils/logger.js';
-import connectToMongoDB from '../../utils/dbConnection.js';
-import gracefulShutdown, { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
+import { connectDB } from '../../config/db.js';
+import { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../../utils/gracefulShutdown.js';
 import { withDbConnection } from '../../config/db.js';
 
 dotenv.config();
@@ -104,7 +104,7 @@ parentPort.on('message', async (msg) => {
   try {
     // Initialize MongoDB connection if not already done
     if (!isInitialized) {
-      await connectToMongoDB();
+      await connectDB();
       isInitialized = true;
     }
     
