@@ -320,6 +320,49 @@ profileSchema.methods.updateActiveTriggerSession = function() {
   this.activeTriggers = activeTriggers;
 };
 
+// Add static method to find or create profile by username
+profileSchema.statics.findOrCreateByUsername = async function(username) {
+  try {
+    // First try to find an existing profile
+    let profile = await this.findOne({ username });
+    
+    // If no profile exists, create one with defaults
+    if (!profile) {
+      // Get or create the user first
+      const User = mongoose.model('User');
+      const user = await User.findOrCreateByUsername(username);
+      
+      // Create basic profile with minimal settings
+      profile = new this({
+        user: user._id,
+        username,
+        activeTriggers: ['BAMBI SLEEP'],
+        triggers: [{ 
+          name: 'BAMBI SLEEP', 
+          active: true, 
+          description: 'Default trigger for all bambis' 
+        }],
+        systemControls: {
+          activeTriggers: ['BAMBI SLEEP'],
+          collarEnabled: false,
+          collarText: ''
+        }
+      });
+      
+      await profile.save();
+      
+      // Update user with profile reference
+      user.profile = profile._id;
+      await user.save();
+    }
+    
+    return profile;
+  } catch (error) {
+    console.error(`Error in findOrCreateByUsername: ${error}`);
+    throw error;
+  }
+};
+
 // === CHAT MESSAGE SCHEMA ===
 const chatMessageSchema = new mongoose.Schema({
   username: {

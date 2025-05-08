@@ -5,8 +5,9 @@ window.socketHandler = (function() {
   const maxReconnectAttempts = 5;
   let isReconnecting = false;
   let reconnectTimer = null;
+  let transportAttempts = 0;
   
-  // Socket options to match server configuration
+  // Socket options with transport fallback strategy
   const socketOptions = {
     reconnection: true,
     reconnectionAttempts: maxReconnectAttempts,
@@ -14,7 +15,8 @@ window.socketHandler = (function() {
     reconnectionDelayMax: 5000,
     timeout: 20000,
     pingInterval: 25000,
-    pingTimeout: 60000
+    pingTimeout: 60000,
+    transports: ['websocket', 'polling'] // Try WebSocket first, fallback to polling
   };
   
   /**
@@ -39,7 +41,8 @@ window.socketHandler = (function() {
       console.log('Socket handler initialized');
     } catch (error) {
       console.error('Socket initialization error:', error);
-      showConnectionError();
+      showConnectionError('Failed to initialize socket connection. Retrying...');
+      setTimeout(tryReconnect, 2000);
     }
   }
   
@@ -52,6 +55,7 @@ window.socketHandler = (function() {
       console.log('Socket connected:', socket.id);
       hideConnectionError();
       reconnectAttempts = 0;
+      transportAttempts = 0;
       isReconnecting = false;
       
       // Send username if available
@@ -69,6 +73,31 @@ window.socketHandler = (function() {
     // Connection error
     socket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
+      
+      // Try alternative transport if WebSocket fails
+      if (transportAttempts < 2) {
+        transportAttempts++;
+        console.log(`Trying alternative transport (attempt ${transportAttempts})`);
+        
+        // Force polling as fallback
+        if (socketOptions.transports[0] === 'websocket') {
+          socketOptions.transports = ['polling', 'websocket'];
+          
+          // Recreate socket with new transport options
+          if (socket) {
+            socket.disconnect();
+          }
+          
+          setTimeout(() => {
+            socket = io(window.location.origin, socketOptions);
+            window.socket = socket;
+            setupEventHandlers();
+          }, 1000);
+          
+          return;
+        }
+      }
+      
       handleConnectionIssue();
     });
     
