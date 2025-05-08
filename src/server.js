@@ -46,11 +46,11 @@ import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 
 // Import public utilities
 import { parseCookies, serializeCookie } from './public/js/utils/cookie-utils.js';
-import { getProfile } from './public/js/profile.js';
 import { setupErrorHandlers } from './public/js/error-handler.js';
 
 // Import models
 import { SessionHistory } from './models/models.js';
+import { getProfile } from './public/js/profile.js';
 
 // Initialize environment and paths
 dotenv.config();
