@@ -501,7 +501,7 @@ sessionHistorySchema.statics = {
 };
 
 // === SCRAPER SCHEMA ===
-const ScraperSchema = new mongoose.Schema({
+const scraperSchema = new mongoose.Schema({
   url: {
     type: String,
     required: true,
@@ -547,8 +547,53 @@ const ScraperSchema = new mongoose.Schema({
   }
 });
 
+// Add helper methods for common operations
+scraperSchema.methods.updateStatus = function(status) {
+  this.status = status;
+  return this.save();
+};
+
+scraperSchema.methods.addComment = function(bambiname, text) {
+  this.comments.push({
+    bambiname,
+    text,
+    date: new Date()
+  });
+  return this.save();
+};
+
+scraperSchema.methods.vote = function(isUpvote) {
+  if (isUpvote) {
+    this.upvotes += 1;
+  } else {
+    this.downvotes += 1;
+  }
+  return this.save();
+};
+
+// Static methods
+scraperSchema.statics.findByBambiname = function(bambiname) {
+  return this.find({ bambiname });
+};
+
+scraperSchema.statics.findByStatus = function(status) {
+  return this.find({ status });
+};
+
+// Create and export model
+let Scraper;
+try {
+  // Try to get existing model
+  Scraper = mongoose.model('Scraper');
+  logger.info('Using existing Scraper model');
+} catch (e) {
+  // Create new model if it doesn't exist
+  Scraper = mongoose.model('Scraper', scraperSchema);
+  logger.info('Created new Scraper model');
+}
+
 // Create model instances
-let User, Profile, ChatMessage, SessionHistory, Scraper;
+let User, Profile, ChatMessage, SessionHistory;
 
 // Initialize models
 function initModels() {
@@ -578,13 +623,6 @@ function initModels() {
     SessionHistory = mongoose.model('SessionHistory');
   } catch (e) {
     SessionHistory = mongoose.model('SessionHistory', sessionHistorySchema);
-  }
-
-  // Scraper model
-  try {
-    Scraper = mongoose.model('Scraper');
-  } catch (e) {
-    Scraper = mongoose.model('Scraper', ScraperSchema);
   }
 
   logger.info('All models initialized successfully');
@@ -708,3 +746,4 @@ export {
 // Backward compatibility
 export const getUserByUsername = getUser;
 export const updateUserProfile = updateUser;
+export default Scraper;
