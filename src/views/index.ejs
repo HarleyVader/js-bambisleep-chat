@@ -81,68 +81,13 @@
         <script src="/js/utils/socket-handler.js"></script>
         <script src="/js/utils/bambi-sessions.js"></script>
         <script src="/js/utils/cookie-utils.js"></script>
-        <script src="/js/utils/audio-utils.js"></script>
         <script src="/js/utils/performance-monitor.js"></script>
-        
-        <script>
-          // Initialize socket connection
-          const socket = io({
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            timeout: 20000
-          });
-
-          // Make socket globally available
-          window.socket = socket;
-
-          // Handle connection events
-          socket.on('connect', function () {
-            console.log('Socket connected with ID:', socket.id);
-
-            // Get username from cookie or data attribute
-            const username = getCookie('bambiname') || document.body.getAttribute('data-username');
-
-            // Store username globally
-            if (username) {
-              window.username = username;
-              socket.emit('set username', username);
-            }
-
-            // Update UI to show connected state
-            document.body.classList.add('socket-connected');
-            document.body.classList.remove('socket-disconnected');
-          });
-
-          // Handle disconnection
-          socket.on('disconnect', function () {
-            console.log('Socket disconnected');
-            document.body.classList.remove('socket-connected');
-            document.body.classList.add('socket-disconnected');
-          });
-
-          // Handle reconnection
-          socket.on('reconnect', function () {
-            console.log('Socket reconnected');
-
-            // Re-identify user after reconnection
-            const username = window.username || getCookie('bambiname');
-            if (username) {
-              socket.emit('set username', username);
-            }
-          });
-
-          // Handle errors
-          socket.on('connect_error', function (error) {
-            console.error('Socket connection error:', error);
-          });
-        </script>
         <script src="js/aigf-core.js"></script>
         <script src="js/psychodelic-trigger-mania.js"></script>
         <script src="js/text2speech.js"></script>
         <script src="js/responsive.js"></script>
         <script src="js/triggers.js"></script>
+        <script src="/js/utils/audio-utils.js"></script>
         <script>
           document.addEventListener("DOMContentLoaded", () => {
             const modal = document.getElementById('username-modal');
