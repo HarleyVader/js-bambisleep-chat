@@ -49,8 +49,7 @@ import { parseCookies, serializeCookie } from './public/js/utils/cookie-utils.js
 import { setupErrorHandlers } from './public/js/error-handler.js';
 
 // Import models
-import { SessionHistory } from './models/models.js';
-import { getProfile } from './config/db.js';
+import { SessionHistory, getProfile } from './models/models.js';
 
 // Initialize environment and paths
 dotenv.config();
