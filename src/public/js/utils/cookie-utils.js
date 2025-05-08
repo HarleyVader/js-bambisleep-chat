@@ -1,4 +1,7 @@
 window.cookieUtils = (function() {
+  // Private variables
+  const COOKIE_MONSTER_SLOGAN = "ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪";
+
   // Get cookie by name
   function getCookie(name) {
     const value = `; ${document.cookie}`;
@@ -12,6 +15,9 @@ window.cookieUtils = (function() {
     const date = new Date();
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     document.cookie = `${name}=${value};expires=${date.toUTCString()};path=/`;
+    
+    // Cookie monster celebration
+    console.log(COOKIE_MONSTER_SLOGAN);
   }
 
   // Delete cookie
@@ -68,7 +74,9 @@ window.cookieUtils = (function() {
         // If we have a username and it's not anonBambi, load profile triggers
         if (username !== 'anonBambi' && window.socket && window.socket.connected) {
           // Call the loadProfileTriggers function if it exists globally
-          if (typeof loadProfileTriggers === 'function') {
+          if (typeof window.loadProfileTriggers === 'function') {
+            window.loadProfileTriggers(username);
+          } else if (typeof loadProfileTriggers === 'function') {
             loadProfileTriggers(username);
           }
         }
@@ -105,7 +113,8 @@ window.cookieUtils = (function() {
     deleteCookie,
     getBambiName,
     setBambiName,
-    initUsernameModal
+    initUsernameModal,
+    COOKIE_MONSTER_SLOGAN
   };
 })();
 

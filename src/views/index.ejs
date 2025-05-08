@@ -90,23 +90,41 @@
         <script src="/js/utils/audio-utils.js"></script>
         <script>
           document.addEventListener("DOMContentLoaded", () => {
-            const modal = document.getElementById('username-modal');
             let username = '';
 
-            // ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪
-            function getCookie(name) {
-              const value = `; ${document.cookie}`;
-              const parts = value.split(`; ${name}=`);
-              if (parts.length === 2) return parts.pop().split(';').shift();
+            // Load username from cookie
+            username = window.cookieUtils.getBambiName();
+            
+            // Helper function to load profile triggers
+            window.loadProfileTriggers = function(username) {
+              if (typeof socket !== 'undefined' && socket.connected) {
+                socket.emit('get-profile-data', { username }, function (response) {
+                  if (response && response.success && response.profile) {
+                    const profile = response.profile;
+                    if (profile.systemControls && profile.systemControls.activeTriggers) {
+                      const activeTriggers = profile.systemControls.activeTriggers;
+
+                      // Send triggers to worker
+                      socket.emit('triggers', {
+                        triggerNames: activeTriggers.join(','),
+                        triggerDetails: activeTriggers.map(t => ({ name: t }))
+                      });
+
+                      console.log('Loaded triggers from profile:', activeTriggers);
+                    }
+                  }
+                });
+              }
             }
 
-            username = getCookie('bambiname');
+            const modal = document.getElementById('username-modal');
+
             if (!username) {
               modal.style.display = 'block';
             } else {
               // If we have a username and it's not anonBambi, load the profile triggers
               if (username !== 'anonBambi') {
-                loadProfileTriggers(username);
+                window.loadProfileTriggers(username);
               }
             }
 
@@ -130,28 +148,6 @@
 
             // Set username data attribute for profile-system-controls.ejs
             document.body.setAttribute('data-username', username);
-
-            // Helper function to load profile triggers
-            function loadProfileTriggers(username) {
-              if (typeof socket !== 'undefined' && socket.connected) {
-                socket.emit('get-profile-data', { username }, function (response) {
-                  if (response && response.success && response.profile) {
-                    const profile = response.profile;
-                    if (profile.systemControls && profile.systemControls.activeTriggers) {
-                      const activeTriggers = profile.systemControls.activeTriggers;
-
-                      // Send triggers to worker
-                      socket.emit('triggers', {
-                        triggerNames: activeTriggers.join(','),
-                        triggerDetails: activeTriggers.map(t => ({ name: t }))
-                      });
-
-                      console.log('Loaded triggers from profile:', activeTriggers);
-                    }
-                  }
-                });
-              }
-            }
 
             document.getElementById("chat-form").addEventListener("submit", (event) => {
               event.preventDefault();
@@ -419,6 +415,51 @@
               }
             });
           });
+        </script>
+        <script>
+          // Monitor connection status
+          (function() {
+            let connectionMonitor = null;
+            
+            function startConnectionMonitoring() {
+              if (connectionMonitor) clearInterval(connectionMonitor);
+              
+              connectionMonitor = setInterval(() => {
+                if (window.socket) {
+                  if (!window.socket.connected) {
+                    console.warn('Socket disconnected - attempting to reconnect');
+                    if (window.socketHandler && typeof window.socketHandler.reconnect === 'function') {
+                      window.socketHandler.reconnect();
+                    }
+                  }
+                } else {
+                  console.error('Socket not initialized');
+                  if (window.socketHandler && typeof window.socketHandler.init === 'function') {
+                    window.socketHandler.init();
+                  }
+                }
+              }, 30000); // Check every 30 seconds
+            }
+            
+            // Start monitoring once page is fully loaded
+            window.addEventListener('load', () => {
+              setTimeout(startConnectionMonitoring, 2000);
+            });
+            
+            // Store function to expose for manual checks
+            window.checkConnection = function() {
+              if (window.socket && window.socket.connected) {
+                console.log('Socket connection is active');
+                return true;
+              } else {
+                console.warn('Socket connection is inactive');
+                if (window.socketHandler && typeof window.socketHandler.reconnect === 'function') {
+                  window.socketHandler.reconnect();
+                }
+                return false;
+              }
+            };
+          })();
         </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
