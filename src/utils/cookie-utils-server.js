@@ -16,6 +16,21 @@ function parseCookies(cookieHeader) {
     }, {});
 }
 
+// Serialize cookie with options for HTTP headers
+function serializeCookie(name, value, options = {}) {
+  let cookieStr = `${name}=${value}`;
+  
+  if (options.path) cookieStr += `; path=${options.path}`;
+  if (options.domain) cookieStr += `; domain=${options.domain}`;
+  if (options.maxAge) cookieStr += `; max-age=${options.maxAge}`;
+  if (options.expires) cookieStr += `; expires=${options.expires.toUTCString()}`;
+  if (options.httpOnly) cookieStr += '; httpOnly';
+  if (options.secure) cookieStr += '; secure';
+  if (options.sameSite) cookieStr += `; sameSite=${options.sameSite}`;
+  
+  return cookieStr;
+}
+
 // Get cookie by name from request
 function getCookie(req, name) {
   if (!req.cookies) return null;
@@ -75,6 +90,7 @@ function isProfileOwner(req, profileUsername) {
 // Export all functions
 export {
   parseCookies,
+  serializeCookie,
   getCookie,
   setCookie,
   deleteCookie,
