@@ -448,8 +448,331 @@ window.triggerControls = (function() {
     }
   }
   
-  // The rest of the functions from the original file go here
-  // (loadTriggerAudio, playTriggerSound, displayTriggerText, etc.)
+  // Activate a trigger by name
+  function activateTrigger(triggerName) {
+    try {
+      // Find the trigger in our data
+      const trigger = triggerData.find(t => t.name === triggerName);
+      if (!trigger) {
+        console.log(`Trigger not found: ${triggerName}`);
+        return;
+      }
+      
+      // Play the trigger audio
+      playTriggerSound(trigger);
+      
+      // Display the trigger text
+      displayTriggerText(trigger.name);
+      
+      // Award XP for trigger activation if XP system exists
+      if (window.socket && window.socket.connected) {
+        window.socket.emit('client-award-xp', {
+          action: 'trigger-activated',
+          trigger: triggerName,
+          amount: 5,
+          timestamp: Date.now()
+        });
+      }
+    } catch (error) {
+      console.error('Error activating trigger:', error);
+    }
+  }
+  
+  // Play trigger sound
+  function playTriggerSound(trigger) {
+    try {
+      if (!trigger || !trigger.name) return;
+      
+      const triggerName = trigger.name;
+      const audioSrc = `/audio/triggers/${triggerName.replace(/\s+/g, '-')}.mp3`;
+      
+      // Use global audio player if available
+      if (window.audioPlayer && typeof window.audioPlayer.play === 'function') {
+        window.audioPlayer.play(audioSrc);
+        return;
+      }
+      
+      // Fallback to basic audio
+      const audio = audioCache[triggerName] || new Audio(audioSrc);
+      audio.volume = playbackVolumeFactor;
+      
+      // Store in cache if not already there
+      if (!audioCache[triggerName]) {
+        audioCache[triggerName] = audio;
+      }
+      
+      audio.play().catch(err => {
+        console.error(`Error playing audio for trigger ${triggerName}:`, err);
+        
+        // Add to error handler if available
+        if (window.errorHandler) {
+          window.errorHandler.logResourceError(audioSrc, 'audio', err.message);
+        }
+      });
+    } catch (error) {
+      console.error('Error playing trigger sound:', error);
+    }
+  }
+  
+  // Display trigger text in the UI
+  function displayTriggerText(triggerName) {
+    try {
+      const triggerDisplay = document.getElementById('trigger-display');
+      if (!triggerDisplay) return;
+      
+      // Update displayed text
+      triggerDisplay.textContent = triggerName;
+      triggerDisplay.classList.add('active');
+      
+      // Remove active class after animation
+      setTimeout(() => {
+        triggerDisplay.classList.remove('active');
+      }, 3000);
+    } catch (error) {
+      console.error('Error displaying trigger text:', error);
+    }
+  }
+  
+  // Get selected triggers
+  function getSelectedTriggers() {
+    try {
+      const selectedTriggers = [];
+      const toggleInputs = document.getElementsByClassName("toggle-input");
+      
+      for (let i = 0; i < toggleInputs.length; i++) {
+        if (toggleInputs[i].checked && toggleInputs[i].dataset.triggerName) {
+          const triggerName = toggleInputs[i].dataset.triggerName;
+          const trigger = triggerData.find(t => t.name === triggerName);
+          if (trigger) {
+            selectedTriggers.push(trigger);
+          }
+        }
+      }
+      
+      return selectedTriggers;
+    } catch (error) {
+      console.error('Error getting selected triggers:', error);
+      return [];
+    }
+  }
+  
+  // Play random triggers from the selected playlist
+  function playRandomPlaylist() {
+    try {
+      const selectedTriggers = getSelectedTriggers();
+      
+      if (selectedTriggers.length === 0) {
+        alert("Please select at least one trigger first");
+        return;
+      }
+      
+      // Get a random trigger from the selected ones
+      const randomIndex = Math.floor(Math.random() * selectedTriggers.length);
+      const randomTrigger = selectedTriggers[randomIndex];
+      
+      // Play the trigger
+      activateTrigger(randomTrigger.name);
+    } catch (error) {
+      console.error('Error playing random playlist:', error);
+    }
+  }
+  
+  // Toggle all trigger toggles on or off
+  function toggleAllToggles() {
+    try {
+      const toggleInputs = document.getElementsByClassName("toggle-input");
+      
+      // Check if any are selected
+      let anySelected = false;
+      for (let i = 0; i < toggleInputs.length; i++) {
+        if (toggleInputs[i].checked) {
+          anySelected = true;
+          break;
+        }
+      }
+      
+      // Set all to opposite of current state
+      for (let i = 0; i < toggleInputs.length; i++) {
+        toggleInputs[i].checked = !anySelected;
+      }
+      
+      // Save the toggle states
+      saveToggleStatesToSystem();
+    } catch (error) {
+      console.error('Error toggling all triggers:', error);
+    }
+  }
+  
+  // Start continuous playback of selected triggers
+  function playContinuousTriggers() {
+    try {
+      const selectedTriggers = getSelectedTriggers();
+      
+      if (selectedTriggers.length === 0) {
+        alert("Please select at least one trigger first");
+        const loopToggle = document.getElementById("loop-toggle");
+        if (loopToggle) loopToggle.checked = false;
+        return;
+      }
+      
+      continuousPlaybackActive = true;
+      playNextTrigger();
+    } catch (error) {
+      console.error('Error starting continuous playback:', error);
+    }
+  }
+  
+  // Play the next trigger in continuous mode
+  function playNextTrigger() {
+    try {
+      if (!continuousPlaybackActive) return;
+      
+      const selectedTriggers = getSelectedTriggers();
+      
+      if (selectedTriggers.length === 0) {
+        stopContinuousPlayback();
+        return;
+      }
+      
+      // Get a random trigger
+      const randomIndex = Math.floor(Math.random() * selectedTriggers.length);
+      const randomTrigger = selectedTriggers[randomIndex];
+      
+      // Play the trigger
+      playTriggerSound(randomTrigger);
+      displayTriggerText(randomTrigger.name);
+      
+      // Calculate delay based on speed factor (longer delay for slower)
+      const baseDelay = 10000; // 10 seconds between triggers
+      const delay = baseDelay * playbackSpeedFactor;
+      
+      // Schedule next trigger
+      setTimeout(playNextTrigger, delay);
+    } catch (error) {
+      console.error('Error in continuous playback:', error);
+    }
+  }
+  
+  // Stop continuous playback
+  function stopContinuousPlayback() {
+    continuousPlaybackActive = false;
+  }
+  
+  // Preload audio for selected triggers
+  function preloadSelectedAudio() {
+    try {
+      const selectedTriggers = getSelectedTriggers();
+      
+      selectedTriggers.forEach(trigger => {
+        loadTriggerAudio(trigger);
+      });
+    } catch (error) {
+      console.error('Error preloading audio:', error);
+    }
+  }
+  
+  // Load audio for a specific trigger
+  function loadTriggerAudio(trigger) {
+    try {
+      if (!trigger || !trigger.name) return;
+      
+      const triggerName = trigger.name;
+      
+      // Skip if we've already tried loading this too many times
+      if (audioLoadAttempts[triggerName] && audioLoadAttempts[triggerName] >= MAX_LOAD_ATTEMPTS) {
+        return;
+      }
+      
+      // Skip if already cached
+      if (audioCache[triggerName]) return;
+      
+      const audioSrc = `/audio/triggers/${triggerName.replace(/\s+/g, '-')}.mp3`;
+      const audio = new Audio();
+      
+      // Track load attempts
+      audioLoadAttempts[triggerName] = (audioLoadAttempts[triggerName] || 0) + 1;
+      
+      // Setup event handlers
+      audio.addEventListener('canplaythrough', () => {
+        audioCache[triggerName] = audio;
+        console.log(`Loaded audio for trigger: ${triggerName}`);
+      });
+      
+      audio.addEventListener('error', (err) => {
+        console.error(`Error loading audio for trigger ${triggerName}:`, err);
+        
+        // Add to error handler if available
+        if (window.errorHandler) {
+          window.errorHandler.logResourceError(audioSrc, 'audio', 'Failed to load audio file');
+        }
+      });
+      
+      // Set source and start loading
+      audio.src = audioSrc;
+      audio.preload = 'auto';
+    } catch (error) {
+      console.error('Error loading trigger audio:', error);
+    }
+  }
+  
+  // Update the trigger toggles based on active triggers
+  function updateTriggerToggles(activeTriggers) {
+    try {
+      if (!Array.isArray(activeTriggers)) return;
+      
+      const toggleInputs = document.getElementsByClassName("toggle-input");
+      
+      for (let i = 0; i < toggleInputs.length; i++) {
+        const triggerName = toggleInputs[i].dataset.triggerName;
+        if (triggerName) {
+          toggleInputs[i].checked = activeTriggers.includes(triggerName);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating trigger toggles:', error);
+    }
+  }
+  
+  // Update playback speed
+  function updatePlaybackSpeed(speedValue) {
+    try {
+      // Update UI
+      updateSpeedLabel(speedValue);
+      
+      const speedSlider = document.getElementById('loop-speed');
+      if (speedSlider) {
+        speedSlider.value = speedValue;
+      }
+      
+      // Update internal state
+      playbackSpeedFactor = getSpeedFactor(speedValue);
+    } catch (error) {
+      console.error('Error updating playback speed:', error);
+    }
+  }
+  
+  // Update playback volume
+  function updatePlaybackVolume(volumeValue) {
+    try {
+      // Convert to 0-1 range
+      const volumeFactor = volumeValue / 10;
+      
+      const volumeSlider = document.getElementById('loop-volume');
+      if (volumeSlider) {
+        volumeSlider.value = volumeValue;
+      }
+      
+      const volumeDisplay = document.getElementById('volume-value');
+      if (volumeDisplay) {
+        volumeDisplay.textContent = Math.round(volumeFactor * 100) + '%';
+      }
+      
+      // Update internal state
+      playbackVolumeFactor = volumeFactor;
+    } catch (error) {
+      console.error('Error updating playback volume:', error);
+    }
+  }
   
   // Using the existing API with a few additions
   return {
