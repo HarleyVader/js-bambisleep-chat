@@ -1,11 +1,11 @@
 window.audioUtils = (function() {
-  // Audio cache to prevent reloading
+  // Simple cache for loaded audio
   const audioCache = {};
   
   // Default volume
   let volume = 0.7;
   
-  // Try to load from localStorage
+  // Load settings from localStorage
   try {
     const settings = JSON.parse(localStorage.getItem('audioSettings') || '{}');
     if (settings.volume !== undefined) volume = settings.volume;
@@ -17,39 +17,38 @@ window.audioUtils = (function() {
   function playTriggerAudio(triggerName) {
     if (!triggerName) return null;
     
-    // Skip if sound is disabled
+    // Check if sound is disabled
     try {
       const settings = JSON.parse(localStorage.getItem('audioSettings') || '{}');
       if (settings.enableSound === false) return null;
     } catch (e) {
-      // Continue with default
+      // Continue with default enabled
     }
     
-    // Format trigger name in different ways to try
-    const formattedName = triggerName.replace(/\s+/g, '-').toUpperCase();
-    const altFormattedName = triggerName.replace(/\s+/g, '-');
-    const lowerFormattedName = triggerName.replace(/\s+/g, '-').toLowerCase();
-    
-    // Possible paths to try
-    const pathsToTry = [
-      `/audio/triggers/${formattedName}.mp3`,
-      `/audio/triggers/${altFormattedName}.mp3`,
-      `/audio/triggers/${lowerFormattedName}.mp3`,
-      `/audio/${formattedName}.mp3`,
-      `/audio/${altFormattedName}.mp3`,
-      `/audio/${lowerFormattedName}.mp3`,
-      `/audio/triggers/${triggerName}.mp3`,
-      `/audio/${triggerName}.mp3`
+    // Convert trigger name to different formats to try
+    const formats = [
+      triggerName,
+      triggerName.replace(/\s+/g, '-'),
+      triggerName.replace(/\s+/g, '-').toUpperCase(),
+      triggerName.replace(/\s+/g, '-').toLowerCase()
     ];
     
-    // Try each path until one works
+    // Create list of paths to try
+    const pathsToTry = [];
+    
+    // Add both /audio/ and /audio/triggers/ paths
+    formats.forEach(format => {
+      pathsToTry.push(`/audio/triggers/${format}.mp3`);
+    });
+    
+    // Try to load and play from the list of paths
     return tryNextPath(pathsToTry, 0);
   }
   
-  // Recursively try paths until one works
+  // Try paths one by one until success
   function tryNextPath(paths, index) {
     if (index >= paths.length) {
-      console.error(`Could not find audio for trigger`);
+      console.error('Could not find audio for trigger');
       return null;
     }
     
@@ -66,11 +65,11 @@ window.audioUtils = (function() {
       return audio;
     }
     
-    // Create new audio
+    // Create new audio element
     const audio = new Audio();
     audio.volume = volume;
     
-    // Handle success
+    // Set up success handler
     audio.oncanplaythrough = () => {
       audioCache[path] = audio;
       audio.play().catch(err => {
@@ -78,7 +77,7 @@ window.audioUtils = (function() {
       });
     };
     
-    // Handle error - try next path
+    // Set up error handler to try next path
     audio.onerror = () => {
       console.log(`Could not load audio from ${path}, trying next path`);
       return tryNextPath(paths, index + 1);
@@ -89,11 +88,11 @@ window.audioUtils = (function() {
     return audio;
   }
   
-  // Set volume for all audio
+  // Update volume for all audio
   function setVolume(newVolume) {
     volume = Math.max(0, Math.min(1, newVolume));
     
-    // Update all cached audio
+    // Update all cached audio elements
     Object.values(audioCache).forEach(audio => {
       audio.volume = volume;
     });
