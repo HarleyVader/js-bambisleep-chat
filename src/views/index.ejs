@@ -77,11 +77,13 @@
       </div>
       <%- include('../views/partials/footer.ejs') %>
         <!-- Make sure these scripts appear in exactly this order -->
-        <script src="/socket.io/socket.io.js"></script>
+        <script src="/socket.io/socket.io.js"></script>     
+        <script src="/js/utils/socket-handler.js"></script>
+        <script src="/js/bambi-sessions.js"></script>
         <script src="/js/utils/cookie-utils.js"></script>
         <script src="/js/utils/audio-utils.js"></script>
-        <script src="/js/socket-handler.js"></script>
-        <!-- Then your existing scripts -->
+        <script src="/js/utils/performance-monitor.js"></script>
+        
         <script>
           // Initialize socket connection
           const socket = io({
@@ -476,7 +478,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
         <script src="js/bootstrap.min.js"></script>
-        <script src="/js/bambi-sessions.js"></script>
+        
   </body>
 
 </html>
