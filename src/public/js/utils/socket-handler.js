@@ -1,242 +1,235 @@
 window.socketHandler = (function() {
-  let socket = null;
+  // Private variables
   let connectionAttempts = 0;
-  const MAX_ATTEMPTS = 3;
-  const TRANSPORT_OPTIONS = ['websocket', 'polling'];
+  const maxReconnectAttempts = 5;
+  const reconnectDelay = 3000; // ms
+  let reconnectTimer = null;
+  let isConnecting = false;
+  let transportFallbacks = ['websocket', 'polling']; // Fallback options
   let currentTransportIndex = 0;
-  let reconnectTimeout = null;
+  
+  // Connection status element reference
+  let statusIndicator = null;
   
   function init() {
+    console.log('Initializing socket connection...');
+    
     try {
-      console.log('Initializing socket connection...');
+      // Find status indicator if it exists
+      statusIndicator = document.getElementById('connection-status');
+      updateConnectionUI('connecting');
       
-      // Try to connect with the primary transport option
-      connectWithTransport(TRANSPORT_OPTIONS[currentTransportIndex]);
+      // Clear any existing connection
+      if (window.socket) {
+        window.socket.off();
+        window.socket.disconnect();
+      }
       
-      // Set up the global connection status indicator
-      setupConnectionIndicator();
+      connectSocket();
       
-      // Add connection indicator styles
-      addConnectionStyles();
+      // Set up global error handler for uncaught socket errors
+      window.addEventListener('error', function(event) {
+        if (event.message && event.message.includes('socket')) {
+          console.error('Global socket error:', event.message);
+          handleConnectionError(new Error(event.message));
+        }
+      });
     } catch (error) {
       console.error('Socket initialization error:', error);
-      fallbackToAlternativeTransport();
+      updateConnectionUI('error');
     }
   }
   
-  function connectWithTransport(transport) {
-    if (socket) {
-      // Clean up existing socket if any
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('connect_error');
+  function connectSocket() {
+    if (isConnecting) return;
+    isConnecting = true;
+    
+    try {
+      const transport = transportFallbacks[currentTransportIndex];
+      
+      // Initialize socket with current transport option
+      window.socket = io({
+        transports: [transport],
+        reconnection: false, // We'll handle reconnection manually
+        timeout: 10000
+      });
+      
+      // Set up socket event handlers
+      window.socket.on('connect', handleSuccessfulConnection);
+      window.socket.on('disconnect', handleDisconnection);
+      window.socket.on('connect_error', handleConnectionError);
+      window.socket.on('error', handleConnectionError);
+      
+      // Add debug event listener for development
+      window.socket.onAny((event, ...args) => {
+        if (event.startsWith('debug-')) {
+          console.log(`Socket event: ${event}`, args);
+        }
+      });
+    } catch (error) {
+      console.error('Socket creation error:', error);
+      handleConnectionError(error);
     }
-    
-    // Initialize the socket with specified transport
-    socket = io({
-      transports: [transport],
-      reconnectionAttempts: 3,
-      reconnectionDelay: 1000,
-      timeout: 5000
-    });
-    
-    // Store in window for global access
-    window.socket = socket;
-    
-    // Set up core socket event handlers
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-    socket.on('connect_error', handleConnectionError);
-    
-    return socket;
   }
   
-  function handleConnect() {
+  function handleSuccessfulConnection() {
     console.log('Socket connected successfully');
+    isConnecting = false;
     connectionAttempts = 0;
-    currentTransportIndex = 0; // Reset to preferred transport for next connection
+    updateConnectionUI('connected');
     
-    // Update connection indicator
-    const indicator = document.getElementById('connection-status');
-    if (indicator) {
-      indicator.classList.remove('disconnected');
-      indicator.classList.add('connected');
-      indicator.title = 'Connected';
-    }
-    
-    // Notify system that connection is established
+    // Dispatch global event that other modules can listen for
     document.dispatchEvent(new CustomEvent('socket-connected'));
+    
+    // Send initial authentication if needed
+    if (window.bambiSystem && window.bambiSystem.getState('userProfile')) {
+      const profile = window.bambiSystem.getState('userProfile');
+      if (profile.userId) {
+        window.socket.emit('client-auth', {
+          userId: profile.userId,
+          sessionId: localStorage.getItem('sessionId') || null
+        });
+      }
+    }
   }
   
-  function handleDisconnect(reason) {
-    console.log('Socket disconnected:', reason);
+  function handleDisconnection(reason) {
+    console.warn('Socket disconnected:', reason);
+    updateConnectionUI('disconnected');
     
-    // Update connection indicator
-    const indicator = document.getElementById('connection-status');
-    if (indicator) {
-      indicator.classList.remove('connected');
-      indicator.classList.add('disconnected');
-      indicator.title = 'Disconnected: ' + reason;
-    }
-    
-    // Disable features that require connection
-    document.querySelectorAll('.requires-connection').forEach(el => {
-      el.disabled = true;
-    });
-    
-    // Notify system that connection is lost
+    // Dispatch global event that other modules can listen for
     document.dispatchEvent(new CustomEvent('socket-disconnected', {
       detail: { reason }
     }));
+    
+    // Attempt reconnection if not manually disconnected
+    if (reason !== 'io client disconnect') {
+      attemptReconnection();
+    }
   }
   
   function handleConnectionError(error) {
-    console.error('Socket connection error:', error);
+    console.error(' Socket connection error:', error);
+    isConnecting = false;
+    updateConnectionUI('error');
     
-    if (connectionAttempts < MAX_ATTEMPTS) {
-      fallbackToAlternativeTransport();
+    // Try alternative transport if available
+    if (currentTransportIndex < transportFallbacks.length - 1) {
+      currentTransportIndex++;
+      console.log(`Trying alternative transport (attempt ${currentTransportIndex})`);
+      connectSocket();
     } else {
-      // Show user-friendly error message after all attempts failed
-      showConnectionErrorMessage();
+      // Reset transport options and try reconnection
+      currentTransportIndex = 0;
+      attemptReconnection();
     }
   }
   
-  function fallbackToAlternativeTransport() {
+  function attemptReconnection() {
+    // Clear any existing reconnect timer
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+    }
+    
     connectionAttempts++;
     
-    // Clear any existing reconnect timeout
-    if (reconnectTimeout) {
-      clearTimeout(reconnectTimeout);
+    if (connectionAttempts <= maxReconnectAttempts) {
+      updateConnectionUI('reconnecting');
+      console.log(`Attempting reconnection (${connectionAttempts}/${maxReconnectAttempts})...`);
+      
+      // Exponential backoff for reconnect attempts
+      const delay = reconnectDelay * Math.pow(1.5, connectionAttempts - 1);
+      
+      reconnectTimer = setTimeout(() => {
+        connectSocket();
+      }, delay);
+    } else {
+      console.error('Maximum reconnection attempts reached');
+      updateConnectionUI('max-attempts');
+      
+      // Show offline mode message to user
+      showOfflineMessage();
     }
-    
-    // Try the next transport option
-    currentTransportIndex = (currentTransportIndex + 1) % TRANSPORT_OPTIONS.length;
-    const nextTransport = TRANSPORT_OPTIONS[currentTransportIndex];
-    
-    console.log(`Trying alternative transport (attempt ${connectionAttempts})`);
-    
-    // Add a small delay before trying again
-    reconnectTimeout = setTimeout(() => {
-      connectWithTransport(nextTransport);
-    }, 1000);
   }
   
-  function setupConnectionIndicator() {
-    // Create connection indicator if it doesn't exist
-    if (!document.getElementById('connection-status')) {
-      const indicator = document.createElement('div');
-      indicator.id = 'connection-status';
-      indicator.className = 'connection-indicator disconnected';
-      indicator.title = 'Disconnected';
+  function updateConnectionUI(state) {
+    if (!statusIndicator) {
+      // Try to find the element again in case it was added after init
+      statusIndicator = document.getElementById('connection-status');
+    }
+    
+    if (!statusIndicator) return;
+    
+    // Remove all status classes
+    statusIndicator.classList.remove(
+      'connected', 'connecting', 'disconnected', 
+      'reconnecting', 'error', 'max-attempts'
+    );
+    
+    // Add current state class
+    statusIndicator.classList.add(state);
+    
+    // Update text based on state
+    const statusTexts = {
+      'connected': 'Connected',
+      'connecting': 'Connecting...',
+      'disconnected': 'Disconnected',
+      'reconnecting': 'Reconnecting...',
+      'error': 'Connection Error',
+      'max-attempts': 'Connection Failed'
+    };
+    
+    statusIndicator.textContent = statusTexts[state] || 'Unknown Status';
+  }
+  
+  function showOfflineMessage() {
+    // Create offline message if it doesn't exist
+    if (!document.getElementById('offline-message')) {
+      const messageEl = document.createElement('div');
+      messageEl.id = 'offline-message';
+      messageEl.className = 'offline-notification';
+      messageEl.innerHTML = `
+        <div class="offline-content">
+          <h3>Connection Lost</h3>
+          <p>Unable to connect to BambiSleep servers. Some features may be unavailable.</p>
+          <button id="retry-connection" class="btn btn-primary">Try Again</button>
+        </div>
+      `;
       
-      // Add to the top navigation bar if it exists
-      const navbar = document.querySelector('.navbar') || document.body;
-      navbar.appendChild(indicator);
+      document.body.appendChild(messageEl);
       
-      // Add click handler to manually retry connection
-      indicator.addEventListener('click', () => {
-        if (indicator.classList.contains('disconnected')) {
+      // Add retry button listener
+      const retryBtn = document.getElementById('retry-connection');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', function() {
           connectionAttempts = 0;
+          messageEl.remove();
           init();
-        }
-      });
+        });
+      }
     }
   }
   
-  function showConnectionErrorMessage() {
-    const message = document.createElement('div');
-    message.className = 'connection-error-message';
-    message.innerHTML = `
-      <h3>Connection Error</h3>
-      <p>Unable to connect to the server. Please check your internet connection and try again.</p>
-      <button id="retry-connection">Retry Connection</button>
-    `;
-    
-    document.body.appendChild(message);
-    
-    // Set up retry button
-    document.getElementById('retry-connection').addEventListener('click', () => {
-      connectionAttempts = 0;
-      message.remove();
-      init();
-    });
-  }
-  
-  function addConnectionStyles() {
-    // Check if styles are already added
-    if (document.getElementById('socket-connection-styles')) {
-      return;
-    }
-    
-    // Create style element
-    const styleEl = document.createElement('style');
-    styleEl.id = 'socket-connection-styles';
-    styleEl.textContent = `
-      .connection-indicator {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin: 0 10px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-      }
-      
-      .connection-indicator.connected {
-        background-color: #4CAF50;
-        box-shadow: 0 0 5px rgba(76, 175, 80, 0.6);
-      }
-      
-      .connection-indicator.disconnected {
-        background-color: #F44336;
-        box-shadow: 0 0 5px rgba(244, 67, 54, 0.6);
-        animation: pulse 2s infinite;
-      }
-      
-      @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.5; }
-        100% { opacity: 1; }
-      }
-      
-      .connection-error-message {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background-color: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 20px;
-        border-radius: 8px;
-        text-align: center;
-        z-index: 1000;
-      }
-      
-      .connection-error-message button {
-        background-color: #8200ad;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        margin-top: 10px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      
-      .connection-error-message button:hover {
-        background-color: #a100d6;
-      }
-    `;
-    
-    // Add styles to document head
-    document.head.appendChild(styleEl);
+  function manualReconnect() {
+    connectionAttempts = 0;
+    currentTransportIndex = 0;
+    const offlineMsg = document.getElementById('offline-message');
+    if (offlineMsg) offlineMsg.remove();
+    init();
   }
   
   // Public API
   return {
     init,
-    getSocket: () => socket,
-    isConnected: () => socket && socket.connected
+    manualReconnect,
+    isConnected: function() {
+      return window.socket && window.socket.connected;
+    }
   };
 })();
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', window.socketHandler.init);
+document.addEventListener('DOMContentLoaded', function() {
+  // Delay connection slightly to allow DOM to fully load
+  setTimeout(window.socketHandler.init, 500);
+});
