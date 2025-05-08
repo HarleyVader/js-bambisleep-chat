@@ -1,11 +1,21 @@
 import express from 'express';
 import mongoose from 'mongoose';
-// Change the import to use centralized models
-import { Profile, getProfile, withDbConnection } from '../models/models.js';
+import { Profile, getProfile } from '../models/models.js';
+import { connect } from '../config/db.js';
 import Logger from '../utils/logger.js';
 
 const router = express.Router();
 const logger = new Logger('API Routes');
+
+// Replace any uses of withDbConnection with the correct function
+async function withDb(callback) {
+  const db = await connect();
+  try {
+    return await callback(db);
+  } finally {
+    await db.close();
+  }
+}
 
 /**
  * Route to get chat messages
@@ -126,7 +136,7 @@ router.get('/api/profile/:username/system-controls', async (req, res) => {
     }
     
     // Use the imported Profile model directly
-    const profile = await withDbConnection(async () => {
+    const profile = await withDb(async () => {
       return await Profile.findOne({ username });
     });
     
@@ -166,7 +176,7 @@ router.post('/api/profile/:username/system-controls', async (req, res) => {
     }
     
     // Use the imported Profile model directly
-    let profile = await withDbConnection(async () => {
+    let profile = await withDb(async () => {
       return await Profile.findOne({ username });
     });
     
