@@ -106,3 +106,34 @@
     </div>
   </div>
 </footer>
+
+<!-- Load system modules in dependency order -->
+<!-- 1. Core system state manager first -->
+<script src="/js/controls/system-controls.js"></script>
+
+<!-- 2. Essential feature modules -->
+<script src="/js/controls/xp-system.js"></script>
+<script src="/js/controls/xp-notification.js"></script>
+<script src="/js/controls/audio-controls.js"></script>
+
+<!-- 3. UI feature modules -->
+<script src="/js/controls/trigger-controls.js"></script>
+<script src="/js/controls/collar-controls.js"></script>
+<script src="/js/controls/spiral-controls.js"></script>
+
+<!-- 4. Session management loads last since it depends on other modules -->
+<script src="/js/utils/bambi-sessions.js"></script>
+
+<!-- Initialize system with proper event listening -->
+<script>
+  // Wait for all modules to load before initializing system integration
+  document.addEventListener('DOMContentLoaded', function() {
+    // Create system initialization event
+    document.dispatchEvent(new CustomEvent('system-ready'));
+    
+    // Performance mark for completed loading
+    if (window.performance && window.performance.mark) {
+      window.performance.mark('system-modules-loaded');
+    }
+  });
+</script>

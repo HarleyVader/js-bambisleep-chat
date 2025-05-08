@@ -29,8 +29,8 @@
             </div>
           </div>
           <br>
-          <div id="system-controls-container">
-            <%- include('../views/partials/profile-system-controls.ejs', { profile: profile }) %>
+          <div id="system-controls-container" class="system-controls-container">
+            <!-- System controls will be dynamically generated -->
           </div>
         </div>
         <div id="response-container">
@@ -76,42 +76,48 @@
         </div>
       </div>
       <%- include('../views/partials/footer.ejs') %>
-        <!-- Make sure these scripts appear in exactly this order -->
-        <script src="/socket.io/socket.io.js"></script>     
-        <script src="/js/utils/socket-handler.js"></script>
-        <script src="/js/utils/bambi-sessions.js"></script>
-        <script src="/js/utils/cookie-utils.js"></script>
-        <script src="/js/utils/performance-monitor.js"></script>
+
         <script src="js/aigf-core.js"></script>
         <script src="js/psychodelic-trigger-mania.js"></script>
         <script src="js/text2speech.js"></script>
         <script src="js/responsive.js"></script>
-        <script src="js/triggers.js"></script>
-        <script src="/js/utils/audio-utils.js"></script>
+
         <script>
           document.addEventListener("DOMContentLoaded", () => {
+            // Initialize system controls
+            generateSystemControls();
+
             let username = '';
 
             // Load username from cookie
             username = window.cookieUtils.getBambiName();
-            
+
             // Helper function to load profile triggers
-            window.loadProfileTriggers = function(username) {
-              if (typeof socket !== 'undefined' && socket.connected) {
-                socket.emit('get-profile-data', { username }, function (response) {
+            window.loadProfileTriggers = function (username) {
+              if (typeof window.socket !== 'undefined' && window.socket.connected) {
+                window.socket.emit('get-profile-data', { username }, function (response) {
                   if (response && response.success && response.profile) {
                     const profile = response.profile;
-                    if (profile.systemControls && profile.systemControls.activeTriggers) {
-                      const activeTriggers = profile.systemControls.activeTriggers;
 
-                      // Send triggers to worker
-                      socket.emit('triggers', {
-                        triggerNames: activeTriggers.join(','),
-                        triggerDetails: activeTriggers.map(t => ({ name: t }))
+                    // Load profile data into central state manager
+                    if (window.bambiSystem) {
+                      window.bambiSystem.applySessionSettings({
+                        activeTriggers: profile.systemControls?.activeTriggers || [],
+                        collarSettings: {
+                          enabled: profile.systemControls?.collarEnabled || false,
+                          text: profile.systemControls?.collarText || ''
+                        },
+                        spiralSettings: {
+                          enabled: profile.systemControls?.spiralsEnabled || false,
+                          spiral1Width: profile.systemControls?.spiral1Width || 5.0,
+                          spiral2Width: profile.systemControls?.spiral2Width || 3.0,
+                          spiral1Speed: profile.systemControls?.spiral1Speed || 20,
+                          spiral2Speed: profile.systemControls?.spiral2Speed || 15
+                        }
                       });
-
-                      console.log('Loaded triggers from profile:', activeTriggers);
                     }
+
+                    console.log('Loaded profile settings successfully');
                   }
                 });
               }
@@ -134,7 +140,9 @@
               if (newUsername) {
                 username = newUsername;
                 document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
-                socket.emit('set username', username);
+                if (window.socket) {
+                  window.socket.emit('set username', username);
+                }
                 modal.style.display = 'none';
                 window.username = username;
 
@@ -143,20 +151,18 @@
               }
             });
 
-            const style = document.createElement('style');
-            document.head.appendChild(style);
-
-            // Set username data attribute for profile-system-controls.ejs
+            // Set username data attribute for controls
             document.body.setAttribute('data-username', username);
 
+            // Set up chat form submission
             document.getElementById("chat-form").addEventListener("submit", (event) => {
               event.preventDefault();
               const messageInput = document.getElementById("textarea-chat");
               const message = messageInput.value.trim();
 
               if (message && window.username) {
-                if (typeof socket !== 'undefined' && socket.connected) {
-                  socket.emit("chat message", {
+                if (window.socket && window.socket.connected) {
+                  window.socket.emit("chat message", {
                     data: message,
                     username: window.username
                   });
@@ -170,260 +176,107 @@
               }
             });
 
-            const collarForm = document.getElementById('collar-form-inputs');
-            if (collarForm) {
-              collarForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                const message = document.getElementById('textarea-collar').value.trim();
-                if (message) {
-                  socket.emit('collar', { data: message, socketId: socket.id });
-                  const userCollar = document.getElementById('user-collar');
-                  const messageElement = document.createElement('p');
-                  messageElement.textContent = message;
-                  userCollar.appendChild(messageElement);
+            // Handle chat messages
+            if (window.socket) {
+              window.socket.on("chat message", function (msg) {
+                // Create new chat message element
+                const item = document.createElement("li");
+
+                const timeSpan = document.createElement("span");
+                timeSpan.className = "chat-time";
+                timeSpan.textContent = new Date(msg.timestamp).toLocaleTimeString([], { hour12: false });
+
+                const usernameSpan = document.createElement("span");
+                usernameSpan.className = "chat-username";
+
+                const usernameLink = document.createElement("a");
+                usernameLink.href = `/profile/${msg.username}`;
+                usernameLink.className = "username-link";
+                usernameLink.textContent = msg.username;
+
+                usernameSpan.appendChild(usernameLink);
+
+                const messageSpan = document.createElement("span");
+                messageSpan.className = "chat-message";
+                messageSpan.textContent = msg.data;
+
+                item.appendChild(timeSpan);
+                item.appendChild(document.createTextNode(" - "));
+                item.appendChild(usernameSpan);
+                item.appendChild(document.createTextNode(": "));
+                item.appendChild(messageSpan);
+
+                if (window.username) {
+                  item.classList.add("neon-glow");
                 }
+
+                const chatList = document.getElementById("chat-response");
+                chatList.appendChild(item);
+                chatList.scrollTop = chatList.scrollHeight;
               });
             }
-
-            socket.on('collar', (message) => {
-              // Handle collar messages
-              let collarResponse = document.getElementById('textarea-collar-response');
-
-              if (!collarResponse) {
-                collarResponse = document.createElement('div');
-                collarResponse.id = 'textarea-collar-response';
-
-                let collarContainer = document.getElementById('collar-container');
-                if (!collarContainer) {
-                  collarContainer = document.createElement('div');
-                  collarContainer.id = 'collar-container';
-                  document.body.appendChild(collarContainer);
-                }
-
-                collarContainer.appendChild(collarResponse);
-              }
-
-              const messageElement = document.createElement('p');
-              messageElement.textContent = message;
-
-              if (collarResponse.firstChild) {
-                collarResponse.insertBefore(messageElement, collarResponse.firstChild);
-              } else {
-                collarResponse.appendChild(messageElement);
-              }
-
-              if (typeof applyUppercaseStyle === 'function') {
-                applyUppercaseStyle();
-              }
-            });
-
-            socket.on('profile-update', function (data) {
-              updateXPDisplay(data);
-            });
-
-            socket.on('xp:update', function (data) {
-              updateXPDisplay(data);
-              showXPNotification(data.xpEarned);
-            });
-
-            socket.on('level-up', function (data) {
-              showLevelUpNotification(data.level);
-            });
-
-            function updateXPDisplay(data) {
-              const xpLabel = document.getElementById('xp-progress-label');
-              const xpFill = document.getElementById('xp-progress-fill');
-
-              if (!xpLabel || !xpFill) return;
-
-              const level = data.level || 0;
-              const xp = data.xp || 0;
-              const xpRequirements = window.xpRequirements || [100, 250, 450, 700, 1200];
-
-              xpLabel.classList.add('updating');
-              setTimeout(() => xpLabel.classList.remove('updating'), 600);
-
-              if (level < xpRequirements.length) {
-                const nextLevelXP = xpRequirements[level];
-                xpLabel.textContent = `Level ${level} • ${xp} XP / ${nextLevelXP} XP`;
-
-                const percentage = Math.min(100, (xp / Math.max(1, nextLevelXP)) * 100);
-                xpFill.style.width = `${percentage}%`;
-              } else {
-                xpLabel.textContent = `Level ${level} • ${xp} XP (MAX LEVEL)`;
-                xpFill.style.width = '100%';
-              }
-            }
-
-            function showXPNotification(amount) {
-              if (!amount) return;
-
-              let notification = document.querySelector('.xp-notification');
-              if (!notification) {
-                notification = document.createElement('div');
-                notification.className = 'xp-notification';
-                document.body.appendChild(notification);
-              }
-
-              notification.textContent = `+${amount} XP`;
-              notification.classList.add('show');
-
-              setTimeout(() => {
-                notification.classList.remove('show');
-                notification.classList.add('fade-out');
-              }, 3000);
-            }
-
-            function showLevelUpNotification(level) {
-              if (!level) return;
-
-              let notification = document.querySelector('.level-up-notification');
-              if (!notification) {
-                notification = document.createElement('div');
-                notification.className = 'level-up-notification';
-
-                const icon = document.createElement('div');
-                icon.className = 'level-up-icon';
-                icon.textContent = '⭐';
-
-                const text = document.createElement('div');
-                text.className = 'level-up-text';
-
-                notification.appendChild(icon);
-                notification.appendChild(text);
-                document.body.appendChild(notification);
-              }
-
-              const textElement = notification.querySelector('.level-up-text');
-              if (textElement) {
-                textElement.textContent = `Level Up! You are now level ${level}!`;
-              }
-
-              notification.classList.add('show');
-
-              setTimeout(() => {
-                notification.classList.remove('show');
-                notification.classList.add('fade-out');
-              }, 5000);
-            }
-
-            socket.on("chat message", function (msg) {
-              // Create new chat message element
-              const item = document.createElement("li");
-
-              const timeSpan = document.createElement("span");
-              timeSpan.className = "chat-time";
-              timeSpan.textContent = new Date(msg.timestamp).toLocaleTimeString([], { hour12: false });
-
-              const usernameSpan = document.createElement("span");
-              usernameSpan.className = "chat-username";
-
-              const usernameLink = document.createElement("a");
-              usernameLink.href = `/profile/${msg.username}`;
-              usernameLink.className = "username-link";
-              usernameLink.textContent = msg.username;
-
-              usernameSpan.appendChild(usernameLink);
-
-              const messageSpan = document.createElement("span");
-              messageSpan.className = "chat-message";
-              messageSpan.textContent = msg.data;
-
-              item.appendChild(timeSpan);
-              item.appendChild(document.createTextNode(" - "));
-              item.appendChild(usernameSpan);
-              item.appendChild(document.createTextNode(": "));
-              item.appendChild(messageSpan);
-
-              if (window.username) {
-                item.classList.add("neon-glow");
-              }
-
-              const chatList = document.getElementById("chat-response");
-              chatList.appendChild(item);
-              chatList.scrollTop = chatList.scrollHeight;
-            });
-
-            // Central socket handling for system controls
-            socket.on('system-update', function (data) {
-              if (window.bambiSystem) {
-                window.bambiSystem.saveState(data.section, data.data);
-              }
-            });
-
-            // When loading profile data
-            socket.on('profile-data', function (data) {
-              if (data && data.profile && window.bambiSystem) {
-                window.bambiSystem.loadFromProfile(data.profile);
-              }
-            });
-
-            // When starting a conversation, send all system settings to worker
-            socket.on('conversation-start', function () {
-              if (window.bambiSystem) {
-                const settings = window.bambiSystem.collectSettings();
-                socket.emit('system-settings', settings);
-              }
-            });
-
-            // Listen for system update event (handles all settings changes in one place)
-            document.addEventListener('system-update', function (e) {
-              const { section, data } = e.detail;
-
-              // Apply spiral changes
-              if (section === 'spirals' && window.bambiSpirals) {
-                window.bambiSpirals.updateSettings(data);
-              }
-
-              // Handle collar updates (centralized here instead of separate handler)
-              if (section === 'collar' && data.text && data.enabled && socket) {
-                socket.emit('collar', {
-                  data: data.text,
-                  socketId: socket.id
-                });
-              }
-
-              // Send all updated settings to worker
-              if (socket && socket.connected && window.bambiSystem) {
-                socket.emit('system-settings', window.bambiSystem.collectSettings());
-              }
-            });
-
-            // Add these socket event handlers after other socket events
-
-            socket.on('session-loaded', function (data) {
-              if (!data || !data.session) return;
-
-              // Notify system about loaded session
-              document.dispatchEvent(new CustomEvent('session-loaded', {
-                detail: { session: data.session, sessionId: data.sessionId }
-              }));
-            });
-
-            // When starting a conversation, send system settings to worker
-            socket.on('conversation-start', function () {
-              if (window.bambiSystem) {
-                const settings = window.bambiSystem.collectSettings();
-                socket.emit('system-settings', settings);
-              }
-            });
-
-            // Listen for session ID updates
-            socket.on('session-created', function (data) {
-              if (data && data.sessionId && window.bambiSessions) {
-                window.bambiSessions.setActiveSessionId(data.sessionId);
-              }
-            });
           });
+
+          // Generate system controls dynamically
+          function generateSystemControls() {
+            const container = document.getElementById('system-controls-container');
+            if (!container) return;
+
+            // Get user level from body data attribute or from system state
+            let userLevel = 0;
+            if (window.bambiSystem) {
+              userLevel = window.bambiSystem.getUserLevel();
+            } else {
+              userLevel = parseInt(document.body.getAttribute('data-level') || '0');
+            }
+
+            // Create control structure
+            const structure = `
+              <div class="system-controls" data-user-level="${userLevel}">
+                <!-- Control buttons section -->
+                <div id="buttons" class="control-buttons">
+                  <!-- System control buttons will be added here -->
+                </div>
+                
+                <!-- Control panels section -->
+                <div id="console" class="control-panels">
+                  <!-- System control panels will be added here -->
+                </div>
+                
+                <!-- XP progress bar -->
+                <div class="xp-progress-container">
+                  <div class="xp-level-badge">
+                    <span id="level-indicator">Level ${userLevel}</span>
+                  </div>
+                  <div class="xp-progress-label" id="xp-progress-label">
+                    Loading XP...
+                  </div>
+                  <div class="xp-progress-bar">
+                    <div class="xp-progress-fill" id="xp-progress-fill" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            container.innerHTML = structure;
+
+            // After DOM is updated, initialize the controls
+            setTimeout(() => {
+              if (window.bambiSystem) {
+                // This will trigger all the controls to initialize
+                document.dispatchEvent(new CustomEvent('system-initialized'));
+              }
+            }, 100);
+          }
         </script>
         <script>
           // Monitor connection status
-          (function() {
+          (function () {
             let connectionMonitor = null;
-            
+
             function startConnectionMonitoring() {
               if (connectionMonitor) clearInterval(connectionMonitor);
-              
+
               connectionMonitor = setInterval(() => {
                 if (window.socket) {
                   if (!window.socket.connected) {
@@ -440,14 +293,14 @@
                 }
               }, 30000); // Check every 30 seconds
             }
-            
+
             // Start monitoring once page is fully loaded
             window.addEventListener('load', () => {
               setTimeout(startConnectionMonitoring, 2000);
             });
-            
+
             // Store function to expose for manual checks
-            window.checkConnection = function() {
+            window.checkConnection = function () {
               if (window.socket && window.socket.connected) {
                 console.log('Socket connection is active');
                 return true;
@@ -464,7 +317,6 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
         <script src="js/bootstrap.min.js"></script>
-        
   </body>
 
 </html>

@@ -728,186 +728,21 @@
 
                   <div class="notification-area"></div>
 
-                  <% if (locals.mode !=='create' ) { %>
-                    <script src="/socket.io/socket.io.js"></script>
+                  <%- include('./partials/footer') %>
+                  
+                  <script src="/js/profile.js"></script>
 
-                    <script src="/js/utils/cookie-utils.js"></script>
-                    <script src="/js/utils/audio-utils.js"></script>
-                    <script src="/js/socket-handler.js"></script>
-                    <% } %>
-
-                      <script src="/js/profile.js"></script>
-
-                      <script>
-                        document.addEventListener('DOMContentLoaded', function () {
-                          // Initialize socket if not already done
-                          if (typeof io !== 'undefined' && typeof window.socket === 'undefined') {
-                            window.socket = io();
-
-                            // Set up global connection event
-                            window.socket.on('connect', function () {
-                              console.log('Profile socket connected');
-                              window.dispatchEvent(new CustomEvent('socket:connected'));
-                            });
-
-                            // Set up XP updates only after socket is initialized
-                            window.socket.on('connect', function () {
-                              if (typeof setupXPUpdates === 'function') {
-                                setupXPUpdates();
-                              }
-                            });
-                          } else if (typeof window.socket !== 'undefined') {
-                            // Socket already exists, just set up XP updates
-                            if (typeof setupXPUpdates === 'function') {
-                              setupXPUpdates();
-                            }
-                          }
-
-                          // Join profile room for targeted updates if we have a username
-                          const username = document.body.getAttribute('data-username');
-                          if (username && typeof window.socket !== 'undefined') {
-                            window.socket.emit('join-profile', username);
-                          }
-                        });
-                      </script>
-
-                      <style>
-                        .user-stat {
-                          position: relative;
-                        }
-
-                        .xp-tooltip {
-                          position: absolute;
-                          bottom: 100%;
-                          left: 50%;
-                          transform: translateX(-50%);
-                          background: rgba(0, 0, 0, 0.8);
-                          color: white;
-                          padding: 12px;
-                          border-radius: 8px;
-                          min-width: 200px;
-                          z-index: 1000;
-                          opacity: 0;
-                          visibility: hidden;
-                          transition: opacity 0.3s, visibility 0.3s;
-                          pointer-events: none;
-                          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-                          backdrop-filter: blur(4px);
-                          border: 1px solid rgba(255, 255, 255, 0.1);
-                        }
-
-                        .xp-tooltip::after {
-                          content: '';
-                          position: absolute;
-                          top: 100%;
-                          left: 50%;
-                          transform: translateX(-50%);
-                          border-width: 8px;
-                          border-style: solid;
-                          border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
-                        }
-
-                        .xp-tooltip-content h4 {
-                          margin: 0 0 8px;
-                          text-align: center;
-                          color: #ff00ff;
-                          text-shadow: 0 0 5px #ff00ff;
-                        }
-
-                        .xp-progress {
-                          height: 12px;
-                          background: rgba(255, 255, 255, 0.1);
-                          border-radius: 6px;
-                          overflow: hidden;
-                          margin: 8px 0;
-                        }
-
-                        .xp-bar {
-                          height: 100%;
-                          background: linear-gradient(to right, #00ffff, #ff00ff);
-                          box-shadow: 0 0 10px rgba(255, 0, 255, 0.7);
-                        }
-
-                        .xp-tooltip-content p {
-                          margin: 8px 0;
-                          font-size: 0.9em;
-                          text-align: center;
-                        }
-
-                        .user-stat:hover .xp-tooltip {
-                          opacity: 1;
-                          visibility: visible;
-                        }
-
-                        /* XP and Level Up Notifications */
-                        .xp-notification {
-                          position: fixed;
-                          top: 70px;
-                          right: 20px;
-                          background: rgba(255, 0, 255, 0.8);
-                          color: white;
-                          padding: 6px 12px;
-                          border-radius: 4px;
-                          font-weight: bold;
-                          transform: translateY(-20px);
-                          opacity: 0;
-                          transition: transform 0.3s, opacity 0.3s;
-                          z-index: 9999;
-                          box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
-                        }
-
-                        .xp-notification.show {
-                          transform: translateY(0);
-                          opacity: 1;
-                        }
-
-                        .xp-notification.fade-out {
-                          opacity: 0;
-                          transform: translateY(-20px);
-                        }
-
-                        .level-up-notification {
-                          position: fixed;
-                          top: 50%;
-                          left: 50%;
-                          transform: translate(-50%, -50%) scale(0.8);
-                          background: rgba(0, 0, 0, 0.9);
-                          color: white;
-                          padding: 20px;
-                          border-radius: 10px;
-                          text-align: center;
-                          opacity: 0;
-                          z-index: 10000;
-                          transition: transform 0.5s, opacity 0.5s;
-                          box-shadow: 0 0 30px rgba(255, 0, 255, 0.7);
-                          border: 2px solid #ff00ff;
-                          min-width: 250px;
-                        }
-
-                        .level-up-notification.show {
-                          transform: translate(-50%, -50%) scale(1);
-                          opacity: 1;
-                        }
-
-                        .level-up-notification.fade-out {
-                          opacity: 0;
-                          transform: translate(-50%, -50%) scale(1.2);
-                        }
-
-                        .level-up-icon {
-                          font-size: 32px;
-                          margin-bottom: 10px;
-                        }
-
-                        .level-up-text {
-                          font-size: 18px;
-                          font-weight: bold;
-                          color: #ff00ff;
-                          text-shadow: 0 0 5px #ff00ff;
-                        }
-                      </style>
-
-                      <%- include('./partials/footer') %>
+                  <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                      // System controls will be loaded from footer.ejs
+                      
+                      // Join profile room for targeted updates if we have a username
+                      const username = document.body.getAttribute('data-username');
+                      if (username && typeof window.socket !== 'undefined') {
+                        window.socket.emit('join-profile', username);
+                      }
+                    });
+                  </script>
   </body>
 
 </html>

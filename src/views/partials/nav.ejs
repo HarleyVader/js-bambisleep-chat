@@ -8,8 +8,18 @@
     <% if (locals.username) { %>
       <li><a href="/sessions/dashboard">My Sessions</a></li>
     <% } %>
-    
   </ul>
+  
+  <div class="nav-user-info">
+    <% if (locals.username) { %>
+      <span class="username"><%= locals.username %></span>
+      <div class="user-level-indicator" id="nav-level-indicator">
+        <% if (locals.userLevel !== undefined) { %>
+          Level <%= locals.userLevel %>
+        <% } %>
+      </div>
+    <% } %>
+  </div>
 </nav>
 
 <% if (locals.username && locals.path && locals.path.startsWith('/sessions')) { %>
@@ -30,3 +40,15 @@
     </ul>
   </nav>
 <% } %>
+
+<script>
+  // Update nav bar level indicator when user level changes
+  document.addEventListener('level-changed', function(event) {
+    const levelIndicator = document.getElementById('nav-level-indicator');
+    if (levelIndicator && event.detail && event.detail.level !== undefined) {
+      levelIndicator.textContent = `Level ${event.detail.level}`;
+      levelIndicator.classList.add('level-changed');
+      setTimeout(() => levelIndicator.classList.remove('level-changed'), 2000);
+    }
+  });
+</script>
