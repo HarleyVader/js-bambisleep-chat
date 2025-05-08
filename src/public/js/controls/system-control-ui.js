@@ -31,6 +31,48 @@ const systemControlUI = (function() {
         }
 
         if (progressLabel && data.currentXp !== undefined && data.xpForNextLevel !== undefined) {
+          progressLabel.textContent = `${data.currentXp} / ${data.xpForNextLevel}`;
+        }
+
+        if (levelIndicator) {
+          levelIndicator.textContent = `Level ${data.level}`;
+        }
+      }
+    } catch (error) {
+      console.error('Error handling XP update:', error);
+    }
+  }
+
+  // Update trigger list
+  function updateTriggersList(event) {
+    try {
+      const container = document.getElementById('triggers-container');
+      if (!container) return;
+
+      const { triggers } = event.detail;
+      container.innerHTML = '';
+
+      const fragment = document.createDocumentFragment();
+
+      // Group triggers by category
+      const groupedTriggers = triggers.reduce((acc, trigger) => {
+        const category = trigger.category || 'General';
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(trigger);
+        return acc;
+      }, {});
+
+      Object.entries(groupedTriggers).forEach(([category, triggers]) => {
+        const categoryEl = document.createElement('div');
+        categoryEl.className = 'trigger-category';
+
+        const categoryLabel = document.createElement('h4');
+        categoryLabel.textContent = category;
+        categoryEl.appendChild(categoryLabel);
+
+        const triggerList = document.createElement('div');
+        triggerList.className = 'trigger-list';
+
         triggers.forEach(trigger => {
           const triggerEl = document.createElement('div');
           triggerEl.className = 'trigger-item';
@@ -1056,3 +1098,8 @@ window.sessionSharing = (function() {
       shareModal.innerHTML = `
         <div class="modal-content">
           <span class="close">&times;</span>
+        </div>
+      `;
+    }
+  }
+})();
