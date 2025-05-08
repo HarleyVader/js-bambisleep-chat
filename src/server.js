@@ -44,11 +44,8 @@ import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 
-// Import public utilities
-import { parseCookies, serializeCookie } from './public/js/utils/cookie-utils.js';
-
-// Import server-side utilities
-import { getBambiNameFromCookies, isProfileOwner } from './utils/cookie-utils-server.js';
+// Import server utilities
+import { parseCookies, getBambiNameFromCookies, } from './utils/cookie-utils-server.js';
 
 // Import models
 import { SessionHistory, getProfile } from './models/models.js';
