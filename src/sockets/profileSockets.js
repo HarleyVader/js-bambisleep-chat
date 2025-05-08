@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
 import { getProfile, updateProfile } from '../models/Profile.js';
 import { getModel, withDbConnection } from '../config/db.js'; // Import both from db.js
+import { User, getUser } from '../models/User.js';
+import { Profile, getProfile, getOrCreateProfile, updateProfile } from '../models/Profile.js';
 
 const logger = new Logger('ProfileSockets');
 
@@ -162,6 +164,24 @@ export default function setupProfileSockets(socket, io, username) {
       } catch (error) {
         logger.error('Error fetching profile data via socket:', error);
         callback({ success: false, message: 'Error fetching profile data' });
+      }
+    });
+
+    socket.on('client-save-profile-settings', async (settings) => {
+      try {
+        // Instead of direct mongoose operations
+        const profile = await updateProfile(username, {
+          systemControls: settings
+        });
+        
+        // Respond to client
+        socket.emit('server-profile-settings-saved', { success: true });
+      } catch (error) {
+        logger.error(`Error saving profile settings: ${error.message}`);
+        socket.emit('server-profile-settings-saved', { 
+          success: false, 
+          error: 'Failed to save settings' 
+        });
       }
     });
   }

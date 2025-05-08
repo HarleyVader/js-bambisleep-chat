@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { withDbConnection } from '../config/db.js';
 import Logger from '../utils/logger.js';
-import crypto from 'crypto';
+import { User } from './User.js';
 
 const logger = new Logger('Profile');
 
@@ -41,31 +41,17 @@ const STANDARD_TRIGGERS = [
 
 // Define schema
 const profileSchema = new mongoose.Schema({
+  // Reference to user (parent document)
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   username: {
     type: String,
     required: true,
     unique: true,
     trim: true
-  },
-  displayName: {
-    type: String,
-    trim: true
-  },
-  // Add cookie field for authentication
-  cookie: {
-    type: String,
-    unique: true,
-    sparse: true
-  },
-  // Add cookieName to track cookie associations
-  cookieName: {
-    type: String,
-    trim: true,
-    index: true
-  },
-  avatar: {
-    type: String,
-    default: '/gif/default-avatar.gif'
   },
   headerImage: {
     type: String,
@@ -84,6 +70,18 @@ const profileSchema = new mongoose.Schema({
     type: String,
     default: 'Share your bambi journey...',
     maxlength: 1500
+  },
+  xp: {
+    type: Number,
+    default: 0
+  },
+  level: {
+    type: Number,
+    default: 1
+  },
+  generatedWords: {
+    type: Number,
+    default: 0
   },
   triggers: [{
     name: {
@@ -171,22 +169,6 @@ const profileSchema = new mongoose.Schema({
     },
     activeTriggers: [String]
   },
-  settings: {
-    type: Object,
-    default: { theme: 'dark' }
-  },
-  xp: {
-    type: Number,
-    default: 0
-  },
-  level: {
-    type: Number,
-    default: 1
-  },
-  generatedWords: {
-    type: Number,
-    default: 0
-  },
   xpHistory: [{
     timestamp: Date,
     amount: Number,
@@ -226,9 +208,7 @@ profileSchema.methods.toggleTrigger = function(triggerName, active) {
       trigger.lastActivated = new Date();
       trigger.activationCount += 1;
       
-      if (!this.triggerHistory) {
-        this.triggerHistory = [];
-      }
+      if (!this.triggerHistory) this.triggerHistory = [];
       
       this.triggerHistory.push({
         timestamp: new Date(),
@@ -261,9 +241,7 @@ profileSchema.methods.toggleAllTriggers = function(active) {
   this.updateActiveTriggerSession();
   
   if (active && this.triggers.length > 0) {
-    if (!this.triggerHistory) {
-      this.triggerHistory = [];
-    }
+    if (!this.triggerHistory) this.triggerHistory = [];
     
     this.triggerHistory.push({
       timestamp: new Date(),
@@ -295,17 +273,13 @@ profileSchema.methods.updateActiveTriggerSession = function() {
     this.activeTriggerSession.lastUpdated = new Date();
   }
   
-  // Also update the flat activeTriggers array for backward compatibility
   this.activeTriggers = activeTriggers;
 };
 
 // Add a method to update system controls
 profileSchema.methods.updateSystemControls = function(controlsData) {
-  if (!this.systemControls) {
-    this.systemControls = {};
-  }
+  if (!this.systemControls) this.systemControls = {};
   
-  // Update specific fields if provided
   if (controlsData.spiralsEnabled !== undefined) {
     this.systemControls.spiralsEnabled = controlsData.spiralsEnabled;
   }
@@ -332,7 +306,6 @@ profileSchema.methods.updateSystemControls = function(controlsData) {
   
   if (controlsData.activeTriggers) {
     this.systemControls.activeTriggers = controlsData.activeTriggers;
-    // Also update the flat activeTriggers array for backward compatibility
     this.activeTriggers = controlsData.activeTriggers;
   }
 };
@@ -341,17 +314,10 @@ profileSchema.methods.updateSystemControls = function(controlsData) {
 profileSchema.methods.addXP = function(amount, source, description = '') {
   if (!amount || isNaN(amount)) return;
   
-  // Add to total XP
   this.xp += amount;
-  
-  // Calculate level based on XP
-  // Formula: level = 1 + floor(sqrt(xp / 100))
   this.level = 1 + Math.floor(Math.sqrt(this.xp / 100));
   
-  // Add to XP history
-  if (!this.xpHistory) {
-    this.xpHistory = [];
-  }
+  if (!this.xpHistory) this.xpHistory = [];
   
   this.xpHistory.push({
     timestamp: new Date(),
@@ -360,7 +326,6 @@ profileSchema.methods.addXP = function(amount, source, description = '') {
     description
   });
   
-  // Keep history to last 100 entries
   if (this.xpHistory.length > 100) {
     this.xpHistory = this.xpHistory.slice(-100);
   }
@@ -371,110 +336,26 @@ profileSchema.methods.getNextLevelXP = function() {
   return Math.pow(this.level, 2) * 100;
 };
 
-// Static method to find a profile by cookie name
-profileSchema.statics.findByCookieName = async function(cookieName) {
-  return withDbConnection(async () => {
-    return this.findOne({ cookieName });
-  });
-};
-
 /**
- * Find or create a profile by cookie
- * Uses a transaction to ensure proper connection handling
- * 
- * @param {string} cookie - The cookie value to find profile by
- * @returns {Promise<Object>} - Profile object
+ * Create profile for existing user
  */
-profileSchema.statics.findOrCreateByCookie = async function(cookie) {
-  if (!cookie) {
-    // Generate a random cookie if none provided
-    cookie = crypto.randomBytes(32).toString('hex');
-  }
-  
+profileSchema.statics.createForUser = async function(user) {
   return withDbConnection(async () => {
     try {
-      // Try to find profile by cookie
-      let profile = await this.findOne({ cookie });
+      // Check if profile already exists
+      let profile = await this.findOne({ username: user.username });
+      if (profile) return profile;
       
-      // If not found, create a new anonymous profile
-      if (!profile) {
-        const username = `anonBambi_${Date.now().toString(36)}`;
-        logger.info(`Creating new anonymous profile for cookie: ${cookie.substring(0, 8)}...`);
-        
-        profile = await this.create({
-          username,
-          displayName: username,
-          cookie,
-          activeTriggers: ["BAMBI SLEEP"],
-          about: 'Anonymous Bambi',
-          description: 'Share your bambi journey...',
-          settings: { theme: 'dark' },
-          triggers: [{ 
-            name: "BAMBI SLEEP", 
-            active: true, 
-            description: "The foundational trigger for all bambi dolls" 
-          }],
-          systemControls: {
-            activeTriggers: ["BAMBI SLEEP"],
-            collarEnabled: false,
-            collarText: ''
-          }
-        });
-      }
-      
-      return profile;
-    } catch (error) {
-      logger.error(`Error in findOrCreateByCookie: ${error.message}`);
-      
-      // In case of error, return a temporary profile object
-      return {
-        username: 'anonBambi',
-        activeTriggers: ["BAMBI SLEEP"],
-        settings: { theme: 'dark' },
-        xp: 0,
-        level: 1,
-        about: 'Anonymous Bambi'
-      };
-    }
-  });
-};
-
-/**
- * Find or create a profile by username
- * 
- * @param {string} username - The username to find or create profile with
- * @returns {Promise<Object>} - Profile object
- */
-profileSchema.statics.findOrCreateByUsername = async function(username) {
-  if (!username) return null;
-  
-  return withDbConnection(async () => {
-    try {
-      // Try to find existing profile
-      let profile = await this.findOne({ username });
-      
-      // If profile exists, return it
-      if (profile) {
-        return profile;
-      }
-      
-      // Otherwise create a new one
+      // Create profile with reference to user
       profile = new this({
-        username,
-        displayName: username,
-        level: 1,
-        xp: 0,
+        user: user._id,
+        username: user.username,
         activeTriggers: ["BAMBI SLEEP"],
         triggers: [{ 
           name: "BAMBI SLEEP", 
           active: true, 
           description: "The foundational trigger for all bambi dolls" 
         }],
-        about: 'Tell us about yourself...',
-        description: 'Share your bambi journey...',
-        avatar: '/gif/default-avatar.gif',
-        headerImage: '/gif/default-header.gif',
-        headerColor: '#35424a',
         systemControls: {
           activeTriggers: ["BAMBI SLEEP"],
           collarEnabled: false,
@@ -483,14 +364,28 @@ profileSchema.statics.findOrCreateByUsername = async function(username) {
       });
       
       await profile.save();
+      
+      // Update user with reference to profile
+      await User.findByIdAndUpdate(user._id, { profile: profile._id });
+      
       return profile;
     } catch (error) {
-      if (error.code === 11000) {
-        // Handle race condition where profile was created between our check and save
-        return await this.findOne({ username });
-      }
-      logger.error(`Error in findOrCreateByUsername: ${error.message}`);
+      logger.error(`Error creating profile for user ${user.username}: ${error.message}`);
       throw error;
+    }
+  });
+};
+
+/**
+ * Find profile by username
+ */
+profileSchema.statics.findByUsername = async function(username) {
+  return withDbConnection(async () => {
+    try {
+      return await this.findOne({ username });
+    } catch (error) {
+      logger.error(`Error finding profile for ${username}: ${error.message}`);
+      return null;
     }
   });
 };
@@ -498,18 +393,13 @@ profileSchema.statics.findOrCreateByUsername = async function(username) {
 // Create the model
 let Profile;
 try {
-  // Try to get the existing model first
   Profile = mongoose.model('Profile');
 } catch (e) {
-  // If it doesn't exist, create it
   Profile = mongoose.model('Profile', profileSchema);
 }
 
 /**
- * Get profile by username with proper connection management
- * 
- * @param {string} username - Profile username
- * @returns {Promise<Object>} - Profile object
+ * Get profile by username
  */
 export async function getProfile(username) {
   return withDbConnection(async () => {
@@ -523,11 +413,32 @@ export async function getProfile(username) {
 }
 
 /**
- * Update profile with proper connection management
- * 
- * @param {string} username - Profile username
- * @param {Object} updates - Profile updates
- * @returns {Promise<Object>} - Updated profile object
+ * Get or create profile by username
+ */
+export async function getOrCreateProfile(username) {
+  return withDbConnection(async () => {
+    try {
+      // Find or create user first
+      const user = await User.findOrCreateByUsername(username);
+      if (!user) return null;
+      
+      // Then find or create profile
+      let profile = await Profile.findOne({ username });
+      
+      if (!profile) {
+        profile = await Profile.createForUser(user);
+      }
+      
+      return profile;
+    } catch (error) {
+      logger.error(`Error in getOrCreateProfile: ${error.message}`);
+      throw error;
+    }
+  });
+}
+
+/**
+ * Update profile
  */
 export async function updateProfile(username, updates) {
   return withDbConnection(async () => {
@@ -535,7 +446,7 @@ export async function updateProfile(username, updates) {
       return await Profile.findOneAndUpdate(
         { username },
         { ...updates, updatedAt: Date.now() },
-        { new: true, upsert: true, runValidators: true }
+        { new: true }
       );
     } catch (error) {
       logger.error(`Error updating profile for ${username}: ${error.message}`);

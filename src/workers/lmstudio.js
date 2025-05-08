@@ -5,7 +5,7 @@ import Logger from '../utils/logger.js';
 import { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 import mongoose from 'mongoose';
 import { connectDB, withDbConnection } from '../config/db.js';
-import '../models/Profile.js';  // Import the model file to ensure schema registration
+import { Profile, getProfile, updateProfile } from '../models/Profile.js';  // Import the model file to ensure schema registration
 import '../models/SessionHistory.js';  // Make sure to create this file first
 import config from '../config/config.js';
 import SessionHistoryModel from '../models/SessionHistory.js';
@@ -390,24 +390,13 @@ async function updateUserXP(username, wordCount, currentSocketId) {
       await connectDB();
     }
 
-    // Use 'Profile' instead of 'Bambi' - this is the correct model name
-    const Profile = mongoose.model('Profile');
-    if (!Profile) {
-      logger.error(`Profile model not available when updating XP for ${username}`);
-      return;
-    }
-
     const xpToAdd = Math.ceil(wordCount / 10);
-    const result = await Profile.findOneAndUpdate(
-      { username: username },
-      {
-        $inc: {
-          xp: xpToAdd,
-          generatedWords: wordCount
-        }
-      },
-      { new: true }
-    );
+    const result = await updateProfile(username, {
+      $inc: {
+        xp: xpToAdd,
+        generatedWords: wordCount
+      }
+    });
 
     if (result) {
       // Also send a socket message to update UI in real-time
@@ -501,10 +490,7 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
         sessionHistory = await SessionHistoryModel.create(sessionData);
 
         // Add reference to user's profile
-        await mongoose.model('Profile').findOneAndUpdate(
-          { username },
-          { $addToSet: { sessionHistories: sessionHistory._id } }
-        );
+        await updateProfile(username, { $addToSet: { sessionHistories: sessionHistory._id } });
 
         logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
       }
@@ -855,10 +841,7 @@ async function handleMessage(userPrompt, socketId, username) {
             sessionHistory = await SessionHistoryModel.create(sessionData);
 
             // Add reference to user's profile
-            await mongoose.model('Profile').findOneAndUpdate(
-              { username },
-              { $addToSet: { sessionHistories: sessionHistory._id } }
-            );
+            await updateProfile(username, { $addToSet: { sessionHistories: sessionHistory._id } });
 
             logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
           }

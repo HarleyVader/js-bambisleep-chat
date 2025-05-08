@@ -46,7 +46,8 @@ import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 
 // Import Profile model getter
-import { getProfile } from './models/Profile.js';
+import { User, getUser } from './models/User.js';
+import { Profile, getProfile, getOrCreateProfile } from './models/Profile.js';
 
 // Add this before initializing routes
 import './models/SessionHistory.js';
@@ -348,7 +349,7 @@ function setupClientDataRoutes(app) {
       }
       
       // Fetch profile data using the withDbConnection helper
-      const profile = await withDbConnection(() => getProfileByUsername(username));
+      const profile = await withDbConnection(() => getProfile(username));
       
       if (!profile) {
         return res.status(404).json({ 
@@ -1050,8 +1051,7 @@ function monitorResources() {
  */
 async function getProfileByUsername(username) {
   try {
-    const Profile = mongoose.model('Profile');
-    const profile = await Profile.findOne({ username });
+    const profile = await getProfile(username);
     
     if (!profile) {
       logger.warning(`Profile not found for username: ${username}`);

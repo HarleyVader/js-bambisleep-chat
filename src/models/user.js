@@ -21,13 +21,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  // Add cookie field for authentication
+  // Authentication fields
   cookie: {
     type: String,
     unique: true,
     sparse: true
   },
-  // Add cookieName to track cookie associations
   cookieName: {
     type: String,
     trim: true,
@@ -37,24 +36,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '/gif/default-avatar.gif'
   },
-  xp: {
-    type: Number,
-    default: 0
-  },
-  level: {
-    type: Number,
-    default: 1
-  },
-  sessions: [{
-    name: String,
-    description: String,
-    createdAt: {
-      type: Date,
-      default: Date.now
-    },
-    triggers: [String],
-    settings: mongoose.Schema.Types.Mixed
-  }],
   preferences: {
     theme: {
       type: String,
@@ -72,6 +53,11 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  // Reference to profile
+  profile: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Profile'
   }
 }, { 
   timestamps: true 
@@ -83,28 +69,6 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-// Add XP and handle level-up if necessary
-userSchema.methods.addXP = function(amount, source = 'activity') {
-  if (!amount || isNaN(amount)) return;
-  
-  // Add to total XP
-  this.xp += amount;
-  
-  // Calculate level based on XP
-  // Formula: level = 1 + floor(sqrt(xp / 100))
-  this.level = 1 + Math.floor(Math.sqrt(this.xp / 100));
-  
-  return {
-    level: this.level,
-    xp: this.xp
-  };
-};
-
-// Get XP needed for next level
-userSchema.methods.getNextLevelXP = function() {
-  return Math.pow(this.level, 2) * 100;
-};
-
 // Static method to find a user by cookie name
 userSchema.statics.findByCookieName = async function(cookieName) {
   return withDbConnection(async () => {
@@ -114,23 +78,19 @@ userSchema.statics.findByCookieName = async function(cookieName) {
 
 /**
  * Find or create a user by cookie
- * Uses a transaction to ensure proper connection handling
  */
 userSchema.statics.findOrCreateByCookie = async function(cookie) {
   if (!cookie) {
-    // Generate a random cookie if none provided
     cookie = crypto.randomBytes(32).toString('hex');
   }
   
   return withDbConnection(async () => {
     try {
-      // Try to find user by cookie
       let user = await this.findOne({ cookie });
       
-      // If not found, create a new anonymous user
       if (!user) {
         const username = `anonBambi_${Date.now().toString(36)}`;
-        logger.info(`Creating new anonymous user for cookie: ${cookie.substring(0, 8)}...`);
+        logger.info(`Creating new anonymous user: ${username}`);
         
         user = await this.create({
           username,
@@ -143,13 +103,9 @@ userSchema.statics.findOrCreateByCookie = async function(cookie) {
       return user;
     } catch (error) {
       logger.error(`Error in findOrCreateByCookie: ${error.message}`);
-      
-      // In case of error, return a temporary user object
       return {
         username: 'anonBambi',
-        preferences: { theme: 'dark' },
-        xp: 0,
-        level: 1
+        preferences: { theme: 'dark' }
       };
     }
   });
@@ -163,27 +119,19 @@ userSchema.statics.findOrCreateByUsername = async function(username) {
   
   return withDbConnection(async () => {
     try {
-      // Try to find existing user
       let user = await this.findOne({ username });
       
-      // If user exists, return it
-      if (user) {
-        return user;
-      }
+      if (user) return user;
       
-      // Otherwise create a new one
       user = new this({
         username,
-        displayName: username,
-        level: 1,
-        xp: 0
+        displayName: username
       });
       
       await user.save();
       return user;
     } catch (error) {
       if (error.code === 11000) {
-        // Handle race condition where user was created between our check and save
         return await this.findOne({ username });
       }
       logger.error(`Error in findOrCreateByUsername: ${error.message}`);
@@ -192,59 +140,30 @@ userSchema.statics.findOrCreateByUsername = async function(username) {
   });
 };
 
-// Static methods to find user by various criteria
-userSchema.statics.getUserByUsername = async function(username) {
-  return withDbConnection(async () => {
-    try {
-      return await this.findOne({ username });
-    } catch (error) {
-      logger.error(`Error getting user for ${username}: ${error.message}`);
-      return null;
-    }
-  });
-};
-
-userSchema.statics.updateUserProfile = async function(username, updates) {
-  return withDbConnection(async () => {
-    try {
-      return await this.findOneAndUpdate(
-        { username },
-        updates,
-        { new: true, upsert: false }
-      );
-    } catch (error) {
-      logger.error(`Error updating user for ${username}: ${error.message}`);
-      throw error;
-    }
-  });
-};
-
 // Create the model
 let User;
 try {
-  // Try to get the existing model first
   User = mongoose.model('User');
 } catch (e) {
-  // If it doesn't exist, create it
   User = mongoose.model('User', userSchema);
 }
 
 /**
- * Get user by username with proper connection management
+ * Get user by username with database connection handling
  */
 export async function getUser(username) {
   return withDbConnection(async () => {
     try {
       return await User.findOne({ username });
     } catch (error) {
-      logger.error(`Error getting user for ${username}: ${error.message}`);
+      logger.error(`Error getting user ${username}: ${error.message}`);
       return null;
     }
   });
 }
 
 /**
- * Update user with proper connection management
+ * Update user with database connection handling
  */
 export async function updateUser(username, updates) {
   return withDbConnection(async () => {
@@ -252,17 +171,17 @@ export async function updateUser(username, updates) {
       return await User.findOneAndUpdate(
         { username },
         updates,
-        { new: true, upsert: false }
+        { new: true }
       );
     } catch (error) {
-      logger.error(`Error updating user for ${username}: ${error.message}`);
+      logger.error(`Error updating user ${username}: ${error.message}`);
       throw error;
     }
   });
 }
 
-export { User, getUser, updateUser };
+export { User };
 
-// Also add these for backward compatibility
+// Backward compatibility
 export const getUserByUsername = getUser;
 export const updateUserProfile = updateUser;
