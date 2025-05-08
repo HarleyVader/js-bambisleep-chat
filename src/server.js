@@ -45,7 +45,7 @@ import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 
 // Import public utilities
-import { parseCookie as parseCookies, serializeCookie } from './public/js/utils/cookie-utils.js';
+import { parseCookies, serializeCookie } from './public/js/utils/cookie-utils.js';
 import { setupErrorHandlers } from './public/js/error-handler.js';
 
 // Import models
