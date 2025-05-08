@@ -25,6 +25,7 @@ window.cookieUtils = (function() {
     document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
   }
 
+  
   // Parse all document cookies into an object
   function getAllCookies() {
     return parseCookies(document.cookie);
