@@ -1,28 +1,53 @@
 /**
- * Client-side socket connection and event handler
- * Provides centralized connection management and error recovery
- * [x] Socket initialization
- * [x] Event management
- * [x] Connection recovery
- * [x] Profile integration
+ * Socket connection handler for BambiSleep Chat
+ * Manages socket lifecycle, reconnection attempts, and state synchronization
  */
 window.socketHandler = (function() {
   // Private variables
   let socket = null;
   let reconnectAttempts = 0;
-  const MAX_RECONNECT_ATTEMPTS = 5;
+  let maxReconnectAttempts = 10;
+  let isConnecting = false;
   let reconnectTimer = null;
+  
+  // Initialize module
+  function init() {
+    try {
+      // Create socket connection if not already connected
+      connect();
+      
+      // Handle page unload to sync session data
+      window.addEventListener('beforeunload', handlePageUnload);
+      
+      console.log('Socket handler initialized');
+    } catch (error) {
+      console.error('Error initializing socket handler:', error);
+    }
+  }
+  
+  // Clean up event listeners when module is unloaded
+  function tearDown() {
+    try {
+      window.removeEventListener('beforeunload', handlePageUnload);
+      disconnect();
+    } catch (error) {
+      console.error('Error in socket handler teardown:', error);
+    }
+  }
   
   // Initialize socket connection
   function connect() {
     if (socket && socket.connected) return; // Already connected
+    if (isConnecting) return; // Connection attempt in progress
+    
+    isConnecting = true;
     
     try {
       socket = io({
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        reconnectionAttempts: 10,
+        reconnectionAttempts: maxReconnectAttempts,
         timeout: 20000
       });
       
@@ -32,7 +57,25 @@ window.socketHandler = (function() {
       window.socket = socket;
     } catch (error) {
       console.error('Socket connection error:', error);
+      isConnecting = false;
       attemptReconnect();
+    }
+  }
+  
+  // Disconnect socket
+  function disconnect() {
+    if (socket) {
+      // Clean up all listeners
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('connect_error', handleConnectionError);
+      socket.off('error', handleError);
+      socket.off('system-update-success');
+      
+      // Disconnect
+      socket.disconnect();
+      socket = null;
+      window.socket = null;
     }
   }
   
@@ -54,25 +97,13 @@ window.socketHandler = (function() {
     });
   }
   
-  // Clean up event listeners to prevent memory leaks
-  function cleanupEventListeners() {
-    if (!socket) return;
-    
-    socket.off('connect', handleConnect);
-    socket.off('disconnect', handleDisconnect);
-    socket.off('connect_error', handleConnectionError);
-    socket.off('error', handleError);
-    socket.off('system-update-success');
-  }
-  
-  // Handle successful connection
+  // Handle socket connection
   function handleConnect() {
     console.log('Socket connected:', socket.id);
-    document.body.classList.add('socket-connected');
-    document.body.classList.remove('socket-disconnected');
-    
-    // Reset reconnection attempts
+    isConnecting = false;
     reconnectAttempts = 0;
+    
+    // Clear any pending reconnect timers
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
@@ -84,23 +115,33 @@ window.socketHandler = (function() {
       socket.emit('set username', username);
     }
     
-    // Notify other components
-    document.dispatchEvent(new CustomEvent('socket-connected'));
+    // Join profile room for updates
+    joinProfileRoom();
+    
+    // Send system settings to worker if available
+    sendSystemSettings();
+    
+    // Update UI to show connected state
+    updateUIConnectionState(true);
+    
+    // Dispatch connection event for other modules
+    document.dispatchEvent(new CustomEvent('socket-connected', {
+      detail: { socketId: socket.id }
+    }));
   }
   
-  // Handle disconnection
-  function handleDisconnect(reason) {
-    console.log('Socket disconnected:', reason);
-    document.body.classList.remove('socket-connected');
-    document.body.classList.add('socket-disconnected');
+  // Handle socket disconnection
+  function handleDisconnect() {
+    console.log('Socket disconnected');
     
-    // Notify other components
-    document.dispatchEvent(new CustomEvent('socket-disconnected', { 
-      detail: { reason } 
-    }));
+    // Update UI to show disconnected state
+    updateUIConnectionState(false);
     
-    // Attempt to reconnect if not already reconnecting
-    if (!reconnectTimer && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    // Dispatch disconnection event for other modules
+    document.dispatchEvent(new CustomEvent('socket-disconnected'));
+    
+    // Attempt to reconnect if not max attempts
+    if (reconnectAttempts < maxReconnectAttempts) {
       attemptReconnect();
     }
   }
@@ -108,14 +149,13 @@ window.socketHandler = (function() {
   // Handle connection errors
   function handleConnectionError(error) {
     console.error('Socket connection error:', error);
+    isConnecting = false;
     
-    // Notify other components
-    document.dispatchEvent(new CustomEvent('socket-error', { 
-      detail: { error } 
-    }));
+    // Update UI to show error state
+    updateUIConnectionState(false, true);
     
-    // Attempt to reconnect if not already reconnecting
-    if (!reconnectTimer && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    // Attempt to reconnect if not max attempts
+    if (reconnectAttempts < maxReconnectAttempts) {
       attemptReconnect();
     }
   }
@@ -123,29 +163,68 @@ window.socketHandler = (function() {
   // Handle general socket errors
   function handleError(error) {
     console.error('Socket error:', error);
-    
-    // Notify other components
-    document.dispatchEvent(new CustomEvent('socket-error', { 
-      detail: { error } 
-    }));
   }
   
-  // Attempt to reconnect
+  // Handle page unload to sync session data
+  function handlePageUnload() {
+    try {
+      if (socket && socket.connected) {
+        // Sync session data before page unload
+        socket.emit('sync-session-unload', {
+          socketId: socket.id,
+          username: getUsername(),
+          reason: "pageUnload"
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing session on page unload:', error);
+    }
+  }
+  
+  // Attempt to reconnect after delay
   function attemptReconnect() {
+    if (isConnecting || (socket && socket.connected)) return;
+    
     reconnectAttempts++;
-    console.log(`Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+    
+    const delay = Math.min(1000 * reconnectAttempts, 5000);
+    console.log(`Attempting reconnect ${reconnectAttempts}/${maxReconnectAttempts} in ${delay}ms`);
     
     reconnectTimer = setTimeout(() => {
-      reconnectTimer = null;
+      if (!socket || !socket.connected) {
+        connect();
+      }
+    }, delay);
+  }
+  
+  // Update UI elements to reflect connection state
+  function updateUIConnectionState(isConnected, isError = false) {
+    try {
+      // Add/remove connection status classes
+      document.body.classList.toggle('socket-connected', isConnected);
+      document.body.classList.toggle('socket-disconnected', !isConnected);
+      document.body.classList.toggle('socket-error', isError);
       
-      if (socket) {
-        cleanupEventListeners();
-        socket.disconnect();
-        socket = null;
+      // Update any status indicators
+      const statusIndicator = document.getElementById('connection-status');
+      if (statusIndicator) {
+        statusIndicator.className = isConnected ? 'connected' : (isError ? 'error' : 'disconnected');
+        statusIndicator.title = isConnected ? 'Connected' : (isError ? 'Connection Error' : 'Disconnected');
       }
       
-      connect();
-    }, 3000);
+      // Disable interactive elements that require connection
+      if (!isConnected) {
+        document.querySelectorAll('.requires-connection').forEach(el => {
+          el.disabled = true;
+        });
+      } else {
+        document.querySelectorAll('.requires-connection').forEach(el => {
+          el.disabled = false;
+        });
+      }
+    } catch (error) {
+      console.error('Error updating UI connection state:', error);
+    }
   }
   
   // Get username from cookie utils or data attribute
@@ -179,26 +258,27 @@ window.socketHandler = (function() {
     }
   }
   
-  // Connect on page load
-  document.addEventListener('DOMContentLoaded', () => {
-    connect();
-    
-    // Join profile room after connection
-    document.addEventListener('socket-connected', joinProfileRoom);
-  });
+  // Check if socket is connected
+  function isConnected() {
+    return socket && socket.connected;
+  }
   
-  // Public API
+  // Get socket ID if connected
+  function getSocketId() {
+    return (socket && socket.connected) ? socket.id : null;
+  }
+  
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', init);
+  
+  // Return public API
   return {
+    init,
+    tearDown,
     connect,
-    disconnect: function() {
-      if (socket) {
-        cleanupEventListeners();
-        socket.disconnect();
-      }
-    },
-    getSocket: () => socket,
-    isConnected: () => socket && socket.connected,
-    sendSystemSettings,
-    joinProfileRoom
+    disconnect,
+    isConnected,
+    getSocketId,
+    sendSystemSettings
   };
 })();
