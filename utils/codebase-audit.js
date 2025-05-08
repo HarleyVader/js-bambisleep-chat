@@ -347,14 +347,6 @@ const fixedIssues = [
   },
   // Add our newly fixed issues
   {
-    file: 'src/models/SessionHistory.js',
-    issue: 'Missing token generation for session sharing'
-  },
-  {
-    file: 'src/models/SessionHistory.js',
-    issue: 'Handles token generation securely'
-  },
-  {
     file: 'src/public/js/bambi-sessions.js',
     issue: 'Missing session sharing functionality'
   },
@@ -409,7 +401,6 @@ const isIssueFixed = (filePath, issueText) => {
   return fixedIssues.some(fixed => {
     // Check if file path contains the fixed file path
     const fileMatch = filePath.includes(fixed.file) || 
-                     (fixed.file.includes('SessionHistory.js') && filePath.includes('SessionHistory')) ||
                      (fixed.file.includes('bambi-sessions.js') && filePath.includes('bambi-sessions')) ||
                      (fixed.file.includes('collar-controls.js') && filePath.includes('collar-controls')) ||
                      (fixed.file.includes('trigger-controls.js') && filePath.includes('trigger-controls'));
@@ -1019,7 +1010,6 @@ const auditCodebase = async (rootDir) => {
   
   // Log newly fixed issues
   console.log(chalk.green('Newly fixed issues:'));
-  console.log(chalk.green('- SessionHistory.js: Added secure token generation'));
   console.log(chalk.green('- bambi-sessions.js: Implemented session sharing via URL tokens'));
   console.log(chalk.green('- collar-controls.js: Added XP award functionality'));
   console.log(chalk.green('- trigger-controls.js: Implemented XP awards for trigger usage'));
@@ -1534,8 +1524,6 @@ const checkCollarControls = async (filePath) => {
 };
 
 const checkSessionHistoryModel = async (filePath) => {
-  // Only check SessionHistory model
-  if (!filePath.includes('SessionHistory.js')) return null;
   
   try {
     const content = await fs.readFile(filePath, 'utf8');

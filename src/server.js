@@ -45,11 +45,12 @@ import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 
-// Import Profile model getter
-import { User, Profile, getUser, getProfile, getOrCreateProfile } from './models/models.js';
+import { parseCookies } from './utils/cookies.js';
+import { getProfile } from './utils/profile.js';
+import { setupErrorHandlers } from './utils/errorHandlers.js';
 
-// Add this before initializing routes
-import './models/SessionHistory.js';
+// Import models
+import { SessionHistory } from './models/models.js';
 
 // Initialize environment and paths
 dotenv.config();
@@ -729,7 +730,6 @@ function setupSessionEvents(socket, lmstudio) {
     
     withDbConnection(async () => {
       try {
-        const SessionHistory = mongoose.model('SessionHistory');
         const session = await SessionHistory.findById(sessionId);
         
         if (!session) {
@@ -781,7 +781,6 @@ function setupSessionEvents(socket, lmstudio) {
     
     withDbConnection(async () => {
       try {
-        const SessionHistory = mongoose.model('SessionHistory');
         let sessionId = data.sessionId;
         
         if (sessionId) {
@@ -852,8 +851,6 @@ function setupSessionEvents(socket, lmstudio) {
     
     withDbConnection(async () => {
       try {
-        const SessionHistory = mongoose.model('SessionHistory');
-        
         // Verify ownership
         const session = await SessionHistory.findOne({ 
           _id: sessionId,
@@ -892,8 +889,6 @@ function setupSessionEvents(socket, lmstudio) {
     
     withDbConnection(async () => {
       try {
-        const SessionHistory = mongoose.model('SessionHistory');
-        
         const sessions = await SessionHistory.find({ 
           username: socket.bambiUsername 
         }).sort({ 'metadata.lastActivity': -1 }).select({

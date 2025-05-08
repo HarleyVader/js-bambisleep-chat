@@ -53,18 +53,6 @@ This checklist helps ensure that new or modified files adhere to the established
 - [x] Displays XP progress and level information
 - [x] Manages tab navigation between control panels
 
-
-### SessionHistory.js
-- [x] Tracks user session data including messages
-- [x] Stores metadata for creation time and last activity
-- [x] Supports session sharing via tokens
-- [x] Provides filtered retrieval by username
-- [x] Implements schema validation for session data
-- [x] Handles token generation securely
-- [x] Provides utility methods for session operations
-- [x] Maintains proper indexing for query performance
-
-
 ### collar-controls.js
 - [x] Manages collar settings for users
 - [x] Implements XP awards for usage

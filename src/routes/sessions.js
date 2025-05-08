@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSessionHistoryModel } from '../models/SessionHistory.js';
+import { getSessionHistoryModel } from '../models/models.js';
 import Logger from '../utils/logger.js';
 
 const router = express.Router();
