@@ -232,14 +232,27 @@ window.systemControlUI = (function() {
       
       // Load triggers from system state
       if (window.bambiSystem) {
-        const triggers = window.bambiSystem.getState('triggers') || [];
-        // Ensure we're passing an array of trigger objects
-        const triggerObjects = Array.isArray(triggers) ? 
-          triggers.map(t => typeof t === 'string' ? { name: t, category: 'General' } : t) : 
-          [];
+        // Get triggers from state with proper fallbacks
+        const triggersState = window.bambiSystem.getState('triggers') || {};
+        
+        // Extract the actual array of triggers
+        // Look for either activeTriggers array or triggerData array
+        const triggerArray = Array.isArray(triggersState.activeTriggers) 
+          ? triggersState.activeTriggers 
+          : (Array.isArray(triggersState.triggerData) ? triggersState.triggerData : []);
+        
+        // Convert any string-only triggers to proper objects
+        const triggerObjects = triggerArray.map(t => 
+          typeof t === 'string' ? { name: t, category: 'General' } : t
+        );
           
         updateTriggersList({
           detail: { triggers: triggerObjects }
+        });
+      } else {
+        // If no bambiSystem, initialize with empty array
+        updateTriggersList({
+          detail: { triggers: [] }
         });
       }
       
