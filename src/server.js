@@ -50,7 +50,7 @@ import { setupErrorHandlers } from './public/js/error-handler.js';
 
 // Import models
 import { SessionHistory } from './models/models.js';
-import { getProfile } from './public/js/profile.js';
+import { getProfile } from './config/db.js';
 
 // Initialize environment and paths
 dotenv.config();
