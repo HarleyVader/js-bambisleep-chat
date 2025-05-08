@@ -1,21 +1,11 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { Profile, getProfile } from '../models/models.js';
-import { connect } from '../config/db.js';
+import { withDbConnection } from '../config/db.js';
 import Logger from '../utils/logger.js';
 
 const router = express.Router();
 const logger = new Logger('API Routes');
-
-// Replace any uses of withDbConnection with the correct function
-async function withDb(callback) {
-  const db = await connect();
-  try {
-    return await callback(db);
-  } finally {
-    await db.close();
-  }
-}
 
 /**
  * Route to get chat messages
@@ -135,8 +125,8 @@ router.get('/api/profile/:username/system-controls', async (req, res) => {
       return res.status(400).json({ error: 'Username is required' });
     }
     
-    // Use the imported Profile model directly
-    const profile = await withDb(async () => {
+    // Use the imported Profile model with withDbConnection
+    const profile = await withDbConnection(async (conn) => {
       return await Profile.findOne({ username });
     });
     
@@ -175,8 +165,8 @@ router.post('/api/profile/:username/system-controls', async (req, res) => {
       return res.status(400).json({ error: 'Username is required' });
     }
     
-    // Use the imported Profile model directly
-    let profile = await withDb(async () => {
+    // Find and update profile using withDbConnection
+    let profile = await withDbConnection(async () => {
       return await Profile.findOne({ username });
     });
     
@@ -215,7 +205,7 @@ router.post('/api/profile/:username/system-controls', async (req, res) => {
       profile.systemControls.hypnosisEnabled = !!req.body.hypnosisEnabled;
     }
     
-    // Save the updated profile
+    // Save the updated profile using withDbConnection
     await withDbConnection(async () => {
       return await profile.save();
     });
@@ -244,11 +234,13 @@ router.get('/sessions/:username', async (req, res) => {
       return res.status(400).json({ error: 'Username is required' });
     }
     
-    // Get sessions from SessionHistory model - using mongoose directly
-    const SessionHistory = mongoose.model('SessionHistory');
-    const sessions = await SessionHistory.find({ username })
-      .sort({ 'metadata.lastActivity': -1 })
-      .limit(20);
+    // Get sessions from SessionHistory model using withDbConnection
+    const sessions = await withDbConnection(async () => {
+      const SessionHistory = mongoose.model('SessionHistory');
+      return await SessionHistory.find({ username })
+        .sort({ 'metadata.lastActivity': -1 })
+        .limit(20);
+    });
     
     if (!sessions || sessions.length === 0) {
       return res.json({ 
