@@ -46,7 +46,6 @@ import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 
 // Import public utilities
 import { parseCookies, serializeCookie } from './public/js/utils/cookie-utils.js';
-import { setupErrorHandlers } from './public/js/error-handler.js';
 
 // Import models
 import { SessionHistory, getProfile } from './models/models.js';
