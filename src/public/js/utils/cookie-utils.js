@@ -25,6 +25,44 @@ window.cookieUtils = (function() {
     document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
   }
 
+  // Parse cookie string into object (from server-side utility)
+  function parseCookies(cookieHeader) {
+    if (!cookieHeader) return {};
+    
+    return cookieHeader
+      .split(';')
+      .map(cookie => cookie.trim().split('='))
+      .reduce((acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      }, {});
+  }
+
+  // Serialize cookie with options (from server-side utility)
+  function serializeCookie(name, value, options = {}) {
+    let cookieStr = `${name}=${value}`;
+    
+    if (options.path) cookieStr += `; path=${options.path}`;
+    if (options.domain) cookieStr += `; domain=${options.domain}`;
+    if (options.maxAge) cookieStr += `; max-age=${options.maxAge}`;
+    if (options.expires) cookieStr += `; expires=${options.expires.toUTCString()}`;
+    if (options.httpOnly) cookieStr += '; httpOnly';
+    if (options.secure) cookieStr += '; secure';
+    if (options.sameSite) cookieStr += `; sameSite=${options.sameSite}`;
+    
+    return cookieStr;
+  }
+
+  // Set cookie with advanced options
+  function setCookieAdvanced(name, value, options = {}) {
+    document.cookie = serializeCookie(name, value, options);
+  }
+
+  // Parse all document cookies into an object
+  function getAllCookies() {
+    return parseCookies(document.cookie);
+  }
+
   // Get username from cookies or default to anonBambi
   function getBambiName() {
     return getCookie('bambiname') || 'anonBambi';
@@ -111,6 +149,10 @@ window.cookieUtils = (function() {
     getCookie,
     setCookie,
     deleteCookie,
+    parseCookies,
+    serializeCookie,
+    setCookieAdvanced,
+    getAllCookies,
     getBambiName,
     setBambiName,
     initUsernameModal,

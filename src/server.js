@@ -40,11 +40,9 @@ import setupChatSockets from './sockets/chatSockets.js';
 import setupLMStudioSockets from './sockets/lmStudioSockets.js';
 
 // Import utilities and middleware
-import errorHandler from './middleware/error.js';
 import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
-
 import { parseCookies } from './utils/cookies.js';
 import { getProfile } from './utils/profile.js';
 import { setupErrorHandlers } from './utils/errorHandlers.js';
