@@ -192,6 +192,33 @@ userSchema.statics.findOrCreateByUsername = async function(username) {
   });
 };
 
+// Static methods to find user by various criteria
+userSchema.statics.getUserByUsername = async function(username) {
+  return withDbConnection(async () => {
+    try {
+      return await this.findOne({ username });
+    } catch (error) {
+      logger.error(`Error getting user for ${username}: ${error.message}`);
+      return null;
+    }
+  });
+};
+
+userSchema.statics.updateUserProfile = async function(username, updates) {
+  return withDbConnection(async () => {
+    try {
+      return await this.findOneAndUpdate(
+        { username },
+        updates,
+        { new: true, upsert: false }
+      );
+    } catch (error) {
+      logger.error(`Error updating user for ${username}: ${error.message}`);
+      throw error;
+    }
+  });
+};
+
 // Create the model
 let User;
 try {
@@ -234,4 +261,8 @@ export async function updateUser(username, updates) {
   });
 }
 
-export { User };
+export { User, getUser, updateUser };
+
+// Also add these for backward compatibility
+export const getUserByUsername = getUser;
+export const updateUserProfile = updateUser;
