@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
 import { getModel } from '../config/db.js';
 import footerConfig from '../config/footer.config.js';
+import { requireLogin } from '../middleware/auth.js';
+import { User } from '../models/user.js';
 
 const logger = new Logger('ProfileRoutes');
 const router = express.Router();
@@ -27,56 +29,46 @@ const isProfileOwner = (req, profileUsername) => {
   return cookieUsername === profileUsername;
 };
 
-// Profile listing page with pagination and sorting
-router.get('/', async (req, res) => {
+// Profile page - require login
+router.get('/', requireLogin, async (req, res) => {
   try {
-    const Profile = getModel('Profile');
+    // Get the logged in user
+    const username = req.session.username;
     
-    // Get query parameters with defaults
-    const page = parseInt(req.query.page) || 1;
-    const perPage = parseInt(req.query.perPage) || 20;
-    const sortBy = req.query.sortBy || 'createdAt';
-    const sortDir = req.query.sortDir || 'desc';
+    if (!username) {
+      return res.redirect('/login');
+    }
     
-    // Validate sort field to prevent injection
-    const allowedSortFields = ['createdAt', 'level', 'xp', 'hearts.count', 'generatedWords'];
-    const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    // Fetch user profile data from database
+    const user = await User.findOne({ username });
     
-    // Create sort object
-    const sort = {};
-    sort[validSortBy] = sortDir === 'asc' ? 1 : -1;
+    if (!user) {
+      return res.status(404).render('error', {
+        message: 'User not found',
+        error: { status: 404 }
+      });
+    }
     
-    // Calculate pagination values
-    const skip = (page - 1) * perPage;
+    // Create profile object with user data
+    const profile = {
+      username: user.username,
+      level: user.level || 1,
+      xp: user.xp || 0,
+      joinDate: user.createdAt || new Date(),
+      sessions: user.sessions || [],
+      preferences: user.preferences || {}
+    };
     
-    // Get total count for pagination
-    const totalProfiles = await Profile.countDocuments();
-    const totalPages = Math.ceil(totalProfiles / perPage);
-    
-    // Fetch paginated and sorted profiles
-    const profiles = await Profile.find()
-      .sort(sort)
-      .skip(skip)
-      .limit(perPage);
-    
-    res.render('profile', { 
-      title: 'Bambi Community Profiles',
-      mode: 'list',
-      profiles,
-      currentPage: page,
-      perPage,
-      totalPages,
-      totalProfiles,
-      sortBy: validSortBy,
-      sortDir,
-      footer: footerConfig
+    // Render the profile page with the profile data
+    return res.render('profile', { 
+      profile,
+      user: req.session.username
     });
   } catch (error) {
-    logger.error('Error loading profiles list:', error);
-    res.status(500).render('error', { 
-      message: 'Failed to load profiles',
-      error: req.app.get('env') === 'development' ? error : {},
-      title: 'Error'
+    console.error('Error fetching profile:', error);
+    return res.status(500).render('error', {
+      message: 'Something went wrong. Please try again later.',
+      error: { status: 500 }
     });
   }
 });
