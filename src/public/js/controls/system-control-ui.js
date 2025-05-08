@@ -1,1105 +1,728 @@
-// Simple state
-const userLevel = 0;
-const triggerCategories = {};
-const elements = [];
-
-// Initialize the module
-const systemControlUI = (function() {
-  try {
-    console.log('System Controls UI initialized');
-  } catch (error) {
-    console.error('Error initializing system controls UI:', error);
-  }
-
-  // Handle XP updates from server
-  function handleXpUpdate(data) {
-    try {
-      if (data.level !== undefined) {
-        // Update level if different
-        if (data.level !== userLevel) {
-          userLevel = data.level;
-          updateControlAvailability();
-        }
-
-        // Update XP progress bar
-        const progressFill = document.getElementById('xp-progress-fill');
-        const progressLabel = document.getElementById('xp-progress-label');
-        const levelIndicator = document.getElementById('level-indicator');
-
-        if (progressFill && data.percentToNextLevel !== undefined) {
-          progressFill.style.width = `${data.percentToNextLevel}%`;
-        }
-
-        if (progressLabel && data.currentXp !== undefined && data.xpForNextLevel !== undefined) {
-          progressLabel.textContent = `${data.currentXp} / ${data.xpForNextLevel}`;
-        }
-
-        if (levelIndicator) {
-          levelIndicator.textContent = `Level ${data.level}`;
-        }
-      }
-    } catch (error) {
-      console.error('Error handling XP update:', error);
-    }
-  }
-
-  // Update trigger list
-  function updateTriggersList(event) {
-    try {
-      const container = document.getElementById('triggers-container');
-      if (!container) return;
-
-      const { triggers } = event.detail;
-      container.innerHTML = '';
-
-      const fragment = document.createDocumentFragment();
-
-      // Group triggers by category
-      const groupedTriggers = triggers.reduce((acc, trigger) => {
-        const category = trigger.category || 'General';
-        if (!acc[category]) acc[category] = [];
-        acc[category].push(trigger);
-        return acc;
-      }, {});
-
-      Object.entries(groupedTriggers).forEach(([category, triggers]) => {
-        const categoryEl = document.createElement('div');
-        categoryEl.className = 'trigger-category';
-
-        const categoryLabel = document.createElement('h4');
-        categoryLabel.textContent = category;
-        categoryEl.appendChild(categoryLabel);
-
-        const triggerList = document.createElement('div');
-        triggerList.className = 'trigger-list';
-
-        triggers.forEach(trigger => {
-          const triggerEl = document.createElement('div');
-          triggerEl.className = 'trigger-item';
-          triggerEl.setAttribute('data-trigger', trigger.name);
-          triggerEl.textContent = trigger.name;
-          
-          triggerEl.addEventListener('click', () => {
-            activateTrigger(trigger.name);
-          });
-          
-          elements.push(triggerEl);
-          triggerList.appendChild(triggerEl);
-        });
-        
-        categoryEl.appendChild(triggerList);
-        fragment.appendChild(categoryEl);
-      });
-      
-      container.appendChild(fragment);
-    } catch (error) {
-      console.error('Error rendering trigger categories:', error);
-    }
-  }
-  
-  // Activate a trigger
-  function activateTrigger(triggerName) {
-    try {
-      // Update state immediately for responsive feel
-      const triggerEl = document.querySelector(`.trigger-item[data-trigger="${triggerName}"]`);
-      if (triggerEl) {
-        triggerEl.classList.add('active');
-        
-        // Remove after animation time
-        setTimeout(() => {
-          triggerEl.classList.remove('active');
-        }, 2000);
-      }
-      
-      // Emit event for other systems
-      if (window.socket && window.socket.connected) {
-        window.socket.emit('client-trigger-activate', {
-          triggerName,
-          timestamp: Date.now()
-        });
-      }
-      
-      // Award XP for using trigger
-      awardXpForAction('trigger-used', 1);
-    } catch (error) {
-      console.error('Error activating trigger:', error);
-    }
-  }
-  
-  // Update user level from bambiSystem or data attribute
-  function updateUserLevel() {
-    try {
-      if (window.bambiSystem) {
-        userLevel = window.bambiSystem.getUserLevel();
-      } else {
-        userLevel = parseInt(document.body.getAttribute('data-level') || '0');
-      }
-      
-      updateControlAvailability();
-    } catch (error) {
-      console.error('Error updating user level:', error);
-    }
-  }
-  
-  // Handle system initialization
-  function handleSystemInit() {
-    try {
-      updateUserLevel();
-      
-      const buttonsContainer = document.getElementById('buttons');
-      if (buttonsContainer && buttonsContainer.children.length === 0) {
-        createControls();
-      }
-      
-      // Load triggers from system state
-      if (window.bambiSystem) {
-        // Get triggers from state with proper fallbacks
-        const triggersState = window.bambiSystem.getState('triggers') || {};
-        
-        // Extract the actual array of triggers
-        // Look for either activeTriggers array or triggerData array
-        const triggerArray = Array.isArray(triggersState.activeTriggers) 
-          ? triggersState.activeTriggers 
-          : (Array.isArray(triggersState.triggerData) ? triggersState.triggerData : []);
-        
-        // Convert any string-only triggers to proper objects
-        const triggerObjects = triggerArray.map(t => 
-          typeof t === 'string' ? { name: t, category: 'General' } : t
-        );
-          
-        updateTriggersList({
-          detail: { triggers: triggerObjects }
-        });
-      } else {
-        // If no bambiSystem, initialize with empty array
-        updateTriggersList({
-          detail: { triggers: [] }
-        });
-      }
-      
-      activateDefaultTab();
-    } catch (error) {
-      console.error('Error handling system initialization:', error);
-    }
-  }
-  
-  // Setup tab switching
-  function setupTabSwitching() {
-    try {
-      const container = document.getElementById('system-controls-container');
-      if (!container) return;
-      
-      container.addEventListener('click', function(event) {
-        const button = event.target.closest('.control-btn');
-        if (!button || button.classList.contains('disabled')) return;
-        
-        const targetId = button.getAttribute('data-target');
-        if (targetId) {
-          switchToTab(targetId);
-          
-          try {
-            localStorage.setItem('bambiActiveTab', targetId);
-          } catch (e) {
-            console.error('Error saving tab state:', e);
-          }
-        }
-      });
-      
-      elements.push(container);
-    } catch (error) {
-      console.error('Error setting up tab switching:', error);
-    }
-  }
-  
-  // Switch to a specific tab
-  function switchToTab(tabId) {
-    try {
-      // Hide all panels
-      document.querySelectorAll('.control-panel').forEach(panel => {
-        panel.style.display = 'none';
-      });
-      
-      // Remove active class from all buttons
-      document.querySelectorAll('.control-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      
-      // Show selected panel
-      const panel = document.getElementById(tabId);
-      if (panel) {
-        panel.style.display = 'block';
-      }
-      
-      // Add active class to button
-      const button = document.querySelector(`.control-btn[data-target="${tabId}"]`);
-      if (button) {
-        button.classList.add('active');
-      }
-      
-      activeTab = tabId;
-    } catch (error) {
-      console.error('Error switching tabs:', error);
-    }
-  }
-  
-  // Create control buttons and panels
-  function createControls() {
-    try {
-      const buttonsContainer = document.getElementById('buttons');
-      const panelsContainer = document.getElementById('console');
-      
-      if (!buttonsContainer || !panelsContainer) return;
-      
-      buttonsContainer.innerHTML = '';
-      panelsContainer.innerHTML = '';
-      
-      const buttonFragment = document.createDocumentFragment();
-      const panelFragment = document.createDocumentFragment();
-      
-      controls.forEach(control => {
-        // Create button
-        const button = document.createElement('button');
-        button.id = `${control.id}-button`;
-        button.className = 'control-btn';
-        button.setAttribute('data-target', `${control.id}-panel`);
-        button.setAttribute('data-level-required', control.requiredLevel);
-        button.textContent = control.label;
-        
-        if (control.requiredLevel > userLevel) {
-          button.classList.add('disabled');
-          button.textContent += ' 🔒';
-          button.title = `Unlock at Level ${control.requiredLevel}`;
-        }
-        
-        // Create panel
-        const panel = document.createElement('div');
-        panel.id = `${control.id}-panel`;
-        panel.className = 'control-panel';
-        panel.style.display = 'none';
-        
-        // Add content based on panel type
-        switch (control.id) {
-          case 'triggers':
-            panel.innerHTML = createTriggersPanel();
-            break;
-          case 'collar':
-            panel.innerHTML = createCollarPanel();
-            break;
-          case 'sessions':
-            panel.innerHTML = createSessionsPanel();
-            break;
-          case 'spirals':
-            panel.innerHTML = createSpiralsPanel();
-            break;
-          case 'hypnosis':
-            panel.innerHTML = createHypnosisPanel();
-            break;
-          case 'audio':
-            panel.innerHTML = createAudioPanel();
-            break;
-          case 'binaurals':
-            panel.innerHTML = createBinauralsPanel();
-            break;
-          default:
-            panel.innerHTML = `<p>Content for ${control.label}</p>`;
-        }
-        
-        buttonFragment.appendChild(button);
-        panelFragment.appendChild(panel);
-      });
-      
-      buttonsContainer.appendChild(buttonFragment);
-      panelsContainer.appendChild(panelFragment);
-      
-      initializePanelFunctionality();
-    } catch (error) {
-      console.error('Error creating controls:', error);
-    }
-  }
-  
-  // Initialize panel-specific functionality
-  function initializePanelFunctionality() {
-    try {
-      setupCollarPanel();
-      setupSpiralsPanel();
-      setupSessionsPanel();
-      setupAudioPanel();
-      setupTriggersPanel();
-    } catch (error) {
-      console.error('Error initializing panel functionality:', error);
-    }
-  }
-  
-  // Setup trigger panel functionality
-  function setupTriggersPanel() {
-    try {
-      const loopToggle = document.getElementById('trigger-loop');
-      const volumeSlider = document.getElementById('trigger-volume');
-      
-      if (loopToggle) {
-        // Load setting
-        if (window.bambiSystem) {
-          const triggerSettings = window.bambiSystem.getState('triggerSettings') || {};
-          loopToggle.checked = triggerSettings.loop || false;
-        }
-        
-        // Save setting
-        loopToggle.addEventListener('change', function() {
-          if (window.bambiSystem) {
-            window.bambiSystem.saveState('triggerSettings', {
-              ...window.bambiSystem.getState('triggerSettings') || {},
-              loop: loopToggle.checked
-            });
-          }
-        });
-        
-        elements.push(loopToggle);
-      }
-      
-      if (volumeSlider) {
-        // Load setting
-        if (window.bambiSystem) {
-          const triggerSettings = window.bambiSystem.getState('triggerSettings') || {};
-          volumeSlider.value = triggerSettings.volume || 70;
-        }
-        
-        // Save setting
-        volumeSlider.addEventListener('change', function() {
-          if (window.bambiSystem) {
-            window.bambiSystem.saveState('triggerSettings', {
-              ...window.bambiSystem.getState('triggerSettings') || {},
-              volume: parseInt(volumeSlider.value)
-            });
-          }
-        });
-        
-        elements.push(volumeSlider);
-      }
-    } catch (error) {
-      console.error('Error setting up triggers panel:', error);
-    }
-  }
-  
-  // Setup collar panel functionality
-  function setupCollarPanel() {
-    try {
-      const collarEnable = document.getElementById('collar-enable');
-      const collarText = document.getElementById('collar-text');
-      const saveCollar = document.getElementById('save-collar');
-      
-      if (collarEnable && collarText && saveCollar) {
-        // Load settings
-        if (window.bambiSystem) {
-          const collarSettings = window.bambiSystem.getState('collar') || {};
-          collarEnable.checked = collarSettings.enabled || false;
-          collarText.value = collarSettings.text || '';
-        }
-        
-        // Save settings
-        saveCollar.addEventListener('click', function() {
-          const settings = {
-            enabled: collarEnable.checked,
-            text: collarText.value
-          };
-          
-          if (window.bambiSystem) {
-            window.bambiSystem.saveState('collar', settings);
-          }
-          
-          // Update UI
-          const collarContainer = document.getElementById('collar-container');
-          const collarResponse = document.getElementById('textarea-collar-response');
-          
-          if (collarContainer && collarResponse) {
-            collarContainer.style.display = settings.enabled ? 'block' : 'none';
-            collarResponse.textContent = settings.text;
-          }
-          
-          // Award XP for customization
-          awardXpForAction('collar-customized', 5);
-        });
-        
-        elements.push(saveCollar);
-      }
-    } catch (error) {
-      console.error('Error setting up collar panel:', error);
-    }
-  }
-  
-  // Setup spirals panel functionality
-  function setupSpiralsPanel() {
-    try {
-      const spiralEnable = document.getElementById('spiral-enable');
-      const saveSpirals = document.getElementById('save-spirals');
-      
-      if (spiralEnable && saveSpirals) {
-        // Load settings
-        if (window.bambiSystem) {
-          const spiralSettings = window.bambiSystem.getState('spirals') || {};
-          spiralEnable.checked = spiralSettings.enabled || false;
-          
-          // Update range inputs
-          const spiral1Width = document.getElementById('spiral1-width');
-          const spiral2Width = document.getElementById('spiral2-width');
-          const spiral1Speed = document.getElementById('spiral1-speed');
-          const spiral2Speed = document.getElementById('spiral2-speed');
-          
-          if (spiral1Width) spiral1Width.value = spiralSettings.spiral1Width || 5;
-          if (spiral2Width) spiral2Width.value = spiralSettings.spiral2Width || 3;
-          if (spiral1Speed) spiral1Speed.value = spiralSettings.spiral1Speed || 20;
-          if (spiral2Speed) spiral2Speed.value = spiralSettings.spiral2Speed || 15;
-        }
-        
-        // Save settings
-        saveSpirals.addEventListener('click', function() {
-          const settings = {
-            enabled: spiralEnable.checked,
-            spiral1Width: parseFloat(document.getElementById('spiral1-width')?.value || 5),
-            spiral2Width: parseFloat(document.getElementById('spiral2-width')?.value || 3),
-            spiral1Speed: parseInt(document.getElementById('spiral1-speed')?.value || 20),
-            spiral2Speed: parseInt(document.getElementById('spiral2-speed')?.value || 15)
-          };
-          
-          if (window.bambiSystem) {
-            window.bambiSystem.saveState('spirals', settings);
-          }
-          
-          // Trigger spiral update event
-          document.dispatchEvent(new CustomEvent('spiral-settings-updated', {
-            detail: settings
-          }));
-          
-          // Award XP for customization
-          awardXpForAction('spiral-customized', 5);
-        });
-        
-        elements.push(saveSpirals);
-      }
-    } catch (error) {
-      console.error('Error setting up spirals panel:', error);
-    }
-  }
-  
-  // Setup sessions panel
-  function setupSessionsPanel() {
-    try {
-      const saveSessionBtn = document.getElementById('save-session');
-      const sessionNameInput = document.getElementById('session-name');
-      
-      if (saveSessionBtn && sessionNameInput) {
-        saveSessionBtn.addEventListener('click', function() {
-          const sessionName = sessionNameInput.value.trim();
-          if (!sessionName) return;
-          
-          // Use bambiSessions if available
-          if (window.bambiSessions) {
-            window.bambiSessions.saveSession(sessionName);
-          } else if (window.socket && window.socket.connected) {
-            // Fallback to direct socket communication
-            const sessionData = collectCurrentSettings();
-            
-            window.socket.emit('client-save-session', {
-              name: sessionName,
-              data: sessionData,
-              timestamp: Date.now()
-            });
-          }
-          
-          // Clear input
-          sessionNameInput.value = '';
-          
-          // Award XP
-          awardXpForAction('session-saved', 10);
-        });
-        
-        elements.push(saveSessionBtn);
-        
-        // Load sessions list
-        loadSessions();
-      }
-    } catch (error) {
-      console.error('Error setting up sessions panel:', error);
-    }
-  }
-  
-  // Load sessions
-  function loadSessions() {
-    try {
-      const sessionList = document.getElementById('session-list');
-      if (!sessionList) return;
-      
-      sessionList.innerHTML = '<div class="loading-message">Loading sessions...</div>';
-      
-      if (window.socket && window.socket.connected) {
-        window.socket.emit('client-get-sessions', {}, function(response) {
-          if (!response || !response.success || !response.sessions) {
-            sessionList.innerHTML = '<div class="info-message">No saved sessions found</div>';
-            return;
-          }
-          
-          // Render sessions
-          renderSessionsList(sessionList, response.sessions);
-        });
-      }
-    } catch (error) {
-      console.error('Error loading sessions:', error);
-    }
-  }
-  
-  // Render sessions list
-  function renderSessionsList(container, sessions) {
-    try {
-      container.innerHTML = '';
-      
-      if (!sessions || sessions.length === 0) {
-        container.innerHTML = '<div class="info-message">No saved sessions found</div>';
-        return;
-      }
-      
-      const fragment = document.createDocumentFragment();
-      
-      sessions.forEach(session => {
-        const sessionEl = document.createElement('div');
-        sessionEl.className = 'session-item';
-        sessionEl.setAttribute('data-session-id', session.id); // Add session ID
-        
-        const nameEl = document.createElement('span');
-        nameEl.className = 'session-name';
-        nameEl.textContent = session.name;
-        
-        const loadBtn = document.createElement('button');
-        loadBtn.className = 'load-session-btn';
-        loadBtn.textContent = 'Load';
-        loadBtn.addEventListener('click', function() {
-          loadSession(session.id);
-        });
-        
-        sessionEl.appendChild(nameEl);
-        sessionEl.appendChild(loadBtn);
-        fragment.appendChild(sessionEl);
-        
-        elements.push(loadBtn);
-      });
-      
-      container.appendChild(fragment);
-      
-      // Dispatch event so session-sharing.js can enhance it
-      document.dispatchEvent(new CustomEvent('sessions-rendered', {
-        detail: { sessions }
-      }));
-    } catch (error) {
-      console.error('Error rendering sessions list:', error);
-    }
-  }
-  
-  // Load a session
-  function loadSession(sessionId) {
-    try {
-      if (window.bambiSessions) {
-        window.bambiSessions.loadSession(sessionId);
-      } else if (window.socket && window.socket.connected) {
-        window.socket.emit('client-load-session', { sessionId }, function(response) {
-          if (response && response.success && response.sessionData) {
-            applySessionSettings(response.sessionData);
-          }
-        });
-      }
-      
-      // Award XP
-      awardXpForAction('session-loaded', 3);
-    } catch (error) {
-      console.error('Error loading session:', error);
-    }
-  }
-  
-  // Apply session settings
-  function applySessionSettings(settings) {
-    try {
-      // Update central state
-      if (window.bambiSystem) {
-        window.bambiSystem.applySessionSettings(settings);
-      }
-      
-      // Notify components
-      document.dispatchEvent(new CustomEvent('session-loaded', {
-        detail: { settings }
-      }));
-    } catch (error) {
-      console.error('Error applying session settings:', error);
-    }
-  }
-  
-  // Collect current settings
-  function collectCurrentSettings() {
-    try {
-      // Use central state manager if available
-      if (window.bambiSystem) {
-        return {
-          activeTriggers: window.bambiSystem.getState('triggers') || [],
-          collarSettings: window.bambiSystem.getState('collar') || {},
-          spiralSettings: window.bambiSystem.getState('spirals') || {}
-        };
-      }
-      
-      // Fallback to direct DOM access
-      return {
-        activeTriggers: [],
-        collarSettings: {
-          enabled: document.getElementById('collar-enable')?.checked || false,
-          text: document.getElementById('collar-text')?.value || ''
-        },
-        spiralSettings: {
-          enabled: document.getElementById('spiral-enable')?.checked || false,
-          spiral1Width: parseFloat(document.getElementById('spiral1-width')?.value || 5),
-          spiral2Width: parseFloat(document.getElementById('spiral2-width')?.value || 3),
-          spiral1Speed: parseInt(document.getElementById('spiral1-speed')?.value || 20),
-          spiral2Speed: parseInt(document.getElementById('spiral2-speed')?.value || 15)
-        }
-      };
-    } catch (error) {
-      console.error('Error collecting settings:', error);
-      return {};
-    }
-  }
-  
-  // Setup audio panel
-  function setupAudioPanel() {
-    try {
-      const masterVolume = document.getElementById('master-volume');
-      const soundToggle = document.getElementById('sound-toggle');
-      const voiceToggle = document.getElementById('voice-toggle');
-      const saveAudio = document.getElementById('save-audio');
-      
-      if (masterVolume && soundToggle && voiceToggle && saveAudio) {
-        // Load settings
-        try {
-          const audioSettings = JSON.parse(localStorage.getItem('audioSettings') || '{}');
-          
-          masterVolume.value = audioSettings.volume !== undefined ? audioSettings.volume : 70;
-          soundToggle.checked = audioSettings.enableSound !== undefined ? audioSettings.enableSound : true;
-          voiceToggle.checked = audioSettings.enableVoice !== undefined ? audioSettings.enableVoice : false;
-          
-          // Update display
-          document.getElementById('master-volume-value').textContent = `${masterVolume.value}%`;
-        } catch (e) {
-          console.error('Error loading audio settings:', e);
-        }
-        
-        // Volume slider change
-        masterVolume.addEventListener('input', function() {
-          document.getElementById('master-volume-value').textContent = `${masterVolume.value}%`;
-        });
-        
-        // Save settings
-        saveAudio.addEventListener('click', function() {
-          const settings = {
-            volume: parseInt(masterVolume.value),
-            enableSound: soundToggle.checked,
-            enableVoice: voiceToggle.checked
-          };
-          
-          try {
-            localStorage.setItem('audioSettings', JSON.stringify(settings));
-          } catch (e) {
-            console.error('Error saving audio settings:', e);
-          }
-          
-          // Apply settings
-          if (window.audioPlayer) {
-            window.audioPlayer.setVolume(settings.volume / 100);
-            window.audioPlayer.setEnabled(settings.enableSound);
-          }
-          
-          // Set voice recognition
-          if (window.voiceRecognition) {
-            window.voiceRecognition.setEnabled(settings.enableVoice);
-          }
-          
-          // Award XP
-          awardXpForAction('audio-settings-changed', 2);
-        });
-        
-        elements.push(saveAudio);
-        elements.push(masterVolume);
-      }
-    } catch (error) {
-      console.error('Error setting up audio panel:', error);
-    }
-  }
-  
-  // Create triggers panel content
-  function createTriggersPanel() {
-    return `
-      <div class="panel-content">
-        <h3>Bambi Triggers</h3>
-        <div class="triggers-container" id="triggers-container">
-          <div class="loading-message">Loading triggers...</div>
-        </div>
-        <div class="trigger-settings">
-          <div class="setting-group">
-            <label for="trigger-loop">Loop Triggers</label>
-            <input type="checkbox" id="trigger-loop" class="toggle-input">
-          </div>
-          <div class="setting-group">
-            <label for="trigger-volume">Volume</label>
-            <input type="range" id="trigger-volume" min="0" max="100" value="70">
-            <span id="volume-value">70%</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  // Create collar panel content
-  function createCollarPanel() {
-    return `
-      <div class="panel-content">
-        <h3>Bambi Collar</h3>
-        <div class="collar-settings">
-          <div class="setting-group">
-            <label for="collar-enable">Enable Collar</label>
-            <input type="checkbox" id="collar-enable" class="toggle-input">
-          </div>
-          <div class="setting-group">
-            <label for="collar-text">Collar Text</label>
-            <input type="text" id="collar-text" placeholder="Enter collar text">
-          </div>
-          <button id="save-collar" class="action-button">Save Collar Settings</button>
-        </div>
-      </div>
-    `;
-  }
-  
-  function createSessionsPanel() {
-    return `
-      <div class="panel-content">
-        <h3>Bambi Sessions</h3>
-        <div class="sessions-container">
-          <div class="session-save">
-            <input type="text" id="session-name" placeholder="Session Name">
-            <button id="save-session" class="action-button">Save Session</button>
-          </div>
-          <div class="session-actions">
-            <button id="refresh-sessions" class="action-button small">Refresh</button>
-            <button id="import-session" class="action-button small">Import</button>
-          </div>
-          <div class="session-list" id="session-list">
-            <div class="loading-message">Loading sessions...</div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  // Create spirals panel content
-  function createSpiralsPanel() {
-    return `
-      <div class="panel-content">
-        <h3>Bambi Spirals</h3>
-        <div class="spiral-settings">
-          <div class="setting-group">
-            <label for="spiral-enable">Enable Spirals</label>
-            <input type="checkbox" id="spiral-enable" class="toggle-input">
-          </div>
-          <div class="spiral-controls">
-            <div class="setting-group">
-              <label for="spiral1-width">Spiral 1 Width</label>
-              <input type="range" id="spiral1-width" min="1" max="10" value="5">
-              <span class="value-display">5.0</span>
-            </div>
-            <div class="setting-group">
-              <label for="spiral2-width">Spiral 2 Width</label>
-              <input type="range" id="spiral2-width" min="1" max="10" value="3">
-              <span class="value-display">3.0</span>
-            </div>
-            <div class="setting-group">
-              <label for="spiral1-speed">Spiral 1 Speed</label>
-              <input type="range" id="spiral1-speed" min="1" max="50" value="20">
-              <span class="value-display">20</span>
-            </div>
-            <div class="setting-group">
-              <label for="spiral2-speed">Spiral 2 Speed</label>
-              <input type="range" id="spiral2-speed" min="1" max="50" value="15">
-              <span class="value-display">15</span>
-            </div>
-          </div>
-          <button id="save-spirals" class="action-button">Save Spiral Settings</button>
-        </div>
-      </div>
-    `;
-  }
-  
-  // Create hypnosis panel content
-  function createHypnosisPanel() {
-    return `
-      <div class="panel-content">
-        <h3>Hypnosis Files</h3>
-        <div class="hypnosis-container">
-          <p>Available at Level 5</p>
-          <div class="file-list" id="hypnosis-files">
-            <div class="file-item locked">
-              <span class="file-name">Bambi Conditioning</span>
-              <span class="file-lock">🔒</span>
-            </div>
-            <div class="file-item locked">
-              <span class="file-name">Deep Trance</span>
-              <span class="file-lock">🔒</span>
-            </div>
-            <div class="file-item locked">
-              <span class="file-name">Mindless Mode</span>
-              <span class="file-lock">🔒</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  // Create audio panel content
-  function createAudioPanel() {
-    return `
-      <div class="panel-content">
-        <h3>Audio Settings</h3>
-        <div class="audio-settings">
-          <div class="setting-group">
-            <label for="master-volume">Master Volume</label>
-            <input type="range" id="master-volume" min="0" max="100" value="70">
-            <span id="master-volume-value">70%</span>
-          </div>
-          <div class="setting-group">
-            <label for="sound-toggle">Sound Effects</label>
-            <input type="checkbox" id="sound-toggle" class="toggle-input" checked>
-          </div>
-          <div class="setting-group">
-            <label for="voice-toggle">Voice Recognition</label>
-            <input type="checkbox" id="voice-toggle" class="toggle-input">
-          </div>
-          <button id="save-audio" class="action-button">Save Audio Settings</button>
-        </div>
-      </div>
-    `;
-  }
-  
-  // Create binaurals panel content
-  function createBinauralsPanel() {
-    return `
-      <div class="panel-content">
-        <h3>Binaural Beats</h3>
-        <div class="binaural-container">
-          <p>Available at Level 7</p>
-          <div class="binaural-buttons">
-            <button class="binaural-btn" data-wave="delta" disabled>Delta</button>
-            <button class="binaural-btn" data-wave="theta" disabled>Theta</button>
-            <button class="binaural-btn" data-wave="alpha" disabled>Alpha</button>
-            <button class="binaural-btn" data-wave="beta" disabled>Beta</button>
-            <button class="binaural-btn" data-wave="gamma" disabled>Gamma</button>
-          </div>
-          <div class="binaural-status">
-            <p>Status: <span id="binaural-status">Inactive</span></p>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  // Update control availability based on user level
-  function updateControlAvailability() {
-    try {
-      controls.forEach(control => {
-        const button = document.getElementById(`${control.id}-button`);
-        if (!button) return;
-        
-        if (userLevel < control.requiredLevel) {
-          button.classList.add('disabled');
-          if (!button.textContent.includes('🔒')) {
-            button.textContent = button.textContent + ' 🔒';
-          }
-          button.title = `Unlock at Level ${control.requiredLevel}`;
-        } else {
-          button.classList.remove('disabled');
-          button.textContent = button.textContent.replace(' 🔒', '');
-          button.title = '';
-        }
-      });
-    } catch (error) {
-      console.error('Error updating control availability:', error);
-    }
-  }
-  
-  // Activate default tab
-  function activateDefaultTab() {
-    try {
-      // Try to restore from localStorage first
-      let savedTab = null;
-      try {
-        savedTab = localStorage.getItem('bambiActiveTab');
-      } catch (e) {
-        console.error('Error reading active tab from storage:', e);
-      }
-      
-      // Filter available tabs based on user level
-      const availableTabs = controls
-        .filter(control => control.requiredLevel <= userLevel)
-        .map(control => `${control.id}-panel`);
-      
-      // If saved tab exists and is available, use it
-      if (savedTab && availableTabs.includes(savedTab)) {
-        switchToTab(savedTab);
-        return;
-      }
-      
-      // Otherwise use the first available tab
-      if (availableTabs.length > 0) {
-        switchToTab(availableTabs[0]);
-      }
-    } catch (error) {
-      console.error('Error activating default tab:', error);
-    }
-  }
-  
-  // Award XP for user actions
-  function awardXpForAction(action, amount) {
-    if (window.socket && window.socket.connected) {
-      window.socket.emit('client-award-xp', {
-        action,
-        amount,
-        timestamp: Date.now()
-      });
-    }
-  }
-  
-  // Clean up
-  function destroy() {
-    try {
-      // Remove event listeners
-      document.removeEventListener('system-initialized', handleSystemInit);
-      document.removeEventListener('trigger-activated', handleTriggerActivated);
-      document.removeEventListener('trigger-list-updated', updateTriggersList);
-      
-      if (window.socket) {
-        window.socket.off('server-xp-awarded', handleXpUpdate);
-      }
-      
-      // Clean up other event listeners
-      elements.forEach(el => {
-        if (el.parentNode) {
-          // Clone and replace to remove listeners
-          el.parentNode.replaceChild(el.cloneNode(true), el);
-        }
-      });
-      
-      // Clear elements array
-      elements.length = 0;
-    } catch (error) {
-      console.error('Error destroying system controls UI:', error);
-    }
-  }
-  
-  // Public API
-  return {
-    init,
-    destroy,
-    createControls,
-    updateUserLevel
-  };
-})();
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', window.systemControlUI.init);
-
-/**
- * Session sharing module for BambiSleep Chat
- * Handles session sharing and token management
- */
-window.sessionSharing = (function() {
+window.systemControlUI = (function() {
   // Private variables
-  let shareModal = null;
-  let currentSessionId = null;
-  let shareToken = null;
-  const elements = [];
-  
-  // Initialize module
+  let initialized = false;
+  let controlButtons = [];
+  let activePanel = null;
+
+  // Initialize the system controls UI
   function init() {
     try {
+      // Get DOM elements
+      const buttonsContainer = document.getElementById('buttons');
+      const consoleContainer = document.getElementById('console');
+      
+      if (!buttonsContainer || !consoleContainer) {
+        console.error('Required DOM elements not found');
+        return;
+      }
+      
+      // Set up control buttons
+      setupControlButtons(buttonsContainer);
+      
+      // Set up control panels
+      setupControlPanels(consoleContainer);
+      
+      // Set up event listeners
       setupEventListeners();
-      createShareModal();
       
-      // Listen for system initialization
-      document.addEventListener('system-initialized', handleSystemInit);
-      
-      console.log('Session sharing module initialized');
+      // Mark as initialized
+      initialized = true;
+      console.log('System Control UI initialized');
     } catch (error) {
-      console.error('Error initializing session sharing:', error);
+      console.error('Error initializing system control UI:', error);
     }
   }
   
-  // Handle system initialization
-  function handleSystemInit() {
-    // Check URL for shared session token
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('session');
-      
-      if (token) {
-        loadSharedSession(token);
-        
-        // Clean URL after loading
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
+  // Set up control buttons
+  function setupControlButtons(container) {
+    if (!container) return;
+    
+    const buttonData = [
+      { id: 'triggers-btn', text: 'Triggers', panel: 'triggers-panel', default: true },
+      { id: 'collar-btn', text: 'Collar', panel: 'collar-panel', levelRequired: 3 },
+      { id: 'spiral-btn', text: 'Spirals', panel: 'spiral-panel', levelRequired: 4 },
+      { id: 'session-btn', text: 'Sessions', panel: 'session-panel', levelRequired: 5 }
+    ];
+    
+    // Get user level
+    const userLevel = parseInt(document.querySelector('.system-controls')?.getAttribute('data-user-level') || '0');
+    
+    // Create buttons
+    buttonData.forEach(button => {
+      // Skip buttons that require higher level
+      if (button.levelRequired && userLevel < button.levelRequired) {
+        return;
       }
-    } catch (error) {
-      console.error('Error checking for shared session:', error);
+      
+      const buttonEl = document.createElement('button');
+      buttonEl.id = button.id;
+      buttonEl.className = 'control-button';
+      buttonEl.textContent = button.text;
+      buttonEl.setAttribute('data-panel', button.panel);
+      
+      if (button.levelRequired) {
+        buttonEl.setAttribute('data-level-required', button.levelRequired);
+      }
+      
+      if (button.default) {
+        buttonEl.classList.add('active');
+      }
+      
+      container.appendChild(buttonEl);
+      controlButtons.push(buttonEl);
+    });
+  }
+  
+  // Set up control panels
+  function setupControlPanels(container) {
+    if (!container) return;
+    
+    // Create triggers panel
+    const triggersPanel = document.createElement('div');
+    triggersPanel.id = 'triggers-panel';
+    triggersPanel.className = 'control-panel active';
+    triggersPanel.innerHTML = `
+      <div class="panel-header">
+        <h3>Triggers Control</h3>
+      </div>
+      <div class="panel-content">
+        <div id="triggers-list" class="triggers-list">
+          <!-- Triggers will be loaded dynamically -->
+          <div class="loading-spinner">Loading triggers...</div>
+        </div>
+      </div>
+    `;
+    container.appendChild(triggersPanel);
+    activePanel = triggersPanel;
+    
+    // Get user level
+    const userLevel = parseInt(document.querySelector('.system-controls')?.getAttribute('data-user-level') || '0');
+    
+    // Create collar panel if level is sufficient
+    if (userLevel >= 3) {
+      const collarPanel = document.createElement('div');
+      collarPanel.id = 'collar-panel';
+      collarPanel.className = 'control-panel';
+      collarPanel.innerHTML = `
+        <div class="panel-header">
+          <h3>Collar Control</h3>
+        </div>
+        <div class="panel-content">
+          <div class="control-setting">
+            <label for="collar-toggle">Show Collar:</label>
+            <input type="checkbox" id="collar-toggle" class="toggle-switch">
+          </div>
+          <div class="control-setting">
+            <label for="collar-text">Collar Text:</label>
+            <input type="text" id="collar-text" placeholder="Enter collar text">
+          </div>
+        </div>
+      `;
+      container.appendChild(collarPanel);
+    }
+    
+    // Create spiral panel if level is sufficient
+    if (userLevel >= 4) {
+      const spiralPanel = document.createElement('div');
+      spiralPanel.id = 'spiral-panel';
+      spiralPanel.className = 'control-panel';
+      spiralPanel.innerHTML = `
+        <div class="panel-header">
+          <h3>Spiral Control</h3>
+        </div>
+        <div class="panel-content">
+          <div class="control-setting">
+            <label for="spiral-toggle">Show Spirals:</label>
+            <input type="checkbox" id="spiral-toggle" class="toggle-switch">
+          </div>
+          <div class="control-setting">
+            <label for="spiral1-width">Spiral 1 Width:</label>
+            <input type="range" id="spiral1-width" min="1" max="10" step="0.1" value="5.0">
+            <span id="spiral1-width-value">5.0</span>
+          </div>
+          <div class="control-setting">
+            <label for="spiral2-width">Spiral 2 Width:</label>
+            <input type="range" id="spiral2-width" min="1" max="10" step="0.1" value="3.0">
+            <span id="spiral2-width-value">3.0</span>
+          </div>
+          <div class="control-setting">
+            <label for="spiral1-speed">Spiral 1 Speed:</label>
+            <input type="range" id="spiral1-speed" min="5" max="50" step="1" value="20">
+            <span id="spiral1-speed-value">20</span>
+          </div>
+          <div class="control-setting">
+            <label for="spiral2-speed">Spiral 2 Speed:</label>
+            <input type="range" id="spiral2-speed" min="5" max="50" step="1" value="15">
+            <span id="spiral2-speed-value">15</span>
+          </div>
+        </div>
+      `;
+      container.appendChild(spiralPanel);
+    }
+    
+    // Create session panel if level is sufficient
+    if (userLevel >= 5) {
+      const sessionPanel = document.createElement('div');
+      sessionPanel.id = 'session-panel';
+      sessionPanel.className = 'control-panel';
+      sessionPanel.innerHTML = `
+        <div class="panel-header">
+          <h3>Session Control</h3>
+        </div>
+        <div class="panel-content">
+          <div class="control-actions">
+            <button id="save-session-btn" class="control-action-btn">Save Session</button>
+            <button id="load-session-btn" class="control-action-btn">Load Session</button>
+            <button id="share-session-btn" class="control-action-btn">Share Session</button>
+          </div>
+          <div id="sessions-container" class="session-selector-container">
+            <h4>Your Saved Sessions</h4>
+            <div id="session-list" class="session-list">
+              <div class="loading-spinner">Loading sessions...</div>
+            </div>
+          </div>
+        </div>
+      `;
+      container.appendChild(sessionPanel);
     }
   }
   
   // Set up event listeners
   function setupEventListeners() {
-    // Listen for session list rendering to add share buttons
-    document.addEventListener('sessions-rendered', enhanceSessionList);
+    // Button click event listeners
+    controlButtons.forEach(button => {
+      button.addEventListener('click', handleControlButtonClick);
+    });
     
-    // Check for token in URL on load
-    window.addEventListener('load', checkUrlForToken);
+    // Initialize inputs with localStorage values or defaults
+    loadSavedSettings();
+    
+    // Set up control panel event listeners
+    setupControlPanelEvents();
   }
   
-  // Clean up event listeners
-  function tearDown() {
+  // Handle control button clicks
+  function handleControlButtonClick(event) {
+    const panelId = event.target.getAttribute('data-panel');
+    if (!panelId) return;
+    
+    // Update button active state
+    controlButtons.forEach(btn => {
+      btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Update panel active state
+    if (activePanel) {
+      activePanel.classList.remove('active');
+    }
+    activePanel = document.getElementById(panelId);
+    if (activePanel) {
+      activePanel.classList.add('active');
+    }
+  }
+  
+  // Load saved settings from localStorage
+  function loadSavedSettings() {
     try {
-      // Remove event listeners
-      document.removeEventListener('sessions-rendered', enhanceSessionList);
-      document.removeEventListener('system-initialized', handleSystemInit);
-      window.removeEventListener('load', checkUrlForToken);
+      // Load collar settings
+      const collarToggle = document.getElementById('collar-toggle');
+      const collarText = document.getElementById('collar-text');
       
-      // Clean up DOM elements
-      if (shareModal && shareModal.parentNode) {
-        shareModal.parentNode.removeChild(shareModal);
+      if (collarToggle && collarText) {
+        const savedCollar = localStorage.getItem('collarSettings');
+        if (savedCollar) {
+          const collarSettings = JSON.parse(savedCollar);
+          collarToggle.checked = collarSettings.enabled || false;
+          collarText.value = collarSettings.text || '';
+        }
       }
       
-      // Clean up element references
-      elements.forEach(el => {
-        if (el.parentNode) {
-          el.parentNode.replaceChild(el.cloneNode(true), el);
-        }
-      });
-      elements.length = 0;
+      // Load spiral settings
+      const spiralToggle = document.getElementById('spiral-toggle');
+      const spiral1Width = document.getElementById('spiral1-width');
+      const spiral2Width = document.getElementById('spiral2-width');
+      const spiral1Speed = document.getElementById('spiral1-speed');
+      const spiral2Speed = document.getElementById('spiral2-speed');
       
-      console.log('Session sharing module cleaned up');
+      if (spiralToggle && spiral1Width && spiral2Width && spiral1Speed && spiral2Speed) {
+        const savedSpiral = localStorage.getItem('spiralSettings');
+        if (savedSpiral) {
+          const spiralSettings = JSON.parse(savedSpiral);
+          spiralToggle.checked = spiralSettings.enabled || false;
+          spiral1Width.value = spiralSettings.spiral1Width || 5.0;
+          spiral2Width.value = spiralSettings.spiral2Width || 3.0;
+          spiral1Speed.value = spiralSettings.spiral1Speed || 20;
+          spiral2Speed.value = spiralSettings.spiral2Speed || 15;
+          
+          // Update display values
+          document.getElementById('spiral1-width-value').textContent = spiral1Width.value;
+          document.getElementById('spiral2-width-value').textContent = spiral2Width.value;
+          document.getElementById('spiral1-speed-value').textContent = spiral1Speed.value;
+          document.getElementById('spiral2-speed-value').textContent = spiral2Speed.value;
+        }
+      }
     } catch (error) {
-      console.error('Error during session sharing teardown:', error);
+      console.error('Error loading saved settings:', error);
     }
   }
   
-  // Create share modal
-  function createShareModal() {
-    // Create modal element if it doesn't exist
-    if (!document.getElementById('share-session-modal')) {
-      shareModal = document.createElement('div');
-      shareModal.id = 'share-session-modal';
-      shareModal.className = 'modal';
-      shareModal.innerHTML = `
-        <div class="modal-content">
-          <span class="close">&times;</span>
-        </div>
-      `;
+  // Setup control panel event listeners
+  function setupControlPanelEvents() {
+    // Collar events
+    const collarToggle = document.getElementById('collar-toggle');
+    const collarText = document.getElementById('collar-text');
+    
+    if (collarToggle) {
+      collarToggle.addEventListener('change', saveCollarSettings);
+    }
+    
+    if (collarText) {
+      collarText.addEventListener('input', saveCollarSettings);
+    }
+    
+    // Spiral events
+    const spiralToggle = document.getElementById('spiral-toggle');
+    const spiral1Width = document.getElementById('spiral1-width');
+    const spiral2Width = document.getElementById('spiral2-width');
+    const spiral1Speed = document.getElementById('spiral1-speed');
+    const spiral2Speed = document.getElementById('spiral2-speed');
+    
+    if (spiralToggle) {
+      spiralToggle.addEventListener('change', saveSpiralSettings);
+    }
+    
+    if (spiral1Width) {
+      spiral1Width.addEventListener('input', function() {
+        document.getElementById('spiral1-width-value').textContent = this.value;
+        saveSpiralSettings();
+      });
+    }
+    
+    if (spiral2Width) {
+      spiral2Width.addEventListener('input', function() {
+        document.getElementById('spiral2-width-value').textContent = this.value;
+        saveSpiralSettings();
+      });
+    }
+    
+    if (spiral1Speed) {
+      spiral1Speed.addEventListener('input', function() {
+        document.getElementById('spiral1-speed-value').textContent = this.value;
+        saveSpiralSettings();
+      });
+    }
+    
+    if (spiral2Speed) {
+      spiral2Speed.addEventListener('input', function() {
+        document.getElementById('spiral2-speed-value').textContent = this.value;
+        saveSpiralSettings();
+      });
+    }
+    
+    // Session events
+    const saveSessionBtn = document.getElementById('save-session-btn');
+    const loadSessionBtn = document.getElementById('load-session-btn');
+    const shareSessionBtn = document.getElementById('share-session-btn');
+    
+    if (saveSessionBtn) {
+      saveSessionBtn.addEventListener('click', saveSession);
+    }
+    
+    if (loadSessionBtn) {
+      loadSessionBtn.addEventListener('click', loadSession);
+    }
+    
+    if (shareSessionBtn) {
+      shareSessionBtn.addEventListener('click', shareSession);
     }
   }
+  
+  // Save collar settings
+  function saveCollarSettings() {
+    try {
+      const collarToggle = document.getElementById('collar-toggle');
+      const collarText = document.getElementById('collar-text');
+      
+      if (!collarToggle || !collarText) return;
+      
+      const collarSettings = {
+        enabled: collarToggle.checked,
+        text: collarText.value
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('collarSettings', JSON.stringify(collarSettings));
+      
+      // Notify the system
+      if (window.bambiSystem) {
+        window.bambiSystem.updateCollarSettings(collarSettings);
+      }
+      
+      // Dispatch event
+      document.dispatchEvent(new CustomEvent('collar-settings-updated', {
+        detail: collarSettings
+      }));
+    } catch (error) {
+      console.error('Error saving collar settings:', error);
+    }
+  }
+  
+  // Save spiral settings
+  function saveSpiralSettings() {
+    try {
+      const spiralToggle = document.getElementById('spiral-toggle');
+      const spiral1Width = document.getElementById('spiral1-width');
+      const spiral2Width = document.getElementById('spiral2-width');
+      const spiral1Speed = document.getElementById('spiral1-speed');
+      const spiral2Speed = document.getElementById('spiral2-speed');
+      
+      if (!spiralToggle || !spiral1Width || !spiral2Width || !spiral1Speed || !spiral2Speed) return;
+      
+      const spiralSettings = {
+        enabled: spiralToggle.checked,
+        spiral1Width: parseFloat(spiral1Width.value),
+        spiral2Width: parseFloat(spiral2Width.value),
+        spiral1Speed: parseInt(spiral1Speed.value),
+        spiral2Speed: parseInt(spiral2Speed.value)
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('spiralSettings', JSON.stringify(spiralSettings));
+      
+      // Notify the system
+      if (window.bambiSystem) {
+        window.bambiSystem.updateSpiralSettings(spiralSettings);
+      }
+      
+      // Dispatch event
+      document.dispatchEvent(new CustomEvent('spiral-settings-updated', {
+        detail: spiralSettings
+      }));
+    } catch (error) {
+      console.error('Error saving spiral settings:', error);
+    }
+  }
+  
+  // Save current session
+  function saveSession() {
+    try {
+      if (!window.bambiSystem || !window.socket || !window.socket.connected) {
+        console.error('Cannot save session: system or socket not available');
+        return;
+      }
+      
+      // Collect session settings
+      const sessionSettings = window.bambiSystem.collectSettings();
+      
+      // Add username
+      const username = document.body.getAttribute('data-username') || 'anonBambi';
+      sessionSettings.username = username;
+      
+      // Save session to server
+      window.socket.emit('client-save-session', sessionSettings, response => {
+        if (response && response.success) {
+          // Show success message
+          alert('Session saved successfully!');
+          
+          // Refresh session list
+          loadSessionList();
+        } else {
+          alert('Failed to save session. Please try again.');
+        }
+      });
+    } catch (error) {
+      console.error('Error saving session:', error);
+      alert('An error occurred while saving the session.');
+    }
+  }
+  
+  // Load selected session
+  function loadSession() {
+    try {
+      if (!window.bambiSystem || !window.socket || !window.socket.connected) {
+        console.error('Cannot load session: system or socket not available');
+        return;
+      }
+      
+      // Get selected session
+      const selectedSession = document.querySelector('input[name="session-select"]:checked');
+      if (!selectedSession) {
+        alert('Please select a session to load.');
+        return;
+      }
+      
+      const sessionId = selectedSession.value;
+      
+      // Get session data from server
+      window.socket.emit('client-get-session', { sessionId }, response => {
+        if (response && response.success && response.session) {
+          // Apply session settings
+          window.bambiSystem.applySessionSettings(response.session);
+          
+          // Show success message
+          alert('Session loaded successfully!');
+          
+          // Update UI to reflect loaded settings
+          loadSavedSettings();
+        } else {
+          alert('Failed to load session. Please try again.');
+        }
+      });
+    } catch (error) {
+      console.error('Error loading session:', error);
+      alert('An error occurred while loading the session.');
+    }
+  }
+  
+  // Share session
+  function shareSession() {
+    try {
+      if (!window.bambiSystem || !window.socket || !window.socket.connected) {
+        console.error('Cannot share session: system or socket not available');
+        return;
+      }
+      
+      // Get selected session
+      const selectedSession = document.querySelector('input[name="session-select"]:checked');
+      if (!selectedSession) {
+        alert('Please select a session to share.');
+        return;
+      }
+      
+      const sessionId = selectedSession.value;
+      
+      // Share session
+      window.socket.emit('client-share-session', { sessionId }, response => {
+        if (response && response.success && response.shareCode) {
+          // Show share code
+          const shareCode = response.shareCode;
+          prompt('Your session share code (copy this to share):', shareCode);
+          
+          // Award XP for sharing if available
+          if (window.socket) {
+            window.socket.emit('client-award-xp', {
+              action: 'share-session',
+              amount: 50
+            });
+          }
+        } else {
+          alert('Failed to share session. Please try again.');
+        }
+      });
+    } catch (error) {
+      console.error('Error sharing session:', error);
+      alert('An error occurred while sharing the session.');
+    }
+  }
+  
+  // Load session list
+  function loadSessionList() {
+    try {
+      if (!window.socket || !window.socket.connected) {
+        console.error('Cannot load sessions: socket not available');
+        return;
+      }
+      
+      const sessionListEl = document.getElementById('session-list');
+      if (!sessionListEl) return;
+      
+      // Set loading state
+      sessionListEl.innerHTML = '<div class="loading-spinner">Loading sessions...</div>';
+      
+      // Get username
+      const username = document.body.getAttribute('data-username') || 'anonBambi';
+      
+      // Load sessions from server
+      window.socket.emit('client-get-sessions', { username }, response => {
+        if (response && response.success && Array.isArray(response.sessions)) {
+          // Render sessions
+          renderSessionList(sessionListEl, response.sessions);
+        } else {
+          sessionListEl.innerHTML = '<div class="no-sessions">No saved sessions found.</div>';
+        }
+      });
+    } catch (error) {
+      console.error('Error loading session list:', error);
+    }
+  }
+  
+  // Render session list
+  function renderSessionList(container, sessions) {
+    if (!container) return;
+    
+    if (!sessions || sessions.length === 0) {
+      container.innerHTML = '<div class="no-sessions">No saved sessions found.</div>';
+      return;
+    }
+    
+    container.innerHTML = '';
+    
+    sessions.forEach(session => {
+      const sessionItem = document.createElement('div');
+      sessionItem.className = 'session-item';
+      
+      const sessionDate = new Date(session.createdAt).toLocaleString();
+      
+      sessionItem.innerHTML = `
+        <label class="session-checkbox-label">
+          <input type="radio" name="session-select" class="session-checkbox" value="${session._id}">
+          <div class="session-info">
+            <div class="session-date">${sessionDate}</div>
+            <div class="session-msg-count">
+              ${session.activeTriggers?.length || 0} active triggers
+            </div>
+          </div>
+        </label>
+      `;
+      
+      container.appendChild(sessionItem);
+    });
+  }
+  
+  // Load triggers list
+  function loadTriggersList() {
+    try {
+      const triggersListEl = document.getElementById('triggers-list');
+      if (!triggersListEl) return;
+      
+      // Set loading state
+      triggersListEl.innerHTML = '<div class="loading-spinner">Loading triggers...</div>';
+      
+      if (window.socket && window.socket.connected) {
+        // Load triggers from server
+        window.socket.emit('client-get-triggers', {}, response => {
+          if (response && response.success && Array.isArray(response.triggers)) {
+            // Render triggers list
+            renderTriggersList(triggersListEl, response.triggers);
+          } else {
+            triggersListEl.innerHTML = '<div class="error-message">Failed to load triggers.</div>';
+          }
+        });
+      } else if (window.bambiSystem) {
+        // Get triggers from bambiSystem
+        const triggers = window.bambiSystem.getTriggers();
+        renderTriggersList(triggersListEl, triggers);
+      } else {
+        triggersListEl.innerHTML = '<div class="error-message">Cannot load triggers: system not available</div>';
+      }
+    } catch (error) {
+      console.error('Error loading triggers list:', error);
+    }
+  }
+  
+  // Render triggers list
+  function renderTriggersList(container, triggers) {
+    if (!container) return;
+    
+    if (!triggers || triggers.length === 0) {
+      container.innerHTML = '<div class="no-triggers">No triggers available.</div>';
+      return;
+    }
+    
+    // Group triggers by category
+    const categories = {};
+    triggers.forEach(trigger => {
+      const category = trigger.category || 'General';
+      if (!categories[category]) {
+        categories[category] = [];
+      }
+      categories[category].push(trigger);
+    });
+    
+    container.innerHTML = '';
+    
+    // Create HTML for each category
+    Object.entries(categories).forEach(([category, categoryTriggers]) => {
+      const categoryEl = document.createElement('div');
+      categoryEl.className = 'trigger-category';
+      
+      const categoryHeader = document.createElement('h4');
+      categoryHeader.className = 'category-header';
+      categoryHeader.textContent = category;
+      
+      const triggersList = document.createElement('div');
+      triggersList.className = 'category-triggers';
+      
+      // Create toggle switches for each trigger
+      categoryTriggers.forEach(trigger => {
+        const triggerName = typeof trigger === 'string' ? trigger : trigger.name;
+        
+        const triggerItem = document.createElement('div');
+        triggerItem.className = 'trigger-item';
+        
+        const triggerLabel = document.createElement('label');
+        triggerLabel.className = 'trigger-label';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'trigger-toggle toggle-input';
+        checkbox.setAttribute('data-trigger', triggerName);
+        
+        // Check if trigger is active
+        if (window.bambiSystem) {
+          const activeTriggers = window.bambiSystem.getActiveTriggers();
+          checkbox.checked = activeTriggers.includes(triggerName);
+        }
+        
+        // Add change event listener
+        checkbox.addEventListener('change', function() {
+          if (window.bambiSystem) {
+            if (this.checked) {
+              window.bambiSystem.activateTrigger(triggerName);
+            } else {
+              window.bambiSystem.deactivateTrigger(triggerName);
+            }
+          }
+        });
+        
+        const labelText = document.createElement('span');
+        labelText.className = 'trigger-name';
+        labelText.textContent = triggerName;
+        
+        triggerLabel.appendChild(checkbox);
+        triggerLabel.appendChild(labelText);
+        triggerItem.appendChild(triggerLabel);
+        triggersList.appendChild(triggerItem);
+      });
+      
+      categoryEl.appendChild(categoryHeader);
+      categoryEl.appendChild(triggersList);
+      container.appendChild(categoryEl);
+    });
+  }
+  
+  // Initialize when the page is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the UI
+    init();
+    
+    // Load triggers list
+    loadTriggersList();
+    
+    // Load session list if panel exists
+    if (document.getElementById('session-panel')) {
+      loadSessionList();
+    }
+  });
+  
+  // Event listener for system initialization
+  document.addEventListener('system-initialized', function() {
+    // Reload triggers list when system is initialized
+    loadTriggersList();
+    
+    // Load session list if panel exists
+    if (document.getElementById('session-panel')) {
+      loadSessionList();
+    }
+  });
+  
+  // Public API
+  return {
+    init: init,
+    loadTriggersList: loadTriggersList,
+    loadSessionList: loadSessionList,
+    renderTriggersList: renderTriggersList,
+    renderSessionList: renderSessionList
+  };
 })();
