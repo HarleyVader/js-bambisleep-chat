@@ -117,7 +117,16 @@ async function initializeApp() {
     setupSocketHandlers(io, socketStore, filteredWords);
     
     // Set up error handlers
-    setupErrorHandlers(app);
+    app.use((err, req, res, next) => {
+      logger.error('Express error handler:', err);
+      
+      res.status(err.status || 500).render('error', {
+        message: err.message || 'Internal Server Error',
+        error: config.NODE_ENV === 'development' ? err : {},
+        validConstantsCount: 5,
+        title: 'Error'
+      });
+    });
     
     return { app, server, io };
   } catch (error) {
