@@ -910,24 +910,6 @@ function setupSessionEvents(socket, lmstudio) {
 }
 
 /**
- * Parse cookies from cookie header string
- * 
- * @param {string} cookieHeader - Cookie header string
- * @returns {Object} - Object with cookie name-value pairs
- */
-function parseCookies(cookieHeader) {
-  if (!cookieHeader) return {};
-  
-  return cookieHeader
-    .split(';')
-    .map(cookie => cookie.trim().split('='))
-    .reduce((acc, [key, value]) => {
-      acc[key] = value;
-      return acc;
-    }, {});
-}
-
-/**
  * Filter words in content
  * 
  * @param {string} content - Content to filter
