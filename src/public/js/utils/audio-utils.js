@@ -13,79 +13,20 @@ window.audioUtils = (function() {
     console.error('Error loading audio settings:', e);
   }
   
-  // Play trigger audio with multiple fallback paths
+  // Play trigger audio
   function playTriggerAudio(triggerName) {
-    if (!triggerName) return null;
+    const audioPath = `/public/audio/triggers/${triggerName}.mp3`;
     
-    // Check if sound is disabled
-    try {
-      const settings = JSON.parse(localStorage.getItem('audioSettings') || '{}');
-      if (settings.enableSound === false) return null;
-    } catch (e) {
-      // Continue with default enabled
+    // Use existing audio player if available
+    if (window.audioPlayer) {
+      window.audioPlayer.play(audioPath);
+      return;
     }
     
-    // Convert trigger name to different formats to try
-    const formats = [
-      triggerName,
-      triggerName.replace(/\s+/g, '-'),
-      triggerName.replace(/\s+/g, '-').toUpperCase(),
-      triggerName.replace(/\s+/g, '-').toLowerCase()
-    ];
-    
-    // Create list of paths to try
-    const pathsToTry = [];
-    
-    // Add both /audio/ and /audio/triggers/ paths
-    formats.forEach(format => {
-      pathsToTry.push(`/audio/triggers/${format}.mp3`);
-    });
-    
-    // Try to load and play from the list of paths
-    return tryNextPath(pathsToTry, 0);
-  }
-  
-  // Try paths one by one until success
-  function tryNextPath(paths, index) {
-    if (index >= paths.length) {
-      console.error('Could not find audio for trigger');
-      return null;
-    }
-    
-    const path = paths[index];
-    
-    // Check cache first
-    if (audioCache[path]) {
-      const audio = audioCache[path];
-      audio.currentTime = 0;
-      audio.play().catch(err => {
-        console.error(`Error playing cached audio: ${err}`);
-        return tryNextPath(paths, index + 1);
-      });
-      return audio;
-    }
-    
-    // Create new audio element
-    const audio = new Audio();
-    audio.volume = volume;
-    
-    // Set up success handler
-    audio.oncanplaythrough = () => {
-      audioCache[path] = audio;
-      audio.play().catch(err => {
-        console.error(`Error playing audio: ${err}`);
-      });
-    };
-    
-    // Set up error handler to try next path
-    audio.onerror = () => {
-      console.log(`Could not load audio from ${path}, trying next path`);
-      return tryNextPath(paths, index + 1);
-    };
-    
-    // Start loading
-    audio.src = path;
-    return audio;
+    // Fallback to basic audio
+    const audio = new Audio(audioPath);
+    audio.volume = 0.7; // Default volume
+    audio.play().catch(err => console.error('Audio playback error:', err));
   }
   
   // Update volume for all audio
@@ -107,9 +48,242 @@ window.audioUtils = (function() {
     }
   }
   
+  // Apply audio settings
+  function applyAudioSettings() {
+    const settings = localStorage.getItem('audioSettings');
+    if (!settings) return;
+    
+    try {
+      const { volume, enableSound, enableVoice } = JSON.parse(settings);
+      
+      // Set global volume
+      if (window.audioPlayer) {
+        window.audioPlayer.setVolume(volume);
+      }
+      
+      // Update UI controls
+      const volumeSlider = document.getElementById('volume-slider');
+      if (volumeSlider) volumeSlider.value = volume * 100;
+      
+      const soundToggle = document.getElementById('sound-toggle');
+      if (soundToggle) soundToggle.checked = enableSound;
+      
+      const voiceToggle = document.getElementById('voice-toggle');
+      if (voiceToggle) voiceToggle.checked = enableVoice;
+    } catch (err) {
+      console.error('Error parsing audio settings:', err);
+    }
+  }
+  
   // Return public API
   return {
     playTriggerAudio,
-    setVolume
+    setVolume,
+    applyAudioSettings
   };
 })();
+
+window.brainwaveGenerator = (function() {
+  // AudioContext instance
+  let audioContext = null;
+  let oscillatorLeft = null;
+  let oscillatorRight = null;
+  let gainNode = null;
+
+  // Brainwave frequency ranges (in Hz)
+  const brainwaveRanges = {
+    delta: { base: 100, difference: 1.5 },  // 0.5-4Hz beats (deep sleep)
+    theta: { base: 100, difference: 5 },    // 4-8Hz beats (meditation, drowsiness)
+    alpha: { base: 100, difference: 10 },   // 8-12Hz beats (relaxed awareness)
+    beta: { base: 100, difference: 18 },    // 13-30Hz beats (active thinking)
+    gamma: { base: 100, difference: 35 }    // 30-100Hz beats (higher cognition)
+  };
+
+  let isPlaying = false;
+  let currentWave = null;
+
+  // Initialize audio context
+  function initAudio() {
+    try {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Create stereo panner for proper stereo separation
+        gainNode = audioContext.createGain();
+        gainNode.gain.value = 0.2; // Lower default volume for comfort
+        gainNode.connect(audioContext.destination);
+      }
+    } catch (error) {
+      console.error('Failed to initialize audio context:', error);
+    }
+  }
+
+  // Start playing a specific brainwave pattern
+  function playBrainwave(type) {
+    if (!brainwaveRanges[type]) {
+      console.error(`Unknown brainwave type: ${type}`);
+      return;
+    }
+
+    try {
+      initAudio();
+      stopBrainwave(); // Stop any current playback
+      
+      // Resume context if suspended (needed due to autoplay policies)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      
+      const { base, difference } = brainwaveRanges[type];
+      
+      // Create oscillators for left and right ear
+      oscillatorLeft = audioContext.createOscillator();
+      oscillatorRight = audioContext.createOscillator();
+      
+      // Set frequencies to create the binaural beat
+      oscillatorLeft.frequency.value = base;
+      oscillatorRight.frequency.value = base + difference;
+      
+      // Create channel merger for stereo
+      const merger = audioContext.createChannelMerger(2);
+      
+      // Route oscillators to proper channels
+      const leftGain = audioContext.createGain();
+      const rightGain = audioContext.createGain();
+      
+      oscillatorLeft.connect(leftGain);
+      oscillatorRight.connect(rightGain);
+      
+      leftGain.connect(merger, 0, 0);  // Left oscillator to left channel
+      rightGain.connect(merger, 0, 1);  // Right oscillator to right channel
+      
+      merger.connect(gainNode);
+      
+      // Start oscillators
+      oscillatorLeft.start();
+      oscillatorRight.start();
+      
+      isPlaying = true;
+      currentWave = type;
+      
+      // Award XP for using the feature
+      if (window.socket && window.socket.connected) {
+        window.socket.emit('client-award-xp', {
+          action: 'use-brainwave',
+          amount: 5,
+          timestamp: Date.now()
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error playing brainwave:', error);
+      return false;
+    }
+  }
+
+  // Stop playing brainwaves
+  function stopBrainwave() {
+    try {
+      if (oscillatorLeft) {
+        oscillatorLeft.stop();
+        oscillatorLeft.disconnect();
+        oscillatorLeft = null;
+      }
+      
+      if (oscillatorRight) {
+        oscillatorRight.stop();
+        oscillatorRight.disconnect();
+        oscillatorRight = null;
+      }
+      
+      isPlaying = false;
+      currentWave = null;
+    } catch (error) {
+      console.error('Error stopping brainwave:', error);
+    }
+  }
+
+  // Set volume for brainwave audio
+  function setVolume(value) {
+    if (gainNode) {
+      gainNode.gain.value = Math.max(0, Math.min(1, value));
+    }
+  }
+
+  // Get current status
+  function getStatus() {
+    return {
+      isPlaying,
+      currentWave
+    };
+  }
+
+  // Clean up resources
+  function destroy() {
+    stopBrainwave();
+    if (audioContext) {
+      audioContext.close();
+      audioContext = null;
+    }
+  }
+
+  // Public API
+  return {
+    playBrainwave,
+    stopBrainwave,
+    getStatus,
+    setVolume,
+    destroy
+  };
+})();
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Optional: create controller UI elements
+  try {
+    const container = document.getElementById('brainwave-controls');
+    if (container) {
+      const waves = ['delta', 'theta', 'alpha', 'beta', 'gamma'];
+      
+      const controlsHTML = `
+        <div class="brainwave-buttons">
+          ${waves.map(wave => `
+            <button class="brainwave-btn" data-wave="${wave}">
+              ${wave.charAt(0).toUpperCase() + wave.slice(1)}
+            </button>
+          `).join('')}
+          <button class="brainwave-btn stop-btn" data-wave="stop">Stop</button>
+        </div>
+        <div class="volume-control">
+          <label for="brainwave-volume">Volume: </label>
+          <input type="range" id="brainwave-volume" min="0" max="100" value="20">
+        </div>
+      `;
+      
+      container.innerHTML = controlsHTML;
+      
+      // Add event listeners
+      document.querySelectorAll('.brainwave-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const wave = this.getAttribute('data-wave');
+          if (wave === 'stop') {
+            window.brainwaveGenerator.stopBrainwave();
+          } else {
+            window.brainwaveGenerator.playBrainwave(wave);
+          }
+        });
+      });
+      
+      // Volume control
+      const volumeSlider = document.getElementById('brainwave-volume');
+      if (volumeSlider) {
+        volumeSlider.addEventListener('input', function() {
+          window.brainwaveGenerator.setVolume(this.value / 100);
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error initializing brainwave UI:', error);
+  }
+});
