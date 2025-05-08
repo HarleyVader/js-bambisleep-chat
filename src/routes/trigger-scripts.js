@@ -1,10 +1,12 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Profile from '../models/Profile.js';
+import { Profile, withDbConnection } from '../models/models.js';
 import fs from 'fs';
+import Logger from '../utils/logger.js';
 
 const router = express.Router();
+const logger = new Logger('TriggerScripts');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -17,7 +19,7 @@ router.get('/', async (req, res) => {
     let collar = '';
     
     if (username && username !== 'anonBambi') {
-      const profile = await Profile.findOne({ username });
+      const profile = await withDbConnection(() => Profile.findOne({ username }));
       if (profile && profile.systemControls) {
         const triggerNames = profile.systemControls.activeTriggers || [];
         collar = profile.systemControls.collarEnabled ? 
@@ -78,7 +80,7 @@ When you're ready, click "Start Session" to begin your programming.`;
       collar
     });
   } catch (error) {
-    console.error('Error generating trigger script:', error);
+    logger.error('Error generating trigger script:', error);
     res.status(500).render('error', { 
       error: 'Could not generate trigger script', 
       details: error.message 
@@ -93,14 +95,16 @@ router.post('/save-triggers', async (req, res) => {
     const { selectedTriggers } = req.body;
     
     if (username && username !== 'anonBambi' && Array.isArray(selectedTriggers)) {
-      await Profile.updateOne(
-        { username },
-        { 
-          $set: { 
-            'systemControls.activeTriggers': selectedTriggers.map(t => t.name)
-          } 
-        },
-        { upsert: true }
+      await withDbConnection(() => 
+        Profile.updateOne(
+          { username },
+          { 
+            $set: { 
+              'systemControls.activeTriggers': selectedTriggers.map(t => t.name)
+            } 
+          },
+          { upsert: true }
+        )
       );
       
       res.json({ success: true });
@@ -109,7 +113,7 @@ router.post('/save-triggers', async (req, res) => {
       res.json({ success: true });
     }
   } catch (error) {
-    console.error('Error saving triggers:', error);
+    logger.error('Error saving triggers:', error);
     res.status(500).json({ 
       error: 'Could not save triggers', 
       details: error.message 
