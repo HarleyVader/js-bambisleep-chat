@@ -1,157 +1,36 @@
-/**
- * System Controls UI module
- */
-window.systemControlUI = (function() {
-  // Control definitions
-  const controls = [
-    { id: 'triggers', label: 'Triggers', requiredLevel: 1 },
-    { id: 'collar', label: 'Collar', requiredLevel: 2 },
-    { id: 'sessions', label: 'Sessions', requiredLevel: 3 },
-    { id: 'spirals', label: 'Spirals', requiredLevel: 4 },
-    { id: 'hypnosis', label: 'Hypnosis', requiredLevel: 5 },
-    { id: 'audio', label: 'Audio', requiredLevel: 6 },
-    { id: 'binaurals', label: 'Binaurals', requiredLevel: 7 }
-  ];
-  
-  // Simple state
-  let activeTab = null;
-  let userLevel = 0;
-  let triggerCategories = {};
-  
-  // DOM references for cleanup
-  const elements = [];
-  
-  // Initialize the module
-  function init() {
-    try {
-      console.log('System Controls UI initialized');
-      
-      document.addEventListener('system-initialized', handleSystemInit);
-      setupTabSwitching();
-      updateUserLevel();
-      
-      // Listen for trigger events
-      document.addEventListener('trigger-activated', handleTriggerActivated);
-      document.addEventListener('trigger-list-updated', updateTriggersList);
-      
-      // Listen for XP changes
-      if (window.socket) {
-        window.socket.on('server-xp-awarded', handleXpUpdate);
-      }
-    } catch (error) {
-      console.error('Error initializing system controls UI:', error);
-    }
+// Simple state
+const userLevel = 0;
+const triggerCategories = {};
+const elements = [];
+
+// Initialize the module
+const systemControlUI = (function() {
+  try {
+    console.log('System Controls UI initialized');
+  } catch (error) {
+    console.error('Error initializing system controls UI:', error);
   }
-  
+
   // Handle XP updates from server
   function handleXpUpdate(data) {
     try {
-      if (data && data.level !== undefined) {
+      if (data.level !== undefined) {
         // Update level if different
         if (data.level !== userLevel) {
           userLevel = data.level;
           updateControlAvailability();
         }
-        
+
         // Update XP progress bar
         const progressFill = document.getElementById('xp-progress-fill');
         const progressLabel = document.getElementById('xp-progress-label');
         const levelIndicator = document.getElementById('level-indicator');
-        
+
         if (progressFill && data.percentToNextLevel !== undefined) {
           progressFill.style.width = `${data.percentToNextLevel}%`;
         }
-        
+
         if (progressLabel && data.currentXp !== undefined && data.xpForNextLevel !== undefined) {
-          progressLabel.textContent = `${data.currentXp} / ${data.xpForNextLevel} XP`;
-        }
-        
-        if (levelIndicator) {
-          levelIndicator.textContent = `Level ${data.level}`;
-        }
-      }
-    } catch (error) {
-      console.error('Error handling XP update:', error);
-    }
-  }
-  
-  // Handle trigger activation
-  function handleTriggerActivated(event) {
-    try {
-      const triggerName = event.detail?.triggerName;
-      if (!triggerName) return;
-      
-      // Update trigger UI if visible
-      const triggerEl = document.querySelector(`.trigger-item[data-trigger="${triggerName}"]`);
-      if (triggerEl) {
-        // Add active class temporarily
-        triggerEl.classList.add('active');
-        
-        // Remove after animation completes
-        setTimeout(() => {
-          triggerEl.classList.remove('active');
-        }, 2000);
-      }
-    } catch (error) {
-      console.error('Error handling trigger activation:', error);
-    }
-  }
-  
-  // Update trigger list when triggers change
-  function updateTriggersList(event) {
-    try {
-      const triggers = event.detail?.triggers || [];
-      
-      // Ensure triggers is an array
-      const triggersArray = Array.isArray(triggers) ? triggers : [];
-      
-      const container = document.getElementById('triggers-container');
-      if (!container) return;
-      
-      // Organize triggers by category
-      triggerCategories = {};
-      triggersArray.forEach(trigger => {
-        const category = trigger.category || 'General';
-        if (!triggerCategories[category]) {
-          triggerCategories[category] = [];
-        }
-        triggerCategories[category].push(trigger);
-      });
-      
-      renderTriggerCategories(container);
-    } catch (error) {
-      console.error('Error updating triggers list:', error);
-    }
-  }
-  
-  // Render trigger categories
-  function renderTriggerCategories(container) {
-    try {
-      container.innerHTML = '';
-      
-      if (Object.keys(triggerCategories).length === 0) {
-        container.innerHTML = '<div class="info-message">No triggers available</div>';
-        return;
-      }
-      
-      // Create fragment to batch DOM operations
-      const fragment = document.createDocumentFragment();
-      
-      Object.entries(triggerCategories).forEach(([category, triggers]) => {
-        // Create category container
-        const categoryEl = document.createElement('div');
-        categoryEl.className = 'trigger-category';
-        
-        // Create category header
-        const header = document.createElement('h4');
-        header.textContent = category;
-        categoryEl.appendChild(header);
-        
-        // Create triggers list
-        const triggerList = document.createElement('div');
-        triggerList.className = 'trigger-list';
-        
-        // Add triggers to list
         triggers.forEach(trigger => {
           const triggerEl = document.createElement('div');
           triggerEl.className = 'trigger-item';
@@ -640,6 +519,7 @@ window.systemControlUI = (function() {
       sessions.forEach(session => {
         const sessionEl = document.createElement('div');
         sessionEl.className = 'session-item';
+        sessionEl.setAttribute('data-session-id', session.id); // Add session ID
         
         const nameEl = document.createElement('span');
         nameEl.className = 'session-name';
@@ -660,6 +540,11 @@ window.systemControlUI = (function() {
       });
       
       container.appendChild(fragment);
+      
+      // Dispatch event so session-sharing.js can enhance it
+      document.dispatchEvent(new CustomEvent('sessions-rendered', {
+        detail: { sessions }
+      }));
     } catch (error) {
       console.error('Error rendering sessions list:', error);
     }
@@ -843,7 +728,6 @@ window.systemControlUI = (function() {
     `;
   }
   
-  // Create sessions panel content
   function createSessionsPanel() {
     return `
       <div class="panel-content">
@@ -852,6 +736,10 @@ window.systemControlUI = (function() {
           <div class="session-save">
             <input type="text" id="session-name" placeholder="Session Name">
             <button id="save-session" class="action-button">Save Session</button>
+          </div>
+          <div class="session-actions">
+            <button id="refresh-sessions" class="action-button small">Refresh</button>
+            <button id="import-session" class="action-button small">Import</button>
           </div>
           <div class="session-list" id="session-list">
             <div class="loading-message">Loading sessions...</div>
@@ -1076,3 +964,95 @@ window.systemControlUI = (function() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', window.systemControlUI.init);
+
+/**
+ * Session sharing module for BambiSleep Chat
+ * Handles session sharing and token management
+ */
+window.sessionSharing = (function() {
+  // Private variables
+  let shareModal = null;
+  let currentSessionId = null;
+  let shareToken = null;
+  const elements = [];
+  
+  // Initialize module
+  function init() {
+    try {
+      setupEventListeners();
+      createShareModal();
+      
+      // Listen for system initialization
+      document.addEventListener('system-initialized', handleSystemInit);
+      
+      console.log('Session sharing module initialized');
+    } catch (error) {
+      console.error('Error initializing session sharing:', error);
+    }
+  }
+  
+  // Handle system initialization
+  function handleSystemInit() {
+    // Check URL for shared session token
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('session');
+      
+      if (token) {
+        loadSharedSession(token);
+        
+        // Clean URL after loading
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    } catch (error) {
+      console.error('Error checking for shared session:', error);
+    }
+  }
+  
+  // Set up event listeners
+  function setupEventListeners() {
+    // Listen for session list rendering to add share buttons
+    document.addEventListener('sessions-rendered', enhanceSessionList);
+    
+    // Check for token in URL on load
+    window.addEventListener('load', checkUrlForToken);
+  }
+  
+  // Clean up event listeners
+  function tearDown() {
+    try {
+      // Remove event listeners
+      document.removeEventListener('sessions-rendered', enhanceSessionList);
+      document.removeEventListener('system-initialized', handleSystemInit);
+      window.removeEventListener('load', checkUrlForToken);
+      
+      // Clean up DOM elements
+      if (shareModal && shareModal.parentNode) {
+        shareModal.parentNode.removeChild(shareModal);
+      }
+      
+      // Clean up element references
+      elements.forEach(el => {
+        if (el.parentNode) {
+          el.parentNode.replaceChild(el.cloneNode(true), el);
+        }
+      });
+      elements.length = 0;
+      
+      console.log('Session sharing module cleaned up');
+    } catch (error) {
+      console.error('Error during session sharing teardown:', error);
+    }
+  }
+  
+  // Create share modal
+  function createShareModal() {
+    // Create modal element if it doesn't exist
+    if (!document.getElementById('share-session-modal')) {
+      shareModal = document.createElement('div');
+      shareModal.id = 'share-session-modal';
+      shareModal.className = 'modal';
+      shareModal.innerHTML = `
+        <div class="modal-content">
+          <span class="close">&times;</span>

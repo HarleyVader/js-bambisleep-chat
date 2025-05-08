@@ -15,6 +15,9 @@ window.socketHandler = (function() {
       
       // Set up the global connection status indicator
       setupConnectionIndicator();
+      
+      // Add connection indicator styles
+      addConnectionStyles();
     } catch (error) {
       console.error('Socket initialization error:', error);
       fallbackToAlternativeTransport();
@@ -159,6 +162,74 @@ window.socketHandler = (function() {
     });
   }
   
+  function addConnectionStyles() {
+    // Check if styles are already added
+    if (document.getElementById('socket-connection-styles')) {
+      return;
+    }
+    
+    // Create style element
+    const styleEl = document.createElement('style');
+    styleEl.id = 'socket-connection-styles';
+    styleEl.textContent = `
+      .connection-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin: 0 10px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      
+      .connection-indicator.connected {
+        background-color: #4CAF50;
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.6);
+      }
+      
+      .connection-indicator.disconnected {
+        background-color: #F44336;
+        box-shadow: 0 0 5px rgba(244, 67, 54, 0.6);
+        animation: pulse 2s infinite;
+      }
+      
+      @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+      }
+      
+      .connection-error-message {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        z-index: 1000;
+      }
+      
+      .connection-error-message button {
+        background-color: #8200ad;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        margin-top: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      
+      .connection-error-message button:hover {
+        background-color: #a100d6;
+      }
+    `;
+    
+    // Add styles to document head
+    document.head.appendChild(styleEl);
+  }
+  
   // Public API
   return {
     init,
@@ -169,57 +240,3 @@ window.socketHandler = (function() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', window.socketHandler.init);
-
-/* Socket connection indicator styles */
-.connection-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin: 0 10px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.connection-indicator.connected {
-  background-color: #4CAF50;
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.6);
-}
-
-.connection-indicator.disconnected {
-  background-color: #F44336;
-  box-shadow: 0 0 5px rgba(244, 67, 54, 0.6);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
-}
-
-.connection-error-message {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 20px;
-  border-radius: 8px;
-  text-align: center;
-  z-index: 1000;
-}
-
-.connection-error-message button {
-  background-color: #8200ad;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  margin-top: 10px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.connection-error-message button:hover {
-  background-color: #a100d6;
-}

@@ -396,3 +396,386 @@ window.bambiSessions = (function() {
     getActiveSessionId
   };
 })();
+
+/**
+ * Session sharing module for BambiSleep Chat
+ * Handles session sharing and token management
+ */
+window.sessionSharing = (function() {
+  // Private variables
+  let shareModal = null;
+  let currentSessionId = null;
+  let shareToken = null;
+  const elements = [];
+  
+  // Initialize module
+  function init() {
+    try {
+      setupEventListeners();
+      createShareModal();
+      
+      // Listen for system initialization
+      document.addEventListener('system-initialized', handleSystemInit);
+      
+      console.log('Session sharing module initialized');
+    } catch (error) {
+      console.error('Error initializing session sharing:', error);
+    }
+  }
+  
+  // Handle system initialization
+  function handleSystemInit() {
+    // Check URL for shared session token
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('session');
+      
+      if (token) {
+        loadSharedSession(token);
+        
+        // Clean URL after loading
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    } catch (error) {
+      console.error('Error checking for shared session:', error);
+    }
+  }
+  
+  // Set up event listeners
+  function setupEventListeners() {
+    // Listen for session list rendering to add share buttons
+    document.addEventListener('sessions-rendered', enhanceSessionList);
+    
+    // Check for token in URL on load
+    window.addEventListener('load', checkUrlForToken);
+  }
+  
+  // Clean up event listeners
+  function tearDown() {
+    try {
+      // Remove event listeners
+      document.removeEventListener('sessions-rendered', enhanceSessionList);
+      document.removeEventListener('system-initialized', handleSystemInit);
+      window.removeEventListener('load', checkUrlForToken);
+      
+      // Clean up DOM elements
+      if (shareModal && shareModal.parentNode) {
+        shareModal.parentNode.removeChild(shareModal);
+      }
+      
+      // Clean up element references
+      elements.forEach(el => {
+        if (el.parentNode) {
+          el.parentNode.replaceChild(el.cloneNode(true), el);
+        }
+      });
+      elements.length = 0;
+      
+      console.log('Session sharing module cleaned up');
+    } catch (error) {
+      console.error('Error during session sharing teardown:', error);
+    }
+  }
+  
+  // Create share modal
+  function createShareModal() {
+    // Create modal element if it doesn't exist
+    if (!document.getElementById('share-session-modal')) {
+      shareModal = document.createElement('div');
+      shareModal.id = 'share-session-modal';
+      shareModal.className = 'modal';
+      shareModal.innerHTML = `
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h3>Share Bambi Session</h3>
+          <p>Copy the link below to share your session with others:</p>
+          <div class="share-link-container">
+            <input type="text" id="share-link-input" readonly>
+            <button id="copy-link-btn">Copy Link</button>
+          </div>
+          <div class="share-qr-code" id="share-qr-code"></div>
+        </div>
+      `;
+      
+      document.body.appendChild(shareModal);
+      
+      // Set up close button
+      const closeBtn = shareModal.querySelector('.close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          shareModal.style.display = 'none';
+        });
+        elements.push(closeBtn);
+      }
+      
+      // Set up copy button
+      const copyBtn = shareModal.querySelector('#copy-link-btn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', copyShareLink);
+        elements.push(copyBtn);
+      }
+      
+      // Close when clicking outside
+      window.addEventListener('click', (event) => {
+        if (event.target === shareModal) {
+          shareModal.style.display = 'none';
+        }
+      });
+    }
+  }
+  
+  // Enhance session list with share buttons
+  function enhanceSessionList(event) {
+    try {
+      const sessionItems = document.querySelectorAll('.session-item');
+      
+      sessionItems.forEach(item => {
+        // Skip if share button already exists
+        if (item.querySelector('.share-session-btn')) return;
+        
+        const sessionId = item.getAttribute('data-session-id');
+        if (!sessionId) return;
+        
+        // Create share button
+        const shareBtn = document.createElement('button');
+        shareBtn.className = 'share-session-btn';
+        shareBtn.textContent = 'Share';
+        shareBtn.dataset.sessionId = sessionId;
+        
+        // Add click handler
+        shareBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const id = this.getAttribute('data-session-id');
+          if (id) {
+            showShareModal(id);
+          }
+        });
+        
+        // Add to DOM
+        const loadBtn = item.querySelector('.load-session-btn');
+        if (loadBtn) {
+          item.insertBefore(shareBtn, loadBtn);
+        } else {
+          item.appendChild(shareBtn);
+        }
+        
+        elements.push(shareBtn);
+      });
+    } catch (error) {
+      console.error('Error enhancing session list:', error);
+    }
+  }
+  
+  // Show share modal for a specific session
+  function showShareModal(sessionId) {
+    try {
+      if (!shareModal) createShareModal();
+      
+      currentSessionId = sessionId;
+      
+      // Generate or retrieve token
+      generateShareToken(sessionId, (token) => {
+        if (!token) {
+          console.error('Failed to generate share token');
+          return;
+        }
+        
+        shareToken = token;
+        
+        // Create share link
+        const shareLink = `${window.location.origin}${window.location.pathname}?session=${token}`;
+        const linkInput = document.getElementById('share-link-input');
+        if (linkInput) {
+          linkInput.value = shareLink;
+        }
+        
+        // Show modal
+        shareModal.style.display = 'block';
+        
+        // Award XP for sharing
+        awardXpForSharing();
+      });
+    } catch (error) {
+      console.error('Error showing share modal:', error);
+    }
+  }
+  
+  // Generate a share token for the session
+  function generateShareToken(sessionId, callback) {
+    try {
+      if (window.socket && window.socket.connected) {
+        window.socket.emit('client-generate-session-token', {
+          sessionId,
+          timestamp: Date.now()
+        }, function(response) {
+          if (response && response.success && response.token) {
+            callback(response.token);
+          } else {
+            console.error('Error generating token:', response);
+            callback(null);
+          }
+        });
+      } else {
+        // Fallback to local token generation
+        const tempToken = `session-${sessionId}-${Date.now()}`;
+        callback(btoa(tempToken));
+      }
+    } catch (error) {
+      console.error('Error generating share token:', error);
+      callback(null);
+    }
+  }
+  
+  // Load a shared session from token
+  function loadSharedSession(token) {
+    try {
+      if (!token) return;
+      
+      // Show loading indicator
+      showToast('Loading shared session...', 'info');
+      
+      if (window.socket && window.socket.connected) {
+        window.socket.emit('client-load-shared-session', {
+          token,
+          timestamp: Date.now()
+        }, function(response) {
+          if (response && response.success && response.session) {
+            // Apply the session data
+            if (window.bambiSystem) {
+              window.bambiSystem.applySessionSettings(response.session);
+              showToast('Shared session loaded successfully!');
+              
+              // Award XP for using a shared session
+              awardXpForAction('shared-session-used', 5);
+            } else {
+              console.error('bambiSystem not available');
+              showToast('Error loading shared session', 'error');
+            }
+          } else {
+            console.error('Error loading shared session:', response);
+            showToast('Error loading shared session', 'error');
+          }
+        });
+      } else {
+        console.error('Socket not connected');
+        showToast('Not connected to server', 'error');
+      }
+    } catch (error) {
+      console.error('Error loading shared session:', error);
+      showToast('Error loading shared session', 'error');
+    }
+  }
+  
+  // Copy share link to clipboard
+  function copyShareLink() {
+    try {
+      const linkInput = document.getElementById('share-link-input');
+      if (!linkInput) return;
+      
+      linkInput.select();
+      linkInput.setSelectionRange(0, 99999); // For mobile devices
+      
+      document.execCommand('copy');
+      
+      // Show success message
+      const copyBtn = document.getElementById('copy-link-btn');
+      if (copyBtn) {
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        
+        setTimeout(() => {
+          copyBtn.textContent = originalText;
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error copying share link:', error);
+    }
+  }
+  
+  // Check URL for session token
+  function checkUrlForToken() {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('session');
+      
+      if (token) {
+        loadSharedSession(token);
+        
+        // Clean URL after loading
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    } catch (error) {
+      console.error('Error checking URL for token:', error);
+    }
+  }
+  
+  // Award XP for sharing a session
+  function awardXpForSharing() {
+    if (!window.socket || !window.socket.connected) return;
+    
+    window.socket.emit('client-award-xp', {
+      action: 'session-shared',
+      amount: 10,
+      timestamp: Date.now()
+    });
+  }
+  
+  // Award XP for user actions
+  function awardXpForAction(action, amount) {
+    if (window.socket && window.socket.connected) {
+      window.socket.emit('client-award-xp', {
+        action,
+        amount,
+        timestamp: Date.now()
+      });
+    }
+  }
+  
+  // Show toast notification
+  function showToast(message, type = 'success') {
+    // Use existing toast system if available
+    if (window.bambiSessions && typeof window.bambiSessions.showToast === 'function') {
+      window.bambiSessions.showToast(message, type === 'error');
+      return;
+    }
+    
+    // Simple fallback toast implementation
+    try {
+      const toast = document.createElement('div');
+      toast.className = `toast-message ${type}`;
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      // Animate in
+      setTimeout(() => {
+        toast.classList.add('show');
+      }, 10);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }, 3000);
+    } catch (error) {
+      console.error('Error showing toast:', error);
+    }
+  }
+  
+  // Public API
+  return {
+    init,
+    tearDown,
+    showShareModal,
+    loadSharedSession
+  };
+})();
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', window.sessionSharing.init);
