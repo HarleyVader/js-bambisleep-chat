@@ -8,13 +8,16 @@
           <div class="site-logo">
             <% if (footer && footer.logo) { %>
               <a href="<%= footer.logo.url %>" class="logo-link">
-                <img src="<%= footer.logo.image %>" alt="<%= footer.logo.alt %>" width="256" height="256" loading="lazy" class="logo-image">
+                <img src="<%= footer.logo.image %>" alt="<%= footer.logo.alt %>" width="256" height="256" loading="lazy"
+                  class="logo-image">
               </a>
-            <% } %>
+              <% } %>
           </div>
           <% if (footer && footer.tagline) { %>
-            <h6 class="site-tagline"><%= footer.tagline %></h6>
-          <% } %>
+            <h6 class="site-tagline">
+              <%= footer.tagline %>
+            </h6>
+            <% } %>
         </div>
         <div class="footer-nav-container">
           <div class="footer-column">
@@ -22,16 +25,15 @@
               <p>CONTROL</p>
               <ul class="nav-list">
                 <% if (footer && footer.primaryLinks) { %>
-                  <% footer.primaryLinks.slice(0, 6).forEach(link => { %>
+                  <% footer.primaryLinks.slice(0, 6).forEach(link=> { %>
                     <li class="nav-item">
-                      <a href="<%= link.url %>" 
-                         <%= link.external ? 'target="_blank"' : '' %> 
-                         class="nav-link">
+                      <a href="<%= link.url %>" <%=link.external ? 'target="_blank"' : '' %>
+                        class="nav-link">
                         <%= link.label %>
                       </a>
                     </li>
-                  <% }); %>
-                <% } %>
+                    <% }); %>
+                      <% } %>
               </ul>
             </nav>
           </div>
@@ -40,16 +42,15 @@
               <p>CORE</p>
               <ul class="nav-list">
                 <% if (footer && footer.secondaryLinks) { %>
-                  <% footer.secondaryLinks.slice(0, 6).forEach(link => { %>
+                  <% footer.secondaryLinks.slice(0, 6).forEach(link=> { %>
                     <li class="nav-item">
-                      <a href="<%= link.url %>" 
-                         <%= link.external ? 'target="_blank"' : '' %> 
-                         class="nav-link">
+                      <a href="<%= link.url %>" <%=link.external ? 'target="_blank"' : '' %>
+                        class="nav-link">
                         <%= link.label %>
                       </a>
                     </li>
-                  <% }); %>
-                <% } %>
+                    <% }); %>
+                      <% } %>
               </ul>
             </nav>
           </div>
@@ -58,16 +59,15 @@
               <p>COMMUNITY</p>
               <ul class="nav-list">
                 <% if (footer && footer.tertiaryLinks) { %>
-                  <% footer.tertiaryLinks.slice(0, 6).forEach(link => { %>
+                  <% footer.tertiaryLinks.slice(0, 6).forEach(link=> { %>
                     <li class="nav-item">
-                      <a href="<%= link.url %>"
-                         <%= link.external ? 'target="_blank"' : '' %>
-                         class="nav-link">
+                      <a href="<%= link.url %>" <%=link.external ? 'target="_blank"' : '' %>
+                        class="nav-link">
                         <%= link.label %>
                       </a>
                     </li>
-                  <% }); %>
-                <% } %>
+                    <% }); %>
+                      <% } %>
               </ul>
             </nav>
           </div>
@@ -76,16 +76,15 @@
               <p>SPECIAL THANKS</p>
               <ul class="nav-list">
                 <% if (footer && footer.quaternaryLinks) { %>
-                  <% footer.quaternaryLinks.slice(0, 6).forEach(link => { %>
+                  <% footer.quaternaryLinks.slice(0, 6).forEach(link=> { %>
                     <li class="nav-item">
-                      <a href="<%= link.url %>"
-                         <%= link.external ? 'target="_blank"' : '' %>
-                         class="nav-link">
+                      <a href="<%= link.url %>" <%=link.external ? 'target="_blank"' : '' %>
+                        class="nav-link">
                         <%= link.label %>
                       </a>
                     </li>
-                  <% }); %>
-                <% } %>
+                    <% }); %>
+                      <% } %>
               </ul>
             </nav>
           </div>
@@ -95,13 +94,15 @@
       <div class="footer-bottom">
         <% if (footer && footer.logo) { %>
           <p class="copyright">
-            <a href="<%= footer.logo.url %>"><%= footer.logo.alt %></a> ® <%= new Date().getFullYear() %>
+            <a href="<%= footer.logo.url %>">
+              <%= footer.logo.alt %>
+            </a> ® <%= new Date().getFullYear() %>
           </p>
-        <% } %>
-        <p class="credits">
-          <a href="https://en.wikipedia.org/wiki/Solution_stack" target="_blank">Solution Stack</a> by 
-          <a href="https://www.youtube.com/@Melkanea" target="_blank">MELKANEA</a>
-        </p>
+          <% } %>
+            <p class="credits">
+              <a href="https://en.wikipedia.org/wiki/Solution_stack" target="_blank">Solution Stack</a> by
+              <a href="https://www.youtube.com/@Melkanea" target="_blank">MELKANEA</a>
+            </p>
       </div>
     </div>
   </div>
@@ -111,26 +112,51 @@
 <!-- 1. Core system state manager first -->
 <script src="/js/controls/system-controls.js"></script>
 
-<!-- 2. Essential feature modules -->
+<!-- 2. XP System and Notifications -->
 <script src="/js/controls/xp-system.js"></script>
 <script src="/js/controls/xp-notification.js"></script>
+
+<!-- 3. Other essential feature modules -->
 <script src="/js/controls/audio-controls.js"></script>
 
-<!-- 3. UI feature modules -->
+<!-- 4. UI feature modules -->
 <script src="/js/controls/trigger-controls.js"></script>
 <script src="/js/controls/collar-controls.js"></script>
 <script src="/js/controls/spiral-controls.js"></script>
 
-<!-- 4. Session management loads last since it depends on other modules -->
+<!-- 5. Session management loads last since it depends on all other modules -->
 <script src="/js/utils/bambi-sessions.js"></script>
 
 <!-- Initialize system with proper event listening -->
 <script>
   // Wait for all modules to load before initializing system integration
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
+    // Connect XP system and notifications
+    if (window.xpSystem && window.bambiXP) {
+      // Override xpSystem's notification with bambiXP's enhanced version
+      const originalShowNotification = window.xpSystem.showXpNotification;
+      window.xpSystem.showXpNotification = function (amount, action) {
+        // Still call original for backward compatibility
+        if (originalShowNotification) originalShowNotification(amount, action);
+
+        // Use the enhanced notification system
+        window.bambiXP.showXPNotification(amount);
+      };
+
+      // Listen for level changes to show level up notifications
+      document.addEventListener('level-changed', function (event) {
+        if (event.detail && event.detail.level !== undefined) {
+          // Only show notification if level actually increased
+          if (event.detail.oldLevel < event.detail.level) {
+            window.bambiXP.showLevelUpNotification(event.detail.level);
+          }
+        }
+      });
+    }
+
     // Create system initialization event
     document.dispatchEvent(new CustomEvent('system-ready'));
-    
+
     // Performance mark for completed loading
     if (window.performance && window.performance.mark) {
       window.performance.mark('system-modules-loaded');

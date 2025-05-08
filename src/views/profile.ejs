@@ -716,9 +716,75 @@
                             <!-- System Controls Tab -->
                             <div id="system-controls-tab" class="tab-content">
                               <div class="profile-system-controls">
-                                <%- include('./partials/profile-system-controls', { profile: profile }) %>
+                                <div id="system-controls-container" class="system-controls-container">
+                                  <!-- System controls will be generated dynamically -->
+                                </div>
                               </div>
                             </div>
+
+                            <script>
+                              // Initialize system controls when tab is selected
+                              document.addEventListener('DOMContentLoaded', function() {
+                                const systemTab = document.getElementById('system-tab');
+                                if (systemTab) {
+                                  systemTab.addEventListener('click', function() {
+                                    generateSystemControls();
+                                  });
+                                }
+                              });
+                              
+                              // Generate system controls dynamically
+                              function generateSystemControls() {
+                                const container = document.getElementById('system-controls-container');
+                                if (!container) return;
+                                
+                                // Get user level
+                                let userLevel = 0;
+                                if (window.bambiSystem) {
+                                  userLevel = window.bambiSystem.getUserLevel();
+                                } else {
+                                  userLevel = parseInt(document.body.getAttribute('data-level') || '0');
+                                }
+                                
+                                // Create control structure
+                                const structure = `
+                                  <div class="system-controls" data-user-level="${userLevel}">
+                                    <!-- Control buttons section -->
+                                    <div id="buttons" class="control-buttons">
+                                      <!-- System control buttons will be added here -->
+                                    </div>
+                                    
+                                    <!-- Control panels section -->
+                                    <div id="console" class="control-panels">
+                                      <!-- System control panels will be added here -->
+                                    </div>
+                                    
+                                    <!-- XP progress bar -->
+                                    <div class="xp-progress-container">
+                                      <div class="xp-level-badge">
+                                        <span id="level-indicator">Level ${userLevel}</span>
+                                      </div>
+                                      <div class="xp-progress-label" id="xp-progress-label">
+                                        Loading XP...
+                                      </div>
+                                      <div class="xp-progress-bar">
+                                        <div class="xp-progress-fill" id="xp-progress-fill" style="width: 0%"></div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                `;
+                                
+                                container.innerHTML = structure;
+                                
+                                // After DOM is updated, initialize the controls
+                                setTimeout(() => {
+                                  if (window.bambiSystem) {
+                                    // This will trigger all the controls to initialize
+                                    document.dispatchEvent(new CustomEvent('system-initialized'));
+                                  }
+                                }, 100);
+                              }
+                            </script>
                           </div>
                         </div>
                       </div>
