@@ -33,9 +33,8 @@ const sessionHistorySchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Add index for efficient filtering
+// Add indexes explicitly to avoid duplication
 sessionHistorySchema.index({ 'metadata.createdAt': -1 });
-sessionHistorySchema.index({ shareToken: 1 });
 sessionHistorySchema.index({ title: 'text' }); // Text index for title search
 
 // Add instance methods for session data

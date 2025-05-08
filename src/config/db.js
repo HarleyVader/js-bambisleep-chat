@@ -1,7 +1,12 @@
 import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
+import dotenv from 'dotenv';
 
+// Initialize logger
 const logger = new Logger('Database');
+
+// Ensure environment variables are loaded
+dotenv.config();
 
 // Track connection status
 let isConnected = false;
@@ -16,16 +21,16 @@ const DEFAULT_CONNECTION_OPTIONS = {
   minPoolSize: 3,                     // Minimum connections to maintain
   family: 4,                          // Use IPv4, skip trying IPv6
   autoIndex: true,                    // Build indexes
-  // Removed keepAlive as it's not supported in current driver
   maxIdleTimeMS: 120000               // Close idle connections after 2 minutes
 };
 
 /**
- * Initialize database connection with cached promise
- * 
+ * Initialize database connection with cached promise and retry logic
+ * @param {number} retryAttempts - Number of retry attempts (default: 3)
+ * @param {number} retryDelay - Delay between retries in ms (default: 3000)
  * @returns {Promise<boolean>} - True if connection successful
  */
-export async function connectDB() {
+export async function connectDB(retryAttempts = 3, retryDelay = 3000) {
   // If we're already connected, return immediately
   if (isConnected) {
     logger.debug('Using existing MongoDB connection');
@@ -37,55 +42,68 @@ export async function connectDB() {
     logger.debug('Connection in progress, waiting for completion');
     return connectionPromise;
   }
+
+  let attempts = 0;
+
+  const connect = async () => {
+    try {
+      const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
+      
+      logger.info(`Connecting to MongoDB at ${mongoURI.replace(/\/\/([^:]+):[^@]+@/, '//$1:****@')}`);
+      
+      // Create a promise for the connection and store it
+      connectionPromise = mongoose.connect(mongoURI, DEFAULT_CONNECTION_OPTIONS);
+      
+      // Wait for connection
+      await connectionPromise;
+      
+      // Mark as connected
+      isConnected = true;
   
-  try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
-    
-    logger.info(`Connecting to MongoDB at ${mongoURI.replace(/\/\/([^:]+):[^@]+@/, '//$1:****@')}`);
-    
-    // Create a promise for the connection and store it
-    connectionPromise = mongoose.connect(mongoURI, DEFAULT_CONNECTION_OPTIONS);
-    
-    // Wait for connection
-    await connectionPromise;
-    
-    // Mark as connected
-    isConnected = true;
-    
-    // Set up connection event handlers - using once for initial setup to avoid duplicate handlers
-    mongoose.connection.once('error', (err) => {
-      logger.error(`MongoDB connection error: ${err.message}`);
-      isConnected = false;
-    });
-    
-    mongoose.connection.once('disconnected', () => {
-      logger.warning('MongoDB disconnected');
+      // Set up connection event handlers - using once for initial setup to avoid duplicate handlers
+      mongoose.connection.once('error', (err) => {
+        logger.error(`MongoDB connection error: ${err.message}`);
+        isConnected = false;
+      });
+      
+      mongoose.connection.once('disconnected', () => {
+        logger.warning('MongoDB disconnected');
+        isConnected = false;
+        connectionPromise = null;
+      });
+      
+      mongoose.connection.once('reconnected', () => {
+        logger.info('MongoDB reconnected');
+        isConnected = true;
+      });
+      
+      logger.success(`MongoDB connected: ${mongoose.connection.host}`);
+      
+      return true;
+    } catch (error) {
+      attempts++;
+      logger.error(`Database connection error (attempt ${attempts}/${retryAttempts}): ${error.message}`);
+      
+      if (attempts < retryAttempts) {
+        logger.info(`Retrying in ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return connect();
+      }
+      
       isConnected = false;
       connectionPromise = null;
-    });
-    
-    mongoose.connection.once('reconnected', () => {
-      logger.info('MongoDB reconnected');
-      isConnected = true;
-    });
-    
-    logger.success(`MongoDB connected: ${mongoose.connection.host}`);
-    
-    return true;
-  } catch (error) {
-    logger.error(`Database connection error: ${error.message}`);
-    isConnected = false;
-    connectionPromise = null;
-    return false;
-  } finally {
-    // Clear connectionPromise after connection attempt completes (success or failure)
-    connectionPromise = null;
-  }
+      return false;
+    } finally {
+      // Clear connectionPromise after connection attempt completes (success or failure)
+      connectionPromise = null;
+    }
+  };
+
+  return connect();
 }
 
 /**
  * Close database connection
- * 
  * @returns {Promise<void>}
  */
 export async function disconnectDB() {
@@ -102,14 +120,9 @@ export async function disconnectDB() {
 }
 
 /**
- * Executes a database operation with proper connection management
- * Important: This is a key function that handles database operations safely
- * 
+ * Execute a database transaction with proper connection management
  * @param {Function} operation - Async function that performs the database operation
  * @param {Object} options - Options for the transaction
- * @param {boolean} options.keepConnectionOpen - If true, won't close connection after use (default: true)
- * @param {number} options.timeout - Timeout in ms for the operation (default: 30000)
- * @param {number} options.retries - Number of retries for failed operations (default: 1)
  * @returns {Promise<any>} - Result of the operation
  */
 export async function withDbConnection(operation, options = {}) {
@@ -147,8 +160,8 @@ export async function withDbConnection(operation, options = {}) {
         )
       ]);
       
-      // Don't close connection if it was already open or keepConnectionOpen is true
-      if (!wasConnected && !keepConnectionOpen) {
+      // Close connection if requested and wasn't connected before
+      if (!keepConnectionOpen && !wasConnected) {
         await disconnectDB();
       }
       
@@ -157,47 +170,20 @@ export async function withDbConnection(operation, options = {}) {
       lastError = error;
       attempt++;
       
-      // Log the error with try count
-      logger.error(`Database operation error (attempt ${attempt}/${retries + 1}): ${error.message}`);
-      
-      // If we have retries left, wait before retrying
       if (attempt <= retries) {
-        const delay = Math.min(1000 * attempt, 5000); // Exponential backoff with 5s cap
-        logger.info(`Retrying operation in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        logger.warning(`Database operation failed, retrying (${attempt}/${retries}): ${error.message}`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } else {
+        logger.error(`Database operation failed after ${retries} retries: ${error.message}`);
+        throw error;
       }
     }
-  }
-  
-  // If we got here, all attempts failed
-  throw lastError;
-}
-
-/**
- * Ensure all models are registered
- * Call this function at application startup to guarantee models are ready before routes
- * 
- * @returns {Promise<void>}
- */
-export async function ensureModelsRegistered() {
-  try {
-    // Import models explicitly to ensure they're registered
-    await import('../models/SessionHistory.js');
-    
-    // You can add other model imports here as needed
-    // await import('../models/Profile.js');
-    
-    logger.info('All models registered successfully');
-  } catch (error) {
-    logger.error(`Error registering models: ${error.message}`);
-    throw error;
   }
 }
 
 /**
  * Get a Mongoose model
  * Safely retrieves a model or creates it if it doesn't exist
- * 
  * @param {string} modelName - The name of the model to retrieve
  * @returns {mongoose.Model} - The Mongoose model
  */
@@ -220,15 +206,14 @@ export function getModel(modelName) {
       // Try again after import attempt
       return mongoose.model(modelName);
     } catch (secondError) {
-      logger.error(`Could not retrieve or load model ${modelName}: ${secondError.message}`);
-      return null;
+      logger.error(`Could not dynamically load model: ${modelName}`, secondError);
+      throw new Error(`Model ${modelName} not found and could not be loaded dynamically`);
     }
   }
 }
 
 /**
  * Check the health of the database connection
- * 
  * @returns {Promise<Object>} Health check result
  */
 export async function checkDBHealth() {
@@ -258,7 +243,6 @@ export default {
   connectDB, 
   disconnectDB, 
   withDbConnection, 
-  ensureModelsRegistered,
   getModel,
   checkDBHealth
 };
