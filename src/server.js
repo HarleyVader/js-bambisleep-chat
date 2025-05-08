@@ -936,18 +936,6 @@ function filterWords(content, filteredWords) {
 }
 
 /**
- * Set up error handlers for the application
- * 
- * @param {Express} app - Express application instance
- */
-function setupErrorHandlers(app) {
-  // Use the error handler middleware
-  app.use(errorHandler);
-  
-  logger.info('Error handlers configured');
-}
-
-/**
  * Get the server's IP address
  * 
  * @returns {string} - Server IP address
