@@ -26,9 +26,8 @@ function serializeCookie(name, value, options = {}) {
   return cookieStr;
 }
 
-// Check if we're in a browser environment
+// Create the cookie utils module for browser environment
 if (typeof window !== 'undefined') {
-  // Browser-specific code
   window.cookieUtils = (function() {
     // Private variables
     const COOKIE_MONSTER_SLOGAN = "ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪";
@@ -96,25 +95,20 @@ if (typeof window !== 'undefined') {
 
     // Initialize username modal handling
     function initUsernameModal() {
-      document.addEventListener('DOMContentLoaded', () => {
+      try {
         const modal = document.getElementById('username-modal');
         if (!modal) return;
         
         // Get current username
         const username = getBambiName();
         
-        // Show modal if no username set
+        // Show modal if no username set or using default
         if (!username || username === 'anonBambi') {
           modal.style.display = 'block';
         } else {
           // If we have a username and it's not anonBambi, load profile triggers
-          if (username !== 'anonBambi' && window.socket && window.socket.connected) {
-            // Call the loadProfileTriggers function if it exists globally
-            if (typeof window.loadProfileTriggers === 'function') {
-              window.loadProfileTriggers(username);
-            } else if (typeof loadProfileTriggers === 'function') {
-              loadProfileTriggers(username);
-            }
+          if (username !== 'anonBambi' && window.loadProfileTriggers) {
+            window.loadProfileTriggers(username);
           }
         }
         
@@ -139,8 +133,13 @@ if (typeof window !== 'undefined') {
         
         // Set username data attribute for components that need it
         document.body.setAttribute('data-username', username);
-      });
+      } catch (e) {
+        console.error('Error initializing username modal:', e);
+      }
     }
+
+    // Auto-initialize username modal when document is ready
+    document.addEventListener('DOMContentLoaded', initUsernameModal);
 
     // Expose public methods
     return {
@@ -157,9 +156,6 @@ if (typeof window !== 'undefined') {
 
   // Make getCookie globally available for backward compatibility
   window.getCookie = window.cookieUtils.getCookie;
-
-  // Auto-initialize username modal handling
-  window.cookieUtils.initUsernameModal();
   
   // Set exports in browser environment only
   window.cookieUtilsExports = { parseCookies, serializeCookie };
@@ -167,7 +163,6 @@ if (typeof window !== 'undefined') {
 
 // Export functions for both CommonJS and ES Modules
 if (typeof module !== 'undefined' && module.exports) {
-  // CommonJS exports
   module.exports = { parseCookies, serializeCookie };
 }
 

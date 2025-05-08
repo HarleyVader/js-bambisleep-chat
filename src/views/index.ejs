@@ -87,72 +87,80 @@
             // Initialize system controls
             generateSystemControls();
 
-            let username = '';
-
-            // Load username from cookie
-            username = window.cookieUtils.getBambiName();
-
-            // Helper function to load profile triggers
-            window.loadProfileTriggers = function (username) {
-              if (typeof window.socket !== 'undefined' && window.socket.connected) {
-                window.socket.emit('get-profile-data', { username }, function (response) {
-                  if (response && response.success && response.profile) {
-                    const profile = response.profile;
-
-                    // Load profile data into central state manager
-                    if (window.bambiSystem) {
-                      window.bambiSystem.applySessionSettings({
-                        activeTriggers: profile.systemControls?.activeTriggers || [],
-                        collarSettings: {
-                          enabled: profile.systemControls?.collarEnabled || false,
-                          text: profile.systemControls?.collarText || ''
-                        },
-                        spiralSettings: {
-                          enabled: profile.systemControls?.spiralsEnabled || false,
-                          spiral1Width: profile.systemControls?.spiral1Width || 5.0,
-                          spiral2Width: profile.systemControls?.spiral2Width || 3.0,
-                          spiral1Speed: profile.systemControls?.spiral1Speed || 20,
-                          spiral2Speed: profile.systemControls?.spiral2Speed || 15
-                        }
-                      });
-                    }
-
-                    console.log('Loaded profile settings successfully');
-                  }
-                });
-              }
-            }
-
-            const modal = document.getElementById('username-modal');
-
-            if (!username) {
-              modal.style.display = 'block';
-            } else {
-              // If we have a username and it's not anonBambi, load the profile triggers
-              if (username !== 'anonBambi') {
-                window.loadProfileTriggers(username);
-              }
-            }
-
-            document.getElementById('username-submit').addEventListener('click', () => {
-              const input = document.getElementById('username-input');
-              const newUsername = input.value.trim();
-              if (newUsername) {
-                username = newUsername;
-                document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
-                if (window.socket) {
-                  window.socket.emit('set username', username);
+            // Check for username and handle modal display
+            function handleUsernameCheck() {
+              try {
+                const modal = document.getElementById('username-modal');
+                if (!modal) return;
+                
+                // Get username from cookie utils or fallback
+                let username = '';
+                if (window.cookieUtils) {
+                  username = window.cookieUtils.getBambiName();
+                } else {
+                  // Fallback if cookieUtils not available
+                  const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+                    const [key, value] = cookie.trim().split('=');
+                    acc[key] = value;
+                    return acc;
+                  }, {});
+                  username = cookies.bambiname || '';
                 }
-                modal.style.display = 'none';
+                
+                // Store username in window for global access
                 window.username = username;
-
-                // Reload the page to update the profile data
-                window.location.reload();
+                
+                // Show modal if username not set or is default
+                if (!username || username === 'anonBambi') {
+                  modal.style.display = 'block';
+                } else {
+                  // If username is set and not default, load profile
+                  if (username !== 'anonBambi' && window.loadProfileTriggers) {
+                    window.loadProfileTriggers(username);
+                  }
+                }
+                
+                // Update body attribute
+                document.body.setAttribute('data-username', username || '');
+                
+                // Set up submit button handler
+                const submitButton = document.getElementById('username-submit');
+                if (submitButton) {
+                  submitButton.addEventListener('click', () => {
+                    const input = document.getElementById('username-input');
+                    const newUsername = input.value.trim();
+                    
+                    if (newUsername) {
+                      // Use cookieUtils if available, otherwise set directly
+                      if (window.cookieUtils) {
+                        window.cookieUtils.setBambiName(newUsername);
+                      } else {
+                        document.cookie = `bambiname=${encodeURIComponent(newUsername)}; path=/`;
+                      }
+                      
+                      // Update global reference
+                      window.username = newUsername;
+                      
+                      // Notify socket if connected
+                      if (window.socket && window.socket.connected) {
+                        window.socket.emit('set username', newUsername);
+                      }
+                      
+                      // Hide modal
+                      modal.style.display = 'none';
+                      
+                      // Reload to refresh everything with new username
+                      window.location.reload();
+                    }
+                  });
+                }
+              } catch (error) {
+                console.error('Error in username handling:', error);
               }
-            });
+            }
 
-            // Set username data attribute for controls
-            document.body.setAttribute('data-username', username);
+            // Give a short delay to ensure cookieUtils is loaded
+            setTimeout(handleUsernameCheck, 100);
 
             // Set up chat form submission
             document.getElementById("chat-form").addEventListener("submit", (event) => {
