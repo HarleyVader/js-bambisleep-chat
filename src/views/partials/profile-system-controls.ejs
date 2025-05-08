@@ -1,955 +1,970 @@
-<% 
-// Default values if profile is not provided
-const userLevel = profile ? profile.level || 0 : 0;
-const userXp = profile ? profile.xp || 0 : 0;
+<% // Default values if profile is not provided const userLevel=profile ? profile.level || 0 : 0; const userXp=profile ?
+  profile.xp || 0 : 0; // Define XP requirements for each level const xpRequirements=[1000, 2500, 7500, 17000, 42000,
+  132000, 478000, 1000000]; // Calculate next level XP requirement const getNextLevelXP=(level)=> {
+  if (level < xpRequirements.length) { return xpRequirements[level]; } else { return null; } }; const
+    nextLevelXP=userLevel < xpRequirements.length ? getNextLevelXP(userLevel) : null; const systemControls=profile &&
+    profile.systemControls ? profile.systemControls : {}; // Calculate progress percentage const
+    progressPercentage=nextLevelXP ? Math.min(100, (userXp / Math.max(1, nextLevelXP) * 100)) : 100; %>
 
-// Define XP requirements for each level
-const xpRequirements = [1000, 2500, 7500, 17000, 42000, 132000, 478000, 1000000];
+    <div class="system-controls" data-user-level="<%= userLevel %>">
+      <!-- Control buttons section -->
+      <div id="buttons" class="control-buttons">
+        <!-- Show triggers button only if level ≥ 1 -->
+        <% if (userLevel>= 1) { %>
+          <button id="triggers-btn" class="control-btn active" data-target="trigger-panel">Triggers</button>
+          <% } else { %>
+            <button class="control-btn disabled" title="Reach Level 1 to unlock">Triggers 🔒</button>
+            <% } %>
 
-// Calculate next level XP requirement
-const getNextLevelXP = (level) => {
-  if (level < xpRequirements.length) {
-    return xpRequirements[level];
-  } else {
-    return null;
-  }
-};
+              <!-- Show collar feature if user level ≥ 2 -->
+              <% if (userLevel>= 2) { %>
+                <button id="collar-btn" class="control-btn" data-target="collar-panel">Collar</button>
+                <% } else { %>
+                  <button class="control-btn disabled" title="Reach Level 2 to unlock">Collar 🔒</button>
+                  <% } %>
 
-const nextLevelXP = userLevel < xpRequirements.length ? getNextLevelXP(userLevel) : null;
-const systemControls = profile && profile.systemControls ? profile.systemControls : {};
+                    <!-- Show session history feature if user level ≥ 3 -->
+                    <% if (userLevel>= 3) { %>
+                      <button id="session-history-btn" class="control-btn" data-target="session-history-panel">Session
+                        History</button>
+                      <% } else { %>
+                        <button class="control-btn disabled" title="Reach Level 3 to unlock">Session History 🔒</button>
+                        <% } %>
 
-// Calculate progress percentage
-const progressPercentage = nextLevelXP ? Math.min(100, (userXp / Math.max(1, nextLevelXP) * 100)) : 100;
-%>
+                          <!-- Show spirals feature if user level ≥ 4 -->
+                          <% if (userLevel>= 4) { %>
+                            <button id="spirals-btn" class="control-btn" data-target="spirals-panel">Spirals</button>
+                            <% } else { %>
+                              <button class="control-btn disabled" title="Reach Level 4 to unlock">Spirals 🔒</button>
+                              <% } %>
 
-<div class="system-controls" data-user-level="<%= userLevel %>">
-  <!-- Control buttons section -->
-  <div id="buttons" class="control-buttons">
-    <!-- Show triggers button only if level ≥ 1 -->
-    <% if (userLevel >= 1) { %>
-      <button id="triggers-btn" class="control-btn active" data-target="trigger-panel">Triggers</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 1 to unlock">Triggers 🔒</button>
-    <% } %>
-    
-    <!-- Show collar feature if user level ≥ 2 -->
-    <% if (userLevel >= 2) { %>
-      <button id="collar-btn" class="control-btn" data-target="collar-panel">Collar</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 2 to unlock">Collar 🔒</button>
-    <% } %>
-    
-    <!-- Show session history feature if user level ≥ 3 -->
-    <% if (userLevel >= 3) { %>
-      <button id="session-history-btn" class="control-btn" data-target="session-history-panel">Session History</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 3 to unlock">Session History 🔒</button>
-    <% } %>
-    
-    <!-- Show spirals feature if user level ≥ 4 -->
-    <% if (userLevel >= 4) { %>
-      <button id="spirals-btn" class="control-btn" data-target="spirals-panel">Spirals</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 4 to unlock">Spirals 🔒</button>
-    <% } %>
-    
-    <!-- Show hypnosis feature if user level ≥ 5 -->
-    <% if (userLevel >= 5) { %>
-      <button id="hypnosis-btn" class="control-btn" data-target="hypnosis-panel">Hypnosis</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 5 to unlock">Hypnosis 🔒</button>
-    <% } %>
-    
-    <!-- Show audios feature if user level ≥ 6 -->
-    <% if (userLevel >= 6) { %>
-      <button id="audios-btn" class="control-btn" data-target="audios-panel">Audios</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 6 to unlock">Audios 🔒</button>
-    <% } %>
-    
-    <!-- Show binaurals feature if user level ≥ 7 -->
-    <% if (userLevel >= 7) { %>
-      <button id="binaurals-btn" class="control-btn" data-target="binaurals-panel">Binaurals</button>
-    <% } else { %>
-      <button class="control-btn disabled" title="Reach Level 7 to unlock">Binaurals 🔒</button>
-    <% } %>
-  </div>
+                                <!-- Show hypnosis feature if user level ≥ 5 -->
+                                <% if (userLevel>= 5) { %>
+                                  <button id="hypnosis-btn" class="control-btn"
+                                    data-target="hypnosis-panel">Hypnosis</button>
+                                  <% } else { %>
+                                    <button class="control-btn disabled" title="Reach Level 5 to unlock">Hypnosis
+                                      🔒</button>
+                                    <% } %>
 
-  <!-- Control panels section -->
-  <div id="console" class="control-panels">
-    <% if (userLevel >= 1) { %>
-      <!-- Trigger panel -->
-      <div id="trigger-panel" class="control-panel active">
-        <h3>Trigger Toggles</h3>
-        <div class="trigger-actions">
-          <button id="activate-all" class="secondary-btn">Toggle All</button>
-          <button id="play-triggers" class="btn btn-accent">
-            <i class="fas fa-play"></i> Play Triggers
-          </button>
-        </div>
-        <div id="trigger-list" class="trigger-grid"></div>
+                                      <!-- Show audios feature if user level ≥ 6 -->
+                                      <% if (userLevel>= 6) { %>
+                                        <button id="audios-btn" class="control-btn"
+                                          data-target="audios-panel">Audios</button>
+                                        <% } else { %>
+                                          <button class="control-btn disabled" title="Reach Level 6 to unlock">Audios
+                                            🔒</button>
+                                          <% } %>
+
+                                            <!-- Show binaurals feature if user level ≥ 7 -->
+                                            <% if (userLevel>= 7) { %>
+                                              <button id="binaurals-btn" class="control-btn"
+                                                data-target="binaurals-panel">Binaurals</button>
+                                              <% } else { %>
+                                                <button class="control-btn disabled"
+                                                  title="Reach Level 7 to unlock">Binaurals 🔒</button>
+                                                <% } %>
       </div>
-      
-      <% if (userLevel >= 2) { %>
-        <!-- Collar panel -->
-        <div id="collar-panel" class="control-panel">
-          <h3>Collar Control</h3>
-          <div id="collar-form-inputs">
-            <div class="collar-toggle">
-              <input type="checkbox" id="collar-enable" <%= systemControls.collarEnabled ? 'checked' : '' %>>
-              <label for="collar-enable">Enable Collar</label>
-            </div>
-            <textarea id="textarea-collar" placeholder="Enter collar instructions..."><%= systemControls.collarText || '' %></textarea>
-            <button id="save-collar" class="save-btn">Save Collar Settings</button>
-          </div>
-          <div class="collar-messages"></div>
-          <div id="collar-xp-info" class="feature-xp-info">
-            <i class="fas fa-star"></i> Using the collar earns you extra XP
-          </div>
-        </div>
-      <% } %>
-      
-      <% if (userLevel >= 3) { %>
-        <!-- Session history panel -->
-        <div id="session-history-panel" class="control-panel">
-          <h3>Session History</h3>
-          
-          <div id="session-history-status" class="session-history-status">
-            Click "Load History" to view your sessions
-          </div>
-          
-          <div class="session-select-container" style="display: none">
-            <input type="text" id="session-title" placeholder="Session Title" class="session-title-input">
-            <select id="session-select">
-              <option value="">Select a session...</option>
-            </select>
-            <div id="active-session-info" class="active-session-info" style="display: none">
-              <span class="info-label">Active Session:</span>
-              <span id="active-session-date">None</span>
-            </div>
-          </div>
-          
-          <div class="session-stats-container" style="display: none">
-            <div class="session-stat">
-              <div class="stat-value" id="session-count">0</div>
-              <div class="stat-label">Sessions</div>
-            </div>
-            <div class="session-stat">
-              <div class="stat-value" id="message-count">0</div>
-              <div class="stat-label">Messages</div>
-            </div>
-            <div class="session-stat">
-              <div class="stat-value" id="word-count">0</div>
-              <div class="stat-label">Words</div>
-            </div>
-          </div>
-          
-          <div class="session-history-actions">
-            <button id="load-history-btn" class="control-btn">Load History</button>
-            <button id="replay-history-btn" class="control-btn" disabled>Replay Random</button>
-            <button id="save-session-btn" class="control-btn">Save Session</button>
-            <button id="share-session-btn" class="control-btn">Share Session</button>
-            <button id="delete-session-btn" class="control-btn">Delete Session</button>
-          </div>
-        </div>
-      <% } %>
-      
-      <% if (userLevel >= 4) { %>
-        <!-- Spirals panel -->
-        <div id="spirals-panel" class="control-panel">
-          <h3>Spirals Settings</h3>
-          <div class="spirals-toggle">
-            <input type="checkbox" id="spirals-enable" <%= systemControls.spiralsEnabled ? 'checked' : '' %>>
-            <label for="spirals-enable">Enable Spirals</label>
-          </div>
-          
-          <div class="spirals-controls">
-            <div class="spiral-control-group">
-              <label>Purple Spiral Width:</label>
-              <div class="slider-container">
-                <input type="range" id="spiral1-width" min="1" max="10" value="<%= systemControls.spiral1Width || 5.0 %>" step="0.5" class="spiral-slider">
-                <span id="spiral1-width-value"><%= systemControls.spiral1Width || 5.0 %></span>
-              </div>
-            </div>
-            
-            <div class="spiral-control-group">
-              <label>Pink Spiral Width:</label>
-              <div class="slider-container">
-                <input type="range" id="spiral2-width" min="1" max="10" value="<%= systemControls.spiral2Width || 3.0 %>" step="0.5" class="spiral-slider">
-                <span id="spiral2-width-value"><%= systemControls.spiral2Width || 3.0 %></span>
-              </div>
-            </div>
-            
-            <div class="spiral-control-group">
-              <label>Purple Spiral Speed:</label>
-              <div class="slider-container">
-                <input type="range" id="spiral1-speed" min="5" max="40" value="<%= systemControls.spiral1Speed || 20 %>" step="1" class="spiral-slider">
-                <span id="spiral1-speed-value"><%= systemControls.spiral1Speed || 20 %></span>
-              </div>
-            </div>
-            
-            <div class="spiral-control-group">
-              <label>Pink Spiral Speed:</label>
-              <div class="slider-container">
-                <input type="range" id="spiral2-speed" min="5" max="40" value="<%= systemControls.spiral2Speed || 15 %>" step="1" class="spiral-slider">
-                <span id="spiral2-speed-value"><%= systemControls.spiral2Speed || 15 %></span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="spirals-actions">
-            <button id="save-spirals" class="save-btn">Save Spiral Settings</button>
-          </div>
-          <div id="spirals-xp-info" class="feature-xp-info">
-            <i class="fas fa-star"></i> Using spirals earns you extra XP
-          </div>
-        </div>
-      <% } %>
-      
-      <% if (userLevel >= 5) { %>
-        <!-- Hypnosis panel -->
-        <div id="hypnosis-panel" class="control-panel">
-          <h3>Hypnosis Settings</h3>
-          <div class="hypnosis-toggle">
-            <input type="checkbox" id="hypnosis-enable" <%= systemControls.hypnosisEnabled ? 'checked' : '' %>>
-            <label for="hypnosis-enable">Enable Hypnosis</label>
-          </div>
-          <div class="hypnosis-settings">
-            <!-- Hypnosis settings would go here -->
-            <p>Hypnosis settings will appear here in a future update.</p>
-          </div>
-          <div id="hypnosis-xp-info" class="feature-xp-info">
-            <i class="fas fa-lock"></i> Hypnosis module is coming soon
-          </div>
-        </div>
-      <% } %>
-      
-      <% if (userLevel >= 6) { %>
-        <!-- Audio panel -->
-        <div id="audios-panel" class="control-panel">
-          <h3>Trigger Audios</h3>
-          <div class="playlist-actions">
-            <button id="play-playlist" class="secondary-btn">Play Random Playlist</button>
-            <div class="trigger-toggle-item">
-              <input type="checkbox" id="loop-toggle" class="toggle-input">
-              <label for="loop-toggle" class="toggle-label">Continuous Loop</label>
-            </div>
-          </div>
-          
-          <div class="audio-controls">
-            <div class="audio-speed-control">
-              <label for="loop-speed">Speed:</label>
-              <input type="range" id="loop-speed" min="1" max="10" value="5" class="speed-slider">
-              <span id="speed-value">Normal</span>
-            </div>
-            
-            <div class="audio-volume-control">
-              <label for="loop-volume">Volume:</label>
-              <input type="range" id="loop-volume" min="0" max="10" value="8" class="volume-slider">
-              <span id="volume-value">80%</span>
-            </div>
-          </div>
-          
-          <div id="audio-xp-info" class="feature-xp-info">
-            <i class="fas fa-star"></i> Listening to triggers earns extra XP
-          </div>
-        </div>
-      <% } %>
-      
-      <% if (userLevel >= 7) { %>
-        <!-- Binaurals panel -->
-        <div id="binaurals-panel" class="control-panel">
-          <h3>Binaural Beats</h3>
-          <div class="binaurals-description">
-            <p>Binaural beats can help enhance your trance experience. Different frequencies affect your mind in different ways.</p>
-          </div>
-          
-          <div class="binaurals-controls">
-            <div class="binaurals-buttons">
-              <button class="binaural-btn" data-wave="delta">Delta (Deep)</button>
-              <button class="binaural-btn" data-wave="theta">Theta (Trance)</button>
-              <button class="binaural-btn" data-wave="alpha">Alpha (Relax)</button>
-              <button class="binaural-btn" data-wave="beta">Beta (Focus)</button>
-              <button class="binaural-btn" data-wave="gamma">Gamma (Alert)</button>
-              <button class="binaural-btn stop-btn" data-wave="stop">Stop</button>
-            </div>
-            
-            <div class="binaurals-volume">
-              <label for="binaurals-volume">Volume:</label>
-              <input type="range" id="binaurals-volume" min="0" max="100" value="20" class="volume-slider">
-              <span id="binaurals-volume-value">20%</span>
-            </div>
-            
-            <div class="active-wave">
-              <span class="info-label">Current Wave:</span>
-              <span id="active-wave-display">None</span>
-            </div>
-          </div>
-          
-          <div id="binaurals-xp-info" class="feature-xp-info">
-            <i class="fas fa-star"></i> Using binaural beats earns you extra XP
-          </div>
-        </div>
-      <% } %>
-    <% } else { %>
-      <div class="locked-features-message">
-        <p>🔒 Reach Level 1 to unlock trigger controls!</p>
-        <p>Keep chatting with Bambi to earn XP and level up.</p>
-      </div>
-    <% } %>
-  </div>
 
-  <!-- XP progress bar -->
-  <% if (userXp !== undefined) { %>
-    <div class="xp-progress-container">
-      <div class="xp-level-badge">
-        <span id="level-indicator">Level <%= userLevel %></span>
+      <!-- Control panels section -->
+      <div id="console" class="control-panels">
+        <% if (userLevel>= 1) { %>
+          <!-- Trigger panel -->
+          <div id="trigger-panel" class="control-panel active">
+            <h3>Trigger Toggles</h3>
+            <div class="trigger-actions">
+              <button id="activate-all" class="secondary-btn">Toggle All</button>
+              <button id="play-triggers" class="btn btn-accent">
+                <i class="fas fa-play"></i> Play Triggers
+              </button>
+            </div>
+            <div id="trigger-list" class="trigger-grid"></div>
+          </div>
+
+          <% if (userLevel>= 2) { %>
+            <!-- Collar panel -->
+            <div id="collar-panel" class="control-panel">
+              <h3>Collar Control</h3>
+              <div id="collar-form-inputs">
+                <div class="collar-toggle">
+                  <input type="checkbox" id="collar-enable" <%=systemControls.collarEnabled ? 'checked' : '' %>>
+                  <label for="collar-enable">Enable Collar</label>
+                </div>
+                <textarea id="textarea-collar"
+                  placeholder="Enter collar instructions..."><%= systemControls.collarText || '' %></textarea>
+                <button id="save-collar" class="save-btn">Save Collar Settings</button>
+              </div>
+              <div class="collar-messages"></div>
+              <div id="collar-xp-info" class="feature-xp-info">
+                <i class="fas fa-star"></i> Using the collar earns you extra XP
+              </div>
+            </div>
+            <% } %>
+
+              <% if (userLevel>= 3) { %>
+                <!-- Session history panel -->
+                <div id="session-history-panel" class="control-panel">
+                  <h3>Session History</h3>
+
+                  <div id="session-history-status" class="session-history-status">
+                    Click "Load History" to view your sessions
+                  </div>
+
+                  <div class="session-select-container" style="display: none">
+                    <input type="text" id="session-title" placeholder="Session Title" class="session-title-input">
+                    <select id="session-select">
+                      <option value="">Select a session...</option>
+                    </select>
+                    <div id="active-session-info" class="active-session-info" style="display: none">
+                      <span class="info-label">Active Session:</span>
+                      <span id="active-session-date">None</span>
+                    </div>
+                  </div>
+
+                  <div class="session-stats-container" style="display: none">
+                    <div class="session-stat">
+                      <div class="stat-value" id="session-count">0</div>
+                      <div class="stat-label">Sessions</div>
+                    </div>
+                    <div class="session-stat">
+                      <div class="stat-value" id="message-count">0</div>
+                      <div class="stat-label">Messages</div>
+                    </div>
+                    <div class="session-stat">
+                      <div class="stat-value" id="word-count">0</div>
+                      <div class="stat-label">Words</div>
+                    </div>
+                  </div>
+
+                  <div class="session-history-actions">
+                    <button id="load-history-btn" class="control-btn">Load History</button>
+                    <button id="replay-history-btn" class="control-btn" disabled>Replay Random</button>
+                    <button id="save-session-btn" class="control-btn">Save Session</button>
+                    <button id="share-session-btn" class="control-btn">Share Session</button>
+                    <button id="delete-session-btn" class="control-btn">Delete Session</button>
+                  </div>
+                </div>
+                <% } %>
+
+                  <% if (userLevel>= 4) { %>
+                    <!-- Spirals panel -->
+                    <div id="spirals-panel" class="control-panel">
+                      <h3>Spirals Settings</h3>
+                      <div class="spirals-toggle">
+                        <input type="checkbox" id="spirals-enable" <%=systemControls.spiralsEnabled ? 'checked' : '' %>>
+                        <label for="spirals-enable">Enable Spirals</label>
+                      </div>
+
+                      <div class="spirals-controls">
+                        <div class="spiral-control-group">
+                          <label>Purple Spiral Width:</label>
+                          <div class="slider-container">
+                            <input type="range" id="spiral1-width" min="1" max="10"
+                              value="<%= systemControls.spiral1Width || 5.0 %>" step="0.5" class="spiral-slider">
+                            <span id="spiral1-width-value">
+                              <%= systemControls.spiral1Width || 5.0 %>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="spiral-control-group">
+                          <label>Pink Spiral Width:</label>
+                          <div class="slider-container">
+                            <input type="range" id="spiral2-width" min="1" max="10"
+                              value="<%= systemControls.spiral2Width || 3.0 %>" step="0.5" class="spiral-slider">
+                            <span id="spiral2-width-value">
+                              <%= systemControls.spiral2Width || 3.0 %>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="spiral-control-group">
+                          <label>Purple Spiral Speed:</label>
+                          <div class="slider-container">
+                            <input type="range" id="spiral1-speed" min="5" max="40"
+                              value="<%= systemControls.spiral1Speed || 20 %>" step="1" class="spiral-slider">
+                            <span id="spiral1-speed-value">
+                              <%= systemControls.spiral1Speed || 20 %>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="spiral-control-group">
+                          <label>Pink Spiral Speed:</label>
+                          <div class="slider-container">
+                            <input type="range" id="spiral2-speed" min="5" max="40"
+                              value="<%= systemControls.spiral2Speed || 15 %>" step="1" class="spiral-slider">
+                            <span id="spiral2-speed-value">
+                              <%= systemControls.spiral2Speed || 15 %>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="spirals-actions">
+                        <button id="save-spirals" class="save-btn">Save Spiral Settings</button>
+                      </div>
+                      <div id="spirals-xp-info" class="feature-xp-info">
+                        <i class="fas fa-star"></i> Using spirals earns you extra XP
+                      </div>
+                    </div>
+                    <% } %>
+
+                      <% if (userLevel>= 5) { %>
+                        <!-- Hypnosis panel -->
+                        <div id="hypnosis-panel" class="control-panel">
+                          <h3>Hypnosis Settings</h3>
+                          <div class="hypnosis-toggle">
+                            <input type="checkbox" id="hypnosis-enable" <%=systemControls.hypnosisEnabled ? 'checked'
+                              : '' %>>
+                            <label for="hypnosis-enable">Enable Hypnosis</label>
+                          </div>
+                          <div class="hypnosis-settings">
+                            <!-- Hypnosis settings would go here -->
+                            <p>Hypnosis settings will appear here in a future update.</p>
+                          </div>
+                          <div id="hypnosis-xp-info" class="feature-xp-info">
+                            <i class="fas fa-lock"></i> Hypnosis module is coming soon
+                          </div>
+                        </div>
+                        <% } %>
+
+                          <% if (userLevel>= 6) { %>
+                            <!-- Audio panel -->
+                            <div id="audios-panel" class="control-panel">
+                              <h3>Trigger Audios</h3>
+                              <div class="playlist-actions">
+                                <button id="play-playlist" class="secondary-btn">Play Random Playlist</button>
+                                <div class="trigger-toggle-item">
+                                  <input type="checkbox" id="loop-toggle" class="toggle-input">
+                                  <label for="loop-toggle" class="toggle-label">Continuous Loop</label>
+                                </div>
+                              </div>
+
+                              <div class="audio-controls">
+                                <div class="audio-speed-control">
+                                  <label for="loop-speed">Speed:</label>
+                                  <input type="range" id="loop-speed" min="1" max="10" value="5" class="speed-slider">
+                                  <span id="speed-value">Normal</span>
+                                </div>
+
+                                <div class="audio-volume-control">
+                                  <label for="loop-volume">Volume:</label>
+                                  <input type="range" id="loop-volume" min="0" max="10" value="8" class="volume-slider">
+                                  <span id="volume-value">80%</span>
+                                </div>
+                              </div>
+
+                              <div id="audio-xp-info" class="feature-xp-info">
+                                <i class="fas fa-star"></i> Listening to triggers earns extra XP
+                              </div>
+                            </div>
+                            <% } %>
+
+                              <% if (userLevel>= 7) { %>
+                                <!-- Binaurals panel -->
+                                <div id="binaurals-panel" class="control-panel">
+                                  <h3>Binaural Beats</h3>
+                                  <div class="binaurals-description">
+                                    <p>Binaural beats can help enhance your trance experience. Different frequencies
+                                      affect your mind in different ways.</p>
+                                  </div>
+
+                                  <div class="binaurals-controls">
+                                    <div class="binaurals-buttons">
+                                      <button class="binaural-btn" data-wave="delta">Delta (Deep)</button>
+                                      <button class="binaural-btn" data-wave="theta">Theta (Trance)</button>
+                                      <button class="binaural-btn" data-wave="alpha">Alpha (Relax)</button>
+                                      <button class="binaural-btn" data-wave="beta">Beta (Focus)</button>
+                                      <button class="binaural-btn" data-wave="gamma">Gamma (Alert)</button>
+                                      <button class="binaural-btn stop-btn" data-wave="stop">Stop</button>
+                                    </div>
+
+                                    <div class="binaurals-volume">
+                                      <label for="binaurals-volume">Volume:</label>
+                                      <input type="range" id="binaurals-volume" min="0" max="100" value="20"
+                                        class="volume-slider">
+                                      <span id="binaurals-volume-value">20%</span>
+                                    </div>
+
+                                    <div class="active-wave">
+                                      <span class="info-label">Current Wave:</span>
+                                      <span id="active-wave-display">None</span>
+                                    </div>
+                                  </div>
+
+                                  <div id="binaurals-xp-info" class="feature-xp-info">
+                                    <i class="fas fa-star"></i> Using binaural beats earns you extra XP
+                                  </div>
+                                </div>
+                                <% } %>
+                                  <% } else { %>
+                                    <div class="locked-features-message">
+                                      <p>🔒 Reach Level 1 to unlock trigger controls!</p>
+                                      <p>Keep chatting with Bambi to earn XP and level up.</p>
+                                    </div>
+                                    <% } %>
       </div>
-      
-      <div class="xp-progress-label" id="xp-progress-label">
-        <% if (userLevel < xpRequirements.length) { %>
-          <%= userXp %> XP / <%= nextLevelXP %> XP
-        <% } else { %>
-          <%= userXp %> XP (MAX LEVEL)
+
+      <!-- XP progress bar -->
+      <% if (userXp !==undefined) { %>
+        <div class="xp-progress-container">
+          <div class="xp-level-badge">
+            <span id="level-indicator">Level <%= userLevel %></span>
+          </div>
+
+          <div class="xp-progress-label" id="xp-progress-label">
+            <% if (userLevel < xpRequirements.length) { %>
+              <%= userXp %> XP / <%= nextLevelXP %> XP
+                  <% } else { %>
+                    <%= userXp %> XP (MAX LEVEL)
+                      <% } %>
+          </div>
+
+          <div class="xp-progress-bar">
+            <% if (userLevel < xpRequirements.length) { %>
+              <div class="xp-progress-fill" id="xp-progress-fill" style="width: <%= progressPercentage %>%"></div>
+              <% } else { %>
+                <div class="xp-progress-fill" id="xp-progress-fill" style="width: 100%"></div>
+                <% } %>
+          </div>
+
+          <div class="xp-next-feature">
+            <% if (userLevel===0) { %>
+              <span>Unlock Triggers at Level 1</span>
+              <% } else if (userLevel===1) { %>
+                <span>Unlock Collar at Level 2</span>
+                <% } else if (userLevel===2) { %>
+                  <span>Unlock Session History at Level 3</span>
+                  <% } else if (userLevel===3) { %>
+                    <span>Unlock Spirals at Level 4</span>
+                    <% } else if (userLevel===4) { %>
+                      <span>Unlock Hypnosis at Level 5</span>
+                      <% } else if (userLevel===5) { %>
+                        <span>Unlock Audio at Level 6</span>
+                        <% } else if (userLevel===6) { %>
+                          <span>Unlock Binaurals at Level 7</span>
+                          <% } else { %>
+                            <span>All features unlocked!</span>
+                            <% } %>
+          </div>
+        </div>
         <% } %>
-      </div>
-      
-      <div class="xp-progress-bar">
-        <% if (userLevel < xpRequirements.length) { %>
-          <div class="xp-progress-fill" id="xp-progress-fill" style="width: <%= progressPercentage %>%"></div>
-        <% } else { %>
-          <div class="xp-progress-fill" id="xp-progress-fill" style="width: 100%"></div>
-        <% } %>
-      </div>
-      
-      <div class="xp-next-feature">
-        <% if (userLevel === 0) { %>
-          <span>Unlock Triggers at Level 1</span>
-        <% } else if (userLevel === 1) { %>
-          <span>Unlock Collar at Level 2</span>
-        <% } else if (userLevel === 2) { %>
-          <span>Unlock Session History at Level 3</span>
-        <% } else if (userLevel === 3) { %>
-          <span>Unlock Spirals at Level 4</span>
-        <% } else if (userLevel === 4) { %>
-          <span>Unlock Hypnosis at Level 5</span>
-        <% } else if (userLevel === 5) { %>
-          <span>Unlock Audio at Level 6</span>
-        <% } else if (userLevel === 6) { %>
-          <span>Unlock Binaurals at Level 7</span>
-        <% } else { %>
-          <span>All features unlocked!</span>
-        <% } %>
-      </div>
     </div>
-  <% } %>
-</div>
 
-<style>
-  /* Control buttons styling */
-  .control-btn.disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    background: #444;
-    color: #aaa;
-  }
-  
-  /* XP progress bar styling */
-  .xp-progress-container {
-    margin-top: 20px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 5px;
-    position: relative;
-  }
-  
-  .xp-level-badge {
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(135deg, #00ffff, #ff00ff);
-    border-radius: 12px;
-    padding: 2px 10px;
-    font-size: 0.85em;
-    font-weight: bold;
-    color: #000;
-    box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
-  }
-  
-  .xp-progress-label {
-    margin: 15px 0 5px;
-    font-size: 0.8em;
-    color: rgba(255, 255, 255, 0.7);
-    text-align: center;
-  }
-  
-  .xp-progress-bar {
-    height: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-  }
-  
-  .xp-progress-fill {
-    height: 100%;
-    background: linear-gradient(to right, #00ffff, #ff00ff);
-    border-radius: 4px;
-    transition: width 0.5s ease-in-out;
-  }
-  
-  .xp-next-feature {
-    margin-top: 8px;
-    font-size: 0.75em;
-    color: rgba(255, 255, 255, 0.6);
-    text-align: center;
-    font-style: italic;
-  }
-  
-  /* Feature XP info */
-  .feature-xp-info {
-    margin-top: 10px;
-    padding: 6px 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border-left: 3px solid var(--tertiary-alt);
-    font-size: 0.85rem;
-    color: #00ffff;
-    border-radius: 3px;
-  }
-  
-  .feature-xp-info i {
-    margin-right: 5px;
-    color: #ffff00;
-  }
-  
-  /* Audio controls styling */
-  .audio-controls {
-    margin-top: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .audio-speed-control, .audio-volume-control {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .speed-slider, .volume-slider {
-    flex: 1;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-    outline: none;
-  }
-
-  .speed-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #ff00ff;
-    cursor: pointer;
-  }
-
-  .volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #00ffff;
-    cursor: pointer;
-  }
-
-  .speed-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #ff00ff;
-    cursor: pointer;
-  }
-
-  .volume-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #00ffff;
-    cursor: pointer;
-  }
-
-  #speed-value, #volume-value {
-    min-width: 60px;
-    text-align: center;
-    font-size: 0.9em;
-  }
-
-  #speed-value {
-    color: #ff00ff;
-  }
-
-  #volume-value {
-    color: #00ffff;
-  }
-
-  /* Binaural controls styling */
-  .binaurals-description {
-    margin-bottom: 15px;
-    font-size: 0.9rem;
-    color: var(--primary-alt);
-    line-height: 1.4;
-  }
-  
-  .binaurals-controls {
-    margin: 15px 0;
-    background-color: rgba(10, 38, 38, 0.4);
-    border-radius: 8px;
-    padding: 15px;
-    border: 1px solid var(--tertiary-alt);
-  }
-  
-  .binaurals-buttons {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 15px;
-  }
-  
-  .binaural-btn {
-    padding: 8px 5px;
-    border: none;
-    border-radius: 4px;
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
-    color: #fff;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-    border: 1px solid rgba(0, 255, 255, 0.2);
-  }
-  
-  .binaural-btn:hover {
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2));
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
-  }
-  
-  .binaural-btn.active {
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3));
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-    border-color: var(--tertiary-alt);
-  }
-  
-  .binaural-btn.stop-btn {
-    background: rgba(255, 40, 40, 0.2);
-    border-color: rgba(255, 40, 40, 0.3);
-  }
-  
-  .binaural-btn.stop-btn:hover {
-    background: rgba(255, 40, 40, 0.3);
-    box-shadow: 0 0 10px rgba(255, 40, 40, 0.3);
-  }
-  
-  .binaurals-volume {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-  }
-  
-  .active-wave {
-    margin-top: 10px;
-    padding: 8px 10px;
-    background-color: rgba(0, 255, 255, 0.1);
-    border-left: 3px solid var(--tertiary-alt);
-    font-size: 0.9rem;
-  }
-  
-  #active-wave-display {
-    font-weight: bold;
-    color: var(--tertiary-alt);
-  }
-
-  /* Session controls styling */
-  .session-title-input {
-    width: 100%;
-    padding: 8px 10px;
-    margin-bottom: 10px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--tertiary-alt);
-    border-radius: 4px;
-    color: #fff;
-    font-size: 1rem;
-  }
-
-  .session-title-input:focus {
-    outline: none;
-    border-color: #ff00ff;
-    box-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
-  }
-
-  .session-stats-container {
-    display: flex;
-    justify-content: space-around;
-    margin: 15px 0;
-    background-color: rgba(10, 38, 38, 0.4);
-    border-radius: 8px;
-    padding: 15px;
-    border: 1px solid var(--tertiary-alt);
-  }
-
-  .session-stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 5px 15px;
-    text-align: center;
-  }
-
-  .session-stat .stat-value {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: var(--tertiary-alt);
-    text-shadow: 0 0 5px var(--tertiary-color);
-  }
-
-  .session-stat .stat-label {
-    font-size: 0.8rem;
-    color: var(--primary-alt);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .session-history-status {
-    text-align: center;
-    padding: 10px;
-    margin: 10px 0;
-    color: var(--primary-alt);
-    font-style: italic;
-  }
-
-  .session-history-status.error {
-    color: var(--error);
-    border-left: 3px solid var(--error);
-    background-color: rgba(255, 0, 0, 0.1);
-  }
-
-  .session-history-status.success {
-    color: var(--tertiary-alt);
-    border-left: 3px solid var(--tertiary-alt);
-    background-color: rgba(23, 219, 216, 0.1);
-  }
-
-  .session-history-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 15px;
-  }
-
-  .session-history-actions button {
-    flex: 1;
-    min-width: calc(50% - 5px);
-  }
-
-  .active-session-info {
-    margin-top: 8px;
-    padding: 6px 10px;
-    background-color: rgba(0, 255, 255, 0.1);
-    border-left: 3px solid var(--tertiary-alt);
-    font-size: 0.85rem;
-    color: var(--primary-alt);
-  }
-
-  .info-label {
-    font-weight: bold;
-    margin-right: 5px;
-    color: var(--tertiary-alt);
-  }
-
-  /* Spirals controls styling */
-  .spirals-controls {
-    margin: 15px 0;
-    background-color: rgba(10, 38, 38, 0.4);
-    border-radius: 8px;
-    padding: 15px;
-    border: 1px solid var(--tertiary-alt);
-  }
-
-  .spiral-control-group {
-    margin-bottom: 12px;
-  }
-
-  .spiral-control-group label {
-    display: block;
-    margin-bottom: 5px;
-    color: var(--tertiary-alt);
-    font-size: 0.9rem;
-  }
-
-  .slider-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .spiral-slider {
-    flex: 1;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-    outline: none;
-  }
-
-  .spiral-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #ff00ff;
-    cursor: pointer;
-  }
-
-  .spiral-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #ff00ff;
-    cursor: pointer;
-  }
-</style>
-
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    // Store XP requirements globally
-    window.xpRequirements = [1000, 2500, 7500, 17000, 42000, 132000, 478000, 1000000];
-    
-    // Handle XP notification animation
-    function showXpNotification(amount) {
-      try {
-        // Create the notification element
-        const xpNotification = document.createElement('div');
-        xpNotification.className = 'xp-notification';
-        xpNotification.innerHTML = `+${amount} XP`;
-        
-        // Add it to the document
-        document.body.appendChild(xpNotification);
-        
-        // Force reflow
-        xpNotification.offsetHeight;
-        
-        // Add the show class to start animation
-        xpNotification.classList.add('show');
-        
-        // Remove after animation
-        setTimeout(() => {
-          xpNotification.classList.remove('show');
-          setTimeout(() => {
-            document.body.removeChild(xpNotification);
-          }, 500);
-        }, 2000);
-      } catch (error) {
-        console.error('Error showing XP notification:', error);
+    <style>
+      /* Control buttons styling */
+      .control-btn.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: #444;
+        color: #aaa;
       }
-    }
-    
-    // Listen for XP gain events
-    document.addEventListener('xp-gained', function(event) {
-      if (event.detail && event.detail.amount) {
-        showXpNotification(event.detail.amount);
-        
-        // Update progress if needed
-        if (window.updateXpProgress) {
-          window.updateXpProgress(event.detail.amount);
+
+      /* XP progress bar styling */
+      .xp-progress-container {
+        margin-top: 20px;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 5px;
+        position: relative;
+      }
+
+      .xp-level-badge {
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #00ffff, #ff00ff);
+        border-radius: 12px;
+        padding: 2px 10px;
+        font-size: 0.85em;
+        font-weight: bold;
+        color: #000;
+        box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+      }
+
+      .xp-progress-label {
+        margin: 15px 0 5px;
+        font-size: 0.8em;
+        color: rgba(255, 255, 255, 0.7);
+        text-align: center;
+      }
+
+      .xp-progress-bar {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .xp-progress-fill {
+        height: 100%;
+        background: linear-gradient(to right, #00ffff, #ff00ff);
+        border-radius: 4px;
+        transition: width 0.5s ease-in-out;
+      }
+
+      .xp-next-feature {
+        margin-top: 8px;
+        font-size: 0.75em;
+        color: rgba(255, 255, 255, 0.6);
+        text-align: center;
+        font-style: italic;
+      }
+
+      /* Feature XP info */
+      .feature-xp-info {
+        margin-top: 10px;
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border-left: 3px solid var(--tertiary-alt);
+        font-size: 0.85rem;
+        color: #00ffff;
+        border-radius: 3px;
+      }
+
+      .feature-xp-info i {
+        margin-right: 5px;
+        color: #ffff00;
+      }
+
+      /* Audio controls styling */
+      .audio-controls {
+        margin-top: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .audio-speed-control,
+      .audio-volume-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .speed-slider,
+      .volume-slider {
+        flex: 1;
+        height: 6px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        outline: none;
+      }
+
+      .speed-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ff00ff;
+        cursor: pointer;
+      }
+
+      .volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #00ffff;
+        cursor: pointer;
+      }
+
+      .speed-slider::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ff00ff;
+        cursor: pointer;
+      }
+
+      .volume-slider::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #00ffff;
+        cursor: pointer;
+      }
+
+      #speed-value,
+      #volume-value {
+        min-width: 60px;
+        text-align: center;
+        font-size: 0.9em;
+      }
+
+      #speed-value {
+        color: #ff00ff;
+      }
+
+      #volume-value {
+        color: #00ffff;
+      }
+
+      /* Binaural controls styling */
+      .binaurals-description {
+        margin-bottom: 15px;
+        font-size: 0.9rem;
+        color: var(--primary-alt);
+        line-height: 1.4;
+      }
+
+      .binaurals-controls {
+        margin: 15px 0;
+        background-color: rgba(10, 38, 38, 0.4);
+        border-radius: 8px;
+        padding: 15px;
+        border: 1px solid var(--tertiary-alt);
+      }
+
+      .binaurals-buttons {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .binaural-btn {
+        padding: 8px 5px;
+        border: none;
+        border-radius: 4px;
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+        border: 1px solid rgba(0, 255, 255, 0.2);
+      }
+
+      .binaural-btn:hover {
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2));
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+      }
+
+      .binaural-btn.active {
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3));
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        border-color: var(--tertiary-alt);
+      }
+
+      .binaural-btn.stop-btn {
+        background: rgba(255, 40, 40, 0.2);
+        border-color: rgba(255, 40, 40, 0.3);
+      }
+
+      .binaural-btn.stop-btn:hover {
+        background: rgba(255, 40, 40, 0.3);
+        box-shadow: 0 0 10px rgba(255, 40, 40, 0.3);
+      }
+
+      .binaurals-volume {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .active-wave {
+        margin-top: 10px;
+        padding: 8px 10px;
+        background-color: rgba(0, 255, 255, 0.1);
+        border-left: 3px solid var(--tertiary-alt);
+        font-size: 0.9rem;
+      }
+
+      #active-wave-display {
+        font-weight: bold;
+        color: var(--tertiary-alt);
+      }
+
+      /* Session controls styling */
+      .session-title-input {
+        width: 100%;
+        padding: 8px 10px;
+        margin-bottom: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--tertiary-alt);
+        border-radius: 4px;
+        color: #fff;
+        font-size: 1rem;
+      }
+
+      .session-title-input:focus {
+        outline: none;
+        border-color: #ff00ff;
+        box-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+      }
+
+      .session-stats-container {
+        display: flex;
+        justify-content: space-around;
+        margin: 15px 0;
+        background-color: rgba(10, 38, 38, 0.4);
+        border-radius: 8px;
+        padding: 15px;
+        border: 1px solid var(--tertiary-alt);
+      }
+
+      .session-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 5px 15px;
+        text-align: center;
+      }
+
+      .session-stat .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--tertiary-alt);
+        text-shadow: 0 0 5px var(--tertiary-color);
+      }
+
+      .session-stat .stat-label {
+        font-size: 0.8rem;
+        color: var(--primary-alt);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .session-history-status {
+        text-align: center;
+        padding: 10px;
+        margin: 10px 0;
+        color: var(--primary-alt);
+        font-style: italic;
+      }
+
+      .session-history-status.error {
+        color: var(--error);
+        border-left: 3px solid var(--error);
+        background-color: rgba(255, 0, 0, 0.1);
+      }
+
+      .session-history-status.success {
+        color: var(--tertiary-alt);
+        border-left: 3px solid var(--tertiary-alt);
+        background-color: rgba(23, 219, 216, 0.1);
+      }
+
+      .session-history-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+      .session-history-actions button {
+        flex: 1;
+        min-width: calc(50% - 5px);
+      }
+
+      .active-session-info {
+        margin-top: 8px;
+        padding: 6px 10px;
+        background-color: rgba(0, 255, 255, 0.1);
+        border-left: 3px solid var(--tertiary-alt);
+        font-size: 0.85rem;
+        color: var(--primary-alt);
+      }
+
+      .info-label {
+        font-weight: bold;
+        margin-right: 5px;
+        color: var(--tertiary-alt);
+      }
+
+      /* Spirals controls styling */
+      .spirals-controls {
+        margin: 15px 0;
+        background-color: rgba(10, 38, 38, 0.4);
+        border-radius: 8px;
+        padding: 15px;
+        border: 1px solid var(--tertiary-alt);
+      }
+
+      .spiral-control-group {
+        margin-bottom: 12px;
+      }
+
+      .spiral-control-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--tertiary-alt);
+        font-size: 0.9rem;
+      }
+
+      .slider-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .spiral-slider {
+        flex: 1;
+        height: 6px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        outline: none;
+      }
+
+      .spiral-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ff00ff;
+        cursor: pointer;
+      }
+
+      .spiral-slider::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ff00ff;
+        cursor: pointer;
+      }
+    </style>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Store XP requirements globally
+        window.xpRequirements = [1000, 2500, 7500, 17000, 42000, 132000, 478000, 1000000];
+
+        // Handle XP notification animation
+        function showXpNotification(amount) {
+          try {
+            // Create the notification element
+            const xpNotification = document.createElement('div');
+            xpNotification.className = 'xp-notification';
+            xpNotification.innerHTML = `+${amount} XP`;
+
+            // Add it to the document
+            document.body.appendChild(xpNotification);
+
+            // Force reflow
+            xpNotification.offsetHeight;
+
+            // Add the show class to start animation
+            xpNotification.classList.add('show');
+
+            // Remove after animation
+            setTimeout(() => {
+              xpNotification.classList.remove('show');
+              setTimeout(() => {
+                document.body.removeChild(xpNotification);
+              }, 500);
+            }, 2000);
+          } catch (error) {
+            console.error('Error showing XP notification:', error);
+          }
         }
-      }
-    });
-    
-    // Tab navigation system
-    const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
-    
-    controlButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        const targetId = this.getAttribute('data-target');
-        
-        // Toggle active states
-        controlButtons.forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.control-panel').forEach(panel => {
-          panel.classList.remove('active');
+
+        // Listen for XP gain events
+        document.addEventListener('xp-gained', function (event) {
+          if (event.detail && event.detail.amount) {
+            showXpNotification(event.detail.amount);
+
+            // Update progress if needed
+            if (window.updateXpProgress) {
+              window.updateXpProgress(event.detail.amount);
+            }
+          }
         });
-        
-        this.classList.add('active');
-        
-        // Show target panel
-        const targetPanel = document.getElementById(targetId);
-        if (targetPanel) targetPanel.classList.add('active');
-        
-        // Store the active tab in localStorage
+
+        // Tab navigation system
+        const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
+
+        controlButtons.forEach(button => {
+          button.addEventListener('click', function () {
+            const targetId = this.getAttribute('data-target');
+
+            // Toggle active states
+            controlButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.control-panel').forEach(panel => {
+              panel.classList.remove('active');
+            });
+
+            this.classList.add('active');
+
+            // Show target panel
+            const targetPanel = document.getElementById(targetId);
+            if (targetPanel) targetPanel.classList.add('active');
+
+            // Store the active tab in localStorage
+            try {
+              localStorage.setItem('bambiActiveTab', targetId);
+            } catch (error) {
+              console.error('Error storing active tab:', error);
+            }
+          });
+        });
+
+        // Restore the active tab from localStorage
         try {
-          localStorage.setItem('bambiActiveTab', targetId);
+          const activeTab = localStorage.getItem('bambiActiveTab');
+          if (activeTab) {
+            const tabButton = document.querySelector(`.control-btn[data-target="${activeTab}"]`);
+            if (tabButton && !tabButton.classList.contains('disabled')) {
+              tabButton.click();
+            }
+          }
         } catch (error) {
-          console.error('Error storing active tab:', error);
+          console.error('Error restoring active tab:', error);
         }
-      });
-    });
-    
-    // Restore the active tab from localStorage
-    try {
-      const activeTab = localStorage.getItem('bambiActiveTab');
-      if (activeTab) {
-        const tabButton = document.querySelector(`.control-btn[data-target="${activeTab}"]`);
-        if (tabButton && !tabButton.classList.contains('disabled')) {
-          tabButton.click();
+
+        // Set initial volume and speed from localStorage
+        const volumeSlider = document.getElementById('loop-volume');
+        const volumeValue = document.getElementById('volume-value');
+        if (volumeSlider && volumeValue) {
+          const storedVolume = localStorage.getItem('bambiAudioVolume');
+          if (storedVolume !== null) {
+            const volume = parseFloat(storedVolume);
+            volumeSlider.value = volume * 10;
+            volumeValue.textContent = Math.round(volume * 100) + '%';
+          }
         }
-      }
-    } catch (error) {
-      console.error('Error restoring active tab:', error);
-    }
-    
-    // Set initial volume and speed from localStorage
-    const volumeSlider = document.getElementById('loop-volume');
-    const volumeValue = document.getElementById('volume-value');
-    if (volumeSlider && volumeValue) {
-      const storedVolume = localStorage.getItem('bambiAudioVolume');
-      if (storedVolume !== null) {
-        const volume = parseFloat(storedVolume);
-        volumeSlider.value = volume * 10;
-        volumeValue.textContent = Math.round(volume * 100) + '%';
-      }
-    }
-    
-    const speedSlider = document.getElementById('loop-speed');
-    const speedValue = document.getElementById('speed-value');
-    if (speedSlider && speedValue) {
-      const storedSpeed = localStorage.getItem('bambiAudioSpeed');
-      if (storedSpeed !== null) {
-        speedSlider.value = storedSpeed;
-        updateSpeedLabel(storedSpeed, speedValue);
-      }
-    }
-    
-    // Helper function for speed label
-    function updateSpeedLabel(value, element) {
-      if (!element) return;
-      
-      const speedVal = parseInt(value);
-      if (speedVal === 5) {
-        element.textContent = 'Normal';
-      } else if (speedVal < 5) {
-        element.textContent = 'Slower ' + (5 - speedVal) + 'x';
-      } else {
-        element.textContent = 'Faster ' + (speedVal - 5) + 'x';
-      }
-    }
-    
-    // Update spirals slider values on input
-    document.querySelectorAll('.spiral-slider').forEach(slider => {
-      const valueDisplay = document.getElementById(slider.id + '-value');
-      if (valueDisplay) {
-        slider.addEventListener('input', function() {
-          valueDisplay.textContent = this.value;
+
+        const speedSlider = document.getElementById('loop-speed');
+        const speedValue = document.getElementById('speed-value');
+        if (speedSlider && speedValue) {
+          const storedSpeed = localStorage.getItem('bambiAudioSpeed');
+          if (storedSpeed !== null) {
+            speedSlider.value = storedSpeed;
+            updateSpeedLabel(storedSpeed, speedValue);
+          }
+        }
+
+        // Helper function for speed label
+        function updateSpeedLabel(value, element) {
+          if (!element) return;
+
+          const speedVal = parseInt(value);
+          if (speedVal === 5) {
+            element.textContent = 'Normal';
+          } else if (speedVal < 5) {
+            element.textContent = 'Slower ' + (5 - speedVal) + 'x';
+          } else {
+            element.textContent = 'Faster ' + (speedVal - 5) + 'x';
+          }
+        }
+
+        // Update spirals slider values on input
+        document.querySelectorAll('.spiral-slider').forEach(slider => {
+          const valueDisplay = document.getElementById(slider.id + '-value');
+          if (valueDisplay) {
+            slider.addEventListener('input', function () {
+              valueDisplay.textContent = this.value;
+            });
+          }
         });
-      }
-    });
-    
-    // Update binaural slider values on input
-    document.querySelectorAll('.frequency-slider').forEach(slider => {
-      const valueDisplay = document.getElementById(slider.id + '-value');
-      if (valueDisplay) {
-        slider.addEventListener('input', function() {
-          valueDisplay.textContent = this.value + ' Hz';
+
+        // Update binaural slider values on input
+        document.querySelectorAll('.frequency-slider').forEach(slider => {
+          const valueDisplay = document.getElementById(slider.id + '-value');
+          if (valueDisplay) {
+            slider.addEventListener('input', function () {
+              valueDisplay.textContent = this.value + ' Hz';
+            });
+          }
         });
-      }
-    });
-    
-    // Watch for trigger list changes to avoid duplicates
-    const triggerList = document.getElementById('trigger-list');
-    if (triggerList) {
-      const observer = new MutationObserver(function(mutations) {
-        if (mutations.some(m => m.addedNodes.length > 0)) {
-          document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
-          observer.disconnect();
+
+        // Watch for trigger list changes to avoid duplicates
+        const triggerList = document.getElementById('trigger-list');
+        if (triggerList) {
+          const observer = new MutationObserver(function (mutations) {
+            if (mutations.some(m => m.addedNodes.length > 0)) {
+              document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
+              observer.disconnect();
+            }
+          });
+
+          observer.observe(triggerList, { childList: true });
         }
-      });
-      
-      observer.observe(triggerList, { childList: true });
-    }
-    
-    // Make XP progress bar global
-    window.updateXpProgress = function(xpGained) {
-      try {
-        // Get current values
-        const userLevel = parseInt(document.querySelector('.system-controls').getAttribute('data-user-level') || '0');
-        const xpProgressLabel = document.getElementById('xp-progress-label');
-        const xpProgressFill = document.getElementById('xp-progress-fill');
-        const levelIndicator = document.getElementById('level-indicator');
-        
-        if (!xpProgressLabel || !xpProgressFill || !levelIndicator) return;
-        
-        // Parse current XP from the label
-        const currentText = xpProgressLabel.textContent.trim();
-        const xpMatch = currentText.match(/(\d+)\s+XP\s*\/\s*(\d+)\s+XP/);
-        
-        if (!xpMatch) return;
-        
-        let currentXp = parseInt(xpMatch[1]);
-        const targetXp = parseInt(xpMatch[2]);
-        
-        // Add the gained XP
-        currentXp += xpGained;
-        
-        // Check if level up occurred
-        if (currentXp >= targetXp && userLevel < window.xpRequirements.length) {
-          // Level up!
-          const newLevel = userLevel + 1;
-          const nextTarget = window.xpRequirements[newLevel] || targetXp;
-          
-          // Update displays
-          levelIndicator.textContent = `Level ${newLevel}`;
-          xpProgressLabel.textContent = `${currentXp} XP / ${nextTarget} XP`;
-          xpProgressFill.style.width = `${Math.min(100, (currentXp / nextTarget) * 100)}%`;
-          
-          // Update data attribute
-          document.querySelector('.system-controls').setAttribute('data-user-level', newLevel.toString());
-          
-          // Show level up notification
-          const levelUpNotification = document.createElement('div');
-          levelUpNotification.className = 'level-up-notification';
-          levelUpNotification.innerHTML = `
+
+        // Make XP progress bar global
+        window.updateXpProgress = function (xpGained) {
+          try {
+            // Get current values
+            const userLevel = parseInt(document.querySelector('.system-controls').getAttribute('data-user-level') || '0');
+            const xpProgressLabel = document.getElementById('xp-progress-label');
+            const xpProgressFill = document.getElementById('xp-progress-fill');
+            const levelIndicator = document.getElementById('level-indicator');
+
+            if (!xpProgressLabel || !xpProgressFill || !levelIndicator) return;
+
+            // Parse current XP from the label
+            const currentText = xpProgressLabel.textContent.trim();
+            const xpMatch = currentText.match(/(\d+)\s+XP\s*\/\s*(\d+)\s+XP/);
+
+            if (!xpMatch) return;
+
+            let currentXp = parseInt(xpMatch[1]);
+            const targetXp = parseInt(xpMatch[2]);
+
+            // Add the gained XP
+            currentXp += xpGained;
+
+            // Check if level up occurred
+            if (currentXp >= targetXp && userLevel < window.xpRequirements.length) {
+              // Level up!
+              const newLevel = userLevel + 1;
+              const nextTarget = window.xpRequirements[newLevel] || targetXp;
+
+              // Update displays
+              levelIndicator.textContent = `Level ${newLevel}`;
+              xpProgressLabel.textContent = `${currentXp} XP / ${nextTarget} XP`;
+              xpProgressFill.style.width = `${Math.min(100, (currentXp / nextTarget) * 100)}%`;
+
+              // Update data attribute
+              document.querySelector('.system-controls').setAttribute('data-user-level', newLevel.toString());
+
+              // Show level up notification
+              const levelUpNotification = document.createElement('div');
+              levelUpNotification.className = 'level-up-notification';
+              levelUpNotification.innerHTML = `
             <div class="level-up-title">Level Up!</div>
             <div class="level-up-level">Level ${newLevel}</div>
             <div class="level-up-message">Refresh to unlock new features</div>
           `;
-          document.body.appendChild(levelUpNotification);
-          
-          setTimeout(() => {
-            levelUpNotification.classList.add('show');
-            setTimeout(() => {
-              levelUpNotification.classList.remove('show');
-              setTimeout(() => {
-                document.body.removeChild(levelUpNotification);
-              }, 500);
-            }, 5000);
-          }, 100);
-        } else {
-          // Regular XP update
-          xpProgressLabel.textContent = `${currentXp} XP / ${targetXp} XP`;
-          xpProgressFill.style.width = `${Math.min(100, (currentXp / targetXp) * 100)}%`;
-        }
-      } catch (error) {
-        console.error('Error updating XP progress:', error);
-      }
-    };
-  });
-</script>
+              document.body.appendChild(levelUpNotification);
 
-<!-- Load modular system control scripts -->
-<script src="/js/xp-notification.js"></script>
-<script src="/js/xp-progress.js"></script>
-<script src="/js/collar-controls.js"></script>
-<script src="/js/trigger-controls.js"></script>
-<script src="/js/utils/bambi-sessions.js"></script>
-<script src="/js/system-controls.js"></script>
+              setTimeout(() => {
+                levelUpNotification.classList.add('show');
+                setTimeout(() => {
+                  levelUpNotification.classList.remove('show');
+                  setTimeout(() => {
+                    document.body.removeChild(levelUpNotification);
+                  }, 500);
+                }, 5000);
+              }, 100);
+            } else {
+              // Regular XP update
+              xpProgressLabel.textContent = `${currentXp} XP / ${targetXp} XP`;
+              xpProgressFill.style.width = `${Math.min(100, (currentXp / targetXp) * 100)}%`;
+            }
+          } catch (error) {
+            console.error('Error updating XP progress:', error);
+          }
+        };
+      });
+    </script>
+
+    <!-- Load modular system control scripts -->
+    <script src="/js/xp-notification.js"></script>
+    <script src="/js/xp-progress.js"></script>
+    <script src="/js/collar-controls.js"></script>
+    <script src="/js/trigger-controls.js"></script>
+    <script src="/js/system-controls.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/utils/socket-handler.js"></script>
+    <script src="/js/utils/bambi-sessions.js"></script>
+    <script src="/js/utils/cookie-utils.js"></script>
+    <script src="/js/utils/audio-utils.js"></script>
+    <script src="/js/utils/performance-monitor.js"></script>
