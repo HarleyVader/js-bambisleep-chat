@@ -5,10 +5,9 @@ import Logger from '../utils/logger.js';
 import { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 import mongoose from 'mongoose';
 import { connectDB, withDbConnection } from '../config/db.js';
-import { Profile, getProfile, updateProfile } from '../models/Profile.js';  // Import the model file to ensure schema registration
-import '../models/SessionHistory.js';  // Make sure to create this file first
+import { Profile, SessionHistory, getProfile, updateProfile } from '../models/models.js';  // Import the model file to ensure schema registration
+const SessionHistoryModel = SessionHistory;
 import config from '../config/config.js';
-import SessionHistoryModel from '../models/SessionHistory.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

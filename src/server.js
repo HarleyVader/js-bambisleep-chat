@@ -46,8 +46,7 @@ import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 
 // Import Profile model getter
-import { User } from './models/User.js';
-import { Profile, getProfile, getOrCreateProfile } from './models/Profile.js';
+import { User, Profile, getUser, getProfile, getOrCreateProfile } from './models/models.js';
 
 // Add this before initializing routes
 import './models/SessionHistory.js';
