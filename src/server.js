@@ -44,7 +44,7 @@ import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 import { parseCookies, serializeCookie } from './public/js/utils/cookie-utils.js';
-import { getProfile } from './utils/profile.js';
+import { getProfile } from './public/js/profile.js';
 import { setupErrorHandlers } from './utils/errorHandlers.js';
 
 // Import models
