@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import { getProfile } from '../models/Profile.js';
+// Change the import to use centralized models
+import { Profile, getProfile, withDbConnection } from '../models/models.js';
 import Logger from '../utils/logger.js';
 
 const router = express.Router();
@@ -46,7 +47,6 @@ router.get('/profile/:username/system-controls', async (req, res) => {
     }
     
     // Return only system controls data
-    // Replace this with your actual data structure
     res.json({
       activeTriggers: profile.triggers || [],
       systemSettings: profile.settings || {}
@@ -70,8 +70,6 @@ router.post('/performance', (req, res) => {
       logger.info(`Performance metrics from client: ${JSON.stringify(metrics.summary)}`);
     }
     
-    // Could store metrics in database for analysis
-    
     res.json({ success: true });
   } catch (error) {
     logger.error('Error processing performance metrics:', error);
@@ -82,7 +80,7 @@ router.post('/performance', (req, res) => {
 /**
  * Get profile data for a username
  */
-router.get('/api/profile/:username/data', async (req, res) => {
+router.get('/profile/:username/data', async (req, res) => {
   try {
     const username = req.params.username;
     
@@ -90,11 +88,8 @@ router.get('/api/profile/:username/data', async (req, res) => {
       return res.status(400).json({ error: 'Username is required' });
     }
     
-    // Get profile by username
-    const Profile = getModel('Profile');
-    const profile = await withDbConnection(async () => {
-      return await Profile.findOne({ username });
-    });
+    // Get profile by username - use imported getProfile function
+    const profile = await getProfile(username);
     
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
@@ -130,8 +125,7 @@ router.get('/api/profile/:username/system-controls', async (req, res) => {
       return res.status(400).json({ error: 'Username is required' });
     }
     
-    // Get profile by username
-    const Profile = getModel('Profile');
+    // Use the imported Profile model directly
     const profile = await withDbConnection(async () => {
       return await Profile.findOne({ username });
     });
@@ -171,8 +165,7 @@ router.post('/api/profile/:username/system-controls', async (req, res) => {
       return res.status(400).json({ error: 'Username is required' });
     }
     
-    // Get profile by username
-    const Profile = getModel('Profile');
+    // Use the imported Profile model directly
     let profile = await withDbConnection(async () => {
       return await Profile.findOne({ username });
     });
@@ -241,7 +234,7 @@ router.get('/sessions/:username', async (req, res) => {
       return res.status(400).json({ error: 'Username is required' });
     }
     
-    // Get sessions from SessionHistory model
+    // Get sessions from SessionHistory model - using mongoose directly
     const SessionHistory = mongoose.model('SessionHistory');
     const sessions = await SessionHistory.find({ username })
       .sort({ 'metadata.lastActivity': -1 })
