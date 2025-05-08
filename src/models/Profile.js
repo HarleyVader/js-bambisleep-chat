@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { withDbConnection } from '../config/db.js';
 import Logger from '../utils/logger.js';
+// Remove direct User import to avoid circular dependency
 
 const logger = new Logger('Profile');
 
@@ -214,10 +215,6 @@ profileSchema.methods.toggleTrigger = function(triggerName, active) {
         triggers: [triggerName],
         source: 'toggleTrigger'
       });
-      
-      if (this.triggerHistory.length > 100) {
-        this.triggerHistory = this.triggerHistory.slice(-100);
-      }
     }
     
     this.updateActiveTriggerSession();
@@ -247,10 +244,6 @@ profileSchema.methods.toggleAllTriggers = function(active) {
       triggers: this.triggers.map(t => t.name),
       source: 'toggleAllTriggers'
     });
-    
-    if (this.triggerHistory.length > 100) {
-      this.triggerHistory = this.triggerHistory.slice(-100);
-    }
   }
 };
 
@@ -287,13 +280,16 @@ profileSchema.methods.updateSystemControls = function(controlsData) {
     this.systemControls.hypnosisEnabled = controlsData.hypnosisEnabled;
   }
   
-  if (controlsData.collarText !== undefined) {
-    this.systemControls.collarText = controlsData.collarText;
-    this.systemControls.collarLastUpdated = new Date();
-  }
-  
   if (controlsData.collarEnabled !== undefined) {
     this.systemControls.collarEnabled = controlsData.collarEnabled;
+  }
+  
+  if (controlsData.collarText !== undefined) {
+    this.systemControls.collarText = controlsData.collarText;
+  }
+  
+  if (controlsData.activeTriggers) {
+    this.systemControls.activeTriggers = controlsData.activeTriggers;
   }
   
   if (controlsData.multiplierSettings) {
@@ -303,18 +299,23 @@ profileSchema.methods.updateSystemControls = function(controlsData) {
     };
   }
   
-  if (controlsData.activeTriggers) {
-    this.systemControls.activeTriggers = controlsData.activeTriggers;
-    this.activeTriggers = controlsData.activeTriggers;
-  }
+  this.systemControls.lastUpdated = new Date();
 };
 
 // Add a method to add XP to the profile
 profileSchema.methods.addXP = function(amount, source, description = '') {
-  if (!amount || isNaN(amount)) return;
+  if (!amount || isNaN(amount)) return false;
+  
+  amount = Math.floor(Number(amount));
+  if (amount <= 0) return false;
   
   this.xp += amount;
-  this.level = 1 + Math.floor(Math.sqrt(this.xp / 100));
+  
+  // Check if we need to level up
+  const nextLevelXP = this.getNextLevelXP();
+  while (this.xp >= nextLevelXP) {
+    this.level += 1;
+  }
   
   if (!this.xpHistory) this.xpHistory = [];
   
@@ -364,8 +365,11 @@ profileSchema.statics.createForUser = async function(user) {
       
       await profile.save();
       
+      // Dynamically import User to avoid circular dependency
+      const userModel = mongoose.model('User');
+      
       // Update user with reference to profile
-      await User.findByIdAndUpdate(user._id, { profile: profile._id });
+      await userModel.findByIdAndUpdate(user._id, { profile: profile._id });
       
       return profile;
     } catch (error) {
@@ -417,6 +421,9 @@ export async function getProfile(username) {
 export async function getOrCreateProfile(username) {
   return withDbConnection(async () => {
     try {
+      // Dynamically import User to avoid circular dependency
+      const { User } = await import('./User.js');
+      
       // Find or create user first
       const user = await User.findOrCreateByUsername(username);
       if (!user) return null;
