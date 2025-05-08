@@ -4,7 +4,7 @@ import Logger from '../utils/logger.js';
 import { getModel } from '../config/db.js';
 import footerConfig from '../config/footer.config.js';
 import { requireLogin } from '../middleware/auth.js';
-import { User } from '../models/User.js'; // Changed from User.js to user.js
+import { User, getUser, updateUser } from '../models/User.js';
 
 const logger = new Logger('ProfileRoutes');
 const router = express.Router();
@@ -39,8 +39,8 @@ router.get('/', requireLogin, async (req, res) => {
       return res.redirect('/login');
     }
     
-    // Fetch user profile data from database
-    const user = await User.findOne({ username });
+    // Fetch user profile data from database using getUser helper
+    const user = await getUser(username);
     
     if (!user) {
       return res.status(404).render('error', {
@@ -52,6 +52,7 @@ router.get('/', requireLogin, async (req, res) => {
     // Create profile object with user data
     const profile = {
       username: user.username,
+      displayName: user.displayName || user.username,
       level: user.level || 1,
       xp: user.xp || 0,
       joinDate: user.createdAt || new Date(),
@@ -65,7 +66,7 @@ router.get('/', requireLogin, async (req, res) => {
       user: req.session.username
     });
   } catch (error) {
-    console.error('Error fetching profile:', error);
+    logger.error('Error fetching profile:', error);
     return res.status(500).render('error', {
       message: 'Something went wrong. Please try again later.',
       error: { status: 500 }
@@ -78,39 +79,40 @@ router.get('/:username', async (req, res) => {
   try {
     const { username } = req.params;
     const cookieUsername = getUsernameFromCookies(req);
-    const Profile = getModel('Profile');
     
-    // First try to find the profile
-    let profile = await Profile.findOne({ username });
+    // First try to find the user with the getUserByUsername method
+    let user = await User.getUserByUsername(username);
     
-    // If profile doesn't exist, but the username matches the cookie
+    // If user doesn't exist, but the username matches the cookie
     // (meaning user is trying to view their own profile that doesn't exist yet),
-    // create the profile automatically
-    if (!profile && username === cookieUsername) {
-      profile = new Profile({
-        username,
-        displayName: username,
-        level: 1,
-        xp: 0,
-        triggers: [{ name: "BAMBI SLEEP", active: true, description: "The foundational trigger for all bambi dolls" }],
+    // create the user automatically
+    if (!user && username === cookieUsername) {
+      user = await User.findOrCreateByUsername(username);
+      logger.info(`Created new user profile for ${username} based on cookie`);
+    }
+    
+    if (user) {
+      const isOwnProfile = isProfileOwner(req, username);
+      
+      // Convert user to profile format
+      const profile = {
+        username: user.username,
+        displayName: user.displayName || user.username,
+        level: user.level || 1,
+        xp: user.xp || 0,
         about: 'Tell us about yourself...',
         description: 'Share your bambi journey...',
-        avatar: '/gif/default-avatar.gif',
+        avatar: user.avatar || '/gif/default-avatar.gif',
         headerImage: '/gif/default-header.gif',
         headerColor: '#35424a',
         systemControls: {
           activeTriggers: ["BAMBI SLEEP"],
           collarEnabled: false,
           collarText: ''
-        }
-      });
-      
-      await profile.save();
-      logger.info(`Created new profile for ${username} based on cookie`);
-    }
-    
-    if (profile) {
-      const isOwnProfile = isProfileOwner(req, username);
+        },
+        // Other profile fields that might be in the user object
+        ...user.toObject ? user.toObject() : {}
+      };
       
       // Render the profile view
       res.render('profile', {
@@ -153,10 +155,22 @@ router.get('/:username/edit', async (req, res) => {
       });
     }
     
-    const Profile = getModel('Profile');
-    const profile = await Profile.findOne({ username });
+    const user = await getUser(username);
     
-    if (profile) {
+    if (user) {
+      // Convert user to profile format for template
+      const profile = {
+        username: user.username,
+        displayName: user.displayName || user.username,
+        avatar: user.avatar || '/gif/default-avatar.gif',
+        headerImage: '/gif/default-header.gif',
+        headerColor: '#35424a',
+        level: user.level || 1,
+        xp: user.xp || 0,
+        // Other fields
+        ...user.toObject ? user.toObject() : {}
+      };
+      
       res.render('profile', {
         title: 'Edit Profile',
         profile,
@@ -195,10 +209,9 @@ router.post('/:username/update', async (req, res) => {
       });
     }
     
-    const Profile = getModel('Profile');
-    const profile = await Profile.findOne({ username });
+    const user = await getUser(username);
     
-    if (!profile) {
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'Profile not found'
@@ -211,21 +224,23 @@ router.post('/:username/update', async (req, res) => {
       'about', 'description', 'seasons'
     ];
     
-    // Update allowed fields
+    // Build update object with only allowed fields
+    const updateObj = {};
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
-        profile[field] = req.body[field];
+        updateObj[field] = req.body[field];
       }
     });
     
-    await profile.save();
+    // Update the user profile
+    const updatedUser = await updateUser(username, updateObj);
     
     // If this is an AJAX request
     if (req.xhr || req.headers.accept && req.headers.accept.includes('application/json')) {
       return res.json({
         success: true,
         message: 'Profile updated successfully',
-        profile
+        profile: updatedUser
       });
     }
     
@@ -265,19 +280,13 @@ router.post('/:username/system-controls', async (req, res) => {
       });
     }
     
-    const Profile = getModel('Profile');
-    const profile = await Profile.findOne({ username });
+    const user = await getUser(username);
     
-    if (!profile) {
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'Profile not found'
       });
-    }
-    
-    // Initialize systemControls if not exists
-    if (!profile.systemControls) {
-      profile.systemControls = {};
     }
     
     // Update system controls
@@ -286,13 +295,17 @@ router.post('/:username/system-controls', async (req, res) => {
       'multiplierSettings', 'colorSettings'
     ];
     
+    // Build systemControls object
+    const systemControls = user.systemControls || {};
+    
     controlFields.forEach(field => {
       if (req.body[field] !== undefined) {
-        profile.systemControls[field] = req.body[field];
+        systemControls[field] = req.body[field];
       }
     });
     
-    await profile.save();
+    // Update user with new system controls
+    await updateUser(username, { systemControls });
     
     return res.json({
       success: true,
@@ -321,8 +334,8 @@ router.post('/:username/delete', async (req, res) => {
       });
     }
     
-    const Profile = getModel('Profile');
-    const result = await Profile.deleteOne({ username });
+    // Use the User model directly for deletion
+    const result = await User.deleteOne({ username });
     
     if (result.deletedCount === 0) {
       return res.status(404).json({
@@ -385,11 +398,11 @@ router.get('/new', (req, res) => {
 router.post('/new', async (req, res) => {
   try {
     const { username, displayName, avatar, about, description, seasons } = req.body;
-    const Profile = getModel('Profile');
     
-    // Check if username already exists
-    const existingProfile = await Profile.findOne({ username });
-    if (existingProfile) {
+    // Check if username already exists using User model
+    const existingUser = await getUser(username);
+    
+    if (existingUser) {
       return res.render('profile', { 
         title: 'Create New Profile',
         mode: 'create',
@@ -402,8 +415,8 @@ router.post('/new', async (req, res) => {
     // Process seasons
     const selectedSeasons = Array.isArray(seasons) ? seasons : [seasons].filter(Boolean);
     
-    // Create new profile
-    const newProfile = new Profile({
+    // Create new user with profile data
+    const newUser = new User({
       username,
       displayName: displayName || username,
       avatar: avatar || '/gif/default-avatar.gif',
@@ -412,7 +425,7 @@ router.post('/new', async (req, res) => {
       seasons: selectedSeasons.length > 0 ? selectedSeasons : ['spring'],
       level: 1,
       xp: 0,
-      triggers: [{ name: "BAMBI SLEEP", active: true, description: "The foundational trigger for all bambi dolls" }],
+      sessions: [],
       systemControls: {
         activeTriggers: ["BAMBI SLEEP"],
         collarEnabled: false,
@@ -420,7 +433,7 @@ router.post('/new', async (req, res) => {
       }
     });
     
-    await newProfile.save();
+    await newUser.save();
     
     // Set cookie and redirect
     res.cookie('bambiname', username, { path: '/' });
@@ -447,7 +460,5 @@ router.post('/new', async (req, res) => {
     });
   }
 });
-
-
 
 export default router;
