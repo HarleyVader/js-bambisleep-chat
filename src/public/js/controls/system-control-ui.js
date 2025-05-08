@@ -101,12 +101,16 @@ window.systemControlUI = (function() {
   function updateTriggersList(event) {
     try {
       const triggers = event.detail?.triggers || [];
+      
+      // Ensure triggers is an array
+      const triggersArray = Array.isArray(triggers) ? triggers : [];
+      
       const container = document.getElementById('triggers-container');
       if (!container) return;
       
       // Organize triggers by category
       triggerCategories = {};
-      triggers.forEach(trigger => {
+      triggersArray.forEach(trigger => {
         const category = trigger.category || 'General';
         if (!triggerCategories[category]) {
           triggerCategories[category] = [];
@@ -229,8 +233,13 @@ window.systemControlUI = (function() {
       // Load triggers from system state
       if (window.bambiSystem) {
         const triggers = window.bambiSystem.getState('triggers') || [];
+        // Ensure we're passing an array of trigger objects
+        const triggerObjects = Array.isArray(triggers) ? 
+          triggers.map(t => typeof t === 'string' ? { name: t, category: 'General' } : t) : 
+          [];
+          
         updateTriggersList({
-          detail: { triggers }
+          detail: { triggers: triggerObjects }
         });
       }
       
