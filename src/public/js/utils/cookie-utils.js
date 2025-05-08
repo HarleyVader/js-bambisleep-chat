@@ -11,6 +11,21 @@ function parseCookies(cookieHeader) {
     }, {});
 }
 
+// Serialize cookie with options
+function serializeCookie(name, value, options = {}) {
+  let cookieStr = `${name}=${value}`;
+  
+  if (options.path) cookieStr += `; path=${options.path}`;
+  if (options.domain) cookieStr += `; domain=${options.domain}`;
+  if (options.maxAge) cookieStr += `; max-age=${options.maxAge}`;
+  if (options.expires) cookieStr += `; expires=${options.expires.toUTCString()}`;
+  if (options.httpOnly) cookieStr += '; httpOnly';
+  if (options.secure) cookieStr += '; secure';
+  if (options.sameSite) cookieStr += `; sameSite=${options.sameSite}`;
+  
+  return cookieStr;
+}
+
 // Check if we're in a browser environment
 if (typeof window !== 'undefined') {
   // Browser-specific code
@@ -147,45 +162,14 @@ if (typeof window !== 'undefined') {
   window.cookieUtils.initUsernameModal();
 }
 
-// Node.js environment exports
+// Export functions for both CommonJS and ES Modules
 if (typeof module !== 'undefined' && module.exports) {
-  // Serialize cookie with options
-  function serializeCookie(name, value, options = {}) {
-    let cookieStr = `${name}=${value}`;
-    
-    if (options.path) cookieStr += `; path=${options.path}`;
-    if (options.domain) cookieStr += `; domain=${options.domain}`;
-    if (options.maxAge) cookieStr += `; max-age=${options.maxAge}`;
-    if (options.expires) cookieStr += `; expires=${options.expires.toUTCString()}`;
-    if (options.httpOnly) cookieStr += '; httpOnly';
-    if (options.secure) cookieStr += '; secure';
-    if (options.sameSite) cookieStr += `; sameSite=${options.sameSite}`;
-    
-    return cookieStr;
-  }
-
   // CommonJS exports
-  module.exports = {
-    parseCookies,
-    serializeCookie
-  };
-} else if (typeof exports !== 'undefined') {
-  // ES modules exports
-  exports.parseCookies = parseCookies;
-  
-  function serializeCookie(name, value, options = {}) {
-    let cookieStr = `${name}=${value}`;
-    
-    if (options.path) cookieStr += `; path=${options.path}`;
-    if (options.domain) cookieStr += `; domain=${options.domain}`;
-    if (options.maxAge) cookieStr += `; max-age=${options.maxAge}`;
-    if (options.expires) cookieStr += `; expires=${options.expires.toUTCString()}`;
-    if (options.httpOnly) cookieStr += '; httpOnly';
-    if (options.secure) cookieStr += '; secure';
-    if (options.sameSite) cookieStr += `; sameSite=${options.sameSite}`;
-    
-    return cookieStr;
-  }
-  
-  exports.serializeCookie = serializeCookie;
+  module.exports = { parseCookies, serializeCookie };
+} else {
+  // ES Module exports
+  window.cookieUtilsExports = { parseCookies, serializeCookie };
 }
+
+// Export functions for ES Modules
+export { parseCookies, serializeCookie };
