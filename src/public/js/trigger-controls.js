@@ -23,7 +23,10 @@ window.triggerControls = (function() {
     if (toggleAllBtn) toggleAllBtn.addEventListener('click', toggleAllTriggers);
     
     const playTriggersBtn = document.getElementById('play-triggers');
-    if (playTriggersBtn) playTriggersBtn.addEventListener('click', playTriggerAudio);
+    if (playTriggersBtn) playTriggersBtn.addEventListener('click', () => {
+      const triggerName = document.querySelector('.toggle-input:checked')?.getAttribute('data-trigger');
+      playTriggerAudio(triggerName);
+    });
     
     // Listen for system state changes
     document.addEventListener('system-update', handleSystemUpdate);
@@ -177,9 +180,50 @@ window.triggerControls = (function() {
   }
   
   // Play trigger audio if available
-  function playTriggerAudio() {
-    if (window.bambiAudio && typeof window.bambiAudio.playRandomPlaylist === 'function') {
-      window.bambiAudio.playRandomPlaylist();
+  function playTriggerAudio(triggerName) {
+    if (!triggerName) return;
+    
+    // Use audio utils if available
+    if (window.audioUtils) {
+      window.audioUtils.playTriggerAudio(triggerName);
+      return;
+    }
+    
+    // Fallback to original implementation
+    try {
+      // Try multiple path formats
+      const formattedName = triggerName.replace(/\s+/g, '-').toUpperCase();
+      const audioPath = `/audio/triggers/${formattedName}.mp3`;
+      const audio = new Audio(audioPath);
+      
+      // Get volume from settings
+      let volume = 0.7;
+      try {
+        const settings = JSON.parse(localStorage.getItem('audioSettings') || '{}');
+        if (settings.volume !== undefined) volume = settings.volume;
+      } catch (e) {
+        console.error('Error parsing audio settings:', e);
+      }
+      
+      audio.volume = volume;
+      
+      audio.addEventListener('error', (e) => {
+        console.error(`Error loading audio for trigger ${triggerName}:`, e);
+        
+        // Try alternate path as fallback
+        const altPath = `/audio/${formattedName}.mp3`;
+        const altAudio = new Audio(altPath);
+        altAudio.volume = volume;
+        altAudio.play().catch(err => {
+          console.error(`Could not play alternate audio for ${triggerName}:`, err);
+        });
+      });
+      
+      audio.play().catch(err => {
+        console.error(`Couldn't play audio for ${triggerName}:`, err);
+      });
+    } catch (e) {
+      console.error(`Error playing audio for trigger ${triggerName}:`, e);
     }
   }
   
