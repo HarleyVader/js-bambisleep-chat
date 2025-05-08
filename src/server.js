@@ -43,7 +43,7 @@ import setupLMStudioSockets from './sockets/lmStudioSockets.js';
 import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
-import { parseCookies } from './utils/cookies.js';
+import { parseCookies, serializeCookie } from './public/js/utils/cookie-utils.js';
 import { getProfile } from './utils/profile.js';
 import { setupErrorHandlers } from './utils/errorHandlers.js';
 
