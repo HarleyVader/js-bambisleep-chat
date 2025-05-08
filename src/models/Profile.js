@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { withDbConnection } from '../config/db.js';
 import Logger from '../utils/logger.js';
+import { User } from 'User.js';
 
 const logger = new Logger('Profile');
 
