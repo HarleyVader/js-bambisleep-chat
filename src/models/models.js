@@ -179,6 +179,9 @@ userSchema.statics.getUserByUsername = async function(username) {
   }
 };
 
+// Create model after adding statics
+const User = mongoose.model('User', userSchema);
+
 // === PROFILE SCHEMA ===
 const profileSchema = new mongoose.Schema({
   user: {
@@ -616,17 +619,10 @@ try {
 }
 
 // Create model instances
-let User, Profile, ChatMessage, SessionHistory;
+let Profile, ChatMessage, SessionHistory;
 
 // Initialize models
 function initModels() {
-  // User model
-  try {
-    User = mongoose.model('User');
-  } catch (e) {
-    User = mongoose.model('User', userSchema);
-  }
-
   // Profile model
   try {
     Profile = mongoose.model('Profile');

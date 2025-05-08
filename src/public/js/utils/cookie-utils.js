@@ -1,33 +1,24 @@
-// Common utilities that work in both environments
-function parseCookies(cookieHeader) {
-  if (!cookieHeader) return {};
-  
-  return cookieHeader
-    .split(';')
-    .map(cookie => cookie.trim().split('='))
-    .reduce((acc, [key, value]) => {
-      acc[key] = value;
-      return acc;
-    }, {});
-}
+/**
+ * Client-side cookie utilities
+ * This module provides cookie handling functions for the browser environment
+ */
 
-// Serialize cookie with options
-function serializeCookie(name, value, options = {}) {
-  let cookieStr = `${name}=${value}`;
-  
-  if (options.path) cookieStr += `; path=${options.path}`;
-  if (options.domain) cookieStr += `; domain=${options.domain}`;
-  if (options.maxAge) cookieStr += `; max-age=${options.maxAge}`;
-  if (options.expires) cookieStr += `; expires=${options.expires.toUTCString()}`;
-  if (options.httpOnly) cookieStr += '; httpOnly';
-  if (options.secure) cookieStr += '; secure';
-  if (options.sameSite) cookieStr += `; sameSite=${options.sameSite}`;
-  
-  return cookieStr;
-}
+// Cookie utilities for browser environment
+(function() {
+  // Common utilities
+  function parseCookies(cookieHeader) {
+    if (!cookieHeader) return {};
+    
+    return cookieHeader
+      .split(';')
+      .map(cookie => cookie.trim().split('='))
+      .reduce((acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      }, {});
+  }
 
-// Create the cookie utils module for browser environment
-if (typeof window !== 'undefined') {
+  // Create the cookie utils module
   window.cookieUtils = (function() {
     // Private variables
     const COOKIE_MONSTER_SLOGAN = "ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪";
@@ -156,15 +147,4 @@ if (typeof window !== 'undefined') {
 
   // Make getCookie globally available for backward compatibility
   window.getCookie = window.cookieUtils.getCookie;
-  
-  // Set exports in browser environment only
-  window.cookieUtilsExports = { parseCookies, serializeCookie };
-}
-
-// Export functions for both CommonJS and ES Modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { parseCookies, serializeCookie };
-}
-
-// Export functions for ES Modules
-export { parseCookies, serializeCookie };
+})();

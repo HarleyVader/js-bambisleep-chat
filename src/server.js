@@ -47,6 +47,9 @@ import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 // Import public utilities
 import { parseCookies, serializeCookie } from './public/js/utils/cookie-utils.js';
 
+// Import server-side utilities
+import { getBambiNameFromCookies, isProfileOwner } from './utils/cookie-utils-server.js';
+
 // Import models
 import { SessionHistory, getProfile } from './models/models.js';
 
@@ -532,8 +535,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
   io.on('connection', (socket) => {
     try {
       // Parse cookies and get username
-      const cookies = parseCookies(socket.handshake.headers.cookie);
-      let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
+      const username = getBambiNameFromCookies(socket.handshake.headers.cookie) || 'anonBambi';
       
       logger.info(`Client connected: ${socket.id} (${username})`);
       

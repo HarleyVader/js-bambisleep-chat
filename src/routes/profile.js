@@ -4,29 +4,13 @@ import Logger from '../utils/logger.js';
 import footerConfig from '../config/footer.config.js';
 import { requireLogin } from '../public/js/utils/auth.js';
 import { User, getUser, updateUser } from '../models/models.js';
+import { getBambiNameFromCookies, isProfileOwner } from '../utils/cookie-utils-server.js';
 
 const logger = new Logger('ProfileRoutes');
 const router = express.Router();
 
 // Define the base path for this router
 export const basePath = '/profile';
-
-// Helper function to get username from cookies
-const getUsernameFromCookies = (req) => {
-  try {
-    return req.cookies && req.cookies.bambiname 
-      ? decodeURIComponent(req.cookies.bambiname) 
-      : null;
-  } catch (error) {
-    return null;
-  }
-};
-
-// Check if user owns profile based on cookie
-const isProfileOwner = (req, profileUsername) => {
-  const cookieUsername = getUsernameFromCookies(req);
-  return cookieUsername === profileUsername;
-};
 
 // Calculate XP needed for next level
 function calculateNextLevelXP(level) {
@@ -110,7 +94,7 @@ router.get('/', requireLogin, async (req, res) => {
 router.get('/:username', async (req, res) => {
   try {
     const { username } = req.params;
-    const cookieUsername = getUsernameFromCookies(req);
+    const cookieUsername = getBambiNameFromCookies(req);
     
     // First try to find the user with the findOne method
     let user = await User.findOne({ username });
@@ -193,7 +177,7 @@ router.get('/:username', async (req, res) => {
 router.get('/:username/edit', async (req, res) => {
   try {
     const { username } = req.params;
-    const cookieUsername = getUsernameFromCookies(req);
+    const cookieUsername = getBambiNameFromCookies(req);
     
     // Check if user is authorized to edit this profile
     if (username !== cookieUsername) {
@@ -265,7 +249,7 @@ router.get('/:username/edit', async (req, res) => {
 router.post('/:username/update', async (req, res) => {
   try {
     const { username } = req.params;
-    const cookieUsername = getUsernameFromCookies(req);
+    const cookieUsername = getBambiNameFromCookies(req);
     
     // Check if user is authorized to update this profile
     if (username !== cookieUsername) {
@@ -354,7 +338,7 @@ router.post('/:username/update', async (req, res) => {
 router.post('/:username/system-controls', async (req, res) => {
   try {
     const { username } = req.params;
-    const cookieUsername = getUsernameFromCookies(req);
+    const cookieUsername = getBambiNameFromCookies(req);
     
     // Check if user is authorized to update this profile
     if (username !== cookieUsername) {
