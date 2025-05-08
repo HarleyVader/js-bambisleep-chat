@@ -1044,6 +1044,52 @@ async function getProfileByUsername(username) {
 }
 
 /**
+ * Run connection test
+ * 
+ * @returns {Promise<Object>} - Connection test results
+ */
+function runConnectionTest() {
+  const results = {
+    serverReachable: false,
+    webSocketSupported: 'WebSocket' in window,
+    networkOnline: navigator.onLine,
+    testTime: new Date().toLocaleTimeString()
+  };
+  
+  // Create promise for server test
+  const serverTest = new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        results.serverStatus = xhr.status;
+        results.serverReachable = xhr.status >= 200 && xhr.status < 300;
+        resolve();
+      }
+    };
+    xhr.onerror = function() {
+      results.serverReachable = false;
+      results.serverError = 'Network error';
+      resolve();
+    };
+    // Fix: Use the correct health check endpoint that exists in server.js
+    xhr.open('GET', '/health/ping', true);
+    xhr.timeout = 5000;
+    xhr.ontimeout = function() {
+      results.serverReachable = false;
+      results.serverError = 'Timeout';
+      resolve();
+    };
+    xhr.send();
+  });
+  
+  // Return results when tests complete
+  return serverTest.then(() => {
+    console.log('Connection test results:', results);
+    return results;
+  });
+}
+
+/**
  * Main server initialization sequence
  */
 async function startServer() {
