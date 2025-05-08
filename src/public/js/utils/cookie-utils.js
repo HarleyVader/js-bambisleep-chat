@@ -160,15 +160,15 @@ if (typeof window !== 'undefined') {
 
   // Auto-initialize username modal handling
   window.cookieUtils.initUsernameModal();
+  
+  // Set exports in browser environment only
+  window.cookieUtilsExports = { parseCookies, serializeCookie };
 }
 
 // Export functions for both CommonJS and ES Modules
 if (typeof module !== 'undefined' && module.exports) {
   // CommonJS exports
   module.exports = { parseCookies, serializeCookie };
-} else {
-  // ES Module exports
-  window.cookieUtilsExports = { parseCookies, serializeCookie };
 }
 
 // Export functions for ES Modules
