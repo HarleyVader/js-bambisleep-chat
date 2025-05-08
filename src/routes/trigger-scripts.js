@@ -1,7 +1,8 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Profile, withDbConnection } from '../models/models.js';
+import { Profile } from '../models/models.js';
+import { withDbConnection } from '../config/db.js';
 import fs from 'fs';
 import Logger from '../utils/logger.js';
 
