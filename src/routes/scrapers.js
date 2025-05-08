@@ -1,7 +1,8 @@
 import express from 'express';
 import Logger from '../utils/logger.js';
 import footerConfig from '../config/footer.config.js';
-import Scraper from '../models/Scraper.js';
+// Change this import to use the model from models.js
+import { Scraper } from '../models/models.js';
 
 const logger = new Logger('ScrapersRoutes');
 const router = express.Router();
