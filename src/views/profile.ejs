@@ -81,7 +81,44 @@
         <% if (isOwnProfile) { %>
           <div class="profile-controls">
             <h2>Profile Settings</h2>
-            <%- include('../views/partials/profile-system-controls.ejs') %>
+            <div class="settings-panel">
+              <div class="settings-group">
+                <h3>Account</h3>
+                <div class="setting-item">
+                  <label for="profile-visibility">Profile Visibility</label>
+                  <select id="profile-visibility" data-setting="profileVisibility">
+                    <option value="public" <%= profile.settings && profile.settings.profileVisibility === 'public' ? 'selected' : '' %>>Public</option>
+                    <option value="friends" <%= profile.settings && profile.settings.profileVisibility === 'friends' ? 'selected' : '' %>>Friends Only</option>
+                    <option value="private" <%= profile.settings && profile.settings.profileVisibility === 'private' ? 'selected' : '' %>>Private</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="session-sharing">Session Sharing</label>
+                  <select id="session-sharing" data-setting="sessionSharing" data-level-required="5">
+                    <option value="public" <%= profile.settings && profile.settings.sessionSharing === 'public' ? 'selected' : '' %>>Public</option>
+                    <option value="friends" <%= profile.settings && profile.settings.sessionSharing === 'friends' ? 'selected' : '' %>>Friends Only</option>
+                    <option value="private" <%= profile.settings && profile.settings.sessionSharing === 'private' ? 'selected' : '' %>>Private</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="settings-group">
+                <h3>Notification Preferences</h3>
+                <div class="setting-item">
+                  <label for="xp-notifications">XP Notifications</label>
+                  <input type="checkbox" id="xp-notifications" data-setting="xpNotifications" <%= profile.settings && profile.settings.xpNotifications ? 'checked' : '' %>>
+                </div>
+                <div class="setting-item">
+                  <label for="achievement-notifications">Achievement Notifications</label>
+                  <input type="checkbox" id="achievement-notifications" data-setting="achievementNotifications" <%= profile.settings && profile.settings.achievementNotifications ? 'checked' : '' %>>
+                </div>
+              </div>
+              
+              <div class="settings-actions">
+                <button id="save-profile-settings" class="primary-button">Save Settings</button>
+                <button id="reset-profile-settings" class="secondary-button">Reset</button>
+              </div>
+            </div>
           </div>
         <% } %>
       </div>
@@ -131,6 +168,127 @@
           }
         });
       });
+      
+      // Handle profile settings
+      const saveSettingsBtn = document.getElementById('save-profile-settings');
+      if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', () => {
+          try {
+            const settings = collectProfileSettings();
+            
+            if (window.socket && window.socket.connected) {
+              window.socket.emit('client-save-profile-settings', settings);
+              
+              // Show visual feedback
+              saveSettingsBtn.textContent = 'Saving...';
+              saveSettingsBtn.disabled = true;
+              
+              // Listen for response
+              window.socket.once('server-profile-settings-saved', () => {
+                saveSettingsBtn.textContent = 'Settings Saved!';
+                setTimeout(() => {
+                  saveSettingsBtn.textContent = 'Save Settings';
+                  saveSettingsBtn.disabled = false;
+                }, 2000);
+                
+                // Award XP for updating profile
+                if (window.socket && window.socket.connected) {
+                  window.socket.emit('client-award-xp', {
+                    action: 'profile_update',
+                    amount: 5,
+                    timestamp: Date.now()
+                  });
+                }
+              });
+            }
+          } catch (error) {
+            console.error('Error saving profile settings:', error);
+            saveSettingsBtn.textContent = 'Error Saving';
+            setTimeout(() => {
+              saveSettingsBtn.textContent = 'Save Settings';
+              saveSettingsBtn.disabled = false;
+            }, 2000);
+          }
+        });
+      }
+      
+      // Reset profile settings
+      const resetSettingsBtn = document.getElementById('reset-profile-settings');
+      if (resetSettingsBtn) {
+        resetSettingsBtn.addEventListener('click', () => {
+          // Get all settings inputs
+          const settingsInputs = document.querySelectorAll('[data-setting]');
+          settingsInputs.forEach(input => {
+            if (input.type === 'checkbox') {
+              input.checked = input.hasAttribute('data-default-checked');
+            } else if (input.tagName === 'SELECT') {
+              const defaultValue = input.getAttribute('data-default-value');
+              if (defaultValue) {
+                input.value = defaultValue;
+              } else {
+                input.selectedIndex = 0;
+              }
+            } else {
+              input.value = input.getAttribute('data-default-value') || '';
+            }
+          });
+          
+          // Visual feedback
+          resetSettingsBtn.textContent = 'Reset!';
+          setTimeout(() => {
+            resetSettingsBtn.textContent = 'Reset';
+          }, 1000);
+        });
+      }
+      
+      // Check for level-locked features
+      updateFeatureAvailability(parseInt('<%= profile ? profile.level : 0 %>'));
+      
+      // Helper functions
+      function collectProfileSettings() {
+        const settings = {};
+        const settingsInputs = document.querySelectorAll('[data-setting]');
+        
+        settingsInputs.forEach(input => {
+          const settingName = input.getAttribute('data-setting');
+          if (!settingName) return;
+          
+          if (input.type === 'checkbox') {
+            settings[settingName] = input.checked;
+          } else if (input.tagName === 'SELECT') {
+            settings[settingName] = input.value;
+          } else {
+            settings[settingName] = input.value;
+          }
+        });
+        
+        return settings;
+      }
+      
+      function updateFeatureAvailability(level) {
+        document.querySelectorAll('[data-level-required]').forEach(el => {
+          const requiredLevel = parseInt(el.getAttribute('data-level-required'));
+          if (level >= requiredLevel) {
+            el.classList.remove('locked');
+            el.disabled = false;
+            
+            // Remove any existing tooltip
+            const tooltip = el.parentElement.querySelector('.level-lock-tooltip');
+            if (tooltip) tooltip.remove();
+          } else {
+            el.classList.add('locked');
+            el.disabled = true;
+            
+            // Add tooltip if not already present
+            if (!el.parentElement.querySelector('.level-lock-tooltip')) {
+              const tooltip = document.createElement('div');
+              tooltip.className = 'level-lock-tooltip';
+              tooltip.textContent = `Unlocks at level ${requiredLevel}`;
+              el.parentElement.appendChild(tooltip);
+            }
+          }
+        });
+      }
     });
   </script>
 </body>
