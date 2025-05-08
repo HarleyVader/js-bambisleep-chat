@@ -73,16 +73,24 @@ async function initializeApp() {
     // Create Express app and HTTP server
     const app = express();
     const server = http.createServer(app);
-    
-    // Initialize Socket.io with configured timeouts
+
+    // Initialize Socket.io with configured timeouts and proper CORS settings
     const io = new SocketIOServer(server, {
       pingTimeout: config.SOCKET_PING_TIMEOUT || 86400000, // 1 day in milliseconds
       pingInterval: config.SOCKET_PING_INTERVAL || 25000,
       cors: {
-        origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
+        origin: config.ALLOWED_ORIGINS || 'https://bambisleep.chat', // Allow any origin in development
         methods: ['GET', 'POST'],
-        credentials: true
-      }
+        credentials: true,
+        allowedHeaders: ['Content-Type']
+      },
+      transports: ['websocket', 'polling'], // Explicitly support both transports
+      allowUpgrades: true,
+      perMessageDeflate: {
+        threshold: 1024 // Only compress messages larger than 1KB
+      },
+      maxHttpBufferSize: 5e6, // 5MB - for larger payloads
+      connectTimeout: 45000 // 45 seconds connection timeout
     });
 
     // Make socket store accessible from io for use in disconnect handling
@@ -105,20 +113,20 @@ async function initializeApp() {
 
     // Configure middleware
     setupMiddleware(app);
-    
+
     // Make config available to templates
     app.locals.footer = footerConfig;
-    
+
     // Set up routes and APIs
     setupRoutes(app);
-    
+
     // Set up socket handlers
     setupSocketHandlers(io, socketStore, filteredWords);
-    
+
     // Set up error handlers
     app.use((err, req, res, next) => {
       logger.error('Express error handler:', err);
-      
+
       res.status(err.status || 500).render('error', {
         message: err.message || 'Internal Server Error',
         error: config.NODE_ENV === 'development' ? err : {},
@@ -126,7 +134,7 @@ async function initializeApp() {
         title: 'Error'
       });
     });
-    
+
     return { app, server, io };
   } catch (error) {
     logger.error('Error in app initialization:', error);
@@ -144,7 +152,7 @@ function setupMiddleware(app) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
-  
+
   // Enable CORS
   app.use(cors({
     origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
@@ -152,13 +160,13 @@ function setupMiddleware(app) {
     allowedHeaders: ['Content-Type'],
     credentials: true
   }));
-  
+
   // Handle file uploads
   app.use(fileUpload({
     limits: { fileSize: config.MAX_UPLOAD_SIZE || (10 * 1024 * 1024) },
     abortOnLimit: true
   }));
-  
+
   // Serve static files with correct MIME types
   app.use('/css', express.static(path.join(__dirname, 'public/css'), {
     setHeaders: (res, path) => {
@@ -167,7 +175,7 @@ function setupMiddleware(app) {
       }
     }
   }));
-  
+
   app.use('/js', express.static(path.join(__dirname, 'public/js'), {
     setHeaders: (res, path) => {
       if (path.endsWith('.js')) {
@@ -175,16 +183,16 @@ function setupMiddleware(app) {
       }
     }
   }));
-  
+
   app.use('/gif', express.static(path.join(__dirname, 'public/gif')));
   app.use(express.static(path.join(__dirname, 'public')));
   app.use('/workers', express.static(path.join(__dirname, 'workers')));
-  
+
   // Serve socket.io client script
   app.get('/socket.io/socket.io.js', (req, res) => {
     res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
   });
-  
+
   // Add backward compatibility redirects
   app.get('/gif/default-header.jpg', (req, res) => {
     res.redirect('/gif/default-header.gif');
@@ -193,7 +201,7 @@ function setupMiddleware(app) {
   app.get('/config/triggers.json', (req, res) => {
     res.sendFile(path.join(__dirname, 'config/triggers.json'));
   });
-  
+
   logger.info('Middleware configured');
 }
 
@@ -212,11 +220,11 @@ function setupRoutes(app) {
     { path: '/profile', handler: profileRouter },
     { path: '/trigger-script', handler: triggerScriptsRouter },
   ];
-  
+
   routes.forEach(route => {
     app.use(route.path, route.handler);
   });
-  
+
   // Register API routes that are defined in the scrapers module
   app.use('/api/scraper/submit', scrapersRoute);
   app.use('/api/scraper/vote', scrapersRoute);
@@ -224,25 +232,25 @@ function setupRoutes(app) {
   app.use('/api/scraper/comment', scrapersRoute);
   app.use('/api/scraper/submission', scrapersRoute);
   app.use('/api/scraper/stats', scrapersRoute);
-  
+
   // Add the chat routes
   app.use('/api/chat', chatRoutes);
-  
+
   // Add health check endpoint
   setupHealthCheckRoutes(app);
-  
+
   // Add routes for client-side rendering data
   setupClientDataRoutes(app);
-  
+
   // Add TTS API routes
   setupTTSRoutes(app);
-  
+
   // Add API routes
   app.use('/api', apiRoutes);
-  
+
   // Add sessions routes
   app.use('/sessions', sessionsRouter); // Use the hardcoded path
-  
+
   // Add 404 handler
   app.use((req, res) => {
     res.status(404).render('error', {
@@ -252,7 +260,7 @@ function setupRoutes(app) {
       title: 'Error - Page Not Found'
     });
   });
-  
+
   logger.info('Routes configured');
 }
 
@@ -266,36 +274,36 @@ function setupHealthCheckRoutes(app) {
   app.get('/health/ping', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: Date.now() });
   });
-  
+
   // Detailed health check including DB and worker status
   app.get('/health/status', async (req, res) => {
     try {
       const memoryUsage = process.memoryUsage();
       const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
       const workersStatus = await workerCoordinator.getStatus();
-      
+
       // Get socket stats
       const socketStats = {
         connections: socketStore.size,
         oldest: 0,
         newest: 0
       };
-      
+
       if (socketStore.size > 0) {
         const now = Date.now();
         let youngest = Infinity;
         let oldest = 0;
-        
+
         for (const socketData of socketStore.values()) {
           const age = now - socketData.connectedAt;
           youngest = Math.min(youngest, age);
           oldest = Math.max(oldest, age);
         }
-        
+
         socketStats.oldest = Math.round(oldest / 1000);
         socketStats.newest = Math.round(youngest / 1000);
       }
-      
+
       res.status(200).json({
         status: 'ok',
         uptime: process.uptime(),
@@ -334,11 +342,11 @@ function setupClientDataRoutes(app) {
     try {
       // Get requested limit with default of 50
       const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
-      
+
       // Use the updated model method which handles connections properly
       const ChatMessage = mongoose.model('ChatMessage');
       const messages = await ChatMessage.getRecentMessages(limit);
-      
+
       res.json({ messages });
     } catch (error) {
       logger.error('Error fetching chat messages:', error);
@@ -350,21 +358,21 @@ function setupClientDataRoutes(app) {
   app.get('/api/profile/:username/system-controls', async (req, res) => {
     try {
       const username = req.params.username;
-      
+
       if (!username) {
         return res.status(400).json({ error: 'Username is required' });
       }
-      
+
       // Fetch profile data using the withDbConnection helper
       const profile = await withDbConnection(() => getProfile(username));
-      
+
       if (!profile) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           activeTriggers: [],
-          message: 'Profile not found' 
+          message: 'Profile not found'
         });
       }
-      
+
       // Return system controls data in the format expected by the client renderer
       res.json({
         activeTriggers: profile.activeTriggers || [],
@@ -374,9 +382,9 @@ function setupClientDataRoutes(app) {
       });
     } catch (error) {
       logger.error(`Error fetching profile system controls for ${req.params.username}:`, error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Error fetching profile data',
-        activeTriggers: [] 
+        activeTriggers: []
       });
     }
   });
@@ -385,14 +393,14 @@ function setupClientDataRoutes(app) {
   app.post('/api/performance', (req, res) => {
     try {
       const metrics = req.body;
-      
+
       // Log summary of metrics if available
       if (metrics && metrics.summary) {
         logger.info(`Performance metrics from client: ${JSON.stringify(metrics.summary)}`);
       }
-      
+
       // You could store metrics in a database for later analysis
-      
+
       res.json({ success: true });
     } catch (error) {
       logger.error('Error processing performance metrics:', error);
@@ -417,7 +425,7 @@ function setupTTSRoutes(app) {
           'Authorization': `Bearer ${config.KOKORO_API_KEY}`
         }
       });
-      
+
       res.json(response.data);
     } catch (error) {
       logger.error(`Voice listing error: ${error.message}`);
@@ -427,24 +435,24 @@ function setupTTSRoutes(app) {
       });
     }
   });
-  
+
   // Generate speech
   app.get('/api/tts', async (req, res) => {
     const text = req.query.text;
     const voice = req.query.voice || config.KOKORO_DEFAULT_VOICE;
-    
+
     if (typeof text !== 'string' || text.trim() === '') {
       return res.status(400).json({ error: 'Invalid input: text must be a non-empty string' });
     }
-    
+
     try {
       const response = await fetchTTSFromKokoro(text, voice);
-      
+
       // Set appropriate headers
       res.setHeader('Content-Type', 'audio/mpeg');
       res.setHeader('Content-Length', response.data.length);
       res.setHeader('Cache-Control', 'no-cache');
-      
+
       // Send the audio data
       res.send(response.data);
     } catch (error) {
@@ -461,10 +469,10 @@ function setupTTSRoutes(app) {
  */
 function handleTTSError(error, res) {
   logger.error(`TTS API Error: ${error.message}`);
-  
+
   if (error.response) {
     const status = error.response.status;
-    
+
     if (status === 401) {
       logger.error('Unauthorized access to Kokoro API - invalid API key');
       return res.status(401).json({ error: 'Unauthorized access' });
@@ -477,7 +485,7 @@ function handleTTSError(error, res) {
       });
     }
   }
-  
+
   return res.status(500).json({
     error: 'Unexpected error in TTS service',
     details: process.env.NODE_ENV === 'production' ? null : error.message
@@ -494,14 +502,14 @@ function handleTTSError(error, res) {
 async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
   try {
     logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
-    
+
     const requestData = {
       model: "kokoro",
       voice: voice,
       input: text,
       response_format: "mp3"
     };
-    
+
     const response = await axios({
       method: 'post',
       url: `${config.KOKORO_API_URL}/audio/speech`,
@@ -513,7 +521,7 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
       responseType: 'arraybuffer',
       timeout: config.TTS_TIMEOUT || 30000
     });
-    
+
     return response;
   } catch (error) {
     logger.error(`Error fetching TTS audio: ${error.message}`);
@@ -533,49 +541,49 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
     try {
       // Parse cookies and get username
       const username = getBambiNameFromCookies(socket.handshake.headers.cookie) || 'anonBambi';
-      
+
       logger.info(`Client connected: ${socket.id} (${username})`);
-      
+
       // Create a dedicated LMStudio worker for this connection
       const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
-      
+
       // Store socket and worker in the map with additional tracking data
-      socketStore.set(socket.id, { 
-        socket, 
-        worker: lmstudio, 
+      socketStore.set(socket.id, {
+        socket,
+        worker: lmstudio,
         files: [],
         username: username,
         connectedAt: Date.now(),
         lastActivity: Date.now()
       });
-      
+
       // Set username on socket for easy access
       socket.bambiUsername = username;
-      
+
       // Set up content filter function
       const filterContent = (content) => filterWords(content, filteredWords);
-      
+
       // Set up socket handlers for this specific connection
       setupLMStudioSockets(socket, io, lmstudio, filterContent);
       setupProfileSockets(socket, io, username);
       setupChatSockets(socket, io, socketStore, filteredWords);
-      
+
       // Handle disconnection
       socket.on('disconnect', () => handleSocketDisconnect(socket, io));
-      
+
       // Handle session-related events
       setupSessionEvents(socket, lmstudio);
-      
+
       // Update activity timestamp on any event
       const originalEmit = socket.emit;
-      socket.emit = function() {
+      socket.emit = function () {
         const socketData = socketStore.get(socket.id);
         if (socketData) {
           socketData.lastActivity = Date.now();
         }
         return originalEmit.apply(socket, arguments);
       };
-      
+
       // Track user activity by monitoring events
       socket.onAny(() => {
         const socketData = socketStore.get(socket.id);
@@ -587,19 +595,19 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       logger.error(`Error handling socket connection: ${error.message}`);
     }
   });
-  
+
   // Set up periodic monitoring of socket connections
   setInterval(() => {
     const now = Date.now();
     const idleTimeout = config.SOCKET_IDLE_TIMEOUT || 7200000; // 2 hours default
-    
+
     // Check for idle sockets
     for (const [socketId, socketData] of socketStore.entries()) {
       const idleTime = now - socketData.lastActivity;
-      
+
       // If socket has been idle for too long, disconnect it
       if (idleTime > idleTimeout) {
-        logger.info(`Auto-disconnecting idle socket: ${socketId} (${socketData.username}), idle for ${Math.round(idleTime/1000/60)}m`);
+        logger.info(`Auto-disconnecting idle socket: ${socketId} (${socketData.username}), idle for ${Math.round(idleTime / 1000 / 60)}m`);
         try {
           socketData.socket.disconnect(true);
         } catch (error) {
@@ -653,12 +661,12 @@ function handleSocketDisconnect(socket, io) {
       logger.warning(`No socket data found for disconnecting socket: ${socket.id}`);
       return;
     }
-    
+
     const username = socketData.username || socket.bambiUsername || 'unknown';
-    
+
     // Log the disconnect with details
     logger.info(`Client disconnected: ${socket.id} (${username}) - Reason: ${socket.disconnectReason || 'unknown'}`);
-    
+
     // Set up worker cleanup with confirmation pattern
     if (socketData.worker) {
       try {
@@ -669,17 +677,17 @@ function handleSocketDisconnect(socket, io) {
             cleanup();
           }
         };
-        
+
         // Function to perform final cleanup
         const cleanup = () => {
           try {
             // Remove message handler
             socketData.worker.removeListener('message', messageHandler);
-            
+
             // Terminate worker
             socketData.worker.terminate();
             logger.info(`Worker terminated: ${socket.id} (${username})`);
-            
+
             // Remove from socket store
             socketStore.delete(socket.id);
             logger.info(`Socket removed from store: ${socket.id} (${username})`);
@@ -687,29 +695,29 @@ function handleSocketDisconnect(socket, io) {
             logger.error(`Error in socket cleanup: ${error.message}`);
           }
         };
-        
+
         // Add the message handler
         socketData.worker.on('message', messageHandler);
-        
+
         // Send cleanup request to worker
         socketData.worker.postMessage({
           type: 'socket:disconnect',
           socketId: socket.id,
           requestCleanupConfirmation: true
         });
-        
+
         // Set timeout for worker response
         const timeoutId = setTimeout(() => {
           logger.warning(`Worker cleanup timeout: ${socket.id} (${username})`);
           cleanup();
         }, config.WORKER_CLEANUP_TIMEOUT || 5000);
-        
+
         // Store timeout ID for cancellation if needed
         socketData.cleanupTimeoutId = timeoutId;
-        
+
       } catch (error) {
         logger.error(`Error in worker cleanup: ${error.message}`);
-        
+
         // Clean up anyway
         socketStore.delete(socket.id);
       }
@@ -731,18 +739,18 @@ function handleSocketDisconnect(socket, io) {
  */
 function setupSessionEvents(socket, lmstudio) {
   // Load session
-  socket.on('load-session', function(sessionId) {
+  socket.on('load-session', function (sessionId) {
     if (!sessionId) return;
-    
+
     withDbConnection(async () => {
       try {
         const session = await SessionHistory.findById(sessionId);
-        
+
         if (!session) {
           socket.emit('session-error', { message: 'Session not found' });
           return;
         }
-        
+
         // Send to worker
         lmstudio.postMessage({
           type: "load-history",
@@ -751,44 +759,44 @@ function setupSessionEvents(socket, lmstudio) {
           username: socket.bambiUsername,
           sessionId: sessionId
         });
-        
+
         // Send to client
-        socket.emit('session-loaded', { 
-          session, 
+        socket.emit('session-loaded', {
+          session,
           sessionId,
           metadata: session.metadata || {}
         });
-        
+
         // Update last activity
         await SessionHistory.findByIdAndUpdate(sessionId, {
           $set: { 'metadata.lastActivity': new Date() }
         });
-        
+
         // Track this in user activity
         const socketData = socketStore.get(socket.id);
         if (socketData) {
           socketData.lastActivity = Date.now();
           socketData.currentSessionId = sessionId;
         }
-        
+
       } catch (error) {
         logger.error(`Session load error: ${error.message}`);
         socket.emit('session-error', { message: 'Error loading session' });
       }
     });
   });
-  
+
   // Save session
-  socket.on('save-session', function(data) {
+  socket.on('save-session', function (data) {
     if (!data || !socket.bambiUsername || socket.bambiUsername === 'anonBambi') {
       socket.emit('session-error', { message: 'Cannot save session: not logged in' });
       return;
     }
-    
+
     withDbConnection(async () => {
       try {
         let sessionId = data.sessionId;
-        
+
         if (sessionId) {
           // Update existing
           const result = await SessionHistory.findByIdAndUpdate(sessionId, {
@@ -803,14 +811,14 @@ function setupSessionEvents(socket, lmstudio) {
               messages: { $each: data.messages || [] }
             }
           }, { new: true });
-          
+
           if (!result) {
             socket.emit('session-error', { message: 'Session not found' });
             return;
           }
-          
+
           socket.emit('session-saved', { sessionId });
-          
+
         } else {
           // Create new
           const session = new SessionHistory({
@@ -827,18 +835,18 @@ function setupSessionEvents(socket, lmstudio) {
               lastActivity: new Date()
             }
           });
-          
+
           await session.save();
-          
+
           // Update socket data with current session
           const socketData = socketStore.get(socket.id);
           if (socketData) {
             socketData.currentSessionId = session._id;
           }
-          
-          socket.emit('session-created', { 
+
+          socket.emit('session-created', {
             sessionId: session._id,
-            title: session.title 
+            title: session.title
           });
         }
       } catch (error) {
@@ -847,56 +855,56 @@ function setupSessionEvents(socket, lmstudio) {
       }
     });
   });
-  
+
   // Delete session
-  socket.on('delete-session', function(sessionId) {
+  socket.on('delete-session', function (sessionId) {
     if (!sessionId || !socket.bambiUsername || socket.bambiUsername === 'anonBambi') {
       socket.emit('session-error', { message: 'Cannot delete session: not logged in' });
       return;
     }
-    
+
     withDbConnection(async () => {
       try {
         // Verify ownership
-        const session = await SessionHistory.findOne({ 
+        const session = await SessionHistory.findOne({
           _id: sessionId,
           username: socket.bambiUsername
         });
-        
+
         if (!session) {
           socket.emit('session-error', { message: 'Session not found or not yours' });
           return;
         }
-        
+
         // Delete session
         await SessionHistory.findByIdAndDelete(sessionId);
-        
+
         // Clear current session if it was this one
         const socketData = socketStore.get(socket.id);
         if (socketData && socketData.currentSessionId === sessionId) {
           delete socketData.currentSessionId;
         }
-        
+
         socket.emit('session-deleted', { sessionId });
-        
+
       } catch (error) {
         logger.error(`Session delete error: ${error.message}`);
         socket.emit('session-error', { message: 'Error deleting session' });
       }
     });
   });
-  
+
   // Get sessions list
-  socket.on('get-sessions', function() {
+  socket.on('get-sessions', function () {
     if (!socket.bambiUsername || socket.bambiUsername === 'anonBambi') {
       socket.emit('sessions-list', { sessions: [] });
       return;
     }
-    
+
     withDbConnection(async () => {
       try {
-        const sessions = await SessionHistory.find({ 
-          username: socket.bambiUsername 
+        const sessions = await SessionHistory.find({
+          username: socket.bambiUsername
         }).sort({ 'metadata.lastActivity': -1 }).select({
           _id: 1,
           title: 1,
@@ -904,9 +912,9 @@ function setupSessionEvents(socket, lmstudio) {
           'metadata.lastActivity': 1,
           'metadata.triggers': 1
         });
-        
+
         socket.emit('sessions-list', { sessions });
-        
+
       } catch (error) {
         logger.error(`Get sessions error: ${error.message}`);
         socket.emit('sessions-list', { sessions: [] });
@@ -927,7 +935,7 @@ function filterWords(content, filteredWords) {
     if (typeof content !== 'string') {
       content = String(content);
     }
-    
+
     return content
       .split(' ')
       .map((word) => {
@@ -949,7 +957,7 @@ function filterWords(content, filteredWords) {
 function getServerAddress() {
   try {
     const interfaces = os.networkInterfaces();
-    
+
     for (const name of Object.keys(interfaces)) {
       for (const iface of interfaces[name]) {
         if (iface.family === 'IPv4' && !iface.internal) {
@@ -957,7 +965,7 @@ function getServerAddress() {
         }
       }
     }
-    
+
     return '127.0.0.1';
   } catch (error) {
     logger.error('Error getting server address:', error);
@@ -971,28 +979,28 @@ function getServerAddress() {
 function monitorResources() {
   const memoryUsage = process.memoryUsage();
   logger.info(`Memory usage: RSS ${Math.round(memoryUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}/${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
-  
+
   if (!socketStore) return;
-  
+
   // Calculate active vs idle sockets
   const now = Date.now();
   let activeCount = 0;
   let idleCount = 0;
   let longIdleCount = 0;
-  
+
   // Socket ages
   let youngest = Infinity;
   let oldest = 0;
-  
+
   // Calculate socket statistics
   for (const [socketId, socketData] of socketStore.entries()) {
     const age = now - socketData.connectedAt;
     const idleTime = now - socketData.lastActivity;
-    
+
     // Update stats
     youngest = Math.min(youngest, age);
     oldest = Math.max(oldest, age);
-    
+
     if (idleTime < 300000) { // Less than 5 minutes idle
       activeCount++;
     } else if (idleTime < 1800000) { // Less than 30 minutes idle
@@ -1001,13 +1009,13 @@ function monitorResources() {
       longIdleCount++;
     }
   }
-  
+
   logger.info(`Sockets: ${socketStore.size} total (${activeCount} active, ${idleCount} idle, ${longIdleCount} long idle)`);
-  
+
   if (socketStore.size > 0) {
     logger.info(`Socket age: newest ${Math.round(youngest / 1000 / 60)}m, oldest ${Math.round(oldest / 1000 / 60)}m`);
   }
-  
+
   // Log database connection status
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   logger.info(`Database status: ${dbStatus}`);
@@ -1022,12 +1030,12 @@ function monitorResources() {
 async function getProfileByUsername(username) {
   try {
     const profile = await getProfile(username);
-    
+
     if (!profile) {
       logger.warning(`Profile not found for username: ${username}`);
       return null;
     }
-    
+
     return profile;
   } catch (error) {
     logger.error(`Error fetching profile for ${username}: ${error.message}`);
@@ -1044,12 +1052,12 @@ async function startServer() {
     logger.info('Step 1/5: Connecting to MongoDB...');
     await connectDB();
     logger.success('MongoDB connection established');
-    
+
     // Step 2: Initialize application
     logger.info('Step 2/5: Initializing application...');
     const { app, server } = await initializeApp();
     logger.success('Application initialized');
-    
+
     // Step 3: Initialize scrapers
     logger.info('Step 3/5: Initializing scrapers...');
     const scrapersInitialized = await initializeScrapers();
@@ -1058,28 +1066,28 @@ async function startServer() {
     } else {
       logger.warning('Scrapers initialization incomplete - continuing startup');
     }
-    
+
     // Step 4: Initialize worker coordinator
     logger.info('Step 4/5: Initializing worker coordinator...');
     await workerCoordinator.initialize();
     logger.success('Worker coordinator initialized');
-    
+
     // Step 5: Start HTTP server
     logger.info('Step 5/5: Starting HTTP server...');
     const PORT = config.SERVER_PORT || 6969;
-    
+
     server.listen(PORT, () => {
       logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
       logger.success('Server startup completed successfully');
     });
-    
+
     // Add connection monitoring
     const monitoringInterval = process.env.NODE_ENV === 'production' ? 300000 : 60000;
     startConnectionMonitoring(monitoringInterval);
-    
+
     // Set up resource monitoring
     setInterval(monitorResources, 600000); // Every 10 minutes
-    
+
     // Set up signal handlers for graceful shutdown
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server, workerCoordinator));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server, workerCoordinator));
@@ -1091,7 +1099,7 @@ async function startServer() {
       logger.error('Unhandled rejection at:', promise, 'reason:', reason);
       gracefulShutdown('UNHANDLED_REJECTION', server, workerCoordinator);
     });
-    
+
     return server;
   } catch (error) {
     logger.error('Error during server startup:', error);

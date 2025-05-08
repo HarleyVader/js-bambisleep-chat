@@ -2,300 +2,265 @@ window.socketHandler = (function() {
   // Private variables
   let socket = null;
   let reconnectAttempts = 0;
-  const maxReconnectAttempts = 5;
-  let isReconnecting = false;
-  let reconnectTimer = null;
-  let transportAttempts = 0;
+  let maxReconnectAttempts = 5;
+  let reconnectDelay = 2000;
+  let transportOptions = ['websocket', 'polling'];
+  let currentTransportIndex = 0;
+  let connectionListeners = [];
+  let disconnectionListeners = [];
   
-  // Socket options with transport fallback strategy
-  const socketOptions = {
-    reconnection: true,
-    reconnectionAttempts: maxReconnectAttempts,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    timeout: 20000,
-    pingInterval: 25000,
-    pingTimeout: 60000,
-    transports: ['websocket', 'polling'] // Try WebSocket first, fallback to polling
-  };
-  
-  /**
-   * Initialize socket connection
-   */
+  // Initialize with connection options
   function init() {
     try {
-      if (socket) {
-        console.log('Socket already initialized');
-        return;
-      }
+      console.log('Initializing socket connection...');
       
-      // Create socket with options
-      socket = io(window.location.origin, socketOptions);
+      // Get server URL from window location
+      const serverUrl = window.location.origin;
       
-      // Store reference globally for backward compatibility
-      window.socket = socket;
+      // Socket.io connection options with fallback transports
+      const options = {
+        transports: [transportOptions[currentTransportIndex]],
+        reconnection: true,
+        reconnectionAttempts: maxReconnectAttempts,
+        reconnectionDelay: reconnectDelay,
+        timeout: 10000,
+        upgrade: true
+      };
+      
+      // Create socket connection
+      socket = io(serverUrl, options);
       
       // Set up event handlers
       setupEventHandlers();
       
-      console.log('Socket handler initialized');
+      return true;
     } catch (error) {
-      console.error('Socket initialization error:', error);
-      showConnectionError('Failed to initialize socket connection. Retrying...');
-      setTimeout(tryReconnect, 2000);
+      console.error('Error initializing socket:', error);
+      return false;
     }
   }
   
-  /**
-   * Set up socket event handlers
-   */
+  // Set up socket event handlers
   function setupEventHandlers() {
-    // Connection successful
+    if (!socket) return;
+    
+    // Handle successful connection
     socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
-      hideConnectionError();
+      console.log('Socket connected successfully');
       reconnectAttempts = 0;
-      transportAttempts = 0;
-      isReconnecting = false;
       
-      // Send username if available
-      const username = getCookieValue('bambiname');
-      if (username) {
-        socket.emit('set username', username);
-      }
-      
-      // Dispatch connection event for other modules
-      document.dispatchEvent(new CustomEvent('socket:connected', {
-        detail: { socketId: socket.id }
-      }));
+      // Notify all connection listeners
+      connectionListeners.forEach(listener => {
+        try {
+          listener(socket);
+        } catch (error) {
+          console.error('Error in connection listener:', error);
+        }
+      });
     });
     
-    // Connection error
+    // Handle connection error
     socket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
       
-      // Try alternative transport if WebSocket fails
-      if (transportAttempts < 2) {
-        transportAttempts++;
-        console.log(`Trying alternative transport (attempt ${transportAttempts})`);
+      // Try alternative transport if first one fails
+      if (reconnectAttempts < 3 && transportOptions.length > 1) {
+        currentTransportIndex = (currentTransportIndex + 1) % transportOptions.length;
+        console.log(`Trying alternative transport (attempt ${reconnectAttempts + 1})`);
         
-        // Force polling as fallback
-        if (socketOptions.transports[0] === 'websocket') {
-          socketOptions.transports = ['polling', 'websocket'];
-          
-          // Recreate socket with new transport options
-          if (socket) {
-            socket.disconnect();
-          }
-          
-          setTimeout(() => {
-            socket = io(window.location.origin, socketOptions);
-            window.socket = socket;
-            setupEventHandlers();
-          }, 1000);
-          
-          return;
-        }
+        // Update socket options with new transport
+        socket.io.opts.transports = [transportOptions[currentTransportIndex]];
       }
       
-      handleConnectionIssue();
+      // Manual reconnection logic if needed
+      if (reconnectAttempts >= 3) {
+        performManualReconnect();
+      }
     });
     
-    // Disconnection
+    // Handle disconnection
     socket.on('disconnect', (reason) => {
-      console.warn('Socket disconnected:', reason);
+      console.log('Socket disconnected:', reason);
       
-      // Dispatch disconnect event
-      document.dispatchEvent(new CustomEvent('socket:disconnected', {
-        detail: { reason }
-      }));
-      
-      if (reason === 'io server disconnect') {
-        // Server disconnected us, try reconnecting manually
-        tryReconnect();
-      } else if (reason === 'transport close' || reason === 'ping timeout') {
-        // Connection lost, show error if not reconnecting automatically
-        if (!socket.connected && !isReconnecting) {
-          showConnectionError();
+      // Notify all disconnection listeners
+      disconnectionListeners.forEach(listener => {
+        try {
+          listener(reason);
+        } catch (error) {
+          console.error('Error in disconnection listener:', error);
         }
-      }
-    });
-    
-    // Reconnect attempt
-    socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log(`Socket reconnect attempt ${attemptNumber}/${maxReconnectAttempts}`);
-      isReconnecting = true;
+      });
       
-      // Update UI to show reconnect attempt
-      const errorBar = document.querySelector('.connection-error');
-      if (errorBar) {
-        errorBar.innerHTML = `Connection lost. Reconnecting (${attemptNumber}/${maxReconnectAttempts})...`;
-        errorBar.style.display = 'block';
+      // Try to reconnect if disconnected unexpectedly
+      if (reason === 'io server disconnect' || reason === 'transport close') {
+        performManualReconnect();
       }
     });
     
-    // Reconnect failed
-    socket.on('reconnect_failed', () => {
-      console.error('Socket reconnection failed after maximum attempts');
-      isReconnecting = false;
-      showConnectionError('Reconnection failed. Please refresh the page.');
+    // Handle reconnect attempts
+    socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`Socket reconnect attempt ${attemptNumber}/${socket.io.opts.reconnectionAttempts}`);
     });
     
-    // Reconnected successfully
+    // Handle successful reconnection
     socket.on('reconnect', (attemptNumber) => {
       console.log(`Socket reconnected after ${attemptNumber} attempts`);
-      hideConnectionError();
-      
-      // Dispatch reconnection event
-      document.dispatchEvent(new CustomEvent('socket:reconnected', {
-        detail: { attempts: attemptNumber }
-      }));
+    });
+    
+    // Handle reconnection errors
+    socket.on('reconnect_error', (error) => {
+      console.error('Socket reconnection error:', error);
+    });
+    
+    // Handle reconnection failure
+    socket.on('reconnect_failed', () => {
+      console.error('Socket reconnection failed, no more attempts');
+      showConnectionError();
     });
   }
   
-  /**
-   * Handle connection issues
-   */
-  function handleConnectionIssue() {
-    if (reconnectAttempts >= maxReconnectAttempts) {
-      showConnectionError('Connection to server failed. Please refresh the page.');
-      return;
-    }
-    
-    // Show reconnecting message
-    showConnectionError('Connecting to server...');
-    
-    // Try to reconnect manually if socket.io reconnection isn't working
-    if (!isReconnecting) {
-      tryReconnect();
-    }
-  }
-  
-  /**
-   * Try to reconnect manually
-   */
-  function tryReconnect() {
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-    }
-    
+  // Manual reconnection attempt when automatic reconnects aren't working
+  function performManualReconnect() {
     reconnectAttempts++;
-    isReconnecting = true;
     
-    reconnectTimer = setTimeout(() => {
+    if (reconnectAttempts <= maxReconnectAttempts) {
       console.log(`Manual reconnect attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
       
+      // Try to clean up existing connection
       if (socket) {
-        // Clean up old socket
-        socket.removeAllListeners();
-        socket.disconnect();
-      }
-      
-      // Create new socket
-      socket = io(window.location.origin, socketOptions);
-      window.socket = socket;
-      setupEventHandlers();
-      
-      if (reconnectAttempts < maxReconnectAttempts) {
-        // Update UI
-        const errorBar = document.querySelector('.connection-error');
-        if (errorBar) {
-          errorBar.innerHTML = `Connection lost. Reconnecting (${reconnectAttempts}/${maxReconnectAttempts})...`;
+        try {
+          socket.disconnect();
+          socket = null;
+        } catch (error) {
+          console.warn('Error disconnecting socket:', error);
         }
-      } else {
-        isReconnecting = false;
-        showConnectionError('Reconnection failed. Please refresh the page.');
       }
-    }, 1000 * reconnectAttempts); // Increasing delay between attempts
+      
+      // Wait and try to connect again with modified options
+      setTimeout(() => {
+        // Alternate between transport options
+        currentTransportIndex = (currentTransportIndex + 1) % transportOptions.length;
+        
+        // Create new connection with current transport
+        const serverUrl = window.location.origin;
+        const options = {
+          transports: [transportOptions[currentTransportIndex]],
+          reconnection: true,
+          reconnectionAttempts: maxReconnectAttempts - reconnectAttempts,
+          reconnectionDelay: reconnectDelay * Math.min(reconnectAttempts, 3),
+          timeout: 15000,
+          upgrade: true,
+          forceNew: true
+        };
+        
+        try {
+          socket = io(serverUrl, options);
+          setupEventHandlers();
+        } catch (error) {
+          console.error('Error creating new socket connection:', error);
+          
+          // Try again after delay
+          setTimeout(performManualReconnect, reconnectDelay);
+        }
+      }, reconnectDelay);
+    } else {
+      console.error('Maximum reconnection attempts reached');
+      showConnectionError();
+    }
   }
   
-  /**
-   * Show connection error message
-   */
-  function showConnectionError(message = 'Connection to server lost. Reconnecting...') {
-    // Check if error bar already exists
-    let errorBar = document.querySelector('.connection-error');
+  // Show connection error message to user
+  function showConnectionError() {
+    // Check if notification element exists already
+    let notification = document.getElementById('connection-error');
     
-    if (!errorBar) {
-      // Create error bar
-      errorBar = document.createElement('div');
-      errorBar.className = 'connection-error';
-      errorBar.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background-color: rgba(255, 0, 0, 0.7);
-        color: white;
-        text-align: center;
-        padding: 10px;
-        z-index: 9999;
-        font-weight: bold;
+    if (!notification) {
+      // Create error notification element
+      notification = document.createElement('div');
+      notification.id = 'connection-error';
+      notification.className = 'connection-error';
+      notification.innerHTML = `
+        <div class="connection-error-content">
+          <h3>Connection Lost</h3>
+          <p>Unable to connect to the server. Please check your internet connection and try refreshing the page.</p>
+          <button class="retry-button">Retry Connection</button>
+        </div>
       `;
-      document.body.appendChild(errorBar);
+      
+      // Add retry button handler
+      notification.querySelector('.retry-button').addEventListener('click', () => {
+        // Reset connection attempts
+        reconnectAttempts = 0;
+        
+        // Try to connect again
+        notification.classList.add('connecting');
+        notification.querySelector('.connection-error-content').innerHTML = 'Reconnecting...';
+        
+        // Perform connection attempt
+        performManualReconnect();
+        
+        // Remove notification after timeout if still trying
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 5000);
+      });
+      
+      // Add to document
+      document.body.appendChild(notification);
     }
-    
-    errorBar.innerHTML = message;
-    errorBar.style.display = 'block';
-    
-    // Disable interactive elements
-    document.querySelectorAll('button, input, textarea').forEach(el => {
-      if (!el.hasAttribute('data-original-disabled')) {
-        el.setAttribute('data-original-disabled', el.disabled);
-        el.disabled = true;
+  }
+  
+  // Add connection event listener
+  function onConnect(callback) {
+    if (typeof callback === 'function') {
+      connectionListeners.push(callback);
+      
+      // If already connected, call immediately
+      if (socket && socket.connected) {
+        callback(socket);
       }
-    });
-  }
-  
-  /**
-   * Hide connection error message
-   */
-  function hideConnectionError() {
-    const errorBar = document.querySelector('.connection-error');
-    if (errorBar) {
-      errorBar.style.display = 'none';
     }
-    
-    // Re-enable interactive elements
-    document.querySelectorAll('[data-original-disabled]').forEach(el => {
-      const wasDisabled = el.getAttribute('data-original-disabled') === 'true';
-      el.disabled = wasDisabled;
-      el.removeAttribute('data-original-disabled');
-    });
   }
   
-  /**
-   * Get cookie value by name
-   */
-  function getCookieValue(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return '';
+  // Add disconnection event listener
+  function onDisconnect(callback) {
+    if (typeof callback === 'function') {
+      disconnectionListeners.push(callback);
+    }
   }
   
-  /**
-   * Check if socket is connected
-   */
+  // Check if socket is connected
   function isConnected() {
     return socket && socket.connected;
   }
   
-  /**
-   * Get socket instance
-   */
-  function getSocket() {
-    return socket;
+  // Clean up resources
+  function cleanup() {
+    try {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+      
+      connectionListeners = [];
+      disconnectionListeners = [];
+    } catch (error) {
+      console.error('Error in socket cleanup:', error);
+    }
   }
-  
-  // Initialize on page load
-  document.addEventListener('DOMContentLoaded', init);
   
   // Public API
   return {
     init,
+    onConnect,
+    onDisconnect,
     isConnected,
-    getSocket,
-    reconnect: tryReconnect
+    cleanup,
+    getSocket: () => socket
   };
 })();
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', window.socketHandler.init);
