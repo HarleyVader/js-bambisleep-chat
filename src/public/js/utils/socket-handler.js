@@ -1,6 +1,10 @@
 /**
  * Client-side socket connection and event handler
  * Provides centralized connection management and error recovery
+ * [x] Socket initialization
+ * [x] Event management
+ * [x] Connection recovery
+ * [x] Profile integration
  */
 window.socketHandler = (function() {
   // Private variables
