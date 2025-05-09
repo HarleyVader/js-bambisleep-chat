@@ -1,183 +1,242 @@
 window.systemControlUI = (function() {
   // Private variables
   let initialized = false;
-  let connectionStatus = 'disconnected';
-  let reconnectAttempts = 0;
+  let initAttempts = 0;
+  const MAX_INIT_ATTEMPTS = 10;
+  const RETRY_DELAY_MS = 500;
   
-  function init() {
+  // Required DOM elements
+  let requiredElements = {
+    controlPanel: null,
+    toggleButtons: null,
+    sliders: null
+    // Add other required elements
+  };
+  
+  // Check if all required DOM elements are available
+  function checkRequiredElements() {
     try {
-      // Check if required elements exist before initializing
-      const controlPanel = document.getElementById('system-control-panel');
+      requiredElements.controlPanel = document.getElementById('system-control-panel');
+      requiredElements.toggleButtons = document.querySelectorAll('.system-toggle');
+      requiredElements.sliders = document.querySelectorAll('.system-slider');
       
-      if (!controlPanel) {
-        console.warn('Required DOM elements not found for systemControlUI - will retry later');
-        // Retry initialization after a short delay
-        setTimeout(init, 1000);
-        return;
-      }
-      
-      // Continue with initialization if elements are found
-      setupEventListeners();
-      updateUIFromState();
-      
-      initialized = true;
-      console.log('SystemControlUI initialized successfully');
-      
-      // Notify other modules
-      document.dispatchEvent(new CustomEvent('system-ui-ready'));
+      // Check if all required elements exist
+      return requiredElements.controlPanel && 
+             requiredElements.toggleButtons.length > 0 && 
+             requiredElements.sliders.length > 0;
     } catch (error) {
-      console.error('Error initializing system control UI:', error);
+      console.error('Error checking required elements:', error);
+      return false;
     }
   }
   
+  // Setup event listeners
   function setupEventListeners() {
-    // Add event listeners for control panel elements
-    const toggles = document.querySelectorAll('.system-toggle');
-    if (toggles.length) {
-      toggles.forEach(toggle => {
-        toggle.addEventListener('change', handleToggleChange);
+    try {
+      // Setup toggle button listeners
+      requiredElements.toggleButtons.forEach(button => {
+        button.addEventListener('click', handleToggleClick);
       });
-    }
-    
-    // Listen for socket connection events
-    document.addEventListener('socket-connected', handleSocketConnected);
-    document.addEventListener('socket-disconnected', handleSocketDisconnected);
-    
-    // Listen for state changes
-    if (window.bambiSystem) {
-      document.addEventListener('bambi-state-changed', updateUIFromState);
+      
+      // Setup slider listeners
+      requiredElements.sliders.forEach(slider => {
+        slider.addEventListener('input', handleSliderChange);
+      });
+      
+      // Listen for system events
+      document.addEventListener('system-state-change', handleSystemStateChange);
+      
+      // If using socket
+      if (window.socket) {
+        window.socket.on('server-system-update', handleServerUpdate);
+      }
+    } catch (error) {
+      console.error('Error setting up event listeners:', error);
     }
   }
   
-  function handleToggleChange(event) {
-    const toggle = event.target;
-    const controlName = toggle.getAttribute('data-control');
-    const isEnabled = toggle.checked;
+  // Event handlers
+  function handleToggleClick(event) {
+    const toggleId = event.currentTarget.getAttribute('data-control');
+    const isActive = event.currentTarget.classList.contains('active');
     
-    if (!controlName) return;
+    // Update UI
+    event.currentTarget.classList.toggle('active');
     
     // Update system state
     if (window.bambiSystem) {
-      window.bambiSystem.saveState(controlName, { enabled: isEnabled });
+      window.bambiSystem.saveState('controls', {
+        [toggleId]: !isActive
+      });
     }
     
-    // Send to server if socket is connected
-    if (window.socketHandler && window.socketHandler.isConnected()) {
+    // Emit socket event if needed
+    if (window.socket && window.socket.connected) {
       window.socket.emit('client-system-control', {
-        control: controlName,
-        enabled: isEnabled,
+        control: toggleId,
+        value: !isActive,
         timestamp: Date.now()
       });
     }
   }
   
-  function updateUIFromState() {
-    if (!window.bambiSystem) return;
+  function handleSliderChange(event) {
+    const sliderId = event.currentTarget.getAttribute('data-control');
+    const value = parseFloat(event.currentTarget.value);
     
-    // Get all controls that have a data-control attribute
-    const controlElements = document.querySelectorAll('[data-control]');
+    // Update system state
+    if (window.bambiSystem) {
+      window.bambiSystem.saveState('controls', {
+        [sliderId]: value
+      });
+    }
     
-    controlElements.forEach(element => {
-      const controlName = element.getAttribute('data-control');
-      const controlState = window.bambiSystem.getState(controlName);
+    // Emit socket event if needed (debounced)
+    if (window.debouncedEmit) {
+      window.debouncedEmit('client-system-control', {
+        control: sliderId,
+        value: value,
+        timestamp: Date.now()
+      });
+    }
+  }
+  
+  function handleSystemStateChange(event) {
+    const { detail } = event;
+    if (detail && detail.controls) {
+      updateControlsUI(detail.controls);
+    }
+  }
+  
+  function handleServerUpdate(data) {
+    if (data && data.controls) {
+      updateControlsUI(data.controls);
+    }
+  }
+  
+  // Update UI based on state
+  function updateControlsUI(controlsState) {
+    try {
+      // Update toggles
+      requiredElements.toggleButtons.forEach(button => {
+        const controlId = button.getAttribute('data-control');
+        if (controlsState.hasOwnProperty(controlId)) {
+          if (controlsState[controlId]) {
+            button.classList.add('active');
+          } else {
+            button.classList.remove('active');
+          }
+        }
+      });
       
-      if (controlState) {
-        // Handle different element types
-        if (element.type === 'checkbox') {
-          element.checked = controlState.enabled === true;
-        } else if (element.tagName === 'SELECT') {
-          element.value = controlState.value || '';
-        } else if (element.type === 'range') {
-          element.value = controlState.value || 0;
+      // Update sliders
+      requiredElements.sliders.forEach(slider => {
+        const controlId = slider.getAttribute('data-control');
+        if (controlsState.hasOwnProperty(controlId)) {
+          slider.value = controlsState[controlId];
+        }
+      });
+    } catch (error) {
+      console.error('Error updating controls UI:', error);
+    }
+  }
+  
+  // Initialize the module with exponential backoff
+  function init() {
+    // Check if we've exceeded max attempts
+    if (initAttempts >= MAX_INIT_ATTEMPTS) {
+      console.warn('SystemControlUI initialization failed after maximum attempts');
+      return;
+    }
+    
+    initAttempts++;
+    
+    // Check if required elements exist
+    if (!checkRequiredElements()) {
+      console.log(`Required DOM elements not found for systemControlUI - attempt ${initAttempts}/${MAX_INIT_ATTEMPTS}`);
+      
+      // Exponential backoff with a maximum delay
+      const delay = Math.min(RETRY_DELAY_MS * Math.pow(1.5, initAttempts - 1), 5000);
+      
+      // Schedule retry
+      setTimeout(init, delay);
+      return;
+    }
+    
+    // Initialize module
+    try {
+      setupEventListeners();
+      
+      // Set initial state if available
+      if (window.bambiSystem) {
+        const systemState = window.bambiSystem.getState('controls');
+        if (systemState) {
+          updateControlsUI(systemState);
         }
       }
-    });
-  }
-  
-  function handleSocketConnected() {
-    // Enable all control elements
-    document.querySelectorAll('.system-control').forEach(control => {
-      control.disabled = false;
-    });
-    
-    // Add connected class to container
-    const container = document.getElementById('system-control-panel');
-    if (container) {
-      container.classList.remove('disconnected');
-      container.classList.add('connected');
-    }
-    
-    // Update connection status
-    updateConnectionStatus('connected');
-  }
-  
-  function handleSocketDisconnected() {
-    // Disable all control elements that require server connection
-    document.querySelectorAll('.system-control[data-requires-connection="true"]').forEach(control => {
-      control.disabled = true;
-    });
-    
-    // Add disconnected class to container
-    const container = document.getElementById('system-control-panel');
-    if (container) {
-      container.classList.remove('connected');
-      container.classList.add('disconnected');
-    }
-    
-    // Update connection status
-    updateConnectionStatus('disconnected');
-  }
-  
-  /**
-   * Update connection status in UI
-   */
-  function updateConnectionStatus(status) {
-    connectionStatus = status;
-    
-    // Update UI connection indicator
-    const statusEl = document.getElementById('connection-status');
-    if (statusEl) {
-      // Remove all status classes
-      statusEl.classList.remove('connected', 'connecting', 'reconnecting', 'disconnected', 'failed');
-      // Add current status class
-      statusEl.classList.add(status);
       
-      // Update status text
-      const statusTextEl = statusEl.querySelector('.status-text');
-      if (statusTextEl) {
-        statusTextEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-      }
+      initialized = true;
+      console.log('SystemControlUI initialized successfully');
+      
+      // Dispatch initialization event
+      document.dispatchEvent(new CustomEvent('system-control-ui-ready'));
+    } catch (error) {
+      console.error('Error initializing SystemControlUI:', error);
     }
-    
-    // Show connection status notification
-    showConnectionToast(status);
-    
-    // Dispatch status change event
-    document.dispatchEvent(new CustomEvent('socket-status-change', {
-      detail: { status, reconnectAttempt: reconnectAttempts }
-    }));
   }
+  
+  // Clean up event listeners
+  function tearDown() {
+    if (!initialized) return;
+    
+    try {
+      requiredElements.toggleButtons.forEach(button => {
+        button.removeEventListener('click', handleToggleClick);
+      });
+      
+      requiredElements.sliders.forEach(slider => {
+        slider.removeEventListener('input', handleSliderChange);
+      });
+      
+      document.removeEventListener('system-state-change', handleSystemStateChange);
+      
+      if (window.socket) {
+        window.socket.off('server-system-update', handleServerUpdate);
+      }
+      
+      initialized = false;
+    } catch (error) {
+      console.error('Error during SystemControlUI teardown:', error);
+    }
+  }
+  
+  // Utility function for debounced socket emission
+  const debouncedEmit = (function() {
+    let timeout = null;
+    return function(event, data) {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        if (window.socket && window.socket.connected) {
+          window.socket.emit(event, data);
+        }
+        timeout = null;
+      }, 300);
+    };
+  })();
+  
+  // Expose the debounced emit utility
+  window.debouncedEmit = debouncedEmit;
   
   // Public API
   return {
     init,
-    isInitialized: function() {
-      return initialized;
-    },
-    refresh: updateUIFromState
+    tearDown,
+    updateControlsUI
   };
 })();
 
-// Initialize on page load, with a delay to ensure DOM is ready
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-  // Try first initialization
+  // Give other components time to initialize
   setTimeout(window.systemControlUI.init, 100);
-  
-  // Ensure initialization even if first attempt fails
-  setTimeout(function() {
-    if (!window.systemControlUI.isInitialized()) {
-      console.log('Retrying systemControlUI initialization...');
-      window.systemControlUI.init();
-    }
-  }, 2000);
 });

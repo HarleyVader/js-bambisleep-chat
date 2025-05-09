@@ -35,17 +35,32 @@ function isFeatureUnlocked(featureName, level) {
 }
 
 // Profile page - require login
-router.get('/', requireLogin, async (req, res) => {
+router.get('/profile', requireLogin, async (req, res) => {
   try {
-    // Get the logged in user
-    const username = req.session.username;
+    // Check if req.user exists before trying to access its properties
+    if (!req.user) {
+      console.log("[ProfileRoutes] User not found in request object");
+      return res.status(401).redirect('/login');
+    }
+    
+    // Now safely access username with optional chaining for extra safety
+    const username = req.user?.username;
     
     if (!username) {
+      console.log("[ProfileRoutes] Username not found in user object");
+      return res.status(401).redirect('/login');
+    }
+    
+    const profile = await Profile.findOne({ username });
+    // Get the logged in user
+    const sessionUsername = req.session.username;
+    
+    if (!sessionUsername) {
       return res.redirect('/login');
     }
     
     // Fetch user profile data from database using getUser helper
-    const user = await getUser(username);
+    const user = await getUser(sessionUsername);
     
     if (!user) {
       return res.status(404).render('error', {
@@ -63,7 +78,7 @@ router.get('/', requireLogin, async (req, res) => {
     const percentToNextLevel = Math.min(100, Math.floor((currentLevelXP / (xpForNextLevel - xpForCurrentLevel)) * 100));
     
     // Create profile object with user data
-    const profile = {
+    const profileData = {
       username: user.username,
       displayName: user.displayName || user.username,
       level: level,
@@ -78,7 +93,7 @@ router.get('/', requireLogin, async (req, res) => {
     
     // Render the profile page with the profile data
     return res.render('profile', { 
-      profile,
+      profile: profileData,
       user: req.session.username
     });
   } catch (error) {
