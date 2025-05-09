@@ -10,38 +10,48 @@ window.systemControlUI = (function() {
     controlPanel: null,
     toggleButtons: null,
     sliders: null
-    // Add other required elements
   };
   
   // Check if all required DOM elements are available
   function checkRequiredElements() {
     try {
       requiredElements.controlPanel = document.getElementById('system-control-panel');
-      requiredElements.toggleButtons = document.querySelectorAll('.system-toggle');
-      requiredElements.sliders = document.querySelectorAll('.system-slider');
       
-      // Check if all required elements exist
-      return requiredElements.controlPanel && 
-             requiredElements.toggleButtons.length > 0 && 
-             requiredElements.sliders.length > 0;
+      // Only proceed with the other selectors if we have the parent container
+      if (requiredElements.controlPanel) {
+        requiredElements.toggleButtons = requiredElements.controlPanel.querySelectorAll('.system-toggle');
+        requiredElements.sliders = requiredElements.controlPanel.querySelectorAll('.system-slider');
+        
+        // Only require the control panel to exist - buttons and sliders might be added dynamically
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Error checking required elements:', error);
       return false;
     }
   }
   
-  // Setup event listeners
+  // Setup event listeners using event delegation
   function setupEventListeners() {
     try {
-      // Setup toggle button listeners
-      requiredElements.toggleButtons.forEach(button => {
-        button.addEventListener('click', handleToggleClick);
-      });
-      
-      // Setup slider listeners
-      requiredElements.sliders.forEach(slider => {
-        slider.addEventListener('input', handleSliderChange);
-      });
+      // Use event delegation for toggle buttons
+      if (requiredElements.controlPanel) {
+        requiredElements.controlPanel.addEventListener('click', function(event) {
+          const toggleButton = event.target.closest('.system-toggle');
+          if (toggleButton) {
+            handleToggleClick(event, toggleButton);
+          }
+        });
+        
+        // Use event delegation for sliders
+        requiredElements.controlPanel.addEventListener('input', function(event) {
+          const slider = event.target.closest('.system-slider');
+          if (slider) {
+            handleSliderChange(event, slider);
+          }
+        });
+      }
       
       // Listen for system events
       document.addEventListener('system-state-change', handleSystemStateChange);
@@ -56,12 +66,12 @@ window.systemControlUI = (function() {
   }
   
   // Event handlers
-  function handleToggleClick(event) {
-    const toggleId = event.currentTarget.getAttribute('data-control');
-    const isActive = event.currentTarget.classList.contains('active');
+  function handleToggleClick(event, toggleButton) {
+    const toggleId = toggleButton.getAttribute('data-control');
+    const isActive = toggleButton.classList.contains('active');
     
     // Update UI
-    event.currentTarget.classList.toggle('active');
+    toggleButton.classList.toggle('active');
     
     // Update system state
     if (window.bambiSystem) {
@@ -80,9 +90,9 @@ window.systemControlUI = (function() {
     }
   }
   
-  function handleSliderChange(event) {
-    const sliderId = event.currentTarget.getAttribute('data-control');
-    const value = parseFloat(event.currentTarget.value);
+  function handleSliderChange(event, slider) {
+    const sliderId = slider.getAttribute('data-control');
+    const value = parseFloat(slider.value);
     
     // Update system state
     if (window.bambiSystem) {
@@ -117,8 +127,11 @@ window.systemControlUI = (function() {
   // Update UI based on state
   function updateControlsUI(controlsState) {
     try {
+      if (!requiredElements.controlPanel) return;
+      
       // Update toggles
-      requiredElements.toggleButtons.forEach(button => {
+      const toggleButtons = requiredElements.controlPanel.querySelectorAll('.system-toggle');
+      toggleButtons.forEach(button => {
         const controlId = button.getAttribute('data-control');
         if (controlsState.hasOwnProperty(controlId)) {
           if (controlsState[controlId]) {
@@ -130,7 +143,8 @@ window.systemControlUI = (function() {
       });
       
       // Update sliders
-      requiredElements.sliders.forEach(slider => {
+      const sliders = requiredElements.controlPanel.querySelectorAll('.system-slider');
+      sliders.forEach(slider => {
         const controlId = slider.getAttribute('data-control');
         if (controlsState.hasOwnProperty(controlId)) {
           slider.value = controlsState[controlId];
@@ -146,6 +160,12 @@ window.systemControlUI = (function() {
     // Check if we've exceeded max attempts
     if (initAttempts >= MAX_INIT_ATTEMPTS) {
       console.warn('SystemControlUI initialization failed after maximum attempts');
+      // Continue to check if the control panel gets added later
+      document.addEventListener('system-control-panel-added', function() {
+        console.log('Control panel was added to DOM, reinitializing systemControlUI');
+        initAttempts = 0;
+        init();
+      });
       return;
     }
     
@@ -187,16 +207,12 @@ window.systemControlUI = (function() {
   
   // Clean up event listeners
   function tearDown() {
-    if (!initialized) return;
+    if (!initialized || !requiredElements.controlPanel) return;
     
     try {
-      requiredElements.toggleButtons.forEach(button => {
-        button.removeEventListener('click', handleToggleClick);
-      });
-      
-      requiredElements.sliders.forEach(slider => {
-        slider.removeEventListener('input', handleSliderChange);
-      });
+      // Remove delegated event listeners
+      requiredElements.controlPanel.removeEventListener('click', handleToggleClick);
+      requiredElements.controlPanel.removeEventListener('input', handleSliderChange);
       
       document.removeEventListener('system-state-change', handleSystemStateChange);
       
@@ -207,6 +223,28 @@ window.systemControlUI = (function() {
       initialized = false;
     } catch (error) {
       console.error('Error during SystemControlUI teardown:', error);
+    }
+  }
+  
+  // Helper function to create the control panel if it doesn't exist
+  function createControlPanel() {
+    if (document.getElementById('system-control-panel')) return;
+    
+    try {
+      const panel = document.createElement('div');
+      panel.id = 'system-control-panel';
+      panel.className = 'system-control-panel';
+      
+      // Add the panel to the appropriate container
+      const container = document.querySelector('.controls-container') || document.body;
+      container.appendChild(panel);
+      
+      console.log('Created system control panel');
+      
+      // Notify that the panel was added
+      document.dispatchEvent(new CustomEvent('system-control-panel-added'));
+    } catch (error) {
+      console.error('Error creating control panel:', error);
     }
   }
   
@@ -231,12 +269,16 @@ window.systemControlUI = (function() {
   return {
     init,
     tearDown,
-    updateControlsUI
+    updateControlsUI,
+    createControlPanel
   };
 })();
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+  // Create the control panel if needed
+  window.systemControlUI.createControlPanel();
+  
   // Give other components time to initialize
   setTimeout(window.systemControlUI.init, 100);
 });
