@@ -51,6 +51,7 @@
     "mongoose": "^8.13.2",
     "node-fetch": "^2.6.7",
     "npm": "^11.1.0",
+    "runpod-sdk": "^1.0.7",
     "socket.io": "^4.8.1",
     "uuid": "^11.1.0"
   },

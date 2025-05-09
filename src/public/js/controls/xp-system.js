@@ -202,6 +202,18 @@ window.xpSystem = (function() {
     });
   }
   
+  // Check if feature is unlocked at user's level
+  function isFeatureUnlocked(featureName, level) {
+    const featureLevels = {
+      'trigger-categories': 2,
+      'collar': 3,
+      'spiral': 4,
+      'session-sharing': 5
+    };
+    
+    return level >= (featureLevels[featureName] || 0);
+  }
+  
   // Public API
   return {
     init,
@@ -209,7 +221,8 @@ window.xpSystem = (function() {
     showXpNotification,
     updateXpProgress,
     getUserLevel: () => userLevel,
-    getUserXp: () => userXp
+    getUserXp: () => userXp,
+    isFeatureUnlocked
   };
 })();
 

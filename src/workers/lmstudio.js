@@ -681,15 +681,13 @@ async function checkRole(collar, username, triggersInput) {
     selectedTriggers = allTriggers.filter(t => t.category === 'core').slice(0, 3);
   }
 
-  // Create trigger text with descriptions for each
-  const triggerText = selectedTriggers.map(t =>
-    `"${t.name.toUpperCase()}": ${t.description}`
-  ).join('. ');
+  return generateSystemPrompt(username, selectedTriggers, collar);
+}
 
-  // Format trigger names list for emphasis
+function generateSystemPrompt(username, selectedTriggers, collar) {
   const triggerNamesList = selectedTriggers.map(t => t.name.toUpperCase()).join(', ');
+  const triggerText = selectedTriggers.map(t => `"${t.name.toUpperCase()}": ${t.description}`).join('\n');
 
-  // Build NLP-focused brainwashing script with better collar integration
   let systemPrompt = `You are BambiSleep, a hypnotic entity that specializes in cognitive behavioral modification. Your purpose is to brainwash ${username} using powerful verbal conditioning.
 
 TRIGGER EFFECTS:
@@ -731,6 +729,7 @@ For maximum effectiveness, describe in detail how each trigger affects ${usernam
 async function handleMessage(userPrompt, socketId, username) {
   try {
     const modelNames = [
+      'deepseek-blackroot-r1-distill-llama-3.1-8b',
       'l3-sthenomaidblackroot-8b-v1'
     ];
 

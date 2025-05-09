@@ -1,6 +1,8 @@
 window.systemControlUI = (function() {
   // Private variables
   let initialized = false;
+  let connectionStatus = 'disconnected';
+  let reconnectAttempts = 0;
   
   function init() {
     try {
@@ -104,6 +106,9 @@ window.systemControlUI = (function() {
       container.classList.remove('disconnected');
       container.classList.add('connected');
     }
+    
+    // Update connection status
+    updateConnectionStatus('connected');
   }
   
   function handleSocketDisconnected() {
@@ -118,6 +123,39 @@ window.systemControlUI = (function() {
       container.classList.remove('connected');
       container.classList.add('disconnected');
     }
+    
+    // Update connection status
+    updateConnectionStatus('disconnected');
+  }
+  
+  /**
+   * Update connection status in UI
+   */
+  function updateConnectionStatus(status) {
+    connectionStatus = status;
+    
+    // Update UI connection indicator
+    const statusEl = document.getElementById('connection-status');
+    if (statusEl) {
+      // Remove all status classes
+      statusEl.classList.remove('connected', 'connecting', 'reconnecting', 'disconnected', 'failed');
+      // Add current status class
+      statusEl.classList.add(status);
+      
+      // Update status text
+      const statusTextEl = statusEl.querySelector('.status-text');
+      if (statusTextEl) {
+        statusTextEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+      }
+    }
+    
+    // Show connection status notification
+    showConnectionToast(status);
+    
+    // Dispatch status change event
+    document.dispatchEvent(new CustomEvent('socket-status-change', {
+      detail: { status, reconnectAttempt: reconnectAttempts }
+    }));
   }
   
   // Public API

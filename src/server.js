@@ -1155,3 +1155,11 @@ async function startServer() {
 
 // Start the server
 startServer();
+
+// Collar requires level 3
+if (req.body.collarEnabled && !isFeatureUnlocked('collar', userLevel)) {
+  return res.status(403).json({
+    success: false,
+    message: 'You need to reach level 3 to use the collar feature'
+  });
+}
