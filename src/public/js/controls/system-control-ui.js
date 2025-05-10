@@ -212,6 +212,69 @@ window.systemControlUI = (function() {
     }
   }
   
+  // Ensure controls visibility
+  function ensureControlsVisibility() {
+    try {
+      // Get user level
+      const userLevel = window.xpSystem ? window.xpSystem.getUserLevel() : 0;
+      
+      // Find all control panels
+      const controlPanels = document.querySelectorAll('.control-panel');
+      
+      if (controlPanels.length === 0) {
+        console.warn('No control panels found in the DOM');
+        // Try to create panels if missing
+        if (typeof createControlPanel === 'function') {
+          createControlPanel();
+        }
+        return;
+      }
+      
+      // Check if any panels are visible
+      let visiblePanels = 0;
+      
+      controlPanels.forEach(panel => {
+        // Get feature name from data attribute
+        const feature = panel.getAttribute('data-feature');
+        
+        // If no specific feature level requirement or meets the requirement
+        if (!feature || isFeatureAvailable(feature, userLevel)) {
+          panel.classList.remove('hidden');
+          visiblePanels++;
+        }
+      });
+      
+      // Force main container to be visible
+      const controlContainer = document.querySelector('.system-controls-container');
+      if (controlContainer) {
+        controlContainer.style.display = 'block';
+      }
+      
+      console.log(`Ensured visibility: ${visiblePanels}/${controlPanels.length} panels visible`);
+    } catch (error) {
+      console.error('Error ensuring control visibility:', error);
+    }
+  }
+  
+  // Helper function to check if a feature is available
+  function isFeatureAvailable(feature, level) {
+    // Use window.FEATURE_LEVELS if available, otherwise fallback to defaults
+    const requirements = window.FEATURE_LEVELS || {
+      'triggers': 1,
+      'trigger-categories': 2,
+      'collar': 3,
+      'sessions': 3,
+      'spiral': 4,
+      'spirals': 4,
+      'hypnosis': 5,
+      'session-sharing': 5,
+      'audio': 6,
+      'binaurals': 7
+    };
+    
+    return level >= (requirements[feature] || 0);
+  }
+  
   // Initialize the module with exponential backoff
   function init() {
     // Check if we've exceeded max attempts
@@ -244,6 +307,14 @@ window.systemControlUI = (function() {
     try {
       setupEventListeners();
       setupLevelBasedUI();
+      
+      // Ensure controls are visible
+      ensureControlsVisibility();
+      
+      // Also make sure to call this when level changes
+      document.addEventListener('level-changed', () => {
+        setTimeout(ensureControlsVisibility, 100);
+      });
       
       // Set initial state if available
       if (window.bambiSystem) {
@@ -328,7 +399,8 @@ window.systemControlUI = (function() {
     init,
     tearDown,
     updateControlsUI,
-    createControlPanel
+    createControlPanel,
+    ensureControlsVisibility // Add this
   };
 })();
 

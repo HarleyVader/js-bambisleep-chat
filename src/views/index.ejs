@@ -322,6 +322,26 @@
             };
           })();
         </script>
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            // Initial creation of control panel
+            if (window.systemControlUI && typeof window.systemControlUI.createControlPanel === 'function') {
+              window.systemControlUI.createControlPanel();
+            }
+            
+            // Initialize the UI module
+            if (window.systemControlUI && typeof window.systemControlUI.init === 'function') {
+              window.systemControlUI.init();
+            }
+            
+            // Ensure controls are visible after a short delay to allow other modules to initialize
+            setTimeout(function() {
+              if (window.systemControlUI && typeof window.systemControlUI.ensureControlsVisibility === 'function') {
+                window.systemControlUI.ensureControlsVisibility();
+              }
+            }, 500);
+          });
+        </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
         <script src="js/bootstrap.min.js"></script>
