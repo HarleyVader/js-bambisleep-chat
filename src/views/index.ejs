@@ -860,6 +860,30 @@
               }
             }
 
+            // Collect settings from all system components
+            function collectSettings() {
+              try {
+                // Try to use central state management first
+                if (window.bambiSystem && typeof window.bambiSystem.collectSettings === 'function') {
+                  return window.bambiSystem.collectSettings();
+                }
+                
+                // Fallback to direct collection
+                return {
+                  activeTriggers: getActiveTriggers(),
+                  collarSettings: getCollarSettings(),
+                  spiralSettings: getSpiralSettings()
+                };
+              } catch (error) {
+                console.error('Error collecting settings:', error);
+                return {
+                  activeTriggers: [],
+                  collarSettings: { enabled: false, text: '' },
+                  spiralSettings: { enabled: false }
+                };
+              }
+            }
+
             // Public API
             return {
               init,
