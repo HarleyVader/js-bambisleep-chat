@@ -141,16 +141,33 @@ window.collarSystem = (function() {
       }
     }
     
-    // Use xpSystem if available
-    if (window.xpSystem && typeof window.xpSystem.awardXp === 'function') {
-      window.xpSystem.awardXp(action, amount);
-    } else {
+    // Use awardUserXP function
+    awardUserXP(action, amount);
+  }
+  
+  // Award XP for an action
+  function awardUserXP(action, amount) {
+    try {
+      // Use the xpSystem module if available
+      if (window.xpSystem && typeof window.xpSystem.awardXp === 'function') {
+        window.xpSystem.awardXp(action, amount);
+        return true;
+      }
+      
       // Fallback to direct socket emission
-      window.socket.emit('client-award-xp', {
-        action,
-        amount,
-        timestamp: Date.now()
-      });
+      if (window.socket && window.socket.connected) {
+        window.socket.emit('client-award-xp', {
+          action,
+          amount,
+          timestamp: Date.now()
+        });
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error awarding XP:', error);
+      return false;
     }
   }
   
