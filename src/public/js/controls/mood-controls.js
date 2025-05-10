@@ -1,250 +1,223 @@
-/**
- * Mood tracking and visualization system for BambiSleep
- */
 window.bambiMood = (function() {
+  // Signal module loading
+  if (window.bambiConsole) {
+    window.bambiConsole.moduleLoading('bambiMood');
+  }
+  
   // Private variables
   let currentMood = 'neutral';
-  let moodIntensity = 50;
-  let moodHistory = [];
-  let uiElements = {};
   const availableMoods = ['neutral', 'happy', 'angry', 'sad', 'excited'];
   
-  // State initialization
+  // Initialize module
   function init() {
     try {
-      // Setup DOM references
-      uiElements.moodSelector = document.getElementById('mood-selector');
-      uiElements.intensitySlider = document.getElementById('mood-intensity');
-      uiElements.moodDisplay = document.getElementById('current-mood-display');
+      if (window.bambiConsole) {
+        window.bambiConsole.moduleInitializing('bambiMood');
+      }
       
-      // Load saved state
-      loadSavedState();
-      
-      // Setup event listeners
-      setupEventListeners();
-      
-      // Register with system controller
+      // Check if system exists and has registerModule function
       if (window.bambiSystem) {
         if (typeof window.bambiSystem.registerModule === 'function') {
+          // Register mood module with the system
           window.bambiSystem.registerModule('mood', {
-            getState: getMoodState,
-            setState: setMoodState,
             getCurrentMood: getCurrentMood,
             setMood: setMood,
             getAvailableMoods: getAvailableMoods
           });
+          
+          if (window.bambiConsole) {
+            window.bambiConsole.log('bambiMood', 'Successfully registered with bambiSystem');
+          }
         } else {
-          console.warn('bambiSystem.registerModule is not available. Mood system will operate independently.');
+          if (window.bambiConsole) {
+            window.bambiConsole.warn('bambiMood', 'bambiSystem.registerModule is not available. Implementation needed.');
+          } else {
+            console.warn('bambiSystem.registerModule is not available. Mood system will operate independently.');
+          }
+          
+          // Implement missing registerModule function on bambiSystem
+          if (!window.bambiSystem.registeredModules) {
+            window.bambiSystem.registeredModules = {};
+          }
+          
+          window.bambiSystem.registerModule = function(name, api) {
+            window.bambiSystem.registeredModules[name] = api;
+            return true;
+          };
+          
+          // Now register our module
+          window.bambiSystem.registerModule('mood', {
+            getCurrentMood: getCurrentMood,
+            setMood: setMood,
+            getAvailableMoods: getAvailableMoods
+          });
+          
+          if (window.bambiConsole) {
+            window.bambiConsole.log('bambiMood', 'Created and registered with bambiSystem');
+          }
         }
         
         // Try to load saved mood from system state
-        const savedState = window.bambiSystem.getState ? window.bambiSystem.getState('mood') : null;
-        if (savedState && savedState.currentMood) {
-          currentMood = savedState.currentMood;
+        if (window.bambiSystem.getState) {
+          const savedState = window.bambiSystem.getState('mood');
+          if (savedState && savedState.currentMood) {
+            currentMood = savedState.currentMood;
+            if (window.bambiConsole) {
+              window.bambiConsole.log('bambiMood', `Loaded saved mood: ${currentMood}`);
+            }
+          }
         }
       }
       
-      // Initialize UI
-      updateUI();
+      // Set up UI elements
+      setupMoodControls();
       
-      console.log('Mood system initialized successfully');
+      // Apply initial mood
+      applyMood(currentMood);
+      
+      if (window.bambiConsole) {
+        window.bambiConsole.moduleInitialized('bambiMood');
+      } else {
+        console.log('Mood system initialized successfully');
+      }
     } catch (error) {
-      console.error('Error initializing mood system:', error);
+      if (window.bambiConsole) {
+        window.bambiConsole.moduleFailed('bambiMood', error);
+      } else {
+        console.error('Error initializing mood system:', error);
+      }
     }
   }
   
-  function loadSavedState() {
+  // Set up UI controls for mood selection
+  function setupMoodControls() {
     try {
-      // Check bambiSystem first
-      if (window.bambiSystem) {
-        const savedState = window.bambiSystem.getState('mood');
-        if (savedState) {
-          currentMood = savedState.currentMood || currentMood;
-          moodIntensity = savedState.intensity || moodIntensity;
-          return;
+      const moodSelector = document.getElementById('mood-selector');
+      if (!moodSelector) {
+        if (window.bambiConsole) {
+          window.bambiConsole.warn('bambiMood', 'Mood selector element not found in DOM');
         }
+        return;
       }
       
-      // Fallback to localStorage
-      const savedMood = localStorage.getItem('bambi-mood');
-      if (savedMood) {
-        const parsed = JSON.parse(savedMood);
-        currentMood = parsed.mood || currentMood;
-        moodIntensity = parsed.intensity || moodIntensity;
+      // Create mood options if they don't exist
+      if (moodSelector.children.length === 0) {
+        availableMoods.forEach(mood => {
+          const option = document.createElement('option');
+          option.value = mood;
+          option.textContent = mood.charAt(0).toUpperCase() + mood.slice(1);
+          moodSelector.appendChild(option);
+        });
+      }
+      
+      // Set initial selection
+      moodSelector.value = currentMood;
+      
+      // Add change event listener
+      moodSelector.addEventListener('change', function() {
+        setMood(this.value);
+      });
+      
+      if (window.bambiConsole) {
+        window.bambiConsole.log('bambiMood', 'Mood controls set up successfully');
       }
     } catch (error) {
-      console.error('Error loading mood state:', error);
+      if (window.bambiConsole) {
+        window.bambiConsole.error('bambiMood', 'Error setting up mood controls', error);
+      } else {
+        console.error('Error setting up mood controls:', error);
+      }
     }
   }
   
-  function setupEventListeners() {
-    // Mood selection change
-    if (uiElements.moodSelector) {
-      uiElements.moodSelector.addEventListener('change', handleMoodChange);
-    }
-    
-    // Intensity slider change
-    if (uiElements.intensitySlider) {
-      uiElements.intensitySlider.addEventListener('input', handleIntensityChange);
-      uiElements.intensitySlider.addEventListener('change', saveState);
-    }
-    
-    // System events
-    document.addEventListener('session-loaded', handleSessionLoaded);
-  }
-  
-  function handleMoodChange(event) {
-    currentMood = event.target.value;
-    updateUI();
-    saveState();
-    
-    // Award XP for changing mood
-    if (window.socket && window.socket.connected) {
-      window.socket.emit('client-award-xp', {
-        action: 'mood-change',
-        amount: 5,
-        timestamp: Date.now()
-      });
-    }
-    
-    // Notify server of mood change
-    emitMoodUpdate();
-  }
-  
-  function handleIntensityChange(event) {
-    moodIntensity = parseInt(event.target.value);
-    updateUI();
-    // Don't save on input, only on change (to reduce writes)
-  }
-  
-  function handleServerMoodUpdate(data) {
-    if (data && data.mood) {
-      currentMood = data.mood;
-      moodIntensity = data.intensity || moodIntensity;
-      updateUI();
+  // Apply visual changes based on mood
+  function applyMood(mood) {
+    try {
+      // Update body class for CSS styling
+      document.body.classList.remove(...availableMoods.map(m => `mood-${m}`));
+      document.body.classList.add(`mood-${mood}`);
       
-      // Don't save to avoid loops
+      // Update current mood state
+      currentMood = mood;
+      
+      // Save mood state if system is available
+      if (window.bambiSystem && window.bambiSystem.saveState) {
+        window.bambiSystem.saveState('mood', { 
+          currentMood: mood 
+        });
+      }
+      
+      // Dispatch event for other modules
+      document.dispatchEvent(new CustomEvent('mood-changed', {
+        detail: { mood }
+      }));
+      
+      if (window.bambiConsole) {
+        window.bambiConsole.log('bambiMood', `Applied mood: ${mood}`);
+      }
+    } catch (error) {
+      if (window.bambiConsole) {
+        window.bambiConsole.error('bambiMood', 'Error applying mood', error);
+      } else {
+        console.error('Error applying mood:', error);
+      }
     }
   }
   
-  function handleSessionLoaded(event) {
-    if (event.detail && event.detail.mood) {
-      currentMood = event.detail.mood.currentMood || currentMood;
-      moodIntensity = event.detail.mood.intensity || moodIntensity;
-      updateUI();
-    }
-  }
-  
-  function updateUI() {
-    // Update mood selector
-    if (uiElements.moodSelector) {
-      uiElements.moodSelector.value = currentMood;
-    }
-    
-    // Update intensity slider
-    if (uiElements.intensitySlider) {
-      uiElements.intensitySlider.value = moodIntensity;
-    }
-    
-    // Update mood display
-    if (uiElements.moodDisplay) {
-      uiElements.moodDisplay.textContent = `${currentMood} (${moodIntensity}%)`;
-      uiElements.moodDisplay.className = `mood-display mood-${currentMood}`;
-    }
-    
-    // Apply mood effects to page
-    applyMoodEffects();
-  }
-  
-  function applyMoodEffects() {
-    document.body.setAttribute('data-mood', currentMood);
-    document.body.style.setProperty('--mood-intensity', `${moodIntensity}%`);
-  }
-  
-  function saveState() {
-    // Save to bambiSystem
-    if (window.bambiSystem) {
-      window.bambiSystem.saveState('mood', getMoodState());
-    }
-    
-    // Also save to localStorage as fallback
-    localStorage.setItem('bambi-mood', JSON.stringify({
-      mood: currentMood,
-      intensity: moodIntensity,
-      timestamp: Date.now()
-    }));
-  }
-  
-  function getMoodState() {
-    return {
-      currentMood: currentMood,
-      intensity: moodIntensity
-    };
-  }
-  
-  function setMoodState(state) {
-    if (!state) return;
-    
-    currentMood = state.currentMood || currentMood;
-    moodIntensity = state.intensity || moodIntensity;
-    updateUI();
-  }
-  
-  function emitMoodUpdate() {
-    if (window.socket && window.socket.connected) {
-      window.socket.emit('client-mood-update', {
-        mood: currentMood,
-        intensity: moodIntensity,
-        timestamp: Date.now()
-      });
-    }
-  }
-  
-  // Track mood over time
-  function recordMoodHistory() {
-    moodHistory.push({
-      mood: currentMood,
-      intensity: moodIntensity,
-      timestamp: Date.now()
-    });
-    
-    // Keep history limited to recent entries
-    if (moodHistory.length > 50) {
-      moodHistory.shift();
-    }
-  }
-  
+  // Public API
   function getCurrentMood() {
     return currentMood;
   }
   
-  function getAvailableMoods() {
-    return availableMoods;
+  function setMood(mood) {
+    if (availableMoods.includes(mood)) {
+      applyMood(mood);
+      return true;
+    }
+    return false;
   }
   
-  function setMood(mood, intensity) {
-    currentMood = mood || currentMood;
-    moodIntensity = intensity || moodIntensity;
-    updateUI();
-    saveState();
-    emitMoodUpdate();
+  function getAvailableMoods() {
+    return [...availableMoods];
   }
   
   // Public API
-  return {
+  const api = {
     init,
     getCurrentMood,
-    getMoodIntensity: () => moodIntensity,
     setMood,
     getAvailableMoods
   };
+  
+  // Signal module loaded
+  if (window.bambiConsole) {
+    window.bambiConsole.moduleLoaded('bambiMood');
+  }
+  
+  return api;
 })();
 
-// Initialize on DOM content loaded or system-ready event, whichever comes last
-document.addEventListener('DOMContentLoaded', window.bambiMood.init);
+// Initialize on DOM content loaded or system-ready, whichever comes last
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.bambiConsole) {
+    window.bambiConsole.log('bambiMood', 'DOM content loaded, initializing mood system');
+  }
+  window.bambiMood.init();
+});
+
+// Also initialize on system-ready event as a fallback
 document.addEventListener('system-ready', function() {
-  // Initialize again if system was ready after DOM loaded
-  if (window.bambiSystem && typeof window.bambiSystem.registerModule === 'function') {
+  if (window.bambiConsole) {
+    window.bambiConsole.log('bambiMood', 'System ready event received');
+  }
+  
+  // Only re-initialize if registerModule wasn't available before
+  if (window.bambiSystem && 
+      typeof window.bambiSystem.registerModule === 'function' && 
+      (!window.bambiSystem.registeredModules || !window.bambiSystem.registeredModules.mood)) {
+    if (window.bambiConsole) {
+      window.bambiConsole.log('bambiMood', 'Re-initializing mood system after system ready');
+    }
     window.bambiMood.init();
   }
 });

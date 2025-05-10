@@ -54,17 +54,26 @@ window.bambiSystem = (function() {
   // Use the centralized feature levels
   const featureRequirements = window.FEATURE_LEVELS;
   
-  // Module registration system
+  // Track registered modules
   const registeredModules = {};
   
+  // Register a module with the system
   function registerModule(moduleName, moduleAPI) {
     if (!moduleName || typeof moduleName !== 'string') {
-      console.error('Module registration failed: Invalid module name');
+      if (window.bambiConsole) {
+        window.bambiConsole.error('bambiSystem', 'Module registration failed: Invalid module name');
+      } else {
+        console.error('Module registration failed: Invalid module name');
+      }
       return false;
     }
     
     if (!moduleAPI || typeof moduleAPI !== 'object') {
-      console.error(`Module registration failed for "${moduleName}": Invalid module API`);
+      if (window.bambiConsole) {
+        window.bambiConsole.error('bambiSystem', `Module registration failed for "${moduleName}": Invalid module API`);
+      } else {
+        console.error(`Module registration failed for "${moduleName}": Invalid module API`);
+      }
       return false;
     }
     
@@ -76,15 +85,31 @@ window.bambiSystem = (function() {
       document.dispatchEvent(new CustomEvent('module-registered', {
         detail: { moduleName, moduleAPI }
       }));
+      
+      if (window.bambiConsole) {
+        window.bambiConsole.log('bambiSystem', `Module registered: ${moduleName}`);
+      } else {
+        console.log(`Module registered: ${moduleName}`);
+      }
     } catch (err) {
-      console.error(`Error dispatching module registration event for "${moduleName}":`, err);
+      if (window.bambiConsole) {
+        window.bambiConsole.error('bambiSystem', `Error dispatching module registration event for "${moduleName}":`, err);
+      } else {
+        console.error(`Error dispatching module registration event for "${moduleName}":`, err);
+      }
     }
     
     return true;
   }
   
+  // Get a registered module by name
   function getModule(moduleName) {
     return registeredModules[moduleName] || null;
+  }
+  
+  // Get all registered modules (for debugging)
+  function getRegisteredModules() {
+    return {...registeredModules};
   }
   
   // Initialization
@@ -424,7 +449,7 @@ window.bambiSystem = (function() {
     checkFeatureAvailability,
     registerModule,
     getModule,
-    getRegisteredModules: () => ({...registeredModules})
+    getRegisteredModules
   };
 })();
 
