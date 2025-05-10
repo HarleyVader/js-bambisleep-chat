@@ -214,6 +214,45 @@ window.xpSystem = (function() {
     return level >= (featureLevels[featureName] || 0);
   }
   
+  // Update UI visibility based on user level
+  function updateFeatureVisibility(level) {
+    try {
+      // Check each feature against level requirements
+      const featureLevels = {
+        'trigger-categories': 2,
+        'collar': 3,
+        'spiral': 4,
+        'session-sharing': 5
+      };
+      
+      // Update control buttons
+      document.querySelectorAll('[data-level-required]').forEach(el => {
+        const requiredLevel = parseInt(el.getAttribute('data-level-required'));
+        if (level >= requiredLevel) {
+          el.classList.remove('locked');
+          if (el.hasAttribute('disabled')) el.removeAttribute('disabled');
+        } else {
+          el.classList.add('locked');
+          el.setAttribute('disabled', 'disabled');
+        }
+      });
+      
+      // Update control panels visibility
+      Object.entries(featureLevels).forEach(([feature, requiredLevel]) => {
+        const panel = document.querySelector(`.control-panel[data-feature="${feature}"]`);
+        if (panel) {
+          if (level >= requiredLevel) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error updating feature visibility:', error);
+    }
+  }
+
   // Public API
   return {
     init,
@@ -222,7 +261,8 @@ window.xpSystem = (function() {
     updateXpProgress,
     getUserLevel: () => userLevel,
     getUserXp: () => userXp,
-    isFeatureUnlocked
+    isFeatureUnlocked,
+    updateFeatureVisibility
   };
 })();
 

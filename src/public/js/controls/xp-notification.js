@@ -72,6 +72,21 @@ window.bambiXP = (function() {
       // Only show notification if level actually increased
       if (event.detail.oldLevel < event.detail.level) {
         showLevelUpNotification(event.detail.level);
+        
+        // Update UI for new level - trigger refreshes in all components
+        if (window.bambiSystem && typeof window.bambiSystem.checkFeatureAvailability === 'function') {
+          window.bambiSystem.checkFeatureAvailability();
+        }
+        
+        // If xpSystem has feature visibility updating
+        if (window.xpSystem && typeof window.xpSystem.updateFeatureVisibility === 'function') {
+          window.xpSystem.updateFeatureVisibility(event.detail.level);
+        }
+        
+        // Dispatch a global event to ensure all components update
+        document.dispatchEvent(new CustomEvent('ui-refresh-level', {
+          detail: { level: event.detail.level }
+        }));
       }
     }
   }

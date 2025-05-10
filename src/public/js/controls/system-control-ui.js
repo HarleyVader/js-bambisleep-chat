@@ -65,6 +65,51 @@ window.systemControlUI = (function() {
     }
   }
   
+  // Set up level-based visibility
+  function setupLevelBasedUI() {
+    // Add level-changed event listener
+    document.addEventListener('level-changed', handleLevelChange);
+    
+    // Initial check
+    if (window.bambiSystem) {
+      const userLevel = window.bambiSystem.getUserLevel();
+      updateUIForLevel(userLevel);
+    }
+  }
+  
+  // Handle level change event
+  function handleLevelChange(event) {
+    if (event.detail && event.detail.level !== undefined) {
+      updateUIForLevel(event.detail.level);
+    }
+  }
+  
+  // Update UI based on level
+  function updateUIForLevel(level) {
+    try {
+      if (!requiredElements.controlPanel) return;
+      
+      // Get all control elements with level requirements
+      const levelElements = requiredElements.controlPanel.querySelectorAll('[data-level]');
+      
+      levelElements.forEach(el => {
+        const requiredLevel = parseInt(el.getAttribute('data-level'));
+        
+        if (isNaN(requiredLevel)) return;
+        
+        if (level >= requiredLevel) {
+          el.classList.remove('locked');
+          el.removeAttribute('disabled');
+        } else {
+          el.classList.add('locked');
+          el.setAttribute('disabled', 'disabled');
+        }
+      });
+    } catch (error) {
+      console.error('Error updating UI for level:', error);
+    }
+  }
+  
   // Event handlers
   function handleToggleClick(event, toggleButton) {
     const toggleId = toggleButton.getAttribute('data-control');
@@ -186,6 +231,7 @@ window.systemControlUI = (function() {
     // Initialize module
     try {
       setupEventListeners();
+      setupLevelBasedUI();
       
       // Set initial state if available
       if (window.bambiSystem) {

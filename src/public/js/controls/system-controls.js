@@ -188,7 +188,22 @@ window.bambiSystem = (function() {
           btn.textContent = btn.textContent.replace(' 🔒', '');
         }
       }
+      
+      // Also update panel visibility
+      const panel = document.getElementById(`${feature}-panel`);
+      if (panel) {
+        if (userLevel < requiredLevel) {
+          panel.classList.add('hidden');
+        } else {
+          panel.classList.remove('hidden');
+        }
+      }
     });
+    
+    // Dispatch event for other components to update
+    document.dispatchEvent(new CustomEvent('feature-availability-changed', {
+      detail: { level: userLevel }
+    }));
   }
   
   // Handle XP update event
