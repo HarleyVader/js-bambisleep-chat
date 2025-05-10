@@ -526,6 +526,68 @@ window.bambiSystem = (function() {
   };
 })();
 
+// Fix for bambiSystemState JSON parsing issue in system-controls.js
+(function() {
+  // Patch the loadFromStorage function to handle already-parsed objects
+  const originalLoadFromStorage = window.loadFromStorage;
+  
+  if (typeof originalLoadFromStorage === 'function') {
+    window.loadFromStorage = function(key, defaultValue = {}) {
+      try {
+        const value = localStorage.getItem(key);
+        
+        // No value stored
+        if (!value) return defaultValue;
+        
+        // If already an object (not a string), use directly
+        if (typeof value === 'object' && value !== null) {
+          return value;
+        }
+        
+        // Try to parse if it's a string
+        return JSON.parse(value);
+      } catch (err) {
+        console.warn(`Error loading ${key}, using default value`);
+        return defaultValue;
+      }
+    };
+  }
+  
+  // Fix saveToStorage to ensure proper JSON stringification
+  const originalSaveToStorage = window.saveToStorage;
+  
+  if (typeof originalSaveToStorage === 'function') {
+    window.saveToStorage = function(key, value) {
+      try {
+        // Make sure we stringify objects
+        if (typeof value === 'object' && value !== null) {
+          localStorage.setItem(key, JSON.stringify(value));
+        } else {
+          localStorage.setItem(key, value);
+        }
+      } catch (err) {
+        console.warn(`Error saving ${key}`);
+      }
+    };
+  }
+  
+  // Fix corrupted bambiSystemState if needed
+  try {
+    const rawState = localStorage.getItem('bambiSystemState');
+    
+    if (rawState && typeof rawState === 'object') {
+      // It's already an object, we need to stringify it
+      localStorage.setItem('bambiSystemState', JSON.stringify(rawState));
+    } else if (rawState === '[object Object]') {
+      // It's the string representation of toString() - create fresh state
+      localStorage.removeItem('bambiSystemState');
+    }
+  } catch (err) {
+    // Last resort - clear corrupted state
+    localStorage.removeItem('bambiSystemState');
+  }
+})();
+
 // Fix known corrupted localStorage items on load
 document.addEventListener('DOMContentLoaded', function() {
   try {
