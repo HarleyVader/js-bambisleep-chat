@@ -1037,6 +1037,111 @@
             window.forceControlsVisibility = forceControlsVisibility;
           })();
         </script>
+        <script>
+          // Fix for JSON storage parsing error
+          (function() {
+            // Helper to safely parse JSON data
+            function safeJsonParse(data, fallback = {}) {
+              try {
+                // Check if data is already an object
+                if (typeof data === 'object' && data !== null) {
+                  return data;
+                }
+                
+                // Only parse if we have a string
+                if (typeof data === 'string') {
+                  return JSON.parse(data);
+                }
+                
+                return fallback;
+              } catch (e) {
+                console.error('Error parsing JSON data:', e);
+                return fallback;
+              }
+            }
+            
+            // Patch localStorage getItem to safely handle JSON
+            const originalGetItem = localStorage.getItem;
+            localStorage.getItem = function(key) {
+              const value = originalGetItem.call(this, key);
+              
+              // Keys that should be parsed as JSON
+              const jsonKeys = [
+                'bambiSystemState',
+                'sessionSettings',
+                'triggerState',
+                'collarSettings',
+                'spiralSettings',
+                'audioSettings'
+              ];
+              
+              // Only attempt JSON parsing if the key is in our list
+              if (value && jsonKeys.includes(key)) {
+                try {
+                  return safeJsonParse(value);
+                } catch (e) {
+                  console.warn(`Failed to parse ${key} as JSON, returning raw value`);
+                }
+              }
+              
+              return value;
+            };
+            
+            // Override storage event handlers to ensure proper format
+            window.addEventListener('storage', function(e) {
+              // Protect against non-JSON values in expected JSON keys
+              const jsonKeys = [
+                'bambiSystemState',
+                'sessionSettings',
+                'triggerState',
+                'collarSettings',
+                'spiralSettings',
+                'audioSettings'
+              ];
+              
+              if (jsonKeys.includes(e.key) && e.newValue) {
+                try {
+                  // Test if value can be parsed
+                  JSON.parse(e.newValue);
+                } catch (err) {
+                  console.warn(`Invalid JSON in storage for key ${e.key}, reverting to previous value`);
+                  // Prevent the invalid data from being processed further
+                  e.stopImmediatePropagation();
+                }
+              }
+            }, true); // Use capture to handle event before other listeners
+            
+            // Fix for storage handlers in content.js
+            if (window._storageChangeDispatcher) {
+              const originalDispatcher = window._storageChangeDispatcher;
+              window._storageChangeDispatcher = function(e) {
+                try {
+                  // Only process if newValue exists and is valid
+                  if (!e.newValue) return originalDispatcher.call(this, e);
+                  
+                  // If value should be JSON, make sure it's valid first
+                  const jsonKeys = [
+                    'bambiSystemState',
+                    'sessionSettings',
+                    'triggerState', 
+                    'collarSettings',
+                    'spiralSettings',
+                    'audioSettings'
+                  ];
+                  
+                  if (jsonKeys.includes(e.key)) {
+                    // Test parse before passing to handler
+                    JSON.parse(e.newValue);
+                  }
+                  
+                  return originalDispatcher.call(this, e);
+                } catch (err) {
+                  console.warn(`Storage change handler prevented error for ${e.key}`);
+                }
+              };
+            }
+          })();
+        </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
         <script src="js/bootstrap.min.js"></script>
