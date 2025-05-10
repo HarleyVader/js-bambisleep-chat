@@ -92,10 +92,55 @@ window.bambiMood = (function() {
   // Set up UI controls for mood selection
   function setupMoodControls() {
     try {
-      const moodSelector = document.getElementById('mood-selector');
+      let moodSelector = document.getElementById('mood-selector');
+      
+      // If mood selector doesn't exist, try to create it
       if (!moodSelector) {
         if (window.bambiConsole) {
-          window.bambiConsole.warn('bambiMood', 'Mood selector element not found in DOM');
+          window.bambiConsole.warn('bambiMood', 'Mood selector element not found in DOM, creating it');
+        }
+        
+        // Try to find suitable container
+        let container = document.querySelector('.control-container') || 
+                        document.querySelector('.control-panel') ||
+                        document.querySelector('.system-controls-container');
+        
+        // Create container if none exists
+        if (!container) {
+          container = document.createElement('div');
+          container.className = 'control-container mood-control-container';
+          document.body.appendChild(container);
+          
+          if (window.bambiConsole) {
+            window.bambiConsole.log('bambiMood', 'Created mood control container');
+          }
+        }
+        
+        // Create mood control panel
+        const moodPanel = document.createElement('div');
+        moodPanel.className = 'control-panel mood-control-panel';
+        moodPanel.innerHTML = `
+          <h3>Mood Controls</h3>
+          <div class="control-group">
+            <label for="mood-selector">Current Mood:</label>
+            <select id="mood-selector" class="form-control">
+              <!-- Options added dynamically -->
+            </select>
+          </div>
+        `;
+        
+        container.appendChild(moodPanel);
+        moodSelector = document.getElementById('mood-selector');
+        
+        if (window.bambiConsole) {
+          window.bambiConsole.log('bambiMood', 'Created mood selector element');
+        }
+      }
+      
+      // Now check if we have the selector (either found or created)
+      if (!moodSelector) {
+        if (window.bambiConsole) {
+          window.bambiConsole.error('bambiMood', 'Failed to create mood selector, UI controls unavailable');
         }
         return;
       }
