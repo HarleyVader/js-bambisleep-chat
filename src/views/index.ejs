@@ -958,8 +958,6 @@
                   if (container.offsetHeight < 50) {
                     container.style.minHeight = '150px';
                   }
-                  
-                  console.log('Forcing system controls visibility');
                 }
                 
                 // Target the XP components specifically
@@ -985,13 +983,14 @@
                   xpFill.style.width = '20%'; // Default to something visible
                 }
                 
-                // Check if console and buttons divs are present
-                const console = document.getElementById('console');
+                // Check if console div and buttons divs are present
+                // Rename variable to avoid conflict with global console object
+                const consoleDiv = document.getElementById('console'); 
                 const buttons = document.getElementById('buttons');
                 
-                if (console) {
-                  console.style.display = 'block';
-                  console.style.minHeight = '50px';
+                if (consoleDiv) {
+                  consoleDiv.style.display = 'block';
+                  consoleDiv.style.minHeight = '50px';
                 }
                 
                 if (buttons) {
@@ -1000,25 +999,22 @@
                 }
                 
               } catch (error) {
-                console.error('Error forcing controls visibility:', error);
+                // Use window.console to make it explicit
+                window.console.error('Error forcing controls visibility:', error);
               }
             }
             
             // Run immediately
             forceControlsVisibility();
             
-            // Also run after a delay to ensure DOM is fully rendered
+            // Also run after delays to ensure DOM is fully rendered
             setTimeout(forceControlsVisibility, 1000);
-            
-            // Run again after any potential animations
             setTimeout(forceControlsVisibility, 3000);
             
-            // Also check if bambiSystem exists and try to initialize if not
+            // Initialize minimal bambiSystem if needed
             if (!window.bambiSystem) {
-              console.warn('BambiSystem not found - trying to initialize defaults');
-              
-              // Create minimal implementation if needed
-              window.bambiSystem = window.bambiSystem || {
+              // Create minimal implementation
+              window.bambiSystem = {
                 getUserLevel: function() { return 1; },
                 getActiveTriggers: function() { return []; },
                 getCollarSettings: function() { return { enabled: false, text: '' }; },
@@ -1030,14 +1026,14 @@
                     spiralSettings: { enabled: false }
                   };
                 },
-                applySessionSettings: function() { console.log('Applied dummy settings'); }
+                applySessionSettings: function() {}
               };
               
-              // Try to trigger system initialization
+              // Trigger system initialization
               document.dispatchEvent(new CustomEvent('system-initialized'));
             }
             
-            // Add this to window for manual troubleshooting
+            // Add to window for troubleshooting
             window.forceControlsVisibility = forceControlsVisibility;
           })();
         </script>
