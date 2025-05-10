@@ -588,6 +588,56 @@ window.bambiSystem = (function() {
   }
 })();
 
+// Enhanced localStorage state validator
+(function() {
+  // Function to safely check if something is a valid JSON string
+  function isValidJsonString(str) {
+    if (typeof str !== 'string') return false;
+    
+    try {
+      JSON.parse(str);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+  
+  // Fix the state validation check
+  function fixStateStorage() {
+    try {
+      // Focus only on bambiSystemState since that's the one causing issues
+      const rawState = localStorage.getItem('bambiSystemState');
+      
+      // If it's an object (which shouldn't happen with localStorage), stringify it
+      if (rawState !== null && typeof rawState === 'object') {
+        console.warn('bambiSystemState found as object instead of string, fixing');
+        localStorage.setItem('bambiSystemState', JSON.stringify(rawState));
+        return;
+      }
+      
+      // Handle corrupt string representations
+      if (rawState === '[object Object]' || rawState === 'undefined' || rawState === 'null') {
+        console.warn('Removing corrupted bambiSystemState value:', rawState);
+        localStorage.removeItem('bambiSystemState');
+        return;
+      }
+      
+      // Validate JSON if it's a string
+      if (typeof rawState === 'string' && !isValidJsonString(rawState)) {
+        console.warn('Invalid JSON in bambiSystemState, resetting');
+        localStorage.removeItem('bambiSystemState');
+      }
+    } catch (err) {
+      // Just clear the key if we hit any errors
+      console.error('Error fixing bambiSystemState, resetting', err);
+      localStorage.removeItem('bambiSystemState');
+    }
+  }
+  
+  // Run the fix
+  fixStateStorage();
+})();
+
 // Fix known corrupted localStorage items on load
 document.addEventListener('DOMContentLoaded', function() {
   try {
