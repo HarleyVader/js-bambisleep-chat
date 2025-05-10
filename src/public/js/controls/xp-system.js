@@ -204,30 +204,35 @@ window.xpSystem = (function() {
   
   // Check if feature is unlocked at user's level
   function isFeatureUnlocked(featureName, level) {
-    const featureLevels = {
-      'trigger-categories': 2,
-      'collar': 3,
-      'spiral': 4,
-      'session-sharing': 5
-    };
-    
-    return level >= (featureLevels[featureName] || 0);
+    return level >= (window.FEATURE_LEVELS[featureName] || 0);
   }
   
   // Update UI visibility based on user level
   function updateFeatureVisibility(level) {
     try {
       // Check each feature against level requirements
-      const featureLevels = {
+      const featureLevels = window.FEATURE_LEVELS || {
         'trigger-categories': 2,
         'collar': 3,
         'spiral': 4,
         'session-sharing': 5
       };
       
-      // Update control buttons
+      // Update elements using data-level-required attribute
       document.querySelectorAll('[data-level-required]').forEach(el => {
         const requiredLevel = parseInt(el.getAttribute('data-level-required'));
+        if (level >= requiredLevel) {
+          el.classList.remove('locked');
+          if (el.hasAttribute('disabled')) el.removeAttribute('disabled');
+        } else {
+          el.classList.add('locked');
+          el.setAttribute('disabled', 'disabled');
+        }
+      });
+      
+      // Also handle the data-level attribute for consistency
+      document.querySelectorAll('[data-level]').forEach(el => {
+        const requiredLevel = parseInt(el.getAttribute('data-level'));
         if (level >= requiredLevel) {
           el.classList.remove('locked');
           if (el.hasAttribute('disabled')) el.removeAttribute('disabled');

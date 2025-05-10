@@ -23,6 +23,9 @@ window.collarSystem = (function() {
     const collarToggle = document.getElementById('collar-enable');
     if (collarToggle) collarToggle.addEventListener('change', updateCollarToggle);
     
+    // Listen for level changes
+    document.addEventListener('ui-refresh-level', handleLevelChange);
+    
     // Listen for system updates
     document.addEventListener('system-update', handleSystemUpdate);
   }
@@ -35,6 +38,7 @@ window.collarSystem = (function() {
     const collarToggle = document.getElementById('collar-enable');
     if (collarToggle) collarToggle.removeEventListener('change', updateCollarToggle);
     
+    document.removeEventListener('ui-refresh-level', handleLevelChange);
     document.removeEventListener('system-update', handleSystemUpdate);
   }
   
@@ -54,6 +58,22 @@ window.collarSystem = (function() {
   function handleSystemUpdate(event) {
     if (event.detail && (event.detail.section === 'collar' || event.detail.section === 'all')) {
       loadInitialState();
+    }
+  }
+  
+  // Handle level changes
+  function handleLevelChange(event) {
+    if (event.detail && event.detail.level !== undefined) {
+      // Update UI based on level
+      const level = event.detail.level;
+      const collarPanel = document.querySelector('.control-panel[data-feature="collar"]');
+      if (collarPanel) {
+        if (window.bambiSystem && window.bambiSystem.isFeatureAvailable('collar')) {
+          collarPanel.classList.remove('hidden');
+        } else {
+          collarPanel.classList.add('hidden');
+        }
+      }
     }
   }
   

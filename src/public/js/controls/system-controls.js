@@ -2,6 +2,21 @@
  * Central state manager for BambiSleep Chat
  * Manages feature state, dependencies, and interactions
  */
+
+// Feature level requirements - central definition
+window.FEATURE_LEVELS = {
+  'triggers': 1,
+  'trigger-categories': 2,
+  'collar': 3,
+  'sessions': 3,
+  'spiral': 4,
+  'spirals': 4,
+  'hypnosis': 5,
+  'session-sharing': 5,
+  'audio': 6,
+  'binaurals': 7
+};
+
 window.bambiSystem = (function() {
   // Private state storage with defaults
   const state = {
@@ -36,16 +51,8 @@ window.bambiSystem = (function() {
     }
   };
   
-  // Feature level requirements
-  const featureRequirements = {
-    triggers: 1,
-    collar: 2,
-    sessions: 3,
-    spirals: 4, 
-    hypnosis: 5,
-    audio: 6,
-    binaurals: 7
-  };
+  // Use the centralized feature levels
+  const featureRequirements = window.FEATURE_LEVELS;
   
   // Initialization
   function init() {
@@ -380,7 +387,8 @@ window.bambiSystem = (function() {
     isFeatureAvailable,
     collectSettings,
     getUserLevel,
-    applySessionSettings
+    applySessionSettings,
+    checkFeatureAvailability
   };
 })();
 

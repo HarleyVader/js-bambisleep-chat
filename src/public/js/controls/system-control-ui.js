@@ -105,6 +105,18 @@ window.systemControlUI = (function() {
           el.setAttribute('disabled', 'disabled');
         }
       });
+      
+      // Also handle control panel visibility
+      document.querySelectorAll('.control-panel[data-level]').forEach(panel => {
+        const requiredLevel = parseInt(panel.getAttribute('data-level'));
+        if (isNaN(requiredLevel)) return;
+        
+        if (level >= requiredLevel) {
+          panel.classList.remove('hidden');
+        } else {
+          panel.classList.add('hidden');
+        }
+      });
     } catch (error) {
       console.error('Error updating UI for level:', error);
     }
