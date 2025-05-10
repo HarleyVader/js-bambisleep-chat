@@ -456,6 +456,58 @@
               }
             }
             
+            // Delete a session
+            function deleteSession(sessionId) {
+              if (!sessionId || !window.socket || !window.username || window.username === 'anonBambi') {
+                showSessionError('You must set a BambiName to delete sessions');
+                return;
+              }
+              
+              try {
+                // Show confirmation dialog
+                if (!confirm('Are you sure you want to delete this session?')) {
+                  return;
+                }
+                
+                // Show loading indicator
+                const container = document.getElementById('system-controls-container');
+                if (container) container.classList.add('loading');
+                
+                // Send delete request
+                window.socket.emit('delete-session', sessionId);
+                
+                // Reset current session ID if deleting current session
+                if (sessionId === currentSessionId) {
+                  currentSessionId = null;
+                }
+              } catch (error) {
+                console.error('Error deleting session:', error);
+                
+                // Remove loading indicator
+                const container = document.getElementById('system-controls-container');
+                if (container) container.classList.remove('loading');
+                
+                // Show error
+                showSessionError('Error deleting session');
+              }
+            }
+
+            // Get list of user sessions
+            function getSessionsList() {
+              if (!window.socket || !window.username || window.username === 'anonBambi') {
+                showSessionError('You must set a BambiName to view sessions');
+                return;
+              }
+              
+              try {
+                // Send request for sessions list
+                window.socket.emit('get-sessions');
+              } catch (error) {
+                console.error('Error getting sessions list:', error);
+                showSessionError('Error fetching sessions');
+              }
+            }
+
             // Handle session loaded event
             function handleSessionLoaded(data) {
               try {
@@ -498,24 +550,316 @@
                 if (container) container.classList.remove('loading');
               }
             }
-            
-            // Other handler functions and utilities...
-            
-            // Collect settings from all system components
-            function collectSettings() {
-              // Try to use central state management first
-              if (window.bambiSystem && typeof window.bambiSystem.collectSettings === 'function') {
-                return window.bambiSystem.collectSettings();
+
+            // Handle session saved event
+            function handleSessionSaved(data) {
+              try {
+                if (!data) return;
+                
+                // Store current session ID
+                currentSessionId = data.sessionId;
+                
+                // Update UI
+                const saveIndicator = document.getElementById('session-save-indicator');
+                if (saveIndicator) {
+                  saveIndicator.classList.remove('unsaved');
+                  saveIndicator.textContent = 'Saved';
+                  
+                  // Hide the text after a delay
+                  setTimeout(() => {
+                    if (saveIndicator) {
+                      saveIndicator.textContent = '';
+                    }
+                  }, 3000);
+                }
+                
+                // Update active session indicator
+                updateActiveSessionIndicator(data.title);
+                
+                // Refresh sessions list if available
+                getSessionsList();
+              } catch (error) {
+                console.error('Error handling saved session:', error);
               }
-              
-              // Fallback to direct collection
-              return {
-                activeTriggers: getActiveTriggers(),
-                collarSettings: getCollarSettings(),
-                spiralSettings: getSpiralSettings()
-              };
             }
-            
+
+            // Handle session created event
+            function handleSessionCreated(data) {
+              try {
+                if (!data) return;
+                
+                // Store current session ID
+                currentSessionId = data.sessionId;
+                
+                // Update UI
+                const saveIndicator = document.getElementById('session-save-indicator');
+                if (saveIndicator) {
+                  saveIndicator.classList.remove('unsaved');
+                  saveIndicator.textContent = 'Created';
+                  
+                  // Hide the text after a delay
+                  setTimeout(() => {
+                    if (saveIndicator) {
+                      saveIndicator.textContent = '';
+                    }
+                  }, 3000);
+                }
+                
+                // Update active session indicator
+                updateActiveSessionIndicator(data.title);
+                
+                // Refresh sessions list if available
+                getSessionsList();
+              } catch (error) {
+                console.error('Error handling created session:', error);
+              }
+            }
+
+            // Handle session deleted event
+            function handleSessionDeleted(data) {
+              try {
+                // Remove loading indicator
+                const container = document.getElementById('system-controls-container');
+                if (container) container.classList.remove('loading');
+                
+                // If this was the active session, update UI
+                if (data.sessionId === currentSessionId) {
+                  currentSessionId = null;
+                  updateActiveSessionIndicator('');
+                }
+                
+                // Refresh sessions list
+                getSessionsList();
+              } catch (error) {
+                console.error('Error handling session deletion:', error);
+              }
+            }
+
+            // Handle session error event
+            function handleSessionError(data) {
+              // Remove loading indicator
+              const container = document.getElementById('system-controls-container');
+              if (container) container.classList.remove('loading');
+              
+              // Show error message
+              showSessionError(data.message || 'Error processing session');
+            }
+
+            // Handle sessions list event
+            function handleSessionsList(data) {
+              try {
+                if (!data || !data.sessions) return;
+                
+                // Update UI with sessions list
+                const sessionsContainer = document.getElementById('sessions-container');
+                if (!sessionsContainer) return;
+                
+                // Clear existing list
+                sessionsContainer.innerHTML = '';
+                
+                if (data.sessions.length === 0) {
+                  sessionsContainer.innerHTML = '<p>No saved sessions found</p>';
+                  return;
+                }
+                
+                // Create list of sessions
+                const sessionsList = document.createElement('ul');
+                sessionsList.className = 'sessions-list';
+                
+                data.sessions.forEach(session => {
+                  const sessionItem = document.createElement('li');
+                  sessionItem.className = 'session-item';
+                  if (session._id === currentSessionId) {
+                    sessionItem.classList.add('active');
+                  }
+                  
+                  // Create session title
+                  const title = document.createElement('span');
+                  title.className = 'session-title';
+                  title.textContent = session.title || 'Untitled Session';
+                  
+                  // Create date element
+                  const date = document.createElement('span');
+                  date.className = 'session-date';
+                  date.textContent = new Date(session.updatedAt || session.createdAt).toLocaleString();
+                  
+                  // Create load button
+                  const loadBtn = document.createElement('button');
+                  loadBtn.className = 'session-load-btn';
+                  loadBtn.textContent = 'Load';
+                  loadBtn.addEventListener('click', () => loadSession(session._id));
+                  
+                  // Create delete button
+                  const deleteBtn = document.createElement('button');
+                  deleteBtn.className = 'session-delete-btn';
+                  deleteBtn.textContent = 'Delete';
+                  deleteBtn.addEventListener('click', () => deleteSession(session._id));
+                  
+                  // Add elements to session item
+                  sessionItem.appendChild(title);
+                  sessionItem.appendChild(date);
+                  sessionItem.appendChild(loadBtn);
+                  sessionItem.appendChild(deleteBtn);
+                  
+                  // Add session item to list
+                  sessionsList.appendChild(sessionItem);
+                });
+                
+                sessionsContainer.appendChild(sessionsList);
+              } catch (error) {
+                console.error('Error handling sessions list:', error);
+              }
+            }
+
+            // Handle socket connection event
+            function handleConnect() {
+              console.log('Socket connected, refreshing sessions');
+              
+              // Fetch sessions list if user is logged in
+              if (window.username && window.username !== 'anonBambi') {
+                getSessionsList();
+              }
+            }
+
+            // Handle socket disconnection event
+            function handleDisconnect() {
+              console.log('Socket disconnected, session operations unavailable');
+              
+              // Update UI to show disconnected state
+              const sessionsContainer = document.getElementById('sessions-container');
+              if (sessionsContainer) {
+                sessionsContainer.innerHTML = '<p>Disconnected from server. Session operations unavailable.</p>';
+              }
+            }
+
+            // Get recent chat messages
+            function getRecentMessages(count = 50) {
+              try {
+                // Check for chat messages in DOM
+                const chatMessages = [];
+                const messageElements = document.querySelectorAll('#chat-response li');
+                
+                // Get the most recent messages up to count
+                const start = Math.max(0, messageElements.length - count);
+                for (let i = start; i < messageElements.length; i++) {
+                  const el = messageElements[i];
+                  const username = el.querySelector('.chat-username a')?.textContent?.trim() || 'unknown';
+                  const message = el.querySelector('.chat-message')?.textContent?.trim() || '';
+                  const time = el.querySelector('.chat-time')?.textContent?.trim() || '';
+                  
+                  if (username && message) {
+                    chatMessages.push({
+                      username,
+                      message,
+                      timestamp: time
+                    });
+                  }
+                }
+                
+                return chatMessages;
+              } catch (error) {
+                console.error('Error getting chat messages:', error);
+                return [];
+              }
+            }
+
+            // Update active session indicator in UI
+            function updateActiveSessionIndicator(sessionTitle) {
+              try {
+                const sessionIndicator = document.getElementById('active-session-indicator');
+                if (!sessionIndicator) return;
+                
+                if (sessionTitle) {
+                  sessionIndicator.textContent = `Active session: ${sessionTitle}`;
+                  sessionIndicator.style.display = 'block';
+                } else {
+                  sessionIndicator.textContent = '';
+                  sessionIndicator.style.display = 'none';
+                }
+              } catch (error) {
+                console.error('Error updating session indicator:', error);
+              }
+            }
+
+            // Show session error message
+            function showSessionError(message) {
+              try {
+                // Look for toast notification system first
+                if (window.showToast) {
+                  window.showToast(message, 'error');
+                  return;
+                }
+                
+                // Fallback to alert
+                alert(message);
+              } catch (error) {
+                console.error('Error showing session error:', error);
+                alert(message);
+              }
+            }
+
+            // Get active triggers from DOM or system
+            function getActiveTriggers() {
+              try {
+                // Try to get from central system first
+                if (window.bambiSystem && typeof window.bambiSystem.getActiveTriggers === 'function') {
+                  return window.bambiSystem.getActiveTriggers();
+                }
+                
+                // Fallback to DOM elements
+                return Array.from(document.querySelectorAll('.trigger-toggle:checked, .trigger.active'))
+                  .map(el => el.getAttribute('data-trigger-name') || el.getAttribute('data-trigger'))
+                  .filter(Boolean);
+              } catch (error) {
+                console.error('Error getting active triggers:', error);
+                return [];
+              }
+            }
+
+            // Get collar settings from DOM or system
+            function getCollarSettings() {
+              try {
+                // Try to get from central system first
+                if (window.bambiSystem && typeof window.bambiSystem.getCollarSettings === 'function') {
+                  return window.bambiSystem.getCollarSettings();
+                }
+                
+                // Fallback to DOM elements
+                const collarEnabled = document.querySelector('#collar-enabled')?.checked || false;
+                const collarText = document.querySelector('#collar-text')?.value || '';
+                
+                return {
+                  enabled: collarEnabled,
+                  text: collarText
+                };
+              } catch (error) {
+                console.error('Error getting collar settings:', error);
+                return { enabled: false, text: '' };
+              }
+            }
+
+            // Get spiral settings from DOM or system
+            function getSpiralSettings() {
+              try {
+                // Try to get from central system first
+                if (window.bambiSystem && typeof window.bambiSystem.getSpiralSettings === 'function') {
+                  return window.bambiSystem.getSpiralSettings();
+                }
+                
+                // Default values if not found
+                return {
+                  enabled: false,
+                  spiral1Width: 20,
+                  spiral2Width: 20,
+                  spiral1Speed: 10,
+                  spiral2Speed: 7
+                };
+              } catch (error) {
+                console.error('Error getting spiral settings:', error);
+                return { enabled: false };
+              }
+            }
+
             // Public API
             return {
               init,
