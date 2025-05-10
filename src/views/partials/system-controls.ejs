@@ -64,6 +64,136 @@
           <div id="system-controls-container" class="system-controls-container">
             <!-- Include system controls partial -->
             <%- include('../views/partials/system-controls.ejs') %>
+            <div id="system-control-panel" class="system-controls">
+              <!-- XP Progress -->
+              <div class="xp-progress-container">
+                <div class="xp-progress">
+                  <div class="xp-bar"></div>
+                  <div class="xp-text">Level <span class="user-level">0</span> - <span class="xp-current">0</span>/<span class="xp-needed">0</span> XP</div>
+                </div>
+              </div>
+              
+              <!-- Control Panels -->
+              <div id="control-tabs">
+                <div class="tab-nav">
+                  <button class="tab-btn active" data-tab="trigger-controls">Triggers</button>
+                  <button class="tab-btn" data-tab="collar-controls">Collar</button>
+                  <button class="tab-btn" data-tab="spiral-controls">Spiral</button>
+                  <button class="tab-btn" data-tab="audio-controls">Audio</button>
+                  <button class="tab-btn" data-tab="mood-controls">Mood</button>
+                </div>
+                
+                <!-- Trigger Controls -->
+                <div id="trigger-controls" class="tab-content active">
+                  <div class="trigger-categories"></div>
+                  <div class="active-triggers"></div>
+                </div>
+                
+                <!-- Collar Controls -->
+                <div id="collar-controls" class="tab-content">
+                  <div class="collar-toggle">
+                    <label>
+                      <input type="checkbox" id="collar-enabled" class="system-toggle">
+                      <span>Enable Collar</span>
+                    </label>
+                  </div>
+                  <div class="collar-settings">
+                    <div class="slider-container">
+                      <label for="collar-intensity">Intensity</label>
+                      <input type="range" id="collar-intensity" min="1" max="10" value="5" class="system-slider">
+                      <span class="slider-value">5</span>
+                    </div>
+                    <div class="collar-text">
+                      <label for="collar-text">Collar Text</label>
+                      <textarea id="collar-text-input"></textarea>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Spiral Controls -->
+                <div id="spiral-controls" class="tab-content">
+                  <div class="spiral-toggle">
+                    <label>
+                      <input type="checkbox" id="spiral-enabled" class="system-toggle">
+                      <span>Enable Spiral</span>
+                    </label>
+                  </div>
+                  <div class="spiral-settings">
+                    <div class="slider-container">
+                      <label for="spiral-speed">Speed</label>
+                      <input type="range" id="spiral-speed" min="1" max="10" value="5" class="system-slider">
+                      <span class="slider-value">5</span>
+                    </div>
+                    <div class="slider-container">
+                      <label for="spiral-opacity">Opacity</label>
+                      <input type="range" id="spiral-opacity" min="0" max="100" value="50" class="system-slider">
+                      <span class="slider-value">50%</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Audio Controls -->
+                <div id="audio-controls" class="tab-content">
+                  <div class="audio-toggle">
+                    <label>
+                      <input type="checkbox" id="audio-enabled" class="system-toggle">
+                      <span>Enable Audio Effects</span>
+                    </label>
+                  </div>
+                  <div class="audio-visualization-container"></div>
+                  <div class="audio-settings">
+                    <div class="slider-container">
+                      <label for="audio-volume">Volume</label>
+                      <input type="range" id="audio-volume" min="0" max="100" value="75" class="system-slider">
+                      <span class="slider-value">75%</span>
+                    </div>
+                    <div class="binaural-settings">
+                      <label>
+                        <input type="checkbox" id="binaural-enabled" class="system-toggle">
+                        <span>Enable Binaural Beats</span>
+                      </label>
+                      <div class="slider-container">
+                        <label for="binaural-frequency">Frequency</label>
+                        <input type="range" id="binaural-frequency" min="1" max="40" value="7" class="system-slider">
+                        <span class="slider-value">7 Hz</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Mood Controls -->
+                <div id="mood-controls" class="tab-content">
+                  <div class="mood-selector">
+                    <label>Select Mood:</label>
+                    <div class="mood-buttons">
+                      <button data-mood="calm" class="mood-btn">Calm</button>
+                      <button data-mood="trance" class="mood-btn">Trance</button>
+                      <button data-mood="submissive" class="mood-btn">Submissive</button>
+                      <button data-mood="playful" class="mood-btn">Playful</button>
+                      <button data-mood="bambi" class="mood-btn">Bambi</button>
+                    </div>
+                  </div>
+                  <div class="current-mood">
+                    Current mood: <span id="current-mood-display">None</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Session Controls -->
+              <div id="session-controls">
+                <div class="session-buttons">
+                  <button id="save-session-btn">Save Session</button>
+                  <button id="load-session-btn">Load Session</button>
+                  <button id="new-session-btn">New Session</button>
+                </div>
+                <div id="sessions-list-container" style="display: none;">
+                  <select id="sessions-list"></select>
+                  <button id="delete-session-btn">Delete</button>
+                  <button id="load-selected-session-btn">Load</button>
+                  <button id="cancel-session-list-btn">Cancel</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div id="response-container">
