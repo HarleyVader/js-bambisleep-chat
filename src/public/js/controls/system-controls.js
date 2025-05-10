@@ -54,6 +54,39 @@ window.bambiSystem = (function() {
   // Use the centralized feature levels
   const featureRequirements = window.FEATURE_LEVELS;
   
+  // Module registration system
+  const registeredModules = {};
+  
+  function registerModule(moduleName, moduleAPI) {
+    if (!moduleName || typeof moduleName !== 'string') {
+      console.error('Module registration failed: Invalid module name');
+      return false;
+    }
+    
+    if (!moduleAPI || typeof moduleAPI !== 'object') {
+      console.error(`Module registration failed for "${moduleName}": Invalid module API`);
+      return false;
+    }
+    
+    // Register the module
+    registeredModules[moduleName] = moduleAPI;
+    
+    // Dispatch event for module registration
+    try {
+      document.dispatchEvent(new CustomEvent('module-registered', {
+        detail: { moduleName, moduleAPI }
+      }));
+    } catch (err) {
+      console.error(`Error dispatching module registration event for "${moduleName}":`, err);
+    }
+    
+    return true;
+  }
+  
+  function getModule(moduleName) {
+    return registeredModules[moduleName] || null;
+  }
+  
   // Initialization
   function init() {
     loadFromStorage();
@@ -388,7 +421,10 @@ window.bambiSystem = (function() {
     collectSettings,
     getUserLevel,
     applySessionSettings,
-    checkFeatureAvailability
+    checkFeatureAvailability,
+    registerModule,
+    getModule,
+    getRegisteredModules: () => ({...registeredModules})
   };
 })();
 
