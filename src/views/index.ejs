@@ -342,6 +342,200 @@
             }, 500);
           });
         </script>
+        <script>
+          window.bambiSessions = (function() {
+            // Private variables
+            let currentSessionId = null;
+            let isSessionDirty = false;
+            let sessionMessages = [];
+            
+            // Initialize module
+            function init() {
+              try {
+                // Set up event listeners
+                setupEventListeners();
+                
+                console.log('Session manager initialized');
+              } catch (error) {
+                console.error('Error initializing session manager:', error);
+              }
+            }
+            
+            // Set up event listeners
+            function setupEventListeners() {
+              if (window.socket) {
+                // Session events from server
+                window.socket.on('session-loaded', handleSessionLoaded);
+                window.socket.on('session-saved', handleSessionSaved);
+                window.socket.on('session-created', handleSessionCreated);
+                window.socket.on('session-deleted', handleSessionDeleted);
+                window.socket.on('session-error', handleSessionError);
+                window.socket.on('sessions-list', handleSessionsList);
+                
+                // Socket lifecycle events
+                window.socket.on('connect', handleConnect);
+                window.socket.on('disconnect', handleDisconnect);
+              }
+              
+              // Listen for system updates that should be saved
+              document.addEventListener('trigger-state-changed', markSessionDirty);
+              document.addEventListener('collar-update', markSessionDirty);
+              document.addEventListener('spiral-update', markSessionDirty);
+            }
+            
+            // Mark session as needing to be saved
+            function markSessionDirty() {
+              isSessionDirty = true;
+              
+              // Add visual indicator if session has unsaved changes
+              const saveIndicator = document.getElementById('session-save-indicator');
+              if (saveIndicator) {
+                saveIndicator.classList.add('unsaved');
+                saveIndicator.textContent = 'Unsaved changes';
+              }
+            }
+            
+            // Load a session
+            function loadSession(sessionId) {
+              if (!sessionId || !window.socket) return;
+              
+              try {
+                // Show loading indicator
+                const container = document.getElementById('system-controls-container');
+                if (container) container.classList.add('loading');
+                
+                // Send load request
+                window.socket.emit('load-session', sessionId);
+              } catch (error) {
+                console.error('Error loading session:', error);
+                
+                // Remove loading indicator
+                const container = document.getElementById('system-controls-container');
+                if (container) container.classList.remove('loading');
+              }
+            }
+            
+            // Save current session
+            function saveSession(options = {}) {
+              if (!window.socket || !window.username || window.username === 'anonBambi') {
+                showSessionError('You must set a BambiName to save sessions');
+                return;
+              }
+              
+              try {
+                // Collect settings from central state manager
+                const settings = collectSettings();
+                
+                // Get recent messages if needed
+                const messageCount = options.messageCount || 50;
+                const messages = getRecentMessages(messageCount);
+                
+                // Create session data object
+                const sessionData = {
+                  sessionId: currentSessionId,
+                  title: options.title || `Session ${new Date().toLocaleString()}`,
+                  settings: settings,
+                  messages: messages
+                };
+                
+                // Send save request
+                window.socket.emit('save-session', sessionData);
+                
+                // Reset dirty flag
+                isSessionDirty = false;
+                
+                // Update UI
+                const saveIndicator = document.getElementById('session-save-indicator');
+                if (saveIndicator) {
+                  saveIndicator.classList.remove('unsaved');
+                  saveIndicator.textContent = 'Saving...';
+                }
+              } catch (error) {
+                console.error('Error saving session:', error);
+                showSessionError('Error saving session');
+              }
+            }
+            
+            // Handle session loaded event
+            function handleSessionLoaded(data) {
+              try {
+                if (!data || !data.session) return;
+                
+                // Store current session ID
+                currentSessionId = data.sessionId;
+                
+                // Apply session settings
+                if (window.bambiSystem) {
+                  window.bambiSystem.applySessionSettings({
+                    activeTriggers: data.session.metadata?.triggers || [],
+                    collarSettings: {
+                      enabled: data.session.metadata?.collarActive || false,
+                      text: data.session.metadata?.collarText || ''
+                    },
+                    spiralSettings: data.session.metadata?.spiralSettings || {}
+                  });
+                }
+                
+                // Dispatch event for other components
+                document.dispatchEvent(new CustomEvent('session-loaded', {
+                  detail: { session: data.session }
+                }));
+                
+                // Reset dirty flag
+                isSessionDirty = false;
+                
+                // Remove loading indicator
+                const container = document.getElementById('system-controls-container');
+                if (container) container.classList.remove('loading');
+                
+                // Update active session indicator
+                updateActiveSessionIndicator(data.session.title);
+              } catch (error) {
+                console.error('Error handling loaded session:', error);
+                
+                // Remove loading indicator
+                const container = document.getElementById('system-controls-container');
+                if (container) container.classList.remove('loading');
+              }
+            }
+            
+            // Other handler functions and utilities...
+            
+            // Collect settings from all system components
+            function collectSettings() {
+              // Try to use central state management first
+              if (window.bambiSystem && typeof window.bambiSystem.collectSettings === 'function') {
+                return window.bambiSystem.collectSettings();
+              }
+              
+              // Fallback to direct collection
+              return {
+                activeTriggers: getActiveTriggers(),
+                collarSettings: getCollarSettings(),
+                spiralSettings: getSpiralSettings()
+              };
+            }
+            
+            // Public API
+            return {
+              init,
+              loadSession,
+              saveSession,
+              deleteSession,
+              getSessionsList,
+              getCurrentSessionId: () => currentSessionId,
+              isSessionDirty: () => isSessionDirty,
+              collectSettings
+            };
+          })();
+
+          // Initialize on page load
+          document.addEventListener('DOMContentLoaded', function() {
+            if (window.bambiSessions) {
+              window.bambiSessions.init();
+            }
+          });
+        </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
         <script src="js/bootstrap.min.js"></script>
