@@ -453,5 +453,77 @@ window.bambiSystem = (function() {
   };
 })();
 
+// Add this to your existing JSON storage parsing error fix script
+(function() {
+  // Fix specifically for system-controls.js loadFromStorage
+  const originalSystemControlsLoadFromStorage = window.loadFromStorage;
+  
+  if (typeof originalSystemControlsLoadFromStorage === 'function') {
+    window.loadFromStorage = function(key, defaultValue = {}) {
+      try {
+        const value = localStorage.getItem(key);
+        
+        // No value stored yet
+        if (!value) return defaultValue;
+        
+        // Check if already an object (might be from our patched localStorage.getItem)
+        if (typeof value === 'object' && value !== null) {
+          return value;
+        }
+        
+        // Otherwise try to parse it
+        return JSON.parse(value);
+      } catch (err) {
+        console.warn(`Error loading state for ${key}, using default`, err);
+        return defaultValue;
+      }
+    };
+  }
+  
+  // Fix for system state setters
+  const originalSetState = window.setState;
+  
+  if (typeof originalSetState === 'function') {
+    window.setState = function(key, value) {
+      try {
+        // Make sure we're stringifying objects before storage
+        if (typeof value === 'object' && value !== null) {
+          localStorage.setItem(key, JSON.stringify(value));
+        } else {
+          localStorage.setItem(key, value);
+        }
+        
+        // Dispatch event for any listeners
+        window.dispatchEvent(new CustomEvent('state-change', {
+          detail: { key, value }
+        }));
+        
+      } catch (err) {
+        console.warn(`Error saving state for ${key}`, err);
+      }
+    };
+  }
+  
+  // Patch for system-controls.js initialization
+  document.addEventListener('DOMContentLoaded', function() {
+    // Fix any existing corrupted state
+    try {
+      const keys = ['bambiSystemState', 'sessionSettings', 'triggerState', 'collarSettings', 'spiralSettings'];
+      
+      keys.forEach(key => {
+        const rawValue = localStorage.getItem(key);
+        
+        // Check if the value is stored as an object instead of a string
+        if (rawValue === "[object Object]") {
+          console.warn(`Found corrupted state for ${key}, resetting`);
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (err) {
+      console.error('Error fixing corrupted state:', err);
+    }
+  });
+})();
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', window.bambiSystem.init);
