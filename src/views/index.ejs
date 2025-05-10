@@ -2,7 +2,44 @@
 <html lang="en">
 <%- include('../views/partials/head.ejs') %>
   <title>BambiSleep.Chat AIGF</title>
-
+<style>
+  /* Force system controls visibility */
+  .system-controls-container {
+    display: block !important;
+    visibility: visible !important;
+    min-height: 150px !important;
+    opacity: 1 !important;
+    margin-top: 20px;
+    border: 1px solid rgba(255, 0, 128, 0.5);
+  }
+  
+  .system-controls {
+    display: block !important;
+    visibility: visible !important;
+  }
+  
+  .xp-progress-container {
+    display: flex !important;
+    visibility: visible !important;
+    min-height: 30px;
+    margin-top: 10px;
+  }
+  
+  /* Ensure control panels are visible */
+  #console, #buttons {
+    display: block !important;
+    min-height: 40px;
+  }
+  
+  /* Diagnostic outline to see what's where */
+  #console {
+    border: 1px dashed rgba(0, 255, 255, 0.3);
+  }
+  
+  #buttons {
+    border: 1px dashed rgba(255, 0, 255, 0.3);
+  }
+</style>
   <body data-username="<%= locals.username || '' %>">
     <%- include('../views/partials/nav.ejs') %>
       <div id="chat-container">
@@ -903,6 +940,106 @@
               window.bambiSessions.init();
             }
           });
+        </script>
+        <script>
+          (function() {
+            // Simple function to ensure controls are visible
+            function forceControlsVisibility() {
+              try {
+                // Target the system controls container
+                const container = document.getElementById('system-controls-container');
+                if (container) {
+                  // Make sure it's visible
+                  container.style.display = 'block';
+                  container.style.visibility = 'visible';
+                  container.style.opacity = '1';
+                  
+                  // Check if its height is collapsed
+                  if (container.offsetHeight < 50) {
+                    container.style.minHeight = '150px';
+                  }
+                  
+                  console.log('Forcing system controls visibility');
+                }
+                
+                // Target the XP components specifically
+                const xpContainer = document.querySelector('.xp-progress-container');
+                if (xpContainer) {
+                  xpContainer.style.display = 'flex';
+                  xpContainer.style.visibility = 'visible';
+                  xpContainer.style.opacity = '1';
+                }
+                
+                // Make the level indicator visible
+                const levelIndicator = document.getElementById('level-indicator');
+                if (levelIndicator) {
+                  levelIndicator.style.display = 'block';
+                  levelIndicator.style.visibility = 'visible';
+                  levelIndicator.style.opacity = '1';
+                }
+                
+                // Fill bar
+                const xpFill = document.getElementById('xp-progress-fill');
+                if (xpFill) {
+                  xpFill.style.display = 'block';
+                  xpFill.style.width = '20%'; // Default to something visible
+                }
+                
+                // Check if console and buttons divs are present
+                const console = document.getElementById('console');
+                const buttons = document.getElementById('buttons');
+                
+                if (console) {
+                  console.style.display = 'block';
+                  console.style.minHeight = '50px';
+                }
+                
+                if (buttons) {
+                  buttons.style.display = 'flex';
+                  buttons.style.minHeight = '40px';
+                }
+                
+              } catch (error) {
+                console.error('Error forcing controls visibility:', error);
+              }
+            }
+            
+            // Run immediately
+            forceControlsVisibility();
+            
+            // Also run after a delay to ensure DOM is fully rendered
+            setTimeout(forceControlsVisibility, 1000);
+            
+            // Run again after any potential animations
+            setTimeout(forceControlsVisibility, 3000);
+            
+            // Also check if bambiSystem exists and try to initialize if not
+            if (!window.bambiSystem) {
+              console.warn('BambiSystem not found - trying to initialize defaults');
+              
+              // Create minimal implementation if needed
+              window.bambiSystem = window.bambiSystem || {
+                getUserLevel: function() { return 1; },
+                getActiveTriggers: function() { return []; },
+                getCollarSettings: function() { return { enabled: false, text: '' }; },
+                getSpiralSettings: function() { return { enabled: false }; },
+                collectSettings: function() { 
+                  return {
+                    activeTriggers: [],
+                    collarSettings: { enabled: false, text: '' },
+                    spiralSettings: { enabled: false }
+                  };
+                },
+                applySessionSettings: function() { console.log('Applied dummy settings'); }
+              };
+              
+              // Try to trigger system initialization
+              document.dispatchEvent(new CustomEvent('system-initialized'));
+            }
+            
+            // Add this to window for manual troubleshooting
+            window.forceControlsVisibility = forceControlsVisibility;
+          })();
         </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
