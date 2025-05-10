@@ -127,8 +127,12 @@ window.bambiSystem = (function() {
   function loadFromStorage() {
     try {
       const saved = localStorage.getItem('bambiSystemState');
-      if (saved) {
-        const savedState = JSON.parse(saved);
+      if (!saved) return; // No saved state
+      
+      // Handle the case where saved is already an object
+      if (typeof saved === 'object' && saved !== null) {
+        // Already an object, use directly
+        const savedState = saved;
         
         // Merge saved state with defaults
         Object.keys(savedState).forEach(key => {
@@ -138,7 +142,27 @@ window.bambiSystem = (function() {
             state[key] = savedState[key];
           }
         });
+        return;
       }
+      
+      // Handle "[object Object]" string explicitly
+      if (saved === "[object Object]") {
+        console.warn('Found corrupted state string "[object Object]", resetting bambiSystemState');
+        localStorage.removeItem('bambiSystemState');
+        return;
+      }
+      
+      // Try to parse the string
+      const savedState = JSON.parse(saved);
+      
+      // Merge saved state with defaults
+      Object.keys(savedState).forEach(key => {
+        if (state[key] && typeof state[key] === 'object') {
+          state[key] = { ...state[key], ...savedState[key] };
+        } else {
+          state[key] = savedState[key];
+        }
+      });
       
       // Set user level from DOM if available
       const userLevel = parseInt(document.body.getAttribute('data-level') || '0');
@@ -147,6 +171,18 @@ window.bambiSystem = (function() {
       }
     } catch (e) {
       console.error('Error loading state:', e);
+      
+      // Attempt recovery by clearing the corrupted state
+      localStorage.removeItem('bambiSystemState');
+      
+      // Log details to help debug
+      try {
+        const saved = localStorage.getItem('bambiSystemState');
+        console.warn('Corrupted state value:', saved);
+        console.warn('Type:', typeof saved);
+      } catch (innerErr) {
+        // Nothing more we can do
+      }
     }
   }
   
@@ -398,9 +434,46 @@ window.bambiSystem = (function() {
   // Save state to localStorage
   function saveToStorage() {
     try {
-      localStorage.setItem('bambiSystemState', JSON.stringify(state));
+      // Check if state is valid before stringifying
+      if (!state || typeof state !== 'object') {
+        console.error('Invalid state object:', state);
+        return;
+      }
+      
+      // Create a clean copy without potential circular references
+      const cleanState = JSON.parse(JSON.stringify(state));
+      
+      // Save to localStorage
+      localStorage.setItem('bambiSystemState', JSON.stringify(cleanState));
+      
+      // Verify the save worked correctly
+      const savedValue = localStorage.getItem('bambiSystemState');
+      if (savedValue === "[object Object]") {
+        throw new Error('State was saved as "[object Object]" string');
+      }
     } catch (e) {
       console.error('Error saving state:', e);
+      
+      // More detailed error logging
+      if (e.name === 'QuotaExceededError') {
+        console.warn('LocalStorage quota exceeded. Try clearing some storage.');
+      } else if (e.name === 'SecurityError') {
+        console.warn('Security settings prevented saving to localStorage.');
+      }
+      
+      try {
+        // Try to save a minimal version of the state
+        const minimalState = {
+          xp: state.xp,
+          settings: state.settings
+        };
+        localStorage.setItem('bambiSystemState', JSON.stringify(minimalState));
+        console.log('Saved minimal state as fallback');
+      } catch (innerErr) {
+        // Last resort - clear the state to prevent further errors
+        localStorage.removeItem('bambiSystemState');
+        console.warn('Cleared state due to persistent errors');
+      }
     }
   }
   
@@ -453,77 +526,42 @@ window.bambiSystem = (function() {
   };
 })();
 
-// Add this to your existing JSON storage parsing error fix script
-(function() {
-  // Fix specifically for system-controls.js loadFromStorage
-  const originalSystemControlsLoadFromStorage = window.loadFromStorage;
-  
-  if (typeof originalSystemControlsLoadFromStorage === 'function') {
-    window.loadFromStorage = function(key, defaultValue = {}) {
-      try {
-        const value = localStorage.getItem(key);
-        
-        // No value stored yet
-        if (!value) return defaultValue;
-        
-        // Check if already an object (might be from our patched localStorage.getItem)
-        if (typeof value === 'object' && value !== null) {
-          return value;
-        }
-        
-        // Otherwise try to parse it
-        return JSON.parse(value);
-      } catch (err) {
-        console.warn(`Error loading state for ${key}, using default`, err);
-        return defaultValue;
-      }
-    };
-  }
-  
-  // Fix for system state setters
-  const originalSetState = window.setState;
-  
-  if (typeof originalSetState === 'function') {
-    window.setState = function(key, value) {
-      try {
-        // Make sure we're stringifying objects before storage
-        if (typeof value === 'object' && value !== null) {
-          localStorage.setItem(key, JSON.stringify(value));
-        } else {
-          localStorage.setItem(key, value);
-        }
-        
-        // Dispatch event for any listeners
-        window.dispatchEvent(new CustomEvent('state-change', {
-          detail: { key, value }
-        }));
-        
-      } catch (err) {
-        console.warn(`Error saving state for ${key}`, err);
-      }
-    };
-  }
-  
-  // Patch for system-controls.js initialization
-  document.addEventListener('DOMContentLoaded', function() {
-    // Fix any existing corrupted state
-    try {
-      const keys = ['bambiSystemState', 'sessionSettings', 'triggerState', 'collarSettings', 'spiralSettings'];
+// Fix known corrupted localStorage items on load
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    // Common keys that might be corrupted
+    const keysToCheck = [
+      'bambiSystemState', 
+      'sessionSettings', 
+      'triggerState', 
+      'collarSettings', 
+      'spiralSettings',
+      'audioSettings',
+      'xpData'
+    ];
+    
+    // Check each key
+    keysToCheck.forEach(key => {
+      const value = localStorage.getItem(key);
       
-      keys.forEach(key => {
-        const rawValue = localStorage.getItem(key);
-        
-        // Check if the value is stored as an object instead of a string
-        if (rawValue === "[object Object]") {
-          console.warn(`Found corrupted state for ${key}, resetting`);
+      // Check for common corruption patterns
+      if (value === "[object Object]" || value === "undefined" || value === "null") {
+        console.warn(`Found corrupted state for ${key}, resetting`);
+        localStorage.removeItem(key);
+      } else if (value) {
+        // Verify it's valid JSON if not null
+        try {
+          JSON.parse(value);
+        } catch (parseErr) {
+          console.warn(`Found invalid JSON for ${key}, resetting:`, value);
           localStorage.removeItem(key);
         }
-      });
-    } catch (err) {
-      console.error('Error fixing corrupted state:', err);
-    }
-  });
-})();
+      }
+    });
+  } catch (err) {
+    console.error('Error fixing corrupted state:', err);
+  }
+});
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', window.bambiSystem.init);
