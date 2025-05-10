@@ -8,6 +8,7 @@ window.bambiMood = (function() {
   let currentMood = 'neutral';
   const availableMoods = ['neutral', 'happy', 'angry', 'sad', 'excited'];
   let initialized = false;
+  let moodControlsCreated = false;
   
   // Initialize module
   function init() {
@@ -24,7 +25,7 @@ window.bambiMood = (function() {
         window.bambiConsole.moduleInitializing('bambiMood');
       }
       
-      // Check if system exists and register with it
+      // Register with system
       registerWithSystem();
       
       // Load saved mood if available
@@ -55,12 +56,11 @@ window.bambiMood = (function() {
   function registerWithSystem() {
     if (window.bambiSystem) {
       const moodAPI = {
-        getCurrentMood: getCurrentMood,
-        setMood: setMood,
-        getAvailableMoods: getAvailableMoods
+        getCurrentMood,
+        setMood,
+        getAvailableMoods
       };
       
-      // Check if registerModule exists
       if (typeof window.bambiSystem.registerModule === 'function') {
         window.bambiSystem.registerModule('mood', moodAPI);
         
@@ -69,10 +69,10 @@ window.bambiMood = (function() {
         }
       } else {
         if (window.bambiConsole) {
-          window.bambiConsole.warn('bambiMood', 'bambiSystem.registerModule is not available. Implementation needed.');
+          window.bambiConsole.warn('bambiMood', 'bambiSystem.registerModule is not available');
         }
         
-        // Implement missing registerModule function on bambiSystem
+        // Simple implementation if needed
         if (!window.bambiSystem.registeredModules) {
           window.bambiSystem.registeredModules = {};
         }
@@ -82,12 +82,7 @@ window.bambiMood = (function() {
           return true;
         };
         
-        // Register with our implementation
         window.bambiSystem.registerModule('mood', moodAPI);
-        
-        if (window.bambiConsole) {
-          window.bambiConsole.log('bambiMood', 'Created and registered with bambiSystem');
-        }
       }
     }
   }
@@ -108,38 +103,32 @@ window.bambiMood = (function() {
   // Set up UI controls for mood selection
   function setupMoodControls() {
     try {
+      // Avoid duplicate setup
+      if (moodControlsCreated) {
+        return;
+      }
+      
       // First try to find existing mood selector
       let moodSelector = document.getElementById('mood-selector');
       
-      // If not found, create it in the system control panel if available
+      // If not found, create it
       if (!moodSelector) {
         if (window.bambiConsole) {
           window.bambiConsole.warn('bambiMood', 'Mood selector element not found in DOM, creating it');
         }
         
-        // Find system control panel first (preferred container)
+        // Find system control panel
         let container = document.getElementById('system-control-panel');
         
-        // If system panel doesn't exist, look for other containers
-        if (!container) {
-          container = document.querySelector('.control-container') || 
-                      document.querySelector('.control-panel') ||
-                      document.querySelector('.system-controls-container');
-        }
-        
-        // Create container if none exists
+        // If system panel doesn't exist, create it
         if (!container) {
           container = document.createElement('div');
-          container.className = 'control-container mood-control-container';
-          container.id = 'mood-control-container';
+          container.id = 'system-control-panel';
+          container.className = 'system-control-panel';
           document.body.appendChild(container);
-          
-          if (window.bambiConsole) {
-            window.bambiConsole.log('bambiMood', 'Created mood control container');
-          }
         }
         
-        // Create mood control panel with proper class that matches system controls
+        // Create mood control panel
         const moodPanel = document.createElement('div');
         moodPanel.className = 'control-panel mood-control-panel';
         moodPanel.id = 'mood-control-panel';
@@ -161,15 +150,15 @@ window.bambiMood = (function() {
         }
       }
       
-      // Check if we have the selector now
+      // Check if selector was successfully created
       if (!moodSelector) {
         if (window.bambiConsole) {
-          window.bambiConsole.error('bambiMood', 'Failed to create mood selector, UI controls unavailable');
+          window.bambiConsole.error('bambiMood', 'Failed to create mood selector');
         }
         return;
       }
       
-      // Create mood options if they don't exist
+      // Create mood options
       if (moodSelector.children.length === 0) {
         availableMoods.forEach(mood => {
           const option = document.createElement('option');
@@ -193,11 +182,11 @@ window.bambiMood = (function() {
       });
       
       // Notify system about control panel
-      if (document.getElementById('mood-control-panel')) {
-        document.dispatchEvent(new CustomEvent('control-panel-added', {
-          detail: { panelId: 'mood-control-panel' }
-        }));
-      }
+      document.dispatchEvent(new CustomEvent('control-panel-added', {
+        detail: { panelId: 'mood-control-panel' }
+      }));
+      
+      moodControlsCreated = true;
       
       if (window.bambiConsole) {
         window.bambiConsole.log('bambiMood', 'Mood controls set up successfully');
@@ -223,9 +212,13 @@ window.bambiMood = (function() {
       
       // Save mood state if system is available
       if (window.bambiSystem && window.bambiSystem.saveState) {
-        window.bambiSystem.saveState('mood', { 
-          currentMood: mood 
-        });
+        window.bambiSystem.saveState('mood', { currentMood: mood });
+      }
+      
+      // Update selector if it exists
+      const moodSelector = document.getElementById('mood-selector');
+      if (moodSelector) {
+        moodSelector.value = mood;
       }
       
       // Dispatch event for other modules
@@ -278,22 +271,17 @@ window.bambiMood = (function() {
   return api;
 })();
 
-// Wait for both events but only initialize once
-let domReady = false;
-let systemReady = false;
+// Initialization approach - fix timing issues
+let systemInitialized = false;
 
+// Initialize at DOMContentLoaded if system is already initialized
 document.addEventListener('DOMContentLoaded', function() {
   if (window.bambiConsole) {
-    window.bambiConsole.log('bambiMood', 'DOM content loaded');
+    window.bambiConsole.log('bambiMood', 'DOM content loaded, initializing mood system');
   }
   
-  domReady = true;
-  
-  // If system is already ready, initialize
-  if (systemReady) {
-    window.bambiMood.init();
-  } else if (!window.bambiSystem) {
-    // If no system exists, initialize anyway
+  // Only initialize immediately if system is ready or not present
+  if (systemInitialized || !window.bambiSystem) {
     window.bambiMood.init();
   }
 });
@@ -304,20 +292,16 @@ document.addEventListener('system-ready', function() {
     window.bambiConsole.log('bambiMood', 'System ready event received');
   }
   
-  systemReady = true;
-  
-  // Only initialize if not done from DOMContentLoaded
-  if (domReady) {
-    window.bambiMood.init();
-  }
+  systemInitialized = true;
+  window.bambiMood.init();
 });
 
-// Fallback initialization after a delay
+// Fallback initialization for reliability
 setTimeout(function() {
-  if (!domReady && !systemReady) {
+  if (!document.getElementById('mood-selector')) {
     if (window.bambiConsole) {
-      window.bambiConsole.warn('bambiMood', 'Fallback initialization after timeout');
+      window.bambiConsole.warn('bambiMood', 'Fallback initialization - mood controls not found');
     }
     window.bambiMood.init();
   }
-}, 2000);
+}, 1000);
