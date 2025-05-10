@@ -638,6 +638,92 @@ window.bambiSystem = (function() {
   fixStateStorage();
 })();
 
+// Comprehensive fix for bambiSystemState object storage issues
+(function() {
+  // Override the original saveToStorage function specifically for bambiSystemState
+  const originalSaveToStorageFn = window.bambiSystem.saveToStorage;
+  
+  if (typeof originalSaveToStorageFn === 'function') {
+    window.bambiSystem.saveToStorage = function() {
+      try {
+        // Always ensure state is properly stringified
+        if (window.bambiSystem && window.bambiSystem.getState) {
+          const state = window.bambiSystem.getState('all');
+          
+          // Ensure state is valid
+          if (!state || typeof state !== 'object') {
+            console.error('Invalid state object:', state);
+            return;
+          }
+          
+          // Prevent circular references by JSON stringify+parse
+          const cleanState = JSON.parse(JSON.stringify(state));
+          
+          // Explicitly stringify before saving
+          localStorage.setItem('bambiSystemState', JSON.stringify(cleanState));
+          
+          // Verify storage worked correctly
+          const savedValue = localStorage.getItem('bambiSystemState');
+          if (savedValue === "[object Object]") {
+            console.error('State was incorrectly saved as "[object Object]" string');
+            localStorage.removeItem('bambiSystemState');
+          }
+        }
+      } catch (e) {
+        console.error('Error in patched saveToStorage:', e);
+        
+        // Attempt recovery
+        localStorage.removeItem('bambiSystemState');
+      }
+    };
+  }
+  
+  // Also patch localStorage.setItem to provide extra protection
+  const originalSetItem = Storage.prototype.setItem;
+  
+  Storage.prototype.setItem = function(key, value) {
+    // Special handling for system state
+    if (key === 'bambiSystemState') {
+      // Ensure value is a string
+      if (typeof value !== 'string') {
+        try {
+          value = JSON.stringify(value);
+        } catch (e) {
+          console.error('Error stringifying bambiSystemState:', e);
+          // Don't set corrupted value
+          return;
+        }
+      }
+      
+      // Check if the value is a valid JSON string
+      try {
+        // Make sure it's parseable as JSON
+        JSON.parse(value);
+      } catch (e) {
+        console.error('Preventing invalid JSON from being saved to bambiSystemState:', e);
+        return;
+      }
+    }
+    
+    // Call original with possibly fixed value
+    return originalSetItem.call(this, key, value);
+  };
+  
+  // Run validation immediately to fix any existing issues
+  try {
+    const rawState = localStorage.getItem('bambiSystemState');
+    
+    // Handle if we got an actual object back somehow
+    if (rawState !== null && typeof rawState === 'object') {
+      console.warn('bambiSystemState is an actual object, converting to string');
+      localStorage.setItem('bambiSystemState', JSON.stringify(rawState));
+    }
+  } catch (err) {
+    console.error('Error checking bambiSystemState:', err);
+    localStorage.removeItem('bambiSystemState');
+  }
+})();
+
 // Fix known corrupted localStorage items on load
 document.addEventListener('DOMContentLoaded', function() {
   try {
