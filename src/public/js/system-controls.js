@@ -279,3 +279,118 @@ window.bambiSystem = (function () {
 })();
 
 document.addEventListener('DOMContentLoaded', window.bambiSystem.init);
+
+/**
+ * Main system controls integration
+ * Loads and initializes all control components
+ */
+(function() {
+  // System control state
+  const systemState = {
+    activeComponent: 'triggers',
+    componentsLoaded: {
+      triggers: false,
+      collar: false,
+      sessions: false,
+      spirals: false,
+      hypnosis: false,
+      audios: false,
+      brainwaves: false
+    }
+  };
+
+  // Initialize the system
+  function initSystemControls() {
+    setupEventListeners();
+    loadUserSettings();
+    checkComponentsReady();
+  }
+
+  // Setup global event listeners
+  function setupEventListeners() {
+    // Listen for component load events
+    document.addEventListener('triggers-loaded', () => markComponentLoaded('triggers'));
+    document.addEventListener('collar-loaded', () => markComponentLoaded('collar'));
+    document.addEventListener('sessions-loaded', () => markComponentLoaded('sessions'));
+    document.addEventListener('spirals-loaded', () => markComponentLoaded('spirals'));
+    document.addEventListener('hypnosis-loaded', () => markComponentLoaded('hypnosis'));
+    document.addEventListener('audios-loaded', () => markComponentLoaded('audios'));
+    document.addEventListener('brainwaves-loaded', () => markComponentLoaded('brainwaves'));
+    
+    // Track active component
+    const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
+    controlButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const targetId = this.getAttribute('data-target');
+        if (targetId) {
+          const componentName = targetId.replace('-panel', '');
+          systemState.activeComponent = componentName;
+        }
+      });
+    });
+  }
+
+  // Mark component as loaded and ready
+  function markComponentLoaded(componentName) {
+    systemState.componentsLoaded[componentName] = true;
+    console.log(`${componentName} component loaded`);
+  }
+
+  // Check if all components are ready
+  function checkComponentsReady() {
+    document.addEventListener('trigger-controls-loaded', function() {
+      console.log('All trigger controls loaded');
+      // Dispatch global ready event when all essential components are loaded
+      document.dispatchEvent(new CustomEvent('system-controls-ready'));
+    });
+  }
+
+  // Load user settings from localStorage
+  function loadUserSettings() {
+    try {
+      // Load any global settings needed
+      const storedSettings = localStorage.getItem('bambiSystemSettings');
+      if (storedSettings) {
+        const settings = JSON.parse(storedSettings);
+        applyStoredSettings(settings);
+      }
+    } catch (error) {
+      console.warn('Error loading system settings:', error);
+    }
+  }
+
+  // Apply stored settings to UI
+  function applyStoredSettings(settings) {
+    // Apply any global settings that affect multiple components
+    if (settings.lastActiveTab) {
+      const tabButton = document.querySelector(`.control-btn[data-target="${settings.lastActiveTab}"]`);
+      if (tabButton && !tabButton.classList.contains('disabled')) {
+        tabButton.click();
+      }
+    }
+  }
+
+  // Save current system state
+  function saveSystemState() {
+    try {
+      const systemSettings = {
+        lastActiveTab: `${systemState.activeComponent}-panel`,
+        // Add any other global settings here
+      };
+      
+      localStorage.setItem('bambiSystemSettings', JSON.stringify(systemSettings));
+    } catch (error) {
+      console.warn('Error saving system settings:', error);
+    }
+  }
+
+  // Add window event handlers to save state
+  window.addEventListener('beforeunload', saveSystemState);
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSystemControls);
+  } else {
+    initSystemControls();
+  }
+})();
