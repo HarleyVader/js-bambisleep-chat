@@ -1,11 +1,12 @@
+// Advanced binaural pattern control system
 document.addEventListener('DOMContentLoaded', function() {
-  // Core audio components
+  // Audio elements
   let audioCtx = null;
   let leftOsc = null;
   let rightOsc = null;
   let gainNode = null;
   let isPlaying = false;
-  let activePattern = null;
+  let pattern = null;
   let transitionTimer = null;
   
   // DOM elements
@@ -24,8 +25,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const scienceLink = document.getElementById('science-link');
   const canvas = document.getElementById('pattern-visualization');
   
-  // Skip if elements don't exist
-  if (!patternSelect || !playBtn) return;
+  // Skip if not on advanced panel
+  if (!playBtn || !patternSelect) return;
   
   // Predefined patterns
   const patterns = {
@@ -60,24 +61,102 @@ document.addEventListener('DOMContentLoaded', function() {
     custom: "Design your own sequence of brainwave states."
   };
   
-  // Set up event listeners
-  patternSelect?.addEventListener('change', function() {
-    const pattern = this.value;
-    customContainer.style.display = pattern === 'custom' ? '' : 'none';
-    patternDesc.textContent = descriptions[pattern] || descriptions.custom;
-    renderVisualization();
-  });
+  // Initialize
+  function init() {
+    loadSettings();
+    setupListeners();
+    drawVisualization();
+  }
   
-  durationSlider?.addEventListener('input', function() {
-    durationValue.textContent = this.value + ' minutes';
-    renderVisualization();
-  });
+  // Load saved settings
+  function loadSettings() {
+    if (window.bambiSystem?.state?.advanced) {
+      const settings = window.bambiSystem.state.advanced;
+      
+      // Update controls
+      if (enableToggle) enableToggle.checked = settings.enabled;
+      if (patternSelect) patternSelect.value = settings.pattern || 'descent';
+      if (durationSlider) durationSlider.value = settings.duration || 20;
+      if (transitionSlider) transitionSlider.value = settings.transition || 30;
+      
+      // Update displays
+      if (durationValue) durationValue.textContent = (settings.duration || 20) + ' minutes';
+      if (transitionValue) transitionValue.textContent = (settings.transition || 30) + ' seconds';
+      
+      // Update description
+      if (patternDesc) {
+        patternDesc.textContent = descriptions[settings.pattern] || descriptions.descent;
+      }
+      
+      // Show/hide custom pattern
+      if (customContainer) {
+        customContainer.style.display = settings.pattern === 'custom' ? '' : 'none';
+      }
+      
+      // Load custom pattern segments
+      if (settings.pattern === 'custom' && settings.custom?.length > 0) {
+        loadCustomPatternSegments(settings.custom);
+      }
+    }
+  }
   
-  transitionSlider?.addEventListener('input', function() {
-    transitionValue.textContent = this.value + ' seconds';
-  });
+  // Setup event listeners
+  function setupListeners() {
+    if (patternSelect) {
+      patternSelect.addEventListener('change', function() {
+        const pattern = this.value;
+        
+        // Toggle custom pattern editor
+        if (customContainer) {
+          customContainer.style.display = pattern === 'custom' ? '' : 'none';
+        }
+        
+        // Update description
+        if (patternDesc) {
+          patternDesc.textContent = descriptions[pattern] || descriptions.custom;
+        }
+        
+        // Update visualization
+        drawVisualization();
+      });
+    }
+    
+    if (durationSlider) {
+      durationSlider.addEventListener('input', function() {
+        if (durationValue) durationValue.textContent = this.value + ' minutes';
+        drawVisualization();
+      });
+    }
+    
+    if (transitionSlider) {
+      transitionSlider.addEventListener('input', function() {
+        if (transitionValue) transitionValue.textContent = this.value + ' seconds';
+      });
+    }
+    
+    if (addSegmentBtn) {
+      addSegmentBtn.addEventListener('click', addPatternSegment);
+    }
+    
+    if (scienceLink) {
+      scienceLink.addEventListener('click', showScienceInfo);
+    }
+    
+    if (playBtn) {
+      playBtn.addEventListener('click', playPattern);
+    }
+    
+    if (stopBtn) {
+      stopBtn.addEventListener('click', stopPattern);
+    }
+    
+    if (saveBtn) {
+      saveBtn.addEventListener('click', saveSettings);
+    }
+  }
   
-  addSegmentBtn?.addEventListener('click', function() {
+  // Add a new pattern segment
+  function addPatternSegment() {
     const container = document.querySelector('.pattern-segments');
     if (!container) return;
     
@@ -96,34 +175,131 @@ document.addEventListener('DOMContentLoaded', function() {
     
     container.appendChild(segment);
     
+    // Add remove button handler
     segment.querySelector('.remove-segment').addEventListener('click', function() {
       container.removeChild(segment);
-      renderVisualization();
+      drawVisualization();
     });
     
-    renderVisualization();
-  });
-  
-  scienceLink?.addEventListener('click', showScienceInfo);
-  playBtn?.addEventListener('click', playPattern);
-  stopBtn?.addEventListener('click', stopPattern);
-  saveBtn?.addEventListener('click', saveSettings);
-  
-  // Initialize visualization
-  if (canvas) {
-    renderVisualization();
+    drawVisualization();
   }
   
-  // Core functions
-  function getFrequency(waveType) {
-    const frequencies = { beta: 20, alpha: 10, theta: 6, delta: 2 };
-    return frequencies[waveType] || 10;
-  }
-  
-  function getPatternSequence() {
-    const pattern = patternSelect.value;
+  // Load custom pattern segments
+  function loadCustomPatternSegments(segments) {
+    const container = document.querySelector('.pattern-segments');
+    if (!container) return;
     
-    if (pattern === 'custom') {
+    // Clear existing segments
+    container.innerHTML = '';
+    
+    // Add saved segments
+    segments.forEach(segment => {
+      const element = document.createElement('div');
+      element.className = 'pattern-segment';
+      element.innerHTML = `
+        <select class="segment-wave">
+          <option value="alpha" ${segment.wave === 'alpha' ? 'selected' : ''}>Alpha</option>
+          <option value="theta" ${segment.wave === 'theta' ? 'selected' : ''}>Theta</option>
+          <option value="delta" ${segment.wave === 'delta' ? 'selected' : ''}>Delta</option>
+          <option value="beta" ${segment.wave === 'beta' ? 'selected' : ''}>Beta</option>
+        </select>
+        <input type="number" class="segment-duration" min="1" max="60" value="${segment.duration}"> mins
+        <button class="remove-segment">×</button>
+      `;
+      
+      container.appendChild(element);
+      
+      // Add remove button handler
+      element.querySelector('.remove-segment').addEventListener('click', function() {
+        container.removeChild(element);
+        drawVisualization();
+      });
+    });
+  }
+  
+  // Draw pattern visualization
+  function drawVisualization() {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw frequency bands
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, 'rgba(255, 51, 102, 0.3)');  // Beta
+    gradient.addColorStop(0.25, 'rgba(51, 170, 255, 0.3)'); // Alpha
+    gradient.addColorStop(0.5, 'rgba(170, 85, 255, 0.3)');  // Theta
+    gradient.addColorStop(0.75, 'rgba(85, 255, 170, 0.3)'); // Delta
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw band lines
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+    
+    [0.25, 0.5, 0.75].forEach(pos => {
+      const y = canvas.height * pos;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    });
+    
+    // Get current pattern
+    const sequence = getPatternSequence();
+    if (!sequence.length) return;
+    
+    // Draw pattern line
+    const totalTime = sequence.reduce((sum, seg) => sum + seg.time, 0);
+    let xPos = 0;
+    
+    ctx.beginPath();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    
+    sequence.forEach((segment, i) => {
+      const segWidth = (segment.time / totalTime) * canvas.width;
+      const yPos = canvas.height - (segment.freq / 30 * canvas.height);
+      
+      if (i === 0) {
+        ctx.moveTo(xPos, yPos);
+      } else {
+        ctx.lineTo(xPos, yPos);
+      }
+      
+      ctx.lineTo(xPos + segWidth, yPos);
+      
+      // Draw segment marker
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(xPos, yPos, 3, 0, Math.PI * 2);
+      ctx.fill();
+      
+      xPos += segWidth;
+    });
+    
+    // Draw last marker
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(xPos, canvas.height - (sequence[sequence.length-1].freq / 30 * canvas.height), 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Finish line
+    ctx.stroke();
+  }
+  
+  // Get current pattern sequence
+  function getPatternSequence() {
+    const patternType = patternSelect.value;
+    
+    if (patternType === 'custom') {
       const segments = document.querySelectorAll('.pattern-segment');
       const customPattern = [];
       
@@ -133,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         customPattern.push({
           wave: wave,
-          freq: getFrequency(wave),
+          freq: getWaveFrequency(wave),
           time: time
         });
       });
@@ -141,9 +317,16 @@ document.addEventListener('DOMContentLoaded', function() {
       return customPattern.length ? customPattern : patterns.descent;
     }
     
-    return patterns[pattern] || patterns.descent;
+    return patterns[patternType] || patterns.descent;
   }
   
+  // Get frequency for a wave type
+  function getWaveFrequency(waveType) {
+    const frequencies = { beta: 20, alpha: 10, theta: 6, delta: 2 };
+    return frequencies[waveType] || 10;
+  }
+  
+  // Play pattern
   function playPattern() {
     if (isPlaying) return;
     
@@ -183,15 +366,14 @@ document.addEventListener('DOMContentLoaded', function() {
       // Process pattern sequence
       schedulePattern(sequence);
       
-      // Show notification
-      showNotification("Pattern playback started");
-      
+      showMessage("Pattern playback started");
     } catch (error) {
       console.error('Binaural playback error:', error);
-      showNotification("Failed to start audio");
+      showMessage("Failed to start audio", true);
     }
   }
   
+  // Schedule pattern progression
   function schedulePattern(sequence) {
     if (!sequence.length) return;
     
@@ -202,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalSegmentTime = sequence.reduce((sum, seg) => sum + seg.time, 0);
     const scaleFactor = totalDuration / totalSegmentTime;
     
-    activePattern = {
+    pattern = {
       sequence: sequence,
       startTime: Date.now(),
       segmentIndex: 0,
@@ -215,8 +397,8 @@ document.addEventListener('DOMContentLoaded', function() {
     scheduleNextTransition();
   }
   
+  // Schedule next transition
   function scheduleNextTransition() {
-    const pattern = activePattern;
     if (!pattern || !isPlaying) return;
     
     const currentSeg = pattern.sequence[pattern.segmentIndex];
@@ -242,6 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
+  // Transition between frequencies
   function transitionFrequency(fromFreq, toFreq, duration) {
     if (!rightOsc || !isPlaying) return;
     
@@ -268,6 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, stepTime);
   }
   
+  // Stop pattern playback
   function stopPattern() {
     if (!isPlaying) return;
     
@@ -284,91 +468,17 @@ document.addEventListener('DOMContentLoaded', function() {
     playBtn.disabled = false;
     stopBtn.disabled = true;
     
-    showNotification("Pattern playback stopped");
+    showMessage("Pattern playback stopped");
   }
   
-  function renderVisualization() {
-    const ctx = canvas?.getContext('2d');
-    if (!ctx) return;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Add background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw frequency bands
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, 'rgba(255, 51, 102, 0.3)');  // Beta
-    gradient.addColorStop(0.25, 'rgba(51, 170, 255, 0.3)'); // Alpha
-    gradient.addColorStop(0.5, 'rgba(170, 85, 255, 0.3)');  // Theta
-    gradient.addColorStop(0.75, 'rgba(85, 255, 170, 0.3)'); // Delta
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw band lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 1;
-    
-    [0.25, 0.5, 0.75].forEach(pos => {
-      const y = canvas.height * pos;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    });
-    
-    // Draw pattern
-    const sequence = getPatternSequence();
-    if (!sequence.length) return;
-    
-    const totalTime = sequence.reduce((sum, seg) => sum + seg.time, 0);
-    let xPos = 0;
-    
-    ctx.beginPath();
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 2;
-    
-    sequence.forEach((segment, i) => {
-      const segWidth = (segment.time / totalTime) * canvas.width;
-      const yPos = canvas.height - (segment.freq / 30 * canvas.height); // Map 0-30Hz
-      
-      if (i === 0) {
-        ctx.moveTo(xPos, yPos);
-      } else {
-        ctx.lineTo(xPos, yPos);
-      }
-      
-      ctx.lineTo(xPos + segWidth, yPos);
-      
-      // Draw segment marker
-      ctx.fillStyle = 'white';
-      ctx.beginPath();
-      ctx.arc(xPos, yPos, 3, 0, Math.PI * 2);
-      ctx.fill();
-      
-      xPos += segWidth;
-    });
-    
-    // Draw last marker
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.arc(xPos, canvas.height - (sequence[sequence.length-1].freq / 30 * canvas.height), 3, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Finish line
-    ctx.stroke();
-  }
-  
+  // Save current settings
   function saveSettings() {
     const settings = {
-      advancedBinauralEnabled: enableToggle.checked,
-      binauralPattern: patternSelect.value,
-      patternDuration: parseInt(durationSlider.value),
-      transitionTime: parseInt(transitionSlider.value),
-      customPattern: []
+      enabled: enableToggle.checked,
+      pattern: patternSelect.value,
+      duration: parseInt(durationSlider.value),
+      transition: parseInt(transitionSlider.value),
+      custom: []
     };
     
     // Get custom pattern if selected
@@ -376,26 +486,20 @@ document.addEventListener('DOMContentLoaded', function() {
       const segments = document.querySelectorAll('.pattern-segment');
       
       segments.forEach(segment => {
-        settings.customPattern.push({
+        settings.custom.push({
           wave: segment.querySelector('.segment-wave').value,
           duration: parseInt(segment.querySelector('.segment-duration').value)
         });
       });
     }
     
-    // Save to system state
-    if (window.bambiSystem?.saveAdvancedBinaural) {
-      window.bambiSystem.saveAdvancedBinaural(settings);
-      showNotification("Settings saved");
-    } else {
-      // Fallback to localStorage
-      const state = JSON.parse(localStorage.getItem('bambiSystemState') || '{}');
-      state.advancedBinaural = settings;
-      localStorage.setItem('bambiSystemState', JSON.stringify(state));
-      showNotification("Settings saved");
+    if (window.bambiSystem?.saveState) {
+      window.bambiSystem.saveState('advanced', settings);
+      showMessage("Settings saved");
     }
   }
   
+  // Show science info modal
   function showScienceInfo(e) {
     e.preventDefault();
     
@@ -427,8 +531,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  function showNotification(message, type = 'info') {
-    // Simple notification display
+  // Show message
+  function showMessage(message, isError) {
     const notification = document.createElement('div');
     notification.className = 'notification';
     notification.textContent = message;
@@ -436,7 +540,7 @@ document.addEventListener('DOMContentLoaded', function() {
     notification.style.bottom = '20px';
     notification.style.right = '20px';
     notification.style.padding = '10px 15px';
-    notification.style.background = type === 'error' ? '#ff3366' : '#0088ff';
+    notification.style.background = isError ? '#ff3366' : '#0088ff';
     notification.style.color = 'white';
     notification.style.borderRadius = '4px';
     notification.style.opacity = '0';
@@ -448,15 +552,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setTimeout(() => {
       notification.style.opacity = '0';
-      setTimeout(() => document.body.removeChild(notification), 300);
+      setTimeout(() => notification.remove(), 300);
     }, 3000);
   }
   
-  // Clean up on page unload
+  // Cleanup on page unload
   window.addEventListener('beforeunload', function() {
     if (isPlaying) stopPattern();
   });
   
-  // Signal component ready
+  // Start initialization
+  init();
+  
+  // Notify system
   document.dispatchEvent(new CustomEvent('advanced-binaural-loaded'));
 });
