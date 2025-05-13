@@ -48,10 +48,6 @@ document.addEventListener('DOMContentLoaded', function() {
       customFreqContainer.style.display = '';
     } else {
       customFreqContainer.style.display = 'none';
-      if (frequencies[mode]) {
-        customFrequencySlider.value = frequencies[mode];
-        customFrequencyValue.textContent = frequencies[mode] + ' Hz';
-      }
     }
     
     // Update description
@@ -87,38 +83,30 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isPlaying) return;
     
     try {
-      // Initialize audio context if needed
+      // Create audio context if not exists
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
       }
       
-      // Create gain node for volume control
+      // Create gain node
       gainNode = audioContext.createGain();
       gainNode.gain.value = volumeSlider.value / 100;
       gainNode.connect(audioContext.destination);
       
-      // Create stereo panner for left/right ear separation
-      const pannerLeft = audioContext.createStereoPanner();
-      pannerLeft.pan.value = -1; // Full left
-      pannerLeft.connect(gainNode);
-      
-      const pannerRight = audioContext.createStereoPanner();
-      pannerRight.pan.value = 1; // Full right
-      pannerRight.connect(gainNode);
-      
       // Create oscillators
-      const baseFreq = parseFloat(carrierFrequencySlider.value);
-      const beatFreq = parseFloat(customFrequencySlider.value);
-      
       oscillatorLeft = audioContext.createOscillator();
-      oscillatorLeft.type = 'sine';
-      oscillatorLeft.frequency.value = baseFreq;
-      oscillatorLeft.connect(pannerLeft);
-      
       oscillatorRight = audioContext.createOscillator();
-      oscillatorRight.type = 'sine';
-      oscillatorRight.frequency.value = baseFreq + beatFreq;
-      oscillatorRight.connect(pannerRight);
+      
+      // Create channel merger for stereo
+      const merger = audioContext.createChannelMerger(2);
+      
+      // Connect oscillators to specific channels
+      oscillatorLeft.connect(merger, 0, 0);  // Left channel
+      oscillatorRight.connect(merger, 0, 1); // Right channel
+      merger.connect(gainNode);
+      
+      // Set frequencies
+      updateBinauralBeat();
       
       // Start oscillators
       oscillatorLeft.start();
@@ -128,12 +116,10 @@ document.addEventListener('DOMContentLoaded', function() {
       playButton.disabled = true;
       stopButton.disabled = false;
       
-      // Notify user
-      showNotification('Binaural beat started', 'info');
-      
+      showNotification("Binaural beats playing", "success");
     } catch (error) {
       console.error('Error starting binaural beat:', error);
-      showNotification('Failed to start audio. Please try again.', 'error');
+      showNotification("Failed to start audio: " + error.message, "error");
     }
   });
   
@@ -147,14 +133,12 @@ document.addEventListener('DOMContentLoaded', function() {
       
       oscillatorLeft = null;
       oscillatorRight = null;
-      gainNode = null;
       
       isPlaying = false;
       playButton.disabled = false;
       stopButton.disabled = true;
       
-      showNotification('Binaural beat stopped', 'info');
-      
+      showNotification("Binaural beats stopped", "info");
     } catch (error) {
       console.error('Error stopping binaural beat:', error);
     }
@@ -173,49 +157,73 @@ document.addEventListener('DOMContentLoaded', function() {
     // Save to system state first
     if (window.bambiSystem && typeof window.bambiSystem.saveBrainwaveSettings === 'function') {
       window.bambiSystem.saveBrainwaveSettings(settings);
-    }
-    
-    // Then save to server
-    fetch('/api/profile/system-controls', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ systemControls: settings })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        showNotification('Brainwave settings saved', 'success');
-      } else {
-        showNotification('Failed to save settings', 'error');
+      showNotification("Brainwave settings saved", "success");
+    } else {
+      // Fallback - save directly to localStorage
+      try {
+        // Get existing state
+        let state = {};
+        try {
+          const stateJson = localStorage.getItem('bambiSystemState');
+          if (stateJson) {
+            state = JSON.parse(stateJson);
+          }
+        } catch(e) {
+          console.error('Error parsing system state:', e);
+          state = {};
+        }
+        
+        // Update with brainwave settings
+        state.brainwaves = settings;
+        
+        // Save back to localStorage
+        localStorage.setItem('bambiSystemState', JSON.stringify(state));
+        showNotification("Brainwave settings saved", "success");
+      } catch(e) {
+        console.error('Error saving to localStorage:', e);
+        showNotification("Failed to save settings", "error");
       }
-    })
-    .catch(error => {
-      console.error('Error saving brainwave settings:', error);
-      showNotification('Error saving settings', 'error');
-    });
+    }
   });
   
   // Update binaural beat frequencies
   function updateBinauralBeat() {
     if (!oscillatorLeft || !oscillatorRight) return;
     
-    const baseFreq = parseFloat(carrierFrequencySlider.value);
-    const beatFreq = parseFloat(customFrequencySlider.value);
+    const mode = brainwaveMode.value;
+    let frequency = 0;
     
-    oscillatorLeft.frequency.value = baseFreq;
-    oscillatorRight.frequency.value = baseFreq + beatFreq;
+    if (mode === 'custom') {
+      frequency = parseFloat(customFrequencySlider.value);
+    } else {
+      frequency = frequencies[mode] || 10; // Default to alpha if unknown
+    }
+    
+    const carrierFrequency = parseFloat(carrierFrequencySlider.value);
+    
+    // Set frequencies for left and right ears
+    oscillatorLeft.frequency.value = carrierFrequency;
+    oscillatorRight.frequency.value = carrierFrequency + frequency;
   }
   
   // Show notification
   function showNotification(message, type = 'info') {
-    if (window.showNotification) {
-      window.showNotification(message, type);
-    } else {
-      // Fallback if global notification function isn't available
-      console.log(`${type.toUpperCase()}: ${message}`);
-    }
+    const notification = document.createElement('div');
+    notification.className = 'notification notification-' + type;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+      notification.classList.remove('show');
+      setTimeout(() => {
+        notification.remove();
+      }, 300);
+    }, 3000);
   }
   
   // Send loaded event when component is ready
