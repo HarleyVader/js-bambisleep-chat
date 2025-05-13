@@ -221,6 +221,11 @@
 
             socket.on('level-up', function(data) {
               showLevelUpNotification(data.level);
+              
+              // Update UI for new level
+              if (window.bambiXPProgress && typeof window.bambiXPProgress.updateUIForLevelUp === 'function') {
+                window.bambiXPProgress.updateUIForLevelUp(data.level);
+              }
             });
 
             function updateXPDisplay(data) {
