@@ -316,6 +316,70 @@ window.bambiSystem = (function () {
   };
 })();
 
+// System controls coordinator
+document.addEventListener("DOMContentLoaded", function() {
+  // Track loaded components
+  const componentsState = {
+    triggers: false,
+    collar: false,
+    sessions: false,
+    spirals: false,
+    hypnosis: false,
+    audios: false,
+    brainwaves: false
+  };
+  
+  // Simple last-used tab persistence
+  function loadLastTab() {
+    const lastTab = localStorage.getItem('bambiLastTab');
+    if (lastTab) {
+      const tabButton = document.querySelector(`.control-btn[data-target="${lastTab}"]`);
+      if (tabButton && !tabButton.classList.contains('disabled')) {
+        tabButton.click();
+      }
+    }
+  }
+  
+  // Save last active tab
+  const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
+  controlButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const targetId = this.getAttribute('data-target');
+      if (targetId) {
+        localStorage.setItem('bambiLastTab', targetId);
+      }
+    });
+  });
+  
+  // Listen for component load events
+  document.addEventListener('triggers-loaded', () => componentsState.triggers = true);
+  document.addEventListener('collar-loaded', () => componentsState.collar = true);
+  document.addEventListener('sessions-loaded', () => componentsState.sessions = true);
+  document.addEventListener('spirals-loaded', () => componentsState.spirals = true);
+  document.addEventListener('hypnosis-loaded', () => componentsState.hypnosis = true);
+  document.addEventListener('audios-loaded', () => componentsState.audios = true);
+  document.addEventListener('brainwaves-loaded', () => componentsState.brainwaves = true);
+  
+  // When triggers are ready, restore last tab
+  document.addEventListener('trigger-controls-loaded', function() {
+    // Ensure we restore the tab after all components have initialized
+    setTimeout(loadLastTab, 100); 
+  });
+  
+  // Fix for XP requirements mismatch
+  // Ensure XP requirements are consistent (the profile uses [1000, 2500, 7500, 17000, 42000]
+  // but the inline script uses [100, 250, 450, 700, 1200])
+  if (window.xpRequirements && window.xpRequirements.length === 5) {
+    // Replace with correct values
+    window.xpRequirements = [1000, 2500, 7500, 17000, 42000];
+  }
+  
+  // Dispatch ready event for other components to use
+  setTimeout(() => {
+    document.dispatchEvent(new CustomEvent('system-controls-ready'));
+  }, 200);
+});
+
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize core system
   window.bambiSystem.init();
