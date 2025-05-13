@@ -12,6 +12,11 @@
   <div class="container mt-4">
     <h1 class="dashboard-title text-center mb-4">Sessions Dashboard</h1>
     
+    <!-- Add this notification area below the title -->
+    <div id="session-notifications" class="session-notifications">
+      <!-- Notifications will be added here dynamically -->
+    </div>
+    
     <div class="row">
       <!-- Left sidebar with filters and stats -->
       <div class="col-lg-3 mb-4">
@@ -311,6 +316,7 @@
 
   <%- include('../partials/footer') %>
 
+  <script src="/js/session-notifications.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // View toggle functionality
