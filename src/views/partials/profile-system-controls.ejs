@@ -287,8 +287,8 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           </div>
           
           <div class="brainwave-actions">
-            <button id="play-brainwave" class="control-btn">Play Binaural Beat</button>
-            <button id="stop-brainwave" class="control-btn" disabled>Stop</button>
+            <button id="play-brainwave" class="secondary-btn">Play Binaural Beat</button>
+            <button id="stop-brainwave" class="secondary-btn" disabled>Stop</button>
             <button id="save-brainwave" class="save-btn">Save Settings</button>
           </div>
         </div>
@@ -657,6 +657,9 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         // Show target panel
         const targetPanel = document.getElementById(targetId);
         if (targetPanel) targetPanel.classList.add('active');
+        
+        // Save last active tab
+        localStorage.setItem('bambiLastTab', targetId);
       });
     });
     
