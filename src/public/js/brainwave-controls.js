@@ -170,6 +170,12 @@ document.addEventListener('DOMContentLoaded', function() {
       brainwaveVolume: parseInt(volumeSlider.value)
     };
     
+    // Save to system state first
+    if (window.bambiSystem && typeof window.bambiSystem.saveBrainwaveSettings === 'function') {
+      window.bambiSystem.saveBrainwaveSettings(settings);
+    }
+    
+    // Then save to server
     fetch('/api/profile/system-controls', {
       method: 'POST',
       headers: {
@@ -211,4 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log(`${type.toUpperCase()}: ${message}`);
     }
   }
+  
+  // Send loaded event when component is ready
+  document.dispatchEvent(new CustomEvent('brainwaves-loaded'));
 });
