@@ -17,6 +17,13 @@ window.bambiSystem = (function () {
       customFrequency: 10,
       carrierFrequency: 400,
       volume: 50
+    },
+    advancedBinaural: {
+      enabled: false,
+      pattern: 'descent',
+      customPattern: [],
+      patternDuration: 20,
+      transitionTime: 30
     }
   };
 
@@ -231,6 +238,21 @@ window.bambiSystem = (function () {
     }
   }
 
+  // Save advanced binaural settings
+  function saveAdvancedBinaural(settings) {
+    if (!settings) return;
+    
+    state.advancedBinaural = {
+      enabled: settings.advancedBinauralEnabled,
+      pattern: settings.binauralPattern || 'descent',
+      customPattern: settings.customPattern || [],
+      patternDuration: settings.patternDuration || 20,
+      transitionTime: settings.transitionTime || 30
+    };
+    
+    saveState('advancedBinaural', state.advancedBinaural);
+  }
+
   // Format for worker
   function collectSettings() {
     // Ensure triggers is always an array
@@ -292,6 +314,18 @@ window.bambiSystem = (function () {
       state.brainwaves.volume = profile.systemControls.brainwaveVolume || 50;
     }
 
+    // Load advanced binaural settings
+    if (profile.systemControls.advancedBinauralEnabled !== undefined) {
+      state.advancedBinaural.enabled = profile.systemControls.advancedBinauralEnabled;
+      state.advancedBinaural.pattern = profile.systemControls.binauralPattern || 'descent';
+      state.advancedBinaural.patternDuration = profile.systemControls.patternDuration || 20;
+      state.advancedBinaural.transitionTime = profile.systemControls.transitionTime || 30;
+      
+      if (profile.systemControls.customPattern) {
+        state.advancedBinaural.customPattern = profile.systemControls.customPattern;
+      }
+    }
+
     localStorage.setItem('bambiSystemState', JSON.stringify(state));
   }
 
@@ -312,7 +346,12 @@ window.bambiSystem = (function () {
 
   // Public API
   return {
-    init, saveState, collectSettings, loadFromProfile, saveBrainwaveSettings
+    init, 
+    saveState, 
+    collectSettings, 
+    loadFromProfile, 
+    saveBrainwaveSettings,
+    saveAdvancedBinaural
   };
 })();
 
@@ -326,7 +365,8 @@ document.addEventListener("DOMContentLoaded", function() {
     spirals: false,
     hypnosis: false,
     audios: false,
-    brainwaves: false
+    brainwaves: false,
+    advancedBinaural: false
   };
   
   // Simple last-used tab persistence
@@ -411,6 +451,108 @@ document.addEventListener("DOMContentLoaded", function() {
         const customFreqContainer = document.getElementById('custom-freq-container');
         if (customFreqContainer) {
           customFreqContainer.style.display = state.brainwaves.mode === 'custom' ? '' : 'none';
+        }
+      }
+    }
+  });
+
+  document.addEventListener('advanced-binaural-loaded', () => {
+    componentsState.advancedBinaural = true;
+    
+    // Apply initial state to advanced binaural controls
+    const state = JSON.parse(localStorage.getItem('bambiSystemState') || '{}');
+    if (state.advancedBinaural) {
+      const advancedBinauralToggle = document.getElementById('advanced-binaural-enable');
+      const patternSelect = document.getElementById('pattern-select');
+      const patternDuration = document.getElementById('pattern-duration');
+      const transitionTime = document.getElementById('transition-time');
+      
+      if (advancedBinauralToggle) advancedBinauralToggle.checked = state.advancedBinaural.enabled;
+      if (patternSelect) patternSelect.value = state.advancedBinaural.pattern || 'descent';
+      if (patternDuration) patternDuration.value = state.advancedBinaural.patternDuration || 20;
+      if (transitionTime) transitionTime.value = state.advancedBinaural.transitionTime || 30;
+      
+      // Update any value displays
+      if (patternDuration) {
+        const display = document.getElementById('pattern-duration-value');
+        if (display) display.textContent = (state.advancedBinaural.patternDuration || 20) + ' minutes';
+      }
+      
+      if (transitionTime) {
+        const display = document.getElementById('transition-time-value');
+        if (display) display.textContent = (state.advancedBinaural.transitionTime || 30) + ' seconds';
+      }
+      
+      // Update pattern description
+      if (patternSelect) {
+        const descriptions = {
+          descent: "Descent pattern gradually moves from alert Alpha waves down through Theta into deep Delta, creating a natural descent into trance.",
+          ascent: "Ascent pattern guides you from deep Delta through Theta up to Alpha, perfect for waking from trance.",
+          focus: "Focus cycle alternates between relaxed Alpha and alert Beta states to enhance concentration and mental clarity.",
+          trance: "Deep trance loop cycles between Alpha and Theta waves to maintain a sustained hypnotic state.",
+          custom: "Custom pattern allows you to design your own sequence of brainwave states."
+        };
+        
+        const description = document.getElementById('pattern-description');
+        if (description) {
+          description.textContent = descriptions[state.advancedBinaural.pattern] || descriptions.descent;
+        }
+        
+        // Show/hide custom pattern based on selection
+        const customPatternContainer = document.getElementById('custom-pattern-container');
+        if (customPatternContainer) {
+          customPatternContainer.style.display = state.advancedBinaural.pattern === 'custom' ? '' : 'none';
+        }
+        
+        // Load custom pattern segments if available
+        if (state.advancedBinaural.pattern === 'custom' && state.advancedBinaural.customPattern?.length > 0) {
+          const segmentsContainer = document.querySelector('.pattern-segments');
+          if (segmentsContainer) {
+            // Clear existing segments
+            segmentsContainer.innerHTML = '';
+            
+            // Add saved segments
+            state.advancedBinaural.customPattern.forEach(segment => {
+              const newSegment = document.createElement('div');
+              newSegment.className = 'pattern-segment';
+              newSegment.innerHTML = `
+                <select class="segment-wave">
+                  <option value="alpha" ${segment.wave === 'alpha' ? 'selected' : ''}>Alpha</option>
+                  <option value="theta" ${segment.wave === 'theta' ? 'selected' : ''}>Theta</option>
+                  <option value="delta" ${segment.wave === 'delta' ? 'selected' : ''}>Delta</option>
+                  <option value="beta" ${segment.wave === 'beta' ? 'selected' : ''}>Beta</option>
+                </select>
+                <input type="number" class="segment-duration" min="1" max="60" value="${segment.duration}"> mins
+                <button class="remove-segment">×</button>
+              `;
+              
+              segmentsContainer.appendChild(newSegment);
+              
+              // Add remove button event listener
+              const removeButton = newSegment.querySelector('.remove-segment');
+              removeButton.addEventListener('click', function() {
+                segmentsContainer.removeChild(newSegment);
+                
+                // Update visualization if available
+                const canvas = document.getElementById('pattern-visualization');
+                if (canvas) {
+                  const ctx = canvas.getContext('2d');
+                  if (ctx && typeof drawVisualization === 'function') {
+                    drawVisualization();
+                  }
+                }
+              });
+            });
+          }
+        }
+        
+        // Initialize visualization if canvas exists
+        const canvas = document.getElementById('pattern-visualization');
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          if (ctx && typeof drawVisualization === 'function') {
+            drawVisualization();
+          }
         }
       }
     }
