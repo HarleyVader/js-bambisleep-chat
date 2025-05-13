@@ -696,6 +696,15 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       }
     }
     
+    // Load the last tab from localStorage on page load
+    const lastTab = localStorage.getItem('bambiLastTab');
+    if (lastTab) {
+      const tabButton = document.querySelector(`.control-btn[data-target="${lastTab}"]`);
+      if (tabButton && !tabButton.classList.contains('disabled')) {
+        tabButton.click();
+      }
+    }
+    
     // Watch for trigger list changes to avoid duplicates
     const triggerList = document.getElementById('trigger-list');
     if (triggerList) {
