@@ -20,6 +20,36 @@ router.get('/api/sessions/:username', async (req, res) => {
   }
 });
 
+// Get a specific session by ID
+router.get('/api/sessions/id/:sessionId', async (req, res) => {
+  try {
+    const SessionHistory = getSessionHistoryModel();
+    const session = await SessionHistory.findById(req.params.sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Session not found' 
+      });
+    }
+    
+    res.json({ success: true, session });
+  } catch (error) {
+    logger.error('Error fetching session by ID:', error.message);
+    res.status(500).json({ success: false, message: 'Error fetching session' });
+  }
+});
+
+// Handle 404 for sessions routes
+router.get('*', (req, res) => {
+  logger.info(`Session route not found: ${req.path}`);
+  res.status(404).render('error', {
+    message: 'Session page not found',
+    error: { status: 404 },
+    title: '404 - Page Not Found'
+  });
+});
+
 // Fix the exports - both named and default
 const basePath = '/sessions';
 export { router, basePath };
