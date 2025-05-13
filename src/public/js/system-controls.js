@@ -358,26 +358,63 @@ document.addEventListener("DOMContentLoaded", function() {
   document.addEventListener('spirals-loaded', () => componentsState.spirals = true);
   document.addEventListener('hypnosis-loaded', () => componentsState.hypnosis = true);
   document.addEventListener('audios-loaded', () => componentsState.audios = true);
-  document.addEventListener('brainwaves-loaded', () => componentsState.brainwaves = true);
-  
-  // When triggers are ready, restore last tab
-  document.addEventListener('trigger-controls-loaded', function() {
-    // Ensure we restore the tab after all components have initialized
-    setTimeout(loadLastTab, 100); 
+  document.addEventListener('brainwaves-loaded', () => {
+    componentsState.brainwaves = true;
+    
+    // Apply initial state to brainwave controls
+    const state = JSON.parse(localStorage.getItem('bambiSystemState') || '{}');
+    if (state.brainwaves) {
+      const brainwaveToggle = document.getElementById('brainwave-enable');
+      const brainwaveMode = document.getElementById('brainwave-mode');
+      const customFrequency = document.getElementById('custom-frequency');
+      const carrierFrequency = document.getElementById('carrier-frequency');
+      const brainwaveVolume = document.getElementById('brainwave-volume');
+      
+      if (brainwaveToggle) brainwaveToggle.checked = state.brainwaves.enabled;
+      if (brainwaveMode) brainwaveMode.value = state.brainwaves.mode || 'alpha';
+      if (customFrequency) customFrequency.value = state.brainwaves.customFrequency || 10;
+      if (carrierFrequency) carrierFrequency.value = state.brainwaves.carrierFrequency || 200;
+      if (brainwaveVolume) brainwaveVolume.value = state.brainwaves.volume || 50;
+      
+      // Update any value displays
+      if (customFrequency) {
+        const display = document.getElementById('custom-frequency-value');
+        if (display) display.textContent = (state.brainwaves.customFrequency || 10) + ' Hz';
+      }
+      
+      if (carrierFrequency) {
+        const display = document.getElementById('carrier-frequency-value');
+        if (display) display.textContent = (state.brainwaves.carrierFrequency || 200) + ' Hz';
+      }
+      
+      if (brainwaveVolume) {
+        const display = document.getElementById('brainwave-volume-value');
+        if (display) display.textContent = (state.brainwaves.volume || 50) + '%';
+      }
+      
+      // Update mode description
+      if (brainwaveMode) {
+        const descriptions = {
+          alpha: "Alpha waves (8-14Hz) promote relaxed focus and are ideal for gentle trance states.",
+          theta: "Theta waves (4-8Hz) induce deep trance and meditation states, enhancing suggestibility.",
+          delta: "Delta waves (1-4Hz) are associated with deep sleep and unconscious mind programming.",
+          beta: "Beta waves (14-30Hz) create an alert, focused state and can help with mental clarity.",
+          custom: "Custom frequency allows precise tuning of brainwave entrainment effects."
+        };
+        
+        const description = document.getElementById('frequency-description');
+        if (description) {
+          description.textContent = descriptions[state.brainwaves.mode] || descriptions.alpha;
+        }
+        
+        // Show/hide custom frequency based on mode
+        const customFreqContainer = document.getElementById('custom-freq-container');
+        if (customFreqContainer) {
+          customFreqContainer.style.display = state.brainwaves.mode === 'custom' ? '' : 'none';
+        }
+      }
+    }
   });
-  
-  // Fix for XP requirements mismatch
-  // Ensure XP requirements are consistent (the profile uses [1000, 2500, 7500, 17000, 42000]
-  // but the inline script uses [100, 250, 450, 700, 1200])
-  if (window.xpRequirements && window.xpRequirements.length === 5) {
-    // Replace with correct values
-    window.xpRequirements = [1000, 2500, 7500, 17000, 42000];
-  }
-  
-  // Dispatch ready event for other components to use
-  setTimeout(() => {
-    document.dispatchEvent(new CustomEvent('system-controls-ready'));
-  }, 200);
 });
 
 document.addEventListener('DOMContentLoaded', function() {
