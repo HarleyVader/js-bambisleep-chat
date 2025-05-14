@@ -131,8 +131,8 @@
                       
                       // Send triggers to worker
                       socket.emit('triggers', {
-                        triggerNames: activeTriggers.join(','),
-                        triggerDetails: activeTriggers.map(t => ({ name: t }))
+                          triggerNames: activeTriggers.join(','),
+                          triggerDetails: activeTriggers.map(t => ({ name: t }))
                       });
                       
                       console.log('Loaded triggers from profile:', activeTriggers);

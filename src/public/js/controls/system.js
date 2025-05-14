@@ -108,6 +108,11 @@ window.bambiSystem = (function() {
     return JSON.parse(JSON.stringify(state)); // Return a copy
   }
 
+  // Collect settings for external use
+  function collectSettings() {
+    return JSON.parse(JSON.stringify(state)); // Return a copy
+  }
+
   // Load profile data
   function loadProfile(profile) {
     if (!profile?.systemControls) return;
@@ -172,10 +177,14 @@ window.bambiSystem = (function() {
     init,
     saveState,
     getSettings,
+    collectSettings,
     loadProfile,
     state // For direct access when needed
   };
 })();
 
 // Initialize on load
-document.addEventListener('DOMContentLoaded', () => window.bambiSystem.init());
+document.addEventListener('DOMContentLoaded', () => {
+  window.bambiSystem.init();
+  socket.emit('system-settings', window.bambiSystem.collectSettings());
+});

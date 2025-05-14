@@ -756,7 +756,10 @@ function updateSystemControlsUI(data) {
       toggle.addEventListener('change', function() {
         const username = document.body.getAttribute('data-username');
         if (username) {
-          saveTriggerState(username);
+          window.socket.emit('update-system-controls', {
+            username: username,
+            activeTriggers: getActiveTriggersFromUI()
+          });
         }
       });
       
@@ -800,7 +803,10 @@ function updateSystemControlsUI(data) {
       toggle.addEventListener('change', function() {
         const username = document.body.getAttribute('data-username');
         if (username) {
-          saveTriggerState(username);
+          window.socket.emit('update-system-controls', {
+            username: username,
+            activeTriggers: getActiveTriggersFromUI()
+          });
         }
       });
       

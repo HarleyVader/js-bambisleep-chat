@@ -73,10 +73,15 @@ document.addEventListener('DOMContentLoaded', function() {
       spiral2Speed = settings.spiral2Speed;
       
       // Update value displays
-      document.getElementById('spiral1-width-value')?.textContent = spiral1Width;
-      document.getElementById('spiral2-width-value')?.textContent = spiral2Width;
-      document.getElementById('spiral1-speed-value')?.textContent = spiral1Speed;
-      document.getElementById('spiral2-speed-value')?.textContent = spiral2Speed;
+      const spiral1WidthEl = document.getElementById('spiral1-width-value');
+      const spiral2WidthEl = document.getElementById('spiral2-width-value');
+      const spiral1SpeedEl = document.getElementById('spiral1-speed-value');
+      const spiral2SpeedEl = document.getElementById('spiral2-speed-value');
+      
+      if (spiral1WidthEl) spiral1WidthEl.textContent = spiral1Width;
+      if (spiral2WidthEl) spiral2WidthEl.textContent = spiral2Width;
+      if (spiral1SpeedEl) spiral1SpeedEl.textContent = spiral1Speed;
+      if (spiral2SpeedEl) spiral2SpeedEl.textContent = spiral2Speed;
     }
   }
   
