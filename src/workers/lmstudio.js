@@ -216,21 +216,33 @@ parentPort.on('message', async (msg) => {
         
       case 'triggers':
         if (typeof msg.triggers === 'object') {
-          if (msg.triggers.triggerNames) {
-            // Store the string representation for consistency
-            triggers = msg.triggers.triggerNames;
-          }
+          // Verify data integrity before processing
+          if (verifyTriggerIntegrity(msg.triggers)) {
+            if (msg.triggers.triggerNames) {
+              // Store the string representation for consistency
+              triggers = msg.triggers.triggerNames;
+            }
 
-          // Store trigger details if available for enhanced brainwashing
-          if (msg.triggers.triggerDetails) {
-            triggerDetails = Array.isArray(msg.triggers.triggerDetails)
-              ? msg.triggers.triggerDetails
-              : [];
-            logger.info(`Received trigger details: ${formatTriggerDetails(triggerDetails)}`);
+            // Store trigger details if available for enhanced brainwashing
+            if (msg.triggers.triggerDetails) {
+              triggerDetails = Array.isArray(msg.triggers.triggerDetails)
+                ? msg.triggers.triggerDetails
+                : [];
+              logger.info(`Received trigger details: ${formatTriggerDetails(triggerDetails)}`);
+            }
+          } else {
+            logger.error('Received invalid trigger data, using defaults');
+            triggers = 'BAMBI SLEEP';
+            triggerDetails = [];
           }
         } else if (typeof msg.triggers === 'string') {
-          // Fallback for backward compatibility
-          triggers = msg.triggers;
+          // Verify data integrity for string format
+          if (verifyTriggerIntegrity(msg.triggers)) {
+            triggers = msg.triggers;
+          } else {
+            logger.error('Received invalid trigger string, using defaults');
+            triggers = 'BAMBI SLEEP';
+          }
         }
         break;
       case 'message':
@@ -635,6 +647,12 @@ async function selectLoadedModels(modelName) {
 }
 
 async function checkRole(collar, username, triggersInput) {
+  // Add at the beginning of checkRole function
+  if (!verifyTriggerIntegrity(triggersInput)) {
+    logger.warning(`Using default triggers due to integrity check failure`);
+    triggersInput = 'BAMBI SLEEP';
+  }
+
   // Get all triggers from file
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
   let allTriggers = [];
@@ -927,4 +945,45 @@ function formatTriggerDetails(details) {
     if (typeof d === 'string') return d;
     return typeof d === 'object' ? `${d.name || 'Unknown'}` : String(d);
   }).join(', ');
+}
+
+// Add this function to verify data integrity in the worker
+function verifyTriggerIntegrity(triggers) {
+  // Check if triggers exist and are in a valid format
+  if (!triggers) {
+    logger.warning('No triggers provided for verification');
+    return false;
+  }
+  
+  // Handle different potential formats of trigger data
+  let triggerArray = [];
+  
+  if (typeof triggers === 'string') {
+    // Handle comma-separated string format
+    triggerArray = triggers.split(',').map(t => t.trim()).filter(Boolean);
+  } else if (Array.isArray(triggers)) {
+    // Handle array format - could be array of strings or objects
+    triggerArray = triggers.map(t => {
+      return typeof t === 'string' ? t : (t && t.name ? t.name : null);
+    }).filter(Boolean);
+  } else if (triggers.triggerNames) {
+    // Handle object format with triggerNames property
+    const names = typeof triggers.triggerNames === 'string' 
+      ? triggers.triggerNames.split(',').map(t => t.trim()) 
+      : triggers.triggerNames;
+    
+    triggerArray = Array.isArray(names) ? names.filter(Boolean) : [];
+  } else {
+    logger.warning('Unrecognized trigger format');
+    return false;
+  }
+  
+  // Verify we have at least one valid trigger
+  if (triggerArray.length === 0) {
+    logger.warning('No valid triggers found after parsing');
+    return false;
+  }
+  
+  logger.info(`Verified ${triggerArray.length} valid triggers: ${triggerArray.join(', ')}`);
+  return true;
 }
