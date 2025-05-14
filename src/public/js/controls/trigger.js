@@ -112,10 +112,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.socket?.connected) {
       const username = document.body.getAttribute('data-username');
       if (username) {
+        // Send both triggerNames (for backwards compatibility) and full trigger objects
+        const triggerNames = triggers.map(t => t.name).join(',');
+        
+        console.log('Sent active triggers to server:', triggers.map(t => t.name));
+        
         window.socket.emit('triggers', {
-          triggerNames: triggers.map(t => t.name).join(','),
+          triggerNames,
           triggerDetails: triggers,
-          username: username
+          username
         });
       }
     }
