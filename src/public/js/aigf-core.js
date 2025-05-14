@@ -76,6 +76,54 @@ socket.on('detected-triggers', (data) => {
     }
 });
 
+// Basic error handling for socket response processing
+socket.on('response', async (message) => {
+    // Check if message exists
+    if (!message) {
+        console.log('Empty response received');
+        return;
+    }
+
+    try {
+        const messageText = message;
+        const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
+        for (let sentence of sentences) {
+            if (sentence.trim()) {
+                _textArray.push(sentence);
+                console.log('Text array:', _textArray);
+                if (state) {
+                    handleAudioEnded();
+                }
+            }
+        }
+        applyUppercaseStyle();
+        
+        // Check for trigger words in the response
+        detectAndPlayTriggers(messageText);
+    } catch (err) {
+        console.log('Error processing response:', err.message);
+        // Create simple error message in chat
+        if (response) {
+            const errorElement = document.createElement('p');
+            errorElement.textContent = "Error processing response. Please try again.";
+            errorElement.style.color = "#ff6b6b";
+            response.appendChild(errorElement);
+        }
+    }
+});
+
+// Improve socket connection handling
+socket.on('connect_error', () => {
+    console.log('Connection error');
+    // Show connection error in chat area
+    if (response) {
+        const errorMsg = document.createElement('p');
+        errorMsg.textContent = 'Connection error. Trying to reconnect...';
+        errorMsg.style.color = '#ff6b6b';
+        response.prepend(errorMsg);
+    }
+});
+
 // Helper function to send active triggers to the worker
 function sendActiveTriggers() {
     // Get active triggers
@@ -143,23 +191,6 @@ function handleClick() {
     textarea.value = '';
     textarea.style.height = 'inherit';
 }
-
-socket.on('response', async (message) => {
-    const messageText = message;
-    const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
-    for (let sentence of sentences) {
-        _textArray.push(sentence);
-        console.log('Text array:', _textArray);
-        if (state) {
-            handleAudioEnded();
-        }
-        sentence = '';
-    }
-    applyUppercaseStyle();
-    
-    // Check for trigger words in the response
-    detectAndPlayTriggers(messageText);
-});
 
 // Function to detect trigger words in text and play them
 function detectAndPlayTriggers(text) {
@@ -420,32 +451,44 @@ function applyUppercaseStyle() {
     });
 }
 
-function handleAudioEnded() {
-    if (_textArray.length > 0) {
-        state = false;
-        text = _textArray.shift();
-    } else if (_textArray.length === 0) {
-        state = true;
-        return;
+// Simple error handling for audio handlers
+function handleAudioPlay() {
+    try {
+        console.log('Audio is playing');
+        const duration = audio?.duration ? audio.duration * 1000 : 2000;
+        flashTrigger(text, duration);
+        const messageElement = document.createElement('p');
+        messageElement.textContent = text || '';
+        console.log('Text reply: ', messageElement.textContent);
+        if (response) {
+            if (response.firstChild) {
+                response.insertBefore(messageElement, response.firstChild);
+            } else {
+                response.appendChild(messageElement);
+            }
+            applyUppercaseStyle();
+        }
+    } catch (err) {
+        console.log('Error in audio play handler:', err.message);
     }
-    arrayPush(_audioArray, text);
-    do_tts(_audioArray);
 }
 
-function handleAudioPlay() {
-    console.log('Audio is playing');
-    const duration = audio.duration * 1000;
-    new Promise(resolve => setTimeout(resolve, duration));
-    flashTrigger(text, duration);
-    const messageElement = document.createElement('p');
-    messageElement.textContent = text;
-    console.log('Text reply: ', messageElement.textContent);
-    if (response.firstChild) {
-        response.insertBefore(messageElement, response.firstChild);
-    } else {
-        response.appendChild(messageElement);
+function handleAudioEnded() {
+    try {
+        if (_textArray.length > 0) {
+            state = false;
+            text = _textArray.shift();
+        } else if (_textArray.length === 0) {
+            state = true;
+            return;
+        }
+        arrayPush(_audioArray, text);
+        do_tts(_audioArray);
+    } catch (err) {
+        console.log('Error in audio end handler:', err.message);
+        // Try to recover state
+        state = true;
     }
-    applyUppercaseStyle();
 }
 
 audio.addEventListener('ended', handleAudioEnded);
