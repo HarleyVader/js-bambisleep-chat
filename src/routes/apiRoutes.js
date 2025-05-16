@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { getProfile } from '../models/Profile.js';
 import Logger from '../utils/logger.js';
+import workerCoordinator from '../workers/workerCoordinator.js';
 
 const router = express.Router();
 const logger = new Logger('API Routes');
@@ -75,7 +76,86 @@ router.post('/performance', (req, res) => {
     res.json({ success: true });
   } catch (error) {
     logger.error('Error processing performance metrics:', error);
-    res.status(500).json({ error: 'Error processing metrics' });
+    res.status(500).json({ error: 'Error processing metrics' });  }
+});
+
+/**
+ * Generate an image using RunPod API
+ * Endpoint: POST /api/generate-image
+ */
+router.post('/generate-image', async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.session || !req.session.username) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const { prompt, negativePrompt, width, height } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+    
+    // Generate image using worker coordinator
+    workerCoordinator.generateImage({
+      prompt,
+      negativePrompt,
+      width: width || 512,
+      height: height || 512,
+      apiKey: process.env.RUNPOD_API_KEY
+    }, (error, result) => {
+      if (error) {
+        logger.error('Error generating image:', error);
+        return res.status(500).json({ error: 'Failed to generate image' });
+      }
+      
+      // If this is an async job
+      if (result.status === 'processing' && result.jobId) {
+        return res.json({
+          success: true,
+          status: 'processing',
+          jobId: result.jobId,
+          message: 'Image generation in progress'
+        });
+      }
+      
+      res.json(result);
+    });
+  } catch (error) {
+    logger.error('Error processing image generation request:', error);
+    res.status(500).json({ error: 'Error processing request' });
+  }
+});
+
+/**
+ * Check status of an image generation job
+ * Endpoint: GET /api/image-job/:jobId
+ */
+router.get('/image-job/:jobId', async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.session || !req.session.username) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const { jobId } = req.params;
+    
+    if (!jobId) {
+      return res.status(400).json({ error: 'Job ID is required' });
+    }
+    
+    // Check job status
+    workerCoordinator.checkImageJobStatus(jobId, (error, result) => {
+      if (error) {
+        logger.error('Error checking image job status:', error);
+        return res.status(500).json({ error: 'Failed to check job status' });
+      }
+      
+      res.json(result);
+    });
+  } catch (error) {
+    logger.error('Error processing job status request:', error);
+    res.status(500).json({ error: 'Error processing request' });
   }
 });
 

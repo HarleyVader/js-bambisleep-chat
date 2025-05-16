@@ -28,12 +28,12 @@ async function selectLoadedModels(modelName) {
 // Helper function to create a delay between operations
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-class WorkerCoordinator {
-  constructor() {
+class WorkerCoordinator {  constructor() {
     this.workers = {
       text: null,
       image: null,
-      video: null
+      video: null,
+      imageGenerator: null
     };
     
     this.pendingRequests = new Map();
@@ -116,12 +116,20 @@ class WorkerCoordinator {
       
       // Wait again - reduced to 250ms
       await delay(250);
-      
-      // Create and start video worker
-      logger.info('Initializing video scraper worker (3/3)...');
+        // Create and start video worker
+      logger.info('Initializing video scraper worker (3/4)...');
       this.workers.video = new Worker(path.join(__dirname, 'scrapers/videoScraping.js'));
       this.workers.video.on('message', this.handleWorkerMessage.bind(this));
       this.workers.video.on('error', this.handleWorkerError.bind(this));
+      
+      // Wait again - reduced to 250ms
+      await delay(250);
+      
+      // Create and start image generator worker
+      logger.info('Initializing image generator worker (4/4)...');
+      this.workers.imageGenerator = new Worker(path.join(__dirname, 'imageGenerator.js'));
+      this.workers.imageGenerator.on('message', this.handleWorkerMessage.bind(this));
+      this.workers.imageGenerator.on('error', this.handleWorkerError.bind(this));
       
       this.initialized = true;
       this.initializing = false;
@@ -217,6 +225,70 @@ class WorkerCoordinator {
       type: 'scrape_videos',
       url,
       requestId: videoRequestId
+    });  }
+  generateImage(options, callback) {
+    if (!this.initialized) {
+      return callback(new Error('Worker coordinator not initialized'), null);
+    }
+    
+    if (!this.workers.imageGenerator) {
+      return callback(new Error('Image generator worker not available'), null);
+    }
+    
+    const requestId = this.generateRequestId();
+    this.pendingRequests.set(requestId, { callback });
+    
+    this.workers.imageGenerator.postMessage({
+      type: 'generate-image',
+      data: options,
+      requestId
+    });
+  }
+    checkImageJobStatus(jobId, callback) {
+    if (!this.initialized) {
+      return callback(new Error('Worker coordinator not initialized'), null);
+    }
+    
+    if (!this.workers.imageGenerator) {
+      return callback(new Error('Image generator worker not available'), null);
+    }
+    
+    const requestId = this.generateRequestId();
+    this.pendingRequests.set(requestId, { callback });
+    
+    this.workers.imageGenerator.postMessage({
+      type: 'check-job-status',
+      data: { jobId },
+      requestId
+    });
+  }
+  
+  checkImageWorkerHealth(callback) {
+    if (!this.initialized) {
+      return callback(new Error('Worker coordinator not initialized'), false);
+    }
+    
+    if (!this.workers.imageGenerator) {
+      return callback(new Error('Image generator worker not available'), false);
+    }
+    
+    const requestId = this.generateRequestId();
+    this.pendingRequests.set(requestId, { 
+      callback: (error, result) => {
+        if (error) {
+          return callback(error, false);
+        }
+        
+        // Check if the worker is healthy
+        const isHealthy = result && result.status === 'healthy';
+        callback(null, isHealthy);
+      }
+    });
+    
+    // Send health check request to the worker
+    this.workers.imageGenerator.postMessage({
+      type: 'health-check',
+      requestId
     });
   }
 

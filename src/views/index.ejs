@@ -28,9 +28,11 @@
               <p id="error-message" style="display: none; color: red;"></p>
             </div>
           </div>
-          <br>
-          <div id="system-controls-container">
+          <br>          <div id="system-controls-container">
             <%- include('../views/partials/profile-system-controls.ejs', { profile: profile }) %>
+          </div>
+          <div id="image-generator-container">
+            <%- include('../views/partials/image-generator.ejs') %>
           </div>
         </div>
         <div id="response-container">
@@ -413,10 +415,11 @@
               }
             });
           });
-        </script>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        </script>        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
         <script src="js/bootstrap.min.js"></script>
         <script src="/js/bambi-sessions.js"></script>
+        <script src="/js/imageGenerator.js"></script>
+        <script src="/js/imagePresets.js"></script>
   </body>
 </html>

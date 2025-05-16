@@ -1,3 +1,9 @@
+import workerCoordinator from '../workers/workerCoordinator.js';
+import Logger from '../utils/logger.js';
+
+// Initialize logger
+const logger = new Logger('SocketHandler');
+
 // Setup socket connection and event handlers
 function setupSocket(socket, io) {
   const username = socket.request.session.username;
@@ -7,12 +13,100 @@ function setupSocket(socket, io) {
   setupSystemHandlers(socket, username);
   setupWorkerHandlers(socket, username);
   setupSessionHandlers(socket, io);
+  setupImageHandlers(socket, username);
   
   // Track connection for analytics
   trackConnection(socket, username);
   
   // Handle disconnection
   socket.on('disconnect', () => handleDisconnect(socket, username));
+}
+
+// Set up image generation handlers
+function setupImageHandlers(socket, username) {
+  socket.on('generate-image', data => {
+    if (!data || !username) return;
+    
+    const { prompt, negativePrompt, width, height } = data;
+    
+    if (!prompt) {
+      socket.emit('image-generation-error', { error: 'Prompt is required' });
+      return;
+    }
+    
+    // Forward to worker coordinator
+    workerCoordinator.generateImage({
+      prompt,
+      negativePrompt,
+      width: width || 512,
+      height: height || 512,
+      apiKey: process.env.RUNPOD_API_KEY
+    }, (error, result) => {
+      if (error) {
+        logger.error(`Image generation error for ${username}: ${error.message}`);
+        socket.emit('image-generation-error', { error: error.message });
+        return;
+      }
+      
+      // If job is processing asynchronously
+      if (result.status === 'processing' && result.jobId) {
+        socket.emit('image-generation-started', { 
+          jobId: result.jobId, 
+          message: 'Image generation in progress'
+        });
+        return;
+      }
+      
+      // Send result back to client
+      socket.emit('image-generated', result);
+    });
+  });
+  
+  socket.on('check-image-job', data => {
+    if (!data || !username || !data.jobId) {
+      socket.emit('image-generation-error', { error: 'Missing job ID' });
+      return;
+    }
+    
+    workerCoordinator.checkImageJobStatus(data.jobId, (error, result) => {
+      if (error) {
+        logger.error(`Error checking image job status for ${username}: ${error.message}`);
+        socket.emit('image-generation-error', { error: error.message });
+        return;
+      }
+      
+      if (result.status === 'COMPLETED') {
+        socket.emit('image-generated', {
+          success: true,
+          data: result.data
+        });
+      } else if (result.status === 'FAILED') {
+        socket.emit('image-generation-error', { error: 'Image generation failed' });
+      } else {
+        socket.emit('image-generation-status', { 
+          jobId: data.jobId, 
+          status: result.status
+        });      }
+    });
+  });
+  
+  // Handle heartbeat to keep image worker alive
+  socket.on('image-heartbeat', data => {
+    // Check image worker health
+    workerCoordinator.checkImageWorkerHealth((error, status) => {
+      const response = {
+        timestamp: Date.now(),
+        workerStatus: status ? 'healthy' : 'unhealthy'
+      };
+      
+      if (error) {
+        logger.warning(`Error checking image worker health: ${error.message}`);
+        response.workerStatus = 'unhealthy';
+      }
+      
+      socket.emit('image-heartbeat-response', response);
+    });
+  });
 }
 
 // Set up chat message handlers
