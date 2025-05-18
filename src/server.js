@@ -197,8 +197,8 @@ function setupMiddleware(app) {
  * 
  * @param {Express} app - Express application instance
  */
-function setupRoutes(app) {
-  // Register main routes  const routes = [
+function setupRoutes(app) {  // Register main routes
+  const routes = [
     { path: '/', handler: indexRoute },
     { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
     { path: '/help', handler: helpRoute },
@@ -242,80 +242,42 @@ function setupRoutes(app) {
     }
   });
 
-  app.get('/api/profile/:username/system-controls', async (req, res) => {
+  // Add API endpoint for sessions list
+  app.get('/api/sessions/:username', async (req, res) => {
     try {
       const username = req.params.username;
       
       if (!username) {
-        return res.status(400).json({ error: 'Username is required' });
+        return res.status(400).json({ error: 'Username is required', sessions: [] });
       }
-      
-      // Fetch profile data - replace with your actual data fetching logic
-      // If you have a Profile model, use it here
-      const profile = await getProfileByUsername(username);
-      
-      if (!profile) {
-        return res.status(404).json({ 
-          activeTriggers: [],
-          message: 'Profile not found' 
-        });
-      }
-      
-      // Return system controls data in the format expected by the client renderer
-      res.json({
-        activeTriggers: profile.activeTriggers || [],
-        systemSettings: profile.settings || {},
-        xp: profile.xp || 0,
-        level: profile.level || 0
-      });
-    } catch (error) {
-      console.error(`Error fetching profile system controls for ${req.params.username}:`, error);
-      res.status(500).json({ 
-        error: 'Error fetching profile data',
-        activeTriggers: [] 
-      });
-    }
-  });
 
-  // Add performance metrics API endpoint
-  app.post('/api/performance', (req, res) => {
-    try {
-      const metrics = req.body;
-      
-      // Log summary of metrics if available
-      if (metrics && metrics.summary) {
-        console.log(`Performance metrics from client: ${JSON.stringify(metrics.summary)}`);
+      // Skip anonymous users
+      if (username === 'anonBambi') {
+        return res.json({ sessions: [] });
       }
       
-      // You could store metrics in a database for later analysis
+      const SessionHistory = mongoose.model('SessionHistory');
+      const sessions = await withDbConnection(() => 
+        SessionHistory.find({ username })
+          .sort({ 'metadata.lastActivity': -1 })
+          .select('title metadata.lastActivity metadata.triggers')
+          .limit(50)
+      );
       
-      res.json({ success: true });
+      // Transform to a simpler format for the client
+      const simplifiedSessions = sessions.map(session => ({
+        id: session._id,
+        title: session.title || `Session ${new Date(session.createdAt).toLocaleString()}`,
+        lastActivity: session.metadata?.lastActivity || session.updatedAt || session.createdAt,
+        triggerCount: session.metadata?.triggers?.length || 0
+      }));
+      
+      res.json({ sessions: simplifiedSessions });
     } catch (error) {
-      console.error('Error processing performance metrics:', error);
-      res.status(500).json({ error: 'Error processing metrics' });
+      console.error(`Error fetching sessions for ${req.params.username}:`, error);
+      res.status(500).json({ error: 'Error fetching sessions', sessions: [] });
     }
   });
-  
-  // Set up TTS API routes
-  setupTTSRoutes(app);
-  
-  // Add API routes
-  app.use('/api', apiRoutes);
-  
-  // Add sessions routes
-  app.use(sessionsBasePath, sessionsRouter);
-  
-  // Add 404 handler
-  app.use((req, res) => {
-    res.status(404).render('error', {
-      message: 'Page not found',
-      error: { status: 404 },
-      validConstantsCount: 5,
-      title: 'Error - Page Not Found'
-    });
-  });
-  
-  logger.info('Routes configured');
 }
 
 /**
