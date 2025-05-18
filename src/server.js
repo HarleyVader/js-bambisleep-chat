@@ -44,6 +44,7 @@ import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 import garbageCollector from './utils/garbageCollector.js';
 import memoryMonitor from './utils/memory-monitor.js';
+import { Worker } from 'worker_threads';
 
 // Import Profile model getter
 import { getProfile } from './models/Profile.js';
@@ -381,6 +382,9 @@ function handleScanRequest(req, res) {
  * @param {string[]} filteredWords - List of words to filter
  */
 function setupSocketHandlers(io, socketStore, filteredWords) {
+  // Initialize the LMStudio worker thread
+  const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
+  
   io.on('connection', (socket) => {
     try {
       // Parse cookies and get username
@@ -405,7 +409,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       const filterContent = (content) => filterWords(content, filteredWords);
       
       // Set up socket handlers for this specific connection
-      setupLMStudioSockets(socket, io, filterContent);
+      setupLMStudioSockets(socket, io, lmstudio, filterContent);
       setupProfileSockets(socket, io, username);
       setupChatSockets(socket, io, socketStore, filteredWords);
       
