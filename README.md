@@ -51,6 +51,26 @@ Monetization: Patreon
 Last Updated: April 2025
 ```
 
+## MongoDB Configuration
+
+BambiSleep Chat requires MongoDB for data persistence. The application includes several utilities to help you set up and test your MongoDB connection:
+
+```bash
+# Test MongoDB connection and functionality
+npm run test:mongodb
+
+# Check MongoDB server status and configuration
+npm run check:mongodb
+
+# Validate environment variables for MongoDB
+npm run check:config
+
+# Check MongoDB installation (Linux only)
+npm run check:mongo-install
+```
+
+See the detailed [MongoDB Setup Guide](src/utils/MONGODB-SETUP.md) for instructions on installing and configuring MongoDB for this application.
+
 ## Overview
 
 ![GitHub contributors](https://img.shields.io/github/contributors/HarleyVader/js-bambisleep-chat?style=for-the-badge)

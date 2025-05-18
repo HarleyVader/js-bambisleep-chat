@@ -30,6 +30,8 @@ import chatRoutes from './routes/chatRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
 import sessionsRouter, { basePath as sessionsBasePath } from './routes/sessions.js';
 import { router as triggerScriptsRouter } from './routes/trigger-scripts.js';
+import mongodbRoutes, { basePath as mongodbBasePath } from './routes/mongodbRoutes.js';
+import mongodbAdminRoute, { basePath as mongodbAdminBasePath } from './routes/mongodbAdminRoute.js';
 
 // Import worker coordinator
 import workerCoordinator from './workers/workerCoordinator.js';
@@ -196,14 +198,14 @@ function setupMiddleware(app) {
  * @param {Express} app - Express application instance
  */
 function setupRoutes(app) {
-  // Register main routes
-  const routes = [
+  // Register main routes  const routes = [
     { path: '/', handler: indexRoute },
     { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
     { path: '/help', handler: helpRoute },
     { path: '/scrapers', handler: scrapersRoute },
     { path: '/profile', handler: profileRouter },
     { path: '/trigger-script', handler: triggerScriptsRouter },
+    { path: mongodbAdminBasePath, handler: mongodbAdminRoute },
   ];
   
   routes.forEach(route => {
@@ -217,9 +219,11 @@ function setupRoutes(app) {
   app.use('/api/scraper/comment', scrapersRoute);
   app.use('/api/scraper/submission', scrapersRoute);
   app.use('/api/scraper/stats', scrapersRoute);
-  
-  // Add the chat routes
+    // Add the chat routes
   app.use('/api/chat', chatRoutes);
+  
+  // Add MongoDB status routes
+  app.use(mongodbBasePath, mongodbRoutes);
   
   // Add routes for client-side rendering data
   app.get('/api/chat/messages', async (req, res) => {

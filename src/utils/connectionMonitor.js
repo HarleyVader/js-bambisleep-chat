@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 import Logger from './logger.js';
 
+// This module complements the functionality in src/config/db.js by providing
+// real-time monitoring of the MongoDB connection without modifying the core
+// connection logic. It's used by server.js to periodically check connection status.
+
 const logger = new Logger('ConnectionMonitor');
 let monitorInterval = null;
 

@@ -9,16 +9,28 @@ let connectionPromise = null;
 
 // Standardized connection options to use across the application
 const DEFAULT_CONNECTION_OPTIONS = {
-  serverSelectionTimeoutMS: 30000,    // Timeout for server selection (increased from 20000)
-  connectTimeoutMS: 45000,            // Timeout for initial connection (increased from 30000)
-  socketTimeoutMS: 90000,             // Timeout for operations (increased from 60000)
-  maxPoolSize: 15,                    // Connection pool size
-  minPoolSize: 3,                     // Minimum connections to maintain
+  serverSelectionTimeoutMS: 15000,    // Timeout for server selection (reduced to prevent long hangs)
+  connectTimeoutMS: 30000,            // Timeout for initial connection (reduced)
+  socketTimeoutMS: 45000,             // Timeout for operations (reduced)
+  maxPoolSize: 10,                    // Connection pool size (reduced)
+  minPoolSize: 2,                     // Minimum connections to maintain
   family: 4,                          // Use IPv4, skip trying IPv6
   autoIndex: true,                    // Build indexes
-  maxIdleTimeMS: 120000,              // Close idle connections after 2 minutes
+  maxIdleTimeMS: 60000,               // Close idle connections after 1 minute (reduced)
   retryWrites: true,                  // Auto-retry writes if they fail
-  retryReads: true                    // Auto-retry reads if they fail
+  retryReads: true,                   // Auto-retry reads if they fail
+  heartbeatFrequencyMS: 10000,        // More frequent heartbeats
+  keepAlive: true,                    // Keep connections alive
+  useUnifiedTopology: true,           // Use unified topology
+  useNewUrlParser: true               // Use new URL parser
+};
+
+// Fallback connection options for local database when primary is unavailable
+const FALLBACK_CONNECTION_OPTIONS = {
+  ...DEFAULT_CONNECTION_OPTIONS,
+  serverSelectionTimeoutMS: 5000,     // Faster timeouts for local connection
+  connectTimeoutMS: 10000,
+  socketTimeoutMS: 15000
 };
 
 /**
@@ -41,18 +53,45 @@ export async function connectDB(maxRetries = 3) {
   
   let retryCount = 0;
   let lastError = null;
+  let tryFallback = false;
   
   while (retryCount <= maxRetries) {
     try {
-      const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
+      // Get primary MongoDB URI from environment
+      let mongoURI = process.env.MONGODB_URI;
       
+      // Use fallback connection if requested or if we've had multiple connection failures
+      if (tryFallback || retryCount >= Math.floor(maxRetries / 2)) {
+        // Try fallback options in order: MONGODB_FALLBACK_URI, localhost
+        const fallbackURI = process.env.MONGODB_FALLBACK_URI || 'mongodb://localhost:27017/bambisleep';
+        
+        if (tryFallback && mongoURI !== fallbackURI) {
+          mongoURI = fallbackURI;
+          logger.warning(`Connection to primary database failed, trying fallback at ${fallbackURI.replace(/\/\/([^:]+):[^@]+@/, '//$1:****@')}`);
+        }
+      }
+      
+      // Check if we have connection string
+      if (!mongoURI) {
+        throw new Error('MongoDB connection string is missing. Please check your .env file.');
+      }
+      
+      // Log connection attempt with sensitive details masked
       logger.info(`Connecting to MongoDB at ${mongoURI.replace(/\/\/([^:]+):[^@]+@/, '//$1:****@')}${retryCount > 0 ? ` (attempt ${retryCount+1}/${maxRetries+1})` : ''}`);
       
-      // Create a promise for the connection and store it
-      connectionPromise = mongoose.connect(mongoURI, DEFAULT_CONNECTION_OPTIONS);
+      // Use appropriate connection options based on if we're using the fallback
+      const connectionOptions = tryFallback ? FALLBACK_CONNECTION_OPTIONS : DEFAULT_CONNECTION_OPTIONS;
       
-      // Wait for connection
-      await connectionPromise;
+      // Create a promise for the connection and store it
+      connectionPromise = mongoose.connect(mongoURI, connectionOptions);
+      
+      // Wait for connection with timeout
+      await Promise.race([
+        connectionPromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection attempt timed out')), 15000)
+        )
+      ]);
       
       // Mark as connected
       isConnected = true;
@@ -87,6 +126,14 @@ export async function connectDB(maxRetries = 3) {
         logger.debug(`Connection details: ${JSON.stringify(error.reason || {})}`);
       } else {
         logger.error(`Database connection error: ${error.message}`);
+      }
+      
+      // Check for ECONNRESET explicitly
+      if (error.message.includes('ECONNRESET')) {
+        logger.warning('Network connection reset detected (ECONNRESET). This usually indicates network issues between the server and MongoDB.');
+        
+        // Try fallback on next iteration if we're hitting connection reset errors
+        tryFallback = true;
       }
       
       // Increment retry count
