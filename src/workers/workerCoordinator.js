@@ -8,7 +8,7 @@ import Logger from '../utils/logger.js';
 import connectToMongoDB from '../utils/dbConnection.js';
 import mongoose from 'mongoose';
 import express from 'express';
-import apiRoutes from './routes/api.js';
+import apiRoutes from '../routes/apiRoutes.js'; // Corrected path
 
 // Create ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
