@@ -27,12 +27,13 @@
     "url": "git+https://github.com/HarleyVader/js-bambisleep-chat.git"
   },
   "license": "Apache-2.0",
-  "author": "melkanea",
-  "type": "module",
+  "author": "melkanea",  "type": "module",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "start:gc": "node --expose-gc src/server.js",
     "dev": "nodemon src/server.js",
+    "dev:gc": "nodemon --expose-gc src/server.js",
     "test:mongodb": "node src/test/mongodbTest.js",
     "check:mongodb": "node src/utils/db-check.js",
     "check:config": "node src/utils/mongoConfig.js",

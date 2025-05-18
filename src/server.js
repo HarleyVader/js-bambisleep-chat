@@ -119,13 +119,20 @@ async function initializeApp() {
     
     // Set up routes and APIs
     setupRoutes(app);
-      // Set up socket handlers with shared store for workers
+    
+    // Include client-side memory monitoring script
+    app.get('/js/memory-monitoring.js', (req, res) => {
+      res.type('text/javascript').send(memoryMonitor.getClientScript());
+    });
+
+    // Set up socket handlers with shared store for workers
     const socketStore = new Map();
     setupSocketHandlers(io, socketStore, filteredWords);
     
     // Set up error handlers
     setupErrorHandlers(app);
-      // Initialize scheduled tasks
+    
+    // Initialize scheduled tasks
     scheduledTasks.initialize();
     global.scheduledTasks = scheduledTasks;
     
@@ -818,7 +825,7 @@ async function startServer() {
     logger.success('MongoDB connection established');
     
     logger.info('Step 2/5: Initializing application...');
-    const { app, server, socketStore } = await initializeApp();
+    const { app, server, io, socketStore } = await initializeApp();
     logger.success('Application initialized');
     
     logger.info('Step 3/5: Starting HTTP server...');
@@ -836,6 +843,7 @@ async function startServer() {
     }
     
     global.socketStore = socketStore;
+    memoryMonitor.start();
     if (process.env.MEMORY_MONITOR_ENABLED === 'true') {
       const monitorInterval = process.env.MEMORY_MONITOR_INTERVAL 
         ? parseInt(process.env.MEMORY_MONITOR_INTERVAL) 
@@ -847,7 +855,8 @@ async function startServer() {
       memoryMonitor.start(process.env.NODE_ENV === 'production' ? 60000 : 30000);
       logger.info('Standard memory monitoring started to prevent overnight OOM kills');
     }
-      process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
+    
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
     process.on('uncaughtException', (err) => {
       logger.error('Uncaught exception:', err);
@@ -873,3 +882,8 @@ async function startServer() {
 }
 
 startServer();
+
+// Handle --expose-gc when provided
+if (typeof global.gc === 'function') {
+  logger.info('Manual garbage collection enabled');
+}

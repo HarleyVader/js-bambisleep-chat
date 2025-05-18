@@ -1,116 +1,99 @@
 import os from 'os';
-import Logger from './logger.js';
-import GarbageCollector from './garbageCollector.js';
 import mongoose from 'mongoose';
-import { Worker } from 'worker_threads';
-
-// Create instance of garbage collector
-const garbageCollector = new GarbageCollector();
+import Logger from './logger.js';
 
 const logger = new Logger('MemoryMonitor');
 
+// Unified memory management system for BambiSleep Chat
 class MemoryMonitor {  
   constructor() {
-    this.monitoringInterval = null;
-    // Read thresholds from environment variables if available
+    // Configuration
     this.memoryThreshold = process.env.MEMORY_WARNING_THRESHOLD 
       ? parseFloat(process.env.MEMORY_WARNING_THRESHOLD) / 100 
       : 0.75; // 75% memory usage threshold
     this.criticalThreshold = process.env.MEMORY_CRITICAL_THRESHOLD 
       ? parseFloat(process.env.MEMORY_CRITICAL_THRESHOLD) / 100 
       : 0.90; // 90% critical threshold
-    this.lastCollectionTime = Date.now();
-    this.collectionCooldown = 120000; // 2 minutes between forced collections
+    this.gcCooldown = 120000; // 2 minutes between forced collections
+    this.leakThreshold = 50 * 1024 * 1024; // 50MB increase to detect leak
+    
+    // State
+    this.monitoringInterval = null;
+    this.connectionInterval = null;
+    this.lastGcTime = Date.now();
     this.isRunning = false;
     this.memoryHistory = []; // Store last 10 memory readings
     this.memoryHistorySize = 10;
-    this.previousHeapUsed = 0;
-    this.leakDetectionThreshold = 50 * 1024 * 1024; // 50MB
+    this.intervals = [];
+    this.gcAvailable = typeof global.gc === 'function';
     
-    // Log configuration on startup
-    logger.info(`Memory monitor initialized with warning threshold: ${Math.round(this.memoryThreshold * 100)}%, critical threshold: ${Math.round(this.criticalThreshold * 100)}%`);
-  }
-  
-  // Start memory monitoring
-  start(interval = 120000) { // Changed from 60s to 120s for 6GB RAM system
-    if (this.isRunning) {
-      logger.info('Memory monitor is already running');
-      return;
+    // Log config
+    logger.info(`Memory monitor initialized with ${Math.round(this.memoryThreshold * 100)}% warning threshold`);
+    if (!this.gcAvailable) {
+      logger.warning('Manual GC unavailable. Use --expose-gc flag for better memory management.');
     }
-
+  }
+      start(interval = 120000) {
+    if (this.isRunning) {
+      logger.info('Memory monitor already running');
+      return this;
+    }
+    
     this.isRunning = true;
-    logger.info(`Starting memory monitor with ${interval}ms interval`);
-
-    // Initial memory check
+    logger.info(`Starting memory monitor (interval: ${interval}ms)`);
+    
+    // Initial check
     this.checkMemory();
-
-    // Set up interval for regular checks
+    
+    // Regular checks
     this.monitoringInterval = setInterval(() => {
       this.checkMemory();
     }, interval);
-
-    // Set up adaptive monitoring that increases frequency when memory usage approaches threshold
-    this.adaptiveMonitoring();
+    this.intervals.push(this.monitoringInterval);
+    
+    // Start database connection monitoring
+    this.startConnectionMonitoring();
     
     return this;
   }
   
-  // New adaptive monitoring method
-  adaptiveMonitoring() {
-    const checkAdaptiveInterval = setInterval(() => {
-      const memUsage = process.memoryUsage();
-      const heapUsageRatio = memUsage.heapUsed / memUsage.heapTotal;
+  startConnectionMonitoring(interval = 60000) {
+    // Check MongoDB connection regularly
+    this.connectionInterval = setInterval(() => {
+      const dbState = mongoose.connection.readyState;
       
-      // If memory usage is above 70%, start more frequent monitoring
-      if (heapUsageRatio > 0.7) {
-        if (!this.highMemoryMonitoring) {
-          logger.warning(`Memory usage at ${Math.round(heapUsageRatio * 100)}% - increasing monitoring frequency`);
-          this.highMemoryMonitoring = setInterval(() => {
-            this.checkMemory(true); // true flag for urgent check
-          }, 30000); // 30 seconds interval for high memory
-        }
-      } else if (this.highMemoryMonitoring) {
-        // If memory usage has dropped, stop the more frequent monitoring
-        clearInterval(this.highMemoryMonitoring);
-        this.highMemoryMonitoring = null;
-        logger.info('Memory usage normalized - returning to regular monitoring');
+      if (dbState !== 1) {
+        const stateName = this.getDbStateName(dbState);
+        logger.warning(`Database connection issue detected: ${stateName}`);
       }
-    }, 60000); // Check every minute for adaptive monitoring
+    }, interval);
     
-    this.checkAdaptiveInterval = checkAdaptiveInterval;
+    this.intervals.push(this.connectionInterval);
   }
-
-  // Stop memory monitoring
-  stop() {
-    if (!this.isRunning) {
-      return;
+  
+  getDbStateName(state) {
+    switch (state) {
+      case 0: return 'disconnected';
+      case 1: return 'connected';
+      case 2: return 'connecting';
+      case 3: return 'disconnecting';
+      default: return 'unknown';
     }
-
-    if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-      this.monitoringInterval = null;
-    }
-
-    if (this.criticalMonitoringInterval) {
-      clearInterval(this.criticalMonitoringInterval);
-      this.criticalMonitoringInterval = null;
-    }
-
-    if (this.checkAdaptiveInterval) {
-      clearInterval(this.checkAdaptiveInterval);
-      this.checkAdaptiveInterval = null;
-    }
-
-    if (this.highMemoryMonitoring) {
-      clearInterval(this.highMemoryMonitoring);
-      this.highMemoryMonitoring = null;
-    }
-
+  }  stop() {
+    if (!this.isRunning) return;
+    
+    // Clean up all intervals
+    this.intervals.forEach(clearInterval);
+    this.intervals = [];
+    
+    // Reset monitoring state
+    this.monitoringInterval = null;
+    this.connectionInterval = null;
     this.isRunning = false;
+    
     logger.info('Memory monitor stopped');
   }
-
-  // Get current memory usage
+  
   getMemoryUsage() {
     const memoryUsage = process.memoryUsage();
     const systemMemory = {
@@ -128,20 +111,18 @@ class MemoryMonitor {
         used: memoryUsage.heapUsed,
         total: memoryUsage.heapTotal,
         external: memoryUsage.external,
-        arrayBuffers: memoryUsage.arrayBuffers
+        arrayBuffers: memoryUsage.arrayBuffers,
+        ratio: heapUsedRatio
       },
       rss: memoryUsage.rss,
       system: systemMemory,
       heapUsedRatio,
       systemUsedRatio
     };
-  }
-
-  // Check memory and take actions if needed
-  checkMemory(urgent = false) {
+  }  checkMemory(urgent = false) {
     const memUsage = this.getMemoryUsage();
     
-    // Add to history
+    // Add to history for leak detection
     this.memoryHistory.push({
       timestamp: Date.now(),
       heapUsed: memUsage.heap.used,
@@ -158,13 +139,11 @@ class MemoryMonitor {
     this.detectMemoryLeaks();
     
     // For logging - calculate all values
-    const heapUsedMB = (memUsage.heap.used / 1024 / 1024).toFixed(2);
-    const heapTotalMB = (memUsage.heap.total / 1024 / 1024).toFixed(2);
-    const rssMB = (memUsage.rss / 1024 / 1024).toFixed(2);
-    const systemUsedGB = (memUsage.system.used / 1024 / 1024 / 1024).toFixed(2);
-    const systemTotalGB = (memUsage.system.total / 1024 / 1024 / 1024).toFixed(2);
+    const heapUsedMB = (memUsage.heap.used / 1024 / 1024).toFixed(1);
+    const heapTotalMB = (memUsage.heap.total / 1024 / 1024).toFixed(1);
+    const rssMB = (memUsage.rss / 1024 / 1024).toFixed(1);
     
-    // Only log detailed memory info when urgent or every 5 checks to reduce logging overhead
+    // Only log detailed memory info occasionally to reduce log spam
     if (!this.checkCount) this.checkCount = 0;
     this.checkCount++;
     
@@ -175,25 +154,23 @@ class MemoryMonitor {
     // Take action if memory usage is above threshold
     if (memUsage.heapUsedRatio > this.memoryThreshold) {
       // If we're within cooldown period, log but don't act
-      if (!urgent && Date.now() - this.lastCollectionTime < this.collectionCooldown) {
+      if (!urgent && Date.now() - this.lastGcTime < this.gcCooldown) {
         logger.warning(`High memory usage detected (${(memUsage.heapUsedRatio * 100).toFixed(1)}%), but within cooldown period`);
         return;
       }
       
       logger.warning(`High memory usage detected: ${(memUsage.heapUsedRatio * 100).toFixed(1)}% of heap used. Taking action...`);
-      this.takeAction(memUsage);
-      this.lastCollectionTime = Date.now();
+      this.collectGarbage(memUsage);
+      this.lastGcTime = Date.now();
     }
     
     // CRITICAL: If system memory usage is critically high, take emergency action
     if (memUsage.systemUsedRatio > this.criticalThreshold) {
       logger.error(`CRITICAL: System memory usage at ${(memUsage.systemUsedRatio * 100).toFixed(1)}%. Taking emergency action!`);
-      this.takeEmergencyAction(memUsage);
-      this.lastCollectionTime = Date.now();
+      this.handleMemoryEmergency(memUsage);
+      this.lastGcTime = Date.now();
     }
   }
-
-  // Detect potential memory leaks
   detectMemoryLeaks() {
     if (this.memoryHistory.length < 2) {
       return false;
@@ -217,53 +194,77 @@ class MemoryMonitor {
     }
     
     // If we have a consistent increase that exceeds our threshold
-    if (consistentIncrease && totalIncrease > this.leakDetectionThreshold) {
+    if (consistentIncrease && totalIncrease > this.leakThreshold) {
       logger.warning(`Potential memory leak detected! Heap increased by ${(totalIncrease / 1024 / 1024).toFixed(2)}MB consistently over last ${this.memoryHistory.length} checks`);
       return true;
     }
     
     return false;
-  }
-
-  // Take action when memory is high
-  takeAction(memUsage) {
+  }  collectGarbage(memUsage) {
     try {
-      // Run garbage collection on available socket stores
+      // Clean up socket stores
       if (global.socketStore) {
-        logger.info('Collecting garbage from main socket store');
-        garbageCollector.collect(global.socketStore);
+        logger.info('Cleaning disconnected sockets');
+        this.cleanSocketStore(global.socketStore);
       }
       
-      // Force Node.js garbage collection if available
-      if (global.gc) {
+      // Force V8 garbage collection if available
+      if (this.gcAvailable) {
         logger.info('Forcing V8 garbage collection');
         global.gc();
       } else {
-        logger.info('V8 garbage collection not available. Start node with --expose-gc flag to enable this feature.');
+        logger.info('V8 garbage collection not available. Start node with --expose-gc flag for better memory management.');
       }
       
-      // Close database connections that aren't active
+      // Ping MongoDB to clean up connections
       if (mongoose.connection.readyState === 1) {
-        logger.info('Closing inactive MongoDB connections');
+        logger.info('Refreshing MongoDB connection');
         mongoose.connection.db.admin().ping();
       }
       
-      // Log success
-      logger.info('Memory cleanup actions completed');
+      logger.info('Memory cleanup completed');
     } catch (error) {
-      logger.error(`Error during memory cleanup: ${error.message}`);
+      logger.error(`Error during garbage collection: ${error.message}`);
     }
   }
-
-  // Emergency action when system memory is critically high
-  takeEmergencyAction(memUsage) {
+    cleanSocketStore(socketStore) {
+    if (!socketStore || !(socketStore instanceof Map)) return 0;
+    
+    let removed = 0;
+    const now = Date.now();
+    
+    for (const [id, socket] of socketStore.entries()) {
+      // Remove disconnected sockets
+      if (socket && socket.connected === false) {
+        socketStore.delete(id);
+        removed++;
+      }
+      
+      // Also clean very old idle sockets
+      if (socket && socket.lastActivity) {
+        const idleTime = now - socket.lastActivity;
+        if (idleTime > 1800000) { // 30 minutes
+          logger.info(`Cleaning idle socket ${id} (idle for ${Math.round(idleTime/1000/60)}m)`);
+          socketStore.delete(id);
+          removed++;
+        }
+      }
+    }
+    
+    if (removed > 0) {
+      logger.info(`Cleaned ${removed} sockets from socket store`);
+    }
+    
+    return removed;
+  }
+    handleMemoryEmergency(memUsage) {
     try {
-      // Take regular action first
-      this.takeAction(memUsage);
+      // First try regular garbage collection
+      this.collectGarbage(memUsage);
       
       logger.error('EMERGENCY: Attempting to free memory to prevent OOM kill');
       
-      // Clear all non-essential caches
+      // Clear session histories
       if (global.sessionHistories) {
         const sessionCount = Object.keys(global.sessionHistories).length;
         logger.warning(`Emergency clearing ${Math.floor(sessionCount * 0.5)} oldest sessions`);
@@ -286,17 +287,163 @@ class MemoryMonitor {
       }
       
       // Force garbage collection again
-      if (global.gc) {
+      if (this.gcAvailable) {
         global.gc();
       }
       
       logger.error('Emergency memory cleanup completed');
     } catch (error) {
-      logger.error(`Error during emergency memory cleanup: ${error.message}`);
+      logger.error(`Error during emergency cleanup: ${error.message}`);
     }
+  }  getClientScript() {
+    return `
+// Memory management for client-side
+window.memoryManager = {
+  gcPending: false,
+  intervals: [],
+  eventListeners: new Map(),
+  lastWarningTime: 0,
+  
+  init() {
+    if (typeof performance === 'undefined' || !performance.memory) {
+      console.log('Memory management not supported in this browser');
+      return;
+    }
+    
+    this.setupMemoryWatcher();
+    this.setupEventListenerTracking();
+    console.log('Memory manager initialized');
+  },
+  
+  setupMemoryWatcher() {
+    // Check memory usage every 30 seconds
+    const interval = setInterval(() => {
+      this.checkMemoryUsage();
+    }, 30000);
+    
+    this.intervals.push(interval);
+    
+    // Also check on visibility change
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.checkMemoryUsage();
+      }
+    });
+  },
+  
+  checkMemoryUsage() {
+    if (!performance.memory) return;
+    
+    const memoryUsage = performance.memory;
+    const usedRatio = memoryUsage.usedJSHeapSize / memoryUsage.jsHeapSizeLimit;
+    
+    // Log memory stats
+    console.log(\`Memory: \${Math.round(memoryUsage.usedJSHeapSize / 1024 / 1024)}MB / \${Math.round(memoryUsage.jsHeapSizeLimit / 1024 / 1024)}MB (\${Math.round(usedRatio * 100)}%)\`);
+    
+    // If memory usage is high, clean up
+    if (usedRatio > 0.7 && !this.gcPending) {
+      this.gcPending = true;
+      
+      // Don't spam warnings
+      const now = Date.now();
+      if (now - this.lastWarningTime > 120000) {
+        this.lastWarningTime = now;
+        console.warn('High memory usage detected. Cleaning up...');
+        this.cleanupMemory();
+        
+        setTimeout(() => {
+          this.gcPending = false;
+        }, 10000);
+      }
+    }
+  },
+  
+  cleanupMemory() {
+    // Clear component cache
+    if (window.clientRenderer && window.clientRenderer.componentCache) {
+      window.clientRenderer.componentCache.clear();
+    }
+    
+    // Clean DOM - limit chat messages
+    const chatList = document.getElementById('chat-response');
+    if (chatList && chatList.children.length > 50) {
+      while (chatList.children.length > 50) {
+        chatList.removeChild(chatList.firstChild);
+      }
+    }
+    
+    // Force GC if available
+    if (typeof window.gc === 'function') {
+      try {
+        window.gc();
+        console.log('Forced garbage collection');
+      } catch (e) {
+        console.log('Failed to force GC:', e);
+      }
+    }
+  },
+  
+  setupEventListenerTracking() {
+    try {
+      // Override addEventListener
+      const originalAddEventListener = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function(type, listener, options) {
+        const element = this;
+        const key = \`\${element.constructor.name}:\${type}\`;
+        
+        if (!window.memoryManager.eventListeners.has(key)) {
+          window.memoryManager.eventListeners.set(key, new Set());
+        }
+        
+        window.memoryManager.eventListeners.get(key).add(listener);
+        
+        return originalAddEventListener.call(this, type, listener, options);
+      };
+      
+      // Override removeEventListener
+      const originalRemoveEventListener = EventTarget.prototype.removeEventListener;
+      EventTarget.prototype.removeEventListener = function(type, listener, options) {
+        const element = this;
+        const key = \`\${element.constructor.name}:\${type}\`;
+        
+        if (window.memoryManager.eventListeners.has(key)) {
+          window.memoryManager.eventListeners.get(key).delete(listener);
+          if (window.memoryManager.eventListeners.get(key).size === 0) {
+            window.memoryManager.eventListeners.delete(key);
+          }
+        }
+        
+        return originalRemoveEventListener.call(this, type, listener, options);
+      };
+    } catch (e) {
+      console.warn('Failed to set up event listener tracking:', e);
+    }
+  },
+  
+  getEventListenerStats() {
+    const stats = {};
+    for (const [key, listeners] of this.eventListeners.entries()) {
+      stats[key] = listeners.size;
+    }
+    return stats;
+  },
+  
+  cleanup() {
+    this.intervals.forEach(clearInterval);
+    this.intervals = [];
+    this.eventListeners.clear();
+    console.log('Memory manager cleaned up');
+  }
+};
+
+// Initialize memory manager
+document.addEventListener('DOMContentLoaded', () => {
+  window.memoryManager.init();
+});
+`;
   }
 }
 
-// Singleton instance
+// Create singleton instance
 const memoryMonitor = new MemoryMonitor();
 export default memoryMonitor;
