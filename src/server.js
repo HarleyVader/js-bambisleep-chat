@@ -29,7 +29,7 @@ import profileRouter from './routes/profile.js';
 import chatRoutes from './routes/chatRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
 import { router as triggerScriptsRouter } from './routes/trigger-scripts.js';
-import mongodbRoutes from './routes/mongodbRoutes.js';
+import * as mongodbRoutes from './routes/mongodbRoutes.js';
 import * as mongodbAdminRoute from './routes/mongodbAdminRoute.js';
 
 const mongodbBasePath = '/mongodb';
