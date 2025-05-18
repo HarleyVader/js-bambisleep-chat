@@ -47,6 +47,8 @@ import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 import garbageCollector from './utils/garbageCollector.js';
 import memoryMonitor from './utils/memory-monitor.js';
+import { startDbHealthMonitor, stopDbHealthMonitor } from './utils/dbHealthMonitor.js';
+import { startConnectionPoolMonitor, stopConnectionPoolMonitor } from './utils/connectionPoolMonitor.js';
 import { Worker } from 'worker_threads';
 
 // Import Profile model getter
@@ -233,6 +235,28 @@ function setupRoutes(app) {    // Register main routes
   
   // Add API routes
   app.use('/api', apiRoutes);
+  
+  // Add health check endpoint
+  app.get('/health', async (req, res) => {
+    try {
+      const { checkDBHealth } = await import('./config/db.js');
+      const dbHealth = await checkDBHealth();
+      
+      res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        db: dbHealth,
+        uptime: process.uptime(),
+        memory: process.memoryUsage()
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
 }
 
 /**
@@ -841,6 +865,11 @@ async function startServer() {
     } else {
       startConnectionMonitoring(60000);
     }
+    
+    // Start database health monitoring
+    startDbHealthMonitor();
+    startConnectionPoolMonitor();
+    logger.info('Database health and connection pool monitors started');
     
     global.socketStore = socketStore;
     memoryMonitor.start();

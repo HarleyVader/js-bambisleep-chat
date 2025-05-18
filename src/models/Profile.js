@@ -506,19 +506,74 @@ try {
 }
 
 /**
- * Get profile by username with proper connection management
+ * Get profile by username
  * 
  * @param {string} username - Profile username
  * @returns {Promise<Object>} - Profile object
  */
 export async function getProfile(username) {
+  // Retry up to 3 times with increasing timeout
   return withDbConnection(async () => {
     try {
-      return await Profile.findOne({ username });
+      const profile = await Profile.findOne({ username });
+      return profile;
     } catch (error) {
       logger.error(`Error getting profile for ${username}: ${error.message}`);
+      
+      // Check specifically for connection pool error
+      if (error.message && (
+          error.message.includes('connection pool') || 
+          error.message.includes('topology') ||
+          error.message.includes('disconnected'))) {
+        logger.warning(`Connection pool error when getting profile for ${username}, attempting recovery`);
+        
+        // Use the import for direct access
+        const { connectDB } = await import('../config/db.js');
+        
+        // Force reconnection with extended timeout
+        try {
+          await connectDB(2, true);
+          
+          // Try one more time after forced reconnection
+          try {
+            const retryProfile = await Profile.findOne({ username });
+            if (retryProfile) {
+              logger.info(`Successfully recovered profile for ${username} after connection pool error`);
+              return retryProfile;
+            }
+          } catch (retryError) {
+            logger.error(`Failed to get profile after reconnection: ${retryError.message}`);
+          }
+        } catch (reconnectError) {
+          logger.error(`Failed to reconnect: ${reconnectError.message}`);
+        }
+      }
+      
+      // Return a fallback empty profile object instead of null
+      // This helps prevent cascading errors in the application
+      if (error.message && (
+          error.message.includes('connection') || 
+          error.message.includes('timeout') ||
+          error.message.includes('network'))) {
+        logger.warning(`Returning fallback profile for ${username} due to connection error`);
+        return {
+          username,
+          displayName: username,
+          activeTriggers: ["BAMBI SLEEP"],
+          settings: { theme: 'dark' },
+          xp: 0,
+          level: 1,
+          about: 'Temporary Profile - Connection Error',
+          isFallback: true
+        };
+      }
+      
       return null;
     }
+  }, {
+    retries: 3,         // Retry up to 3 times
+    timeout: 15000,     // 15 second timeout
+    keepConnectionOpen: true
   });
 }
 

@@ -6,6 +6,7 @@ const logger = new Logger('Database');
 // Track connection status
 let isConnected = false;
 let connectionPromise = null;
+let lastReconnectTime = 0; // Track when we last reconnected
 
 // Standardized connection options to use across the application
 const DEFAULT_CONNECTION_OPTIONS = {
@@ -45,11 +46,32 @@ function getMongoUri() {
  * Connect to MongoDB database
  * 
  * @param {number} retries - Number of connection retry attempts
+ * @param {boolean} force - Force reconnection even if already connected
  * @returns {Promise<boolean>} - True if connection successful
  */
-export async function connectDB(retries = 3) {
+export async function connectDB(retries = 3, force = false) {
   let currentAttempt = 1;
   const maxAttempts = retries + 1;
+  
+  // Track reconnection time
+  lastReconnectTime = Date.now();
+  
+  // If already connected and not forced, just return true
+  if (mongoose.connection.readyState === 1 && !force) {
+    logger.debug('Already connected to MongoDB, skipping connection');
+    isConnected = true;
+    return true;
+  }
+  
+  // Close any existing connection if in an unexpected state
+  if (mongoose.connection.readyState !== 0) {
+    logger.warning(`MongoDB connection in unexpected state (${mongoose.connection.readyState}), resetting connection`);
+    try {
+      await mongoose.connection.close();
+    } catch (err) {
+      logger.debug(`Error while closing existing connection: ${err.message}`);
+    }
+  }
   
   while (currentAttempt <= maxAttempts) {
     try {
@@ -64,6 +86,18 @@ export async function connectDB(retries = 3) {
       
       isConnected = true;
       logger.success('MongoDB connected');
+      
+      // Set up connection error handler to detect disconnects
+      mongoose.connection.on('error', (err) => {
+        logger.error(`MongoDB connection error: ${err.message}`);
+        isConnected = false;
+      });
+      
+      mongoose.connection.on('disconnected', () => {
+        logger.warning('MongoDB disconnected');
+        isConnected = false;
+      });
+      
       return true;
     } catch (error) {
       logger.error(`Database connection error: ${error.message}`);
@@ -120,14 +154,30 @@ export async function withDbConnection(operation, options = {}) {
   } = options;
   
   // Check if already connected
-  const wasConnected = isConnected || mongoose.connection.readyState === 1;
+  let wasConnected = isConnected || mongoose.connection.readyState === 1;
   
   // For retry logic
   let lastError = null;
   let attempt = 0;
   
+  // Check if we need to force a reconnection (if it's been more than 5 minutes since last reconnect)
+  const timeSinceLastReconnect = Date.now() - lastReconnectTime;
+  const needsReconnection = timeSinceLastReconnect > 300000; // 5 minutes
+  
   while (attempt <= retries) {
     try {
+      // Check for connection issues that require reconnection
+      if (mongoose.connection.readyState === 0 || 
+          mongoose.connection.readyState === 3 || 
+          needsReconnection) {
+        logger.warning('Connection issue detected. Attempting to reconnect...');
+        wasConnected = false;
+        isConnected = false;
+        
+        // Force reconnect
+        await connectDB(1, true);
+      }
+      
       // Only connect if not already connected
       if (!wasConnected && mongoose.connection.readyState !== 1) {
         logger.debug('Opening new MongoDB connection for operation');
@@ -135,6 +185,7 @@ export async function withDbConnection(operation, options = {}) {
         if (!connected) {
           throw new Error('Failed to establish database connection');
         }
+        isConnected = true;
       } else {
         logger.debug('Using existing MongoDB connection');
       }
@@ -156,6 +207,27 @@ export async function withDbConnection(operation, options = {}) {
     } catch (error) {
       lastError = error;
       attempt++;
+      
+      // Handle connection pool closed error specifically
+      if (error.message && (
+          error.message.includes('connection pool') || 
+          error.message.includes('topology') ||
+          error.message.includes('disconnected'))) {
+        logger.warning(`Connection pool error detected: ${error.message}`);
+        // Force reconnection on next attempt
+        wasConnected = false;
+        isConnected = false;
+        
+        // Give a little more time for reconnection
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Attempt immediate reconnection for connection pool errors
+        try {
+          await connectDB(1, true);
+        } catch (reconnectError) {
+          logger.error(`Failed to reconnect: ${reconnectError.message}`);
+        }
+      }
       
       // Log the error with try count
       logger.error(`Database operation error (attempt ${attempt}/${retries + 1}): ${error.message}`);
