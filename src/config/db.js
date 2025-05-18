@@ -165,8 +165,7 @@ export async function withDbConnection(operation, options = {}) {
   const needsReconnection = timeSinceLastReconnect > 300000; // 5 minutes
   
   while (attempt <= retries) {
-    try {
-      // Check for connection issues that require reconnection
+    try {      // Check for connection issues that require reconnection
       if (mongoose.connection.readyState === 0 || 
           mongoose.connection.readyState === 3 || 
           needsReconnection) {
@@ -175,6 +174,15 @@ export async function withDbConnection(operation, options = {}) {
         isConnected = false;
         
         // Force reconnect
+        await connectDB(1, true);
+      }
+      
+      // Verify connection health even if readyState looks good
+      const connectionHealthy = await isConnectionHealthy();
+      if (!connectionHealthy) {
+        logger.warning('Connection appears unhealthy despite readyState. Forcing reconnection...');
+        wasConnected = false;
+        isConnected = false;
         await connectDB(1, true);
       }
       
@@ -325,6 +333,27 @@ export async function checkDBHealth() {
   }
 }
 
+/**
+ * Check if the connection is truly active by trying a simple operation
+ * This is more reliable than just checking readyState
+ * 
+ * @returns {Promise<boolean>} - True if connection is healthy
+ */
+async function isConnectionHealthy() {
+  if (mongoose.connection.readyState !== 1) {
+    return false;
+  }
+  
+  try {
+    // Try to ping the database - this will fail if connection has issues
+    await mongoose.connection.db.command({ ping: 1 });
+    return true;
+  } catch (error) {
+    logger.debug(`Connection health check failed: ${error.message}`);
+    return false;
+  }
+}
+
 // Export as default object for convenience
 export default { 
   connectDB, 
@@ -332,5 +361,6 @@ export default {
   withDbConnection, 
   ensureModelsRegistered,
   getModel,
-  checkDBHealth
+  checkDBHealth,
+  isConnectionHealthy
 };

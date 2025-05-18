@@ -216,18 +216,43 @@ class MemoryMonitor {
         logger.info('V8 garbage collection not available. Start node with --expose-gc flag for better memory management.');
       }
       
-      // Ping MongoDB to clean up connections
-      if (mongoose.connection.readyState === 1) {
-        logger.info('Refreshing MongoDB connection');
-        mongoose.connection.db.admin().ping();
-      }
+      // Refresh MongoDB connection to clear stale connections
+      this.refreshDatabaseConnection();
       
       logger.info('Memory cleanup completed');
     } catch (error) {
       logger.error(`Error during garbage collection: ${error.message}`);
     }
   }
-    cleanSocketStore(socketStore) {
+  
+  // Add a new method to refresh database connections
+  async refreshDatabaseConnection() {
+    try {
+      if (mongoose.connection.readyState === 1) {
+        logger.info('Refreshing MongoDB connection');
+        
+        // Try to use the connection pool monitor if available
+        try {
+          const connectionPoolMonitor = await import('./connectionPoolMonitor.js');
+          const refreshConnectionPool = connectionPoolMonitor.default?.refreshConnectionPool;
+          
+          if (typeof refreshConnectionPool === 'function') {
+            await refreshConnectionPool();
+            return;
+          }
+        } catch (importError) {
+          // If import fails, use a simpler approach
+        }
+        
+        // Fall back to a simple ping
+        await mongoose.connection.db.command({ ping: 1 });
+      }
+    } catch (error) {
+      logger.debug(`Database refresh error: ${error.message}`);
+    }
+  }
+  
+  cleanSocketStore(socketStore) {
     if (!socketStore || !(socketStore instanceof Map)) return 0;
     
     let removed = 0;

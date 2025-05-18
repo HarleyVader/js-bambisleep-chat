@@ -5,6 +5,51 @@ import crypto from 'crypto';
 
 const logger = new Logger('Profile');
 
+// Circuit breaker to prevent too many reconnection attempts
+const circuitBreaker = {
+  failures: 0,
+  lastFailure: 0,
+  isOpen: false,
+  threshold: 5,  // Max number of failures before opening circuit
+  resetTimeout: 60000,  // 1 minute timeout before trying again
+  
+  recordFailure() {
+    const now = Date.now();
+    // Reset counter if it's been a while since last failure
+    if (now - this.lastFailure > this.resetTimeout) {
+      this.failures = 0;
+      this.isOpen = false;
+    }
+    
+    this.failures++;
+    this.lastFailure = now;
+    
+    if (this.failures >= this.threshold) {
+      this.isOpen = true;
+      logger.warning(`Circuit breaker opened after ${this.failures} connection failures`);
+      
+      // Auto-reset after timeout
+      setTimeout(() => {
+        this.isOpen = false;
+        this.failures = 0;
+        logger.info('Circuit breaker reset');
+      }, this.resetTimeout);
+    }
+  },
+  
+  canAttemptReconnection() {
+    const now = Date.now();
+    // Auto-reset if enough time has passed
+    if (this.isOpen && now - this.lastFailure > this.resetTimeout) {
+      this.isOpen = false;
+      this.failures = 0;
+      return true;
+    }
+    
+    return !this.isOpen;
+  }
+};
+
 // Standard BambiSleep triggers from triggers.js
 const STANDARD_TRIGGERS = [
   "BIMBO DOLL",
@@ -495,6 +540,27 @@ profileSchema.statics.findOrCreateByUsername = async function(username) {
   });
 };
 
+/**
+ * Create a fallback profile for when database access fails
+ * 
+ * @param {string} username - Profile username
+ * @param {string} reason - Reason for returning fallback
+ * @returns {Object} - Fallback profile object
+ */
+function createFallbackProfile(username, reason = 'Connection Error') {
+  return {
+    username,
+    displayName: username,
+    activeTriggers: ["BAMBI SLEEP"],
+    settings: { theme: 'dark' },
+    xp: 0,
+    level: 1,
+    about: `Temporary Profile - ${reason}`,
+    isFallback: true,
+    fallbackReason: reason
+  };
+}
+
 // Create the model
 let Profile;
 try {
@@ -519,20 +585,30 @@ export async function getProfile(username) {
       return profile;
     } catch (error) {
       logger.error(`Error getting profile for ${username}: ${error.message}`);
-      
-      // Check specifically for connection pool error
+        // Check specifically for connection pool error
       if (error.message && (
           error.message.includes('connection pool') || 
           error.message.includes('topology') ||
           error.message.includes('disconnected'))) {
         logger.warning(`Connection pool error when getting profile for ${username}, attempting recovery`);
         
-        // Use the import for direct access
-        const { connectDB } = await import('../config/db.js');
-        
-        // Force reconnection with extended timeout
         try {
-          await connectDB(2, true);
+          // Check circuit breaker before attempting reconnection
+          if (!circuitBreaker.canAttemptReconnection()) {
+            logger.warning(`Circuit breaker is open, skipping reconnection attempt for ${username}`);
+            throw new Error('Circuit breaker is open, reconnection attempt skipped');
+          }
+          
+          // Try using the connection pool monitor first
+          const { refreshConnectionPool } = await import('../utils/connectionPoolMonitor.js');
+          if (typeof refreshConnectionPool === 'function') {
+            logger.info(`Using connectionPoolMonitor to refresh connection for ${username}`);
+            await refreshConnectionPool();
+          } else {
+            // Fallback to direct reconnection
+            const { connectDB } = await import('../config/db.js');
+            await connectDB(2, true);
+          }
           
           // Try one more time after forced reconnection
           try {
@@ -543,9 +619,11 @@ export async function getProfile(username) {
             }
           } catch (retryError) {
             logger.error(`Failed to get profile after reconnection: ${retryError.message}`);
+            circuitBreaker.recordFailure();
           }
         } catch (reconnectError) {
           logger.error(`Failed to reconnect: ${reconnectError.message}`);
+          circuitBreaker.recordFailure();
         }
       }
       
@@ -556,16 +634,7 @@ export async function getProfile(username) {
           error.message.includes('timeout') ||
           error.message.includes('network'))) {
         logger.warning(`Returning fallback profile for ${username} due to connection error`);
-        return {
-          username,
-          displayName: username,
-          activeTriggers: ["BAMBI SLEEP"],
-          settings: { theme: 'dark' },
-          xp: 0,
-          level: 1,
-          about: 'Temporary Profile - Connection Error',
-          isFallback: true
-        };
+        return createFallbackProfile(username, 'Connection Error');
       }
       
       return null;

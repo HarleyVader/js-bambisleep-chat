@@ -68,40 +68,64 @@ async function checkConnectionPool() {
       return;
     }
     
-    // Get connection pool stats if available
-    const connPoolStats = mongoose.connection.client?.topology?.s?.pool;
-    if (!connPoolStats) {
-      logger.debug('Unable to access connection pool stats');
-      return;
-    }
-    
-    // Check if pool is ready
-    if (!connPoolStats.serverPool) {
-      logger.warning('Server pool not available');
-      await refreshConnectionPool();
-      return;
-    }
-    
-    // Check for issues in the connection pool
-    const totalConnections = connPoolStats.size;
-    const availableConnections = connPoolStats.availableConnections;
-    const pendingConnections = connPoolStats.pendingConnectionCount;
-    
-    // Log pool statistics occasionally
-    logger.debug(`Pool stats - Total: ${totalConnections}, Available: ${availableConnections}, Pending: ${pendingConnections}`);
-    
-    // Check for potential issues
-    if (availableConnections === 0 && totalConnections > 0) {
-      logger.warning('No available connections in the pool, but pool has connections');
+    // Use a simpler approach - check if connection is actually working
+    try {
+      // Simple ping to check connection
+      await mongoose.connection.db.admin().ping();
       
-      // If there are pending connections for too long, consider refreshing
-      if (pendingConnections > 0) {
-        logger.warning(`${pendingConnections} pending connections detected, refreshing pool`);
+      // Check if we can perform a basic operation
+      const connectionCheck = await mongoose.connection.db.command({ serverStatus: 1 });
+      
+      // If we have connection info, use it
+      if (connectionCheck && connectionCheck.connections) {
+        const { current, available, totalCreated } = connectionCheck.connections;
+        
+        logger.debug(`MongoDB connections - Current: ${current}, Available: ${available}, Total Created: ${totalCreated}`);
+        
+        // Check for potential connection issues
+        if (current > 0 && available === 0) {
+          logger.warning('No available connections, but connections exist');
+          await refreshConnectionPool();
+        }
+      } else {
+        // If we couldn't get detailed stats, do a time-based refresh
+        // This is a fallback when we can't access internal pool stats
+        const timeSinceLastRefresh = now - lastPoolRefresh;
+        if (timeSinceLastRefresh > REFRESH_INTERVAL / 4) { // Do more frequent refreshes as fallback
+          logger.info('Performing time-based pool refresh (limited stats available)');
+          await refreshConnectionPool();
+        }
+      }
+    } catch (pingError) {
+      // If ping fails, we have connection issues
+      logger.warning(`Connection check failed: ${pingError.message}`);
+      await refreshConnectionPool();    }
+  } catch (error) {
+    // Don't show the full error for expected connection issues
+    if (error.message && (
+        error.message.includes('not authorized') || 
+        error.message.includes('no such cmd'))) {
+      logger.warning('Limited MongoDB permissions detected, using simplified connection monitoring');
+      
+      // Fall back to a simpler connection check - just try to ping the database
+      try {
+        await mongoose.connection.db.command({ ping: 1 });
+      } catch (pingError) {
+        logger.warning(`Connection issue detected: ${pingError.message}`);
+        await refreshConnectionPool();
+      }
+    } else {
+      logger.error(`Error checking connection pool: ${error.message}`);
+      
+      // If we get any error during checking, it's safer to refresh the pool
+      const now = Date.now();
+      const timeSinceLastRefresh = now - lastPoolRefresh;
+      
+      // Don't refresh too frequently
+      if (timeSinceLastRefresh > 60000) { // At least 1 minute between forced refreshes
         await refreshConnectionPool();
       }
     }
-  } catch (error) {
-    logger.error(`Error checking connection pool: ${error.message}`);
   }
 }
 
@@ -112,19 +136,56 @@ async function refreshConnectionPool() {
   try {
     logger.info('Refreshing connection pool');
     
-    // Force a reconnection
+    // First try to close the connection - this helps free up resources
+    try {
+      if (mongoose.connection.readyState === 1) {
+        // Set a timeout to avoid hanging indefinitely
+        const closePromise = mongoose.connection.close();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection close timeout')), 5000)
+        );
+        
+        await Promise.race([closePromise, timeoutPromise]);
+        logger.debug('Existing connection closed');
+      }
+    } catch (closeError) {
+      logger.warning(`Error closing connection: ${closeError.message}`);
+      // Continue with reconnection even if close fails
+    }
+    
+    // Brief pause to allow resources to be released
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Force a reconnection with extended retry logic
     await connectDB(2, true);
     
     // Update the last refresh timestamp
     lastPoolRefresh = Date.now();
     
+    // Verify the connection is actually working
+    await mongoose.connection.db.command({ ping: 1 });
+    
     logger.success('Connection pool refreshed successfully');
   } catch (error) {
     logger.error(`Failed to refresh connection pool: ${error.message}`);
+    
+    // If we can't connect, try one more time after a delay
+    try {
+      logger.info('Attempting one final reconnection after delay');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      await connectDB(3, true);
+      logger.success('Second connection attempt successful');
+    } catch (retryError) {
+      logger.error(`All reconnection attempts failed: ${retryError.message}`);
+    }
   }
 }
 
+// Export the refresh function directly so it can be used by other modules
+export { refreshConnectionPool };
+
 export default {
   startConnectionPoolMonitor,
-  stopConnectionPoolMonitor
+  stopConnectionPoolMonitor,
+  refreshConnectionPool
 };
