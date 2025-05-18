@@ -847,8 +847,7 @@ async function startServer() {
       memoryMonitor.start(process.env.NODE_ENV === 'production' ? 60000 : 30000);
       logger.info('Standard memory monitoring started to prevent overnight OOM kills');
     }
-    
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
+      process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
     process.on('uncaughtException', (err) => {
       logger.error('Uncaught exception:', err);
@@ -858,6 +857,13 @@ async function startServer() {
       logger.error('Unhandled rejection at:', promise, 'reason:', reason);
       gracefulShutdown('UNHANDLED_REJECTION', server);
     });
+    
+    // Store the server and io instances globally for proper shutdown
+    global.httpServer = server;
+    global.io = io;
+    
+    // Increase max listeners to prevent warning during rapid shutdown signals
+    server.setMaxListeners(25);
     
     return server;
   } catch (error) {
