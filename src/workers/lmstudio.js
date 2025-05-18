@@ -51,6 +51,9 @@ const MAX_SESSIONS = 200; // Maximum number of concurrent sessions
 const SESSION_IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
 let garbageCollectionInterval = null;
 
+// Add to src/workers/lmstudio.js
+const MAX_ACTIVE_SESSIONS = 10; // Adjust based on your server capacity
+
 // Start health monitoring on worker initialization
 setupHealthMonitoring();
 
@@ -76,6 +79,15 @@ function setupGarbageCollection() {
       const removed = collectGarbage(minToRemove);
       if (removed > 0) {
         logger.info(`Scheduled garbage collection removed ${removed} idle sessions`);
+      }
+      
+      // If memory is critically high, take emergency action
+      if (heapUsageRatio > 0.9 || memoryUsage.rss > 1.5 * 1024 * 1024 * 1024) { // 90% heap or 1.5GB RSS
+        logger.warning(`CRITICAL: Memory usage too high (${Math.round(heapUsageRatio * 100)}% heap, ${Math.round(memoryUsage.rss / 1024 / 1024)}MB RSS)`);
+        const emergencyRemoved = collectGarbage(Math.ceil(sessionCount * 0.5)); // Remove 50% of sessions
+        if (emergencyRemoved > 0) {
+          logger.warning(`Emergency garbage collection removed ${emergencyRemoved} sessions`);
+        }
       }
     }
   }, gcInterval);
@@ -247,6 +259,13 @@ parentPort.on('message', async (msg) => {
         break;
       case 'message':
         logger.info('Received message event');
+        
+        // Add before processing new chat requests
+        if (Object.keys(sessionHistories).length >= MAX_ACTIVE_SESSIONS) {
+          // Force remove oldest session
+          await collectGarbage(1); 
+        }
+        
         await handleMessage(msg.data, msg.socketId, msg.username || 'anonBambi');
         break;
       case 'collar':
@@ -542,11 +561,24 @@ async function collectGarbage(minToRemove = 0) {
 
   if (sessionIds.length <= 0) return 0;
 
+  // Get memory usage to inform garbage collection strategy
+  const memoryUsage = process.memoryUsage();
+  const heapUsedRatio = memoryUsage.heapUsed / memoryUsage.heapTotal;
+  const highMemoryPressure = heapUsedRatio > 0.85 || memoryUsage.rss > 1.2 * 1024 * 1024 * 1024; // >85% heap or >1.2GB RSS
+  
+  // If memory pressure is high, be more aggressive
+  if (highMemoryPressure && minToRemove < Math.ceil(sessionIds.length * 0.2)) {
+    const newMinToRemove = Math.ceil(sessionIds.length * 0.2); // Remove at least 20% of sessions
+    logger.warning(`Memory pressure high (${Math.round(heapUsedRatio * 100)}%), increasing minimum collection from ${minToRemove} to ${newMinToRemove} sessions`);
+    minToRemove = newMinToRemove;
+  }
+
   // Calculate idle time for each session
   const sessionsWithIdleTime = sessionIds.map(id => {
     const metadata = sessionHistories[id].metadata || { lastActivity: 0 };
     const idleTime = now - metadata.lastActivity;
-    return { id, idleTime };
+    const messageCount = sessionHistories[id].length || 0;
+    return { id, idleTime, messageCount };
   });
 
   // Sort by idle time (most idle first)
@@ -556,7 +588,10 @@ async function collectGarbage(minToRemove = 0) {
 
   // First remove any session exceeding the idle timeout
   for (const session of sessionsWithIdleTime) {
-    if (session.idleTime > SESSION_IDLE_TIMEOUT) {
+    // Use a shorter timeout when under memory pressure
+    const effectiveTimeout = highMemoryPressure ? SESSION_IDLE_TIMEOUT / 2 : SESSION_IDLE_TIMEOUT;
+    
+    if (session.idleTime > effectiveTimeout) {
       // Before deleting, save to database if not already saved
       await syncSessionWithDatabase(session.id);
 

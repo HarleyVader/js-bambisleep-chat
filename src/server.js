@@ -44,6 +44,8 @@ import errorHandler from './middleware/error.js';
 import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
+import garbageCollector from './utils/garbageCollector.js';
+import memoryMonitor from './utils/memory-monitor.js';
 
 // Import Profile model getter
 import { getProfile } from './models/Profile.js';
@@ -114,7 +116,7 @@ async function initializeApp() {
     // Set up error handlers
     setupErrorHandlers(app);
     
-    return { app, server, io };
+    return { app, server, io, socketStore };
   } catch (error) {
     logger.error('Error in app initialization:', error);
     throw error;
@@ -861,6 +863,32 @@ function monitorResources() {
 }
 
 /**
+ * Monitor memory usage and handle potential OOM scenarios
+ */
+function monitorMemoryForOOM() {
+  const memoryUsage = process.memoryUsage();
+  const usedHeapRatio = memoryUsage.heapUsed / memoryUsage.heapTotal;
+  
+  // If using more than 80% of available heap
+  if (usedHeapRatio > 0.8) {
+    logger.warning(`High memory usage detected: ${Math.round(usedHeapRatio * 100)}% of heap used. Forcing garbage collection.`);
+    
+    // Force cleanup of disconnected sockets
+    garbageCollector.collect(socketStore);
+    
+    // Potentially terminate idle workers to free memory
+    const now = Date.now();
+    for (const [socketId, socketData] of socketStore.entries()) {
+      const idleTime = now - (socketData.lastActivity || 0);
+      if (idleTime > 1800000) { // 30 minutes idle
+        logger.info(`Terminating idle worker for socket ${socketId} to free memory`);
+        garbageCollector.cleanupWorker(socketId, socketData.worker, socketStore);
+      }
+    }
+  }
+}
+
+/**
  * Helper function to fetch messages from the database
  * 
  * @param {number} limit - Maximum number of messages to fetch
@@ -946,7 +974,7 @@ async function startServer() {
     
     // Step 2: Initialize application
     logger.info('Step 2/5: Initializing application...');
-    const { app, server } = await initializeApp();
+    const { app, server, socketStore } = await initializeApp();
     logger.success('Application initialized');
     
     // Step 3: Initialize scrapers
@@ -971,12 +999,24 @@ async function startServer() {
       logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
       logger.success('Server startup completed successfully');
     });
-    
-    // Add connection monitoring in production
+      // Add connection monitoring in production
     if (process.env.NODE_ENV === 'production') {
       startConnectionMonitoring(300000); // Check every 5 minutes in production
     } else {
       startConnectionMonitoring(60000); // Check every minute in development
+    }
+      // Start memory monitoring to prevent OOM kills
+    global.socketStore = socketStore; // Make socketStore globally available for memory monitor
+    if (process.env.MEMORY_MONITOR_ENABLED === 'true') {
+      const monitorInterval = process.env.MEMORY_MONITOR_INTERVAL 
+        ? parseInt(process.env.MEMORY_MONITOR_INTERVAL) 
+        : (process.env.NODE_ENV === 'production' ? 60000 : 30000);
+      
+      memoryMonitor.start(monitorInterval);
+      logger.info(`Enhanced memory monitoring started (interval: ${monitorInterval}ms) to prevent overnight OOM kills`);
+    } else {
+      memoryMonitor.start(process.env.NODE_ENV === 'production' ? 60000 : 30000); // Default monitoring
+      logger.info('Standard memory monitoring started to prevent overnight OOM kills');
     }
     
     // Set up signal handlers for graceful shutdown
