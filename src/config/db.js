@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
+const { MongoDBContainer } = require('@testcontainers/mongodb');
 
 const logger = new Logger('Database');
 
@@ -252,6 +253,14 @@ export async function checkDBHealth() {
     };
   }
 }
+
+// Start a MongoDB container for testing
+(async () => {
+  const mongoContainer = await new MongoDBContainer("mongo:6.0.1").start();
+  const uri = mongoContainer.getConnectionString();
+  console.log(`MongoDB running at ${uri}`);
+  // Use this URI to test connection from your app
+})();
 
 // Export as default object for convenience
 export default { 
