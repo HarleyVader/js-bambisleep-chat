@@ -49,10 +49,29 @@ class WorkerCoordinator {  constructor() {
       return true;
     }
     
-    // Check MongoDB connection
+    // Check MongoDB connection with retry
     if (mongoose.connection.readyState !== 1) {
       logger.warning('MongoDB not connected. Worker initialization waiting for database connection...');
-      return false;
+      // Try to connect to the database if it's not connected
+      let connected = false;
+      for (let i = 0; i < 3; i++) {
+        try {
+          await mongoose.connect(process.env.MONGODB_URI, {
+            serverSelectionTimeoutMS: 10000,
+            connectTimeoutMS: 15000
+          });
+          connected = true;
+          logger.success('Worker coordinator established MongoDB connection');
+          break;
+        } catch (err) {
+          logger.error(`Worker coordinator failed to connect to MongoDB (attempt ${i+1}/3): ${err.message}`);
+          if (i < 2) await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+      
+      if (!connected) {
+        logger.warning('MongoDB connection failed, worker coordinator proceeding with limited functionality');
+      }
     }
     
     if (this.initializing) {

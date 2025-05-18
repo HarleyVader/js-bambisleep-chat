@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
+import { connectDB } from '../config/db.js';
 
 // Initialize logger
 const logger = new Logger('DatabaseConnection');
@@ -9,7 +10,7 @@ const logger = new Logger('DatabaseConnection');
 dotenv.config();
 
 // Connection function with retry logic
-const connectToMongoDB = async () => {
+const connectToMongoDB = async (maxRetries = 2) => {
   try {
     logger.info('Connecting to MongoDB...');
     
@@ -18,14 +19,18 @@ const connectToMongoDB = async () => {
       return mongoose.connection;
     }
     
-    await mongoose.connect(process.env.MONGODB_URI);
-    logger.success('MongoDB connected successfully');
-    return mongoose.connection;
+    // Use the main connectDB function from db.js instead of duplicating logic
+    const connected = await connectDB(maxRetries);
+    
+    if (connected && mongoose.connection.readyState === 1) {
+      logger.success('MongoDB connected successfully');
+      return mongoose.connection;
+    } else {
+      throw new Error('Connection attempt returned but connection is not established');
+    }
   } catch (error) {
     logger.error('MongoDB connection error:', error.message);
-    logger.info('Retrying connection in 3 seconds...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    return connectToMongoDB(); // Retry recursively
+    return null; // Return null to indicate connection failure instead of infinite retries
   }
 };
 

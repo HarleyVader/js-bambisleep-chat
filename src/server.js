@@ -83,15 +83,19 @@ async function initializeApp() {
       methods: ['GET', 'POST'],
       credentials: true
       }
-    });
-
-    // Load filtered words for content moderation
+    });    // Load filtered words for content moderation
     const filteredWords = JSON.parse(await fsPromises.readFile(
       path.join(__dirname, 'filteredWords.json'), 'utf8'
     ));
 
-    // Make sure DB connection and models are loaded first
-    await connectDB();
+    // Verify DB connection before proceeding
+    if (mongoose.connection.readyState !== 1) {
+      logger.warning('Database not connected during app initialization, trying to reconnect...');
+      const dbConnected = await connectDB(2);
+      if (!dbConnected) {
+        logger.warning('Could not establish database connection, some features may not work properly');
+      }
+    }
 
     // Then start worker processes
     await workerCoordinator.initialize();
@@ -969,7 +973,19 @@ async function startServer() {
   try {
     // Step 1: Connect to the database
     logger.info('Step 1/5: Connecting to MongoDB...');
-    await connectDB();
+    const dbConnected = await connectDB(3); // Try up to 3 times
+    
+    if (!dbConnected) {
+      logger.error('Failed to connect to MongoDB after multiple attempts. Server cannot start.');
+      process.exit(1);
+    }
+    
+    // Verify the connection is actually established
+    if (mongoose.connection.readyState !== 1) {
+      logger.error('Database connection reported success but connection is not ready. Server cannot start.');
+      process.exit(1);
+    }
+    
     logger.success('MongoDB connection established');
     
     // Step 2: Initialize application

@@ -9,15 +9,16 @@ let connectionPromise = null;
 
 // Standardized connection options to use across the application
 const DEFAULT_CONNECTION_OPTIONS = {
-  serverSelectionTimeoutMS: 8000,     // Timeout for server selection
-  connectTimeoutMS: 12000,            // Timeout for initial connection
-  socketTimeoutMS: 60000,             // Timeout for operations
+  serverSelectionTimeoutMS: 30000,    // Timeout for server selection (increased from 20000)
+  connectTimeoutMS: 45000,            // Timeout for initial connection (increased from 30000)
+  socketTimeoutMS: 90000,             // Timeout for operations (increased from 60000)
   maxPoolSize: 15,                    // Connection pool size
   minPoolSize: 3,                     // Minimum connections to maintain
   family: 4,                          // Use IPv4, skip trying IPv6
   autoIndex: true,                    // Build indexes
-  // Removed keepAlive as it's not supported in current driver
-  maxIdleTimeMS: 120000               // Close idle connections after 2 minutes
+  maxIdleTimeMS: 120000,              // Close idle connections after 2 minutes
+  retryWrites: true,                  // Auto-retry writes if they fail
+  retryReads: true                    // Auto-retry reads if they fail
 };
 
 /**
@@ -25,7 +26,7 @@ const DEFAULT_CONNECTION_OPTIONS = {
  * 
  * @returns {Promise<boolean>} - True if connection successful
  */
-export async function connectDB() {
+export async function connectDB(maxRetries = 3) {
   // If we're already connected, return immediately
   if (isConnected) {
     logger.debug('Using existing MongoDB connection');
@@ -38,49 +39,75 @@ export async function connectDB() {
     return connectionPromise;
   }
   
-  try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
-    
-    logger.info(`Connecting to MongoDB at ${mongoURI.replace(/\/\/([^:]+):[^@]+@/, '//$1:****@')}`);
-    
-    // Create a promise for the connection and store it
-    connectionPromise = mongoose.connect(mongoURI, DEFAULT_CONNECTION_OPTIONS);
-    
-    // Wait for connection
-    await connectionPromise;
-    
-    // Mark as connected
-    isConnected = true;
-    
-    // Set up connection event handlers - using once for initial setup to avoid duplicate handlers
-    mongoose.connection.once('error', (err) => {
-      logger.error(`MongoDB connection error: ${err.message}`);
-      isConnected = false;
-    });
-    
-    mongoose.connection.once('disconnected', () => {
-      logger.warning('MongoDB disconnected');
-      isConnected = false;
-      connectionPromise = null;
-    });
-    
-    mongoose.connection.once('reconnected', () => {
-      logger.info('MongoDB reconnected');
+  let retryCount = 0;
+  let lastError = null;
+  
+  while (retryCount <= maxRetries) {
+    try {
+      const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
+      
+      logger.info(`Connecting to MongoDB at ${mongoURI.replace(/\/\/([^:]+):[^@]+@/, '//$1:****@')}${retryCount > 0 ? ` (attempt ${retryCount+1}/${maxRetries+1})` : ''}`);
+      
+      // Create a promise for the connection and store it
+      connectionPromise = mongoose.connect(mongoURI, DEFAULT_CONNECTION_OPTIONS);
+      
+      // Wait for connection
+      await connectionPromise;
+      
+      // Mark as connected
       isConnected = true;
-    });
-    
-    logger.success(`MongoDB connected: ${mongoose.connection.host}`);
-    
-    return true;
-  } catch (error) {
-    logger.error(`Database connection error: ${error.message}`);
-    isConnected = false;
-    connectionPromise = null;
-    return false;
-  } finally {
-    // Clear connectionPromise after connection attempt completes (success or failure)
-    connectionPromise = null;
+      
+      // Set up connection event handlers - using once for initial setup to avoid duplicate handlers
+      mongoose.connection.once('error', (err) => {
+        logger.error(`MongoDB connection error: ${err.message}`);
+        isConnected = false;
+      });
+      
+      mongoose.connection.once('disconnected', () => {
+        logger.warning('MongoDB disconnected');
+        isConnected = false;
+        connectionPromise = null;
+      });
+      
+      mongoose.connection.once('reconnected', () => {
+        logger.info('MongoDB reconnected');
+        isConnected = true;
+      });
+      
+      logger.success(`MongoDB connected: ${mongoose.connection.host}`);
+      
+      // Clear connectionPromise after successful connection
+      connectionPromise = null;
+      return true;
+    } catch (error) {
+      lastError = error;
+      // More detailed error logging based on error type
+      if (error.name === 'MongoServerSelectionError') {
+        logger.error(`MongoDB server selection error: ${error.message}`);
+        logger.debug(`Connection details: ${JSON.stringify(error.reason || {})}`);
+      } else {
+        logger.error(`Database connection error: ${error.message}`);
+      }
+      
+      // Increment retry count
+      retryCount++;
+      
+      // Clear connectionPromise to allow new connection attempts
+      connectionPromise = null;
+      isConnected = false;
+      
+      // If we have retries left, wait before retrying with exponential backoff
+      if (retryCount <= maxRetries) {
+        const delay = Math.min(2000 * retryCount, 10000); // Exponential backoff with cap
+        logger.info(`Retrying MongoDB connection in ${delay}ms (attempt ${retryCount+1}/${maxRetries+1})...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
+  
+  // If we've exhausted all retries, log a final error and return false
+  logger.error(`Failed to connect to MongoDB after ${maxRetries+1} attempts. Last error: ${lastError?.message}`);
+  return false;
 }
 
 /**
