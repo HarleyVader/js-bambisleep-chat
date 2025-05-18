@@ -31,6 +31,17 @@ const FALLBACK_CONNECTION_OPTIONS = {
 };
 
 /**
+ * Utility function to get MongoDB URI
+ * 
+ * @returns {string} - MongoDB URI with masked password
+ */
+function getMongoUri() {
+  // Mask password for logging purposes
+  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
+  return uri
+}
+
+/**
  * Connect to MongoDB database
  * 
  * @param {number} retries - Number of connection retry attempts
@@ -48,17 +59,8 @@ export async function connectDB(retries = 3) {
       // Get connection string
       const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
       
-      // Simplified connection options that work with newer MongoDB drivers
-      const connectionOptions = {
-        serverSelectionTimeoutMS: 15000,
-        connectTimeoutMS: 30000,
-        socketTimeoutMS: 45000,
-        maxPoolSize: 10,
-        minPoolSize: 2,
-        family: 4
-      };
-      
-      await mongoose.connect(uri, connectionOptions);
+      // Use the connection options already defined in the file
+      await mongoose.connect(uri, DEFAULT_CONNECTION_OPTIONS);
       
       isConnected = true;
       logger.success('MongoDB connected');
