@@ -31,7 +31,7 @@ import apiRoutes from './routes/apiRoutes.js';
 import sessionsRouter, { basePath as sessionsBasePath } from './routes/sessions.js';
 import { router as triggerScriptsRouter } from './routes/trigger-scripts.js';
 import mongodbRoutes, { basePath as mongodbBasePath } from './routes/mongodbRoutes.js';
-import mongodbAdminRoute from './routes/mongodbAdminRoute.js';
+import * as mongodbAdminRoute from './routes/mongodbAdminRoute.js';
 // Define the admin base path directly if not exported
 const mongodbAdminBasePath = '/admin/mongodb';
 
@@ -207,7 +207,7 @@ function setupRoutes(app) {  // Register main routes
     { path: '/scrapers', handler: scrapersRoute },
     { path: '/profile', handler: profileRouter },
     { path: '/trigger-script', handler: triggerScriptsRouter },
-    { path: mongodbAdminBasePath, handler: mongodbAdminRoute },
+    { path: mongodbAdminBasePath, handler: mongodbAdminRoute.router || mongodbAdminRoute.default || mongodbAdminRoute },
   ];
   
   routes.forEach(route => {
@@ -221,65 +221,14 @@ function setupRoutes(app) {  // Register main routes
   app.use('/api/scraper/comment', scrapersRoute);
   app.use('/api/scraper/submission', scrapersRoute);
   app.use('/api/scraper/stats', scrapersRoute);
-    // Add the chat routes
+  // Add the chat routes
   app.use('/api/chat', chatRoutes);
+  
+  // Add API routes
+  app.use('/api', apiRoutes);
   
   // Add MongoDB status routes
   app.use(mongodbBasePath, mongodbRoutes);
-  
-  // Add routes for client-side rendering data
-  app.get('/api/chat/messages', async (req, res) => {
-    try {
-      // Get requested limit with default of 50
-      const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
-      
-      // Use the updated model method which handles connections properly
-      const ChatMessage = mongoose.model('ChatMessage');
-      const messages = await ChatMessage.getRecentMessages(limit);
-      
-      res.json({ messages });
-    } catch (error) {
-      console.error('Error fetching chat messages:', error);
-      res.status(500).json({ error: 'Error fetching messages', messages: [] });
-    }
-  });
-
-  // Add API endpoint for sessions list
-  app.get('/api/sessions/:username', async (req, res) => {
-    try {
-      const username = req.params.username;
-      
-      if (!username) {
-        return res.status(400).json({ error: 'Username is required', sessions: [] });
-      }
-
-      // Skip anonymous users
-      if (username === 'anonBambi') {
-        return res.json({ sessions: [] });
-      }
-      
-      const SessionHistory = mongoose.model('SessionHistory');
-      const sessions = await withDbConnection(() => 
-        SessionHistory.find({ username })
-          .sort({ 'metadata.lastActivity': -1 })
-          .select('title metadata.lastActivity metadata.triggers')
-          .limit(50)
-      );
-      
-      // Transform to a simpler format for the client
-      const simplifiedSessions = sessions.map(session => ({
-        id: session._id,
-        title: session.title || `Session ${new Date(session.createdAt).toLocaleString()}`,
-        lastActivity: session.metadata?.lastActivity || session.updatedAt || session.createdAt,
-        triggerCount: session.metadata?.triggers?.length || 0
-      }));
-      
-      res.json({ sessions: simplifiedSessions });
-    } catch (error) {
-      console.error(`Error fetching sessions for ${req.params.username}:`, error);
-      res.status(500).json({ error: 'Error fetching sessions', sessions: [] });
-    }
-  });
 }
 
 /**
