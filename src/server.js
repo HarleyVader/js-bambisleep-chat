@@ -29,8 +29,8 @@ import profileRouter from './routes/profile.js';
 import chatRoutes from './routes/chatRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
 import { router as triggerScriptsRouter } from './routes/trigger-scripts.js';
-import * as mongodbRoutes from './routes/mongodbRoutes.js';
-import * as mongodbAdminRoute from './routes/mongodbAdminRoute.js';
+import { router as mongodbRoutesRouter } from './routes/mongodbRoutes.js';
+import { router as mongodbAdminRouter } from './routes/mongodbAdminRoute.js';
 
 const mongodbBasePath = '/mongodb';
 const mongodbAdminBasePath = '/admin/mongodb';
@@ -83,11 +83,13 @@ async function initializeApp() {
       pingTimeout: config.SOCKET_PING_TIMEOUT || 86400000, // 1 day in milliseconds
       pingInterval: config.SOCKET_PING_INTERVAL || 25000,
       cors: {
-      origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
-      methods: ['GET', 'POST'],
-      credentials: true
+        origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
+        methods: ['GET', 'POST'],
+        credentials: true
       }
-    });    // Load filtered words for content moderation
+    });
+
+    // Load filtered words for content moderation
     const filteredWords = JSON.parse(await fsPromises.readFile(
       path.join(__dirname, 'filteredWords.json'), 'utf8'
     ));
@@ -199,7 +201,8 @@ function setupMiddleware(app) {
  * 
  * @param {Express} app - Express application instance
  */
-function setupRoutes(app) {  // Register main routes
+function setupRoutes(app) {
+  // Register main routes
   const routes = [
     { path: '/', handler: indexRoute },
     { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
@@ -207,7 +210,8 @@ function setupRoutes(app) {  // Register main routes
     { path: '/scrapers', handler: scrapersRoute },
     { path: '/profile', handler: profileRouter },
     { path: '/trigger-script', handler: triggerScriptsRouter },
-    { path: mongodbAdminBasePath, handler: mongodbAdminRoute.router || mongodbAdminRoute.default || mongodbAdminRoute },
+    { path: mongodbAdminBasePath, handler: mongodbAdminRouter },
+    { path: mongodbBasePath, handler: mongodbRoutesRouter }
   ];
   
   routes.forEach(route => {
@@ -221,14 +225,12 @@ function setupRoutes(app) {  // Register main routes
   app.use('/api/scraper/comment', scrapersRoute);
   app.use('/api/scraper/submission', scrapersRoute);
   app.use('/api/scraper/stats', scrapersRoute);
+  
   // Add the chat routes
   app.use('/api/chat', chatRoutes);
   
   // Add API routes
   app.use('/api', apiRoutes);
-  
-  // Add MongoDB status routes
-  app.use(mongodbBasePath, mongodbRoutes);
 }
 
 /**
@@ -400,10 +402,7 @@ function handleScanRequest(req, res) {
  * @param {Map} socketStore - Map to store socket and worker references
  * @param {string[]} filteredWords - List of words to filter
  */
-// Add to setupSocketHandlers function in server.js
 function setupSocketHandlers(io, socketStore, filteredWords) {
-  // Existing code...
-  
   io.on('connection', (socket) => {
     try {
       // Parse cookies and get username
@@ -577,13 +576,10 @@ function filterWords(content, filteredWords) {
  */
 function handleSocketDisconnect(socket, io) {
   try {
-    // The socketStore variable is not in scope here
-    // We need to access it from io.sockets
-    const socketStore = io.sockets.socketStore || new Map(); // Access the socket store from io object
+    const socketStore = io.sockets.socketStore || new Map();
 
     io.emit('user_disconnect', { userId: socket.id });
 
-    // Get the bambi name from the socket data or cookie
     const socketData = socketStore.get(socket.id);
     const bambiName = socketData?.username || 
                      socket.bambiUsername || 
@@ -591,66 +587,50 @@ function handleSocketDisconnect(socket, io) {
                        .find(c => c.trim().startsWith('bambiname='))
                        ?.split('=')[1] || 'unregistered';
     
-    // Get the total connections and active workers count
     const totalConnections = socket.server.engine.clientsCount;
-    const activeWorkers = socketStore.size; // Or use a more accurate count if available
+    const activeWorkers = socketStore.size;
     
-    // Log the disconnect with detailed user information
     const reason = socket.disconnectReason || 'unknown';
     logger.info(`Client disconnected: ${socket.id} (${bambiName}) - Reason: ${reason}`);
     
     try {
-      // Double-check this is really disconnected
       if (!socket.connected && socketData) {
         if (socketData.worker) {
           try {
-            // Set up a one-time message handler for cleanup confirmation
             const messageHandler = (message) => {
               if (message && message.type === 'cleanup:complete' && message.socketId === socket.id) {
-                // Log cleanup confirmation
                 logger.info(`Socket cleanup confirmed: ${socket.id} (${bambiName})`);
                 
-                // Clean up timeout
                 clearTimeout(timeoutId);
                 
-                // Remove message handler
                 socketData.worker.removeListener('message', messageHandler);
                 
-                // Terminate worker
                 try {
                   socketData.worker.terminate();
-                  // Log worker cleanup
                   logger.info(`Worker terminated: ${socket.id} (${bambiName})`);
                 } catch (termError) {
                   logger.error(`Error terminating worker: ${termError.message}`);
                 }
                 
-                // Remove from socket store
                 socketStore.delete(socket.id);
-                // Log removal from store with updated count
                 const updatedConnections = socket.server.engine.clientsCount;
                 logger.info(`Socket removed from store: ${socket.id} (${bambiName}), remaining connections: ${updatedConnections}`);
               }
             };
             
-            // Add the message handler
             socketData.worker.on('message', messageHandler);
             
-            // Send cleanup request to worker
             socketData.worker.postMessage({
               type: 'socket:disconnect',
               socketId: socket.id,
               requestCleanupConfirmation: true
             });
             
-            // Set timeout for worker response
             const timeoutId = setTimeout(() => {
               logger.warning(`Worker for socket ${socket.id} (${bambiName}) did not confirm cleanup, forcing termination`);
               
-              // Remove listener
               socketData.worker.removeListener('message', messageHandler);
               
-              // Force terminate
               try {
                 socketData.worker.terminate();
                 logger.info(`Worker force-terminated: ${socket.id} (${bambiName})`);
@@ -658,16 +638,14 @@ function handleSocketDisconnect(socket, io) {
                 logger.error(`Error force-terminating worker: ${termError.message}`);
               }
               
-              // Remove from socket store
               socketStore.delete(socket.id);
               const updatedConnections = socket.server.engine.clientsCount;
               logger.info(`Socket removed from store: ${socket.id} (${bambiName}), remaining connections: ${updatedConnections}`);
-            }, 5000); // Default timeout of 5 seconds if config.WORKER_TIMEOUT isn't available
+            }, 5000);
             
           } catch (postError) {
             logger.error(`Error sending disconnect message to worker: ${postError.message}`);
             
-            // Try to terminate anyway
             try {
               socketData.worker.terminate();
               logger.info(`Worker terminated: ${socket.id} (${bambiName})`);
@@ -675,7 +653,6 @@ function handleSocketDisconnect(socket, io) {
               logger.error(`Also failed to terminate worker: ${termError.message}`);
             }
             
-            // Rely on garbage collector to clean up this worker later
             socketStore.delete(socket.id);
             const updatedConnections = socket.server.engine.clientsCount;
             logger.info(`Socket removed from store: ${socket.id} (${bambiName}), remaining connections: ${updatedConnections}`);
@@ -691,7 +668,6 @@ function handleSocketDisconnect(socket, io) {
     } catch (error) {
       logger.error(`Error during socket cleanup for ${socket.id} (${bambiName}): ${error.message}`);
       
-      // Mark for garbage collection later if cleanup fails
       logger.info(`Socket ${socket.id} (${bambiName}) marked for garbage collection`);
     }
   } catch (error) {
@@ -705,7 +681,6 @@ function handleSocketDisconnect(socket, io) {
  * @param {Express} app - Express application instance
  */
 function setupErrorHandlers(app) {
-  // Use the error handler middleware
   app.use(errorHandler);
   
   logger.info('Error handlers configured');
@@ -744,28 +719,24 @@ function monitorResources() {
   
   if (!socketStore) return;
   
-  // Calculate active vs idle sockets
   const now = Date.now();
   let activeCount = 0;
   let idleCount = 0;
   let longIdleCount = 0;
   
-  // Socket ages
   let youngest = Infinity;
   let oldest = 0;
   
-  // Calculate socket statistics
   for (const [socketId, socketData] of socketStore.entries()) {
     const age = now - socketData.connectedAt;
     const idleTime = now - socketData.lastActivity;
     
-    // Update stats
     youngest = Math.min(youngest, age);
     oldest = Math.max(oldest, age);
     
-    if (idleTime < 300000) { // Less than 5 minutes idle
+    if (idleTime < 300000) {
       activeCount++;
-    } else if (idleTime < 1800000) { // Less than 30 minutes idle
+    } else if (idleTime < 1800000) {
       idleCount++;
     } else {
       longIdleCount++;
@@ -778,7 +749,6 @@ function monitorResources() {
     logger.info(`Socket age: newest ${Math.round(youngest / 1000 / 60)}m, oldest ${Math.round(oldest / 1000 / 60)}m`);
   }
   
-  // Log database connection status
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   logger.info(`Database status: ${dbStatus}`);
 }
@@ -790,18 +760,15 @@ function monitorMemoryForOOM() {
   const memoryUsage = process.memoryUsage();
   const usedHeapRatio = memoryUsage.heapUsed / memoryUsage.heapTotal;
   
-  // If using more than 80% of available heap
   if (usedHeapRatio > 0.8) {
     logger.warning(`High memory usage detected: ${Math.round(usedHeapRatio * 100)}% of heap used. Forcing garbage collection.`);
     
-    // Force cleanup of disconnected sockets
     garbageCollector.collect(socketStore);
     
-    // Potentially terminate idle workers to free memory
     const now = Date.now();
     for (const [socketId, socketData] of socketStore.entries()) {
       const idleTime = now - (socketData.lastActivity || 0);
-      if (idleTime > 1800000) { // 30 minutes idle
+      if (idleTime > 1800000) {
         logger.info(`Terminating idle worker for socket ${socketId} to free memory`);
         garbageCollector.cleanupWorker(socketId, socketData.worker, socketStore);
       }
@@ -817,8 +784,6 @@ function monitorMemoryForOOM() {
  */
 async function getMessages(limit = 50) {
   try {
-    // Implement this function to fetch messages from your database
-    // This is a placeholder - replace with your actual database query
     return [];
   } catch (error) {
     logger.error('Error getting messages:', error);
@@ -834,8 +799,6 @@ async function getMessages(limit = 50) {
  */
 async function saveMessage(message) {
   try {
-    // Implement this function to save messages to your database
-    // This is a placeholder - replace with your actual database code
     return true;
   } catch (error) {
     logger.error('Error saving message:', error);
@@ -875,8 +838,6 @@ async function getProfileByUsername(username) {
  * @returns {Promise<Array>} - Array of recent messages
  */
 async function getRecentMessages(limit = 50) {
-  // This is a placeholder - replace with your actual message fetching logic
-  // For now, return some mock messages for testing
   return [
     { username: 'system', data: 'Welcome to BambiSleep.Chat!', timestamp: Date.now() - 60000 },
     { username: 'bambi', data: 'Hello everyone!', timestamp: Date.now() - 30000 }
@@ -888,16 +849,14 @@ async function getRecentMessages(limit = 50) {
  */
 async function startServer() {
   try {
-    // Step 1: Connect to the database
     logger.info('Step 1/5: Connecting to MongoDB...');
-    const dbConnected = await connectDB(3); // Try up to 3 times
+    const dbConnected = await connectDB(3);
     
     if (!dbConnected) {
       logger.error('Failed to connect to MongoDB after multiple attempts. Server cannot start.');
       process.exit(1);
     }
     
-    // Verify the connection is actually established
     if (mongoose.connection.readyState !== 1) {
       logger.error('Database connection reported success but connection is not ready. Server cannot start.');
       process.exit(1);
@@ -905,12 +864,10 @@ async function startServer() {
     
     logger.success('MongoDB connection established');
     
-    // Step 2: Initialize application
     logger.info('Step 2/5: Initializing application...');
     const { app, server, socketStore } = await initializeApp();
     logger.success('Application initialized');
     
-    // Step 3: Initialize scrapers
     logger.info('Step 3/5: Initializing scrapers...');
     const scrapersInitialized = await initializeScrapers();
     if (scrapersInitialized) {
@@ -919,12 +876,10 @@ async function startServer() {
       logger.warning('Scrapers initialization incomplete - continuing startup');
     }
     
-    // Step 4: Initialize worker coordinator
     logger.info('Step 4/5: Initializing worker coordinator...');
     await workerCoordinator.initialize();
     logger.success('Worker coordinator initialized');
     
-    // Step 5: Start HTTP server
     logger.info('Step 5/5: Starting HTTP server...');
     const PORT = config.SERVER_PORT || 6969;
     
@@ -932,14 +887,14 @@ async function startServer() {
       logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
       logger.success('Server startup completed successfully');
     });
-      // Add connection monitoring in production
+    
     if (process.env.NODE_ENV === 'production') {
-      startConnectionMonitoring(300000); // Check every 5 minutes in production
+      startConnectionMonitoring(300000);
     } else {
-      startConnectionMonitoring(60000); // Check every minute in development
+      startConnectionMonitoring(60000);
     }
-      // Start memory monitoring to prevent OOM kills
-    global.socketStore = socketStore; // Make socketStore globally available for memory monitor
+    
+    global.socketStore = socketStore;
     if (process.env.MEMORY_MONITOR_ENABLED === 'true') {
       const monitorInterval = process.env.MEMORY_MONITOR_INTERVAL 
         ? parseInt(process.env.MEMORY_MONITOR_INTERVAL) 
@@ -948,11 +903,10 @@ async function startServer() {
       memoryMonitor.start(monitorInterval);
       logger.info(`Enhanced memory monitoring started (interval: ${monitorInterval}ms) to prevent overnight OOM kills`);
     } else {
-      memoryMonitor.start(process.env.NODE_ENV === 'production' ? 60000 : 30000); // Default monitoring
+      memoryMonitor.start(process.env.NODE_ENV === 'production' ? 60000 : 30000);
       logger.info('Standard memory monitoring started to prevent overnight OOM kills');
     }
     
-    // Set up signal handlers for graceful shutdown
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server, workerCoordinator));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server, workerCoordinator));
     process.on('uncaughtException', (err) => {
@@ -971,5 +925,4 @@ async function startServer() {
   }
 }
 
-// Start the server
 startServer();
