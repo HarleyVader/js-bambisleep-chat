@@ -20,9 +20,6 @@ const DEFAULT_CONNECTION_OPTIONS = {
   retryWrites: true,                  // Auto-retry writes if they fail
   retryReads: true,                   // Auto-retry reads if they fail
   heartbeatFrequencyMS: 10000,        // More frequent heartbeats
-  keepAlive: true,                    // Keep connections alive
-  useUnifiedTopology: true,           // Use unified topology
-  useNewUrlParser: true               // Use new URL parser
 };
 
 // Fallback connection options for local database when primary is unavailable
@@ -34,126 +31,53 @@ const FALLBACK_CONNECTION_OPTIONS = {
 };
 
 /**
- * Initialize database connection with cached promise
+ * Connect to MongoDB database
  * 
+ * @param {number} retries - Number of connection retry attempts
  * @returns {Promise<boolean>} - True if connection successful
  */
-export async function connectDB(maxRetries = 3) {
-  // If we're already connected, return immediately
-  if (isConnected) {
-    logger.debug('Using existing MongoDB connection');
-    return true;
-  }
+export async function connectDB(retries = 3) {
+  let currentAttempt = 1;
+  const maxAttempts = retries + 1;
   
-  // If we're in the process of connecting, return the existing promise
-  if (connectionPromise) {
-    logger.debug('Connection in progress, waiting for completion');
-    return connectionPromise;
-  }
-  
-  let retryCount = 0;
-  let lastError = null;
-  let tryFallback = false;
-  
-  while (retryCount <= maxRetries) {
+  while (currentAttempt <= maxAttempts) {
     try {
-      // Get primary MongoDB URI from environment
-      let mongoURI = process.env.MONGODB_URI;
+      const attemptStr = currentAttempt > 1 ? ` (attempt ${currentAttempt}/${maxAttempts})` : '';
+      logger.info(`Connecting to MongoDB at ${getMongoUri()}${attemptStr}`);
       
-      // Use fallback connection if requested or if we've had multiple connection failures
-      if (tryFallback || retryCount >= Math.floor(maxRetries / 2)) {
-        // Try fallback options in order: MONGODB_FALLBACK_URI, localhost
-        const fallbackURI = process.env.MONGODB_FALLBACK_URI || 'mongodb://localhost:27017/bambisleep';
-        
-        if (tryFallback && mongoURI !== fallbackURI) {
-          mongoURI = fallbackURI;
-          logger.warning(`Connection to primary database failed, trying fallback at ${fallbackURI.replace(/\/\/([^:]+):[^@]+@/, '//$1:****@')}`);
-        }
-      }
+      // Get connection string
+      const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
       
-      // Check if we have connection string
-      if (!mongoURI) {
-        throw new Error('MongoDB connection string is missing. Please check your .env file.');
-      }
+      // Simplified connection options that work with newer MongoDB drivers
+      const connectionOptions = {
+        serverSelectionTimeoutMS: 15000,
+        connectTimeoutMS: 30000,
+        socketTimeoutMS: 45000,
+        maxPoolSize: 10,
+        minPoolSize: 2,
+        family: 4
+      };
       
-      // Log connection attempt with sensitive details masked
-      logger.info(`Connecting to MongoDB at ${mongoURI.replace(/\/\/([^:]+):[^@]+@/, '//$1:****@')}${retryCount > 0 ? ` (attempt ${retryCount+1}/${maxRetries+1})` : ''}`);
+      await mongoose.connect(uri, connectionOptions);
       
-      // Use appropriate connection options based on if we're using the fallback
-      const connectionOptions = tryFallback ? FALLBACK_CONNECTION_OPTIONS : DEFAULT_CONNECTION_OPTIONS;
-      
-      // Create a promise for the connection and store it
-      connectionPromise = mongoose.connect(mongoURI, connectionOptions);
-      
-      // Wait for connection with timeout
-      await Promise.race([
-        connectionPromise,
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection attempt timed out')), 15000)
-        )
-      ]);
-      
-      // Mark as connected
       isConnected = true;
-      
-      // Set up connection event handlers - using once for initial setup to avoid duplicate handlers
-      mongoose.connection.once('error', (err) => {
-        logger.error(`MongoDB connection error: ${err.message}`);
-        isConnected = false;
-      });
-      
-      mongoose.connection.once('disconnected', () => {
-        logger.warning('MongoDB disconnected');
-        isConnected = false;
-        connectionPromise = null;
-      });
-      
-      mongoose.connection.once('reconnected', () => {
-        logger.info('MongoDB reconnected');
-        isConnected = true;
-      });
-      
-      logger.success(`MongoDB connected: ${mongoose.connection.host}`);
-      
-      // Clear connectionPromise after successful connection
-      connectionPromise = null;
+      logger.success('MongoDB connected');
       return true;
     } catch (error) {
-      lastError = error;
-      // More detailed error logging based on error type
-      if (error.name === 'MongoServerSelectionError') {
-        logger.error(`MongoDB server selection error: ${error.message}`);
-        logger.debug(`Connection details: ${JSON.stringify(error.reason || {})}`);
-      } else {
-        logger.error(`Database connection error: ${error.message}`);
-      }
+      logger.error(`Database connection error: ${error.message}`);
       
-      // Check for ECONNRESET explicitly
-      if (error.message.includes('ECONNRESET')) {
-        logger.warning('Network connection reset detected (ECONNRESET). This usually indicates network issues between the server and MongoDB.');
-        
-        // Try fallback on next iteration if we're hitting connection reset errors
-        tryFallback = true;
-      }
-      
-      // Increment retry count
-      retryCount++;
-      
-      // Clear connectionPromise to allow new connection attempts
-      connectionPromise = null;
-      isConnected = false;
-      
-      // If we have retries left, wait before retrying with exponential backoff
-      if (retryCount <= maxRetries) {
-        const delay = Math.min(2000 * retryCount, 10000); // Exponential backoff with cap
-        logger.info(`Retrying MongoDB connection in ${delay}ms (attempt ${retryCount+1}/${maxRetries+1})...`);
+      if (currentAttempt < maxAttempts) {
+        const delay = currentAttempt * 2000;
+        logger.info(`Retrying MongoDB connection in ${delay}ms (attempt ${currentAttempt + 1}/${maxAttempts})...`);
         await new Promise(resolve => setTimeout(resolve, delay));
+        currentAttempt++;
+      } else {
+        logger.error(`Failed to connect to MongoDB after ${maxAttempts} attempts. Last error: ${error.message}`);
+        return false;
       }
     }
   }
   
-  // If we've exhausted all retries, log a final error and return false
-  logger.error(`Failed to connect to MongoDB after ${maxRetries+1} attempts. Last error: ${lastError?.message}`);
   return false;
 }
 
