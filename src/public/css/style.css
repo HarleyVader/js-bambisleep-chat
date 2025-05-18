@@ -52,7 +52,6 @@ body {
 
 .container, 
 .create-profile-section, 
-.scraper-column, 
 .stats-dashboard,
 #user-input, 
 #response, 
@@ -610,7 +609,7 @@ h1, h2, h3, .profile-name, .triggers-title {
     animation: flicker 5s infinite;
 }
 
-h2, .scraper-column h2, .stats-section h2, .triggers-title {
+h2, .stats-section h2, .triggers-title {
     text-align: center;
     margin-bottom: 1.5rem;
     color: var(--tertiary-color);
@@ -836,7 +835,7 @@ a:hover {
     border-right: var(--secondary-alt) 1px groove;
 }
 
-.grid, .scrapers-grid, .stats-grid, .top-submissions {
+.grid, .stats-grid, .top-submissions {
     display: grid;
     gap: 1rem;
 }

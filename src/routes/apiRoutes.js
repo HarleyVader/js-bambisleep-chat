@@ -2,7 +2,6 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { getProfile } from '../models/Profile.js';
 import Logger from '../utils/logger.js';
-import workerCoordinator from '../workers/workerCoordinator.js';
 
 const router = express.Router();
 const logger = new Logger('API Routes');
@@ -96,30 +95,11 @@ router.post('/generate-image', async (req, res) => {
       return res.status(400).json({ error: 'Prompt is required' });
     }
     
-    // Generate image using worker coordinator
-    workerCoordinator.generateImage({
-      prompt,
-      negativePrompt,
-      width: width || 512,
-      height: height || 512,
-      apiKey: process.env.RUNPOD_API_KEY
-    }, (error, result) => {
-      if (error) {
-        logger.error('Error generating image:', error);
-        return res.status(500).json({ error: 'Failed to generate image' });
-      }
-      
-      // If this is an async job
-      if (result.status === 'processing' && result.jobId) {
-        return res.json({
-          success: true,
-          status: 'processing',
-          jobId: result.jobId,
-          message: 'Image generation in progress'
-        });
-      }
-      
-      res.json(result);
+    // Image generation functionality has been removed
+    logger.info(`Image generation request received for prompt: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`);
+    return res.status(501).json({ 
+      error: 'Image generation functionality has been removed',
+      message: 'This feature is no longer available'
     });
   } catch (error) {
     logger.error('Error processing image generation request:', error);
@@ -144,18 +124,15 @@ router.get('/image-job/:jobId', async (req, res) => {
       return res.status(400).json({ error: 'Job ID is required' });
     }
     
-    // Check job status
-    workerCoordinator.checkImageJobStatus(jobId, (error, result) => {
-      if (error) {
-        logger.error('Error checking image job status:', error);
-        return res.status(500).json({ error: 'Failed to check job status' });
-      }
-      
-      res.json(result);
+    // Job status functionality has been removed
+    logger.info(`Job status check request received for job ID: ${jobId}`);
+    return res.status(501).json({ 
+      error: 'Image job status functionality has been removed',
+      message: 'This feature is no longer available'
     });
   } catch (error) {
-    logger.error('Error processing job status request:', error);
-    res.status(500).json({ error: 'Error processing request' });
+    logger.error('Error checking image job status:', error);
+    res.status(500).json({ error: 'Failed to check job status' });
   }
 });
 

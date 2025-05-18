@@ -1,4 +1,3 @@
-import workerCoordinator from '../workers/workerCoordinator.js';
 import Logger from '../utils/logger.js';
 
 // Initialize logger
@@ -11,9 +10,7 @@ function setupSocket(socket, io) {
   // Setup basic socket handlers
   setupChatHandlers(socket, username);
   setupSystemHandlers(socket, username);
-  setupWorkerHandlers(socket, username);
   setupSessionHandlers(socket, io);
-  setupImageHandlers(socket, username);
   
   // Track connection for analytics
   trackConnection(socket, username);
@@ -34,77 +31,24 @@ function setupImageHandlers(socket, username) {
       return;
     }
     
-    // Forward to worker coordinator
-    workerCoordinator.generateImage({
-      prompt,
-      negativePrompt,
-      width: width || 512,
-      height: height || 512,
-      apiKey: process.env.RUNPOD_API_KEY
-    }, (error, result) => {
-      if (error) {
-        logger.error(`Image generation error for ${username}: ${error.message}`);
-        socket.emit('image-generation-error', { error: error.message });
-        return;
-      }
-      
-      // If job is processing asynchronously
-      if (result.status === 'processing' && result.jobId) {
-        socket.emit('image-generation-started', { 
-          jobId: result.jobId, 
-          message: 'Image generation in progress'
-        });
-        return;
-      }
-      
-      // Send result back to client
-      socket.emit('image-generated', result);
+    // Image generation functionality has been removed
+    logger.info(`Image generation request received but functionality has been removed - ${username}: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`);
+    socket.emit('image-generation-error', { 
+      error: 'Image generation functionality has been removed',
+      message: 'This feature is no longer available'
     });
   });
   
-  socket.on('check-image-job', data => {
-    if (!data || !username || !data.jobId) {
-      socket.emit('image-generation-error', { error: 'Missing job ID' });
-      return;
-    }
+  socket.on('check-job-status', data => {
+    if (!data || !data.jobId || !username) return;
     
-    workerCoordinator.checkImageJobStatus(data.jobId, (error, result) => {
-      if (error) {
-        logger.error(`Error checking image job status for ${username}: ${error.message}`);
-        socket.emit('image-generation-error', { error: error.message });
-        return;
-      }
-      
-      if (result.status === 'COMPLETED') {
-        socket.emit('image-generated', {
-          success: true,
-          data: result.data
-        });
-      } else if (result.status === 'FAILED') {
-        socket.emit('image-generation-error', { error: 'Image generation failed' });
-      } else {
-        socket.emit('image-generation-status', { 
-          jobId: data.jobId, 
-          status: result.status
-        });      }
-    });
-  });
-  
-  // Handle heartbeat to keep image worker alive
-  socket.on('image-heartbeat', data => {
-    // Check image worker health
-    workerCoordinator.checkImageWorkerHealth((error, status) => {
-      const response = {
-        timestamp: Date.now(),
-        workerStatus: status ? 'healthy' : 'unhealthy'
-      };
-      
-      if (error) {
-        logger.warning(`Error checking image worker health: ${error.message}`);
-        response.workerStatus = 'unhealthy';
-      }
-      
-      socket.emit('image-heartbeat-response', response);
+    const { jobId } = data;
+    
+    // Job status functionality has been removed
+    logger.info(`Job status check request received but functionality has been removed - ${username}: ${jobId}`);
+    socket.emit('job-status-error', { 
+      error: 'Image job status functionality has been removed',
+      message: 'This feature is no longer available'
     });
   });
 }
@@ -140,20 +84,6 @@ function setupSystemHandlers(socket, username) {
       socketId: socket.id,
       username,
       settings
-    });
-  });
-}
-
-// Set up worker communication
-function setupWorkerHandlers(socket, username) {
-  socket.on('worker-command', data => {
-    const { worker, command, payload } = data;
-    if (!worker || !command) return;
-    
-    sendToWorker(worker, command, {
-      ...payload,
-      socketId: socket.id,
-      username
     });
   });
 }
