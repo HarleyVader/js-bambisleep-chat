@@ -51,6 +51,7 @@
     "express": "^4.21.2",
     "express-fileupload": "^1.5.1",
     "express-session": "^1.17.3",
+    "helmet": "^8.1.0",
     "mongodb": "6.15",
     "mongoose": "^8.13.2",
     "node-fetch": "^2.6.7",
