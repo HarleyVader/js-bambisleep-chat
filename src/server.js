@@ -52,6 +52,12 @@ import { getProfile } from './models/Profile.js';
 // Add this before initializing routes
 import './models/SessionHistory.js';
 
+// Import session recovery utility
+import SessionRecovery from './utils/sessionRecovery.js';
+
+// Import scheduled tasks
+import scheduledTasks from './utils/scheduledTasks.js';
+
 // Initialize environment and paths
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -110,13 +116,15 @@ async function initializeApp() {
     
     // Set up routes and APIs
     setupRoutes(app);
-    
-    // Set up socket handlers with shared store for workers
+      // Set up socket handlers with shared store for workers
     const socketStore = new Map();
     setupSocketHandlers(io, socketStore, filteredWords);
     
     // Set up error handlers
     setupErrorHandlers(app);
+      // Initialize scheduled tasks
+    scheduledTasks.initialize();
+    global.scheduledTasks = scheduledTasks;
     
     return { app, server, io, socketStore };
   } catch (error) {
@@ -408,6 +416,11 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       // Set up content filter function
       const filterContent = (content) => filterWords(content, filteredWords);
       
+      // Check for abandoned sessions if user is logged in
+      if (username && username !== 'anonBambi') {
+        checkForAbandonedSessions(socket, username);
+      }
+      
       // Set up socket handlers for this specific connection
       setupLMStudioSockets(socket, io, lmstudio, filterContent);
       setupProfileSockets(socket, io, username);
@@ -422,6 +435,46 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       logger.error(`Error handling socket connection: ${error.message}`);
     }
   });
+}
+
+/**
+ * Check for abandoned sessions and notify user
+ * 
+ * @param {Socket} socket - Socket.io socket instance 
+ * @param {string} username - Username to check sessions for
+ */
+async function checkForAbandonedSessions(socket, username) {
+  try {
+    const inactiveSessions = await SessionRecovery.findInactiveSessions(username, 30, 3);
+    
+    if (inactiveSessions && inactiveSessions.length > 0) {
+      // Send notification to client about recoverable sessions
+      socket.emit('recoverable-sessions', { 
+        sessions: inactiveSessions.map(session => ({
+          id: session._id,
+          title: session.title,
+          lastActivity: session.metadata.lastActivity,
+          messageCount: session.messages.length
+        }))
+      });
+      
+      // Setup recovery handler
+      socket.on('recover-session', async (data) => {
+        if (!data || !data.sessionId) return;
+        
+        const recovered = await SessionRecovery.markSessionRecovered(data.sessionId, socket.id);
+        
+        if (recovered) {
+          socket.emit('session-recovered', { 
+            sessionId: data.sessionId,
+            success: true
+          });
+        }
+      });
+    }
+  } catch (error) {
+    logger.error(`Error checking abandoned sessions: ${error.message}`);
+  }
 }
 
 // Simplify the setupSessionEvents function

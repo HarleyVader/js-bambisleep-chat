@@ -9,7 +9,8 @@ const garbageCollector = new GarbageCollector();
 
 const logger = new Logger('MemoryMonitor');
 
-class MemoryMonitor {  constructor() {
+class MemoryMonitor {  
+  constructor() {
     this.monitoringInterval = null;
     // Read thresholds from environment variables if available
     this.memoryThreshold = process.env.MEMORY_WARNING_THRESHOLD 
@@ -29,6 +30,7 @@ class MemoryMonitor {  constructor() {
     // Log configuration on startup
     logger.info(`Memory monitor initialized with warning threshold: ${Math.round(this.memoryThreshold * 100)}%, critical threshold: ${Math.round(this.criticalThreshold * 100)}%`);
   }
+  
   // Start memory monitoring
   start(interval = 120000) { // Changed from 60s to 120s for 6GB RAM system
     if (this.isRunning) {
@@ -47,15 +49,35 @@ class MemoryMonitor {  constructor() {
       this.checkMemory();
     }, interval);
 
-    // Set up less frequent checks when memory usage is high
-    this.criticalMonitoringInterval = setInterval(() => {
-      const memUsage = this.getMemoryUsage();
+    // Set up adaptive monitoring that increases frequency when memory usage approaches threshold
+    this.adaptiveMonitoring();
+    
+    return this;
+  }
+  
+  // New adaptive monitoring method
+  adaptiveMonitoring() {
+    const checkAdaptiveInterval = setInterval(() => {
+      const memUsage = process.memoryUsage();
+      const heapUsageRatio = memUsage.heapUsed / memUsage.heapTotal;
       
-      // If memory usage is above threshold, check more frequently but not too often
-      if (memUsage.heapUsedRatio > this.memoryThreshold) {
-        this.checkMemory();
+      // If memory usage is above 70%, start more frequent monitoring
+      if (heapUsageRatio > 0.7) {
+        if (!this.highMemoryMonitoring) {
+          logger.warning(`Memory usage at ${Math.round(heapUsageRatio * 100)}% - increasing monitoring frequency`);
+          this.highMemoryMonitoring = setInterval(() => {
+            this.checkMemory(true); // true flag for urgent check
+          }, 30000); // 30 seconds interval for high memory
+        }
+      } else if (this.highMemoryMonitoring) {
+        // If memory usage has dropped, stop the more frequent monitoring
+        clearInterval(this.highMemoryMonitoring);
+        this.highMemoryMonitoring = null;
+        logger.info('Memory usage normalized - returning to regular monitoring');
       }
-    }, 30000); // Check every 30 seconds when memory is high (was 10s)
+    }, 60000); // Check every minute for adaptive monitoring
+    
+    this.checkAdaptiveInterval = checkAdaptiveInterval;
   }
 
   // Stop memory monitoring
@@ -72,6 +94,16 @@ class MemoryMonitor {  constructor() {
     if (this.criticalMonitoringInterval) {
       clearInterval(this.criticalMonitoringInterval);
       this.criticalMonitoringInterval = null;
+    }
+
+    if (this.checkAdaptiveInterval) {
+      clearInterval(this.checkAdaptiveInterval);
+      this.checkAdaptiveInterval = null;
+    }
+
+    if (this.highMemoryMonitoring) {
+      clearInterval(this.highMemoryMonitoring);
+      this.highMemoryMonitoring = null;
     }
 
     this.isRunning = false;
@@ -106,7 +138,7 @@ class MemoryMonitor {  constructor() {
   }
 
   // Check memory and take actions if needed
-  checkMemory() {
+  checkMemory(urgent = false) {
     const memUsage = this.getMemoryUsage();
     
     // Add to history
@@ -125,19 +157,25 @@ class MemoryMonitor {  constructor() {
     // Check for memory leaks
     this.detectMemoryLeaks();
     
-    // Log memory usage
+    // For logging - calculate all values
     const heapUsedMB = (memUsage.heap.used / 1024 / 1024).toFixed(2);
     const heapTotalMB = (memUsage.heap.total / 1024 / 1024).toFixed(2);
     const rssMB = (memUsage.rss / 1024 / 1024).toFixed(2);
     const systemUsedGB = (memUsage.system.used / 1024 / 1024 / 1024).toFixed(2);
     const systemTotalGB = (memUsage.system.total / 1024 / 1024 / 1024).toFixed(2);
     
-    logger.debug(`Memory Usage - Heap: ${heapUsedMB}MB/${heapTotalMB}MB (${(memUsage.heapUsedRatio * 100).toFixed(1)}%), RSS: ${rssMB}MB, System: ${systemUsedGB}GB/${systemTotalGB}GB (${(memUsage.systemUsedRatio * 100).toFixed(1)}%)`);
+    // Only log detailed memory info when urgent or every 5 checks to reduce logging overhead
+    if (!this.checkCount) this.checkCount = 0;
+    this.checkCount++;
+    
+    if (urgent || this.checkCount % 5 === 0) {
+      logger.info(`Memory: ${heapUsedMB}MB / ${heapTotalMB}MB (${(memUsage.heap.ratio * 100).toFixed(1)}%) - RSS: ${rssMB}MB`);
+    }
     
     // Take action if memory usage is above threshold
     if (memUsage.heapUsedRatio > this.memoryThreshold) {
       // If we're within cooldown period, log but don't act
-      if (Date.now() - this.lastCollectionTime < this.collectionCooldown) {
+      if (!urgent && Date.now() - this.lastCollectionTime < this.collectionCooldown) {
         logger.warning(`High memory usage detected (${(memUsage.heapUsedRatio * 100).toFixed(1)}%), but within cooldown period`);
         return;
       }

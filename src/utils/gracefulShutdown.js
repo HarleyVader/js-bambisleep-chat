@@ -21,6 +21,9 @@ export default async function gracefulShutdown(signal, server) {
       logger.info('No valid HTTP server to close or already closed');
     }
 
+    // Run cleanup routines
+    await performCleanupTasks();
+
     // Close MongoDB connection
     if (mongoose.connection.readyState === 1) {
       await mongoose.connection.close();
@@ -32,6 +35,39 @@ export default async function gracefulShutdown(signal, server) {
   } catch (error) {
     logger.error('Error during shutdown:', error);
     process.exit(1);
+  }
+}
+
+/**
+ * Perform cleanup tasks before shutdown
+ */
+async function performCleanupTasks() {
+  logger.info('Running cleanup tasks before shutdown');
+  
+  try {
+    // Clear any scheduled tasks
+    if (global.scheduledTasks) {
+      global.scheduledTasks.stop();
+      logger.info('Scheduled tasks stopped');
+    }
+    
+    // Release memory
+    if (global.gc) {
+      logger.info('Forcing garbage collection');
+      global.gc();
+    }
+    
+    // Cleanup socket store
+    if (global.socketStore) {
+      const storeSize = global.socketStore.size;
+      global.socketStore.clear();
+      logger.info(`Cleared socket store (${storeSize} entries)`);
+    }
+    
+    return true;
+  } catch (error) {
+    logger.error('Error in cleanup tasks:', error);
+    return false;
   }
 }
 

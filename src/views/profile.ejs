@@ -6,7 +6,32 @@
   <%- include('./partials/nav') %>
 
   <div class="container">
-    
+    <% if (locals.mode !== 'create' && locals.profile) { %>
+      <!-- Quick actions panel -->
+      <div class="profile-quick-actions">
+        <div class="quick-stats">
+          <div class="stat">
+            <span class="stat-value"><%= profile.level || 1 %></span>
+            <span class="stat-label">Level</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value"><%= profile.xp ? Math.floor(profile.xp) : 0 %></span>
+            <span class="stat-label">XP</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value"><%= profile.sessionCount || 0 %></span>
+            <span class="stat-label">Sessions</span>
+          </div>
+        </div>
+        <div class="quick-actions">
+          <a href="/chat" class="action-button">Start Chat</a>
+          <% if (locals.isProfileOwner) { %>
+            <a href="/profile/<%= profile.username %>/edit" class="action-button">Edit Profile</a>
+            <a href="/profile/<%= profile.username %>/sessions" class="action-button">My Sessions</a>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
 
     <% if (locals.mode === 'create') { %>
       <!-- CREATE MODE -->

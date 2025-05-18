@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-// Simple schema definition
+// Enhanced schema definition
 const sessionHistorySchema = new mongoose.Schema({
   username: { type: String, required: true, index: true },
   socketId: { type: String, required: true },
@@ -17,9 +17,29 @@ const sessionHistorySchema = new mongoose.Schema({
     triggers: [String],
     collarActive: Boolean,
     collarText: String,
-    spiralSettings: Object
+    spiralSettings: Object,
+    recovered: { type: Boolean, default: false },
+    lastActiveIP: String
   }
 }, { timestamps: true });
+
+// Add index for better query performance
+sessionHistorySchema.index({ 'metadata.lastActivity': -1 });
+
+// Method to mark session as recovered
+sessionHistorySchema.methods.markAsRecovered = async function() {
+  this.metadata.recovered = true;
+  return this.save();
+};
+
+// Static method to find inactive sessions
+sessionHistorySchema.statics.findInactiveSessions = async function(thresholdMinutes = 30) {
+  const thresholdTime = new Date(Date.now() - (thresholdMinutes * 60 * 1000));
+  return this.find({
+    'metadata.lastActivity': { $lt: thresholdTime },
+    'metadata.recovered': { $ne: true }
+  }).sort({ 'metadata.lastActivity': -1 });
+};
 
 // Create model once
 let SessionHistory;
