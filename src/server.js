@@ -28,11 +28,11 @@ import scrapersRoute, { initializeScrapers } from './routes/scrapers.js';
 import profileRouter from './routes/profile.js';
 import chatRoutes from './routes/chatRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
-import sessionsRouter, { basePath as sessionsBasePath } from './routes/sessions.js';
 import { router as triggerScriptsRouter } from './routes/trigger-scripts.js';
-import mongodbRoutes, { basePath as mongodbBasePath } from './routes/mongodbRoutes.js';
+import mongodbRoutes from './routes/mongodbRoutes.js';
 import * as mongodbAdminRoute from './routes/mongodbAdminRoute.js';
-// Define the admin base path directly if not exported
+
+const mongodbBasePath = '/mongodb';
 const mongodbAdminBasePath = '/admin/mongodb';
 
 // Import worker coordinator
