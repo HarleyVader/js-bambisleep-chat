@@ -1,13 +1,15 @@
 import os from 'os';
 import Logger from './logger.js';
-import garbageCollector from './garbageCollector.js';
+import GarbageCollector from './garbageCollector.js';
 import mongoose from 'mongoose';
 import { Worker } from 'worker_threads';
 
+// Create instance of garbage collector
+const garbageCollector = new GarbageCollector();
+
 const logger = new Logger('MemoryMonitor');
 
-class MemoryMonitor {
-  constructor() {
+class MemoryMonitor {  constructor() {
     this.monitoringInterval = null;
     // Read thresholds from environment variables if available
     this.memoryThreshold = process.env.MEMORY_WARNING_THRESHOLD 
@@ -17,7 +19,7 @@ class MemoryMonitor {
       ? parseFloat(process.env.MEMORY_CRITICAL_THRESHOLD) / 100 
       : 0.90; // 90% critical threshold
     this.lastCollectionTime = Date.now();
-    this.collectionCooldown = 30000; // 30 seconds between forced collections
+    this.collectionCooldown = 120000; // 2 minutes between forced collections
     this.isRunning = false;
     this.memoryHistory = []; // Store last 10 memory readings
     this.memoryHistorySize = 10;
@@ -27,9 +29,8 @@ class MemoryMonitor {
     // Log configuration on startup
     logger.info(`Memory monitor initialized with warning threshold: ${Math.round(this.memoryThreshold * 100)}%, critical threshold: ${Math.round(this.criticalThreshold * 100)}%`);
   }
-
   // Start memory monitoring
-  start(interval = 60000) {
+  start(interval = 120000) { // Changed from 60s to 120s for 6GB RAM system
     if (this.isRunning) {
       logger.info('Memory monitor is already running');
       return;
@@ -46,15 +47,15 @@ class MemoryMonitor {
       this.checkMemory();
     }, interval);
 
-    // Set up more frequent checks when memory usage is high
+    // Set up less frequent checks when memory usage is high
     this.criticalMonitoringInterval = setInterval(() => {
       const memUsage = this.getMemoryUsage();
       
-      // If memory usage is above threshold, check more frequently
+      // If memory usage is above threshold, check more frequently but not too often
       if (memUsage.heapUsedRatio > this.memoryThreshold) {
         this.checkMemory();
       }
-    }, 10000); // Check every 10 seconds when memory is high
+    }, 30000); // Check every 30 seconds when memory is high (was 10s)
   }
 
   // Stop memory monitoring
