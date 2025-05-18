@@ -31,7 +31,9 @@ import apiRoutes from './routes/apiRoutes.js';
 import sessionsRouter, { basePath as sessionsBasePath } from './routes/sessions.js';
 import { router as triggerScriptsRouter } from './routes/trigger-scripts.js';
 import mongodbRoutes, { basePath as mongodbBasePath } from './routes/mongodbRoutes.js';
-import mongodbAdminRoute, { basePath as mongodbAdminBasePath } from './routes/mongodbAdminRoute.js';
+import mongodbAdminRoute from './routes/mongodbAdminRoute.js';
+// Define the admin base path directly if not exported
+const mongodbAdminBasePath = '/admin/mongodb';
 
 // Import worker coordinator
 import workerCoordinator from './workers/workerCoordinator.js';
