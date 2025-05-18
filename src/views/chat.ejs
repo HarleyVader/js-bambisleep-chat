@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('./partials/head', { title: locals.title || 'BambiSleep Chat' }) %>
+
+<body data-username="<%= locals.username || '' %>">
+  <%- include('./partials/nav') %>
+
+  <div class="container">
+    <div class="chat-page-container">
+      <!-- Left sidebar with profile and controls -->
+      <div class="chat-sidebar">
+        <h1 class="chat-title">BambiSleep Chat</h1>
+        
+        <% if (!locals.username || locals.username === 'anonBambi') { %>
+          <div class="profile-prompt-card">
+            <p>You are chatting as an anonymous Bambi.</p>
+            <p>To save your chat history and settings, create or log in to a profile.</p>
+            <div class="profile-actions">
+              <a href="/profile/new" class="btn-primary">Create Profile</a>
+              <button id="set-username-btn" class="btn-secondary">Set Username</button>
+            </div>
+          </div>
+        <% } else if (locals.profile) { %>
+          <div class="profile-card">
+            <div class="profile-header">
+              <div class="profile-avatar">
+                <img src="<%= profile.avatar || '/gif/default-avatar.gif' %>" alt="<%= profile.displayName || profile.username %>">
+              </div>
+              <div class="profile-info">
+                <h3 class="neon-text"><%= profile.displayName || profile.username %></h3>
+                <div class="level-display">Level <%= profile.level || 1 %></div>
+              </div>
+            </div>            <div class="profile-actions">
+              <a href="/profile/<%= profile.username %>" class="btn-primary">View Profile</a>
+              <a href="/trigger-script" class="btn-secondary">Trigger Script</a>
+              <a href="/advanced-chat" class="btn-secondary">Advanced Chat</a>
+            </div>
+          </div>
+        <% } %>
+
+        <!-- System controls section -->
+        <div id="system-controls-container">
+          <%- include('./partials/profile-system-controls', { profile: profile }) %>
+        </div>
+      </div>
+
+      <!-- Main chat area -->
+      <div class="chat-main">
+        <!-- Chat messages display -->
+        <div class="chat-messages-container">
+          <div class="chat-messages" id="chat-messages">
+            <% if (chatMessages && chatMessages.length > 0) { %>
+              <% chatMessages.forEach(function(msg) { %>
+                <div class="chat-message-item <%= msg.username === username ? 'user-message' : '' %>">
+                  <div class="message-header">
+                    <span class="message-time"><%= new Date(msg.timestamp).toLocaleTimeString([], {hour12: false}) %></span>
+                    <span class="message-username"><a href="/profile/<%= msg.username %>" class="username-link"><%= msg.username %></a></span>
+                  </div>
+                  <div class="message-content"><%= msg.data %></div>
+                </div>
+              <% }); %>
+            <% } %>
+          </div>
+
+          <!-- Eye cursor animation -->
+          <div id="eyeCursorContainer">
+            <div id="eyeCursor">
+              <div id="eyeCursorText"></div>
+              <div id="eyeCursorText2"></div>
+              <div id="eye" aria-label="Eye Cursor"></div>
+              <div id="eyeCursorText3"></div>
+              <div id="eyeCursorText4"></div>
+            </div>
+          </div>
+
+          <!-- Audio message display -->
+          <div id="audiomessage">
+            <audio id="audio" hidden controls></audio>
+            <p id="message"></p>
+            <p id="error-message" style="display: none; color: red;"></p>
+          </div>
+        </div>
+
+        <!-- Chat input form -->
+        <div class="chat-input-container">
+          <form id="chat-form">
+            <textarea id="textarea-chat" oninput="autoExpand(this)" placeholder="Type your message here..."></textarea>
+            <button id="send" type="submit" class="send-btn">Send</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right sidebar with active users and triggers -->
+      <div class="chat-sidebar chat-info-sidebar">
+        <div class="active-triggers-panel">
+          <h3>Active Triggers</h3>
+          <div class="triggers-list" id="active-triggers">
+            <% if (locals.profile && profile.systemControls && profile.systemControls.activeTriggers) { %>
+              <% profile.systemControls.activeTriggers.forEach(function(triggerName) { %>
+                <div class="trigger-tag"><%= triggerName %></div>
+              <% }); %>
+            <% } else { %>
+              <p class="no-triggers-message">No active triggers</p>
+            <% } %>
+          </div>
+        </div>
+
+        <div class="collar-display-panel" id="collar-container" style="display: none;">
+          <h3>Your Collar</h3>
+          <div id="textarea-collar-response"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Username modal -->
+  <div id="username-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h3>Enter Your Bambi Name</h3>
+      <input type="text" id="username-input" placeholder="Enter username">
+      <div class="modal-actions">
+        <button id="username-submit" class="btn-primary">Submit</button>
+        <button id="username-cancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <%- include('./partials/footer') %>
+
+  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/aigf-core.js"></script>
+  <script src="/js/psychodelic-trigger-mania.js"></script>
+  <script src="/js/text2speech.js"></script>
+  <script src="/js/responsive.js"></script>
+  <script src="/js/triggers.js"></script>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const modal = document.getElementById('username-modal');
+      const closeModalBtn = document.querySelector('.close-modal');
+      const setUsernameBtn = document.getElementById('set-username-btn');
+      let username = '';
+
+      // Cookie helper functions
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+      }
+
+      username = getCookie('bambiname');
+      if (!username) {
+        // Don't automatically show modal, let user click the button
+        username = 'anonBambi';
+      } else {
+        // If we have a username and it's not anonBambi, load the profile triggers
+        if (username !== 'anonBambi') {
+          loadProfileTriggers(username);
+        }
+      }
+
+      // Show modal when set username button is clicked
+      if (setUsernameBtn) {
+        setUsernameBtn.addEventListener('click', () => {
+          modal.style.display = 'block';
+        });
+      }
+
+      // Close modal when close button is clicked
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+          modal.style.display = 'none';
+        });
+      }
+
+      // Submit username form
+      document.getElementById('username-submit').addEventListener('click', () => {
+        const input = document.getElementById('username-input');
+        const newUsername = input.value.trim();
+        if (newUsername) {
+          username = newUsername;
+          document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
+          
+          if (typeof socket !== 'undefined') {
+            socket.emit('set username', username);
+          }
+          
+          modal.style.display = 'none';
+          window.username = username;
+
+          // Reload the page to update the profile data
+          window.location.reload();
+        }
+      });
+
+      // Cancel button in modal
+      document.getElementById('username-cancel').addEventListener('click', () => {
+        modal.style.display = 'none';
+      });
+
+      // Set username data attribute for profile-system-controls.ejs
+      document.body.setAttribute('data-username', username);
+
+      // Helper function to load profile triggers
+      function loadProfileTriggers(username) {
+        if (typeof socket !== 'undefined' && socket.connected) {
+          socket.emit('get-profile-data', { username }, function(response) {
+            if (response && response.success && response.profile) {
+              const profile = response.profile;
+              if (profile.systemControls && profile.systemControls.activeTriggers) {
+                const activeTriggers = profile.systemControls.activeTriggers;
+                
+                // Send triggers to worker
+                socket.emit('triggers', {
+                  triggerNames: activeTriggers.join(','),
+                  triggerDetails: activeTriggers.map(t => ({ name: t }))
+                });
+                
+                console.log('Loaded triggers from profile:', activeTriggers);
+              }
+            }
+          });
+        }
+      }
+
+      // Chat form submission
+      document.getElementById("chat-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const messageInput = document.getElementById("textarea-chat");
+        const message = messageInput.value.trim();
+        
+        if (message && window.username) {
+          if (typeof socket !== 'undefined' && socket.connected) {
+            socket.emit("chat message", { 
+              data: message, 
+              username: window.username 
+            });
+            
+            messageInput.value = "";
+            messageInput.style.height = 'inherit';
+          } else {
+            console.error("Socket connection not available");
+            alert("Not connected to chat server. Please refresh the page.");
+          }
+        }
+      });
+
+      // Handle incoming chat messages
+      if (typeof socket !== 'undefined') {
+        socket.on("chat message", (msg) => {
+          const messagesContainer = document.getElementById("chat-messages");
+          const messageElement = document.createElement("div");
+          messageElement.className = `chat-message-item ${msg.username === username ? 'user-message' : ''}`;
+          
+          const messageHeader = document.createElement("div");
+          messageHeader.className = "message-header";
+          
+          const timeSpan = document.createElement("span");
+          timeSpan.className = "message-time";
+          timeSpan.textContent = new Date().toLocaleTimeString([], {hour12: false});
+          
+          const usernameSpan = document.createElement("span");
+          usernameSpan.className = "message-username";
+          
+          const usernameLink = document.createElement("a");
+          usernameLink.href = `/profile/${msg.username}`;
+          usernameLink.className = "username-link";
+          usernameLink.textContent = msg.username;
+          
+          usernameSpan.appendChild(usernameLink);
+          messageHeader.appendChild(timeSpan);
+          messageHeader.appendChild(usernameSpan);
+          
+          const messageContent = document.createElement("div");
+          messageContent.className = "message-content";
+          messageContent.textContent = msg.data;
+          
+          messageElement.appendChild(messageHeader);
+          messageElement.appendChild(messageContent);
+          
+          messagesContainer.appendChild(messageElement);
+          
+          // Scroll to the bottom
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
+
+        // Collar messages
+        socket.on('collar', (message) => {
+          let collarContainer = document.getElementById('collar-container');
+          let collarResponse = document.getElementById('textarea-collar-response');
+          
+          if (!collarResponse) {
+            collarResponse = document.createElement('div');
+            collarResponse.id = 'textarea-collar-response';
+            
+            if (!collarContainer) {
+              collarContainer = document.createElement('div');
+              collarContainer.id = 'collar-container';
+              document.body.appendChild(collarContainer);
+            }
+            
+            collarContainer.appendChild(collarResponse);
+          }
+          
+          // Display the collar container
+          collarContainer.style.display = 'block';
+          
+          const messageElement = document.createElement('p');
+          messageElement.textContent = message;
+          
+          if (collarResponse.firstChild) {
+            collarResponse.insertBefore(messageElement, collarResponse.firstChild);
+          } else {
+            collarResponse.appendChild(messageElement);
+          }
+        });
+
+        // Profile updates
+        socket.on('profile-update', function(data) {
+          updateXPDisplay(data);
+        });
+
+        socket.on('xp:update', function(data) {
+          updateXPDisplay(data);
+        });
+      }
+
+      // Helper function to update XP display
+      function updateXPDisplay(data) {
+        if (!data) return;
+        
+        // Implementation depends on your UI structure
+        console.log('Profile XP update:', data);
+        
+        // Update level display if element exists
+        const levelDisplay = document.querySelector('.level-display');
+        if (levelDisplay && data.level) {
+          levelDisplay.textContent = `Level ${data.level}`;
+        }
+      }
+
+      // Auto-expand textarea
+      window.autoExpand = function(element) {
+        element.style.height = 'inherit';
+        const computed = window.getComputedStyle(element);
+        const height = parseInt(computed.getPropertyValue('border-top-width'), 10)
+                     + parseInt(computed.getPropertyValue('padding-top'), 10)
+                     + element.scrollHeight
+                     + parseInt(computed.getPropertyValue('padding-bottom'), 10)
+                     + parseInt(computed.getPropertyValue('border-bottom-width'), 10);
+
+        element.style.height = height + 'px';
+      };
+    });
+  </script>
+</body>
+</html>

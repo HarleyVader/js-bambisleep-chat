@@ -23,6 +23,8 @@ import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
 import helpRoute from './routes/help.js';
 import profileRouter from './routes/profile.js';
+import chatRouter from './routes/chat.js';
+import advancedChatRouter from './routes/advancedChat.js';
 import chatRoutes from './routes/chatRoutes.js';
 import apiRoutes from './routes/apiRoutes.js';
 import { router as triggerScriptsRouter } from './routes/trigger-scripts.js';
@@ -36,6 +38,7 @@ const mongodbAdminBasePath = '/admin/mongodb';
 import setupProfileSockets from './sockets/profileSockets.js';
 import setupChatSockets from './sockets/chatSockets.js';
 import setupLMStudioSockets from './sockets/lmStudioSockets.js';
+import setupSessionSockets from './sockets/sessionSockets.js';
 
 // Import utilities and middleware
 import errorHandler from './middleware/error.js';
@@ -201,10 +204,11 @@ function setupMiddleware(app) {
  * 
  * @param {Express} app - Express application instance
  */
-function setupRoutes(app) {  
-  // Register main routes  
+function setupRoutes(app) {    // Register main routes  
   const routes = [
     { path: '/', handler: indexRoute },
+    { path: '/chat', handler: chatRouter },
+    { path: '/advanced-chat', handler: advancedChatRouter },
     { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
     { path: '/help', handler: helpRoute },
     { path: '/profile', handler: profileRouter },
@@ -421,10 +425,10 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         checkForAbandonedSessions(socket, username);
       }
       
-      // Set up socket handlers for this specific connection
-      setupLMStudioSockets(socket, io, lmstudio, filterContent);
+      // Set up socket handlers for this specific connection      setupLMStudioSockets(socket, io, lmstudio, filterContent);
       setupProfileSockets(socket, io, username);
       setupChatSockets(socket, io, socketStore, filteredWords);
+      setupSessionSockets(socket, io, socketStore);
       
       // Handle disconnection
       socket.on('disconnect', () => handleSocketDisconnect(socket, io));
