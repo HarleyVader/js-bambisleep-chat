@@ -17,55 +17,135 @@ import { Worker } from 'worker_threads';
 // Import configuration
 import config from './config/config.js';
 import footerConfig from './config/footer.config.js';
-import { connectDB, withDbConnection } from './config/db.js';
+import { connectDB } from './config/db.js';
 
 // Import routes
 import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
 import helpRoute from './routes/help.js';
-import profileRouter from './routes/profile.js';
-import chatRouter from './routes/chat.js';
-import advancedChatRouter from './routes/advancedChat.js';
-import chatRoutes from './routes/chatRoutes.js';
-import apiRoutes from './routes/apiRoutes.js';
-import { router as triggerScriptsRouter } from './routes/trigger-scripts.js';
-import { router as mongodbRoutesRouter } from './routes/mongodbRoutes.js';
-import { router as mongodbAdminRouter } from './routes/mongodbAdminRoute.js';
 
-const mongodbBasePath = '/mongodb';
-const mongodbAdminBasePath = '/admin/mongodb';
-
-// Import socket handlers
-import setupProfileSockets from './sockets/profileSockets.js';
-import setupChatSockets from './sockets/chatSockets.js';
-import setupLMStudioSockets from './sockets/lmStudioSockets.js';
-import setupSessionSockets from './sockets/sessionSockets.js';
-
-// Import utilities and middleware
 import errorHandler from './middleware/error.js';
+
 import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
-import { startConnectionMonitoring } from './utils/connectionMonitor.js';
-import garbageCollector from './utils/garbageCollector.js';
-import memoryMonitor from './utils/memory-monitor.js';
-import { setupSocketMonitoring } from './utils/socketMonitor.js';
-import messageQueue from './utils/messageQueue.js';
-import streamingHandler from './utils/streamingHandler.js';
-import { dbFeatureCheck } from './middleware/dbFeatureCheck.js';
-import { startDbHealthMonitor, stopDbHealthMonitor } from './utils/dbHealthMonitor.js';
-import { startConnectionPoolMonitor, stopConnectionPoolMonitor } from './utils/connectionPoolMonitor.js';
 
-// Import Profile model getter
-import { getProfile } from './models/Profile.js';
+// Initialize these at the top of the file
+const memoryMonitor = {
+  start(interval = 60000) {
+    this.interval = setInterval(() => this.checkMemory(), interval);
+    logger.info(`Memory monitor started with interval ${interval}ms`);
+  },
+  
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+  },
+  
+  checkMemory() {
+    const used = process.memoryUsage();
+    logger.debug(`Memory usage: RSS ${Math.round(used.rss / 1024 / 1024)}MB, Heap ${Math.round(used.heapUsed / 1024 / 1024)}/${Math.round(used.heapTotal / 1024 / 1024)}MB`);
+    
+    // Force garbage collection if memory pressure is high
+    if (used.heapUsed > used.heapTotal * 0.85) {
+      logger.warning('Memory pressure detected, suggesting garbage collection');
+      global.gc && global.gc();
+    }
+  },
+  
+  getClientScript() {
+    return `
+      // Memory monitoring client script
+      console.log('Memory monitoring active');
+      setInterval(() => {
+        const memory = performance.memory;
+        if (memory) {
+          console.log('Memory: ' + Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB / ' + 
+                       Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + 'MB');
+        }
+      }, 60000);
+    `;
+  }
+};
 
-// Add this before initializing routes
-import './models/SessionHistory.js';
+const scheduledTasks = {
+  tasks: [],
+  initialize() {
+    logger.info('Initializing scheduled tasks');
+  },
+  
+  addTask(name, fn, interval) {
+    const task = {
+      name,
+      fn,
+      interval,
+      timer: setInterval(fn, interval)
+    };
+    this.tasks.push(task);
+    return task;
+  },
+  
+  stopAll() {
+    this.tasks.forEach(task => {
+      clearInterval(task.timer);
+    });
+    this.tasks = [];
+  }
+};
 
-// Import session recovery utility
-import SessionRecovery from './utils/sessionRecovery.js';
+// Define empty arrays for database routes
+const dbRoutes = [];
 
-// Import scheduled tasks
-import scheduledTasks from './utils/scheduledTasks.js';
+// Function to monitor database health
+function startDbHealthMonitor() {
+  const interval = config.DB_HEALTH_CHECK_INTERVAL || 60000;
+  scheduledTasks.addTask('dbHealthCheck', async () => {
+    try {
+      if (mongoose.connection.readyState !== 1) {
+        logger.warning('Database connection not ready, attempting reconnect');
+        await connectDB(1);
+      }
+    } catch (error) {
+      logger.error(`DB health check failed: ${error.message}`);
+    }
+  }, interval);
+}
+
+// Function to monitor connection pool
+function startConnectionPoolMonitor() {
+  const interval = config.CONNECTION_POOL_CHECK_INTERVAL || 300000;
+  scheduledTasks.addTask('connectionPoolMonitor', () => {
+    try {
+      if (mongoose.connection.readyState === 1) {
+        const pool = mongoose.connection.db.serverConfig.s.pool;
+        logger.debug(`DB connection pool: ${pool.totalConnectionCount} total, ${pool.availableConnectionCount} available`);
+      }
+    } catch (error) {
+      logger.error(`Connection pool check failed: ${error.message}`);
+    }
+  }, interval);
+}
+
+// Function to start connection monitoring
+function startConnectionMonitoring(interval) {
+  scheduledTasks.addTask('connectionMonitoring', () => {
+    const activeConnections = socketStore ? socketStore.size : 0;
+    logger.info(`Active connections: ${activeConnections}`);
+  }, interval);
+}
+
+// Add this middleware definition that was missing
+function dbFeatureCheck(required) {
+  return (req, res, next) => {
+    if (required && mongoose.connection.readyState !== 1) {
+      return res.render('db-unavailable', {
+        message: 'This feature requires database connectivity which is currently unavailable.'
+      });
+    }
+    next();
+  };
+}
 
 // Initialize environment and paths
 dotenv.config();
@@ -221,18 +301,8 @@ function setupRoutes(app) {    // Register main routes
   // Routes that don't strictly require database access
   const basicRoutes = [
     { path: '/', handler: indexRoute, dbRequired: false },
-    { path: '/chat', handler: chatRouter, dbRequired: false },
-    { path: '/advanced-chat', handler: advancedChatRouter, dbRequired: false },
     { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter, dbRequired: false },
     { path: '/help', handler: helpRoute, dbRequired: false }
-  ];
-  
-  // Routes that require database access
-  const dbRoutes = [
-    { path: '/profile', handler: profileRouter, dbRequired: true },
-    { path: '/trigger-script', handler: triggerScriptsRouter, dbRequired: true },
-    { path: mongodbBasePath, handler: mongodbRoutesRouter, dbRequired: true },
-    { path: mongodbAdminBasePath, handler: mongodbAdminRouter, dbRequired: true }
   ];
 
   // Setup routes with appropriate database checks
@@ -242,37 +312,6 @@ function setupRoutes(app) {    // Register main routes
   
   dbRoutes.forEach(route => {
     app.use(route.path, dbFeatureCheck(true), route.handler);
-  });
-  // Add the chat routes - can work with limited DB functionality
-  app.use('/api/chat', dbFeatureCheck(false), chatRoutes);
-
-  // Add API routes - some may require database access
-  app.use('/api', dbFeatureCheck(false), apiRoutes);
-
-  // Add health check endpoint
-  app.get('/health', async (req, res) => {
-    try {
-      const { checkDBHealth, inFallbackMode, hasConnection } = await import('./config/db.js');
-      const dbHealth = await checkDBHealth();
-
-      res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        db: {
-          ...dbHealth,
-          fallbackMode: inFallbackMode(),
-          connected: hasConnection()
-        },
-        uptime: process.uptime(),
-        memory: process.memoryUsage()
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        error: error.message,
-        timestamp: new Date().toISOString()
-      });
-    }
   });
 }
 
@@ -397,44 +436,6 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
 }
 
 /**
- * Handle scrape request - PLACEHOLDER for removed functionality
- * 
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- */
-function handleScrapeRequest(req, res) {
-  const { url } = req.body;
-
-  if (!url) {
-    return res.status(400).json({ error: 'URL is required' });
-  }
-
-  res.status(501).json({
-    error: 'Scraping functionality has been removed',
-    message: 'This feature is no longer available'
-  });
-}
-
-/**
- * Handle directory scan request - PLACEHOLDER for removed functionality
- * 
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- */
-function handleScanRequest(req, res) {
-  const { directory } = req.body;
-
-  if (!directory) {
-    return res.status(400).json({ error: 'Directory path is required' });
-  }
-
-  res.status(501).json({
-    error: 'Directory scanning functionality has been removed',
-    message: 'This feature is no longer available'
-  });
-}
-
-/**
  * Set up Socket.io event handlers
  * 
  * @param {SocketIO.Server} io - Socket.io server instance
@@ -445,6 +446,30 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
   // Initialize the LMStudio worker thread
   const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
   
+  // Handle worker exit
+  lmstudio.on('exit', (code) => {
+    logger.error(`Worker thread exited with code ${code}`);
+    
+    // Notify all connected clients
+    if (io) {
+      io.emit('system-error', 'The AI service has restarted. Please refresh your page.');
+    }
+    
+    // Start a new worker after a short delay
+    setTimeout(() => {
+      const newWorker = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
+      
+      // Update all socket references with new worker
+      if (socketStore) {
+        for (const [id, data] of socketStore.entries()) {
+          socketStore.set(id, { ...data, worker: newWorker });
+        }
+      }
+      
+      logger.info('Worker thread restarted');
+    }, 1000);
+  });
+
   // Simple filter function to avoid bad words
   function filter(content) {
     if (!content || !filteredWords || !filteredWords.length) return content;
@@ -460,15 +485,75 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       .trim();
   }
 
-  // Add more listeners to worker if needed
-  function adjustMaxListeners(worker, increase) {
-    if (!worker) return;
+  // XP system functions
+  const xpSystem = {
+    requirements: [100, 250, 450, 700, 1200],
     
-    const currentMax = worker.getMaxListeners();
-    if (increase) {
-      worker.setMaxListeners(currentMax + 1);
-    } else {
-      worker.setMaxListeners(Math.max(10, currentMax - 1));
+    calculateLevel(xp) {
+      let level = 0;
+      while (level < this.requirements.length && xp >= this.requirements[level]) {
+        level++;
+      }
+      return level;
+    },
+    
+    awardXP(socket, amount, reason = 'interaction') {
+      if (!socket.bambiData) return;
+      
+      const oldXP = socket.bambiData.xp || 0;
+      const oldLevel = this.calculateLevel(oldXP);
+      
+      // Add XP
+      socket.bambiData.xp = oldXP + amount;
+      const newLevel = this.calculateLevel(socket.bambiData.xp);
+      
+      // Notify client of XP gain
+      socket.emit('xp:update', {
+        xp: socket.bambiData.xp,
+        level: newLevel,
+        xpEarned: amount,
+        reason: reason
+      });
+      
+      // Check for level up
+      if (newLevel > oldLevel) {
+        socket.emit('level-up', { level: newLevel });
+        logger.info(`User ${socket.bambiUsername} leveled up to ${newLevel}`);
+      }
+      
+      // Save to database if available
+      if (socket.bambiUsername && socket.bambiUsername !== 'anonBambi') {
+        updateProfileXP(socket.bambiUsername, socket.bambiData.xp);
+      }
+    }
+  };
+  
+  // Function to update profile XP in DB
+  async function updateProfileXP(username, xp) {
+    try {
+      if (mongoose.connection.readyState !== 1) return;
+      
+      const Profile = mongoose.model('Profile');
+      await Profile.findOneAndUpdate(
+        { username },
+        { $set: { xp } },
+        { new: true, upsert: false }
+      );
+    } catch (error) {
+      logger.error(`Failed to update profile XP: ${error.message}`);
+    }
+  }
+  
+  // Function to get profile data for a user
+  async function getProfileData(username) {
+    try {
+      if (mongoose.connection.readyState !== 1) return null;
+      
+      const Profile = mongoose.model('Profile');
+      return await Profile.findOne({ username });
+    } catch (error) {
+      logger.error(`Failed to get profile data: ${error.message}`);
+      return null;
     }
   }
 
@@ -485,8 +570,29 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         : {};
       let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
       logger.info('Cookies received in handshake:', socket.handshake.headers.cookie);
-        if (username === 'anonBambi') {
+      
+      // Initialize user data
+      socket.bambiUsername = username;
+      socket.bambiData = { 
+        xp: 0, 
+        username: username,
+        sessionId: null
+      };
+      
+      if (username === 'anonBambi') {
         socket.emit('prompt username');
+      } else {
+        // Load profile data if user is not anonymous
+        getProfileData(username).then(profile => {
+          if (profile) {
+            socket.bambiData.xp = profile.xp || 0;
+            socket.emit('profile-data', { profile });
+            socket.emit('profile-update', { 
+              xp: profile.xp,
+              level: xpSystem.calculateLevel(profile.xp || 0)
+            });
+          }
+        });
       }
       
       // Send database status notification to client
@@ -497,9 +603,6 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
       logger.info(`Client connected: ${socket.id} sockets: ${socketStore.size}`);
       
-      // Store username on socket object for easy access
-      socket.bambiUsername = username;
-      
       // Chat message handling
       socket.on('chat message', async (msg) => {
         try {
@@ -507,8 +610,11 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           io.emit('chat message', {
             ...msg,
             timestamp: timestamp,
-            username: username,
+            username: socket.bambiUsername,
           });
+          
+          // Give XP for chat interactions
+          xpSystem.awardXP(socket, 1, 'chat');
         } catch (error) {
           logger.error('Error in chat message handler:', error);
         }
@@ -522,8 +628,31 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           socket.bambiUsername = username;
           socket.emit('username set', username);
           logger.info('Username set:', username);
+          
+          // Load profile data for the new username
+          getProfileData(username).then(profile => {
+            if (profile) {
+              socket.bambiData.xp = profile.xp || 0;
+              socket.emit('profile-data', { profile });
+              socket.emit('profile-update', { 
+                xp: profile.xp,
+                level: xpSystem.calculateLevel(profile.xp || 0) 
+              });
+            }
+          });
         } catch (error) {
           logger.error('Error in set username handler:', error);
+        }
+      });
+
+      // Get profile data
+      socket.on('get-profile-data', async (data, callback) => {
+        try {
+          const profile = await getProfileData(data.username);
+          callback({ success: true, profile });
+        } catch (error) {
+          logger.error('Error getting profile data:', error);
+          callback({ success: false, error: 'Failed to load profile data' });
         }
       });
 
@@ -535,8 +664,19 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             type: "message",
             data: filteredMessage,
             socketId: socket.id,
-            username: username
+            username: socket.bambiUsername
           });
+          
+          // Award XP for AI interactions
+          xpSystem.awardXP(socket, 5, 'ai-prompt');
+          
+          // Create or update session
+          const sessionId = Math.random().toString(36).substring(2, 15);
+          socket.bambiData.sessionId = sessionId;
+          socket.emit('session-created', { sessionId });
+          
+          // Notify about conversation start
+          socket.emit('conversation-start');
         } catch (error) {
           logger.error('Error in message handler:', error);
           socket.emit('error', { message: 'Failed to process your message' });
@@ -551,8 +691,54 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             triggers,
             socketId: socket.id
           });
+          logger.info(`Triggers set for ${socket.bambiUsername}:`, triggers.triggerNames || 'none');
         } catch (error) {
           logger.error('Error in triggers handler:', error);
+        }
+      });
+
+      // System settings handling
+      socket.on('system-settings', (settings) => {
+        try {
+          lmstudio.postMessage({
+            type: 'system-settings',
+            settings,
+            socketId: socket.id
+          });
+        } catch (error) {
+          logger.error('Error in system settings handler:', error);
+        }
+      });
+
+      // Session management
+      socket.on('save-session', (data) => {
+        try {
+          const sessionId = data.sessionId || socket.bambiData.sessionId;
+          if (!sessionId) return;
+          
+          // Would normally save to DB, but we'll just acknowledge for now
+          socket.emit('session-saved', { success: true, sessionId });
+        } catch (error) {
+          logger.error('Error saving session:', error);
+          socket.emit('session-saved', { success: false, error: 'Failed to save session' });
+        }
+      });
+
+      socket.on('load-session', async (data) => {
+        try {
+          const sessionId = data.sessionId;
+          if (!sessionId) return;
+          
+          // Would normally load from DB
+          // For now just notify the session is loaded
+          socket.emit('session-loaded', { 
+            success: true, 
+            sessionId,
+            session: { id: sessionId, username: socket.bambiUsername }
+          });
+        } catch (error) {
+          logger.error('Error loading session:', error);
+          socket.emit('session-loaded', { success: false, error: 'Failed to load session' });
         }
       });
 
@@ -570,6 +756,9 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           if (collarData.socketId) {
             io.to(collarData.socketId).emit('collar', filteredCollar);
           }
+          
+          // Award XP for collar usage
+          xpSystem.awardXP(socket, 2, 'collar');
         } catch (error) {
           logger.error('Error in collar handler:', error);
         }
@@ -586,6 +775,12 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             
             // Send response to client
             io.to(msg.socketId).emit("response", responseData);
+            
+            // Award XP when AI responds
+            const socketData = socketStore.get(msg.socketId);
+            if (socketData && socketData.socket) {
+              xpSystem.awardXP(socketData.socket, 3, 'ai-response');
+            }
           }
         } catch (error) {
           logger.error('Error in lmstudio message handler:', error);
@@ -638,193 +833,6 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
 }
 
 /**
- * Check for abandoned sessions and notify user
- * 
- * @param {Socket} socket - Socket.io socket instance 
- * @param {string} username - Username to check sessions for
- */
-async function checkForAbandonedSessions(socket, username) {
-  try {
-    const inactiveSessions = await SessionRecovery.findInactiveSessions(username, 30, 3);
-
-    if (inactiveSessions && inactiveSessions.length > 0) {
-      // Send notification to client about recoverable sessions
-      socket.emit('recoverable-sessions', {
-        sessions: inactiveSessions.map(session => ({
-          id: session._id,
-          title: session.title,
-          lastActivity: session.metadata.lastActivity,
-          messageCount: session.messages.length
-        }))
-      });
-
-      // Setup recovery handler
-      socket.on('recover-session', async (data) => {
-        if (!data || !data.sessionId) return;
-
-        const recovered = await SessionRecovery.markSessionRecovered(data.sessionId, socket.id);
-
-        if (recovered) {
-          socket.emit('session-recovered', {
-            sessionId: data.sessionId,
-            success: true
-          });
-        }
-      });
-    }
-  } catch (error) {
-    logger.error(`Error checking abandoned sessions: ${error.message}`);
-  }
-}
-
-// Simplify the setupSessionEvents function
-function setupSessionEvents(socket) {
-  // Load session
-  socket.on('load-session', function (sessionId) {
-    if (!sessionId) return;
-
-    withDbConnection(async () => {
-      try {
-        const SessionHistory = mongoose.model('SessionHistory');
-        const session = await SessionHistory.findById(sessionId);
-
-        if (!session) return;
-
-        // Send to client
-        socket.emit('session-loaded', { session, sessionId });
-
-      } catch (error) {
-        logger.error(`Session load error: ${error.message}`);
-      }
-    });
-  });
-
-  // Save session
-  socket.on('save-session', function (data) {
-    if (!data || !socket.bambiUsername || socket.bambiUsername === 'anonBambi') return;
-
-    withDbConnection(async () => {
-      try {
-        const SessionHistory = mongoose.model('SessionHistory');
-
-        if (data.sessionId) {
-          // Update existing
-          await SessionHistory.findByIdAndUpdate(data.sessionId, {
-            $set: {
-              'metadata.lastActivity': new Date(),
-              'metadata.triggers': data.settings?.activeTriggers || [],
-              'metadata.collarActive': data.settings?.collarSettings?.enabled || false,
-              'metadata.collarText': data.settings?.collarSettings?.text || '',
-              'metadata.spiralSettings': data.settings?.spiralSettings || {}
-            },
-            $push: {
-              messages: { $each: data.messages || [] }
-            }
-          });
-
-        } else {
-          // Create new
-          const session = new SessionHistory({
-            username: socket.bambiUsername,
-            socketId: socket.id,
-            title: data.title || `Session ${new Date().toLocaleString()}`,
-            messages: data.messages || [],
-            metadata: {
-              triggers: data.settings?.activeTriggers || [],
-              collarActive: data.settings?.collarSettings?.enabled || false,
-              collarText: data.settings?.collarSettings?.text || '',
-              spiralSettings: data.settings?.spiralSettings || {}
-            }
-          });
-
-          await session.save();
-          socket.emit('session-created', { sessionId: session._id });
-        }
-      } catch (error) {
-        logger.error(`Session save error: ${error.message}`);
-      }
-    });
-  });
-}
-
-/**
- * Parse cookies from cookie header string
- * 
- * @param {string} cookieHeader - Cookie header string
- * @returns {Object} - Object with cookie name-value pairs
- */
-function parseCookies(cookieHeader) {
-  if (!cookieHeader) return {};
-
-  return cookieHeader
-    .split(';')
-    .map(cookie => cookie.trim().split('='))
-    .reduce((acc, [key, value]) => {
-      acc[key] = value;
-      return acc;
-    }, {});
-}
-
-/**
- * Filter words in content
- * 
- * @param {string} content - Content to filter
- * @param {string[]} filteredWords - Words to filter out
- * @returns {string} - Filtered content
- */
-function filterWords(content, filteredWords) {
-  try {
-    if (typeof content !== 'string') {
-      content = String(content);
-    }
-
-    return content
-      .split(' ')
-      .map((word) => {
-        return filteredWords.includes(word.toLowerCase()) ? '[filtered]' : word;
-      })
-      .join(' ')
-      .trim();
-  } catch (error) {
-    logger.error('Error in content filter:', error);
-    return content;
-  }
-}
-
-/**
- * Handle socket disconnection and clean up
- * 
- * @param {Socket} socket - Socket.io socket instance
- * @param {SocketIO.Server} io - Socket.io server instance
- */
-function handleSocketDisconnect(socket, io) {
-  try {
-    const socketStore = io.sockets.socketStore || new Map();
-
-    io.emit('user_disconnect', { userId: socket.id });
-
-    const socketData = socketStore.get(socket.id);
-    const bambiName = socketData?.username ||
-      socket.bambiUsername ||
-      socket.handshake.headers.cookie?.split(';')
-        .find(c => c.trim().startsWith('bambiname='))
-        ?.split('=')[1] || 'unregistered';
-
-    const totalConnections = socket.server.engine.clientsCount;
-    const activeWorkers = socketStore.size;
-
-    const reason = socket.disconnectReason || 'unknown';
-    logger.info(`Client disconnected: ${socket.id} (${bambiName}) - Reason: ${reason}`);
-
-    socketStore.delete(socket.id);
-    const updatedConnections = socket.server.engine.clientsCount;
-    logger.info(`Socket removed from store: ${socket.id} (${bambiName}), remaining connections: ${updatedConnections}`);
-  } catch (error) {
-    logger.error(`Error in handleSocketDisconnect: ${error.message}`);
-  }
-}
-
-/**
  * Set up error handlers for the application
  * 
  * @param {Express} app - Express application instance
@@ -857,140 +865,6 @@ function getServerAddress() {
     logger.error('Error getting server address:', error);
     return 'localhost';
   }
-}
-
-/**
- * Monitor system resources and socket statistics
- */
-function monitorResources() {
-  const memoryUsage = process.memoryUsage();
-  logger.info(`Memory usage: RSS ${Math.round(memoryUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}/${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
-
-  if (!socketStore) return;
-
-  const now = Date.now();
-  let activeCount = 0;
-  let idleCount = 0;
-  let longIdleCount = 0;
-
-  let youngest = Infinity;
-  let oldest = 0;
-
-  for (const [socketId, socketData] of socketStore.entries()) {
-    const age = now - socketData.connectedAt;
-    const idleTime = now - socketData.lastActivity;
-
-    youngest = Math.min(youngest, age);
-    oldest = Math.max(oldest, age);
-
-    if (idleTime < 300000) {
-      activeCount++;
-    } else if (idleTime < 1800000) {
-      idleCount++;
-    } else {
-      longIdleCount++;
-    }
-  }
-
-  logger.info(`Sockets: ${socketStore.size} total (${activeCount} active, ${idleCount} idle, ${longIdleCount} long idle)`);
-
-  if (socketStore.size > 0) {
-    logger.info(`Socket age: newest ${Math.round(youngest / 1000 / 60)}m, oldest ${Math.round(oldest / 1000 / 60)}m`);
-  }
-
-  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-  logger.info(`Database status: ${dbStatus}`);
-}
-
-/**
- * Monitor memory usage and handle potential OOM scenarios
- */
-function monitorMemoryForOOM() {
-  const memoryUsage = process.memoryUsage();
-  const usedHeapRatio = memoryUsage.heapUsed / memoryUsage.heapTotal;
-
-  if (usedHeapRatio > 0.8) {
-    logger.warning(`High memory usage detected: ${Math.round(usedHeapRatio * 100)}% of heap used. Forcing garbage collection.`);
-
-    garbageCollector.collect(socketStore);
-
-    const now = Date.now();
-    for (const [socketId, socketData] of socketStore.entries()) {
-      const idleTime = now - (socketData.lastActivity || 0);
-      if (idleTime > 1800000) {
-        logger.info(`Terminating idle socket ${socketId} to free memory`);
-        socketStore.delete(socketId);
-      }
-    }
-  }
-}
-
-/**
- * Helper function to fetch messages from the database
- * 
- * @param {number} limit - Maximum number of messages to fetch
- * @returns {Promise<Array>} - Array of messages
- */
-async function getMessages(limit = 50) {
-  try {
-    return [];
-  } catch (error) {
-    logger.error('Error getting messages:', error);
-    throw error;
-  }
-}
-
-/**
- * Helper function to save a message to the database
- * 
- * @param {Object} message - Message object to save
- * @returns {Promise<boolean>} - True if the message was saved successfully
- */
-async function saveMessage(message) {
-  try {
-    return true;
-  } catch (error) {
-    logger.error('Error saving message:', error);
-    throw error;
-  }
-}
-
-/**
- * Helper function to get profile by username
- * 
- * @param {string} username - Username to fetch profile for
- * @returns {Promise<Object>} - Profile object
- */
-async function getProfileByUsername(username) {
-  return withDbConnection(async () => {
-    try {
-      const Profile = mongoose.model('Profile');
-      const profile = await Profile.findOne({ username });
-
-      if (!profile) {
-        logger.warning(`Profile not found for username: ${username}`);
-        return null;
-      }
-
-      return profile;
-    } catch (error) {
-      logger.error(`Error fetching profile for ${username}: ${error.message}`);
-      throw error;
-    }
-  });
-}
-
-/**
- * Helper function to get recent messages
- * 
- * @param {number} limit - Maximum number of messages to fetch
- * @returns {Promise<Array>} - Array of recent messages
- */
-async function getRecentMessages(limit = 50) {
-  return [
-    { username: 'system', data: 'Welcome to BambiSleep.Chat!', timestamp: Date.now() - 60000 },
-    { username: 'bambi', data: 'Hello everyone!', timestamp: Date.now() - 30000 }
-  ];
 }
 
 /**
@@ -1079,8 +953,3 @@ async function startServer() {
 }
 
 startServer();
-
-// Handle --expose-gc when provided
-if (typeof global.gc === 'function') {
-  logger.info('Manual garbage collection enabled');
-}

@@ -33,11 +33,23 @@ socket.on('reconnect_failed', () => {
 });
 
 let debounceTimeout;
+let isProcessing = false;
 submit.addEventListener('click', (event) => {
     event.preventDefault();
+    
+    // Prevent multiple rapid clicks
+    if (isProcessing) return;
+    
+    isProcessing = true;
     clearTimeout(debounceTimeout);
+    
     debounceTimeout = setTimeout(() => {
         handleClick();
+        
+        // Reset processing state after completion or timeout
+        setTimeout(() => {
+            isProcessing = false;
+        }, 1000); // Ensure at least 1 second between submissions
     }, 200);
 });
 
@@ -151,5 +163,23 @@ function handleAudioPlay() {
     applyUppercaseStyle();
 }
 
-audio.addEventListener('ended', handleAudioEnded);
-audio.addEventListener('play', handleAudioPlay);
+// Fix audio event listeners by checking element exists
+if (audio) {
+    audio.addEventListener('ended', handleAudioEnded);
+    audio.addEventListener('play', handleAudioPlay);
+}
+
+// Clean up event listeners when appropriate (add to a cleanup function)
+function cleanup() {
+    if (audio) {
+        audio.removeEventListener('ended', handleAudioEnded);
+        audio.removeEventListener('play', handleAudioPlay);
+    }
+    submit.removeEventListener('click', handleClick);
+    socket.off('response');
+    socket.off('reconnect');
+    socket.off('disconnect');
+}
+
+// Call cleanup when needed (e.g., page unload)
+window.addEventListener('beforeunload', cleanup);

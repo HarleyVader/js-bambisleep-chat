@@ -2,7 +2,8 @@ let state = true;
 let _audioArray = [];
 let duration = 0;
 const audio = document.getElementById('audio');
-let currentVoice = 'af_bella'; // Default voice from app.js (KOKORO_DEFAULT_VOICE)
+const messageElement = document.querySelector("#message"); // Cache DOM element
+let currentVoice = 'af_bella'; // Default voice
 
 /**
  * Set the voice to use for TTS
@@ -22,10 +23,10 @@ function setVoice(voice) {
  * @returns {Array} - Updated audio array
  */
 function arrayPush(_audioArray, e) {
-  document.querySelector("#audio").hidden = true;
+  // Check if element exists before accessing
+  const audioElement = document.querySelector("#audio");
+  if (audioElement) audioElement.hidden = true;
   
-  // Update the URL to match the route structure in server.js
-  // Try using a relative path that works with both server configurations
   let URL = `/api/tts?text=${encodeURIComponent(e)}&voice=${encodeURIComponent(currentVoice)}`;
   _audioArray.push(URL);
   
@@ -38,7 +39,7 @@ function arrayPush(_audioArray, e) {
  * @returns {string|undefined} - URL for audio or undefined
  */
 function arrayShift(_audioArray) {
-  if (_audioArray.length > 0 && audio !== null) {
+  if (_audioArray.length > 0 && audio) {
     let _currentURL = _audioArray.shift();
     console.log("Processing URL:", _currentURL);
     return _currentURL;
@@ -51,20 +52,20 @@ function arrayShift(_audioArray) {
  * @param {Array} _audioArray - Array containing audio URLs
  */
 async function do_tts(_audioArray) {
-  document.querySelector("#message").textContent = "Synthesizing...";
+  if (messageElement) messageElement.textContent = "Synthesizing...";
 
   let currentURL = arrayShift(_audioArray);
   if (!currentURL) return;
   
-  let retries = 2; // Number of retry attempts
+  let retries = 2;
+  let audioUrl = null; // Track URL for cleanup
   
   while (retries >= 0) {
     try {
-      // Fetch the audio from the server
       const response = await fetch(currentURL, {
-        credentials: 'same-origin', // Include cookies for authentication
+        credentials: 'same-origin',
         headers: {
-          'Accept': 'audio/mpeg' // Expect MP3 format as set in app.js
+          'Accept': 'audio/mpeg'
         }
       });
       
@@ -72,77 +73,71 @@ async function do_tts(_audioArray) {
         if (retries > 0) {
           console.log(`Retrying TTS request (${retries} attempts left)...`);
           retries--;
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
           continue;
         }
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
-      // Get audio data as blob
       const audioBlob = await response.blob();
+      audioUrl = URL.createObjectURL(audioBlob);
       
-      // Create object URL from blob
-      const audioUrl = URL.createObjectURL(audioBlob);
+      if (!audio) {
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        throw new Error("Audio element not found");
+      }
       
-      // Set audio source to blob URL
       audio.src = audioUrl;
-      console.log("Audio source set:", audioUrl);
-      
       audio.load();
       
       // Set up event handlers
       audio.onloadedmetadata = function() {
-        console.log("Audio metadata loaded, duration:", audio.duration);
-        document.querySelector("#message").textContent = "Playing...";
+        if (messageElement) messageElement.textContent = "Playing...";
         audio.play().catch(e => {
           console.error("Error playing audio:", e);
-          document.querySelector("#message").textContent = "Error playing audio: " + e.message;
+          if (messageElement) messageElement.textContent = "Error playing audio: " + e.message;
         });
       };
       
       audio.onended = function() {
-        console.log("Audio playback ended");
-        document.querySelector("#message").textContent = "Finished!";
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        audioUrl = null;
         
-        // Release the blob URL to free memory
-        URL.revokeObjectURL(audioUrl);
+        if (messageElement) messageElement.textContent = "Finished!";
         
-        // Process next item in queue if any
         if (_audioArray.length > 0) {
           do_tts(_audioArray);
         }
       };
       
       audio.onerror = function(e) {
-        console.error("Audio error:", e);
-        console.error("Error code:", audio.error ? audio.error.code : "unknown");
-        console.error("Error message:", audio.error ? audio.error.message : "unknown");
-        document.querySelector("#message").textContent = "Error playing audio: " + 
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        audioUrl = null;
+        
+        if (messageElement) messageElement.textContent = "Error playing audio: " + 
           (audio.error ? audio.error.message : "Unknown error");
         
-        // Release the blob URL on error
-        URL.revokeObjectURL(audioUrl);
-        
-        // Process next item in queue if any
         if (_audioArray.length > 0) {
           do_tts(_audioArray);
         }
       };
       
-      break; // Exit the retry loop on success
+      break;
       
     } catch (error) {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      audioUrl = null;
+      
       if (retries <= 0) {
         console.error("Fetch error:", error);
-        document.querySelector("#message").textContent = "Error fetching audio: " + error.message;
+        if (messageElement) messageElement.textContent = "Error fetching audio: " + error.message;
         
-        // Process next item in queue if any
         if (_audioArray.length > 0) {
           do_tts(_audioArray);
         }
       } else {
         retries--;
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
   }
@@ -164,6 +159,20 @@ async function fetchAvailableVoices() {
     return [];
   }
 }
+
+/**
+ * Cleanup function for page unload
+ */
+function cleanupAudio() {
+  if (audio) {
+    audio.pause();
+    audio.src = '';
+  }
+  _audioArray = [];
+}
+
+// Add unload handler
+window.addEventListener('beforeunload', cleanupAudio);
 
 // Export functions for use in other modules
 window.tts = {

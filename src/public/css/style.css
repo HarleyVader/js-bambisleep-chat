@@ -1022,6 +1022,148 @@ a:hover {
     text-shadow: 0 0 5px rgba(var(--tertiary-color-rgb), 0.5);
 }
 
+/* Add control panel visibility handling */
+.control-panel {
+    display: none;
+}
+
+.control-panel.active {
+    display: block;
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* Improve session history panel */
+.session-history-status {
+    padding: 10px;
+    text-align: center;
+    color: var(--tertiary-alt);
+    font-style: italic;
+}
+
+.session-select-container, 
+.session-stats-container {
+    margin-top: 15px;
+    padding: 10px;
+    border: 1px solid var(--tertiary-alt);
+    border-radius: 5px;
+    background-color: var(--transparent-alt);
+}
+
+.active-session-info {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: var(--nav-alt);
+}
+
+.session-stat {
+    display: inline-block;
+    padding: 8px 15px;
+    text-align: center;
+    width: 30%;
+    border-right: 1px solid var(--tertiary-alt);
+}
+
+.session-stat:last-child {
+    border-right: none;
+}
+
+/* Spiral controls styling */
+.spiral-control-group {
+    margin-bottom: 10px;
+    padding: 5px;
+    border-radius: 4px;
+    background-color: var(--transparent-alt);
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.spiral-slider {
+    flex-grow: 1;
+    height: 5px;
+    appearance: none;
+    background: var(--primary-alt);
+    outline: none;
+    border-radius: 3px;
+}
+
+.spiral-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--button-color);
+    cursor: pointer;
+    box-shadow: 0 0 5px var(--tertiary-color);
+}
+
+/* Session history actions */
+.session-history-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    gap: 10px;
+}
+
+/* Better trigger action buttons */
+.trigger-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+/* Better collar toggle styling */
+.collar-toggle {
+    margin-bottom: 15px;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: rgba(var(--nav-color-rgb), 0.3);
+    display: flex;
+    align-items: center;
+}
+
+/* Add styling for hypnosis streaming toggle */
+.streaming-settings {
+    margin-top: 20px;
+    padding: 10px;
+    border-top: 1px dashed var(--tertiary-alt);
+}
+
+.streaming-toggle {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.setting-description {
+    font-size: 0.85rem;
+    color: var(--tertiary-alt);
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* Better styling for locked features message */
+.locked-features-message {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--tertiary-alt);
+    background-color: rgba(var(--nav-color-rgb), 0.2);
+    border-radius: 8px;
+    border: 1px dashed var(--tertiary-color);
+    margin: 20px 0;
+}
+
+.locked-features-message p:first-child {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--button-color);
+    margin-bottom: 10px;
+}
+
 #collar-form-inputs {
     display: flex;
     flex-direction: column;

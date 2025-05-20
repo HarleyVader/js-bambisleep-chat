@@ -431,8 +431,8 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    // Store XP requirements globally
-    window.xpRequirements = [100, 250, 450, 700, 1200];
+    // Match XP requirements with the EJS values
+    window.xpRequirements = [1000, 2500, 7500, 17000, 42000];
     
     // Tab navigation system
     const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
@@ -440,6 +440,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     controlButtons.forEach(button => {
       button.addEventListener('click', function() {
         const targetId = this.getAttribute('data-target');
+        if (!targetId) return;
         
         // Toggle active states
         controlButtons.forEach(btn => btn.classList.remove('active'));
@@ -462,22 +463,18 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     const volumeSlider = document.getElementById('loop-volume');
     const volumeValue = document.getElementById('volume-value');
     if (volumeSlider && volumeValue) {
-      const storedVolume = localStorage.getItem('bambiAudioVolume');
-      if (storedVolume !== null) {
-        const volume = parseFloat(storedVolume);
-        volumeSlider.value = volume * 10;
-        volumeValue.textContent = Math.round(volume * 100) + '%';
-      }
+      const storedVolume = localStorage.getItem('bambiAudioVolume') || '0.8';
+      const volume = parseFloat(storedVolume);
+      volumeSlider.value = volume * 10;
+      volumeValue.textContent = Math.round(volume * 100) + '%';
     }
     
     const speedSlider = document.getElementById('loop-speed');
     const speedValue = document.getElementById('speed-value');
     if (speedSlider && speedValue) {
-      const storedSpeed = localStorage.getItem('bambiAudioSpeed');
-      if (storedSpeed !== null) {
-        speedSlider.value = storedSpeed;
-        updateSpeedLabel(storedSpeed, speedValue);
-      }
+      const storedSpeed = localStorage.getItem('bambiAudioSpeed') || '5';
+      speedSlider.value = storedSpeed;
+      updateSpeedLabel(storedSpeed, speedValue);
     }
     
     // Helper function for speed label
@@ -500,20 +497,39 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       const tabButton = document.querySelector(`.control-btn[data-target="${lastTab}"]`);
       if (tabButton && !tabButton.classList.contains('disabled')) {
         tabButton.click();
+      } else if (controlButtons.length > 0) {
+        // If last tab not found, activate first available tab
+        controlButtons[0].click();
       }
+    } else if (controlButtons.length > 0) {
+      // No saved tab, activate first available tab
+      controlButtons[0].click();
     }
     
-    // Watch for trigger list changes to avoid duplicates
+    // Watch for trigger list changes with better handling
     const triggerList = document.getElementById('trigger-list');
     if (triggerList) {
-      const observer = new MutationObserver(function(mutations) {
-        if (mutations.some(m => m.addedNodes.length > 0)) {
-          document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
-          observer.disconnect();
-        }
-      });
-      
-      observer.observe(triggerList, { childList: true });
+      // Check if triggers already exist
+      if (triggerList.children.length > 0) {
+        document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
+      } else {
+        const observer = new MutationObserver(function(mutations) {
+          if (mutations.some(m => m.addedNodes.length > 0)) {
+            document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
+            observer.disconnect();
+          }
+        });
+        
+        observer.observe(triggerList, { childList: true, subtree: true });
+        
+        // Safety timeout - dispatch event after 3 seconds if nothing happens
+        setTimeout(() => {
+          if (triggerList.children.length === 0) {
+            document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
+            observer.disconnect();
+          }
+        }, 3000);
+      }
     }
   });
 </script>

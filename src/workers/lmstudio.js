@@ -876,149 +876,152 @@ Be cruel, harsh, and to the point. Focus on breaking down resistance through ver
   return systemPrompt;
 }
 
-// Fix the nested function problem by removing the duplicate handleMessage function
+// Handle message with improved session management
 async function handleMessage(userPrompt, socketId, username) {
   try {
-    const modelNames = [
-      'l3-sthenomaidblackroot-8b-v1'
-    ];
+    // Check active sessions limit first
+    if (Object.keys(sessionHistories).length >= MAX_ACTIVE_SESSIONS) {
+      await collectGarbage(1);
+    }
 
-    const modelIds = await Promise.all(modelNames.map(name => selectLoadedModels(name)));
-    if (!modelIds || modelIds.length === 0) {
+    // Get model ID
+    const modelId = await selectLoadedModels('l3-sthenomaidblackroot-8b-v1');
+    if (!modelId) {
       throw new Error('No models loaded');
     }
 
+    // Generate system prompt
     collarText = await checkRole(collar, username, triggers);
 
+    // Initialize session if needed
     if (!sessionHistories[socketId]) {
       sessionHistories[socketId] = [];
       sessionHistories[socketId].metadata = {
         createdAt: Date.now(),
-        lastActivity: Date.now()
+        lastActivity: Date.now(),
+        username // Add username to metadata
       };
       sessionHistories[socketId].push({ role: 'system', content: collarText });
     }
 
-    // Add user message to history
-    sessionHistories[socketId].push({ role: 'user', content: userPrompt });
+    // Update session activity time
     sessionHistories[socketId].metadata.lastActivity = Date.now();
+    sessionHistories[socketId].metadata.username = username;
 
-    // Format messages for API request
+    // Add user message
+    sessionHistories[socketId].push({ role: 'user', content: userPrompt });
+
+    // Format for API
     const formattedMessages = sessionHistories[socketId]
-      .filter(msg => msg && typeof msg === 'object' && msg.role && msg.content)
+      .filter(msg => msg && msg.role && msg.content)
       .map(msg => ({ role: msg.role, content: msg.content }));
 
-    // Add trigger details to the response
-    // Worker can't play audio - that happens in the browser
+    // Send triggers to client if detected
     if (triggerDetails && triggerDetails.length > 0) {
-      logger.info(`Sending detected triggers to client: ${formatTriggerDetails(triggerDetails)}`);
-
-      // Let the client know about any triggers in the response
       parentPort.postMessage({
         type: "detected-triggers",
-        socketId: socketId,
+        socketId,
         triggers: triggerDetails
       });
     }
 
-    const requestData = {
-      model: modelIds[0],
-      messages: formattedMessages,
-      max_tokens: 4096,
-      temperature: 0.87,
-      top_p: 0.91,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      top_k: 40,
-      stream: false,
-    };
-
-    try {
-      const response = await axios.post(`http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
-
-      // Now we have the response, set finalContent
-      finalContent = response.data.choices[0].message.content;
-
-      // NOW add the assistant response to the session history
-      sessionHistories[socketId].push({ role: 'assistant', content: finalContent });
-
-      // Now that we have valid finalContent, update the database
-      if (username && username !== 'anonBambi') {
-        try {
-          // Process triggers into a usable format
-          const triggerList = Array.isArray(triggers)
-            ? triggers
-            : (typeof triggers === 'string'
-              ? triggers.split(',').map(t => t.trim())
-              : ['BAMBI SLEEP']);
-
-          // Prepare session data
-          const sessionData = {
-            username,
-            socketId,
-            messages: [
-              { role: 'system', content: collarText },
-              { role: 'user', content: userPrompt },
-              { role: 'assistant', content: finalContent }
-            ],
-            metadata: {
-              lastActivity: new Date(),
-              triggers: triggerList,
-              collarActive: state,
-              collarText: collar,
-              modelName: 'Steno Maid Blackroot'
-            }
-          };
-
-          // Find and update session in database
-          let sessionHistory = await SessionHistoryModel.findOne({ socketId });
-
-          if (sessionHistory) {
-            // Update existing session
-            sessionHistory.messages.push(...sessionData.messages);
-            sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
-            sessionHistory.metadata.triggers = sessionData.metadata.triggers;
-            sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
-            sessionHistory.metadata.collarText = sessionData.metadata.collarText;
-
-            await sessionHistory.save();
-            logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
-          } else {
-            // Create new session with auto-generated title
-            sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
-            sessionHistory = await SessionHistoryModel.create(sessionData);
-
-            // Add reference to user's profile
-            await mongoose.model('Profile').findOneAndUpdate(
-              { username },
-              { $addToSet: { sessionHistories: sessionHistory._id } }
-            );
-
-            logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
-          }
-        } catch (error) {
-          logger.error(`Failed to save session history to database: ${error.message}`);
-        }
+    // Call the API
+    const response = await axios.post(
+      `http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`, 
+      {
+        model: modelId,
+        messages: formattedMessages,
+        max_tokens: 4096,
+        temperature: 0.87,
+        top_p: 0.91,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        top_k: 40,
+        stream: false
       }
+    );
 
-      // Count words in response and update XP
-      const wordCount = countWords(finalContent);
-      await updateUserXP(username, wordCount, socketId);
+    // Get and store response
+    finalContent = response.data.choices[0].message.content;
+    sessionHistories[socketId].push({ role: 'assistant', content: finalContent });
 
-      // Send response with wordCount
-      handleResponse(finalContent, socketId, username, wordCount);
-    } catch (error) {
-      if (error.response) {
-        logger.error('Error response data:', error.response.data);
-      } else {
-        logger.error('Error in request:', error.message);
-      }
+    // Save to database in background
+    if (username && username !== 'anonBambi') {
+      saveSessionToDatabase(socketId, userPrompt, finalContent, username).catch(err => {
+        logger.error(`Background session save failed: ${err.message}`);
+      });
     }
+
+    // Update XP and send response
+    const wordCount = countWords(finalContent);
+    updateUserXP(username, wordCount, socketId).catch(err => {
+      logger.error(`XP update failed: ${err.message}`);
+    });
+
+    // Send response to client
+    handleResponse(finalContent, socketId, username, wordCount);
+    
   } catch (error) {
-    logger.error('Error in handleMessage:', error);
-    // Send an error response back to the client
+    logger.error(`Error in handleMessage: ${error.message}`);
     handleResponse("I'm sorry, I encountered an error processing your request. Please try again.", socketId, username, 0);
   }
+}
+
+// Helper function to save session to database
+async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username) {
+  // Check connection before attempting database operations
+  const { hasConnection } = await import('../config/db.js');
+  if (!hasConnection()) {
+    logger.warning(`Skipping session save - no database connection`);
+    return;
+  }
+  
+  return withDbConnection(async () => {
+    // Format trigger data
+    const triggerList = Array.isArray(triggers)
+      ? triggers
+      : typeof triggers === 'string'
+        ? triggers.split(',').map(t => t.trim())
+        : ['BAMBI SLEEP'];
+    
+    // Find existing session or create new one
+    let sessionHistory = await SessionHistoryModel.findOne({ socketId });
+    
+    if (sessionHistory) {
+      // Update existing
+      sessionHistory.messages.push(
+        { role: 'user', content: userPrompt },
+        { role: 'assistant', content: aiResponse }
+      );
+      sessionHistory.metadata.lastActivity = new Date();
+      await sessionHistory.save();
+    } else {
+      // Create new
+      sessionHistory = await SessionHistoryModel.create({
+        username,
+        socketId,
+        title: `${username}'s session on ${new Date().toLocaleDateString()}`,
+        messages: [
+          { role: 'system', content: collarText },
+          { role: 'user', content: userPrompt },
+          { role: 'assistant', content: aiResponse }
+        ],
+        metadata: {
+          lastActivity: new Date(),
+          triggers: triggerList,
+          collarActive: state,
+          collarText: collar,
+          modelName: 'Steno Maid Blackroot'
+        }
+      });
+      
+      // Link to user profile
+      await mongoose.model('Profile').findOneAndUpdate(
+        { username },
+        { $addToSet: { sessionHistories: sessionHistory._id } }
+      );
+    }
+  }, { retries: 1, requireConnection: false });
 }
 
 // Add to the worker cleanup/shutdown code
@@ -1077,7 +1080,8 @@ function formatTriggerDetails(details) {
   
   return details.map(d => {
     if (typeof d === 'string') return d;
-    return typeof d === 'object' ? `${d.name || 'Unknown'}` : String(d);
+    if (typeof d === 'object') return `${d.name || 'Unknown'}`;
+    return String(d);
   }).join(', ');
 }
 

@@ -96,28 +96,24 @@ export async function connectDB(retries = 3, force = false, allowFallback = true
       isInFallbackMode = false;
       logger.success('MongoDB connected');
       
-      // Remove any existing listeners to prevent duplicate handlers
-      mongoose.connection.removeAllListeners('error');
-      mongoose.connection.removeAllListeners('disconnected');
+      // Clear ALL previous listeners before adding new ones
+      mongoose.connection.removeAllListeners();
       
       // Set up connection error handler to detect disconnects
       mongoose.connection.on('error', (err) => {
         logger.error(`MongoDB connection error: ${err.message}`);
         isConnected = false;
       });
-      
+
       // Debounce disconnect events to prevent multiple rapid firings
       let disconnectTimeout = null;
       mongoose.connection.on('disconnected', () => {
-        if (disconnectTimeout) {
-          clearTimeout(disconnectTimeout);
-        }
-        
+        if (disconnectTimeout) clearTimeout(disconnectTimeout);
         disconnectTimeout = setTimeout(() => {
           logger.warning('MongoDB disconnected');
           isConnected = false;
           disconnectTimeout = null;
-        }, 500); // 500ms debounce period
+        }, 500);
       });
       
       return true;
@@ -165,9 +161,8 @@ async function tryFallbackConnection() {
     logger.success('Connected to fallback MongoDB instance');
     logger.warning('⚠️ Running in FALLBACK MODE with limited functionality');
     
-    // Set up listeners
-    mongoose.connection.removeAllListeners('error');
-    mongoose.connection.removeAllListeners('disconnected');
+    // Clear ALL previous listeners before adding new ones
+    mongoose.connection.removeAllListeners();
     
     mongoose.connection.on('error', (err) => {
       logger.error(`Fallback MongoDB connection error: ${err.message}`);
