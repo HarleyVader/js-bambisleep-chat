@@ -51,6 +51,7 @@ import memoryMonitor from './utils/memory-monitor.js';
 import { setupSocketMonitoring } from './utils/socketMonitor.js';
 import messageQueue from './utils/messageQueue.js';
 import streamingHandler from './utils/streamingHandler.js';
+import { dbFeatureCheck } from './middleware/dbFeatureCheck.js';
 import { startDbHealthMonitor, stopDbHealthMonitor } from './utils/dbHealthMonitor.js';
 import { startConnectionPoolMonitor, stopConnectionPoolMonitor } from './utils/connectionPoolMonitor.js';
 
@@ -217,38 +218,51 @@ function setupMiddleware(app) {
  * @param {Express} app - Express application instance
  */
 function setupRoutes(app) {    // Register main routes  
-  const routes = [
-    { path: '/', handler: indexRoute },
-    { path: '/chat', handler: chatRouter },
-    { path: '/advanced-chat', handler: advancedChatRouter },
-    { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter },
-    { path: '/help', handler: helpRoute },
-    { path: '/profile', handler: profileRouter },
-    { path: '/trigger-script', handler: triggerScriptsRouter },
-    { path: mongodbBasePath, handler: mongodbRoutesRouter },
-    { path: mongodbAdminBasePath, handler: mongodbAdminRouter }
+  // Routes that don't strictly require database access
+  const basicRoutes = [
+    { path: '/', handler: indexRoute, dbRequired: false },
+    { path: '/chat', handler: chatRouter, dbRequired: false },
+    { path: '/advanced-chat', handler: advancedChatRouter, dbRequired: false },
+    { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter, dbRequired: false },
+    { path: '/help', handler: helpRoute, dbRequired: false }
+  ];
+  
+  // Routes that require database access
+  const dbRoutes = [
+    { path: '/profile', handler: profileRouter, dbRequired: true },
+    { path: '/trigger-script', handler: triggerScriptsRouter, dbRequired: true },
+    { path: mongodbBasePath, handler: mongodbRoutesRouter, dbRequired: true },
+    { path: mongodbAdminBasePath, handler: mongodbAdminRouter, dbRequired: true }
   ];
 
-  routes.forEach(route => {
-    app.use(route.path, route.handler);
+  // Setup routes with appropriate database checks
+  basicRoutes.forEach(route => {
+    app.use(route.path, dbFeatureCheck(false), route.handler);
   });
+  
+  dbRoutes.forEach(route => {
+    app.use(route.path, dbFeatureCheck(true), route.handler);
+  });
+  // Add the chat routes - can work with limited DB functionality
+  app.use('/api/chat', dbFeatureCheck(false), chatRoutes);
 
-  // Add the chat routes
-  app.use('/api/chat', chatRoutes);
-
-  // Add API routes
-  app.use('/api', apiRoutes);
+  // Add API routes - some may require database access
+  app.use('/api', dbFeatureCheck(false), apiRoutes);
 
   // Add health check endpoint
   app.get('/health', async (req, res) => {
     try {
-      const { checkDBHealth } = await import('./config/db.js');
+      const { checkDBHealth, inFallbackMode, hasConnection } = await import('./config/db.js');
       const dbHealth = await checkDBHealth();
 
       res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        db: dbHealth,
+        db: {
+          ...dbHealth,
+          fallbackMode: inFallbackMode(),
+          connected: hasConnection()
+        },
         uptime: process.uptime(),
         memory: process.memoryUsage()
       });
@@ -471,10 +485,13 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         : {};
       let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
       logger.info('Cookies received in handshake:', socket.handshake.headers.cookie);
-      
-      if (username === 'anonBambi') {
+        if (username === 'anonBambi') {
         socket.emit('prompt username');
       }
+      
+      // Send database status notification to client
+      const { notifyDbStatus } = require('./utils/dbStatusNotifier.js');
+      notifyDbStatus(socket);
 
       // Add socket to global store
       socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
@@ -985,16 +1002,19 @@ async function startServer() {
     const dbConnected = await connectDB(3);
 
     if (!dbConnected) {
-      logger.error('Failed to connect to MongoDB after multiple attempts. Server cannot start.');
-      process.exit(1);
+      logger.warning('⚠️ Failed to connect to MongoDB after multiple attempts.');
+      logger.warning('⚠️ Server will start with LIMITED FUNCTIONALITY - database-dependent features disabled.');
+    } else if (mongoose.connection.readyState !== 1) {
+      logger.warning('⚠️ Database connection reported success but connection is not ready.');
+      logger.warning('⚠️ Server will start with LIMITED FUNCTIONALITY - database-dependent features disabled.');
+    } else {
+      const { inFallbackMode } = await import('./config/db.js');
+      if (inFallbackMode()) {
+        logger.warning('⚠️ Connected to FALLBACK DATABASE - running with limited functionality');
+      } else {
+        logger.success('MongoDB connection established');
+      }
     }
-
-    if (mongoose.connection.readyState !== 1) {
-      logger.error('Database connection reported success but connection is not ready. Server cannot start.');
-      process.exit(1);
-    }
-
-    logger.success('MongoDB connection established');
 
     logger.info('Step 2/5: Initializing application...');
     const { app, server, io, socketStore } = await initializeApp();

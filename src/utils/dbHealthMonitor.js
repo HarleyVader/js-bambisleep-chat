@@ -5,6 +5,7 @@
 
 import { checkDBHealth, connectDB } from '../config/db.js';
 import Logger from './logger.js';
+import { broadcastDbStatus } from './dbStatusNotifier.js';
 
 const logger = new Logger('DBHealthMonitor');
 
@@ -63,40 +64,63 @@ async function checkAndReconnect() {
     }
     
     const health = await checkDBHealth();
+    let statusChanged = false;
+    
+    // Track previous status to detect changes
+    const previousStatus = {
+      isHealthy: unhealthyCount === 0,
+      fallbackMode: inFallbackMode()
+    };
     
     if (health.status === 'healthy') {
       if (unhealthyCount > 0) {
         logger.info(`Database connection restored after ${unhealthyCount} unhealthy checks`);
+        statusChanged = true;
       }
       unhealthyCount = 0;
-      return;
+      
+      // Check for fallback mode change
+      if (previousStatus.fallbackMode !== health.fallbackMode) {
+        statusChanged = true;
+      }
+    } else {
+      // Connection is unhealthy
+      unhealthyCount++;
+      statusChanged = unhealthyCount === 1; // Status changed on first unhealthy
+      logger.warning(`Unhealthy database connection detected (${unhealthyCount}/${UNHEALTHY_THRESHOLD}): ${health.error || 'Unknown error'}`);
+      
+      // Take action after threshold is reached
+      if (unhealthyCount >= UNHEALTHY_THRESHOLD) {
+        // Check if we're not in a reconnection storm
+        if (reconnectionAttempts >= MAX_RECONNECTION_ATTEMPTS) {
+          logger.error(`Maximum reconnection attempts (${MAX_RECONNECTION_ATTEMPTS}) reached. Waiting before trying again.`);
+          unhealthyCount = 0; // Reset so we don't spam logs
+          return;
+        }
+        
+        reconnectionAttempts++;
+        lastReconnectionTime = Date.now();
+        
+        logger.warning(`Attempting to reconnect after ${unhealthyCount} consecutive unhealthy checks (attempt ${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})`);
+        
+        // Force reconnection
+        const reconnected = await connectDB(2, true);
+        if (reconnected) {
+          logger.success('Successfully reconnected to database');
+          unhealthyCount = 0;
+          statusChanged = true;
+        } else {
+          logger.error('Failed to reconnect to database after multiple attempts');
+        }
+      }
     }
     
-    // Connection is unhealthy
-    unhealthyCount++;
-    logger.warning(`Unhealthy database connection detected (${unhealthyCount}/${UNHEALTHY_THRESHOLD}): ${health.error || 'Unknown error'}`);
-    
-    // Take action after threshold is reached
-    if (unhealthyCount >= UNHEALTHY_THRESHOLD) {
-      // Check if we're not in a reconnection storm
-      if (reconnectionAttempts >= MAX_RECONNECTION_ATTEMPTS) {
-        logger.error(`Maximum reconnection attempts (${MAX_RECONNECTION_ATTEMPTS}) reached. Waiting before trying again.`);
-        unhealthyCount = 0; // Reset so we don't spam logs
-        return;
-      }
-      
-      reconnectionAttempts++;
-      lastReconnectionTime = Date.now();
-      
-      logger.warning(`Attempting to reconnect after ${unhealthyCount} consecutive unhealthy checks (attempt ${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})`);
-      
-      // Force reconnection
-      const reconnected = await connectDB(2, true); // Force reconnection
-      if (reconnected) {
-        logger.success('Successfully reconnected to database');
-        unhealthyCount = 0;
-      } else {
-        logger.error('Failed to reconnect to database after multiple attempts');
+    // Broadcast status changes to connected clients if there's a change
+    if (statusChanged && global.io) {
+      try {
+        broadcastDbStatus(global.io);
+      } catch (err) {
+        logger.debug(`Error broadcasting DB status: ${err.message}`);
       }
     }
   } catch (error) {

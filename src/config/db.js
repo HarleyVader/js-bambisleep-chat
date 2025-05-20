@@ -7,6 +7,7 @@ const logger = new Logger('Database');
 let isConnected = false;
 let connectionPromise = null;
 let lastReconnectTime = 0; // Track when we last reconnected
+let isInFallbackMode = false; // Track if we're using fallback connection
 
 // Standardized connection options to use across the application
 const DEFAULT_CONNECTION_OPTIONS = {
@@ -36,10 +37,15 @@ const FALLBACK_CONNECTION_OPTIONS = {
  * 
  * @returns {string} - MongoDB URI with masked password
  */
-function getMongoUri() {
-  // Mask password for logging purposes
+function getMongoUri(fallback = false) {
+  // If fallback is requested or we're already in fallback mode, return the local URI
+  if (fallback || isInFallbackMode) {
+    return 'mongodb://localhost:27017/bambisleep';
+  }
+  
+  // Otherwise return the configured URI or default to local
   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
-  return uri
+  return uri;
 }
 
 /**
@@ -47,9 +53,10 @@ function getMongoUri() {
  * 
  * @param {number} retries - Number of connection retry attempts
  * @param {boolean} force - Force reconnection even if already connected
+ * @param {boolean} allowFallback - Whether to try fallback connection if primary fails
  * @returns {Promise<boolean>} - True if connection successful
  */
-export async function connectDB(retries = 3, force = false) {
+export async function connectDB(retries = 3, force = false, allowFallback = true) {
   let currentAttempt = 1;
   const maxAttempts = retries + 1;
   
@@ -73,18 +80,20 @@ export async function connectDB(retries = 3, force = false) {
     }
   }
   
+  // Try to connect with primary configuration first
   while (currentAttempt <= maxAttempts) {
     try {
       const attemptStr = currentAttempt > 1 ? ` (attempt ${currentAttempt}/${maxAttempts})` : '';
       logger.info(`Connecting to MongoDB at ${getMongoUri()}${attemptStr}`);
       
       // Get connection string
-      const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
+      const uri = getMongoUri();
       
-      // Use the connection options already defined in the file
+      // Use the connection options
       await mongoose.connect(uri, DEFAULT_CONNECTION_OPTIONS);
       
       isConnected = true;
+      isInFallbackMode = false;
       logger.success('MongoDB connected');
       
       // Remove any existing listeners to prevent duplicate handlers
@@ -122,12 +131,60 @@ export async function connectDB(retries = 3, force = false) {
         currentAttempt++;
       } else {
         logger.error(`Failed to connect to MongoDB after ${maxAttempts} attempts. Last error: ${error.message}`);
+        
+        // Try fallback connection if enabled
+        if (allowFallback && !isInFallbackMode) {
+          return tryFallbackConnection();
+        }
+        
         return false;
       }
     }
   }
   
   return false;
+}
+
+/**
+ * Attempt to connect to a local fallback MongoDB instance 
+ * 
+ * @returns {Promise<boolean>} - True if fallback connection successful
+ */
+async function tryFallbackConnection() {
+  try {
+    isInFallbackMode = true;
+    logger.warning('Attempting fallback connection to local MongoDB...');
+    
+    // Get fallback connection string
+    const uri = getMongoUri(true);
+    
+    // Use fallback connection options
+    await mongoose.connect(uri, FALLBACK_CONNECTION_OPTIONS);
+    
+    isConnected = true;
+    logger.success('Connected to fallback MongoDB instance');
+    logger.warning('⚠️ Running in FALLBACK MODE with limited functionality');
+    
+    // Set up listeners
+    mongoose.connection.removeAllListeners('error');
+    mongoose.connection.removeAllListeners('disconnected');
+    
+    mongoose.connection.on('error', (err) => {
+      logger.error(`Fallback MongoDB connection error: ${err.message}`);
+      isConnected = false;
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      logger.warning('Fallback MongoDB disconnected');
+      isConnected = false;
+    });
+    
+    return true;
+  } catch (error) {
+    isInFallbackMode = false;
+    logger.error(`Fallback connection failed: ${error.message}`);
+    return false;
+  }
 }
 
 /**
@@ -141,6 +198,7 @@ export async function disconnectDB() {
       await mongoose.disconnect();
       logger.info('Database disconnected');
       isConnected = false;
+      isInFallbackMode = false;
       connectionPromise = null;
     }
   } catch (error) {
@@ -157,13 +215,15 @@ export async function disconnectDB() {
  * @param {boolean} options.keepConnectionOpen - If true, won't close connection after use (default: true)
  * @param {number} options.timeout - Timeout in ms for the operation (default: 30000)
  * @param {number} options.retries - Number of retries for failed operations (default: 1)
+ * @param {boolean} options.requireConnection - If true, throws error when no connection (default: true)
  * @returns {Promise<any>} - Result of the operation
  */
 export async function withDbConnection(operation, options = {}) {
   const { 
     keepConnectionOpen = true,
     timeout = 30000,
-    retries = 1
+    retries = 1,
+    requireConnection = true
   } = options;
   
   // Check if already connected
@@ -178,7 +238,8 @@ export async function withDbConnection(operation, options = {}) {
   const needsReconnection = timeSinceLastReconnect > 300000; // 5 minutes
   
   while (attempt <= retries) {
-    try {      // Check for connection issues that require reconnection
+    try {
+      // Check for connection issues that require reconnection
       if (mongoose.connection.readyState === 0 || 
           mongoose.connection.readyState === 3 || 
           needsReconnection) {
@@ -204,7 +265,12 @@ export async function withDbConnection(operation, options = {}) {
         logger.debug('Opening new MongoDB connection for operation');
         const connected = await connectDB();
         if (!connected) {
-          throw new Error('Failed to establish database connection');
+          if (requireConnection) {
+            throw new Error('Failed to establish database connection');
+          } else {
+            logger.warning('Database operation skipped - no connection available');
+            return null;
+          }
         }
         isConnected = true;
       } else {
@@ -263,7 +329,12 @@ export async function withDbConnection(operation, options = {}) {
   }
   
   // If we got here, all attempts failed
-  throw lastError;
+  if (requireConnection) {
+    throw lastError;
+  } else {
+    logger.warning(`Database operation skipped after ${retries + 1} failed attempts`);
+    return null;
+  }
 }
 
 /**
@@ -329,19 +400,21 @@ export async function checkDBHealth() {
     await withDbConnection(async (conn) => {
       // Use a simpler ping approach that doesn't require admin privileges
       await conn.db.command({ ping: 1 });
-    }, { timeout: 5000 });
+    }, { timeout: 5000, requireConnection: false });
     
     return {
       status: 'healthy',
       connected: isConnected,
       readyState: mongoose.connection.readyState,
-      host: mongoose.connection.host
+      host: mongoose.connection.host,
+      fallbackMode: isInFallbackMode
     };
   } catch (error) {
     return {
       status: 'unhealthy',
       error: error.message,
-      readyState: mongoose.connection?.readyState || 0
+      readyState: mongoose.connection?.readyState || 0,
+      fallbackMode: isInFallbackMode
     };
   }
 }
@@ -367,6 +440,24 @@ async function isConnectionHealthy() {
   }
 }
 
+/**
+ * Check if the database is running in fallback mode
+ * 
+ * @returns {boolean} - True if in fallback mode
+ */
+export function inFallbackMode() {
+  return isInFallbackMode;
+}
+
+/**
+ * Check if any database connection is available
+ * 
+ * @returns {boolean} - True if connected to any database
+ */
+export function hasConnection() {
+  return isConnected && mongoose.connection.readyState === 1;
+}
+
 // Export as default object for convenience
 export default { 
   connectDB, 
@@ -375,5 +466,7 @@ export default {
   ensureModelsRegistered,
   getModel,
   checkDBHealth,
-  isConnectionHealthy
+  isConnectionHealthy,
+  inFallbackMode,
+  hasConnection
 };

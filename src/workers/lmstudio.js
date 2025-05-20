@@ -144,15 +144,36 @@ dotenv.config();
 // Initialize database connection when worker starts
 (async function initWorkerDB() {
   try {
-    await connectDB();
-    logger.info('Database connection established in LMStudio worker');
-    
-    // Ensure models are registered
-    mongoose.model('Profile');
-    mongoose.model('SessionHistory');
-    logger.debug('Database models registered successfully');
+    const connected = await connectDB(2, false, true);
+    if (connected) {
+      logger.info('Database connection established in LMStudio worker');
+      
+      // Check if in fallback mode
+      const { inFallbackMode } = await import('../config/db.js');
+      if (inFallbackMode()) {
+        logger.warning('⚠️ LMStudio worker connected to fallback database');
+        logger.warning('⚠️ Some features may not work properly');
+      }
+      
+      // Ensure models are registered
+      mongoose.model('Profile');
+      mongoose.model('SessionHistory');
+      logger.debug('Database models registered successfully');
+    } else {
+      logger.warning('⚠️ Failed to connect to MongoDB in LMStudio worker');
+      logger.warning('⚠️ Some features will not be available - session history and user profiles will not be saved');
+      
+      // Try to register models anyway in case connection is established later
+      try {
+        mongoose.model('Profile');
+        mongoose.model('SessionHistory');
+      } catch (modelError) {
+        logger.debug(`Model registration error: ${modelError.message}`);
+      }
+    }
   } catch (error) {
-    logger.error(`Failed to connect to database in LMStudio worker: ${error.message}`);
+    logger.error(`Database initialization error: ${error.message}`);
+    logger.warning('⚠️ LMStudio worker will run without database access');
   }
 })();
 
@@ -450,9 +471,25 @@ async function updateUserXP(username, wordCount, currentSocketId) {
   if (!username || username === 'anonBambi' || wordCount <= 0) {
     return;
   }
-
   try {
     const xpToAdd = Math.ceil(wordCount / 10);
+    
+    // Check if database connection is available
+    const { hasConnection } = await import('../config/db.js');
+    if (!hasConnection()) {
+      logger.warning(`Cannot update XP for ${username} - no database connection available`);
+      // Still notify client, but without updated DB values
+      parentPort.postMessage({
+        type: "xp:update",
+        username: username,
+        socketId: currentSocketId,
+        data: {
+          xpEarned: xpToAdd,
+          noDbConnection: true
+        }
+      });
+      return;
+    }
     
     // Use withDbConnection for safe database operations with automatic reconnection
     const result = await withDbConnection(async () => {
@@ -471,7 +508,7 @@ async function updateUserXP(username, wordCount, currentSocketId) {
         },
         { new: true }
       );
-    }, { retries: 2 });
+    }, { retries: 2, requireConnection: false });
 
     if (result) {
       // Also send a socket message to update UI in real-time
@@ -546,37 +583,41 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
           collarText: collar,
           modelName: 'Steno Maid Blackroot' // Get actual model name from your LMS response
         }
-      };
-
-      // Use withDbConnection for safe database operations with automatic reconnection
-      await withDbConnection(async () => {
-        // Try to find existing session
-        let sessionHistory = await SessionHistoryModel.findOne({ socketId });
-  
-        if (sessionHistory) {
-          // Update existing session
-          sessionHistory.messages.push(...sessionData.messages);
-          sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
-          sessionHistory.metadata.triggers = sessionData.metadata.triggers;
-          sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
-          sessionHistory.metadata.collarText = sessionData.metadata.collarText;
-  
-          await sessionHistory.save();
-          logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
-        } else {
-          // Create new session with auto-generated title
-          sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
-          sessionHistory = await SessionHistoryModel.create(sessionData);
-  
-          // Add reference to user's profile
-          await mongoose.model('Profile').findOneAndUpdate(
-            { username },
-            { $addToSet: { sessionHistories: sessionHistory._id } }
-          );
-  
-          logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
-        }
-      }, { retries: 2 });
+      };      // Check if database connection is available first
+      const { hasConnection } = await import('../config/db.js');
+      if (!hasConnection()) {
+        logger.warning(`Cannot save session history for ${username} - no database connection available`);
+      } else {
+        // Use withDbConnection with requireConnection=false to avoid throwing errors
+        await withDbConnection(async () => {
+          // Try to find existing session
+          let sessionHistory = await SessionHistoryModel.findOne({ socketId });
+    
+          if (sessionHistory) {
+            // Update existing session
+            sessionHistory.messages.push(...sessionData.messages);
+            sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
+            sessionHistory.metadata.triggers = sessionData.metadata.triggers;
+            sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
+            sessionHistory.metadata.collarText = sessionData.metadata.collarText;
+    
+            await sessionHistory.save();
+            logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
+          } else {
+            // Create new session with auto-generated title
+            sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
+            sessionHistory = await SessionHistoryModel.create(sessionData);
+    
+            // Add reference to user's profile
+            await mongoose.model('Profile').findOneAndUpdate(
+              { username },
+              { $addToSet: { sessionHistories: sessionHistory._id } }
+            );
+    
+            logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
+          }
+        }, { retries: 2, requireConnection: false });
+      }
     } catch (error) {
       logger.error(`Failed to save session history to database: ${error.message}`);
     }
