@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
 import { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 import mongoose from 'mongoose';
-import { connectDB, withDbConnection } from '../config/db.js';
+import { connectDB, withDbConnection, disconnectDB, checkDBHealth } from '../config/db.js';
 import '../models/Profile.js';  // Import the model file to ensure schema registration
 import '../models/SessionHistory.js';  // Make sure to create this file first
 import config from '../config/config.js';
@@ -146,6 +146,11 @@ dotenv.config();
   try {
     await connectDB();
     logger.info('Database connection established in LMStudio worker');
+    
+    // Ensure models are registered
+    mongoose.model('Profile');
+    mongoose.model('SessionHistory');
+    logger.debug('Database models registered successfully');
   } catch (error) {
     logger.error(`Failed to connect to database in LMStudio worker: ${error.message}`);
   }
@@ -315,16 +320,48 @@ parentPort.on('message', async (msg) => {
             }
           }
         }
-        break;
-      case 'shutdown':
+        break;      case 'shutdown':
         logger.info('Shutting down lmstudio worker...');
+        
+        // First sync any active sessions to database
+        const activeSessions = Object.keys(sessionHistories);
+        if (activeSessions.length > 0) {
+          logger.info(`Syncing ${activeSessions.length} active sessions to database before shutdown`);
+          
+          for (const sessionId of activeSessions) {
+            if (sessionHistories[sessionId]?.metadata?.username && 
+                sessionHistories[sessionId].metadata.username !== 'anonBambi') {
+              try {
+                await syncSessionWithDatabase(sessionId);
+              } catch (error) {
+                logger.error(`Failed to sync session ${sessionId} during shutdown: ${error.message}`);
+              }
+            }
+          }
+        }
+        
+        // Properly disconnect from database
+        try {
+          const { disconnectDB } = await import('../config/db.js');
+          await disconnectDB();
+          logger.info('Database connection closed during worker shutdown');
+        } catch (error) {
+          logger.error(`Failed to close database connection: ${error.message}`);
+        }
+        
         await handleWorkerShutdown('LMStudio', { sessionHistories });
-        break;
-      case 'health:check':
+        break;      case 'health:check':
         lastHealthCheckResponse = Date.now();
 
-        // Check if database connection is active
-        const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+        // Use the proper database health check function for more reliable status
+        let dbStatus = { status: 'unknown' };
+        try {
+          const { checkDBHealth } = await import('../config/db.js');
+          dbStatus = await checkDBHealth();
+        } catch (error) {
+          logger.error(`Failed to check database health: ${error.message}`);
+          dbStatus = { status: 'error', error: error.message };
+        }
 
         // Perform self-diagnostics
         const diagnostics = {
@@ -415,30 +452,26 @@ async function updateUserXP(username, wordCount, currentSocketId) {
   }
 
   try {
-    // Check database connection status
-    if (mongoose.connection.readyState !== 1) {
-      logger.warn(`Database not connected when updating XP for ${username}. Attempting to reconnect...`);
-      await connectDB();
-    }
-
-    // Use 'Profile' instead of 'Bambi' - this is the correct model name
-    const Profile = mongoose.model('Profile');
-    if (!Profile) {
-      logger.error(`Profile model not available when updating XP for ${username}`);
-      return;
-    }
-
     const xpToAdd = Math.ceil(wordCount / 10);
-    const result = await Profile.findOneAndUpdate(
-      { username: username },
-      {
-        $inc: {
-          xp: xpToAdd,
-          generatedWords: wordCount
-        }
-      },
-      { new: true }
-    );
+    
+    // Use withDbConnection for safe database operations with automatic reconnection
+    const result = await withDbConnection(async () => {
+      const Profile = mongoose.model('Profile');
+      if (!Profile) {
+        throw new Error(`Profile model not available when updating XP for ${username}`);
+      }
+      
+      return await Profile.findOneAndUpdate(
+        { username: username },
+        {
+          $inc: {
+            xp: xpToAdd,
+            generatedWords: wordCount
+          }
+        },
+        { new: true }
+      );
+    }, { retries: 2 });
 
     if (result) {
       // Also send a socket message to update UI in real-time
@@ -487,7 +520,6 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
   if (Object.keys(sessionHistories).length > MAX_SESSIONS) {
     collectGarbage(1);
   }
-
   // Store in database for registered users
   if (username && username !== 'anonBambi') {
     try {
@@ -516,32 +548,35 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
         }
       };
 
-      // Try to find existing session
-      let sessionHistory = await SessionHistoryModel.findOne({ socketId });
-
-      if (sessionHistory) {
-        // Update existing session
-        sessionHistory.messages.push(...sessionData.messages);
-        sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
-        sessionHistory.metadata.triggers = sessionData.metadata.triggers;
-        sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
-        sessionHistory.metadata.collarText = sessionData.metadata.collarText;
-
-        await sessionHistory.save();
-        logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
-      } else {
-        // Create new session with auto-generated title
-        sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
-        sessionHistory = await SessionHistoryModel.create(sessionData);
-
-        // Add reference to user's profile
-        await mongoose.model('Profile').findOneAndUpdate(
-          { username },
-          { $addToSet: { sessionHistories: sessionHistory._id } }
-        );
-
-        logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
-      }
+      // Use withDbConnection for safe database operations with automatic reconnection
+      await withDbConnection(async () => {
+        // Try to find existing session
+        let sessionHistory = await SessionHistoryModel.findOne({ socketId });
+  
+        if (sessionHistory) {
+          // Update existing session
+          sessionHistory.messages.push(...sessionData.messages);
+          sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
+          sessionHistory.metadata.triggers = sessionData.metadata.triggers;
+          sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
+          sessionHistory.metadata.collarText = sessionData.metadata.collarText;
+  
+          await sessionHistory.save();
+          logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
+        } else {
+          // Create new session with auto-generated title
+          sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
+          sessionHistory = await SessionHistoryModel.create(sessionData);
+  
+          // Add reference to user's profile
+          await mongoose.model('Profile').findOneAndUpdate(
+            { username },
+            { $addToSet: { sessionHistories: sessionHistory._id } }
+          );
+  
+          logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
+        }
+      }, { retries: 2 });
     } catch (error) {
       logger.error(`Failed to save session history to database: ${error.message}`);
     }
@@ -629,39 +664,42 @@ async function syncSessionWithDatabase(socketId) {
   }
 
   try {
-    const existingSession = await SessionHistoryModel.findOne({ socketId });
+    // Use withDbConnection for safe database operations with automatic reconnection
+    await withDbConnection(async () => {
+      const existingSession = await SessionHistoryModel.findOne({ socketId });
 
-    if (existingSession) {
-      // Update the existing session with any new messages
-      existingSession.metadata.lastActivity = new Date();
+      if (existingSession) {
+        // Update the existing session with any new messages
+        existingSession.metadata.lastActivity = new Date();
 
-      // Find messages that aren't already in the database
-      const existingMessageContents = new Set(existingSession.messages.map(m => m.content));
-      const newMessages = session.filter(msg => !existingMessageContents.has(msg.content));
+        // Find messages that aren't already in the database
+        const existingMessageContents = new Set(existingSession.messages.map(m => m.content));
+        const newMessages = session.filter(msg => !existingMessageContents.has(msg.content));
 
-      if (newMessages.length > 0) {
-        existingSession.messages.push(...newMessages);
-        await existingSession.save();
-        logger.debug(`Synced ${newMessages.length} messages to database before removing session ${socketId}`);
-      }
-    } else {
-      // Create basic session record
-      const newSession = new SessionHistoryModel({
-        username: session.metadata.username,
-        socketId,
-        messages: session,
-        title: `${session.metadata.username}'s saved session`,
-        metadata: {
-          lastActivity: new Date(),
-          triggers: triggers,
-          collarActive: state,
-          collarText: collar
+        if (newMessages.length > 0) {
+          existingSession.messages.push(...newMessages);
+          await existingSession.save();
+          logger.debug(`Synced ${newMessages.length} messages to database before removing session ${socketId}`);
         }
-      });
+      } else {
+        // Create basic session record
+        const newSession = new SessionHistoryModel({
+          username: session.metadata.username,
+          socketId,
+          messages: session,
+          title: `${session.metadata.username}'s saved session`,
+          metadata: {
+            lastActivity: new Date(),
+            triggers: triggers,
+            collarActive: state,
+            collarText: collar
+          }
+        });
 
-      await newSession.save();
-      logger.info(`Created new session in database during cleanup for ${session.metadata.username}`);
-    }
+        await newSession.save();
+        logger.info(`Created new session in database during cleanup for ${session.metadata.username}`);
+      }
+    }, { retries: 2 });
   } catch (error) {
     logger.error(`Error syncing session to database: ${error.message}`);
   }
@@ -943,10 +981,36 @@ async function handleMessage(userPrompt, socketId, username) {
 }
 
 // Add to the worker cleanup/shutdown code
-if (healthCheckInterval) {
-  clearInterval(healthCheckInterval);
-  healthCheckInterval = null;
+function performWorkerCleanup() {
+  logger.info('Starting worker cleanup process...');
+  
+  // Clear all intervals
+  if (healthCheckInterval) {
+    clearInterval(healthCheckInterval);
+    healthCheckInterval = null;
+    logger.debug('Cleared health check interval');
+  }
+  
+  if (garbageCollectionInterval) {
+    clearInterval(garbageCollectionInterval);
+    garbageCollectionInterval = null;
+    logger.debug('Cleared garbage collection interval');
+  }
+  
+  // Close database connection if still open
+  if (mongoose.connection.readyState !== 0) {
+    disconnectDB()
+      .then(() => logger.info('Database connection closed during cleanup'))
+      .catch(err => logger.error(`Error closing database connection: ${err.message}`));
+  }
+  
+  logger.info('Worker cleanup completed');
 }
+
+// Register the cleanup function to be called during shutdown
+process.on('beforeExit', performWorkerCleanup);
+process.on('SIGINT', performWorkerCleanup);
+process.on('SIGTERM', performWorkerCleanup);
 
 // Replace savePromptHistory function with the updated version
 async function savePromptHistory(socketId, message) {
@@ -964,12 +1028,7 @@ async function savePromptHistory(socketId, message) {
   }
 }
 
-// Add cleanup for garbage collection interval to the worker shutdown
-if (garbageCollectionInterval) {
-  clearInterval(garbageCollectionInterval);
-  garbageCollectionInterval = null;
-  logger.info('Stopped garbage collection interval');
-}
+// Note: Garbage collection interval cleanup is now handled in the performWorkerCleanup function
 
 // Add this helper function around line 170 (after handling trigger details)
 function formatTriggerDetails(details) {
