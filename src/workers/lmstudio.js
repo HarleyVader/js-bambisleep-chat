@@ -3,7 +3,7 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
 // Add database connection import (if needed for future DB operations)
-import dbConnection from '../database/dbConnection.js';
+import dbConnection from '../config/db.js';
 import workerGracefulShutdown, { setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 
 const logger = new Logger('LMStudio');
