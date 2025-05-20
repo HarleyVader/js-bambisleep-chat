@@ -12,6 +12,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import fileUpload from 'express-fileupload';
 import mongoose from 'mongoose';
+import { Worker } from 'worker_threads';
 
 // Import configuration
 import config from './config/config.js';
@@ -47,9 +48,11 @@ import gracefulShutdown from './utils/gracefulShutdown.js';
 import { startConnectionMonitoring } from './utils/connectionMonitor.js';
 import garbageCollector from './utils/garbageCollector.js';
 import memoryMonitor from './utils/memory-monitor.js';
+import { setupSocketMonitoring } from './utils/socketMonitor.js';
+import messageQueue from './utils/messageQueue.js';
+import streamingHandler from './utils/streamingHandler.js';
 import { startDbHealthMonitor, stopDbHealthMonitor } from './utils/dbHealthMonitor.js';
 import { startConnectionPoolMonitor, stopConnectionPoolMonitor } from './utils/connectionPoolMonitor.js';
-import { Worker } from 'worker_threads';
 
 // Import Profile model getter
 import { getProfile } from './models/Profile.js';
@@ -451,12 +454,19 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       // Set up content filter function
       const filterContent = (content) => filterWords(content, filteredWords);
       
+      // Process any queued messages for this socket
+      const processedCount = messageQueue.processQueue(socket);
+      if (processedCount > 0) {
+        logger.info(`Delivered ${processedCount} queued messages to reconnected socket ${socket.id}`);
+      }
+      
       // Check for abandoned sessions if user is logged in
       if (username && username !== 'anonBambi') {
         checkForAbandonedSessions(socket, username);
       }
       
-      // Set up socket handlers for this specific connection      setupLMStudioSockets(socket, io, lmstudio, filterContent);
+      // Set up socket handlers for this specific connection
+      setupLMStudioSockets(socket, io, lmstudio, filterContent);
       setupProfileSockets(socket, io, username);
       setupChatSockets(socket, io, socketStore, filteredWords);
       setupSessionSockets(socket, io, socketStore);

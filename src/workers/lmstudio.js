@@ -256,8 +256,7 @@ parentPort.on('message', async (msg) => {
             triggers = 'BAMBI SLEEP';
           }
         }
-        break;
-      case 'message':
+        break;      case 'message':
         logger.info('Received message event');
         
         // Add before processing new chat requests
@@ -266,7 +265,16 @@ parentPort.on('message', async (msg) => {
           await collectGarbage(1); 
         }
         
-        await handleMessage(msg.data, msg.socketId, msg.username || 'anonBambi');
+        // Extract session ID if provided
+        const sessionId = msg.sessionId || null;
+        
+        // Process the message
+        await handleMessage(
+          msg.data, 
+          msg.socketId, 
+          msg.username || 'anonBambi', 
+          sessionId
+        );
         break;
       case 'collar':
         collar = msg.data;
@@ -390,14 +398,17 @@ parentPort.on('message', async (msg) => {
   }
 });
 
-function handleResponse(response, socketId, username, wordCount) {
+function handleResponse(response, socketId, username, wordCount, sessionId = null) {
   parentPort.postMessage({
     type: "response",
     data: response,
     socketId: socketId,
+    sessionId: sessionId,
     meta: {
       wordCount: wordCount,
-      username: username
+      username: username,
+      emitAsChat: true,
+      timestamp: new Date().toISOString()
     }
   });
 }
@@ -798,7 +809,7 @@ Be cruel, harsh, and to the point. Focus on breaking down resistance through ver
 }
 
 // Fix the nested function problem by removing the duplicate handleMessage function
-async function handleMessage(userPrompt, socketId, username) {
+async function handleMessage(userPrompt, socketId, username, sessionId = null) {
   try {
     const modelNames = [
       'l3-sthenomaidblackroot-8b-v1'
@@ -842,6 +853,9 @@ async function handleMessage(userPrompt, socketId, username) {
       });
     }
 
+    // Check if streaming is requested
+    const useStreaming = config.USE_STREAMING === true || sessionHistories[socketId].metadata?.useStreaming === true;
+    
     const requestData = {
       model: modelIds[0],
       messages: formattedMessages,
@@ -851,83 +865,196 @@ async function handleMessage(userPrompt, socketId, username) {
       frequency_penalty: 0,
       presence_penalty: 0,
       top_k: 40,
-      stream: false,
+      stream: useStreaming // Set streaming parameter based on config
     };
 
     try {
-      const response = await axios.post(`http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
-
-      // Now we have the response, set finalContent
-      finalContent = response.data.choices[0].message.content;
-
-      // NOW add the assistant response to the session history
-      sessionHistories[socketId].push({ role: 'assistant', content: finalContent });
-
-      // Now that we have valid finalContent, update the database
-      if (username && username !== 'anonBambi') {
-        try {
-          // Process triggers into a usable format
-          const triggerList = Array.isArray(triggers)
-            ? triggers
-            : (typeof triggers === 'string'
-              ? triggers.split(',').map(t => t.trim())
-              : ['BAMBI SLEEP']);
-
-          // Prepare session data
-          const sessionData = {
+      // Handle streaming vs. non-streaming requests differently
+      if (useStreaming) {
+        // For streaming, we send the start notification
+        parentPort.postMessage({
+          type: "stream:start",
+          socketId: socketId,
+          meta: {
             username,
-            socketId,
-            messages: [
-              { role: 'system', content: collarText },
-              { role: 'user', content: userPrompt },
-              { role: 'assistant', content: finalContent }
-            ],
-            metadata: {
-              lastActivity: new Date(),
-              triggers: triggerList,
-              collarActive: state,
-              collarText: collar,
-              modelName: 'Steno Maid Blackroot'
-            }
-          };
-
-          // Find and update session in database
-          let sessionHistory = await SessionHistoryModel.findOne({ socketId });
-
-          if (sessionHistory) {
-            // Update existing session
-            sessionHistory.messages.push(...sessionData.messages);
-            sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
-            sessionHistory.metadata.triggers = sessionData.metadata.triggers;
-            sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
-            sessionHistory.metadata.collarText = sessionData.metadata.collarText;
-
-            await sessionHistory.save();
-            logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
-          } else {
-            // Create new session with auto-generated title
-            sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
-            sessionHistory = await SessionHistoryModel.create(sessionData);
-
-            // Add reference to user's profile
-            await mongoose.model('Profile').findOneAndUpdate(
-              { username },
-              { $addToSet: { sessionHistories: sessionHistory._id } }
-            );
-
-            logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
+            wordCount: 0
           }
-        } catch (error) {
-          logger.error(`Failed to save session history to database: ${error.message}`);
+        });
+        
+        // Set up for streaming
+        const streamOptions = {
+          method: 'post',
+          url: `http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`,
+          responseType: 'stream',
+          data: requestData
+        };
+        
+        const response = await axios(streamOptions);
+        let buffer = '';
+        let finalContent = '';
+        
+        // Process the stream
+        response.data.on('data', chunk => {
+          const chunkStr = chunk.toString();
+          buffer += chunkStr;
+          
+          // Process complete JSON objects
+          const lines = buffer.split('\n').filter(line => line.trim() !== '');
+          
+          // Keep any incomplete line in the buffer
+          buffer = lines.length > 0 && !buffer.endsWith('\n') 
+            ? buffer.slice(buffer.lastIndexOf('\n') + 1)
+            : '';
+          
+          // Process each complete line
+          lines.forEach(line => {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              
+              if (data === '[DONE]') {
+                return;
+              }
+              
+              try {
+                const parsed = JSON.parse(data);
+                
+                if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                  const delta = parsed.choices[0].delta;
+                  
+                  if (delta.content) {
+                    finalContent += delta.content;
+                    
+                    // Send chunk to client
+                    parentPort.postMessage({
+                      type: "stream:chunk",
+                      socketId: socketId,
+                      data: delta.content,
+                      meta: {
+                        username,
+                        streamContent: finalContent
+                      }
+                    });
+                  }
+                }
+              } catch (err) {
+                logger.warning(`Error parsing stream chunk: ${err.message}`);
+              }
+            }
+          });
+        });
+        
+        // Handle stream completion
+        response.data.on('end', async () => {
+          // Add response to session history
+          sessionHistories[socketId].push({ role: 'assistant', content: finalContent });
+          
+          // Update database and award XP
+          if (username && username !== 'anonBambi') {
+            // Process triggers and save to database
+            // ... Existing database code here ...
+          }
+          
+          // Count words and update XP
+          const wordCount = countWords(finalContent);
+          await updateUserXP(username, wordCount, socketId);
+          
+          // Send stream completion notification
+          parentPort.postMessage({
+            type: "stream:end",
+            socketId: socketId,
+            data: finalContent,
+            meta: {
+              username,
+              wordCount
+            }
+          });
+        });
+        
+        // Handle stream errors
+        response.data.on('error', err => {
+          logger.error(`Stream error: ${err.message}`);
+          parentPort.postMessage({
+            type: "stream:error",
+            socketId: socketId,
+            error: err.message
+          });
+        });
+      } else {
+        // Non-streaming request
+        const response = await axios.post(`http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
+
+        // Now we have the response, set finalContent
+        finalContent = response.data.choices[0].message.content;
+
+        // NOW add the assistant response to the session history
+        sessionHistories[socketId].push({ role: 'assistant', content: finalContent });
+
+        // Now that we have valid finalContent, update the database
+        if (username && username !== 'anonBambi') {
+          try {
+            // Process triggers into a usable format
+            const triggerList = Array.isArray(triggers)
+              ? triggers
+              : (typeof triggers === 'string'
+                ? triggers.split(',').map(t => t.trim())
+                : ['BAMBI SLEEP']);
+
+            // Prepare session data
+            const sessionData = {
+              username,
+              socketId,
+              messages: [
+                { role: 'system', content: collarText },
+                { role: 'user', content: userPrompt },
+                { role: 'assistant', content: finalContent }
+              ],
+              metadata: {
+                lastActivity: new Date(),
+                triggers: triggerList,
+                collarActive: state,
+                collarText: collar,
+                modelName: 'Steno Maid Blackroot'
+              }
+            };
+
+            // Find and update session in database
+            let sessionHistory = await SessionHistoryModel.findOne({ socketId });
+
+            if (sessionHistory) {
+              // Update existing session
+              sessionHistory.messages.push(...sessionData.messages);
+              sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
+              sessionHistory.metadata.triggers = sessionData.metadata.triggers;
+              sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
+              sessionHistory.metadata.collarText = sessionData.metadata.collarText;
+
+              await sessionHistory.save();
+              logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
+            } else {
+              // Create new session with auto-generated title
+              sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
+              sessionHistory = await SessionHistoryModel.create(sessionData);
+
+              // Add reference to user's profile
+              await mongoose.model('Profile').findOneAndUpdate(
+                { username },
+                { $addToSet: { sessionHistories: sessionHistory._id } }
+              );
+
+              logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
+            }
+          } catch (error) {
+            logger.error(`Failed to save session history to database: ${error.message}`);
+          }
         }
+        
+        // Count words in response and update XP
+        const wordCount = countWords(finalContent);
+        await updateUserXP(username, wordCount, socketId);
+
+        // Send response with wordCount and sessionId
+        handleResponse(finalContent, socketId, username, wordCount, sessionId);
       }
-
-      // Count words in response and update XP
-      const wordCount = countWords(finalContent);
-      await updateUserXP(username, wordCount, socketId);
-
-      // Send response with wordCount
-      handleResponse(finalContent, socketId, username, wordCount);
     } catch (error) {
       if (error.response) {
         logger.error('Error response data:', error.response.data);

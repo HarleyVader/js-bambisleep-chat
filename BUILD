@@ -29,7 +29,6 @@ Based on the 105 source code files in the codebase (74 JavaScript, 18 EJS templa
 - ✓ **routes/index.js**: Main landing page and primary navigation. (95%)
 - ✓ **routes/psychodelic-trigger-mania.js**: Visual trigger effects with animation controls. (90%)
 - ✓ **routes/help.js**: Help documentation and user guidance. (100%)
-- ✓ **routes/scrapers.js**: Web scraping functionality and content retrieval. (92%)
 - ✓ **routes/profile.js**: Profile management and customization. (95%)
 - ✓ **routes/chat.js**: Standard chat interface with message handling. (98%)
 - ✓ **routes/advancedChat.js**: Enhanced chat with session management, trigger selection, and XP visualization. (100%)
@@ -37,7 +36,6 @@ Based on the 105 source code files in the codebase (74 JavaScript, 18 EJS templa
 - ✓ **routes/apiRoutes.js**: General API routes for application features. (95%)
 - ✓ **routes/sessions.js**: Session tracking and management. (95%)
 - ✓ **routes/auth.js**: Authentication and authorization endpoints. (90%)
-- ✓ **routes/tts.js**: Text-to-speech conversion endpoints. (95%)
 
 ## Socket Handlers
 

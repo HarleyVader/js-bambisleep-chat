@@ -1,16 +1,23 @@
 import Logger from '../utils/logger.js';
+import { getSessionHistoryModel } from '../models/SessionHistory.js';
 
 // Initialize logger
 const logger = new Logger('SocketHandler');
 
 // Setup socket connection and event handlers
-function setupSocket(socket, io) {
-  const username = socket.request.session.username;
+function setupSocket(socket, io, socketStore) {
+  const username = socket.request.session?.username || 
+                  (socket.handshake.headers.cookie?.match(/bambiname=([^;]+)/)?.[1] 
+                  ? decodeURIComponent(socket.handshake.headers.cookie.match(/bambiname=([^;]+)/)[1]) 
+                  : 'anonBambi');
+  
+  // Store username on socket for easy access
+  socket.bambiUsername = username;
   
   // Setup basic socket handlers
-  setupChatHandlers(socket, username);
+  setupChatHandlers(socket, username, io);
   setupSystemHandlers(socket, username);
-  setupSessionHandlers(socket, io);
+  setupSessionHandlers(socket, io, socketStore);
   
   // Track connection for analytics
   trackConnection(socket, username);
@@ -54,13 +61,36 @@ function setupImageHandlers(socket, username) {
 }
 
 // Set up chat message handlers
-function setupChatHandlers(socket, username) {
+function setupChatHandlers(socket, username, io) {
   socket.on('chat message', msg => {
-    // Process the message
-    const processedMsg = processMessage(msg);
-    
-    // Save to database and broadcast
-    saveAndBroadcast(socket, username, processedMsg);
+    try {
+      // Validate message format
+      if (!msg || !msg.data) {
+        logger.warning(`Invalid message format received from ${username}`);
+        return;
+      }
+      
+      // Process the message
+      const processedMsg = processMessage(msg);
+      
+      // Add timestamp if not present
+      if (!processedMsg.timestamp) {
+        processedMsg.timestamp = new Date();
+      }
+      
+      // Add session ID if available
+      if (socket.activeSessionId) {
+        processedMsg.sessionId = socket.activeSessionId;
+      }
+      
+      // Log the message
+      logger.chatMessage(username, processedMsg.data, socket.id);
+      
+      // Save to database and broadcast
+      saveAndBroadcast(socket, io, username, processedMsg);
+    } catch (error) {
+      logger.error(`Error handling chat message: ${error.message}`);
+    }
   });
 }
 
@@ -79,12 +109,17 @@ function setupSystemHandlers(socket, username) {
   socket.on('system-settings', settings => {
     if (!settings) return;
     
-    // Forward settings to appropriate worker
-    sendToWorker('lmstudio', 'system-settings', {
+    // Add socket ID and username to the settings
+    const enrichedSettings = {
+      ...settings,
       socketId: socket.id,
-      username,
-      settings
-    });
+      username: username || 'anonBambi'
+    };
+    
+    // Forward settings to appropriate worker
+    sendToWorker('lmstudio', 'system-settings', enrichedSettings);
+    
+    logger.info(`System settings updated for ${username || 'anonBambi'}`);
   });
 }
 

@@ -1,4 +1,5 @@
 import Logger from '../utils/logger.js';
+import messageQueue from '../utils/messageQueue.js';
 
 const logger = new Logger('LMStudioSockets');
 
@@ -111,7 +112,83 @@ function handleWorkerMessage(socket, io, msg) {
       logger.info(msg.data, msg.socketId);
     } else if (msg.type === 'response') {
       const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
-      io.to(msg.socketId).emit("response", responseData);
+      
+      // Build a consistent response object
+      const responseObj = {
+        data: responseData,
+        username: msg.meta?.username || 'BambiAI',
+        timestamp: new Date().toISOString(),
+        wordCount: msg.meta?.wordCount || 0,
+        sessionId: msg.sessionId || null
+      };
+      
+      // Try to send immediately, queue if socket isn't connected
+      const targetSocket = io.sockets.sockets.get(msg.socketId);
+      
+      if (targetSocket && targetSocket.connected) {
+        targetSocket.emit("response", responseObj);
+        logger.debug(`Sent response to ${msg.socketId}`);
+      } else {
+        // Socket not available or disconnected, queue the message
+        messageQueue.queueMessage(msg.socketId, responseObj, "response");
+        logger.info(`Queued response for disconnected socket ${msg.socketId}`);
+      }
+      
+      // Emit as chat message too if enabled
+      if (msg.meta?.emitAsChat) {
+        const chatMessage = {
+          username: 'BambiAI',
+          data: responseData,
+          timestamp: new Date().toISOString()
+        };
+        
+        if (targetSocket && targetSocket.connected) {
+          targetSocket.emit("chat message", chatMessage);
+        } else {
+          messageQueue.queueMessage(msg.socketId, chatMessage, "chat message");
+        }
+      }
+    } else if (msg.type === 'stream:start') {
+      // Stream started notification
+      const targetSocket = io.sockets.sockets.get(msg.socketId);
+      
+      if (targetSocket && targetSocket.connected) {
+        targetSocket.emit("stream:start", {
+          username: msg.meta?.username || 'BambiAI',
+          timestamp: new Date().toISOString()
+        });
+      }
+    } else if (msg.type === 'stream:chunk') {
+      // Stream chunk notification
+      const targetSocket = io.sockets.sockets.get(msg.socketId);
+      
+      if (targetSocket && targetSocket.connected) {
+        targetSocket.emit("stream:chunk", {
+          chunk: msg.data,
+          username: msg.meta?.username || 'BambiAI'
+        });
+      }
+      // No queue for stream chunks - if user disconnects, they'll get the full response on reconnect
+    } else if (msg.type === 'stream:end') {
+      // Stream ended notification
+      const targetSocket = io.sockets.sockets.get(msg.socketId);
+      const responseObj = {
+        data: msg.data,
+        username: msg.meta?.username || 'BambiAI',
+        timestamp: new Date().toISOString(),
+        wordCount: msg.meta?.wordCount || 0,
+        sessionId: msg.sessionId || null,
+        fromStream: true
+      };
+      
+      if (targetSocket && targetSocket.connected) {
+        targetSocket.emit("stream:end", responseObj);
+        // Also emit as normal response for compatibility
+        targetSocket.emit("response", responseObj);
+      } else {
+        // Queue only the final response
+        messageQueue.queueMessage(msg.socketId, responseObj, "response");
+      }
     } else if (msg.type === 'xp:update') {
       // Forward XP updates to the specific socket that triggered the action
       if (msg.socketId && msg.username) { // Add check for username
@@ -125,9 +202,28 @@ function handleWorkerMessage(socket, io, msg) {
 
         logger.info(`XP update for ${msg.username || 'unknown user'}: +${msg.data.xpEarned} XP`);
       }
+    } else if (msg.type === 'collar') {
+      if (msg.socketId && msg.data) {
+        io.to(msg.socketId).emit("collar", msg.data);
+      }
+    } else if (msg.type === 'detected-triggers') {
+      if (msg.socketId && msg.triggers) {
+        io.to(msg.socketId).emit("detected-triggers", { 
+          triggers: msg.triggers,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   } catch (error) {
     logger.error('Error in worker message handler:', error);
+    
+    // Send error message to client
+    if (msg.socketId) {
+      io.to(msg.socketId).emit("error", { 
+        message: "An error occurred while processing your message",
+        error: error.message
+      });
+    }
   }
 }
 
@@ -158,19 +254,28 @@ function handleUserMessage(socket, lmstudio, message, filterContent) {
     }
 
     // Filter message content
-    const filteredMessage = filterContent(message);
+    const filteredMessage = typeof message === 'object' ? 
+                           filterContent(message.data) : 
+                           filterContent(message);
+
+    // Session ID if available
+    const sessionId = socket.activeSessionId || 
+                      (typeof message === 'object' ? message.sessionId : null);
 
     // Send to LMStudio worker
     lmstudio.postMessage({
       type: "message",
       data: filteredMessage,
       socketId: socket.id,
-      username: username
+      username: username,
+      sessionId: sessionId,
+      timestamp: new Date().toISOString()
     });
 
-    logger.info(`Message from ${username} sent to LMStudio worker`);
+    logger.lmstudioMessage(username, socket.id, lmstudio.threadId || 'unknown');
   } catch (error) {
     logger.error('Error in message handler:', error);
+    socket.emit('error', { message: 'Failed to process your message' });
   }
 }
 

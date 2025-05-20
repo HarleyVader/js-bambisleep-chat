@@ -87,15 +87,28 @@ export async function connectDB(retries = 3, force = false) {
       isConnected = true;
       logger.success('MongoDB connected');
       
+      // Remove any existing listeners to prevent duplicate handlers
+      mongoose.connection.removeAllListeners('error');
+      mongoose.connection.removeAllListeners('disconnected');
+      
       // Set up connection error handler to detect disconnects
       mongoose.connection.on('error', (err) => {
         logger.error(`MongoDB connection error: ${err.message}`);
         isConnected = false;
       });
       
+      // Debounce disconnect events to prevent multiple rapid firings
+      let disconnectTimeout = null;
       mongoose.connection.on('disconnected', () => {
-        logger.warning('MongoDB disconnected');
-        isConnected = false;
+        if (disconnectTimeout) {
+          clearTimeout(disconnectTimeout);
+        }
+        
+        disconnectTimeout = setTimeout(() => {
+          logger.warning('MongoDB disconnected');
+          isConnected = false;
+          disconnectTimeout = null;
+        }, 500); // 500ms debounce period
       });
       
       return true;

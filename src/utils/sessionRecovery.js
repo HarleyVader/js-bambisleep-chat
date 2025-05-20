@@ -91,6 +91,104 @@ class SessionRecovery {
       return 0;
     }
   }
+
+  /**
+   * Check for abandoned sessions for a user and recover them
+   * 
+   * @param {Socket} socket - The client socket
+   * @param {string} username - The username
+   * @returns {Promise<boolean>} - True if a session was recovered
+   */
+  static async checkForAbandonedSessions(socket, username) {
+    if (!socket || !username || username === 'anonBambi') {
+      return false;
+    }
+
+    try {
+      // Find session histories for this user that aren't closed but are disconnected
+      const SessionHistory = mongoose.model('SessionHistory');
+      const abandonedSessions = await SessionHistory.find({
+        username,
+        'metadata.status': { $ne: 'closed' },
+        'metadata.disconnectedAt': { $exists: true },
+        'metadata.reconnectedAt': { $exists: false }
+      }).sort({ 'metadata.lastActivity': -1 }).limit(1);
+
+      if (abandonedSessions.length === 0) {
+        return false;
+      }
+
+      const sessionToRecover = abandonedSessions[0];
+      logger.info(`Found abandoned session for ${username}: ${sessionToRecover._id}`);
+
+      // Set session as recovered
+      sessionToRecover.metadata.reconnectedAt = new Date();
+      sessionToRecover.metadata.status = 'active';
+      sessionToRecover.metadata.recovered = true;
+      sessionToRecover.socketId = socket.id;
+      await sessionToRecover.save();
+
+      // Assign the session to the new socket
+      socket.activeSessionId = sessionToRecover._id.toString();
+
+      // Need to emit session loaded event
+      socket.emit('session-loaded', {
+        session: sessionToRecover,
+        sessionId: sessionToRecover._id,
+        recovered: true
+      });
+
+      logger.info(`Recovered session ${sessionToRecover._id} for ${username}`);
+
+      // Also send a notification to the user
+      socket.emit('notification', {
+        type: 'info',
+        message: 'Your previous session has been restored.'
+      });
+      
+      return true;
+    } catch (error) {
+      logger.error(`Error checking for abandoned sessions: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Mark a session as disconnected when the user disconnects
+   * 
+   * @param {string} socketId - The socket ID
+   * @param {string} sessionId - The session ID
+   * @returns {Promise<boolean>} - True if the session was marked successfully
+   */
+  static async markSessionAsDisconnected(socketId, sessionId) {
+    if (!sessionId) {
+      return false;
+    }
+
+    try {
+      const SessionHistory = mongoose.model('SessionHistory');
+      const session = await SessionHistory.findById(sessionId);
+
+      if (!session) {
+        return false;
+      }
+
+      // Update session metadata
+      if (!session.metadata) {
+        session.metadata = {};
+      }
+      
+      session.metadata.disconnectedAt = new Date();
+      session.metadata.status = 'disconnected';
+      
+      await session.save();
+      logger.info(`Marked session ${sessionId} as disconnected`);
+      return true;
+    } catch (error) {
+      logger.error(`Error marking session as disconnected: ${error.message}`);
+      return false;
+    }
+  }
 }
 
 export default SessionRecovery;

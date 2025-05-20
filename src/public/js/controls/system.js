@@ -24,6 +24,9 @@ window.bambiSystem = (function() {
       custom: [],
       duration: 20,
       transition: 30
+    },
+    streaming: {
+      enabled: false
     }
   };
 
@@ -89,6 +92,7 @@ window.bambiSystem = (function() {
     // Listen for component loads
     document.addEventListener('DOMContentLoaded', () => {
       loadLastTab();
+      setupStreamingControls();
     });
   }
 
@@ -100,6 +104,28 @@ window.bambiSystem = (function() {
       if (tabButton && !tabButton.classList.contains('disabled')) {
         tabButton.click();
       }
+    }
+  }
+
+  // Setup streaming controls
+  function setupStreamingControls() {
+    const streamingToggle = document.getElementById('streaming-enable');
+    if (streamingToggle) {
+      // Initialize with current state
+      streamingToggle.checked = state.streaming?.enabled || false;
+      
+      // Listen for changes
+      streamingToggle.addEventListener('change', () => {
+        saveState('streaming', { enabled: streamingToggle.checked });
+        
+        // Notify window streaming handler
+        if (window.streamingHandler) {
+          window.streamingHandler.toggleEnabled(streamingToggle.checked);
+        }
+        
+        // Update the user's session metadata
+        updateSystemSettings();
+      });
     }
   }
 
@@ -154,6 +180,13 @@ window.bambiSystem = (function() {
         frequency: controls.customFrequency || 10,
         carrier: controls.carrierFrequency || 200,
         volume: controls.brainwaveVolume || 50
+      };
+    }
+    
+    // Streaming
+    if (controls.useStreaming !== undefined) {
+      state.streaming = {
+        enabled: !!controls.useStreaming
       };
     }
     
