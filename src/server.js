@@ -86,7 +86,7 @@ async function initializeApp() {
     // Create Express app and HTTP server
     const app = express();
     const server = http.createServer(app);
-    
+
     // Initialize Socket.io with configured timeouts
     const io = new SocketIOServer(server, {
       pingTimeout: config.SOCKET_PING_TIMEOUT || 86400000, // 1 day in milliseconds
@@ -118,13 +118,13 @@ async function initializeApp() {
 
     // Configure middleware
     setupMiddleware(app);
-    
+
     // Make config available to templates
     app.locals.footer = footerConfig;
-    
+
     // Set up routes and APIs
     setupRoutes(app);
-    
+
     // Include client-side memory monitoring script
     app.get('/js/memory-monitoring.js', (req, res) => {
       res.type('text/javascript').send(memoryMonitor.getClientScript());
@@ -133,14 +133,14 @@ async function initializeApp() {
     // Set up socket handlers with shared store for workers
     const socketStore = new Map();
     setupSocketHandlers(io, socketStore, filteredWords);
-    
+
     // Set up error handlers
     setupErrorHandlers(app);
-    
+
     // Initialize scheduled tasks
     scheduledTasks.initialize();
     global.scheduledTasks = scheduledTasks;
-    
+
     return { app, server, io, socketStore };
   } catch (error) {
     logger.error('Error in app initialization:', error);
@@ -158,7 +158,7 @@ function setupMiddleware(app) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
-  
+
   // Enable CORS
   app.use(cors({
     origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
@@ -166,13 +166,13 @@ function setupMiddleware(app) {
     allowedHeaders: ['Content-Type'],
     credentials: true
   }));
-  
+
   // Handle file uploads
   app.use(fileUpload({
     limits: { fileSize: config.MAX_UPLOAD_SIZE || (10 * 1024 * 1024) },
     abortOnLimit: true
   }));
-  
+
   // Serve static files with correct MIME types
   app.use('/css', express.static(path.join(__dirname, 'public/css'), {
     setHeaders: (res, path) => {
@@ -181,7 +181,7 @@ function setupMiddleware(app) {
       }
     }
   }));
-  
+
   app.use('/js', express.static(path.join(__dirname, 'public/js'), {
     setHeaders: (res, path) => {
       if (path.endsWith('.js')) {
@@ -189,16 +189,16 @@ function setupMiddleware(app) {
       }
     }
   }));
-  
+
   app.use('/gif', express.static(path.join(__dirname, 'public/gif')));
   app.use(express.static(path.join(__dirname, 'public')));
   app.use('/workers', express.static(path.join(__dirname, 'workers')));
-  
+
   // Serve socket.io client script
   app.get('/socket.io/socket.io.js', (req, res) => {
     res.sendFile(path.resolve(__dirname, 'node_modules/socket.io/client-dist/socket.io.js'));
   });
-  
+
   // Add backward compatibility redirects
   app.get('/gif/default-header.jpg', (req, res) => {
     res.redirect('/gif/default-header.gif');
@@ -207,7 +207,7 @@ function setupMiddleware(app) {
   app.get('/config/triggers.json', (req, res) => {
     res.sendFile(path.join(__dirname, 'config/triggers.json'));
   });
-  
+
   logger.info('Middleware configured');
 }
 
@@ -228,23 +228,23 @@ function setupRoutes(app) {    // Register main routes
     { path: mongodbBasePath, handler: mongodbRoutesRouter },
     { path: mongodbAdminBasePath, handler: mongodbAdminRouter }
   ];
-  
+
   routes.forEach(route => {
     app.use(route.path, route.handler);
   });
-  
+
   // Add the chat routes
   app.use('/api/chat', chatRoutes);
-  
+
   // Add API routes
   app.use('/api', apiRoutes);
-  
+
   // Add health check endpoint
   app.get('/health', async (req, res) => {
     try {
       const { checkDBHealth } = await import('./config/db.js');
       const dbHealth = await checkDBHealth();
-      
+
       res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
@@ -278,7 +278,7 @@ function setupTTSRoutes(app) {
           'Authorization': `Bearer ${config.KOKORO_API_KEY}`
         }
       });
-      
+
       res.json(response.data);
     } catch (error) {
       logger.error(`Voice listing error: ${error.message}`);
@@ -288,24 +288,24 @@ function setupTTSRoutes(app) {
       });
     }
   });
-  
+
   // Generate speech
   app.get('/api/tts', async (req, res) => {
     const text = req.query.text;
     const voice = req.query.voice || config.KOKORO_DEFAULT_VOICE;
-    
+
     if (typeof text !== 'string' || text.trim() === '') {
       return res.status(400).json({ error: 'Invalid input: text must be a non-empty string' });
     }
-    
+
     try {
       const response = await fetchTTSFromKokoro(text, voice);
-      
+
       // Set appropriate headers
       res.setHeader('Content-Type', 'audio/mpeg');
       res.setHeader('Content-Length', response.data.length);
       res.setHeader('Cache-Control', 'no-cache');
-      
+
       // Send the audio data
       res.send(response.data);
     } catch (error) {
@@ -322,10 +322,10 @@ function setupTTSRoutes(app) {
  */
 function handleTTSError(error, res) {
   logger.error(`TTS API Error: ${error.message}`);
-  
+
   if (error.response) {
     const status = error.response.status;
-    
+
     if (status === 401) {
       logger.error('Unauthorized access to Kokoro API - invalid API key');
       return res.status(401).json({ error: 'Unauthorized access' });
@@ -338,7 +338,7 @@ function handleTTSError(error, res) {
       });
     }
   }
-  
+
   return res.status(500).json({
     error: 'Unexpected error in TTS service',
     details: process.env.NODE_ENV === 'production' ? null : error.message
@@ -355,14 +355,14 @@ function handleTTSError(error, res) {
 async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
   try {
     logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
-    
+
     const requestData = {
       model: "kokoro",
       voice: voice,
       input: text,
       response_format: "mp3"
     };
-    
+
     const response = await axios({
       method: 'post',
       url: `${config.KOKORO_API_URL}/audio/speech`,
@@ -374,7 +374,7 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
       responseType: 'arraybuffer',
       timeout: config.TTS_TIMEOUT || 30000
     });
-    
+
     return response;
   } catch (error) {
     logger.error(`Error fetching TTS audio: ${error.message}`);
@@ -390,12 +390,12 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
  */
 function handleScrapeRequest(req, res) {
   const { url } = req.body;
-  
+
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
   }
-  
-  res.status(501).json({ 
+
+  res.status(501).json({
     error: 'Scraping functionality has been removed',
     message: 'This feature is no longer available'
   });
@@ -409,12 +409,12 @@ function handleScrapeRequest(req, res) {
  */
 function handleScanRequest(req, res) {
   const { directory } = req.body;
-  
+
   if (!directory) {
     return res.status(400).json({ error: 'Directory path is required' });
   }
-  
-  res.status(501).json({ 
+
+  res.status(501).json({
     error: 'Directory scanning functionality has been removed',
     message: 'This feature is no longer available'
   });
@@ -431,53 +431,191 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
   // Initialize the LMStudio worker thread
   const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
   
+  // Simple filter function to avoid bad words
+  function filter(content) {
+    if (!content || !filteredWords || !filteredWords.length) return content;
+    
+    if (typeof content !== 'string') {
+      content = String(content);
+    }
+    
+    return content
+      .split(' ')
+      .map(word => filteredWords.includes(word.toLowerCase()) ? '[filtered]' : word)
+      .join(' ')
+      .trim();
+  }
+
+  // Add more listeners to worker if needed
+  function adjustMaxListeners(worker, increase) {
+    if (!worker) return;
+    
+    const currentMax = worker.getMaxListeners();
+    if (increase) {
+      worker.setMaxListeners(currentMax + 1);
+    } else {
+      worker.setMaxListeners(Math.max(10, currentMax - 1));
+    }
+  }
+
   io.on('connection', (socket) => {
     try {
-      // Parse cookies and get username
-      const cookies = parseCookies(socket.handshake.headers.cookie);
+      const cookies = socket.handshake.headers.cookie
+        ? socket.handshake.headers.cookie
+          .split(';')
+          .map(cookie => cookie.trim().split('='))
+          .reduce((acc, [key, value]) => {
+            acc[key] = value;
+            return acc;
+          }, {})
+        : {};
       let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
+      logger.info('Cookies received in handshake:', socket.handshake.headers.cookie);
       
-      logger.info(`Client connected: ${socket.id} (${username})`);
+      if (username === 'anonBambi') {
+        socket.emit('prompt username');
+      }
+
+      // Add socket to global store
+      socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
+      logger.info(`Client connected: ${socket.id} sockets: ${socketStore.size}`);
       
-      // Store socket in the map with additional tracking data
-      socketStore.set(socket.id, { 
-        socket, 
-        files: [],
-        username: username,
-        connectedAt: Date.now(),
-        lastActivity: Date.now()
-      });
-      
-      // Set username on socket for easy access
+      // Store username on socket object for easy access
       socket.bambiUsername = username;
       
-      // Set up content filter function
-      const filterContent = (content) => filterWords(content, filteredWords);
-      
-      // Process any queued messages for this socket
-      const processedCount = messageQueue.processQueue(socket);
-      if (processedCount > 0) {
-        logger.info(`Delivered ${processedCount} queued messages to reconnected socket ${socket.id}`);
-      }
-      
-      // Check for abandoned sessions if user is logged in
-      if (username && username !== 'anonBambi') {
-        checkForAbandonedSessions(socket, username);
-      }
-      
-      // Set up socket handlers for this specific connection
-      setupLMStudioSockets(socket, io, lmstudio, filterContent);
-      setupProfileSockets(socket, io, username);
-      setupChatSockets(socket, io, socketStore, filteredWords);
-      setupSessionSockets(socket, io, socketStore);
-      
-      // Handle disconnection
-      socket.on('disconnect', () => handleSocketDisconnect(socket, io));
-      
-      // Handle session-related events
-      setupSessionEvents(socket);
+      // Chat message handling
+      socket.on('chat message', async (msg) => {
+        try {
+          const timestamp = new Date().toISOString();
+          io.emit('chat message', {
+            ...msg,
+            timestamp: timestamp,
+            username: username,
+          });
+        } catch (error) {
+          logger.error('Error in chat message handler:', error);
+        }
+      });
+
+      // Username setting
+      socket.on('set username', (username) => {
+        try {
+          const encodedUsername = encodeURIComponent(username);
+          socket.handshake.headers.cookie = `bambiname=${encodedUsername}; path=/`;
+          socket.bambiUsername = username;
+          socket.emit('username set', username);
+          logger.info('Username set:', username);
+        } catch (error) {
+          logger.error('Error in set username handler:', error);
+        }
+      });
+
+      // LMStudio message handling
+      socket.on("message", (message) => {
+        try {
+          const filteredMessage = filter(message);
+          lmstudio.postMessage({
+            type: "message",
+            data: filteredMessage,
+            socketId: socket.id,
+            username: username
+          });
+        } catch (error) {
+          logger.error('Error in message handler:', error);
+          socket.emit('error', { message: 'Failed to process your message' });
+        }
+      });
+
+      // Trigger word handling
+      socket.on("triggers", (triggers) => {
+        try {
+          lmstudio.postMessage({ 
+            type: "triggers", 
+            triggers,
+            socketId: socket.id
+          });
+        } catch (error) {
+          logger.error('Error in triggers handler:', error);
+        }
+      });
+
+      // Collar text handling
+      socket.on('collar', async (collarData) => {
+        try {
+          const filteredCollar = filter(collarData.data);
+          lmstudio.postMessage({
+            type: 'collar',
+            data: filteredCollar,
+            socketId: socket.id
+          });
+          
+          // Emit to target socket if specified
+          if (collarData.socketId) {
+            io.to(collarData.socketId).emit('collar', filteredCollar);
+          }
+        } catch (error) {
+          logger.error('Error in collar handler:', error);
+        }
+      });
+
+      // Handle worker messages
+      lmstudio.on("message", async (msg) => {
+        try {
+          if (msg.type === "log") {
+            logger.info(msg.data, msg.socketId);
+          } else if (msg.type === 'response') {
+            // Convert object responses to strings
+            const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
+            
+            // Send response to client
+            io.to(msg.socketId).emit("response", responseData);
+          }
+        } catch (error) {
+          logger.error('Error in lmstudio message handler:', error);
+          
+          // Try to send an error message to the client
+          if (msg && msg.socketId) {
+            io.to(msg.socketId).emit("error", "Error processing response");
+          }
+        }
+      });
+
+      // Handle worker info messages
+      lmstudio.on('info', (info) => {
+        try {
+          logger.info('Worker info:', info);
+        } catch (error) {
+          logger.error('Error in lmstudio info handler:', error);
+        }
+      });
+
+      // Handle worker errors
+      lmstudio.on('error', (err) => {
+        try {
+          logger.error('Worker error:', err);
+        } catch (error) {
+          logger.error('Error in lmstudio error handler:', error);
+        }
+      });
+
+      // Handle client disconnection
+      socket.on('disconnect', (reason) => {
+        try {
+          logger.info('Client disconnected:', socket.id, 'Reason:', reason);
+          
+          // Get socket data and clean up
+          const socketData = socketStore.get(socket.id);
+          if (socketData) {
+            socketStore.delete(socket.id);
+          }
+          
+          logger.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`);
+        } catch (error) {
+          logger.error('Error in disconnect handler:', error);
+        }
+      });
     } catch (error) {
-      logger.error(`Error handling socket connection: ${error.message}`);
+      logger.error('Error in connection handler:', error);
     }
   });
 }
@@ -491,10 +629,10 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
 async function checkForAbandonedSessions(socket, username) {
   try {
     const inactiveSessions = await SessionRecovery.findInactiveSessions(username, 30, 3);
-    
+
     if (inactiveSessions && inactiveSessions.length > 0) {
       // Send notification to client about recoverable sessions
-      socket.emit('recoverable-sessions', { 
+      socket.emit('recoverable-sessions', {
         sessions: inactiveSessions.map(session => ({
           id: session._id,
           title: session.title,
@@ -502,15 +640,15 @@ async function checkForAbandonedSessions(socket, username) {
           messageCount: session.messages.length
         }))
       });
-      
+
       // Setup recovery handler
       socket.on('recover-session', async (data) => {
         if (!data || !data.sessionId) return;
-        
+
         const recovered = await SessionRecovery.markSessionRecovered(data.sessionId, socket.id);
-        
+
         if (recovered) {
-          socket.emit('session-recovered', { 
+          socket.emit('session-recovered', {
             sessionId: data.sessionId,
             success: true
           });
@@ -525,33 +663,33 @@ async function checkForAbandonedSessions(socket, username) {
 // Simplify the setupSessionEvents function
 function setupSessionEvents(socket) {
   // Load session
-  socket.on('load-session', function(sessionId) {
+  socket.on('load-session', function (sessionId) {
     if (!sessionId) return;
-    
+
     withDbConnection(async () => {
       try {
         const SessionHistory = mongoose.model('SessionHistory');
         const session = await SessionHistory.findById(sessionId);
-        
+
         if (!session) return;
-        
+
         // Send to client
         socket.emit('session-loaded', { session, sessionId });
-        
+
       } catch (error) {
         logger.error(`Session load error: ${error.message}`);
       }
     });
   });
-  
+
   // Save session
-  socket.on('save-session', function(data) {
+  socket.on('save-session', function (data) {
     if (!data || !socket.bambiUsername || socket.bambiUsername === 'anonBambi') return;
-    
+
     withDbConnection(async () => {
       try {
         const SessionHistory = mongoose.model('SessionHistory');
-        
+
         if (data.sessionId) {
           // Update existing
           await SessionHistory.findByIdAndUpdate(data.sessionId, {
@@ -566,7 +704,7 @@ function setupSessionEvents(socket) {
               messages: { $each: data.messages || [] }
             }
           });
-          
+
         } else {
           // Create new
           const session = new SessionHistory({
@@ -581,7 +719,7 @@ function setupSessionEvents(socket) {
               spiralSettings: data.settings?.spiralSettings || {}
             }
           });
-          
+
           await session.save();
           socket.emit('session-created', { sessionId: session._id });
         }
@@ -600,7 +738,7 @@ function setupSessionEvents(socket) {
  */
 function parseCookies(cookieHeader) {
   if (!cookieHeader) return {};
-  
+
   return cookieHeader
     .split(';')
     .map(cookie => cookie.trim().split('='))
@@ -622,7 +760,7 @@ function filterWords(content, filteredWords) {
     if (typeof content !== 'string') {
       content = String(content);
     }
-    
+
     return content
       .split(' ')
       .map((word) => {
@@ -649,18 +787,18 @@ function handleSocketDisconnect(socket, io) {
     io.emit('user_disconnect', { userId: socket.id });
 
     const socketData = socketStore.get(socket.id);
-    const bambiName = socketData?.username || 
-                     socket.bambiUsername || 
-                     socket.handshake.headers.cookie?.split(';')
-                       .find(c => c.trim().startsWith('bambiname='))
-                       ?.split('=')[1] || 'unregistered';
-    
+    const bambiName = socketData?.username ||
+      socket.bambiUsername ||
+      socket.handshake.headers.cookie?.split(';')
+        .find(c => c.trim().startsWith('bambiname='))
+        ?.split('=')[1] || 'unregistered';
+
     const totalConnections = socket.server.engine.clientsCount;
     const activeWorkers = socketStore.size;
-    
+
     const reason = socket.disconnectReason || 'unknown';
     logger.info(`Client disconnected: ${socket.id} (${bambiName}) - Reason: ${reason}`);
-    
+
     socketStore.delete(socket.id);
     const updatedConnections = socket.server.engine.clientsCount;
     logger.info(`Socket removed from store: ${socket.id} (${bambiName}), remaining connections: ${updatedConnections}`);
@@ -676,7 +814,7 @@ function handleSocketDisconnect(socket, io) {
  */
 function setupErrorHandlers(app) {
   app.use(errorHandler);
-  
+
   logger.info('Error handlers configured');
 }
 
@@ -688,7 +826,7 @@ function setupErrorHandlers(app) {
 function getServerAddress() {
   try {
     const interfaces = os.networkInterfaces();
-    
+
     for (const name of Object.keys(interfaces)) {
       for (const iface of interfaces[name]) {
         if (iface.family === 'IPv4' && !iface.internal) {
@@ -696,7 +834,7 @@ function getServerAddress() {
         }
       }
     }
-    
+
     return '127.0.0.1';
   } catch (error) {
     logger.error('Error getting server address:', error);
@@ -710,24 +848,24 @@ function getServerAddress() {
 function monitorResources() {
   const memoryUsage = process.memoryUsage();
   logger.info(`Memory usage: RSS ${Math.round(memoryUsage.rss / 1024 / 1024)}MB, Heap ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}/${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
-  
+
   if (!socketStore) return;
-  
+
   const now = Date.now();
   let activeCount = 0;
   let idleCount = 0;
   let longIdleCount = 0;
-  
+
   let youngest = Infinity;
   let oldest = 0;
-  
+
   for (const [socketId, socketData] of socketStore.entries()) {
     const age = now - socketData.connectedAt;
     const idleTime = now - socketData.lastActivity;
-    
+
     youngest = Math.min(youngest, age);
     oldest = Math.max(oldest, age);
-    
+
     if (idleTime < 300000) {
       activeCount++;
     } else if (idleTime < 1800000) {
@@ -736,13 +874,13 @@ function monitorResources() {
       longIdleCount++;
     }
   }
-  
+
   logger.info(`Sockets: ${socketStore.size} total (${activeCount} active, ${idleCount} idle, ${longIdleCount} long idle)`);
-  
+
   if (socketStore.size > 0) {
     logger.info(`Socket age: newest ${Math.round(youngest / 1000 / 60)}m, oldest ${Math.round(oldest / 1000 / 60)}m`);
   }
-  
+
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   logger.info(`Database status: ${dbStatus}`);
 }
@@ -753,12 +891,12 @@ function monitorResources() {
 function monitorMemoryForOOM() {
   const memoryUsage = process.memoryUsage();
   const usedHeapRatio = memoryUsage.heapUsed / memoryUsage.heapTotal;
-  
+
   if (usedHeapRatio > 0.8) {
     logger.warning(`High memory usage detected: ${Math.round(usedHeapRatio * 100)}% of heap used. Forcing garbage collection.`);
-    
+
     garbageCollector.collect(socketStore);
-    
+
     const now = Date.now();
     for (const [socketId, socketData] of socketStore.entries()) {
       const idleTime = now - (socketData.lastActivity || 0);
@@ -811,12 +949,12 @@ async function getProfileByUsername(username) {
     try {
       const Profile = mongoose.model('Profile');
       const profile = await Profile.findOne({ username });
-      
+
       if (!profile) {
         logger.warning(`Profile not found for username: ${username}`);
         return null;
       }
-      
+
       return profile;
     } catch (error) {
       logger.error(`Error fetching profile for ${username}: ${error.message}`);
@@ -845,56 +983,56 @@ async function startServer() {
   try {
     logger.info('Step 1/5: Connecting to MongoDB...');
     const dbConnected = await connectDB(3);
-    
+
     if (!dbConnected) {
       logger.error('Failed to connect to MongoDB after multiple attempts. Server cannot start.');
       process.exit(1);
     }
-    
+
     if (mongoose.connection.readyState !== 1) {
       logger.error('Database connection reported success but connection is not ready. Server cannot start.');
       process.exit(1);
     }
-    
+
     logger.success('MongoDB connection established');
-    
+
     logger.info('Step 2/5: Initializing application...');
     const { app, server, io, socketStore } = await initializeApp();
     logger.success('Application initialized');
-    
+
     logger.info('Step 3/5: Starting HTTP server...');
     const PORT = config.SERVER_PORT || 6969;
-    
+
     server.listen(PORT, () => {
       logger.success(`Server running on http://${getServerAddress()}:${PORT}`);
       logger.success('Server startup completed successfully');
     });
-    
+
     if (process.env.NODE_ENV === 'production') {
       startConnectionMonitoring(300000);
     } else {
       startConnectionMonitoring(60000);
     }
-    
+
     // Start database health monitoring
     startDbHealthMonitor();
     startConnectionPoolMonitor();
     logger.info('Database health and connection pool monitors started');
-    
+
     global.socketStore = socketStore;
     memoryMonitor.start();
     if (process.env.MEMORY_MONITOR_ENABLED === 'true') {
-      const monitorInterval = process.env.MEMORY_MONITOR_INTERVAL 
-        ? parseInt(process.env.MEMORY_MONITOR_INTERVAL) 
+      const monitorInterval = process.env.MEMORY_MONITOR_INTERVAL
+        ? parseInt(process.env.MEMORY_MONITOR_INTERVAL)
         : (process.env.NODE_ENV === 'production' ? 60000 : 30000);
-      
+
       memoryMonitor.start(monitorInterval);
       logger.info(`Enhanced memory monitoring started (interval: ${monitorInterval}ms) to prevent overnight OOM kills`);
     } else {
       memoryMonitor.start(process.env.NODE_ENV === 'production' ? 60000 : 30000);
       logger.info('Standard memory monitoring started to prevent overnight OOM kills');
     }
-    
+
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
     process.on('uncaughtException', (err) => {
@@ -905,14 +1043,14 @@ async function startServer() {
       logger.error('Unhandled rejection at:', promise, 'reason:', reason);
       gracefulShutdown('UNHANDLED_REJECTION', server);
     });
-    
+
     // Store the server and io instances globally for proper shutdown
     global.httpServer = server;
     global.io = io;
-    
+
     // Increase max listeners to prevent warning during rapid shutdown signals
     server.setMaxListeners(25);
-    
+
     return server;
   } catch (error) {
     logger.error('Error during server startup:', error);
