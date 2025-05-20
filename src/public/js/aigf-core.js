@@ -76,40 +76,64 @@ socket.on('detected-triggers', (data) => {
     }
 });
 
-// Basic error handling for socket response processing
-socket.on('response', async (message) => {
-    // Check if message exists
-    if (!message) {
-        console.log('Empty response received');
-        return;
-    }
+// Replace the existing socket.on('response') handler with this simpler version
 
-    try {
-        const messageText = message;
-        const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
-        for (let sentence of sentences) {
-            if (sentence.trim()) {
-                _textArray.push(sentence);
-                console.log('Text array:', _textArray);
-                if (state) {
-                    handleAudioEnded();
-                }
-            }
-        }
-        applyUppercaseStyle();
-        
-        // Check for trigger words in the response
-        detectAndPlayTriggers(messageText);
-    } catch (err) {
-        console.log('Error processing response:', err.message);
-        // Create simple error message in chat
-        if (response) {
-            const errorElement = document.createElement('p');
-            errorElement.textContent = "Error processing response. Please try again.";
-            errorElement.style.color = "#ff6b6b";
-            response.appendChild(errorElement);
-        }
+socket.on('response', function(message) {
+  // Skip if no message received
+  if (!message) {
+    console.log('Empty response received');
+    return;
+  }
+
+  try {
+    // Get raw text from message regardless of format
+    const messageText = typeof message === 'object' ? message.data : message;
+    
+    // Create and display message element
+    const messageElement = document.createElement('p');
+    messageElement.textContent = messageText;
+    
+    if (response.firstChild) {
+      response.insertBefore(messageElement, response.firstChild);
+    } else {
+      response.appendChild(messageElement);
     }
+    
+    currentMessage = messageText;
+    
+    // Process text for TTS
+    const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
+    for (let sentence of sentences) {
+      if (sentence.trim()) {
+        _textArray.push(sentence);
+      }
+    }
+    
+    if (state) {
+      handleAudioEnded();
+    }
+    
+    // Apply visual styling
+    applyUppercaseStyle();
+    
+    // Check for trigger words
+    detectAndPlayTriggers(messageText);
+    
+    // Scroll to bottom of chat
+    if (chatList) {
+      chatList.scrollTop = chatList.scrollHeight;
+    }
+  } catch (err) {
+    console.log('Error processing response:', err);
+    
+    // Simple error fallback
+    if (response) {
+      const errorElement = document.createElement('p');
+      errorElement.textContent = "Error processing response. Please try again.";
+      errorElement.style.color = "#ff6b6b";
+      response.appendChild(errorElement);
+    }
+  }
 });
 
 // Improve socket connection handling

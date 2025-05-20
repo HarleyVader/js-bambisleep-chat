@@ -109,32 +109,23 @@ export default function setupLMStudioSockets(socket, io, lmstudio, filterContent
 function handleWorkerMessage(socket, io, msg) {
   try {
     if (msg.type === "log") {
-      logger.info(msg.data, msg.socketId);
+      logger.info(msg.data);
     } else if (msg.type === 'response') {
+      // Simple string conversion for consistency
       const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
       
-      // Build a consistent response object
-      const responseObj = {
-        data: responseData,
-        username: msg.meta?.username || 'BambiAI',
-        timestamp: new Date().toISOString(),
-        wordCount: msg.meta?.wordCount || 0,
-        sessionId: msg.sessionId || null
-      };
-      
-      // Try to send immediately, queue if socket isn't connected
+      // Find the target socket
       const targetSocket = io.sockets.sockets.get(msg.socketId);
       
       if (targetSocket && targetSocket.connected) {
-        targetSocket.emit("response", responseObj);
+        // Send as simple string to avoid parsing issues
+        targetSocket.emit("response", responseData);
         logger.debug(`Sent response to ${msg.socketId}`);
       } else {
-        // Socket not available or disconnected, queue the message
-        messageQueue.queueMessage(msg.socketId, responseObj, "response");
-        logger.info(`Queued response for disconnected socket ${msg.socketId}`);
+        logger.info(`Socket ${msg.socketId} disconnected, can't send response`);
       }
       
-      // Emit as chat message too if enabled
+      // Also emit as chat message if needed
       if (msg.meta?.emitAsChat) {
         const chatMessage = {
           username: 'BambiAI',
@@ -144,63 +135,16 @@ function handleWorkerMessage(socket, io, msg) {
         
         if (targetSocket && targetSocket.connected) {
           targetSocket.emit("chat message", chatMessage);
-        } else {
-          messageQueue.queueMessage(msg.socketId, chatMessage, "chat message");
         }
       }
-    } else if (msg.type === 'stream:start') {
-      // Stream started notification
-      const targetSocket = io.sockets.sockets.get(msg.socketId);
-      
-      if (targetSocket && targetSocket.connected) {
-        targetSocket.emit("stream:start", {
-          username: msg.meta?.username || 'BambiAI',
-          timestamp: new Date().toISOString()
-        });
-      }
-    } else if (msg.type === 'stream:chunk') {
-      // Stream chunk notification
-      const targetSocket = io.sockets.sockets.get(msg.socketId);
-      
-      if (targetSocket && targetSocket.connected) {
-        targetSocket.emit("stream:chunk", {
-          chunk: msg.data,
-          username: msg.meta?.username || 'BambiAI'
-        });
-      }
-      // No queue for stream chunks - if user disconnects, they'll get the full response on reconnect
-    } else if (msg.type === 'stream:end') {
-      // Stream ended notification
-      const targetSocket = io.sockets.sockets.get(msg.socketId);
-      const responseObj = {
-        data: msg.data,
-        username: msg.meta?.username || 'BambiAI',
-        timestamp: new Date().toISOString(),
-        wordCount: msg.meta?.wordCount || 0,
-        sessionId: msg.sessionId || null,
-        fromStream: true
-      };
-      
-      if (targetSocket && targetSocket.connected) {
-        targetSocket.emit("stream:end", responseObj);
-        // Also emit as normal response for compatibility
-        targetSocket.emit("response", responseObj);
-      } else {
-        // Queue only the final response
-        messageQueue.queueMessage(msg.socketId, responseObj, "response");
-      }
     } else if (msg.type === 'xp:update') {
-      // Forward XP updates to the specific socket that triggered the action
-      if (msg.socketId && msg.username) { // Add check for username
+      if (msg.socketId && msg.username) {
         io.to(msg.socketId).emit("xp:update", {
           username: msg.username,
           xp: msg.data.xp,
           level: msg.data.level,
-          generatedWords: msg.data.generatedWords,
           xpEarned: msg.data.xpEarned
         });
-
-        logger.info(`XP update for ${msg.username || 'unknown user'}: +${msg.data.xpEarned} XP`);
       }
     } else if (msg.type === 'collar') {
       if (msg.socketId && msg.data) {
@@ -209,20 +153,15 @@ function handleWorkerMessage(socket, io, msg) {
     } else if (msg.type === 'detected-triggers') {
       if (msg.socketId && msg.triggers) {
         io.to(msg.socketId).emit("detected-triggers", { 
-          triggers: msg.triggers,
-          timestamp: new Date().toISOString()
+          triggers: msg.triggers
         });
       }
     }
   } catch (error) {
     logger.error('Error in worker message handler:', error);
     
-    // Send error message to client
     if (msg.socketId) {
-      io.to(msg.socketId).emit("error", { 
-        message: "An error occurred while processing your message",
-        error: error.message
-      });
+      io.to(msg.socketId).emit("error", "An error occurred while processing your message");
     }
   }
 }
