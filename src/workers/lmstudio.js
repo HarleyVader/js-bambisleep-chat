@@ -1207,3 +1207,31 @@ function verifyTriggerIntegrity(triggers) {
   logger.info(`Verified ${triggerArray.length} valid triggers: ${triggerArray.join(', ')}`);
   return true;
 }
+
+// Make sure to update the saveSession function in the LMStudio worker file
+
+function saveSession(socketId, messages) {
+  try {
+    const socket = getSocketById(socketId);
+    if (!socket) return;
+    
+    // Get session ID from socket or create one
+    const sessionId = socket.bambiData?.sessionId || 
+                      `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
+    // Ensure session has proper ID
+    const sessionData = {
+      sessionId: sessionId,
+      userId: socket.bambiUsername || 'anonymous',
+      messages: messages || [],
+      startTime: new Date(),
+      active: true
+    };
+    
+    // Save to database
+    saveSessionToDatabase(sessionData);
+    
+  } catch (error) {
+    logger.error(`Failed to save session: ${error.message}`);
+  }
+}

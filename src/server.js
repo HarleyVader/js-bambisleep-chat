@@ -776,6 +776,22 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
     }
   }
 
+  // Add this helper function to fix session saving
+
+  // Simple function to ensure sessions have an ID before saving
+  function ensureSessionId(session) {
+    if (!session) return null;
+    
+    // Use existing id or create a new one
+    if (!session.sessionId && !session.id) {
+      session.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    } else if (session.id && !session.sessionId) {
+      session.sessionId = session.id;
+    }
+    
+    return session;
+  }
+
   io.on('connection', (socket) => {
     try {
       // Get username from handshake
@@ -894,24 +910,27 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         }
       });
 
-      // LMStudio message handling
+      // Update the LMStudio message handler to set sessionId properly
       socket.on("message", (message) => {
         try {
           const filteredMessage = filter(message);
+          
+          // Create session ID if none exists
+          if (!socket.bambiData.sessionId) {
+            socket.bambiData.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            socket.emit('session-created', { sessionId: socket.bambiData.sessionId });
+          }
+          
           lmstudio.postMessage({
             type: "message",
             data: filteredMessage,
             socketId: socket.id,
-            username: socket.bambiUsername
+            username: socket.bambiUsername,
+            sessionId: socket.bambiData.sessionId
           });
           
           // Award XP for AI interactions
           xpSystem.awardXP(socket, 5, 'ai-prompt');
-          
-          // Create or update session
-          const sessionId = Math.random().toString(36).substring(2, 15);
-          socket.bambiData.sessionId = sessionId;
-          socket.emit('session-created', { sessionId });
           
           // Notify about conversation start
           socket.emit('conversation-start');
@@ -1297,42 +1316,37 @@ const loadModule = async (moduleName) => {
 
 async function saveSessionToDatabase(session) {
   try {
-    // Log the session object for debugging
-    logger.debug('Saving session:', session?.id || 'unknown ID');
+    // Skip if no session data
+    if (!session) return null;
     
-    // Bail early if session is missing
-    if (!session) {
-      logger.error('Cannot save null or undefined session');
+    // Ensure session has ID
+    session = ensureSessionId(session);
+    if (!session) return null;
+    
+    // Get the SessionHistory model
+    const SessionHistory = mongoose.models.SessionHistory;
+    if (!SessionHistory) {
+      logger.error('SessionHistory model not registered');
       return null;
     }
     
-    // Always ensure we have a sessionId
-    const sessionId = session.id || session.sessionId || `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    
-    // Simple session data with required fields
-    const sessionData = {
-      sessionId: sessionId,
-      userId: session.userId || session.username || 'anonymous',
+    // Create a clean object with required fields
+    const dataToSave = {
+      sessionId: session.sessionId,
+      userId: session.userId || 'anonymous',
       messages: session.messages || [],
       startTime: session.startTime || new Date(),
-      endTime: session.active === false ? new Date() : null
+      endTime: session.endTime || null
     };
     
-    // Get SessionHistory model
-    await registerModels();
-    const SessionHistory = mongoose.model('SessionHistory');
-    
-    // Update or create session
-    const result = await SessionHistory.findOneAndUpdate(
-      { sessionId: sessionId },
-      sessionData,
-      { upsert: true, new: true, runValidators: true }
+    // Save to database
+    return await SessionHistory.findOneAndUpdate(
+      { sessionId: session.sessionId },
+      dataToSave,
+      { upsert: true, new: true }
     );
-    
-    logger.debug(`Session ${sessionId} saved successfully`);
-    return result;
   } catch (error) {
-    logger.error(`Error saving session to database: ${error.message}`);
+    logger.error(`Error saving session: ${error.message}`);
     return null;
   }
 }
