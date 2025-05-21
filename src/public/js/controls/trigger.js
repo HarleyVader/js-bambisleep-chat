@@ -111,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Save trigger state
   function saveTriggerState() {
-    // Get all checked triggers
     const triggers = [];
     document.querySelectorAll('.toggle-input:checked').forEach(toggle => {
       const name = toggle.getAttribute('data-trigger');
@@ -120,21 +119,10 @@ document.addEventListener('DOMContentLoaded', function() {
       if (name) triggers.push({name, description: desc});
     });
     
-    // Save with system if available
-    if (window.bambiSystem?.saveState) {
-      window.bambiSystem.saveState('triggers', {triggers});
-    } else {
-      // Fallback to localStorage
-      localStorage.setItem('bambiActiveTriggers', JSON.stringify(
-        triggers.map(t => t.name)
-      ));
-    }
-    
     // Send to server
     if (window.socket?.connected) {
       const username = document.body.getAttribute('data-username');
       if (username) {
-        // Send both triggerNames (for backwards compatibility) and full trigger objects
         const triggerNames = triggers.map(t => t.name).join(',');
         
         window.socket.emit('triggers', {
