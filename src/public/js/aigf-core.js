@@ -199,89 +199,49 @@ function handleClick() {
 }
 
 socket.on('response', async (message) => {
-    try {
-        // Handle both string and object responses
-        const messageText = typeof message === 'object' ? JSON.stringify(message) : message;
-        const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
-        
-        // Reset text array
-        _textArray.length = 0;
-        
-        // Add each sentence to the text array
-        for (let sentence of sentences) {
-            if (sentence.trim(/(?<=[:;,.!?]["']?)\s+/g)) {
-                _textArray.push(sentence);
-            }
-        }        
-        // Start processing audio if needed
-        if (state && _textArray.length > 0) {
+    const messageText = message;
+    const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
+    for (let sentence of sentences) {
+        _textArray.push(sentence);
+        console.log('Text array:', _textArray);
+        if (state) {
             handleAudioEnded();
         }
-    } catch (error) {
-        console.error('Error handling response:', error);
+        sentence = '';
     }
+    applyUppercaseStyle();
 });
 
 function handleAudioEnded() {
-    try {
-        if (_textArray.length > 0) {
-            state = false;
-            text = _textArray.shift();
-            
-            if (text && text.trim()) {
-                arrayPush(_audioArray, text);
-                if (typeof do_tts === 'function') {
-                    do_tts(_audioArray);
-                }
-            } else {
-                // If text is empty, move to the next item
-                handleAudioEnded();
-            }
-        } else {
-            state = true;
-        }
-    } catch (error) {
-        console.error('Error in handleAudioEnded:', error);
+    if (_textArray.length > 0) {
+        state = false;
+        text = _textArray.shift();
+    } else if (_textArray.length === 0) {
         state = true;
+        return;
     }
+    arrayPush(_audioArray, text);
+    do_tts(_audioArray);
 }
 
 function handleAudioPlay() {
-    try {
-        if (!audio) return;
-        
-        console.log('Audio is playing');
-        const duration = audio.duration * 1000;
-
-         // Display the full message in response area
-        const messageElement = document.createElement('p');
-        messageElement.textContent = messageText;
-        
-        if (response) {
-            if (response.firstChild) {
-                response.insertBefore(messageElement, response.firstChild);
-            } else {
-                response.appendChild(messageElement);
-            }
-        }
-        
-        // Apply uppercase style to triggers
-        applyUppercaseStyle();
-        
-        // Flash trigger for the duration of the audio
-        if (text && text.trim()) {
-            flashTrigger(text, duration);
-        }
-    } catch (error) {
-        console.error('Error in handleAudioPlay:', error);
+    console.log('Audio is playing');
+    const duration = audio.duration * 1000;
+    new Promise(resolve => setTimeout(resolve, duration));
+    flashTrigger(text, duration);
+    const messageElement = document.createElement('p');
+    messageElement.textContent = text;
+    console.log('Text reply: ', messageElement.textContent);
+    if (response.firstChild) {
+        response.insertBefore(messageElement, response.firstChild);
+    } else {
+        response.appendChild(messageElement);
     }
+    applyUppercaseStyle();
 }
 
-// Fix audio event listeners by checking element exists
-if (audio) {
-    audio.addEventListener('ended', handleAudioEnded);
-    audio.addEventListener('play', handleAudioPlay);
-}
+audio.addEventListener('ended', handleAudioEnded);
+audio.addEventListener('play', handleAudioPlay);
 
 // Clean up event listeners when appropriate
 function cleanup() {
