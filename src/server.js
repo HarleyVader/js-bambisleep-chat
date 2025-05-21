@@ -29,42 +29,29 @@ import chatRouter, { basePath as chatBasePath } from './routes/chat.js';
 import Logger from './utils/logger.js';
 import errorHandler from './utils/errorHandler.js';
 
-// Fix registerModels function to properly import the schemas
+// Fix the registerModels function to properly import schemas
 async function registerModels() {
   try {
-    // Import Profile model
-    const ProfileModel = await import('./models/Profile.js');
+    // Import Profile model - simpler approach
+    const ProfileModule = await import('./models/Profile.js');
     if (!mongoose.models.Profile) {
-      const schema = ProfileModel.default || ProfileModel.schema || ProfileModel;
-      if (!schema) {
-        throw new Error('Could not extract schema from Profile model');
-      }
-      mongoose.model('Profile', schema);
+      // Use the schema directly from the imported module
+      mongoose.model('Profile', ProfileModule.default.schema);
       logger.info('Profile model registered');
     }
     
-    // Import SessionHistory model
+    // Import SessionHistory model - simpler approach
     const SessionHistoryModule = await import('./models/SessionHistory.js');
     if (!mongoose.models.SessionHistory) {
-      const schema = SessionHistoryModule.default?.schema || 
-                    SessionHistoryModule.schema || 
-                    new mongoose.Schema({
-                      sessionId: { type: String, required: true },
-                      userId: { type: String, default: 'anonymous' },
-                      messages: { type: Array, default: [] },
-                      startTime: { type: Date, default: Date.now },
-                      endTime: { type: Date }
-                    });
-      
-      mongoose.model('SessionHistory', schema);
+      // Use the schema directly from the imported module
+      mongoose.model('SessionHistory', SessionHistoryModule.default.schema);
       logger.info('SessionHistory model registered');
     }
     
-    // Import and register ChatMessage model
-    const ChatMessageModel = await import('./models/ChatMessage.js');
+    // Import ChatMessage model
+    const ChatMessageModule = await import('./models/ChatMessage.js');
     if (!mongoose.models.ChatMessage) {
-      // Use the default export which should be the model
-      mongoose.model('ChatMessage', ChatMessageModel.default.schema);
+      mongoose.model('ChatMessage', ChatMessageModule.default.schema);
       logger.info('ChatMessage model registered');
     }
   } catch (error) {
@@ -972,36 +959,38 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       // Fix session save handling in setupSocketHandlers function
       socket.on('save-session', async (data) => {
         try {
-          // Generate sessionId if none exists
-          const sessionId = data?.sessionId || 
-                            socket.bambiData?.sessionId || 
-                            `sess_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+          // Create session ID if not exists
+          const sessionId = data?.sessionId || socket.bambiData?.sessionId || 
+                           `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
           
-          // Store sessionId on socket
+          // Save ID on socket
           if (!socket.bambiData) socket.bambiData = {};
           socket.bambiData.sessionId = sessionId;
           
-          // Create session data object
+          // Format messages according to schema
+          const messages = Array.isArray(data?.content) ? data.content.map(msg => ({
+            role: msg.role || 'user',
+            content: msg.content || msg.text || '',
+            timestamp: msg.timestamp || new Date()
+          })) : [];
+          
+          // Create session data matching schema fields
           const sessionData = {
-            sessionId, // Guaranteed to exist
-            userId: socket.bambiUsername || 'anonymous',
+            sessionId,
             username: socket.bambiUsername || 'anonymous',
-            messages: data?.content || [],
-            startTime: new Date()
+            messages: messages,
+            startedAt: new Date(),
+            lastUpdatedAt: new Date()
           };
           
-          // Save session to database
           const result = await saveSessionToDatabase(sessionData);
           
-          if (result) {
-            logger.info(`Session saved: ${sessionId} for user ${sessionData.username}`);
-            socket.emit('session-saved', { success: true, sessionId });
-          } else {
-            logger.warning(`Session may not have been saved: ${sessionId}`);
-            socket.emit('session-saved', { success: true, sessionId });
-          }
+          socket.emit('session-saved', { 
+            success: !!result, 
+            sessionId 
+          });
         } catch (error) {
-          logger.error('Error saving session:', error);
+          logger.error('Session save error:', error.message);
           socket.emit('session-saved', { success: false, error: 'Failed to save session' });
         }
       });
@@ -1317,34 +1306,42 @@ const loadModule = async (moduleName) => {
 async function saveSessionToDatabase(session) {
   try {
     // Skip if no session data
-    if (!session) return null;
-    
-    // Ensure session has ID
-    session = ensureSessionId(session);
-    if (!session) return null;
-    
-    // Get the SessionHistory model
-    const SessionHistory = mongoose.models.SessionHistory;
-    if (!SessionHistory) {
-      logger.error('SessionHistory model not registered');
+    if (!session) {
+      logger.error('Cannot save null session');
       return null;
     }
     
-    // Create a clean object with required fields
-    const dataToSave = {
-      sessionId: session.sessionId,
-      userId: session.userId || 'anonymous',
-      messages: session.messages || [],
-      startTime: session.startTime || new Date(),
-      endTime: session.endTime || null
+    // Ensure session has ID
+    const sessionId = session.sessionId || session.id || `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
+    // Make sure models are registered
+    await registerModels();
+    
+    // Get model directly
+    const SessionHistory = mongoose.model('SessionHistory');
+    
+    // Match fields to your schema
+    const sessionData = {
+      sessionId: sessionId,
+      username: session.username || session.userId || 'anonymous', // Use username field from schema
+      messages: session.messages?.map(msg => ({
+        role: msg.role || 'user',
+        content: msg.content || msg.text || '',
+        timestamp: msg.timestamp || new Date()
+      })) || [],
+      startedAt: session.startTime || new Date(),  // Match to your schema (startedAt)
+      lastUpdatedAt: new Date()  // Match to your schema
     };
     
-    // Save to database
-    return await SessionHistory.findOneAndUpdate(
-      { sessionId: session.sessionId },
-      dataToSave,
+    // Use findOneAndUpdate with upsert
+    const result = await SessionHistory.findOneAndUpdate(
+      { sessionId },
+      sessionData,
       { upsert: true, new: true }
     );
+    
+    logger.debug(`Session saved: ${sessionId}`);
+    return result;
   } catch (error) {
     logger.error(`Error saving session: ${error.message}`);
     return null;
