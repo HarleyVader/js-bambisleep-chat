@@ -507,7 +507,7 @@ function setupRoutes(app) {    // Register main routes
 }
 
 /**
- * Configure Text-to-Speech API routes
+ * Configure TTS routes for the application
  * 
  * @param {Express} app - Express application instance
  */
@@ -527,7 +527,8 @@ function setupTTSRoutes(app) {
     } catch (error) {
       logger.error(`Voice listing error: ${error.message}`);
       res.status(500).json({
-        error: 'Error fetching voice list'
+        error: 'Error fetching voice list',
+        details: process.env.NODE_ENV === 'production' ? null : error.message
       });
     }
   });
@@ -537,20 +538,56 @@ function setupTTSRoutes(app) {
     const text = req.query.text;
     const voice = req.query.voice || config.KOKORO_DEFAULT_VOICE;
 
-    if (!text) {
-      return res.status(400).json({ error: 'Text parameter is required' });
+    if (typeof text !== 'string' || text.trim() === '') {
+      return res.status(400).json({ error: 'Invalid input: text must be a non-empty string' });
     }
 
     try {
       const response = await fetchTTSFromKokoro(text, voice);
-      
+
+      // Set appropriate headers
       res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Length', response.data.length);
       res.setHeader('Cache-Control', 'no-cache');
+
+      // Send the audio data
       res.send(response.data);
     } catch (error) {
-      logger.error(`TTS API Error: ${error.message}`);
-      res.status(500).json({ error: 'Failed to generate speech' });
+      handleTTSError(error, res);
     }
+  });
+  
+  logger.info('TTS routes configured');
+}
+
+/**
+ * Handle errors from the TTS API
+ * 
+ * @param {Error} error - The error that occurred
+ * @param {Response} res - Express response object
+ */
+function handleTTSError(error, res) {
+  logger.error(`TTS API Error: ${error.message}`);
+
+  if (error.response) {
+    const status = error.response.status;
+
+    if (status === 401) {
+      logger.error('Unauthorized access to Kokoro API - invalid API key');
+      return res.status(401).json({ error: 'Unauthorized access' });
+    } else {
+      // For other error types
+      const errorDetails = process.env.NODE_ENV === 'production' ? null : error.message;
+      return res.status(status).json({
+        error: 'Error generating speech',
+        details: errorDetails
+      });
+    }
+  }
+
+  return res.status(500).json({
+    error: 'Unexpected error in TTS service',
+    details: process.env.NODE_ENV === 'production' ? null : error.message
   });
 }
 
@@ -562,45 +599,64 @@ function setupTTSRoutes(app) {
  * @returns {Promise<AxiosResponse>} - Response containing audio data
  */
 async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
-  const maxRetries = 3;
-  let retries = 0;
-  
-  while (retries < maxRetries) {
-    try {
-      logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+  try {
+    logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
 
-      const requestData = {
-        model: "kokoro",
-        voice: voice,
-        input: text,
-        response_format: "mp3"
-      };
+    const requestData = {
+      model: "kokoro",
+      voice: voice,
+      input: text,
+      response_format: "mp3"
+    };
 
-      const response = await axios({
-        method: 'post',
-        url: `${config.KOKORO_API_URL}/audio/speech`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.KOKORO_API_KEY}`
-        },
-        data: requestData,
-        responseType: 'arraybuffer',
-        timeout: config.TTS_TIMEOUT || 15000
+    const response = await axios({
+      method: 'post',
+      url: `${config.KOKORO_API_URL}/audio/speech`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.KOKORO_API_KEY}`
+      },
+      data: requestData,
+      responseType: 'arraybuffer',
+      timeout: config.TTS_TIMEOUT || 30000
+    });
+
+    return response;
+  } catch (error) {
+    logger.error(`Error fetching TTS audio: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Handle errors from the TTS API
+ * 
+ * @param {Error} error - The error that occurred
+ * @param {Response} res - Express response object
+ */
+function handleTTSError(error, res) {
+  logger.error(`TTS API Error: ${error.message}`);
+
+  if (error.response) {
+    const status = error.response.status;
+
+    if (status === 401) {
+      logger.error('Unauthorized access to Kokoro API - invalid API key');
+      return res.status(401).json({ error: 'Unauthorized access' });
+    } else {
+      // For other error types
+      const errorDetails = process.env.NODE_ENV === 'production' ? null : error.message;
+      return res.status(status).json({
+        error: 'Error generating speech',
+        details: errorDetails
       });
-
-      return response;
-    } catch (error) {
-      retries++;
-      
-      if (retries >= maxRetries) {
-        logger.error(`Error fetching TTS audio: ${error.message}`);
-        throw error;
-      }
-      
-      logger.info(`TTS retry ${retries}/${maxRetries} after error: ${error.message}`);
-      await new Promise(resolve => setTimeout(resolve, 1000 * retries));
     }
   }
+
+  return res.status(500).json({
+    error: 'Unexpected error in TTS service',
+    details: process.env.NODE_ENV === 'production' ? null : error.message
+  });
 }
 
 /**
