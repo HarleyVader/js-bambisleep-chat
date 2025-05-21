@@ -30,6 +30,27 @@ import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
 import errorHandler from './utils/errorHandler.js';
 
+// Add this function near the beginning of the file, where other imports are
+async function registerModels() {
+  try {
+    // Import Profile model
+    const ProfileModel = await import('./models/Profile.js');
+    if (!mongoose.models.Profile) {
+      mongoose.model('Profile', ProfileModel.default);
+      logger.info('Profile model registered');
+    }
+    
+    // Import SessionHistory model
+    const SessionHistory = await import('./models/SessionHistory.js');
+    if (!mongoose.models.SessionHistory) {
+      mongoose.model('SessionHistory', SessionHistory.default);
+      logger.info('SessionHistory model registered');
+    }
+  } catch (error) {
+    logger.error(`Failed to register models: ${error.message}`);
+  }
+}
+
 // Initialize these at the top of the file
 const memoryMonitor = {
   start(interval = 60000) {
@@ -341,6 +362,7 @@ async function initializeApp() {
         // Even if connection appears successful, verify it works with a real operation
         try {
           await ensureModelsRegistered();
+          await registerModels(); // Add this line to register our models
           logger.info('Initializing scheduled tasks');
           // Additional database health verification
           const isReallyHealthy = await isDatabaseConnectionHealthy('main');
@@ -352,6 +374,9 @@ async function initializeApp() {
           logger.warning('Database models could not be properly registered');
         }
       }
+    } else {
+      // Database is healthy, register models
+      await registerModels();
     }
 
     // Set up view engine
@@ -564,33 +589,52 @@ function handleTTSError(error, res) {
  * @returns {Promise<AxiosResponse>} - Response containing audio data
  */
 async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
-  try {
-    logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+  const maxRetries = 3;
+  let retries = 0;
+  let lastError = null;
 
-    const requestData = {
-      model: "kokoro",
-      voice: voice,
-      input: text,
-      response_format: "mp3"
-    };
+  while (retries < maxRetries) {
+    try {
+      logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
 
-    const response = await axios({
-      method: 'post',
-      url: `${config.KOKORO_API_URL}/audio/speech`,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.KOKORO_API_KEY}`
-      },
-      data: requestData,
-      responseType: 'arraybuffer',
-      timeout: config.TTS_TIMEOUT || 30000
-    });
+      const requestData = {
+        model: "kokoro",
+        voice: voice,
+        input: text,
+        response_format: "mp3"
+      };
 
-    return response;
-  } catch (error) {
-    logger.error(`Error fetching TTS audio: ${error.message}`);
-    throw error;
+      const response = await axios({
+        method: 'post',
+        url: `${config.KOKORO_API_URL}/audio/speech`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.KOKORO_API_KEY}`
+        },
+        data: requestData,
+        responseType: 'arraybuffer',
+        timeout: config.TTS_TIMEOUT || 30000
+      });
+
+      return response;
+    } catch (error) {
+      lastError = error;
+      retries++;
+      
+      // Only log after final retry to avoid log spam
+      if (retries >= maxRetries) {
+        logger.error(`Error fetching TTS audio after ${maxRetries} attempts: ${error.message}`);
+      } else {
+        logger.info(`TTS retry ${retries}/${maxRetries} after error: ${error.message}`);
+      }
+      
+      // Wait before retrying (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+    }
   }
+  
+  // If we got here, all retries failed
+  throw lastError;
 }
 
 /**
@@ -860,12 +904,29 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       });
 
       // Session management
-      socket.on('save-session', (data) => {
+      socket.on('save-session', async (data) => {
         try {
-          const sessionId = data.sessionId || socket.bambiData.sessionId;
-          if (!sessionId) return;
+          const sessionId = data.sessionId || socket.bambiData.sessionId || Math.random().toString(36).substring(2, 15);
+          socket.bambiData.sessionId = sessionId;
           
-          // Would normally save to DB, but we'll just acknowledge for now
+          // Ensure session has required fields
+          const sessionData = {
+            sessionId,
+            username: socket.bambiUsername,
+            content: data.content || [],
+            createdAt: new Date()
+          };
+          
+          // Attempt to save in database
+          try {
+            await registerModels();
+            const SessionHistory = mongoose.model('SessionHistory');
+            await SessionHistory.create(sessionData);
+            logger.info(`Session saved: ${sessionId} for user ${socket.bambiUsername}`);
+          } catch (dbError) {
+            logger.error(`Database error saving session: ${dbError.message}`);
+          }
+          
           socket.emit('session-saved', { success: true, sessionId });
         } catch (error) {
           logger.error('Error saving session:', error);
@@ -930,6 +991,10 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             if (socketData && socketData.socket) {
               xpSystem.awardXP(socketData.socket, 3, 'ai-response');
             }
+          } else if (msg.type === 'error') {
+            // Handle error messages from worker
+            logger.error(`Worker error for socket ${msg.socketId}: ${msg.data}`);
+            io.to(msg.socketId).emit("error", msg.data);
           }
         } catch (error) {
           logger.error('Error in lmstudio message handler:', error);
