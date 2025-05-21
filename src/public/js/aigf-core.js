@@ -212,23 +212,7 @@ socket.on('response', async (message) => {
             if (sentence.trim(/(?<=[:;,.!?]["']?)\s+/g)) {
                 _textArray.push(sentence);
             }
-        }
-        
-        // Display the full message in response area
-        const messageElement = document.createElement('p');
-        messageElement.textContent = messageText;
-        
-        if (response) {
-            if (response.firstChild) {
-                response.insertBefore(messageElement, response.firstChild);
-            } else {
-                response.appendChild(messageElement);
-            }
-        }
-        
-        // Apply uppercase style to triggers
-        applyUppercaseStyle();
-        
+        }        
         // Start processing audio if needed
         if (state && _textArray.length > 0) {
             handleAudioEnded();
@@ -268,6 +252,21 @@ function handleAudioPlay() {
         
         console.log('Audio is playing');
         const duration = audio.duration * 1000;
+
+         // Display the full message in response area
+        const messageElement = document.createElement('p');
+        messageElement.textContent = messageText;
+        
+        if (response) {
+            if (response.firstChild) {
+                response.insertBefore(messageElement, response.firstChild);
+            } else {
+                response.appendChild(messageElement);
+            }
+        }
+        
+        // Apply uppercase style to triggers
+        applyUppercaseStyle();
         
         // Flash trigger for the duration of the audio
         if (text && text.trim()) {
