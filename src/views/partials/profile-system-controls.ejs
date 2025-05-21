@@ -4,7 +4,7 @@ const userLevel = profile ? profile.level || 0 : 0;
 const userXp = profile ? profile.xp || 0 : 0;
 
 // Define XP requirements for each level
-const xpRequirements = [1000, 2500, 7500, 17000, 42000];
+const xpRequirements = [1000, 2500, 4500, 7000, 12000, 36000, 112000, 332000];
 
 // Calculate next level XP requirement
 const getNextLevelXP = (level) => {
@@ -432,7 +432,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     // Match XP requirements with the EJS values
-    window.xpRequirements = [1000, 2500, 7500, 17000, 42000];
+    window.xpRequirements = [1000, 2500, 4500, 7000, 12000, 36000, 112000, 332000];
     
     // Tab navigation system
     const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
