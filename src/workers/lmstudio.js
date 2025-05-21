@@ -4,10 +4,9 @@ import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
 import { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 import mongoose from 'mongoose';
-import { connectDB, connectProfilesDB, withDbConnection, disconnectDB, checkDBHealth } from '../config/db.js';
-// Import model files to ensure schema registration
-import '../models/Profile.js';
-import '../models/SessionHistory.js';
+import db from '../config/db.js';
+const { connectDB, connectProfilesDB, withDbConnection, disconnectDB, checkDBHealth, ensureModelsRegistered } = db;
+// Import config
 import config from '../config/config.js';
 // Use a lazy import for SessionHistoryModel to handle database failures more gracefully
 let SessionHistoryModel = null;
@@ -146,70 +145,30 @@ dotenv.config();
 // Initialize database connection when worker starts
 (async function initWorkerDB() {
   try {
-    let mainDbResult = { success: false, connection: null };
-    let profilesDbResult = { success: false, connection: null };
+    // Connect to both databases
+    const dbResults = await db.connectAllDatabases(2);
     
-    try {
-      // Connect to main database (for session history)
-      mainDbResult = await connectDB(2, true);
-    } catch (mainError) {
-      logger.error(`Failed to connect to main database: ${mainError.message}`);
-      mainDbResult = { success: false, connection: null, error: mainError.message };
-    }
-    
-    try {
-      // Connect to profiles database
-      profilesDbResult = await connectProfilesDB(2, true);
-    } catch (profileError) {
-      logger.error(`Failed to connect to profiles database: ${profileError.message}`);
-      profilesDbResult = { success: false, connection: null, error: profileError.message };
-    }
-    
-    if (mainDbResult.success && profilesDbResult.success) {
+    if (dbResults.main && dbResults.profiles) {
       logger.info('All database connections established in LMStudio worker');
       
       // Store connections for easier access
       global.connections = {
-        main: mainDbResult.connection,
-        profiles: profilesDbResult.connection
+        main: db.getConnection(),
+        profiles: db.getProfilesConnection()
       };
       
       // Check if in fallback mode
-      const { inFallbackMode } = await import('../config/db.js');
-      if (inFallbackMode()) {
+      if (db.inFallbackMode()) {
         logger.warning('⚠️ LMStudio worker connected to fallback database');
         logger.warning('⚠️ Some features may not work properly');
       }
       
-      // Register models with their respective connections
-      try {
-        // First ensure models are registered in the default connection
-        try {
-          // Import models explicitly 
-          const SessionHistoryModule = await import('../models/SessionHistory.js');
-          const ProfileModule = await import('../models/Profile.js');
-          
-          // Make sure schemas are available before proceeding
-          const SessionHistorySchema = SessionHistoryModule.default.schema;
-          const ProfileSchema = ProfileModule.default.schema;
-          
-          if (SessionHistorySchema && ProfileSchema) {
-            // Register with specific connections
-            mainDbResult.connection.model('SessionHistory', SessionHistorySchema);
-            profilesDbResult.connection.model('Profile', ProfileSchema);
-            logger.debug('Database models registered successfully with their connections');
-          } else {
-            logger.warning('Model schemas not available for registration');
-          }
-        } catch (importError) {
-          logger.error(`Error importing models: ${importError.message}`);
-          
-          // Fallback approach - try to get already registered models
-          mainDbResult.connection.model('SessionHistory', mongoose.model('SessionHistory').schema);
-          profilesDbResult.connection.model('Profile', mongoose.model('Profile').schema);
-        }
-      } catch (modelRegError) {
-        logger.error(`Error registering models with connections: ${modelRegError.message}`);
+      // Ensure models are registered
+      const modelsRegistered = await db.ensureModelsRegistered();
+      if (modelsRegistered) {
+        logger.debug('Database models registered successfully');
+      } else {
+        logger.warning('⚠️ Failed to register database models');
         logger.warning('⚠️ LMStudio worker will operate with limited functionality');
       }
     } else {
@@ -217,17 +176,16 @@ dotenv.config();
       logger.warning('⚠️ Some features will not be available - session history and user profiles will not be saved');
       
       // Log which connection failed
-      if (!mainDbResult.success) {
+      if (!dbResults.main) {
         logger.warning('⚠️ Main database connection failed');
       }
-      if (!profilesDbResult.success) {
+      if (!dbResults.profiles) {
         logger.warning('⚠️ Profiles database connection failed');
       }
       
       // Try to register models anyway in case connection is established later
       try {
-        mongoose.model('Profile');
-        mongoose.model('SessionHistory');
+        await db.ensureModelsRegistered();
       } catch (modelError) {
         logger.debug(`Model registration error: ${modelError.message}`);
       }
@@ -442,11 +400,9 @@ parentPort.on('message', async (msg) => {
             }
           }
         }
-        
-        // Properly disconnect from database
+          // Properly disconnect from database
         try {
-          const { disconnectDB } = await import('../config/db.js');
-          await disconnectDB();
+          await db.disconnectDB();
           logger.info('Database connection closed during worker shutdown');
         } catch (error) {
           logger.error(`Failed to close database connection: ${error.message}`);
@@ -454,13 +410,10 @@ parentPort.on('message', async (msg) => {
         
         await handleWorkerShutdown('LMStudio', { sessionHistories });
         break;      case 'health:check':
-        lastHealthCheckResponse = Date.now();
-
-        // Use the proper database health check function for more reliable status
+        lastHealthCheckResponse = Date.now();        // Use the proper database health check function for more reliable status
         let dbStatus = { status: 'unknown' };
         try {
-          const { checkDBHealth } = await import('../config/db.js');
-          dbStatus = await checkDBHealth();
+          dbStatus = await db.checkDBHealth();
         } catch (error) {
           logger.error(`Failed to check database health: ${error.message}`);
           dbStatus = { status: 'error', error: error.message };
@@ -663,12 +616,13 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
           collarActive: state,
           collarText: collar,
           modelName: 'Steno Maid Blackroot' // Get actual model name from your LMS response
-        }
-      };      // Check if database connection is available first
-      const { hasConnection } = await import('../config/db.js');
-      if (!hasConnection()) {
+        }      };      
+      
+      // Check if database connection is available first
+      if (!db.hasConnection()) {
         logger.warning(`Cannot save session history for ${username} - no database connection available`);
-      } else {        // Get our SessionHistory model using the safe helper function
+      } else {
+        // Get our SessionHistory model using the safe helper function
         const SessionHistoryModelInstance = await getSessionHistoryModel();
         if (!SessionHistoryModelInstance) {
           logger.warning(`Cannot save session history for ${username} - SessionHistoryModel not available`);
@@ -795,10 +749,8 @@ async function syncSessionWithDatabase(socketId) {
     return; // Skip anonymous sessions or invalid sessions
   }
   
-  try {
-    // First check if database is available
-    const { hasConnection } = await import('../config/db.js');
-    if (!hasConnection()) {
+  try {    // First check if database is available
+    if (!db.hasConnection()) {
       logger.warning(`Cannot sync session ${socketId} to database - no database connection available`);
       return;
     }
@@ -1091,10 +1043,8 @@ async function handleMessage(userPrompt, socketId, username) {
 }
 
 // Helper function to save session to database
-async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username) {
-  // Check connection before attempting database operations
-  const { hasConnection } = await import('../config/db.js');
-  if (!hasConnection()) {
+async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username) {  // Check connection before attempting database operations
+  if (!db.hasConnection()) {
     logger.warning(`Skipping session save - no database connection`);
     return;
   }
@@ -1173,10 +1123,9 @@ function performWorkerCleanup() {
     garbageCollectionInterval = null;
     logger.debug('Cleared garbage collection interval');
   }
-  
-  // Close database connection if still open
+    // Close database connection if still open
   if (mongoose.connection.readyState !== 0) {
-    disconnectDB()
+    db.disconnectDB()
       .then(() => logger.info('Database connection closed during cleanup'))
       .catch(err => logger.error(`Error closing database connection: ${err.message}`));
   }

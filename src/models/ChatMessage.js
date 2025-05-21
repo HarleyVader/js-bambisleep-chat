@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
-import { withDbConnection } from '../config/db.js';
+import db from '../config/db.js';
 import Logger from '../utils/logger.js';
+
+const { withDbConnection } = db;
 
 // Create a logger instance properly
 const logger = new Logger('ChatMessage');

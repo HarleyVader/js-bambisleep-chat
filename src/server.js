@@ -17,7 +17,7 @@ import { Worker } from 'worker_threads';
 // Import configuration
 import config from './config/config.js';
 import footerConfig from './config/footer.config.js';
-// Database functions are imported dynamically to prevent circular dependencies
+// Database module is imported dynamically to prevent circular dependencies
 
 // Import routes
 import indexRoute from './routes/index.js';
@@ -105,8 +105,9 @@ const dbRoutes = [];
 function startDbHealthMonitor() {
   const interval = config.DB_HEALTH_CHECK_INTERVAL || 60000;  scheduledTasks.addTask('dbHealthCheck', async () => {    
     try {
-      // Import database functions dynamically to prevent circular dependencies
-      const { checkAllDatabasesHealth, connectAllDatabases, hasConnection } = await import('./config/db.js');
+      // Import database module dynamically to prevent circular dependencies
+      const db = await import('./config/db.js');
+      const { checkAllDatabasesHealth, connectAllDatabases, hasConnection } = db.default;
       
       // First check if connection is available at all
       if (!hasConnection()) {
@@ -143,9 +144,9 @@ function startDbHealthMonitor() {
           logger.warning(`${type} database connection not healthy: ${status.status}`);
             // Try to reconnect to unhealthy database
           logger.info(`Attempting to reconnect to ${type} database`);
-          try {
-            // Import database functions dynamically to prevent circular dependencies
-            const { connectAllDatabases } = await import('./config/db.js');
+          try {            // Import database module dynamically to prevent circular dependencies
+            const db = await import('./config/db.js');
+            const { connectAllDatabases } = db.default;
             
             await Promise.resolve(connectAllDatabases(1)).catch(err => {
               logger.error(`Failed to reconnect to ${type} database: ${err.message}`);
@@ -171,22 +172,20 @@ function startConnectionPoolMonitor() {
   scheduledTasks.addTask('connectionPoolMonitor', async () => {
     try {
       // First check if we have a connection monitor function available
-      try {
-        // Dynamically import to avoid circular dependencies
-        const { checkMongoConnectionPool } = await import('./utils/dbReconnector.js').catch(() => {
-          return { checkMongoConnectionPool: null };
+      try {        // Dynamically import db to avoid circular dependencies
+        const db = await import('./config/db.js').catch(() => {
+          return { default: { checkDBHealth: null } };
         });
-        
-        if (typeof checkMongoConnectionPool === 'function') {
-          await checkMongoConnectionPool();
+          if (db.default.checkAllDatabasesHealth) {
+          await db.default.checkAllDatabasesHealth();
           return;
         }
       } catch (importError) {
         logger.debug(`Could not use dedicated pool monitor: ${importError.message}`);
       }
-      
-      // Fallback: Check if mongoose connection exists and is ready
-      if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+        // Fallback: Check if connection exists and is ready
+      const dbModule = await import('./config/db.js');
+      if (!dbModule.default.hasConnection()) {
         logger.debug('MongoDB connection not ready, skipping pool check');
         return;
       }
@@ -223,11 +222,14 @@ function startConnectionMonitoring(interval) {
 
 // Add this middleware definition that was missing
 function dbFeatureCheck(required) {
-  return (req, res, next) => {
-    if (required && mongoose.connection.readyState !== 1) {
-      return res.render('db-unavailable', {
-        message: 'This feature requires database connectivity which is currently unavailable.'
-      });
+  return async (req, res, next) => {
+    if (required) {
+      const db = await import('./config/db.js');
+      if (!db.default.hasConnection()) {
+        return res.render('db-unavailable', {
+          message: 'This feature requires database connectivity which is currently unavailable.'
+        });
+      }
     }
     next();
   };
@@ -269,7 +271,8 @@ async function initializeApp() {
     const filteredWords = JSON.parse(await fsPromises.readFile(
       path.join(__dirname, 'filteredWords.json'), 'utf8'
     ));    // Verify DB connection before proceeding with robust health check
-    const { isDatabaseConnectionHealthy, connectDB, ensureModelsRegistered } = await import('./config/db.js');
+    const db = await import('./config/db.js');
+    const { isDatabaseConnectionHealthy, connectDB, ensureModelsRegistered } = db.default;
     
     const isHealthy = await isDatabaseConnectionHealthy('main');
     if (!isHealthy || mongoose.connection.readyState !== 1) {
@@ -629,11 +632,11 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       }
     }
   };
-  
-  // Function to update profile XP in DB
+    // Function to update profile XP in DB
   async function updateProfileXP(username, xp) {
     try {
-      if (mongoose.connection.readyState !== 1) return;
+      const db = await import('./config/db.js');
+      if (!db.default.hasConnection()) return;
       
       const Profile = mongoose.model('Profile');
       await Profile.findOneAndUpdate(
@@ -645,11 +648,11 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       logger.error(`Failed to update profile XP: ${error.message}`);
     }
   }
-  
-  // Function to get profile data for a user
+    // Function to get profile data for a user
   async function getProfileData(username) {
     try {
-      if (mongoose.connection.readyState !== 1) return null;
+      const db = await import('./config/db.js');
+      if (!db.default.hasConnection()) return null;
       
       const Profile = mongoose.model('Profile');
       return await Profile.findOne({ username });
@@ -976,14 +979,15 @@ async function startServer() {
   try {
     logger.info('Step 1/5: Connecting to MongoDB...');
     
-    // Import database functions
+    // Import database module
+    const db = await import('./config/db.js');
     const { 
       connectAllDatabases, 
       ensureModelsRegistered, 
       inFallbackMode, 
       checkAllDatabasesHealth, 
       isDatabaseConnectionHealthy 
-    } = await import('./config/db.js');
+    } = db.default;
     
     // Connect to all databases with 3 retry attempts
     const dbResults = await connectAllDatabases(3);
@@ -1066,12 +1070,12 @@ async function startServer() {
       if (errorMessage.includes('ECONNREFUSED') && errorMessage.includes('27017')) {
         logger.error('Database connection failed:', errorMessage);
         logger.warning('Database connection error - server will continue with limited functionality');
-        
-        // Attempt reconnection in the background
+          // Attempt reconnection in the background
         setTimeout(async () => {
           try {
             logger.info('Attempting background reconnect to database...');
-            await Promise.resolve(connectAllDatabases(1)).catch(e => {
+            const db = await import('./config/db.js');
+            await Promise.resolve(db.default.connectAllDatabases(1)).catch(e => {
               logger.error(`Background reconnection attempt failed: ${e.message}`);
             });
           } catch (reconnectError) {
