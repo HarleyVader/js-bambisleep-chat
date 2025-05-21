@@ -43,15 +43,21 @@
               </form>
               <!-- For existing messages in the initial page load -->
               <ul id="chat-response">
-                <% if (chatMessages && chatMessages.length > 0) { %>
+                <% if (chatMessages && chatMessages.length> 0) { %>
                   <% chatMessages.forEach(function(msg) { %>
                     <li <% if (locals.username) { %>class="neon-glow"<% } %>>
-                      <span class="chat-time"><%= new Date(msg.timestamp).toLocaleTimeString([], {hour12: false}) %></span> -
-                      <span class="chat-username"><a href="/profile/<%= msg.username %>" class="username-link"><%= msg.username %></a>:</span>
-                      <span class="chat-message"><%= msg.data %></span>
+                        <span class="chat-time">
+                          <%= new Date(msg.timestamp).toLocaleTimeString([], {hour12: false}) %>
+                        </span> -
+                        <span class="chat-username"><a href="/profile/<%= msg.username %>" class="username-link">
+                            <%= msg.username %>
+                          </a>:</span>
+                        <span class="chat-message">
+                          <%= msg.data %>
+                        </span>
                     </li>
-                  <% }); %>
-                <% } %>
+                    <% }); %>
+                      <% } %>
               </ul>
             </div>
           </div>
@@ -72,346 +78,189 @@
       <%- include('../views/partials/footer.ejs') %>
         <!-- Make sure these scripts appear in exactly this order -->
         <script src="/socket.io/socket.io.js"></script>
+        <script>
+          // This should be the first script that runs on page load
+          document.addEventListener("DOMContentLoaded", () => {
+            // Create global objects for access across scripts
+            window.payload = {};
+            window.bambiSystemSettings = {};
+            
+            // Socket setup
+            if (window.socket && window.socket.connected) {
+              console.log("Socket already connected");
+            }
+            
+            // Make sure payload is defined before line 382 runs
+            setTimeout(() => {
+              // Add this at the beginning to catch any early payload references
+              if (typeof payload === 'undefined') {
+                window.payload = {};
+                // Assign it to the global scope as well
+                payload = window.payload;
+              }
+            }, 0);
+          });
+        </script>
+        <script>
+          // Initialize socket at the global level
+          window.socket = window.socket || io();
+
+          // Log socket connection
+          window.socket.on('connect', function() {
+            console.log('Socket.io connected with ID:', window.socket.id);
+            // Load triggers after connection
+            if (typeof initProfileAndTriggers === 'function') {
+              setTimeout(initProfileAndTriggers, 100);
+            }
+          });
+
+          // Handle reconnection
+          window.socket.on('reconnect', function() {
+            console.log('Socket.io reconnected');
+            // Re-initialize as needed
+            if (typeof initProfileAndTriggers === 'function') {
+              setTimeout(initProfileAndTriggers, 100);
+            }
+          });
+
+          // Handle disconnect
+          window.socket.on('disconnect', function() {
+            console.log('Socket.io disconnected');
+          });
+        </script>
         <script src="js/aigf-core.js"></script>
         <script src="js/psychodelic-trigger-mania.js"></script>
         <script src="js/text2speech.js"></script>
         <script src="js/responsive.js"></script>
-        <script src="js/triggers.js"></script>
         <script>
           document.addEventListener("DOMContentLoaded", () => {
-            const modal = document.getElementById('username-modal');
-            let username = '';
+            // Use window.socket instead of socket
+            // Ensure socket is initialized before using it
+            const initProfileAndTriggers = () => {
+              const modal = document.getElementById('username-modal');
+              let username = '';
 
-// ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪
+              // Get username from cookie
+              const cookieUsername = getCookie('bambiname');
+              username = cookieUsername || '';
+              
+              if (!username) {
+                modal.style.display = 'block';
+              } else {
+                window.username = username;
+              }
+
+              // Set username data attribute for profile-system-controls.ejs
+              document.body.setAttribute('data-username', username);
+
+              // Only load profile triggers if socket exists and is connected
+              if (window.username && window.socket && window.socket.connected) {
+                loadProfileTriggers(window.username);
+              }
+            };
+
+            // Helper function to get cookie by name
             function getCookie(name) {
               const value = `; ${document.cookie}`;
               const parts = value.split(`; ${name}=`);
               if (parts.length === 2) return parts.pop().split(';').shift();
+              return '';
             }
 
-            username = getCookie('bambiname');
-            if (!username) {
-              modal.style.display = 'block';
-            } else {
-              // If we have a username and it's not anonBambi, load the profile triggers
-              if (username !== 'anonBambi') {
-                loadProfileTriggers(username);
+            // Only initialize triggers after socket is ready
+            // Use a short delay to ensure socket.io has initialized
+            setTimeout(() => {
+              if (window.socket) {
+                initProfileAndTriggers();
+              } else {
+                console.error("Socket not available - check script loading order");
               }
-            }
+            }, 100);
 
-            document.getElementById('username-submit').addEventListener('click', () => {
-              const input = document.getElementById('username-input');
-              const newUsername = input.value.trim();
-              if (newUsername) {
-                username = newUsername;
-                document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
-                socket.emit('set username', username);
-                modal.style.display = 'none';
-                window.username = username;
-
-                // Reload the page to update the profile data
-                window.location.reload();
-              }
-            });
-
-            const style = document.createElement('style');
-            document.head.appendChild(style);
-
-            // Set username data attribute for profile-system-controls.ejs
-            document.body.setAttribute('data-username', username);
-            
             // Helper function to load profile triggers
             function loadProfileTriggers(username) {
-              if (typeof socket !== 'undefined' && socket.connected) {
-                socket.emit('get-profile-data', { username }, function(response) {
-                  if (response && response.success && response.profile) {
-                    const profile = response.profile;
-                    if (profile.systemControls && profile.systemControls.activeTriggers) {
-                      const activeTriggers = profile.systemControls.activeTriggers;
-                      
-                      // Send triggers to worker
-                      socket.emit('triggers', {
-                        triggerNames: activeTriggers.join(','),
-                        triggerDetails: activeTriggers.map(t => ({ name: t }))
-                      });
-                      
-                      console.log('Loaded triggers from profile:', activeTriggers);
-                    }
-                  }
-                });
+              if (!window.socket || !window.socket.connected) {
+                console.log("Socket not connected, can't load profile triggers");
+                return;
               }
+              
+              // Request active triggers from server for this profile
+              window.socket.emit('get-profile-triggers', { username });
+              
+              // Listen for trigger data from server
+              window.socket.on('profile-triggers', function(data) {
+                if (data && data.triggerNames && Array.isArray(data.triggerNames)) {
+                  console.log("Received profile triggers:", data.triggerNames);
+                  
+                  // Use localStorage to apply these triggers
+                  localStorage.setItem('bambiActiveTriggers', JSON.stringify(data.triggerNames));
+                  
+                  // If trigger.js is loaded and has this function, update the UI
+                  if (window.bambiAudio && typeof window.bambiAudio.refreshTriggers === 'function') {
+                    window.bambiAudio.refreshTriggers();
+                  }
+
+                  window.socket.emit('triggers', { triggerNames: data.triggerNames });
+                }
+              });
             }
 
             document.getElementById("chat-form").addEventListener("submit", (event) => {
               event.preventDefault();
               const messageInput = document.getElementById("textarea-chat");
               const message = messageInput.value.trim();
-              
+
               if (message && window.username) {
-                if (typeof socket !== 'undefined' && socket.connected) {
-                  socket.emit("chat message", { 
-                    data: message, 
-                    username: window.username 
+                if (window.socket && window.socket.connected) {
+                  window.socket.emit("chat message", {
+                    data: message,
+                    username: window.username
                   });
-                  
+
                   messageInput.value = "";
                   messageInput.style.height = 'inherit';
                 } else {
-                  console.error("Socket connection not available");
-                  alert("Not connected to chat server. Please refresh the page.");
+                  console.error("Socket not connected, can't send message");
                 }
-              }
-            });
-
-            const collarForm = document.getElementById('collar-form-inputs');
-            if (collarForm) {
-              collarForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                const message = document.getElementById('textarea-collar').value.trim();
-                if (message) {
-                  socket.emit('collar', { data: message, socketId: socket.id });
-                  const userCollar = document.getElementById('user-collar');
-                  const messageElement = document.createElement('p');
-                  messageElement.textContent = message;
-                  userCollar.appendChild(messageElement);
-                }
-              });
-            }
-
-            socket.on('collar', (message) => {
-              // Handle collar messages
-              let collarResponse = document.getElementById('textarea-collar-response');
-              
-              if (!collarResponse) {
-                collarResponse = document.createElement('div');
-                collarResponse.id = 'textarea-collar-response';
-                
-                let collarContainer = document.getElementById('collar-container');
-                if (!collarContainer) {
-                  collarContainer = document.createElement('div');
-                  collarContainer.id = 'collar-container';
-                  document.body.appendChild(collarContainer);
-                }
-                
-                collarContainer.appendChild(collarResponse);
-              }
-              
-              const messageElement = document.createElement('p');
-              messageElement.textContent = message;
-              
-              if (collarResponse.firstChild) {
-                collarResponse.insertBefore(messageElement, collarResponse.firstChild);
-              } else {
-                collarResponse.appendChild(messageElement);
-              }
-              
-              if (typeof applyUppercaseStyle === 'function') {
-                applyUppercaseStyle();
               }
             });
             
-            socket.on('profile-update', function(data) {
-              updateXPDisplay(data);
-            });
-
-            socket.on('xp:update', function(data) {
-              updateXPDisplay(data);
-              showXPNotification(data.xpEarned);
-            });
-
-            socket.on('level-up', function(data) {
-              showLevelUpNotification(data.level);
-            });
-
-            function updateXPDisplay(data) {
-              const xpLabel = document.getElementById('xp-progress-label');
-              const xpFill = document.getElementById('xp-progress-fill');
+            // Make functions available globally
+            window.initProfileAndTriggers = initProfileAndTriggers;
+            window.loadProfileTriggers = loadProfileTriggers;
+          });
+        </script>
+        <script>
+          document.addEventListener("DOMContentLoaded", () => {
+            // Create a simple settings object if needed
+            window.bambiSystemSettings = window.bambiSystemSettings || {};
+            
+            // Handle settings updates in a safer way
+            const updateSettings = (settings) => {
+              // Use provided settings or default to empty object
+              const settingsToSend = settings || {};
               
-              if (!xpLabel || !xpFill) return;
-              
-              const level = data.level || 0;
-              const xp = data.xp || 0;
-              const xpRequirements = window.xpRequirements || [100, 250, 450, 700, 1200];
-              
-              xpLabel.classList.add('updating');
-              setTimeout(() => xpLabel.classList.remove('updating'), 600);
-              
-              if (level < xpRequirements.length) {
-                const nextLevelXP = xpRequirements[level];
-                xpLabel.textContent = `Level ${level} • ${xp} XP / ${nextLevelXP} XP`;
-                
-                const percentage = Math.min(100, (xp / Math.max(1, nextLevelXP)) * 100);
-                xpFill.style.width = `${percentage}%`;
-              } else {
-                xpLabel.textContent = `Level ${level} • ${xp} XP (MAX LEVEL)`;
-                xpFill.style.width = '100%';
+              if (window.socket && window.socket.connected) {
+                socket.emit('worker:settings:update', window.payload || {});
               }
-            }
-
-            function showXPNotification(amount) {
-              if (!amount) return;
-              
-              let notification = document.querySelector('.xp-notification');
-              if (!notification) {
-                notification = document.createElement('div');
-                notification.className = 'xp-notification';
-                document.body.appendChild(notification);
-              }
-              
-              notification.textContent = `+${amount} XP`;
-              notification.classList.add('show');
-              
-              setTimeout(() => {
-                notification.classList.remove('show');
-                notification.classList.add('fade-out');
-              }, 3000);
-            }
-
-            function showLevelUpNotification(level) {
-              if (!level) return;
-              
-              let notification = document.querySelector('.level-up-notification');
-              if (!notification) {
-                notification = document.createElement('div');
-                notification.className = 'level-up-notification';
-                
-                const icon = document.createElement('div');
-                icon.className = 'level-up-icon';
-                icon.textContent = '⭐';
-                
-                const text = document.createElement('div');
-                text.className = 'level-up-text';
-                
-                notification.appendChild(icon);
-                notification.appendChild(text);
-                document.body.appendChild(notification);
-              }
-              
-              const textElement = notification.querySelector('.level-up-text');
-              if (textElement) {
-                textElement.textContent = `Level Up! You are now level ${level}!`;
-              }
-              
-              notification.classList.add('show');
-              
-              setTimeout(() => {
-                notification.classList.remove('show');
-                notification.classList.add('fade-out');
-              }, 5000);
-            }
-
-            socket.on("chat message", function(msg) {
-              // Create new chat message element
-              const item = document.createElement("li");
-              
-              const timeSpan = document.createElement("span");
-              timeSpan.className = "chat-time";
-              timeSpan.textContent = new Date(msg.timestamp).toLocaleTimeString([], {hour12: false});
-              
-              const usernameSpan = document.createElement("span");
-              usernameSpan.className = "chat-username";
-              
-              const usernameLink = document.createElement("a");
-              usernameLink.href = `/profile/${msg.username}`;
-              usernameLink.className = "username-link";
-              usernameLink.textContent = msg.username;
-              
-              usernameSpan.appendChild(usernameLink);
-              
-              const messageSpan = document.createElement("span");
-              messageSpan.className = "chat-message";
-              messageSpan.textContent = msg.data;
-              
-              item.appendChild(timeSpan);
-              item.appendChild(document.createTextNode(" - "));
-              item.appendChild(usernameSpan);
-              item.appendChild(document.createTextNode(": "));
-              item.appendChild(messageSpan);
-              
-              if (window.username) {
-                item.classList.add("neon-glow");
-              }
-              
-              const chatList = document.getElementById("chat-response");
-              chatList.appendChild(item);
-              chatList.scrollTop = chatList.scrollHeight;
-            });
-
-            // Central socket handling for system controls
-            socket.on('system-update', function(data) {
-              if (window.bambiSystem) {
-                window.bambiSystem.saveState(data.section, data.data);
-              }
-            });
-
-            // When loading profile data
-            socket.on('profile-data', function(data) {
-              if (data && data.profile && window.bambiSystem) {
-                window.bambiSystem.loadFromProfile(data.profile);
-              }
-            });
-
-            // When starting a conversation, send all system settings to worker
-            socket.on('conversation-start', function() {
-              if (window.bambiSystem) {
-                const settings = window.bambiSystem.collectSettings();
-                socket.emit('system-settings', settings);
-              }
-            });
-
-            // Listen for system update event (handles all settings changes in one place)
-            document.addEventListener('system-update', function(e) {
-              const { section, data } = e.detail;
-              
-              // Apply spiral changes
-              if (section === 'spirals' && window.bambiSpirals) {
-                window.bambiSpirals.updateSettings(data);
-              }
-              
-              // Handle collar updates (centralized here instead of separate handler)
-              if (section === 'collar' && data.text && data.enabled && socket) {
-                socket.emit('collar', { 
-                  data: data.text, 
-                  socketId: socket.id 
-                });
-              }
-              
-              // Send all updated settings to worker
-              if (socket && socket.connected && window.bambiSystem) {
-                socket.emit('system-settings', window.bambiSystem.collectSettings());
-              }
-            });
-
-            // Add these socket event handlers after other socket events
-
-            socket.on('session-loaded', function(data) {
-              if (!data || !data.session) return;
-              
-              // Notify system about loaded session
-              document.dispatchEvent(new CustomEvent('session-loaded', {
-                detail: { session: data.session, sessionId: data.sessionId }
-              }));
-            });
-
-            // When starting a conversation, send system settings to worker
-            socket.on('conversation-start', function() {
-              if (window.bambiSystem) {
-                const settings = window.bambiSystem.collectSettings();
-                socket.emit('system-settings', settings);
-              }
-            });
-
-            // Listen for session ID updates
-            socket.on('session-created', function(data) {
-              if (data && data.sessionId && window.bambiSessions) {
-                window.bambiSessions.setActiveSessionId(data.sessionId);
-              }
-            });
+            };
+            
+            // Fix for p5.js error about missing payload
+            window.payload = {}; // Create empty payload object
+            
+            // Make function available globally
+            window.updateBambiSettings = updateSettings;
+            
+            // Simple helper for safe JSON parsing
+            window.safeJsonParse = (str) => {
+              try { return JSON.parse(str); } 
+              catch(e) { return null; }
+            };
           });
         </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
         <script src="js/bootstrap.min.js"></script>
-        <script src="/js/bambi-sessions.js"></script>
   </body>
+
 </html>

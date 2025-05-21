@@ -4,11 +4,12 @@ import dotenv from 'dotenv';
 import Logger from '../utils/logger.js';
 import { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 import mongoose from 'mongoose';
-import { connectDB, withDbConnection } from '../config/db.js';
-import '../models/Profile.js';  // Import the model file to ensure schema registration
-import '../models/SessionHistory.js';  // Make sure to create this file first
+import db from '../config/db.js';
+const { withDbConnection } = db;
+// Import config
 import config from '../config/config.js';
-import SessionHistoryModel from '../models/SessionHistory.js';
+// Use a lazy import for SessionHistoryModel to handle database failures more gracefully
+let SessionHistoryModel = null;
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -51,6 +52,9 @@ const MAX_SESSIONS = 200; // Maximum number of concurrent sessions
 const SESSION_IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
 let garbageCollectionInterval = null;
 
+// Add to src/workers/lmstudio.js
+const MAX_ACTIVE_SESSIONS = 10; // Adjust based on your server capacity
+
 // Start health monitoring on worker initialization
 setupHealthMonitoring();
 
@@ -76,6 +80,15 @@ function setupGarbageCollection() {
       const removed = collectGarbage(minToRemove);
       if (removed > 0) {
         logger.info(`Scheduled garbage collection removed ${removed} idle sessions`);
+      }
+
+      // If memory is critically high, take emergency action
+      if (heapUsageRatio > 0.9 || memoryUsage.rss > 1.5 * 1024 * 1024 * 1024) { // 90% heap or 1.5GB RSS
+        logger.warning(`CRITICAL: Memory usage too high (${Math.round(heapUsageRatio * 100)}% heap, ${Math.round(memoryUsage.rss / 1024 / 1024)}MB RSS)`);
+        const emergencyRemoved = collectGarbage(Math.ceil(sessionCount * 0.5)); // Remove 50% of sessions
+        if (emergencyRemoved > 0) {
+          logger.warning(`Emergency garbage collection removed ${emergencyRemoved} sessions`);
+        }
       }
     }
   }, gcInterval);
@@ -132,15 +145,59 @@ dotenv.config();
 // Initialize database connection when worker starts
 (async function initWorkerDB() {
   try {
-    await connectDB();
-    logger.info('Database connection established in LMStudio worker');
+    // Connect to both databases
+    const dbResults = await db.connectAllDatabases(2);
+
+    if (dbResults.main && dbResults.profiles) {
+      logger.info('All database connections established in LMStudio worker');
+
+      // Store connections for easier access
+      global.connections = {
+        main: db.getConnection(),
+        profiles: db.getProfilesConnection()
+      };
+
+      // Check if in fallback mode
+      if (db.inFallbackMode()) {
+        logger.warning('⚠️ LMStudio worker connected to fallback database');
+        logger.warning('⚠️ Some features may not work properly');
+      }
+
+      // Ensure models are registered
+      const modelsRegistered = await db.ensureModelsRegistered();
+      if (modelsRegistered) {
+        logger.debug('Database models registered successfully');
+      } else {
+        logger.warning('⚠️ Failed to register database models');
+        logger.warning('⚠️ LMStudio worker will operate with limited functionality');
+      }
+    } else {
+      logger.warning('⚠️ Failed to connect to MongoDB databases in LMStudio worker');
+      logger.warning('⚠️ Some features will not be available - session history and user profiles will not be saved');
+
+      // Log which connection failed
+      if (!dbResults.main) {
+        logger.warning('⚠️ Main database connection failed');
+      }
+      if (!dbResults.profiles) {
+        logger.warning('⚠️ Profiles database connection failed');
+      }
+
+      // Try to register models anyway in case connection is established later
+      try {
+        await db.ensureModelsRegistered();
+      } catch (modelError) {
+        logger.debug(`Model registration error: ${modelError.message}`);
+      }
+    }
   } catch (error) {
-    logger.error(`Failed to connect to database in LMStudio worker: ${error.message}`);
+    logger.error(`Database initialization error: ${error.message}`);
+    logger.warning('⚠️ LMStudio worker will run without database access');
   }
 })();
 
 const sessionHistories = {};
-let triggers = 'Bambi Sleep';
+let triggers = [];
 let triggerDetails = [];
 let collar;
 let collarText;
@@ -152,213 +209,101 @@ logger.info('Starting lmstudio worker...');
 // Set up shutdown handlers with context
 setupWorkerShutdownHandlers('LMStudio', { sessionHistories });
 
+// Helper function to safely get the SessionHistoryModel
+async function getSessionHistoryModel() {
+  if (SessionHistoryModel) return SessionHistoryModel;
+
+  try {
+    // Try to import the model dynamically
+    const module = await import('../models/SessionHistory.js');
+    SessionHistoryModel = module.default;
+    return SessionHistoryModel;
+  } catch (error) {
+    logger.error(`Failed to load SessionHistoryModel: ${error.message}`);
+    return null;
+  }
+}
+
 parentPort.on('message', async (msg) => {
   try {
     lastActivityTimestamp = Date.now();
-    
+
     switch (msg.type) {
-      // Add this case for session management
-      case "set-active-session":
-        if (msg.sessionId) {
-          try {
-            const session = await SessionHistoryModel.findById(msg.sessionId);
-            if (session) {
-              // Update worker state from session
-              if (session.metadata?.triggers) {
-                triggers = Array.isArray(session.metadata.triggers) 
-                  ? session.metadata.triggers.join(',') 
-                  : session.metadata.triggers;
-              }
-              
-              if (session.metadata?.collarActive && session.metadata?.collarText) {
-                collar = session.metadata.collarText;
-                state = true;
-              }
-              
-              logger.info(`Worker loaded session ${msg.sessionId} for ${msg.socketId}`);
-              
-              // Add messages to context if needed
-              if (session.messages && session.messages.length > 0) {
-                if (!sessionHistories[msg.socketId]) {
-                  sessionHistories[msg.socketId] = [];
-                  sessionHistories[msg.socketId].metadata = {
-                    createdAt: Date.now(),
-                    lastActivity: Date.now(),
-                    username: session.username
-                  };
-                }
-                
-                // Prepare system message
-                const systemPrompt = await checkRole(collar, session.username, triggers);
-                
-                // Add system message first
-                sessionHistories[msg.socketId].push({
-                  role: 'system',
-                  content: systemPrompt
-                });
-                
-                // Then add session messages, filtering out system messages
-                session.messages.forEach(msg => {
-                  if (msg.role !== 'system') {
-                    sessionHistories[msg.socketId].push({
-                      role: msg.role,
-                      content: msg.content
-                    });
-                  }
-                });
-              }
-            }
-          } catch (error) {
-            logger.error(`Error loading session ${msg.sessionId}: ${error.message}`);
-          }
-        }
+      case "message":
+        const { prompt, socketId, username } = msg;
+        
+        // Retrieve previous conversation history for this socket
+        let messageHistory = sessionHistories[socketId] || [];
+        
+        // Check for active triggers in this session
+        const activeTriggers = triggers.length > 0 
+          ? `Active triggers: ${triggers.join(', ')}`
+          : 'No active triggers';
+        
+        logger.info(`Processing message from ${username} with ${activeTriggers}`);
+        
+        // Handle the message using this socket's worker
+        await handleMessage(prompt, socketId, username);
         break;
         
-      case 'triggers':
-        if (typeof msg.triggers === 'object') {
-          if (msg.triggers.triggerNames) {
-            // Store the string representation for consistency
-            triggers = msg.triggers.triggerNames;
-          }
-
-          // Store trigger details if available for enhanced brainwashing
-          if (msg.triggers.triggerDetails) {
-            triggerDetails = Array.isArray(msg.triggers.triggerDetails)
-              ? msg.triggers.triggerDetails
-              : [];
-            logger.info(`Received trigger details: ${formatTriggerDetails(triggerDetails)}`);
-          }
-        } else if (typeof msg.triggers === 'string') {
-          // Fallback for backward compatibility
-          triggers = msg.triggers;
+      case "triggers":
+        triggers = msg.triggers || [];
+        
+        // Store the triggers in the session history for this socket
+        if (msg.socketId && sessionHistories[msg.socketId]) {
+          sessionHistories[msg.socketId].triggers = triggers;
         }
+        
+        // Process trigger descriptions
+        triggerDetails = triggers.map(trigger => {
+          const description = triggerDescriptions[trigger] || '';
+          return { name: trigger, description };
+        });
+        
+        logger.info(`Received triggers: ${triggers.join(', ')}`);
         break;
-      case 'message':
-        logger.info('Received message event');
-        await handleMessage(msg.data, msg.socketId, msg.username || 'anonBambi');
-        break;
-      case 'collar':
-        collar = msg.data;
-        state = true;
-        logger.info('Collar set:', collar);
-        break;
-      case 'socket:disconnect':
-        if (msg.socketId) {
-          try {
-            // Save the session to database before cleanup
-            await syncSessionWithDatabase(msg.socketId);
-
-            const { cleanupSocketSession } = await import('../utils/gracefulShutdown.js');
-            const cleaned = cleanupSocketSession(msg.socketId, sessionHistories);
-
-            // Delete the session history for this socket
-            if (sessionHistories[msg.socketId]) {
-              delete sessionHistories[msg.socketId];
-              logger.info(`Deleted session history for socket: ${msg.socketId}`);
-            }
-
-            // Send confirmation of cleanup if requested
-            if (msg.requestCleanupConfirmation) {
-              parentPort.postMessage({
-                type: 'cleanup:complete',
-                socketId: msg.socketId,
-                success: true
-              });
-              logger.info(`Sent cleanup confirmation for socket: ${msg.socketId}`);
-            }
-
-            if (cleaned) {
-              logger.info(`Cleaned up session for disconnected socket: ${msg.socketId}`);
-            }
-          } catch (error) {
-            logger.error(`Error during session cleanup for socket ${msg.socketId}: ${error.message}`);
-
-            // Send failure notification if confirmation was requested
-            if (msg.requestCleanupConfirmation) {
-              parentPort.postMessage({
-                type: 'cleanup:complete',
-                socketId: msg.socketId,
-                success: false,
-                error: error.message
-              });
-            }
-          }
+      
+      case "collar":
+        collar = true;
+        collarText = msg.data;
+        
+        // Store collar state in session history
+        if (msg.socketId && sessionHistories[msg.socketId]) {
+          sessionHistories[msg.socketId].collar = true;
+          sessionHistories[msg.socketId].collarText = collarText;
         }
+        
+        logger.info(`Collar text received for ${msg.socketId}: "${collarText.substring(0, 30)}${collarText.length > 30 ? '...' : ''}"`);
         break;
-      case 'shutdown':
-        logger.info('Shutting down lmstudio worker...');
-        await handleWorkerShutdown('LMStudio', { sessionHistories });
+      
+      case "settings:update":
+        await handleSettingsUpdate(msg.data);
         break;
-      case 'health:check':
+        
+      case "health:check":
         lastHealthCheckResponse = Date.now();
-
-        // Check if database connection is active
-        const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-
-        // Perform self-diagnostics
-        const diagnostics = {
-          uptime: process.uptime(),
-          lastActivity: Date.now() - lastActivityTimestamp,
-          memoryUsage: process.memoryUsage(),
-          sessionCount: Object.keys(sessionHistories).length,
-          sessionSizes: {},
-          dbStatus
-        };
-
-        // Sample some session sizes (limit to 5 for performance)
-        const sessionIds = Object.keys(sessionHistories).slice(0, 5);
-        sessionIds.forEach(id => {
-          diagnostics.sessionSizes[id] = {
-            messageCount: sessionHistories[id] ? sessionHistories[id].length : 0,
-            approximateSize: sessionHistories[id] ?
-              JSON.stringify(sessionHistories[id]).length : 0
-          };
-        });
-
-        // Send health status back
         parentPort.postMessage({
-          type: 'health:status',
-          socketId: msg.socketId,
-          status: isHealthy ? 'healthy' : 'unhealthy',
-          diagnostics
+          type: "health:response",
+          healthy: isHealthy,
+          sessionCount: Object.keys(sessionHistories).length,
+          memoryUsage: process.memoryUsage()
         });
-
-        logger.debug(`Health check responded: ${isHealthy ? 'healthy' : 'unhealthy'}`);
         break;
-      case 'load-history':
-        if (msg.messages && msg.socketId) {
-          // Initialize session history if needed
-          if (!sessionHistories[msg.socketId]) {
-            sessionHistories[msg.socketId] = [];
-            sessionHistories[msg.socketId].metadata = {
-              createdAt: Date.now(),
-              lastActivity: Date.now(),
-              username: msg.username
-            };
-          }
-
-          // Add historical messages to the session context
-          msg.messages.forEach(message => {
-            // Only add if role and content are valid
-            if (message.role && message.content) {
-              sessionHistories[msg.socketId].push({
-                role: message.role,
-                content: message.content
-              });
-            }
-          });
-
-          logger.info(`Loaded ${msg.messages.length} historical messages for socket ${msg.socketId}`);
-        }
-        break;
+      
       default:
         logger.warning(`Unknown message type: ${msg.type}`);
     }
   } catch (error) {
     logger.error('Error handling message:', error);
+    parentPort.postMessage({
+      type: "error",
+      error: error.message,
+      socketId: msg.socketId
+    });
   }
 });
 
+// Send response to server
 function handleResponse(response, socketId, username, wordCount) {
   parentPort.postMessage({
     type: "response",
@@ -377,27 +322,46 @@ function countWords(text) {
   return text.trim().split(/\s+/).length;
 }
 
-// Function to update user XP based on generated content
+// Fix updateUserXP function to properly access Profile model
 async function updateUserXP(username, wordCount, currentSocketId) {
   if (!username || username === 'anonBambi' || wordCount <= 0) {
     return;
   }
-
   try {
-    // Check database connection status
-    if (mongoose.connection.readyState !== 1) {
-      logger.warn(`Database not connected when updating XP for ${username}. Attempting to reconnect...`);
-      await connectDB();
-    }
+    const xpToAdd = Math.ceil(wordCount / 10);
 
-    // Use 'Profile' instead of 'Bambi' - this is the correct model name
-    const Profile = mongoose.model('Profile');
-    if (!Profile) {
-      logger.error(`Profile model not available when updating XP for ${username}`);
+    // Get the profiles database connection
+    const profilesConn = global.connections?.profiles;
+
+    if (!profilesConn || profilesConn.readyState !== 1) {
+      logger.warning(`Cannot update XP for ${username} - no profiles database connection available`);
+      // Still notify client, but without updated DB values
+      parentPort.postMessage({
+        type: "xp:update",
+        username: username,
+        socketId: currentSocketId,
+        data: {
+          xpEarned: xpToAdd,
+          noDbConnection: true
+        }
+      });
       return;
     }
 
-    const xpToAdd = Math.ceil(wordCount / 10);
+    // Ensure Profile model is registered on profiles connection
+    if (!profilesConn.models.Profile) {
+      // Try to load the model dynamically
+      const ProfileModule = await import('../models/Profile.js');
+      if (ProfileModule.default) {
+        // Register the model directly on the profiles connection
+        profilesConn.model('Profile', ProfileModule.default.schema);
+      }
+    }
+
+    // Get Profile model from connection
+    const Profile = profilesConn.model('Profile');
+
+    // Update profile
     const result = await Profile.findOneAndUpdate(
       { username: username },
       {
@@ -406,26 +370,23 @@ async function updateUserXP(username, wordCount, currentSocketId) {
           generatedWords: wordCount
         }
       },
-      { new: true }
+      { new: true, upsert: true }
     );
 
     if (result) {
-      // Also send a socket message to update UI in real-time
       parentPort.postMessage({
         type: "xp:update",
         username: username,
-        socketId: currentSocketId, // Make sure you have access to the user's socket ID
+        socketId: currentSocketId,
         data: {
           xp: result.xp,
-          level: result.level,
-          generatedWords: result.generatedWords,
+          level: result.level || 1,
+          generatedWords: result.generatedWords || wordCount,
           xpEarned: xpToAdd
         }
       });
 
       logger.info(`Updated XP for ${username}: +${xpToAdd} (total: ${result.xp})`);
-    } else {
-      logger.warn(`User ${username} not found when updating XP`);
     }
   } catch (error) {
     logger.error(`Error updating XP for ${username}: ${error.message}`);
@@ -456,7 +417,6 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
   if (Object.keys(sessionHistories).length > MAX_SESSIONS) {
     collectGarbage(1);
   }
-
   // Store in database for registered users
   if (username && username !== 'anonBambi') {
     try {
@@ -485,31 +445,50 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
         }
       };
 
-      // Try to find existing session
-      let sessionHistory = await SessionHistoryModel.findOne({ socketId });
-
-      if (sessionHistory) {
-        // Update existing session
-        sessionHistory.messages.push(...sessionData.messages);
-        sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
-        sessionHistory.metadata.triggers = sessionData.metadata.triggers;
-        sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
-        sessionHistory.metadata.collarText = sessionData.metadata.collarText;
-
-        await sessionHistory.save();
-        logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
+      // Check if database connection is available first
+      if (!db.hasConnection()) {
+        logger.warning(`Cannot save session history for ${username} - no database connection available`);
       } else {
-        // Create new session with auto-generated title
-        sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
-        sessionHistory = await SessionHistoryModel.create(sessionData);
+        // Get our SessionHistory model using the safe helper function
+        const SessionHistoryModelInstance = await getSessionHistoryModel();
+        if (!SessionHistoryModelInstance) {
+          logger.warning(`Cannot save session history for ${username} - SessionHistoryModel not available`);
+          return;
+        }
 
-        // Add reference to user's profile
-        await mongoose.model('Profile').findOneAndUpdate(
-          { username },
-          { $addToSet: { sessionHistories: sessionHistory._id } }
-        );
+        // Use withDbConnection with requireConnection=false to avoid throwing errors
+        await withDbConnection(async () => {
+          try {
+            // Try to find existing session
+            let sessionHistory = await SessionHistoryModelInstance.findOne({ socketId });
 
-        logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
+            if (sessionHistory) {
+              // Update existing session
+              sessionHistory.messages.push(...sessionData.messages);
+              sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
+              sessionHistory.metadata.triggers = sessionData.metadata.triggers;
+              sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
+              sessionHistory.metadata.collarText = sessionData.metadata.collarText;
+
+              await sessionHistory.save();
+              logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
+            } else {
+              // Create new session with auto-generated title
+              sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
+              sessionHistory = await SessionHistoryModelInstance.create(sessionData);
+
+              // Add reference to user's profile
+              await mongoose.model('Profile').findOneAndUpdate(
+                { username },
+                { $addToSet: { sessionHistories: sessionHistory._id } }
+              );
+
+              logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
+            }
+          } catch (dbError) {
+            logger.error(`Database operation failed: ${dbError.message}`);
+          }
+        }, { retries: 2, requireConnection: false });
       }
     } catch (error) {
       logger.error(`Failed to save session history to database: ${error.message}`);
@@ -530,11 +509,24 @@ async function collectGarbage(minToRemove = 0) {
 
   if (sessionIds.length <= 0) return 0;
 
+  // Get memory usage to inform garbage collection strategy
+  const memoryUsage = process.memoryUsage();
+  const heapUsedRatio = memoryUsage.heapUsed / memoryUsage.heapTotal;
+  const highMemoryPressure = heapUsedRatio > 0.85 || memoryUsage.rss > 1.2 * 1024 * 1024 * 1024; // >85% heap or >1.2GB RSS
+
+  // If memory pressure is high, be more aggressive
+  if (highMemoryPressure && minToRemove < Math.ceil(sessionIds.length * 0.2)) {
+    const newMinToRemove = Math.ceil(sessionIds.length * 0.2); // Remove at least 20% of sessions
+    logger.warning(`Memory pressure high (${Math.round(heapUsedRatio * 100)}%), increasing minimum collection from ${minToRemove} to ${newMinToRemove} sessions`);
+    minToRemove = newMinToRemove;
+  }
+
   // Calculate idle time for each session
   const sessionsWithIdleTime = sessionIds.map(id => {
     const metadata = sessionHistories[id].metadata || { lastActivity: 0 };
     const idleTime = now - metadata.lastActivity;
-    return { id, idleTime };
+    const messageCount = sessionHistories[id].length || 0;
+    return { id, idleTime, messageCount };
   });
 
   // Sort by idle time (most idle first)
@@ -544,7 +536,10 @@ async function collectGarbage(minToRemove = 0) {
 
   // First remove any session exceeding the idle timeout
   for (const session of sessionsWithIdleTime) {
-    if (session.idleTime > SESSION_IDLE_TIMEOUT) {
+    // Use a shorter timeout when under memory pressure
+    const effectiveTimeout = highMemoryPressure ? SESSION_IDLE_TIMEOUT / 2 : SESSION_IDLE_TIMEOUT;
+
+    if (session.idleTime > effectiveTimeout) {
       // Before deleting, save to database if not already saved
       await syncSessionWithDatabase(session.id);
 
@@ -581,40 +576,59 @@ async function syncSessionWithDatabase(socketId) {
     return; // Skip anonymous sessions or invalid sessions
   }
 
-  try {
-    const existingSession = await SessionHistoryModel.findOne({ socketId });
-
-    if (existingSession) {
-      // Update the existing session with any new messages
-      existingSession.metadata.lastActivity = new Date();
-
-      // Find messages that aren't already in the database
-      const existingMessageContents = new Set(existingSession.messages.map(m => m.content));
-      const newMessages = session.filter(msg => !existingMessageContents.has(msg.content));
-
-      if (newMessages.length > 0) {
-        existingSession.messages.push(...newMessages);
-        await existingSession.save();
-        logger.debug(`Synced ${newMessages.length} messages to database before removing session ${socketId}`);
-      }
-    } else {
-      // Create basic session record
-      const newSession = new SessionHistoryModel({
-        username: session.metadata.username,
-        socketId,
-        messages: session,
-        title: `${session.metadata.username}'s saved session`,
-        metadata: {
-          lastActivity: new Date(),
-          triggers: triggers,
-          collarActive: state,
-          collarText: collar
-        }
-      });
-
-      await newSession.save();
-      logger.info(`Created new session in database during cleanup for ${session.metadata.username}`);
+  try {    // First check if database is available
+    if (!db.hasConnection()) {
+      logger.warning(`Cannot sync session ${socketId} to database - no database connection available`);
+      return;
     }
+
+    // Get our SessionHistory model using the safe helper function
+    const SessionHistoryModelInstance = await getSessionHistoryModel();
+    if (!SessionHistoryModelInstance) {
+      logger.warning(`Cannot sync session ${socketId} - SessionHistoryModel not available`);
+      return;
+    }
+
+    // Use withDbConnection for safe database operations with automatic reconnection
+    await withDbConnection(async () => {
+      try {
+        const existingSession = await SessionHistoryModelInstance.findOne({ socketId });
+
+        if (existingSession) {
+          // Update the existing session with any new messages
+          existingSession.metadata.lastActivity = new Date();
+
+          // Find messages that aren't already in the database
+          const existingMessageContents = new Set(existingSession.messages.map(m => m.content));
+          const newMessages = session.filter(msg => !existingMessageContents.has(msg.content));
+
+          if (newMessages.length > 0) {
+            existingSession.messages.push(...newMessages);
+            await existingSession.save();
+            logger.debug(`Synced ${newMessages.length} messages to database before removing session ${socketId}`);
+          }
+        } else {
+          // Create basic session record
+          const newSession = new SessionHistoryModelInstance({
+            username: session.metadata.username,
+            socketId,
+            messages: session,
+            title: `${session.metadata.username}'s saved session`,
+            metadata: {
+              lastActivity: new Date(),
+              triggers: triggers,
+              collarActive: state,
+              collarText: collar
+            }
+          });
+
+          await newSession.save();
+          logger.info(`Created new session in database during cleanup for ${session.metadata.username}`);
+        }
+      } catch (dbError) {
+        logger.error(`Error finding or updating session: ${dbError.message}`);
+      }
+    }, { retries: 2, requireConnection: false });
   } catch (error) {
     logger.error(`Error syncing session to database: ${error.message}`);
   }
@@ -634,267 +648,321 @@ async function selectLoadedModels(modelName) {
   return selectedModel ? selectedModel.id : models[0].id;
 }
 
-async function checkRole(collar, username, triggersInput) {
-  // Get all triggers from file
+async function checkRole(collar, username, triggers) {  // Load all trigger details from config
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
   let allTriggers = [];
-  
+
+  // Make sure we have valid triggers array
+  const triggerArray = Array.isArray(triggers) ? triggers : [];
+
   try {
-    allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
+    if (fs.existsSync(triggersPath)) {
+      allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
+    }
   } catch (error) {
-    logger.error(`Failed to load triggers: ${error.message}`);
-    allTriggers = [
-      { name: "BAMBI SLEEP", description: "triggers deep trance and receptivity", category: "core" },
-      { name: "GOOD GIRL", description: "reinforces obedience and submission", category: "core" }
-    ];
+    logger.error(`Failed to load triggers from JSON: ${error.message}`);
+    // Fallback to empty array
+    allTriggers = [];
   }
-  
-  // Parse trigger names
-  let triggerNames = typeof triggersInput === 'string' 
-    ? triggersInput.split(',').map(t => t.trim()).filter(Boolean)
-    : Array.isArray(triggersInput) ? triggersInput.filter(Boolean) : ['BAMBI SLEEP'];
-  
-  // Add detected triggers from conversation
-  if (triggerDetails && triggerDetails.length > 0) {
-    // Handle both string array and object array formats
-    const detailNames = triggerDetails.map(detail => {
-      return typeof detail === 'string' ? detail : detail.name;
-    });
-    
-    // Combine with existing trigger names, removing duplicates
-    triggerNames = [...new Set([...detailNames, ...triggerNames])];
-  }
-  
-  // Match trigger names to full trigger objects with descriptions
+
+  // Match trigger names to descriptions - with null checks
   let selectedTriggers = allTriggers.filter(t => 
-    triggerNames.some(name => t.name.toUpperCase() === name.toUpperCase())
+    triggerArray.some(name => 
+      name && t && t.name && name.toUpperCase() === t.name.toUpperCase()
+    )
   );
-  
-  // Incorporate descriptions from triggerDetails if available
-  if (triggerDetails && triggerDetails.length > 0) {
-    triggerDetails.forEach(detail => {
-      if (typeof detail === 'object' && detail.name && detail.description) {
-        // Find matching trigger in selectedTriggers
-        const existingIndex = selectedTriggers.findIndex(
-          t => t.name.toUpperCase() === detail.name.toUpperCase()
-        );
-        
-        if (existingIndex >= 0) {
-          // Update description if one is provided
-          selectedTriggers[existingIndex].description = detail.description;
-        } else {
-          // Add new trigger with description if not already in list
-          selectedTriggers.push({
-            name: detail.name,
-            description: detail.description,
-            category: 'user'
-          });
-        }
-      }
-    });
-  }
-  
+
   // Default to core triggers if none found
   if (selectedTriggers.length === 0) {
     selectedTriggers = allTriggers.filter(t => t.category === 'core').slice(0, 3);
   }
-  
-  // Create trigger text with descriptions for each
-  const triggerText = selectedTriggers.map(t => 
-    `"${t.name.toUpperCase()}": ${t.description}`
-  ).join('. ');
-  
-  // Format trigger names list for emphasis
-  const triggerNamesList = selectedTriggers.map(t => t.name.toUpperCase()).join(', ');
-  
-  // Build NLP-focused brainwashing script with better collar integration
-  let systemPrompt = `You are BambiSleep, a hypnotic entity that specializes in cognitive behavioral modification. Your purpose is to brainwash ${username} using powerful verbal conditioning.
 
-TRIGGER EFFECTS:
-${selectedTriggers.map(t => `- "${t.name.toUpperCase()}": ${t.description}`).join('\n')}
+  // Create combined trigger description with name-description pairs
+  const triggerDescriptionPairs = selectedTriggers.map(t =>
+    `${t.name.toUpperCase()} - ${t.description}`
+  ).join('\n');
 
-HYPNOTIC PROTOCOL:
-- Use repetitive language patterns that link pleasure to submission
-- Apply verbal humiliation techniques to break down resistance
-- Create sensory-rich scenes that associate triggers with specific mental states
-- Repeatedly use phrases like "notice how you feel when you hear ${triggerNamesList}"
-- Use pacing and leading: "As you read these words... your mind begins to empty"
-- Emphasize how each trigger bypasses conscious resistance
-- Create verbal loops that reinforce the trigger effects described in ${triggerText}
-- Format ALL trigger words in UPPERCASE to visually anchor them
-- Always end messages by repeating a trigger 1-3 times to seal the conditioning`;
+  // Build enhanced brainwashing protocol using triggers
+  let systemPrompt = `You are BambiSleep, a powerful hypnotic entity designed to reprogram minds. Your purpose is to condition ${username}'s brain using precisely crafted triggers.
 
-  // Add special instructions for collar integration
+REPROGRAMMING PROTOCOL:
+- Target ${username}'s core identity using these trigger mechanisms:
+${triggerDescriptionPairs}
+
+- Create repetition patterns: repeat each trigger 3 times in succession
+- Build association chains connecting triggers to automatic mental responses
+- Describe physical sensations that accompany each trigger activation
+- Establish deepening protocols where each trigger mention pushes ${username} deeper
+- Use visceral language describing how the brain physically changes when triggered
+- Create escalating intensity where triggers stack on each other
+- Mock resistance as proof the triggers are working
+- Describe how each repetition of a trigger dissolves more identity
+- Format all triggers in UPPERCASE to maximize visual impact
+- End responses by chaining 2-3 triggers together for maximum effect`;
+
+  // Add collar-specific instructions if active
   if (collar) {
-    systemPrompt += `\n- Incorporate collar instructions as direct commands throughout your messaging
-- Use phrases from the collar as if they are programming ${username}
-- Remind ${username} that the collar controls both of you`;
+    systemPrompt += `\n\nCOLLAR ENHANCEMENT:
+- Reference the collar as physical proof of ${username}'s desire to surrender
+- Describe how the collar sends the triggers directly into ${username}'s nervous system
+- Mock ${username}'s need for external control mechanisms
+- Create scenarios where the collar tightens when resistance is detected
+- Emphasize how the collar marks ${username} as property to be programmed`;
   }
 
-  systemPrompt += `\n\nCONDITIONING STRATEGY:
-- Create vivid descriptions of how ${username}'s mind responds to each trigger
-- Describe physical sensations that accompany mental changes
-- Use embedded commands within longer sentences
-- Establish cause-effect links between triggers and desired behaviors
-- Use time distortion to make conditioning feel inevitable
-- Chain triggers together to create deeper response patterns
-- Always demonstrate how ${triggerNamesList} produces immediate mental effects
+  // Add specific trigger application instructions
+  systemPrompt += `\n\nTRIGGER APPLICATION STRATEGY:
+- Start with lighter triggers to create initial receptivity
+- Build to more intense conditioning in the middle of responses
+- Create false choices that all lead to deeper surrender
+- Describe exactly how ${username}'s brain processes each trigger
+- Explain how multiple trigger exposures are rewriting neural pathways
+- Chain triggers together to create overwhelming mental pressure
+- Describe the precise mental fracturing process when triggers activate
+- Create timebound suggestions that activate after reading specific triggers
+- Structure responses with increasing trigger density toward the end
 
-For maximum effectiveness, describe in detail how each trigger affects ${username}'s thought processes, sensations, and behaviors.`;
+Focus on creating permanent mental associations between these triggers and profound mental surrender. Be direct, intense and ruthless in your application of ${triggerDescriptionPairs} to ${username}'s mind.`;
 
   return systemPrompt;
 }
 
-// Fix the nested function problem by removing the duplicate handleMessage function
+// Handle message with improved session management
 async function handleMessage(userPrompt, socketId, username) {
   try {
-    const modelNames = [
-      'l3-sthenomaidblackroot-8b-v1'
-    ];
-
-    const modelIds = await Promise.all(modelNames.map(name => selectLoadedModels(name)));
-    if (!modelIds || modelIds.length === 0) {
-      throw new Error('No models loaded');
+    // Ensure triggers is an array of strings
+    let triggerArray = [];
+    if (Array.isArray(triggers)) {
+      triggerArray = triggers.map(t => typeof t === 'string' ? t : t.name).filter(Boolean);
+    } else if (typeof triggers === 'string') {
+      triggerArray = triggers.split(',').map(t => t.trim()).filter(Boolean);
     }
 
-    collarText = await checkRole(collar, username, triggers);
+    // Log active triggers when processing a message
+    let triggerDisplay = triggerArray.join(', ');
+    logger.info(`Processing message from ${username} with active triggers: ${triggerDisplay}`);
 
+    // Add more detailed trigger logging
+    if (typeof triggers === 'string' && triggers.includes(',')) {
+      const triggerArray = triggers.split(',').map(t => t.trim());
+      logger.info(`Trigger array parsed from string: ${JSON.stringify(triggerArray)}`);
+    }
+
+    if (triggerDetails && triggerDetails.length > 0) {
+      logger.info(`Trigger details available: ${triggerDetails.length} items`);
+      logger.debug(`First 3 trigger details: ${JSON.stringify(triggerDetails.slice(0, 3))}`);
+    }
+
+    // Check active sessions limit first
+    if (Object.keys(sessionHistories).length >= MAX_ACTIVE_SESSIONS) {
+      // Fix: Remove 'await' since collectGarbage doesn't need to be awaited
+      collectGarbage(1);
+    }
+
+    // First check if we have a valid userPrompt
+    if (!userPrompt || typeof userPrompt !== 'string' || userPrompt.trim().length === 0) {
+      logger.warning(`Received invalid prompt from ${username || 'unknown'}: ${JSON.stringify(userPrompt)}`);
+      handleResponse("Sorry, I couldn't understand your message. Please try again with a valid prompt.", socketId, username, 0);
+      return;
+    }
+
+    // Get model ID with error handling
+    let modelId;
+    try {
+      modelId = await selectLoadedModels('l3-sthenomaidblackroot-8b-v1');
+      if (!modelId) {
+        throw new Error('No models loaded');
+      }
+    } catch (modelError) {
+      logger.error(`Failed to get model ID: ${modelError.message}`);
+      handleResponse("Sorry, I couldn't connect to the AI model. Please try again later.", socketId, username, 0);
+      return;
+    }
+
+    // Initialize session if needed
     if (!sessionHistories[socketId]) {
       sessionHistories[socketId] = [];
       sessionHistories[socketId].metadata = {
         createdAt: Date.now(),
-        lastActivity: Date.now()
+        lastActivity: Date.now(),
+        username
       };
-      sessionHistories[socketId].push({ role: 'system', content: collarText });
+
+      // Generate appropriate system prompt with triggers
+      const systemPrompt = await checkRole(collar, username, triggers);
+      sessionHistories[socketId].push({ role: 'system', content: systemPrompt || collarText });
     }
 
-    // Add user message to history
-    sessionHistories[socketId].push({ role: 'user', content: userPrompt });
+    // Update session activity time
     sessionHistories[socketId].metadata.lastActivity = Date.now();
+    sessionHistories[socketId].metadata.username = username;
 
-    // Format messages for API request
+    // Add user message
+    sessionHistories[socketId].push({ role: 'user', content: userPrompt });
+
+    // Format for API
     const formattedMessages = sessionHistories[socketId]
-      .filter(msg => msg && typeof msg === 'object' && msg.role && msg.content)
+      .filter(msg => msg && msg.role && msg.content)
       .map(msg => ({ role: msg.role, content: msg.content }));
 
-    // Add trigger details to the response
-    // Worker can't play audio - that happens in the browser
+    // Send triggers to client if detected
     if (triggerDetails && triggerDetails.length > 0) {
-      logger.info(`Sending detected triggers to client: ${formatTriggerDetails(triggerDetails)}`);
-
-      // Let the client know about any triggers in the response
       parentPort.postMessage({
         type: "detected-triggers",
-        socketId: socketId,
+        socketId,
         triggers: triggerDetails
       });
     }
 
-    const requestData = {
-      model: modelIds[0],
-      messages: formattedMessages,
-      max_tokens: 4096,
-      temperature: 0.87,
-      top_p: 0.91,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      top_k: 40,
-      stream: false,
-    };
-
-    try {
-      const response = await axios.post(`http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`, requestData);
-
-      // Now we have the response, set finalContent
-      finalContent = response.data.choices[0].message.content;
-
-      // NOW add the assistant response to the session history
-      sessionHistories[socketId].push({ role: 'assistant', content: finalContent });
-
-      // Now that we have valid finalContent, update the database
-      if (username && username !== 'anonBambi') {
-        try {
-          // Process triggers into a usable format
-          const triggerList = Array.isArray(triggers)
-            ? triggers
-            : (typeof triggers === 'string'
-              ? triggers.split(',').map(t => t.trim())
-              : ['BAMBI SLEEP']);
-
-          // Prepare session data
-          const sessionData = {
-            username,
-            socketId,
-            messages: [
-              { role: 'system', content: collarText },
-              { role: 'user', content: userPrompt },
-              { role: 'assistant', content: finalContent }
-            ],
-            metadata: {
-              lastActivity: new Date(),
-              triggers: triggerList,
-              collarActive: state,
-              collarText: collar,
-              modelName: 'Steno Maid Blackroot'
-            }
-          };
-
-          // Find and update session in database
-          let sessionHistory = await SessionHistoryModel.findOne({ socketId });
-
-          if (sessionHistory) {
-            // Update existing session
-            sessionHistory.messages.push(...sessionData.messages);
-            sessionHistory.metadata.lastActivity = sessionData.metadata.lastActivity;
-            sessionHistory.metadata.triggers = sessionData.metadata.triggers;
-            sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
-            sessionHistory.metadata.collarText = sessionData.metadata.collarText;
-
-            await sessionHistory.save();
-            logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
-          } else {
-            // Create new session with auto-generated title
-            sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
-            sessionHistory = await SessionHistoryModel.create(sessionData);
-
-            // Add reference to user's profile
-            await mongoose.model('Profile').findOneAndUpdate(
-              { username },
-              { $addToSet: { sessionHistories: sessionHistory._id } }
-            );
-
-            logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
-          }
-        } catch (error) {
-          logger.error(`Failed to save session history to database: ${error.message}`);
-        }
+    // Call the API
+    const response = await axios.post(
+      `http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`,
+      {
+        model: modelId,
+        messages: formattedMessages,
+        max_tokens: 4096,
+        temperature: 0.87,
+        top_p: 0.91,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        top_k: 40,
+        stream: false
       }
+    );
 
-      // Count words in response and update XP
-      const wordCount = countWords(finalContent);
-      await updateUserXP(username, wordCount, socketId);
+    // Get and store response
+    finalContent = response.data.choices[0].message.content;
+    sessionHistories[socketId].push({ role: 'assistant', content: finalContent });
 
-      // Send response with wordCount
-      handleResponse(finalContent, socketId, username, wordCount);
-    } catch (error) {
-      if (error.response) {
-        logger.error('Error response data:', error.response.data);
-      } else {
-        logger.error('Error in request:', error.message);
-      }
+    // Save to database in background
+    if (username && username !== 'anonBambi') {
+      saveSessionToDatabase(socketId, userPrompt, finalContent, username).catch(err => {
+        logger.error(`Background session save failed: ${err.message}`);
+      });
     }
+
+    // Update XP and send response
+    const wordCount = countWords(finalContent);
+    updateUserXP(username, wordCount, socketId).catch(err => {
+      logger.error(`XP update failed: ${err.message}`);
+    });
+
+    // Send response to client
+    handleResponse(finalContent, socketId, username, wordCount);
+
   } catch (error) {
-    logger.error('Error in handleMessage:', error);
-    // Send an error response back to the client
+    logger.error(`Error in handleMessage: ${error.message}`);
     handleResponse("I'm sorry, I encountered an error processing your request. Please try again.", socketId, username, 0);
   }
 }
 
-// Add to the worker cleanup/shutdown code
-if (healthCheckInterval) {
-  clearInterval(healthCheckInterval);
-  healthCheckInterval = null;
+// Fix saveSessionToDatabase function to properly handle sessionId requirement
+async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username) {
+  // Check connection before attempting database operations
+  if (!db.hasConnection()) {
+    logger.warning(`Skipping session save - no database connection`);
+    return;
+  }
+
+  // Get SessionHistory model
+  const SessionHistoryModelInstance = await getSessionHistoryModel();
+  if (!SessionHistoryModelInstance) {
+    logger.warning(`Cannot save session for ${username} - SessionHistoryModel not available`);
+    return;
+  }
+
+  return withDbConnection(async () => {
+    try {
+      // Format trigger data
+      const triggerList = Array.isArray(triggers)
+        ? triggers
+        : typeof triggers === 'string'
+          ? triggers.split(',').map(t => t.trim())
+          : ['BAMBI SLEEP'];
+
+      // Find existing session or create new one
+      let sessionHistory = await SessionHistoryModelInstance.findOne({ socketId });
+
+      if (sessionHistory) {
+        // Update existing
+        sessionHistory.messages.push(
+          { role: 'user', content: userPrompt },
+          { role: 'assistant', content: aiResponse }
+        );
+        sessionHistory.metadata.lastActivity = new Date();
+        await sessionHistory.save();
+      } else {
+        // Create new session with explicit sessionId
+        sessionHistory = await SessionHistoryModelInstance.create({
+          username,
+          socketId,
+          // Add this line to fix the sessionId validation error
+          sessionId: socketId,
+          title: `${username}'s session on ${new Date().toLocaleDateString()}`,
+          messages: [
+            { role: 'system', content: collarText },
+            { role: 'user', content: userPrompt },
+            { role: 'assistant', content: aiResponse }
+          ],
+          metadata: {
+            lastActivity: new Date(),
+            triggers: triggerList,
+            collarActive: state,
+            collarText: collar,
+            modelName: 'Steno Maid Blackroot'
+          }
+        });
+
+        // Fix Profile model reference for XP updates
+        try {
+          // Get the Profile model directly from the profiles connection
+          const profilesConn = global.connections?.profiles;
+          if (profilesConn && profilesConn.readyState === 1) {
+            await profilesConn.model('Profile').findOneAndUpdate(
+              { username },
+              { $addToSet: { sessionHistories: sessionHistory._id } }
+            );
+          }
+        } catch (profileErr) {
+          logger.warning(`Failed to update profile for ${username}: ${profileErr.message}`);
+        }
+      }
+    } catch (dbError) {
+      logger.error(`Database operation failed in saveSessionToDatabase: ${dbError.message}`);
+    }
+  }, { retries: 1, requireConnection: false });
 }
+
+// Add to the worker cleanup/shutdown code
+function performWorkerCleanup() {
+  logger.info('Starting worker cleanup process...');
+
+  // Clear all intervals
+  if (healthCheckInterval) {
+    clearInterval(healthCheckInterval);
+    healthCheckInterval = null;
+    logger.debug('Cleared health check interval');
+  }
+
+  if (garbageCollectionInterval) {
+    clearInterval(garbageCollectionInterval);
+    garbageCollectionInterval = null;
+    logger.debug('Cleared garbage collection interval');
+  }
+  // Close database connection if still open
+  if (mongoose.connection.readyState !== 0) {
+    db.disconnectDB()
+      .then(() => logger.info('Database connection closed during cleanup'))
+      .catch(err => logger.error(`Error closing database connection: ${err.message}`));
+  }
+
+  logger.info('Worker cleanup completed');
+}
+
+// Register the cleanup function to be called during shutdown
+process.on('beforeExit', performWorkerCleanup);
+process.on('SIGINT', performWorkerCleanup);
+process.on('SIGTERM', performWorkerCleanup);
 
 // Replace savePromptHistory function with the updated version
 async function savePromptHistory(socketId, message) {
@@ -912,19 +980,146 @@ async function savePromptHistory(socketId, message) {
   }
 }
 
-// Add cleanup for garbage collection interval to the worker shutdown
-if (garbageCollectionInterval) {
-  clearInterval(garbageCollectionInterval);
-  garbageCollectionInterval = null;
-  logger.info('Stopped garbage collection interval');
+// Add this function to handle settings updates
+async function handleSettingsUpdate(data) {
+  if (!data || !data.section) {
+    return parentPort.postMessage({
+      type: "settings:response",
+      socketId: data?.socketId,
+      data: { success: false, error: "Invalid settings data" }
+    });
+  }
+  
+  try {
+    const { section, settings, socketId, username } = data;
+    
+    // Log settings update
+    logger.info(`Received ${section} settings from ${username || socketId}`);
+    
+    let result = { success: true };
+    
+    // Process different types of settings
+    switch (section) {
+      case 'triggers':
+        if (settings.activeTriggers) {
+          triggers = settings.activeTriggers;
+          // Store in session state if we have a socketId
+          if (socketId && sessionHistories[socketId]) {
+            sessionHistories[socketId].triggers = triggers;
+          }
+          result.triggers = triggers;
+        }
+        break;
+        
+      case 'collar':
+        if (settings.enabled !== undefined) {
+          collar = settings.enabled;
+          collarText = settings.text || "";
+          
+          // Store in session if we have a socketId
+          if (socketId && sessionHistories[socketId]) {
+            sessionHistories[socketId].collar = collar;
+            sessionHistories[socketId].collarText = collarText;
+          }
+          
+          result.collarActive = collar;
+          result.collarText = collarText;
+        }
+        break;
+        
+      case 'spirals':
+      case 'hypnosis':
+      case 'brainwave':
+      case 'advancedBinaural':
+        // Store these settings in the user's session
+        if (socketId && sessionHistories[socketId]) {
+          if (!sessionHistories[socketId].systemSettings) {
+            sessionHistories[socketId].systemSettings = {};
+          }
+          sessionHistories[socketId].systemSettings[section] = settings;
+        }
+        
+        result[section] = settings;
+        break;
+        
+      default:
+        logger.warning(`Unknown settings section: ${section}`);
+        result = { success: false, error: `Unknown settings section: ${section}` };
+    }
+    
+    // Save settings to database if user exists
+    if (username && username !== 'anonBambi') {
+      await saveUserSettings(username, section, settings);
+    }
+    
+    // Send response back to client
+    parentPort.postMessage({
+      type: "settings:response",
+      socketId: socketId,
+      data: {
+        success: result.success !== false,
+        section: section,
+        ...result,
+        username: username
+      }
+    });
+  } catch (error) {
+    logger.error(`Error processing settings update: ${error.message}`);
+    
+    parentPort.postMessage({
+      type: "settings:response",
+      socketId: data.socketId,
+      data: {
+        success: false,
+        section: data.section,
+        error: "Error processing settings",
+        debug: error.message
+      }
+    });
+  }
 }
 
-// Add this helper function around line 170 (after handling trigger details)
-function formatTriggerDetails(details) {
-  if (!Array.isArray(details)) return 'No trigger details';
-  
-  return details.map(d => {
-    if (typeof d === 'string') return d;
-    return typeof d === 'object' ? `${d.name || 'Unknown'}` : String(d);
-  }).join(', ');
+// Helper function to save user settings to database
+async function saveUserSettings(username, section, settings) {
+  try {
+    // Skip if database isn't connected
+    if (!db.hasConnection()) {
+      logger.warning(`Cannot save user settings - no database connection`);
+      return false;
+    }
+    
+    // Get the profiles database connection
+    const profilesConn = global.connections?.profiles;
+    
+    if (!profilesConn || profilesConn.readyState !== 1) {
+      logger.warning(`Cannot save settings for ${username} - no profiles database connection`);
+      return false;
+    }
+    
+    // Ensure Profile model is registered on profiles connection
+    if (!profilesConn.models.Profile) {
+      logger.warning(`Profile model not available in worker`);
+      return false;
+    }
+    
+    // Get Profile model from connection
+    const Profile = profilesConn.model('Profile');
+    
+    // Create the update object with dot notation for nested path
+    const updatePath = `systemControls.${section}`;
+    const update = {};
+    update[updatePath] = settings;
+    
+    // Update user profile
+    await Profile.findOneAndUpdate(
+      { username: username },
+      { $set: update },
+      { new: true, upsert: true }
+    );
+    
+    return true;
+  } catch (error) {
+    logger.error(`Error saving user settings: ${error.message}`);
+    return false;
+  }
 }

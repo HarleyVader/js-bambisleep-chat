@@ -75,7 +75,64 @@ router.post('/performance', (req, res) => {
     res.json({ success: true });
   } catch (error) {
     logger.error('Error processing performance metrics:', error);
-    res.status(500).json({ error: 'Error processing metrics' });
+    res.status(500).json({ error: 'Error processing metrics' });  }
+});
+
+/**
+ * Generate an image using RunPod API
+ * Endpoint: POST /api/generate-image
+ */
+router.post('/generate-image', async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.session || !req.session.username) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const { prompt, negativePrompt, width, height } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+    
+    // Image generation functionality has been removed
+    logger.info(`Image generation request received for prompt: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`);
+    return res.status(501).json({ 
+      error: 'Image generation functionality has been removed',
+      message: 'This feature is no longer available'
+    });
+  } catch (error) {
+    logger.error('Error processing image generation request:', error);
+    res.status(500).json({ error: 'Error processing request' });
+  }
+});
+
+/**
+ * Check status of an image generation job
+ * Endpoint: GET /api/image-job/:jobId
+ */
+router.get('/image-job/:jobId', async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.session || !req.session.username) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const { jobId } = req.params;
+    
+    if (!jobId) {
+      return res.status(400).json({ error: 'Job ID is required' });
+    }
+    
+    // Job status functionality has been removed
+    logger.info(`Job status check request received for job ID: ${jobId}`);
+    return res.status(501).json({ 
+      error: 'Image job status functionality has been removed',
+      message: 'This feature is no longer available'
+    });
+  } catch (error) {
+    logger.error('Error checking image job status:', error);
+    res.status(500).json({ error: 'Failed to check job status' });
   }
 });
 

@@ -1,174 +1,182 @@
 import mongoose from 'mongoose';
 import Logger from './logger.js';
-import config from '../config/config.js';
 
-// Initialize logger
 const logger = new Logger('Shutdown');
+let isShuttingDown = false;
 
-/**
- * Handle quick server shutdown
- * @param {string} signal - The signal that triggered the shutdown
- * @param {http.Server} server - HTTP server instance
- * @param {Object} workerCoordinator - Worker coordinator instance
- */
-export default async function gracefulShutdown(signal, server, workerCoordinator) {
-  logger.warning(`Received ${signal}. Shutting down NOW...`);
+// Modify the main graceful shutdown function to force exit after 3 seconds
+export default async function gracefulShutdown(signal, server) {
+  // Prevent multiple shutdown attempts
+  if (isShuttingDown) {
+    logger.info('Shutdown already in progress');
+    return;
+  }
   
-  // Set a hard timeout - we're shutting down no matter what
-  const forceExit = setTimeout(() => {
-    logger.warning('Force exit timeout reached. Terminating.');
-    process.exit(1);
-  }, 1000);
-  
-  try {
-    // Step 1: Kill all workers immediately
-    if (workerCoordinator) {
-      logger.info('Killing worker processes...');
-      workerCoordinator.shutdown();
-    }
-    
-    // Step 2: Close server immediately (don't wait for connections to finish)
-    if (server) {
-      logger.info('Closing server...');
-      server.close();
-    }
-    
-    // Step 3: Force database connections closed
-    logger.info('Closing database...');
-    if (mongoose.connection) {
-      mongoose.connection.close(true); // force close
-    }
-    
-    logger.success('Shutdown complete');
+  isShuttingDown = true;
+  logger.info('Received shutdown signal');
+
+  // Force exit after exactly 3 seconds, no matter what
+  setTimeout(() => {
+    logger.warning('Forcing exit after 3 second timeout');  // Changed from warn to warning
     process.exit(0);
+  }, 3000);
+  
+  // Attempt graceful shutdown in parallel, but don't wait for completion
+  try {
+    // Start the shutdown processes but don't await them
+    closeServer(server);
+    performCleanupTasks();
+    closeMongoConnection();
+    
+    logger.info('Shutdown processes initiated, waiting for timeout');
   } catch (error) {
     logger.error('Error during shutdown:', error);
-    process.exit(1);
   }
 }
 
-/**
- * Cleans up memory resources for a worker
- * @param {Object} workerContext - Context data specific to the worker (optional)
- */
-export function cleanupWorkerResources(workerContext) {
-  // If the worker has in-memory sessions that need to be cleaned up
-  if (workerContext && workerContext.sessionHistories) {
-    const sessionCount = Object.keys(workerContext.sessionHistories).length;
-    if (sessionCount > 0) {
-      const logger = new Logger('Cleanup');
-      logger.info(`Cleaning up ${sessionCount} active sessions`);
-      
-      // Clear all sessions
-      for (const socketId in workerContext.sessionHistories) {
-        delete workerContext.sessionHistories[socketId];
-      }
-    }
+// Helper function to close HTTP server
+async function closeServer(server) {
+  if (!server || typeof server.close !== 'function') {
+    logger.info('No valid HTTP server to close or already closed');
+    return;
   }
-}
-
-/**
- * Synchronizes session data to the database
- * @param {string} socketId - The ID of the socket to sync
- * @returns {Promise<void>}
- */
-export async function syncSessionWithDatabase(socketId) {
-  const logger = new Logger('SessionSync');
-  logger.debug(`Syncing session for socket ${socketId} to database`);
-  
-  // Placeholder for actual implementation
-  // Will be implemented when SessionHistory model is created
-  return Promise.resolve();
-}
-
-/**
- * Handles worker graceful shutdown
- * @param {string} workerName - The name of the worker
- * @param {Object} workerContext - Context data specific to the worker (optional)
- */
-export async function handleWorkerShutdown(workerName, workerContext) {
-  const workerLogger = new Logger(`Worker:${workerName}`);
-  workerLogger.info('Terminating...');
   
   try {
-    // Clean up any in-memory resources
-    if (workerContext) {
-      // Save all session histories to database before cleanup
-      if (workerContext.sessionHistories) {
-        workerLogger.info('Saving session histories to database before shutdown...');
+    // Set the server to not accept new connections
+    server.maxConnections = 0;
+    
+    return new Promise((resolve) => {
+      server.close(() => {
+        logger.info('HTTP server closed');
+        resolve();
+      });
+    });
+  } catch (error) {
+    logger.error('Error closing server:', error);
+    return Promise.resolve();
+  }
+}
+
+// Helper function to close MongoDB connection
+async function closeMongoConnection() {
+  if (mongoose.connection.readyState !== 1) {
+    return;
+  }
+  
+  try {
+    await mongoose.connection.close(false); // false = don't force close
+    logger.info('MongoDB connection closed');
+  } catch (error) {
+    logger.error('Error closing MongoDB connection:', error);
+  }
+}
+
+// Perform cleanup tasks before shutdown
+async function performCleanupTasks() {
+  logger.info('Running cleanup tasks before shutdown');
+  
+  try {
+    // Clear any scheduled tasks
+    if (global.scheduledTasks) {
+      global.scheduledTasks.stop();
+      logger.info('Scheduled tasks stopped');
+    }
         
-        const sessionIds = Object.keys(workerContext.sessionHistories);
-        if (sessionIds.length > 0) {
-          try {
-            // Save each session to database
-            for (const socketId of sessionIds) {
-              if (mongoose.connection.readyState === 1) {
-                await syncSessionWithDatabase(socketId);
-              }
-            }
-            workerLogger.info(`Successfully saved ${sessionIds.length} sessions to database`);
-          } catch (saveError) {
-            workerLogger.error(`Error saving sessions to database: ${saveError.message}`);
-          }
-        }
-      }
-      
-      cleanupWorkerResources(workerContext);
-      workerLogger.info('Worker resources cleaned up');
+    // Cleanup socket store
+    if (global.socketStore) {
+      const storeSize = global.socketStore.size;
+      global.socketStore.clear();
+      logger.info(`Cleared socket store (${storeSize} entries)`);
     }
     
-    // Close database if connected
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      workerLogger.info('Closing database connection...');
-      mongoose.connection.close(true); // force close
+    // Close all active socket connections
+    if (global.io) {
+      global.io.close();
+      logger.info('Socket.IO connections closed');
     }
-  } catch (error) {
-    workerLogger.error(`Error during worker shutdown: ${error.message}`);
-  }
-  
-  // Force exit after a short timeout, using a fraction of the worker timeout
-  // to ensure we exit before a parent process might force kill us
-  setTimeout(() => process.exit(0), Math.min(100, config.WORKER_TIMEOUT / 10));
-}
-
-/**
- * Sets up signal handlers for worker shutdown
- * @param {string} workerName - The name of the worker
- * @param {Object} workerContext - Context data specific to the worker (optional)
- */
-export function setupWorkerShutdownHandlers(workerName, workerContext) {
-  // Handle termination signals with immediate shutdown
-  process.on('SIGTERM', () => handleWorkerShutdown(workerName, workerContext));
-  process.on('SIGINT', () => handleWorkerShutdown(workerName, workerContext));
-  process.on('message', (msg) => {
-    if (msg === 'shutdown') handleWorkerShutdown(workerName, workerContext);
-  });
-  
-  // Handle uncaught errors with immediate shutdown
-  process.on('uncaughtException', (error) => {
-    const workerLogger = new Logger(`Worker:${workerName}`);
-    workerLogger.error(`Uncaught exception: ${error.message}`);
-    handleWorkerShutdown(workerName, workerContext);
-  });
-  
-  process.on('unhandledRejection', (reason) => {
-    const workerLogger = new Logger(`Worker:${workerName}`);
-    workerLogger.error(`Unhandled rejection: ${reason}`);
-    handleWorkerShutdown(workerName, workerContext);
-  });
-}
-
-/**
- * Handles socket disconnect cleanup for worker sessions
- * @param {string} socketId - The ID of the disconnected socket
- * @param {Object} sessionHistories - The session histories object to clean up
- */
-export function cleanupSocketSession(socketId, sessionHistories) {
-  if (sessionHistories && sessionHistories[socketId]) {
-    const logger = new Logger('SocketCleanup');
-    logger.debug(`Cleaning up session for disconnected socket: ${socketId}`);
-    delete sessionHistories[socketId];
+    
+    // Release memory
+    if (global.gc) {
+      global.gc();
+      logger.info('Garbage collection forced');
+    }
+    
     return true;
+  } catch (error) {
+    logger.error('Error in cleanup tasks:', error);
+    return false;
   }
-  return false;
+}
+
+// Setup shutdown handlers for worker threads
+export function setupWorkerShutdownHandlers(workerName, context = {}) {
+  logger.info(`Setting up shutdown handlers for ${workerName} worker`);
+  
+  // Make context available to the shutdown handler
+  global.workerShutdownContext = context;
+  global.workerName = workerName;
+  
+  let isWorkerShuttingDown = false;
+
+  const shutdownWorker = async (signal) => {
+    if (isWorkerShuttingDown) return;
+    isWorkerShuttingDown = true;
+    
+    logger.info(`${workerName} worker received ${signal}`);
+    
+    // Force exit after 3 seconds
+    const forceExitTimeout = setTimeout(() => {
+      logger.warning(`Forced exit for ${workerName} worker after 3 second timeout`); // Changed from warn to warning
+      process.exit(0);
+    }, 3000);
+    
+    try {
+      await handleWorkerShutdown(workerName, context);
+      clearTimeout(forceExitTimeout);
+      process.exit(0);
+    } catch (error) {
+      clearTimeout(forceExitTimeout);
+      logger.error(`Error during ${workerName} worker shutdown:`, error);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => shutdownWorker('SIGTERM'));
+  process.on('SIGINT', () => shutdownWorker('SIGINT'));
+  
+  process.on('uncaughtException', (err) => {
+    logger.error(`Uncaught exception in ${workerName} worker:`, err);
+    shutdownWorker('UNCAUGHT_EXCEPTION');
+  });
+}
+
+// Handle worker thread shutdown
+export async function handleWorkerShutdown(workerName, context = {}) {
+  logger.info(`Shutting down ${workerName} worker...`);
+
+  try {
+    const tasks = [];
+    
+    // Close MongoDB connection if open
+    if (mongoose.connection.readyState === 1) {
+      tasks.push(
+        mongoose.connection.close(false).then(() => {
+          logger.info(`MongoDB connection closed for ${workerName} worker`);
+        })
+      );
+    }
+
+    // Perform any worker-specific cleanup using the context
+    if (context.sessionHistories) {
+      logger.info(`Cleaning up session histories for ${workerName} worker`);
+      // Add any cleanup as a task to the array
+    }
+    
+    // Wait for all cleanup tasks to complete
+    await Promise.all(tasks);
+
+    logger.success(`${workerName} worker shutdown complete`);
+  } catch (error) {
+    logger.error(`Error during ${workerName} worker shutdown:`, error);
+  }
 }

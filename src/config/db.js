@@ -1,264 +1,375 @@
 import mongoose from 'mongoose';
 import Logger from '../utils/logger.js';
 
+// Initialize logger
 const logger = new Logger('Database');
 
 // Track connection status
 let isConnected = false;
-let connectionPromise = null;
-
-// Standardized connection options to use across the application
-const DEFAULT_CONNECTION_OPTIONS = {
-  serverSelectionTimeoutMS: 8000,     // Timeout for server selection
-  connectTimeoutMS: 12000,            // Timeout for initial connection
-  socketTimeoutMS: 60000,             // Timeout for operations
-  maxPoolSize: 15,                    // Connection pool size
-  minPoolSize: 3,                     // Minimum connections to maintain
-  family: 4,                          // Use IPv4, skip trying IPv6
-  autoIndex: true,                    // Build indexes
-  // Removed keepAlive as it's not supported in current driver
-  maxIdleTimeMS: 120000               // Close idle connections after 2 minutes
-};
+let profilesConnection = null;
+let inFallbackModeState = false;
+let modelsRegistered = false;
 
 /**
- * Initialize database connection with cached promise
- * 
- * @returns {Promise<boolean>} - True if connection successful
+ * Connect to the main MongoDB database
+ * @returns {Promise<mongoose.Connection>} The database connection
  */
-export async function connectDB() {
-  // If we're already connected, return immediately
+export async function connectToDatabase() {
   if (isConnected) {
-    logger.debug('Using existing MongoDB connection');
-    return true;
+    logger.info('Using existing database connection');
+    return mongoose.connection;
   }
-  
-  // If we're in the process of connecting, return the existing promise
-  if (connectionPromise) {
-    logger.debug('Connection in progress, waiting for completion');
-    return connectionPromise;
-  }
-  
+
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bambisleep';
+    const connectionOptions = {
+      // No need for useNewUrlParser and useUnifiedTopology in newer mongoose versions
+    };
+
+    await mongoose.connect(process.env.MONGODB_URI, connectionOptions);
     
-    logger.info(`Connecting to MongoDB at ${mongoURI.replace(/\/\/([^:]+):[^@]+@/, '//$1:****@')}`);
-    
-    // Create a promise for the connection and store it
-    connectionPromise = mongoose.connect(mongoURI, DEFAULT_CONNECTION_OPTIONS);
-    
-    // Wait for connection
-    await connectionPromise;
-    
-    // Mark as connected
     isConnected = true;
+    logger.info('Connected to main database');
     
-    // Set up connection event handlers - using once for initial setup to avoid duplicate handlers
-    mongoose.connection.once('error', (err) => {
-      logger.error(`MongoDB connection error: ${err.message}`);
+    // Set up connection event handlers
+    mongoose.connection.on('error', (err) => {
+      logger.error(`Database connection error: ${err.message}`);
       isConnected = false;
     });
     
-    mongoose.connection.once('disconnected', () => {
-      logger.warning('MongoDB disconnected');
+    mongoose.connection.on('disconnected', () => {
+      logger.warning('Database disconnected');
       isConnected = false;
-      connectionPromise = null;
     });
     
-    mongoose.connection.once('reconnected', () => {
-      logger.info('MongoDB reconnected');
-      isConnected = true;
-    });
-    
-    logger.success(`MongoDB connected: ${mongoose.connection.host}`);
-    
-    return true;
+    return mongoose.connection;
   } catch (error) {
-    logger.error(`Database connection error: ${error.message}`);
-    isConnected = false;
-    connectionPromise = null;
-    return false;
-  } finally {
-    // Clear connectionPromise after connection attempt completes (success or failure)
-    connectionPromise = null;
-  }
-}
-
-/**
- * Close database connection
- * 
- * @returns {Promise<void>}
- */
-export async function disconnectDB() {
-  try {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-      logger.info('Database disconnected');
-      isConnected = false;
-      connectionPromise = null;
-    }
-  } catch (error) {
-    logger.error(`Error disconnecting from database: ${error.message}`);
-  }
-}
-
-/**
- * Executes a database operation with proper connection management
- * Important: This is a key function that handles database operations safely
- * 
- * @param {Function} operation - Async function that performs the database operation
- * @param {Object} options - Options for the transaction
- * @param {boolean} options.keepConnectionOpen - If true, won't close connection after use (default: true)
- * @param {number} options.timeout - Timeout in ms for the operation (default: 30000)
- * @param {number} options.retries - Number of retries for failed operations (default: 1)
- * @returns {Promise<any>} - Result of the operation
- */
-export async function withDbConnection(operation, options = {}) {
-  const { 
-    keepConnectionOpen = true,
-    timeout = 30000,
-    retries = 1
-  } = options;
-  
-  // Check if already connected
-  const wasConnected = isConnected || mongoose.connection.readyState === 1;
-  
-  // For retry logic
-  let lastError = null;
-  let attempt = 0;
-  
-  while (attempt <= retries) {
-    try {
-      // Only connect if not already connected
-      if (!wasConnected && mongoose.connection.readyState !== 1) {
-        logger.debug('Opening new MongoDB connection for operation');
-        const connected = await connectDB();
-        if (!connected) {
-          throw new Error('Failed to establish database connection');
-        }
-      } else {
-        logger.debug('Using existing MongoDB connection');
-      }
-      
-      // Execute operation with timeout
-      const result = await Promise.race([
-        operation(mongoose.connection),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error(`Database operation timed out after ${timeout}ms`)), timeout)
-        )
-      ]);
-      
-      // Don't close connection if it was already open or keepConnectionOpen is true
-      if (!wasConnected && !keepConnectionOpen) {
-        await disconnectDB();
-      }
-      
-      return result;
-    } catch (error) {
-      lastError = error;
-      attempt++;
-      
-      // Log the error with try count
-      logger.error(`Database operation error (attempt ${attempt}/${retries + 1}): ${error.message}`);
-      
-      // If we have retries left, wait before retrying
-      if (attempt <= retries) {
-        const delay = Math.min(1000 * attempt, 5000); // Exponential backoff with 5s cap
-        logger.info(`Retrying operation in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-  
-  // If we got here, all attempts failed
-  throw lastError;
-}
-
-/**
- * Ensure all models are registered
- * Call this function at application startup to guarantee models are ready before routes
- * 
- * @returns {Promise<void>}
- */
-export async function ensureModelsRegistered() {
-  try {
-    // Import models explicitly to ensure they're registered
-    await import('../models/SessionHistory.js');
-    
-    // You can add other model imports here as needed
-    // await import('../models/Profile.js');
-    
-    logger.info('All models registered successfully');
-  } catch (error) {
-    logger.error(`Error registering models: ${error.message}`);
+    logger.error(`Failed to connect to database: ${error.message}`);
     throw error;
   }
 }
 
 /**
- * Get a Mongoose model
- * Safely retrieves a model or creates it if it doesn't exist
- * 
- * @param {string} modelName - The name of the model to retrieve
- * @returns {mongoose.Model} - The Mongoose model
+ * Connect to the profiles MongoDB database
+ * @returns {Promise<mongoose.Connection>} The profiles database connection
  */
-export function getModel(modelName) {
+export async function connectToProfilesDatabase() {
+  if (profilesConnection) {
+    logger.info('Using existing profiles database connection');
+    return profilesConnection;
+  }
+
   try {
-    // Try to get an existing model first
-    return mongoose.model(modelName);
-  } catch (error) {
-    // If the model doesn't exist, log a warning
-    logger.warning(`Model ${modelName} not found, attempting to load it dynamically`);
+    // Create a separate connection for profiles
+    profilesConnection = mongoose.createConnection(process.env.MONGODB_PROFILES);
     
-    // Try to import the model dynamically based on name
-    try {
-      // This is a safer approach than returning null
-      const modelPath = `../models/${modelName}.js`;
-      import(modelPath)
-        .then(() => logger.info(`Dynamically loaded model: ${modelName}`))
-        .catch(e => logger.error(`Failed to dynamically load model: ${modelName}`, e));
-      
-      // Try again after import attempt
-      return mongoose.model(modelName);
-    } catch (secondError) {
-      logger.error(`Could not retrieve or load model ${modelName}: ${secondError.message}`);
-      return null;
-    }
+    logger.info('Connected to profiles database');
+    
+    // Set up connection event handlers
+    profilesConnection.on('error', (err) => {
+      logger.error(`Profiles database connection error: ${err.message}`);
+      profilesConnection = null;
+    });
+    
+    profilesConnection.on('disconnected', () => {
+      logger.warning('Profiles database disconnected');
+      profilesConnection = null;
+    });
+    
+    return profilesConnection;
+  } catch (error) {
+    logger.error(`Failed to connect to profiles database: ${error.message}`);
+    throw error;
   }
 }
 
 /**
- * Check the health of the database connection
- * 
- * @returns {Promise<Object>} Health check result
+ * Disconnect from all databases
+ */
+export async function disconnectFromDatabases() {
+  try {
+    if (isConnected) {
+      await mongoose.disconnect();
+      logger.info('Disconnected from main database');
+    }
+    
+    if (profilesConnection) {
+      await profilesConnection.close();
+      logger.info('Disconnected from profiles database');
+    }
+    
+    isConnected = false;
+    profilesConnection = null;
+  } catch (error) {
+    logger.error(`Error during database disconnection: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Alias for connectToDatabase for server.js compatibility
+ */
+export async function connectDB(retries = 1, force = false) {
+  try {
+    if (isConnected && !force) {
+      return { success: true, connection: mongoose.connection };
+    }
+    
+    let lastError = null;
+    for (let i = 0; i < retries; i++) {
+      try {
+        const connection = await connectToDatabase();
+        return { success: true, connection };
+      } catch (error) {
+        lastError = error;
+        logger.warning(`Connection attempt ${i + 1}/${retries} failed: ${error.message}`);
+        if (i < retries - 1) {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+    
+    return { success: false, error: lastError?.message || 'Failed to connect to database' };
+  } catch (error) {
+    logger.error(`Failed to connect to database: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Alias for connectToProfilesDatabase for server.js compatibility
+ */
+export async function connectProfilesDB(retries = 1, force = false) {
+  try {
+    if (profilesConnection && !force) {
+      return { success: true, connection: profilesConnection };
+    }
+    
+    let lastError = null;
+    for (let i = 0; i < retries; i++) {
+      try {
+        const connection = await connectToProfilesDatabase();
+        return { success: true, connection };
+      } catch (error) {
+        lastError = error;
+        logger.warning(`Profiles connection attempt ${i + 1}/${retries} failed: ${error.message}`);
+        if (i < retries - 1) {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+    
+    return { success: false, error: lastError?.message || 'Failed to connect to profiles database' };
+  } catch (error) {
+    logger.error(`Failed to connect to profiles database: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Connect to both databases with retries
+ */
+export async function connectAllDatabases(retries = 1) {
+  const mainResult = await connectDB(retries);
+  const profilesResult = await connectProfilesDB(retries);
+  
+  return {
+    main: mainResult.success,
+    profiles: profilesResult.success
+  };
+}
+
+/**
+ * Alias for disconnectFromDatabases for server.js compatibility
+ */
+export async function disconnectDB() {
+  return disconnectFromDatabases();
+}
+
+/**
+ * Check health of database connections
  */
 export async function checkDBHealth() {
   try {
-    await withDbConnection(async (conn) => {
-      // Use a simpler ping approach that doesn't require admin privileges
-      await conn.db.command({ ping: 1 });
-    }, { timeout: 5000 });
+    // Check main connection
+    const mainStatus = mongoose.connection.readyState;
+    const mainConnected = mainStatus === 1;
+    
+    // Check profiles connection
+    const profilesStatus = profilesConnection ? profilesConnection.readyState : 0;
+    const profilesConnected = profilesStatus === 1;
     
     return {
-      status: 'healthy',
-      connected: isConnected,
-      readyState: mongoose.connection.readyState,
-      host: mongoose.connection.host
+      status: mainConnected && profilesConnected ? 'healthy' : 'unhealthy',
+      main: mainConnected ? 'connected' : 'disconnected',
+      profiles: profilesConnected ? 'connected' : 'disconnected'
     };
   } catch (error) {
+    logger.error(`Error checking database health: ${error.message}`);
+    return { status: 'error', error: error.message };
+  }
+}
+
+/**
+ * Check health of all database connections
+ */
+export async function checkAllDatabasesHealth() {
+  try {
+    const mainStatus = mongoose.connection.readyState === 1 ? 'healthy' : 'unhealthy';
+    const profilesStatus = profilesConnection && profilesConnection.readyState === 1 ? 'healthy' : 'unhealthy';
+    
     return {
-      status: 'unhealthy',
-      error: error.message,
-      readyState: mongoose.connection?.readyState || 0
+      main: { 
+        status: mainStatus,
+        database: mongoose.connection.db?.databaseName || 'unknown'
+      },
+      profiles: { 
+        status: profilesStatus,
+        database: profilesConnection?.db?.databaseName || 'unknown'
+      }
+    };
+  } catch (error) {
+    logger.error(`Error checking all databases health: ${error.message}`);
+    return {
+      main: { status: 'error', error: error.message },
+      profiles: { status: 'error', error: error.message }
     };
   }
 }
 
-// Export as default object for convenience
-export default { 
-  connectDB, 
-  disconnectDB, 
-  withDbConnection, 
+/**
+ * Check if the main database connection is healthy
+ */
+export async function isDatabaseConnectionHealthy(type = 'main') {
+  try {
+    if (type === 'main') {
+      return mongoose.connection.readyState === 1;
+    } else if (type === 'profiles') {
+      return profilesConnection && profilesConnection.readyState === 1;
+    } else if (type === 'all') {
+      return mongoose.connection.readyState === 1 && 
+             profilesConnection && profilesConnection.readyState === 1;
+    }
+    return false;
+  } catch (error) {
+    logger.error(`Error checking database health: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Check if any database connection is available
+ */
+export function hasConnection() {
+  return mongoose.connection.readyState === 1 || 
+         (profilesConnection && profilesConnection.readyState === 1);
+}
+
+/**
+ * Check if using fallback database mode
+ */
+export function inFallbackMode() {
+  return inFallbackModeState;
+}
+
+/**
+ * Set fallback mode
+ */
+export function setFallbackMode(mode) {
+  inFallbackModeState = !!mode;
+}
+
+/**
+ * Ensure all models are registered
+ */
+export async function ensureModelsRegistered() {
+  if (modelsRegistered) return true;
+  
+  try {
+    // Dynamically import models to prevent circular dependencies
+    await Promise.all([
+      import('../models/SessionHistory.js'),
+      import('../models/Profile.js')
+    ]);
+    
+    modelsRegistered = true;
+    return true;
+  } catch (error) {
+    logger.error(`Failed to register models: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Execute a function with a database connection
+ * Handles reconnection if necessary
+ */
+export async function withDbConnection(callback, options = {}) {
+  const { retries = 1, requireConnection = true } = options;
+  
+  // Check if we have a connection
+  if (requireConnection && !hasConnection()) {
+    // Try to reconnect
+    const reconnected = await connectDB(1).then(res => res.success);
+    if (!reconnected && requireConnection) {
+      throw new Error('No database connection available');
+    }
+  }
+  
+  // Execute the callback
+  let lastError = null;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await callback();
+    } catch (error) {
+      lastError = error;
+      if (i < retries - 1) {
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  }
+  
+  // If we get here, all retries failed
+  if (lastError) throw lastError;
+}
+
+/**
+ * Get a model from the main database or profiles database
+ * @param {string} modelName - The name of the model to get
+ * @param {string} connectionType - 'main' or 'profiles'
+ * @returns {mongoose.Model} The requested model
+ */
+export function getModel(modelName, connectionType = 'main') {
+  try {
+    if (connectionType === 'profiles' && profilesConnection) {
+      return profilesConnection.model(modelName);
+    }
+    return mongoose.model(modelName);
+  } catch (error) {
+    logger.error(`Failed to get model ${modelName}: ${error.message}`);
+    throw error;
+  }
+}
+
+export default {
+  connectToDatabase,
+  connectToProfilesDatabase,
+  disconnectFromDatabases,
+  connectDB,
+  connectProfilesDB,
+  connectAllDatabases,
+  disconnectDB,
+  checkDBHealth,
+  checkAllDatabasesHealth,
+  isDatabaseConnectionHealthy,
+  hasConnection,
+  inFallbackMode,
+  setFallbackMode,
   ensureModelsRegistered,
+  withDbConnection,
   getModel,
-  checkDBHealth
+  getConnection: () => mongoose.connection,
+  getProfilesConnection: () => profilesConnection
 };

@@ -1,42 +1,68 @@
 import mongoose from 'mongoose';
 
-// Simple schema definition
-const sessionHistorySchema = new mongoose.Schema({
-  username: { type: String, required: true, index: true },
-  socketId: { type: String, required: true },
-  title: { type: String, default: 'Untitled Session' },
-  shareToken: String,
-  messages: [{
-    role: String,
-    content: String,
-    timestamp: { type: Date, default: Date.now }
-  }],
+const messageSchema = new mongoose.Schema({
+  role: {
+    type: String,
+    enum: ['system', 'user', 'assistant'],
+    required: true
+  },
+  content: {
+    type: String,
+    required: true
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+const SessionHistorySchema = new mongoose.Schema({
+  sessionId: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  username: {
+    type: String,
+    required: true,
+    index: true
+  },
+  messages: [messageSchema],
   metadata: {
-    createdAt: { type: Date, default: Date.now },
-    lastActivity: { type: Date, default: Date.now },
-    triggers: [String],
-    collarActive: Boolean,
-    collarText: String,
-    spiralSettings: Object
+    type: Object,
+    default: {}
+  },
+  startedAt: {
+    type: Date,
+    default: Date.now
+  },
+  lastUpdatedAt: {
+    type: Date,
+    default: Date.now
+  },
+  triggers: {
+    type: Array,
+    default: []
   }
-}, { timestamps: true });
+});
 
-// Create model once
-let SessionHistory;
+// Update the lastUpdatedAt timestamp when session is modified
+SessionHistorySchema.pre('save', function(next) {
+  this.lastUpdatedAt = new Date();
+  next();
+});
 
-// Get model function
-function getSessionHistoryModel() {
-  if (mongoose.models.SessionHistory) {
-    return mongoose.models.SessionHistory;
-  }
-  
-  if (!SessionHistory) {
-    SessionHistory = mongoose.model('SessionHistory', sessionHistorySchema);
-  }
-  
-  return SessionHistory;
-}
+// Method to add a message to the session history
+SessionHistorySchema.methods.addMessage = function(role, content) {
+  this.messages.push({ role, content });
+  this.lastUpdatedAt = new Date();
+  return this;
+};
 
-// Export both
-export { getSessionHistoryModel };
-export default mongoose.model('SessionHistory', sessionHistorySchema);
+// Export both the schema and model to allow reuse in workers
+const SessionHistory = mongoose.models.SessionHistory || mongoose.model('SessionHistory', SessionHistorySchema);
+
+// Add schema to the export for worker thread registration
+SessionHistory.schema = SessionHistorySchema;
+
+export default SessionHistory;

@@ -23,9 +23,7 @@ const textElements = [
 function loadTriggerData() {
   fetch('/config/triggers.json')
     .then(response => {
-      if (!response.ok) {
-        throw new Error(`Failed to load triggers.json: ${response.status} ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error('Failed to load trigger data');
       return response.json();
     })
     .then(data => {
@@ -42,17 +40,16 @@ function loadTriggerData() {
       
       // Try loading from localStorage if available
       try {
-        const storedTriggers = localStorage.getItem('bambiTriggers');
+        const storedTriggers = localStorage.getItem('bambiActiveTriggers');
         if (storedTriggers) {
           const parsedTriggers = JSON.parse(storedTriggers);
           if (Array.isArray(parsedTriggers) && parsedTriggers.length > 0) {
-            triggerData = parsedTriggers;
-            // Recreate buttons with loaded data
-            createToggleButtons();
+            console.log('Loaded triggers from localStorage:', parsedTriggers);
+            updateTriggerToggles(parsedTriggers);
           }
         }
       } catch (storageError) {
-        console.log('Error loading triggers from localStorage:', storageError);
+        console.error('Error loading from localStorage:', storageError);
       }
     });
 }
@@ -70,9 +67,19 @@ function createToggleButtons() {
     const storedActiveTriggers = localStorage.getItem('bambiActiveTriggers');
     if (storedActiveTriggers) {
       activeTriggerNames = JSON.parse(storedActiveTriggers);
+      // Ensure it's an array
+      if (!Array.isArray(activeTriggerNames)) {
+        activeTriggerNames = storedActiveTriggers.split(',').map(t => t.trim());
+      }
     }
   } catch (error) {
     console.log('Error loading active triggers from localStorage:', error);
+  }
+  
+  // Ensure we actually have trigger data to display
+  if (!triggerData || triggerData.length === 0) {
+    container.innerHTML = '<p>No triggers available. Please refresh the page.</p>';
+    return;
   }
   
   triggerData.forEach(trigger => {
@@ -103,6 +110,11 @@ function createToggleButtons() {
   
   // Setup toggle listeners
   setupToggleListeners();
+
+  // Dispatch event to notify that triggers have been loaded
+  document.dispatchEvent(new CustomEvent('triggers-loaded', { 
+    detail: { triggers: triggerData } 
+  }));
 }
 
 // Load audio for a specific trigger with better error handling
@@ -338,7 +350,6 @@ function getSelectedTriggers() {
   return selectedTriggers;
 }
 
-// Save toggle states to localStorage
 function saveToggleStatesToLocalStorage() {
   try {
     const selectedTriggers = getSelectedTriggers();
@@ -348,16 +359,30 @@ function saveToggleStatesToLocalStorage() {
     // Create trigger descriptions object
     const triggerDescriptions = {};
     selectedTriggers.forEach(trigger => {
-      if (trigger.description) {
+      if (trigger.name && trigger.description) {
         triggerDescriptions[trigger.name] = trigger.description;
       }
     });
     
     localStorage.setItem('bambiTriggerDescriptions', JSON.stringify(triggerDescriptions));
     
+    console.log('Active triggers saved:', triggerNames);
+    
+    // Send updates to the server
+    if (window.socket && window.socket.connected) {
+      const username = document.body.getAttribute('data-username');
+      if (username) {
+        window.socket.emit('triggers', {
+          triggerNames: triggerNames,
+          triggerDetails: selectedTriggers,
+          username: username
+        });
+      }
+    }
+    
     // Sync with other pages if the sync function exists
     if (typeof window.syncTriggersWithPages === 'function') {
-      window.syncTriggersWithPages(triggerNames, triggerDescriptions);
+      window.syncTriggersWithPages(triggerNames);
     }
   } catch (error) {
     console.log('Error saving trigger selection to localStorage:', error);
@@ -373,7 +398,7 @@ function playRandomPlaylist() {
     
     // Show notification if available
     if (typeof window.showNotification === 'function') {
-      window.showNotification('Please select at least one trigger first', 'warning');
+      window.showNotification('No triggers selected. Please select triggers first.');
     }
     return;
   }
@@ -393,7 +418,7 @@ function playRandomPlaylist() {
   if (typeof socket !== "undefined" && socket.connected) {
     const triggerNames = shuffledTriggers.map(t => t.name);
     socket.emit("triggers", { 
-      triggerNames: triggerNames.join(' '),
+      triggerNames: triggerNames,
       triggerDetails: shuffledTriggers.map(t => ({ 
         name: t.name, 
         description: t.description || '' 
@@ -487,14 +512,26 @@ function setupSocketListener() {
 
 // Update trigger toggles based on received active triggers
 function updateTriggerToggles(activeTriggers) {
+  if (!Array.isArray(activeTriggers)) {
+    // Try to convert to array if it's a string
+    if (typeof activeTriggers === 'string') {
+      activeTriggers = activeTriggers.split(',').map(t => t.trim());
+    } else {
+      return;
+    }
+  }
+  
   const toggleInputs = document.getElementsByClassName("toggle-input");
   
   for (let i = 0; i < toggleInputs.length; i++) {
-    const triggerName = toggleInputs[i].dataset.triggerName || toggleInputs[i].dataset.trigger;
-    
-    // Set checked state based on active triggers
-    toggleInputs[i].checked = activeTriggers.includes(triggerName);
+    const triggerName = toggleInputs[i].dataset.triggerName;
+    if (triggerName) {
+      toggleInputs[i].checked = activeTriggers.includes(triggerName);
+    }
   }
+  
+  // Save changes to localStorage
+  saveToggleStatesToLocalStorage();
 }
 
 let continuousPlaybackActive = false;
@@ -606,6 +643,18 @@ window.onload = function () {
   
   // Load trigger data
   loadTriggerData();
+
+  // Connect Play Triggers button in profile-system-controls.ejs
+  const playTriggersBtn = document.getElementById("play-triggers");
+  if (playTriggersBtn) {
+    playTriggersBtn.addEventListener("click", playRandomPlaylist);
+  }
+  
+  // Connect toggle all button in profile-system-controls.ejs
+  const activateAllBtn = document.getElementById("activate-all");
+  if (activateAllBtn) {
+    activateAllBtn.addEventListener("click", toggleAllToggles);
+  }
   
   // Add event listener for the loop toggle
   const loopToggle = document.getElementById("loop-toggle");
@@ -619,7 +668,7 @@ window.onload = function () {
     });
   }
   
-  // Add event listener for the play button
+  // Add event listener for the play button (in either file)
   const playButton = document.getElementById("play-playlist");
   if (playButton) {
     playButton.addEventListener("click", playRandomPlaylist);
@@ -649,23 +698,32 @@ window.onload = function () {
   setTimeout(setupSocketListener, 1000);
 };
 
-// Expose the API globally for use by other scripts
-window.bambiAudio = {
-  playTrigger: activateTrigger,
-  playRandomPlaylist: playRandomPlaylist,
-  startContinuousPlayback: playContinuousTriggers,
-  stopContinuousPlayback: stopContinuousPlayback,
-  updatePlaybackSpeed: updatePlaybackSpeed,
-  updatePlaybackVolume: updatePlaybackVolume,
-  getSelectedTriggers: getSelectedTriggers,
-  loadTriggerAudio: loadTriggerAudio,
-  getAllTriggers: () => triggerData,
-  refreshTriggers: loadTriggerData
-};
+// Handle DOM content loaded for both files
+document.addEventListener('DOMContentLoaded', function() {
+  // This runs when the document is ready but before resources are loaded
+  console.log('DOM Content Loaded - setting up trigger integrations');
+  
+  // Create an observer to watch for dynamically loaded trigger panels
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+        for (let i = 0; i < mutation.addedNodes.length; i++) {
+          const node = mutation.addedNodes[i];
+          if (node.id === 'trigger-panel' || (node.querySelector && node.querySelector('#trigger-panel'))) {
+            console.log('Trigger panel detected, initializing');
+            loadTriggerData();
+            observer.disconnect();
+            return;
+          }
+        }
+      }
+    });
+  });
+  
+  // Start observing the document body for added nodes
+  observer.observe(document.body, { childList: true, subtree: true });
 
-// Add this to the bottom of profile-system-controls.ejs inside the existing script tag
-document.addEventListener("DOMContentLoaded", function() {
-  // Volume control
+  // Initialize volume and speed controls
   const volumeSlider = document.getElementById('loop-volume');
   const volumeValue = document.getElementById('volume-value');
   
@@ -680,6 +738,9 @@ document.addEventListener("DOMContentLoaded", function() {
       // Apply volume if audio API is available
       if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackVolume === 'function') {
         window.bambiAudio.updatePlaybackVolume(volume);
+      } else {
+        // Store for when API becomes available
+        updatePlaybackVolume(volume);
       }
     }
     
@@ -691,14 +752,12 @@ document.addEventListener("DOMContentLoaded", function() {
       // Store in localStorage
       localStorage.setItem('bambiAudioVolume', volumeFactor);
       
-      // Update audio volume if API is available
-      if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackVolume === 'function') {
-        window.bambiAudio.updatePlaybackVolume(volumeFactor);
-      }
+      // Update audio volume
+      updatePlaybackVolume(volumeFactor);
     });
   }
   
-  // Existing speed slider might already be implemented
+  // Speed control
   const speedSlider = document.getElementById('loop-speed');
   const speedValue = document.getElementById('speed-value');
   
@@ -710,10 +769,8 @@ document.addEventListener("DOMContentLoaded", function() {
       updateSpeedLabel(storedSpeed);
       
       // Apply speed if audio API is available
-      if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackSpeed === 'function') {
-        const speedFactor = getSpeedFactor(storedSpeed);
-        window.bambiAudio.updatePlaybackSpeed(speedFactor);
-      }
+      const speedFactor = getSpeedFactor(storedSpeed);
+      updatePlaybackSpeed(speedFactor);
     }
     
     // Update speed when slider changes
@@ -723,15 +780,13 @@ document.addEventListener("DOMContentLoaded", function() {
       // Store in localStorage
       localStorage.setItem('bambiAudioSpeed', this.value);
       
-      // Update audio speed if API is available
-      if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackSpeed === 'function') {
-        const speedFactor = getSpeedFactor(this.value);
-        window.bambiAudio.updatePlaybackSpeed(speedFactor);
-      }
+      // Update audio speed
+      const speedFactor = getSpeedFactor(this.value);
+      updatePlaybackSpeed(speedFactor);
     });
   }
   
-  // Helper function for speed label display
+  // Helper function for speed label
   function updateSpeedLabel(value) {
     const speedVal = parseInt(value);
     if (speedVal === 5) {
@@ -751,3 +806,37 @@ document.addEventListener("DOMContentLoaded", function() {
     return 1.0 - ((speedVal - 5) * 0.1); // Faster = lower number
   }
 });
+
+// Expose the API globally for use by other scripts
+window.bambiAudio = {
+  playTrigger: activateTrigger,
+  playRandomPlaylist: playRandomPlaylist,
+  startContinuousPlayback: playContinuousTriggers,
+  stopContinuousPlayback: stopContinuousPlayback,
+  updatePlaybackSpeed: updatePlaybackSpeed,
+  updatePlaybackVolume: updatePlaybackVolume,
+  getSelectedTriggers: getSelectedTriggers,
+  loadTriggerAudio: loadTriggerAudio,
+  getAllTriggers: () => triggerData,
+  refreshTriggers: loadTriggerData,
+  toggleAllTriggers: toggleAllToggles,
+  refreshTriggerUI: function() {
+    try {
+      const storedTriggers = localStorage.getItem('bambiActiveTriggers');
+      if (storedTriggers) {
+        const activeTriggerNames = JSON.parse(storedTriggers);
+        
+        // Update all toggle inputs based on stored trigger names
+        const toggleInputs = document.getElementsByClassName("toggle-input");
+        for (let i = 0; i < toggleInputs.length; i++) {
+          const triggerName = toggleInputs[i].dataset.triggerName || toggleInputs[i].dataset.trigger;
+          toggleInputs[i].checked = activeTriggerNames.includes(triggerName);
+        }
+        
+        console.log('Trigger UI refreshed with stored triggers:', activeTriggerNames);
+      }
+    } catch (error) {
+      console.log('Error refreshing trigger UI:', error);
+    }
+  }
+};

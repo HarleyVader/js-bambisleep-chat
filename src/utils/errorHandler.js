@@ -1,3 +1,7 @@
+import Logger from '../utils/logger.js';
+
+const logger = new Logger('ErrorHandler');
+
 /**
  * Formats error for consistent client-side display
  * @param {Error} error - The error object
@@ -12,6 +16,12 @@ export function formatError(error, includeDetails = false) {
     success: false,
     message: error.message || 'An unexpected error occurred'
   };
+  
+  // Check for service unavailable specifically
+  if (error.status === 503 || error.statusCode === 503) {
+    errorResponse.isServiceUnavailable = true;
+    errorResponse.retryAfter = error.retryAfter || 30;
+  }
   
   // Include stack trace and details only in development mode
   if (!isProduction && includeDetails) {
@@ -28,29 +38,39 @@ export function formatError(error, includeDetails = false) {
 }
 
 /**
- * Express middleware for handling errors
- * @param {Error} err - Error object
- * @param {Request} req - Express request
- * @param {Response} res - Express response
- * @param {Function} next - Next middleware
+ * Express error handler middleware
  */
 export default function errorHandler(err, req, res, next) {
-  const status = err.status || 500;
-  const message = err.message || 'Something went wrong';
-  
   // Log the error
-  console.error(`[${status}] ${err.message}`);
+  logger.error(`API Error: ${err.message}`);
   
-  // Render error page for HTML requests
-  if (req.accepts('html')) {
-    res.status(status).render('error', {
-      message,
-      error: process.env.NODE_ENV === 'production' ? {} : err,
-      validConstantsCount: 5,
-      title: `Error - ${status}`
-    });
-  } else {
-    // JSON response for API requests
-    res.status(status).json(formatError(err, process.env.NODE_ENV !== 'production'));
+  // Determine status code (default to 500)
+  const statusCode = err.statusCode || err.status || 500;
+  
+  // Special handling for 503 errors
+  if (statusCode === 503) {
+    logger.warning('Service unavailable error encountered');
+    
+    // Check if HTML is preferred over JSON
+    if (req.accepts('html')) {
+      return res.status(503).render('service-unavailable', {
+        message: err.message || 'Service temporarily unavailable',
+        retryAfter: err.retryAfter || 30,
+        title: 'Service Unavailable'
+      });
+    }
   }
+  
+  // Send error response
+  res.status(statusCode).json({
+    success: false,
+    error: {
+      message: process.env.NODE_ENV === 'production' && statusCode >= 500 
+        ? statusCode === 503 
+          ? 'Service temporarily unavailable. Please try again later.' 
+          : 'Server error occurred'
+        : err.message,
+      retryAfter: statusCode === 503 ? (err.retryAfter || 30) : undefined
+    }
+  });
 }

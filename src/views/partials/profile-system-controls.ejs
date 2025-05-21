@@ -4,7 +4,7 @@ const userLevel = profile ? profile.level || 0 : 0;
 const userXp = profile ? profile.xp || 0 : 0;
 
 // Define XP requirements for each level
-const xpRequirements = [1000, 2500, 7500, 17000, 42000];
+const xpRequirements = [1000, 2500, 4500, 7000, 12000, 36000, 112000, 332000];
 
 // Calculate next level XP requirement
 const getNextLevelXP = (level) => {
@@ -62,6 +62,20 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       <button id="audios-btn" class="control-btn" data-target="audios-panel">Audios</button>
     <% } else { %>
       <button class="control-btn disabled" title="Reach Level 6 to unlock">Audios 🔒</button>
+    <% } %>
+
+    <!-- Show brainwave feature if user level ≥ 7 -->
+    <% if (userLevel >= 7) { %>
+      <button id="brainwave-btn" class="control-btn" data-target="brainwave-panel">Brainwaves</button>
+    <% } else { %>
+      <button class="control-btn disabled" title="Reach Level 7 to unlock">Brainwaves 🔒</button>
+    <% } %>
+    
+    <!-- Show advanced binaural feature if user level ≥ 8 -->
+    <% if (userLevel >= 8) { %>
+      <button id="advanced-binaural-btn" class="control-btn" data-target="advanced-binaural-panel">Advanced Binaural</button>
+    <% } else { %>
+      <button class="control-btn disabled" title="Reach Level 8 to unlock">Advanced Binaural 🔒</button>
     <% } %>
   </div>
 
@@ -186,8 +200,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         </div>
       <% } %>
       
-      <% if (userLevel >= 5) { %>
-        <!-- Hypnosis panel -->
+      <% if (userLevel >= 5) { %>        <!-- Hypnosis panel -->
         <div id="hypnosis-panel" class="control-panel">
           <h3>Hypnosis Settings</h3>
           <div class="hypnosis-toggle">
@@ -197,6 +210,16 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           <div class="hypnosis-settings">
             <!-- Hypnosis settings would go here -->
             <p>Hypnosis settings will appear here in a future update.</p>
+          </div>
+          
+          <!-- Streaming response settings -->
+          <div class="streaming-settings">
+            <h4>Response Streaming</h4>
+            <div class="streaming-toggle">
+              <input type="checkbox" id="streaming-enable" <%= systemControls.useStreaming ? 'checked' : '' %>>
+              <label for="streaming-enable">Enable streaming responses</label>
+            </div>
+            <p class="setting-description">Streaming responses appear word by word in real-time, creating a more hypnotic effect.</p>
           </div>
         </div>
       <% } %>
@@ -228,6 +251,153 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
           </div>
         </div>
       <% } %>
+
+      <% if (userLevel >= 7) { %>
+        <!-- Brainwave panel -->
+        <div id="brainwave-panel" class="control-panel">
+          <h3>Brainwave Entrainment</h3>
+          <div class="brainwave-toggle">
+            <input type="checkbox" id="brainwave-enable" <%= systemControls.brainwaveEnabled ? 'checked' : '' %>>
+            <label for="brainwave-enable">Enable Binaural Beats</label>
+          </div>
+          
+          <div class="brainwave-controls">
+            <div class="brainwave-control-group">
+              <label for="brainwave-mode">Frequency Mode:</label>
+              <select id="brainwave-mode" class="brainwave-select">
+                <option value="alpha" <%= (systemControls.brainwaveMode === 'alpha') ? 'selected' : '' %>>Alpha (10Hz) - Relaxed Focus</option>
+                <option value="theta" <%= (systemControls.brainwaveMode === 'theta') ? 'selected' : '' %>>Theta (6Hz) - Deep Trance</option>
+                <option value="delta" <%= (systemControls.brainwaveMode === 'delta') ? 'selected' : '' %>>Delta (2Hz) - Sleep State</option>
+                <option value="beta" <%= (systemControls.brainwaveMode === 'beta') ? 'selected' : '' %>>Beta (20Hz) - Alert State</option>
+                <option value="custom" <%= (systemControls.brainwaveMode === 'custom') ? 'selected' : '' %>>Custom Frequency</option>
+              </select>
+            </div>
+            
+            <div id="frequency-description" class="frequency-description">
+              Alpha waves (8-14Hz) promote relaxed focus and are ideal for gentle trance states.
+            </div>
+            
+            <div id="custom-freq-container" class="brainwave-control-group" style="<%= (systemControls.brainwaveMode === 'custom') ? '' : 'display: none' %>">
+              <label for="custom-frequency">Beat Frequency:</label>
+              <div class="slider-container">
+                <input type="range" id="custom-frequency" min="1" max="30" value="<%= systemControls.customFrequency || 10 %>" step="0.5" class="brainwave-slider">
+                <span id="custom-frequency-value"><%= systemControls.customFrequency || 10 %> Hz</span>
+              </div>
+            </div>
+            
+            <div class="brainwave-control-group">
+              <label for="carrier-frequency">Carrier Frequency:</label>
+              <div class="slider-container">
+                <input type="range" id="carrier-frequency" min="100" max="500" value="<%= systemControls.carrierFrequency || 200 %>" step="10" class="brainwave-slider">
+                <span id="carrier-frequency-value"><%= systemControls.carrierFrequency || 200 %> Hz</span>
+              </div>
+            </div>
+            
+            <div class="brainwave-control-group">
+              <label for="brainwave-volume">Volume:</label>
+              <div class="slider-container">
+                <input type="range" id="brainwave-volume" min="0" max="100" value="<%= systemControls.brainwaveVolume || 50 %>" step="1" class="brainwave-slider">
+                <span id="brainwave-volume-value"><%= systemControls.brainwaveVolume || 50 %>%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="brainwave-actions">
+            <button id="play-brainwave" class="secondary-btn">Play Binaural Beat</button>
+            <button id="stop-brainwave" class="secondary-btn" disabled>Stop</button>
+            <button id="save-brainwave" class="save-btn">Save Settings</button>
+          </div>
+        </div>
+      <% } %>
+      
+        <% if (userLevel >= 8) { %>
+        <!-- Advanced Binaural panel -->
+        <div id="advanced-binaural-panel" class="control-panel">
+          <h3>Advanced Binaural Patterns</h3>
+          <div class="advanced-binaural-info">
+            <p>This advanced feature allows more complex brainwave entrainment patterns that change over time.</p>
+            <div class="science-reference">
+              <i class="fas fa-flask"></i> Based on recent neuroscience research on frequency-following response.
+              <a href="#" id="science-link" class="info-link">Learn more</a>
+            </div>
+          </div>
+          
+          <div class="binaural-toggle">
+            <input type="checkbox" id="advanced-binaural-enable" <%= systemControls.advancedBinauralEnabled ? 'checked' : '' %>>
+            <label for="advanced-binaural-enable">Enable Advanced Patterns</label>
+          </div>
+          
+          <div class="binaural-controls">
+            <div class="binaural-control-group">
+              <label for="pattern-select">Pattern Type:</label>
+              <select id="pattern-select" class="binaural-select">
+                <option value="descent" <%= (systemControls.binauralPattern === 'descent') ? 'selected' : '' %>>Descent (Alpha to Theta to Delta)</option>
+                <option value="ascent" <%= (systemControls.binauralPattern === 'ascent') ? 'selected' : '' %>>Ascent (Delta to Theta to Alpha)</option>
+                <option value="focus" <%= (systemControls.binauralPattern === 'focus') ? 'selected' : '' %>>Focus Cycle (Alpha-Beta-Alpha)</option>
+                <option value="trance" <%= (systemControls.binauralPattern === 'trance') ? 'selected' : '' %>>Deep Trance (Alpha-Theta Loop)</option>
+                <option value="custom" <%= (systemControls.binauralPattern === 'custom') ? 'selected' : '' %>>Custom Pattern</option>
+              </select>
+            </div>
+            
+            <div id="pattern-description" class="pattern-description">
+              Descent pattern gradually moves from alert Alpha waves down through Theta into deep Delta, creating a natural descent into trance.
+            </div>
+            
+            <div id="custom-pattern-container" class="binaural-control-group" style="<%= (systemControls.binauralPattern === 'custom') ? '' : 'display: none' %>">
+              <label>Custom Pattern Sequence:</label>
+              <div class="custom-pattern-editor">
+                <div class="pattern-segments">
+                  <div class="pattern-segment">
+                    <select class="segment-wave">
+                      <option value="alpha">Alpha</option>
+                      <option value="theta">Theta</option>
+                      <option value="delta">Delta</option>
+                      <option value="beta">Beta</option>
+                    </select>
+                    <input type="number" class="segment-duration" min="1" max="60" value="5"> mins
+                    <button class="remove-segment">×</button>
+                  </div>
+                </div>
+                <button id="add-segment" class="secondary-btn">Add Segment</button>
+              </div>
+            </div>
+            
+            <div class="binaural-control-group">
+              <label for="pattern-duration">Total Duration:</label>
+              <div class="slider-container">
+                <input type="range" id="pattern-duration" min="5" max="60" value="<%= systemControls.patternDuration || 20 %>" step="5" class="binaural-slider">
+                <span id="pattern-duration-value"><%= systemControls.patternDuration || 20 %> minutes</span>
+              </div>
+            </div>
+            
+            <div class="binaural-control-group">
+              <label for="transition-time">Transition Time:</label>
+              <div class="slider-container">
+                <input type="range" id="transition-time" min="10" max="120" value="<%= systemControls.transitionTime || 30 %>" step="10" class="binaural-slider">
+                <span id="transition-time-value"><%= systemControls.transitionTime || 30 %> seconds</span>
+              </div>
+            </div>
+            
+            <div class="binaural-visualization">
+              <canvas id="pattern-visualization" width="400" height="120"></canvas>
+              <div class="visualization-legend">
+                <span class="beta-legend">Beta</span>
+                <span class="alpha-legend">Alpha</span>
+                <span class="theta-legend">Theta</span>
+                <span class="delta-legend">Delta</span>
+                <div class="time-axis">Time (minutes)</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="binaural-actions">
+            <button id="play-advanced-binaural" class="secondary-btn">Play Pattern</button>
+            <button id="stop-advanced-binaural" class="secondary-btn" disabled>Stop</button>
+            <button id="save-advanced-binaural" class="save-btn">Save Settings</button>
+          </div>
+        </div>
+      <% } %>
+
     <% } else { %>
       <div class="locked-features-message">
         <p>🔒 Reach Level 1 to unlock trigger controls!</p>
@@ -236,7 +406,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     <% } %>
   </div>
 
-  <!-- XP progress bar -->
+  <!-- </div>- XP progress bar -->
   <% if (userXp !== undefined) { %>
     <div class="xp-progress-container">
       <div class="xp-progress-label" id="xp-progress-label">
@@ -257,250 +427,12 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
   <% } %>
 </div>
 
-<style>
-  /* Control buttons styling */
-  .control-btn.disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    background: #444;
-    color: #aaa;
-  }
-  
-  /* XP progress bar styling */
-  .xp-progress-container {
-    margin-top: 20px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 5px;
-  }
-  
-  .xp-progress-label {
-    margin-bottom: 5px;
-    font-size: 0.8em;
-    color: rgba(255, 255, 255, 0.7);
-    text-align: center;
-  }
-  
-  .xp-progress-bar {
-    height: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-  }
-  
-  .xp-progress-fill {
-    height: 100%;
-    background: linear-gradient(to right, #00ffff, #ff00ff);
-    border-radius: 4px;
-    transition: width 0.5s ease-in-out;
-  }
-  
-  /* Audio controls styling */
-  .audio-controls {
-    margin-top: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
 
-  .audio-speed-control, .audio-volume-control {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .speed-slider, .volume-slider {
-    flex: 1;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-    outline: none;
-  }
-
-  .speed-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #ff00ff;
-    cursor: pointer;
-  }
-
-  .volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #00ffff;
-    cursor: pointer;
-  }
-
-  .speed-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #ff00ff;
-    cursor: pointer;
-  }
-
-  .volume-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #00ffff;
-    cursor: pointer;
-  }
-
-  #speed-value, #volume-value {
-    min-width: 60px;
-    text-align: center;
-    font-size: 0.9em;
-  }
-
-  #speed-value {
-    color: #ff00ff;
-  }
-
-  #volume-value {
-    color: #00ffff;
-  }
-
-  /* Session controls styling */
-  .session-stats-container {
-    display: flex;
-    justify-content: space-around;
-    margin: 15px 0;
-    background-color: rgba(10, 38, 38, 0.4);
-    border-radius: 8px;
-    padding: 15px;
-    border: 1px solid var(--tertiary-alt);
-  }
-
-  .session-stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 5px 15px;
-    text-align: center;
-  }
-
-  .session-stat .stat-value {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: var(--tertiary-alt);
-    text-shadow: 0 0 5px var(--tertiary-color);
-  }
-
-  .session-stat .stat-label {
-    font-size: 0.8rem;
-    color: var(--primary-alt);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .session-history-status {
-    text-align: center;
-    padding: 10px;
-    margin: 10px 0;
-    color: var(--primary-alt);
-    font-style: italic;
-  }
-
-  .session-history-status.error {
-    color: var(--error);
-    border-left: 3px solid var(--error);
-    background-color: rgba(255, 0, 0, 0.1);
-  }
-
-  .session-history-status.success {
-    color: var(--tertiary-alt);
-    border-left: 3px solid var(--tertiary-alt);
-    background-color: rgba(23, 219, 216, 0.1);
-  }
-
-  .session-history-actions {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    margin-top: 15px;
-  }
-
-  .active-session-info {
-    margin-top: 8px;
-    padding: 6px 10px;
-    background-color: rgba(0, 255, 255, 0.1);
-    border-left: 3px solid var(--tertiary-alt);
-    font-size: 0.85rem;
-    color: var(--primary-alt);
-  }
-
-  .info-label {
-    font-weight: bold;
-    margin-right: 5px;
-    color: var(--tertiary-alt);
-  }
-
-  /* Spirals controls styling */
-  .spirals-controls {
-    margin: 15px 0;
-    background-color: rgba(10, 38, 38, 0.4);
-    border-radius: 8px;
-    padding: 15px;
-    border: 1px solid var(--tertiary-alt);
-  }
-
-  .spiral-control-group {
-    margin-bottom: 12px;
-  }
-
-  .spiral-control-group label {
-    display: block;
-    margin-bottom: 5px;
-    color: var(--tertiary-alt);
-    font-size: 0.9rem;
-  }
-
-  .slider-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .spiral-slider {
-    flex: 1;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-    outline: none;
-  }
-
-  .spiral-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #ff00ff;
-    cursor: pointer;
-  }
-
-  .spiral-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #ff00ff;
-    cursor: pointer;
-  }
-</style>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    // Store XP requirements globally
-    window.xpRequirements = [100, 250, 450, 700, 1200];
+    // Match XP requirements with the EJS values
+    window.xpRequirements = [1000, 2500, 4500, 7000, 12000, 36000, 112000, 332000];
     
     // Tab navigation system
     const controlButtons = document.querySelectorAll('.control-btn:not(.disabled)');
@@ -508,6 +440,7 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     controlButtons.forEach(button => {
       button.addEventListener('click', function() {
         const targetId = this.getAttribute('data-target');
+        if (!targetId) return;
         
         // Toggle active states
         controlButtons.forEach(btn => btn.classList.remove('active'));
@@ -520,6 +453,9 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         // Show target panel
         const targetPanel = document.getElementById(targetId);
         if (targetPanel) targetPanel.classList.add('active');
+        
+        // Save last active tab
+        localStorage.setItem('bambiLastTab', targetId);
       });
     });
     
@@ -527,22 +463,18 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
     const volumeSlider = document.getElementById('loop-volume');
     const volumeValue = document.getElementById('volume-value');
     if (volumeSlider && volumeValue) {
-      const storedVolume = localStorage.getItem('bambiAudioVolume');
-      if (storedVolume !== null) {
-        const volume = parseFloat(storedVolume);
-        volumeSlider.value = volume * 10;
-        volumeValue.textContent = Math.round(volume * 100) + '%';
-      }
+      const storedVolume = localStorage.getItem('bambiAudioVolume') || '0.8';
+      const volume = parseFloat(storedVolume);
+      volumeSlider.value = volume * 10;
+      volumeValue.textContent = Math.round(volume * 100) + '%';
     }
     
     const speedSlider = document.getElementById('loop-speed');
     const speedValue = document.getElementById('speed-value');
     if (speedSlider && speedValue) {
-      const storedSpeed = localStorage.getItem('bambiAudioSpeed');
-      if (storedSpeed !== null) {
-        speedSlider.value = storedSpeed;
-        updateSpeedLabel(storedSpeed, speedValue);
-      }
+      const storedSpeed = localStorage.getItem('bambiAudioSpeed') || '5';
+      speedSlider.value = storedSpeed;
+      updateSpeedLabel(storedSpeed, speedValue);
     }
     
     // Helper function for speed label
@@ -559,25 +491,311 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       }
     }
     
-    // Watch for trigger list changes to avoid duplicates
+    // Load the last tab from localStorage on page load
+    const lastTab = localStorage.getItem('bambiLastTab');
+    if (lastTab) {
+      const tabButton = document.querySelector(`.control-btn[data-target="${lastTab}"]`);
+      if (tabButton && !tabButton.classList.contains('disabled')) {
+        tabButton.click();
+      } else if (controlButtons.length > 0) {
+        // If last tab not found, activate first available tab
+        controlButtons[0].click();
+      }
+    } else if (controlButtons.length > 0) {
+      // No saved tab, activate first available tab
+      controlButtons[0].click();
+    }
+    
+    // Consolidated trigger initialization - prevent multiple loads
+    let triggersInitialized = false;
+    const initTriggers = () => {
+      if (triggersInitialized) return;
+      
+      const triggerList = document.getElementById('trigger-list');
+      if (!triggerList) return;
+      
+      // Use a flag to prevent multiple initializations
+      triggersInitialized = true;
+      
+      if (window.bambiAudio && window.bambiAudio.refreshTriggers) {
+        window.bambiAudio.refreshTriggers();
+      }
+      
+      if (triggerList.children.length === 0 && typeof loadTriggerData === 'function') {
+        loadTriggerData();
+      }
+      
+      document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
+    };
+    
+    // Try to initialize immediately
+    if (document.getElementById('trigger-list')) {
+      setTimeout(initTriggers, 100); // Short delay to ensure DOM is ready
+    }
+    
+    // Also watch for changes in case the triggers are loaded dynamically
     const triggerList = document.getElementById('trigger-list');
     if (triggerList) {
-      const observer = new MutationObserver(function(mutations) {
-        if (mutations.some(m => m.addedNodes.length > 0)) {
-          document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
+      const observer = new MutationObserver(() => {
+        if (!triggersInitialized && triggerList.children.length > 0) {
+          initTriggers();
           observer.disconnect();
         }
       });
       
-      observer.observe(triggerList, { childList: true });
+      observer.observe(triggerList, { childList: true, subtree: true });
+      
+      // Final safety timeout - try once more after 2 seconds
+      setTimeout(() => {
+        if (!triggersInitialized) {
+          initTriggers();
+          observer.disconnect();
+        }
+      }, 2000);
     }
+    
+    // STANDARDIZED TWO-WAY COMMUNICATION PIPELINE
+    
+    // Check if socket is available
+    if (typeof socket === 'undefined' && typeof window.socket !== 'undefined') {
+      socket = window.socket;
+    }
+    
+    if (typeof socket === 'undefined') {
+      console.error('Socket.io not initialized');
+    } else {
+      // Listen for settings response from worker
+      socket.on('worker:settings:response', function(data) {
+        if (!data) return;
+        
+        // Update UI based on worker response
+        if (data.success) {
+          // Flash settings saved notification
+          showSettingsNotification(data.section);
+        } else {
+          showSettingsError(data.error || 'Unknown error');
+        }
+        
+        // Display debug info if provided
+        if (data.debug && console.debug) {
+          console.debug('Worker debug:', data.debug);
+        }
+      });
+      
+      // Listen for worker-initiated updates
+      socket.on('worker:update', function(data) {
+        if (!data || !data.type) return;
+        
+        switch (data.type) {
+          case 'triggers':
+            updateTriggerStatus(data.triggers);
+            break;
+          case 'collar':
+            updateCollarStatus(data.active, data.message);
+            break;
+          case 'system':
+            if (data.settings && window.bambiSystem) {
+              window.bambiSystem.updateSettings(data.settings);
+            }
+            break;
+        }
+      });
+
+      // From profile-system-controls.ejs
+      socket.emit('worker:settings:update', payload);
+    }
+    
+    // Function to send settings to worker
+    function sendSettingsToWorker(section, settings) {
+      if (!socket || !socket.connected) {
+        console.error('Cannot send settings: socket not connected');
+        return false;
+      }
+      
+      // Add timestamp and version
+      const payload = {
+        section: section,
+        settings: settings,
+        timestamp: Date.now(),
+        clientVersion: '1.0'
+      };
+      
+      // Add username if available
+      const username = document.body.getAttribute('data-username');
+      if (username) {
+        payload.username = username;
+      }
+      
+      socket.emit('worker:settings:update', payload);
+      return true;
+    }
+    
+    // Simple notification helper
+    function showSettingsNotification(section) {
+      const notificationId = 'settings-notification';
+      let notification = document.getElementById(notificationId);
+      
+      if (!notification) {
+        notification = document.createElement('div');
+        notification.id = notificationId;
+        notification.className = 'settings-notification';
+        document.body.appendChild(notification);
+      }
+      
+      notification.textContent = `${section} settings saved`;
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 2000);
+    }
+    
+    function showSettingsError(message) {
+      const errorId = 'settings-error';
+      let errorEl = document.getElementById(errorId);
+      
+      if (!errorEl) {
+        errorEl = document.createElement('div');
+        errorEl.id = errorId;
+        errorEl.className = 'settings-error';
+        document.body.appendChild(errorEl);
+      }
+      
+      errorEl.textContent = message;
+      errorEl.classList.add('show');
+      
+      setTimeout(() => {
+        errorEl.classList.remove('show');
+      }, 3000);
+    }
+    
+    // Helper to update trigger status
+    function updateTriggerStatus(triggers) {
+      if (!Array.isArray(triggers) || !window.bambiAudio) return;
+      
+      // Store in localStorage for persistence
+      localStorage.setItem('bambiActiveTriggers', JSON.stringify(triggers));
+      
+      if (typeof window.bambiAudio.refreshTriggers === 'function') {
+        window.bambiAudio.refreshTriggers();
+      }
+      
+      // Update UI checkboxes if they exist
+      triggers.forEach(trigger => {
+        const checkbox = document.querySelector(`.trigger-toggle-item input[data-trigger="${trigger}"]`);
+        if (checkbox) checkbox.checked = true;
+      });
+    }
+    
+    // Helper to update collar status
+    function updateCollarStatus(active, message) {
+      const collarEnable = document.getElementById('collar-enable');
+      const textareaCollar = document.getElementById('textarea-collar');
+      
+      if (collarEnable) collarEnable.checked = !!active;
+      if (textareaCollar && message) textareaCollar.value = message;
+      
+      // Update collar display if it exists
+      const collarContainer = document.getElementById('collar-container');
+      if (collarContainer) {
+        collarContainer.style.display = active ? 'block' : 'none';
+      }
+    }
+    
+    // Make the sendSettings function available globally
+    window.bambiSendSettings = sendSettingsToWorker;
+    
+    // Add event listeners to save buttons
+    document.querySelectorAll('.save-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        const panelId = this.closest('.control-panel').id;
+        let section, settings;
+        
+        switch (panelId) {
+          case 'collar-panel':
+            section = 'collar';
+            settings = {
+              enabled: document.getElementById('collar-enable').checked,
+              text: document.getElementById('textarea-collar').value
+            };
+            break;
+            
+          case 'spirals-panel':
+            section = 'spirals';
+            settings = {
+              enabled: document.getElementById('spirals-enable').checked,
+              spiral1Width: parseFloat(document.getElementById('spiral1-width').value),
+              spiral2Width: parseFloat(document.getElementById('spiral2-width').value),
+              spiral1Speed: parseInt(document.getElementById('spiral1-speed').value),
+              spiral2Speed: parseInt(document.getElementById('spiral2-speed').value)
+            };
+            break;
+            
+          case 'hypnosis-panel':
+            section = 'hypnosis';
+            settings = {
+              enabled: document.getElementById('hypnosis-enable').checked,
+              streaming: document.getElementById('streaming-enable').checked
+            };
+            break;
+            
+          case 'brainwave-panel':
+            section = 'brainwave';
+            settings = {
+              enabled: document.getElementById('brainwave-enable').checked,
+              mode: document.getElementById('brainwave-mode').value,
+              carrierFrequency: parseInt(document.getElementById('carrier-frequency').value),
+              volume: parseInt(document.getElementById('brainwave-volume').value)
+            };
+            
+            if (settings.mode === 'custom') {
+              settings.customFrequency = parseFloat(document.getElementById('custom-frequency').value);
+            }
+            break;
+            
+          case 'advanced-binaural-panel':
+            section = 'advancedBinaural';
+            settings = {
+              enabled: document.getElementById('advanced-binaural-enable').checked,
+              pattern: document.getElementById('pattern-select').value,
+              duration: parseInt(document.getElementById('pattern-duration').value),
+              transitionTime: parseInt(document.getElementById('transition-time').value)
+            };
+            
+            if (settings.pattern === 'custom') {
+              settings.segments = [];
+              document.querySelectorAll('.pattern-segment').forEach(segment => {
+                const wave = segment.querySelector('.segment-wave').value;
+                const duration = parseInt(segment.querySelector('.segment-duration').value);
+                if (wave && duration) {
+                  settings.segments.push({ wave, duration });
+                }
+              });
+            }
+            break;
+        }
+        
+        if (section && settings) {
+          sendSettingsToWorker(section, settings);
+        }
+      });
+    });
+    
+    // Support for trigger toggle events
+    document.addEventListener('triggers:changed', function(e) {
+      if (!e.detail || !Array.isArray(e.detail.activeTriggers)) return;
+      sendSettingsToWorker('triggers', { activeTriggers: e.detail.activeTriggers });
+    });
   });
 </script>
 
 <!-- Load modular system control scripts -->
-<script src="/js/xp-notification.js"></script>
-<script src="/js/xp-progress.js"></script>
-<script src="/js/collar-controls.js"></script>
-<script src="/js/trigger-controls.js"></script>
-<script src="/js/bambi-sessions.js"></script>
-<script src="/js/system-controls.js"></script>
+<script src="/js/controls/utils.js"></script>
+<script src="/js/controls/system.js"></script>
+<script src="/js/text2speech.js"></script> <!-- Add text2speech.js -->
+<script src="/js/triggers.js"></script> <!-- Add the main triggers.js file -->
+<script src="/js/controls/trigger.js"></script> <!-- Keep the existing trigger.js -->
+<script src="/js/controls/collar.js"></script>
+<script src="/js/controls/spiral.js"></script>
+<script src="/js/controls/brainwave.js"></script>
+<script src="/js/controls/advanced-binaural.js"></script>

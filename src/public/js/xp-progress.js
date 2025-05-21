@@ -2,8 +2,8 @@
 
 (function() {
   // Store XP requirements
-  const xpRequirements = [100, 250, 450, 700, 1200];
-  
+  const xpRequirements = [1000, 2500, 4500, 7000, 12000,36000, 112000, 332000];
+
   // Initialize module
   function init() {
     // Make XP requirements globally available
@@ -30,10 +30,8 @@
           window.bambiXP.showLevelUpNotification(data.level);
         }
         
-        // Reload the page after a level up to show new unlocked features
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
+        // Update UI for new level instead of reloading
+        updateUIForLevelUp(data.level);
       });
     }
   }
@@ -66,10 +64,92 @@
     }
   }
   
+  // Update UI when user levels up
+  function updateUIForLevelUp(newLevel) {
+    // Update level-locked buttons
+    const controlButtons = document.querySelectorAll('.control-btn.disabled');
+    controlButtons.forEach(button => {
+      const buttonText = button.textContent.trim();
+      if (buttonText.includes('🔒')) {
+        const featureName = buttonText.replace(' 🔒', '');
+        
+        // Determine which level this feature unlocks at
+        let unlockLevel = 0;
+        if (featureName === 'Triggers') unlockLevel = 1;
+        else if (featureName === 'Collar') unlockLevel = 2;
+        else if (featureName === 'Session History') unlockLevel = 3;
+        else if (featureName === 'Spirals') unlockLevel = 4;
+        else if (featureName === 'Hypnosis') unlockLevel = 5;
+        else if (featureName === 'Audios') unlockLevel = 6;
+        else if (featureName === 'Brainwaves') unlockLevel = 7;
+        
+        // If new level unlocks this feature, update the button
+        if (newLevel >= unlockLevel) {
+          button.classList.remove('disabled');
+          button.removeAttribute('title');
+          button.textContent = featureName;
+          button.setAttribute('data-target', `${featureName.toLowerCase().replace(' ', '-')}-panel`);
+          
+          // Create corresponding panel if it doesn't exist
+          createFeaturePanel(featureName, unlockLevel);
+        }
+      }
+    });
+    
+    // If we unlocked Triggers at level 1, remove the locked message
+    if (newLevel >= 1) {
+      const lockedMessage = document.querySelector('.locked-features-message');
+      if (lockedMessage) {
+        lockedMessage.style.display = 'none';
+        
+        // Show the trigger panel
+        const triggerPanel = document.getElementById('trigger-panel');
+        if (triggerPanel) {
+          triggerPanel.classList.add('active');
+        }
+      }
+    }
+    
+    // Dispatch event so other components can react to the level up
+    document.dispatchEvent(new CustomEvent('bambi-level-up', {
+      detail: { level: newLevel }
+    }));
+  }
+  
+  // Helper function to create feature panels for newly unlocked features
+  function createFeaturePanel(featureName, level) {
+    // This is just a basic implementation - actual panel creation would be more complex
+    // and should probably be handled by the server providing new HTML
+    
+    const consolePanels = document.getElementById('console');
+    if (!consolePanels) return;
+    
+    const panelId = `${featureName.toLowerCase().replace(' ', '-')}-panel`;
+    
+    // Don't create if panel already exists
+    if (document.getElementById(panelId)) return;
+    
+    const panel = document.createElement('div');
+    panel.id = panelId;
+    panel.className = 'control-panel';
+    
+    const title = document.createElement('h3');
+    title.textContent = `${featureName} Settings`;
+    
+    const message = document.createElement('p');
+    message.textContent = `${featureName} feature has been unlocked! Refresh the page to see full functionality.`;
+    message.style.color = '#00ffff';
+    
+    panel.appendChild(title);
+    panel.appendChild(message);
+    consolePanels.appendChild(panel);
+  }
+  
   // Export functions
   window.bambiXPProgress = {
     init,
-    updateXPDisplay
+    updateXPDisplay,
+    updateUIForLevelUp
   };
   
   // Auto-initialize on load

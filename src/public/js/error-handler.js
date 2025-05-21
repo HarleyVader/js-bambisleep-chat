@@ -91,6 +91,40 @@ function handleApiError(endpoint, error, fallbackCallback) {
 }
 
 /**
+ * Handle service unavailable errors (503)
+ * @param {string} endpoint - API endpoint that failed
+ * @param {Error} error - Error object
+ * @param {number} retryAfter - Seconds to wait before retry (default: 30)
+ * @param {function} retryCallback - Callback to run when retrying
+ */
+function handleServiceUnavailable(endpoint, error, retryAfter = 30, retryCallback) {
+  console.log(`Service unavailable (${endpoint}):`, error);
+  
+  // Show notification with retry option
+  if (typeof window.showNotification === 'function') {
+    const notification = window.showNotification(
+      `Service temporarily unavailable. Retrying in ${retryAfter} seconds...`, 
+      'warning',
+      retryAfter * 1000
+    );
+    
+    // Add retry button to notification if possible
+    if (notification && typeof retryCallback === 'function') {
+      const retryBtn = document.createElement('button');
+      retryBtn.textContent = 'Retry Now';
+      retryBtn.className = 'retry-btn';
+      retryBtn.onclick = retryCallback;
+      notification.appendChild(retryBtn);
+    }
+  }
+  
+  // Schedule automatic retry
+  if (typeof retryCallback === 'function') {
+    setTimeout(retryCallback, retryAfter * 1000);
+  }
+}
+
+/**
  * Clear a specific failed resource to allow retrying
  * @param {string} resource - Resource path to clear
  */
@@ -110,6 +144,7 @@ window.errorHandler = {
   handleAudioError,
   handleResourceError,
   handleApiError,
+  handleServiceUnavailable,
   clearFailedResource,
   clearAllFailedResources,
   getFailedResources: () => Array.from(failedResources)
