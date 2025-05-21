@@ -743,10 +743,6 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           }
         });
       }
-      
-      // Send database status notification to client
-      const { notifyDbStatus } = require('./utils/dbStatusNotifier.js');
-      notifyDbStatus(socket);
 
       // Add socket to global store
       socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
