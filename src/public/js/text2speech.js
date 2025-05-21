@@ -1,15 +1,15 @@
-const duration = 0;
-const audio = document.getElementById('audio') || window.audio;
-let currentVoice = 'af_bella'; // Default voice from app.js (KOKORO_DEFAULT_VOICE)
+// Reuse audio element from aigf-core.js
+const audio = window.audio;
+// Use different variable name to avoid conflict
+const ttsAudioDuration = 0;
+let currentVoice = 'af_bella'; // Default voice
 
 /**
  * Set the voice to use for TTS
- * @param {string} voice - Voice ID to use
  */
 function setVoice(voice) {
   if (voice && typeof voice === 'string') {
     currentVoice = voice;
-    console.log(`TTS voice set to: ${currentVoice}`);
   }
 }
 

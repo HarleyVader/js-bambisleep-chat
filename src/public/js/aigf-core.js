@@ -11,7 +11,8 @@ const textarea = document.getElementById('textarea');
 const submit = document.getElementById('submit');
 const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
-const audio = document.getElementById('audio');
+// Use existing audio element if available
+const audio = document.getElementById('audio') || window.audio;
 window.audio = audio; // Make audio available globally
 let text = '';
 let state = true;
@@ -37,6 +38,17 @@ socket.on('reconnect', () => {
 
 socket.on('reconnect_failed', () => {
     console.error('Failed to reconnect to server');
+});
+
+socket.on('connect_error', (error) => {
+    console.log('Connection Error:', error.message);
+    // Try to reconnect automatically
+    setTimeout(() => {
+        if (!socket.connected) {
+            console.log('Attempting to reconnect...');
+            socket.connect();
+        }
+    }, 2000);
 });
 
 // Handle message events from server
@@ -284,6 +296,16 @@ function cleanup() {
 
 // Call cleanup when needed
 window.addEventListener('beforeunload', cleanup);
+
+// Handle JSON parse errors gracefully
+function safeJsonParse(str) {
+    try {
+        return JSON.parse(str);
+    } catch (e) {
+        console.log('JSON parse error:', e.message);
+        return {};
+    }
+}
 
 // Make key functions available globally
 window.handleClick = handleClick;
