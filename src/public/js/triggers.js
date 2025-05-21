@@ -75,6 +75,12 @@ function createToggleButtons() {
     console.log('Error loading active triggers from localStorage:', error);
   }
   
+  // Ensure we actually have trigger data to display
+  if (!triggerData || triggerData.length === 0) {
+    container.innerHTML = '<p>No triggers available. Please refresh the page.</p>';
+    return;
+  }
+  
   triggerData.forEach(trigger => {
     const toggleItem = document.createElement('div');
     toggleItem.className = 'trigger-toggle-item';
@@ -103,6 +109,11 @@ function createToggleButtons() {
   
   // Setup toggle listeners
   setupToggleListeners();
+
+  // Dispatch event to notify that triggers have been loaded
+  document.dispatchEvent(new CustomEvent('triggers-loaded', { 
+    detail: { triggers: triggerData } 
+  }));
 }
 
 // Load audio for a specific trigger with better error handling
@@ -606,6 +617,18 @@ window.onload = function () {
   
   // Load trigger data
   loadTriggerData();
+
+  // Connect Play Triggers button in profile-system-controls.ejs
+  const playTriggersBtn = document.getElementById("play-triggers");
+  if (playTriggersBtn) {
+    playTriggersBtn.addEventListener("click", playRandomPlaylist);
+  }
+  
+  // Connect toggle all button in profile-system-controls.ejs
+  const activateAllBtn = document.getElementById("activate-all");
+  if (activateAllBtn) {
+    activateAllBtn.addEventListener("click", toggleAllToggles);
+  }
   
   // Add event listener for the loop toggle
   const loopToggle = document.getElementById("loop-toggle");
@@ -619,7 +642,7 @@ window.onload = function () {
     });
   }
   
-  // Add event listener for the play button
+  // Add event listener for the play button (in either file)
   const playButton = document.getElementById("play-playlist");
   if (playButton) {
     playButton.addEventListener("click", playRandomPlaylist);
@@ -649,23 +672,32 @@ window.onload = function () {
   setTimeout(setupSocketListener, 1000);
 };
 
-// Expose the API globally for use by other scripts
-window.bambiAudio = {
-  playTrigger: activateTrigger,
-  playRandomPlaylist: playRandomPlaylist,
-  startContinuousPlayback: playContinuousTriggers,
-  stopContinuousPlayback: stopContinuousPlayback,
-  updatePlaybackSpeed: updatePlaybackSpeed,
-  updatePlaybackVolume: updatePlaybackVolume,
-  getSelectedTriggers: getSelectedTriggers,
-  loadTriggerAudio: loadTriggerAudio,
-  getAllTriggers: () => triggerData,
-  refreshTriggers: loadTriggerData
-};
+// Handle DOM content loaded for both files
+document.addEventListener('DOMContentLoaded', function() {
+  // This runs when the document is ready but before resources are loaded
+  console.log('DOM Content Loaded - setting up trigger integrations');
+  
+  // Create an observer to watch for dynamically loaded trigger panels
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+        for (let i = 0; i < mutation.addedNodes.length; i++) {
+          const node = mutation.addedNodes[i];
+          if (node.id === 'trigger-panel' || (node.querySelector && node.querySelector('#trigger-panel'))) {
+            console.log('Trigger panel detected, initializing');
+            loadTriggerData();
+            observer.disconnect();
+            return;
+          }
+        }
+      }
+    });
+  });
+  
+  // Start observing the document body for added nodes
+  observer.observe(document.body, { childList: true, subtree: true });
 
-// Add this to the bottom of profile-system-controls.ejs inside the existing script tag
-document.addEventListener("DOMContentLoaded", function() {
-  // Volume control
+  // Initialize volume and speed controls
   const volumeSlider = document.getElementById('loop-volume');
   const volumeValue = document.getElementById('volume-value');
   
@@ -680,6 +712,9 @@ document.addEventListener("DOMContentLoaded", function() {
       // Apply volume if audio API is available
       if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackVolume === 'function') {
         window.bambiAudio.updatePlaybackVolume(volume);
+      } else {
+        // Store for when API becomes available
+        updatePlaybackVolume(volume);
       }
     }
     
@@ -691,14 +726,12 @@ document.addEventListener("DOMContentLoaded", function() {
       // Store in localStorage
       localStorage.setItem('bambiAudioVolume', volumeFactor);
       
-      // Update audio volume if API is available
-      if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackVolume === 'function') {
-        window.bambiAudio.updatePlaybackVolume(volumeFactor);
-      }
+      // Update audio volume
+      updatePlaybackVolume(volumeFactor);
     });
   }
   
-  // Existing speed slider might already be implemented
+  // Speed control
   const speedSlider = document.getElementById('loop-speed');
   const speedValue = document.getElementById('speed-value');
   
@@ -710,10 +743,8 @@ document.addEventListener("DOMContentLoaded", function() {
       updateSpeedLabel(storedSpeed);
       
       // Apply speed if audio API is available
-      if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackSpeed === 'function') {
-        const speedFactor = getSpeedFactor(storedSpeed);
-        window.bambiAudio.updatePlaybackSpeed(speedFactor);
-      }
+      const speedFactor = getSpeedFactor(storedSpeed);
+      updatePlaybackSpeed(speedFactor);
     }
     
     // Update speed when slider changes
@@ -723,15 +754,13 @@ document.addEventListener("DOMContentLoaded", function() {
       // Store in localStorage
       localStorage.setItem('bambiAudioSpeed', this.value);
       
-      // Update audio speed if API is available
-      if (window.bambiAudio && typeof window.bambiAudio.updatePlaybackSpeed === 'function') {
-        const speedFactor = getSpeedFactor(this.value);
-        window.bambiAudio.updatePlaybackSpeed(speedFactor);
-      }
+      // Update audio speed
+      const speedFactor = getSpeedFactor(this.value);
+      updatePlaybackSpeed(speedFactor);
     });
   }
   
-  // Helper function for speed label display
+  // Helper function for speed label
   function updateSpeedLabel(value) {
     const speedVal = parseInt(value);
     if (speedVal === 5) {
@@ -751,3 +780,18 @@ document.addEventListener("DOMContentLoaded", function() {
     return 1.0 - ((speedVal - 5) * 0.1); // Faster = lower number
   }
 });
+
+// Expose the API globally for use by other scripts
+window.bambiAudio = {
+  playTrigger: activateTrigger,
+  playRandomPlaylist: playRandomPlaylist,
+  startContinuousPlayback: playContinuousTriggers,
+  stopContinuousPlayback: stopContinuousPlayback,
+  updatePlaybackSpeed: updatePlaybackSpeed,
+  updatePlaybackVolume: updatePlaybackVolume,
+  getSelectedTriggers: getSelectedTriggers,
+  loadTriggerAudio: loadTriggerAudio,
+  getAllTriggers: () => triggerData,
+  refreshTriggers: loadTriggerData,
+  toggleAllTriggers: toggleAllToggles
+};
