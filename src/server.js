@@ -939,25 +939,11 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             // Log what we received
             logger.info(`Triggers received from client ${socket.id}: ${typeof data === 'string' ? data : JSON.stringify(data)}`);
 
-            // Always forward as string for consistency
-            const triggerString = typeof data === 'string'
-              ? data
-              : (data.triggerNames || (Array.isArray(data) ? data.join(',') : 'BAMBI SLEEP'));
-
-            logger.info(`Forwarding triggers to worker: ${triggerString}`);
-
-            // Send to worker as string
+            // Send data directly to worker without extraction
             worker.postMessage({
               type: 'triggers',
-              data: triggerString,
+              data: data,
               socketId: socket.id
-            });
-
-            // Send debug info back to client
-            socket.emit('trigger-debug', {
-              message: 'Triggers processed by server',
-              received: data,
-              forwarded: triggerString
             });
           }
         } catch (error) {

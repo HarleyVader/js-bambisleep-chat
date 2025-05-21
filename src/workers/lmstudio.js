@@ -235,61 +235,21 @@ parentPort.on('message', async (msg) => {
         break;
 
       case "triggers":
-        // Process trigger data consistently as string
+        // Handle trigger data as array
         if (msg.data) {
-          const triggerData = msg.data;
-          logger.info(`Received triggers: ${typeof triggerData === 'string' ? triggerData : JSON.stringify(triggerData)}`);
+          logger.info(`Triggers received from ${msg.socketId}`);
 
-          // Always store as string
-          if (typeof triggerData === 'string') {
-            triggers = triggerData;
-
-            // Parse string to generate triggerDetails
-            const triggerNames = triggerData.split(',').map(t => t.trim()).filter(Boolean);
-            triggerDetails = triggerNames.map(name => {
-              return {
-                name: name,
-                description: triggerDescriptions[name] || ""
-              };
-            });
-
-            logger.info(`Updated triggers to string: "${triggers}"`);
-            logger.info(`Generated ${triggerDetails.length} trigger details`);
-          } else {
-            // Convert any other format to string
-            triggers = typeof triggerData === 'object' && triggerData.triggerNames
-              ? triggerData.triggerNames
-              : Array.isArray(triggerData)
-                ? triggerData.join(',')
-                : 'BAMBI SLEEP';
-
-            logger.info(`Converted non-string triggers to: "${triggers}"`);
-
-            // Generate consistent triggerDetails
-            const triggerNames = triggers.split(',').map(t => t.trim()).filter(Boolean);
-            triggerDetails = triggerNames.map(name => {
-              return {
-                name: name,
-                description: triggerDescriptions[name] || ""
-              };
-            });
+          // Handle array format directly
+          if (Array.isArray(msg.data)) {
+            triggers = msg.data;
+            logger.info(`Active triggers set: ${JSON.stringify(triggers)}`);
           }
-
-          // Log final trigger data for debugging
-          logger.info(`Final triggers value: "${triggers}"`);
-          logger.info(`Final triggerDetails (${triggerDetails.length}): ${JSON.stringify(triggerDetails.slice(0, 3))}`);
-
-          // Send debug confirmation back to client
-          parentPort.postMessage({
-            type: "trigger-debug",
-            socketId: msg.socketId,
-            data: {
-              receivedType: typeof triggerData,
-              storedTriggers: triggers,
-              triggerCount: triggers.split(',').length,
-              detailsCount: triggerDetails.length
-            }
-          });
+          // Handle data.triggerNames format (array inside object)
+          else if (msg.data.triggerNames && Array.isArray(msg.data.triggerNames)) {
+            triggers = msg.data.triggerNames;
+            triggerDetails = msg.data.triggerDetails || [];
+            logger.info(`Active triggers set: ${JSON.stringify(triggers)}`);
+          }
         }
         break;
 
