@@ -235,40 +235,33 @@ parentPort.on('message', async (msg) => {
         break;
 
       case "triggers":
-        // Store triggers properly based on input format
+        // Process trigger data - handle different formats consistently
         if (msg.data) {
-          logger.info(`Received triggers update: ${JSON.stringify(msg.data).slice(0, 200)}`);
+          logger.info(`Received triggers update: ${typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data).slice(0, 200)}`);
           
-          // Store in the format checkRole expects
-          if (msg.data.triggerNames) {
-            // This is our preferred format from the client
-            triggers = msg.data.triggerNames;
-            
-            // If we have detailed trigger objects, store them separately
-            if (msg.data.triggerDetails && Array.isArray(msg.data.triggerDetails)) {
-              triggerDetails = msg.data.triggerDetails;
-              logger.info(`Updated trigger details with ${triggerDetails.length} items`);
-            }
-          } else if (typeof msg.data === 'string') {
-            // Simple string format (backward compatibility)
+          // Handle string format (basic format from client)
+          if (typeof msg.data === 'string') {
             triggers = msg.data;
-            logger.info(`Updated triggers with string: ${triggers}`);
-          } else if (Array.isArray(msg.data)) {
-            // Array format
+            triggerDetails = msg.data.split(',').map(t => ({ 
+              name: t.trim(), 
+              description: triggerDescriptions[t.trim()] || "" 
+            }));
+          } 
+          // Handle object format from index.ejs
+          else if (msg.data && msg.data.triggerNames) {
+            triggers = msg.data.triggerNames; // Already comma-separated string
+            triggerDetails = msg.data.triggerDetails || [];
+          }
+          // Handle array format (fallback)
+          else if (Array.isArray(msg.data)) {
             triggers = msg.data.join(',');
-            logger.info(`Updated triggers from array: ${triggers}`);
+            triggerDetails = msg.data.map(t => ({ 
+              name: t, 
+              description: triggerDescriptions[t] || "" 
+            }));
           }
           
-          // Send debug info back to client
-          parentPort.postMessage({
-            type: "trigger-debug",
-            data: {
-              storedAs: typeof triggers,
-              triggerValue: triggers,
-              detailsCount: triggerDetails ? triggerDetails.length : 0
-            },
-            socketId: msg.socketId
-          });
+          logger.info(`Updated triggers to: ${triggers}`);
         }
         break;
 
@@ -289,12 +282,17 @@ parentPort.on('message', async (msg) => {
         // Respond to health check
         lastHealthCheckResponse = Date.now();
         parentPort.postMessage({
-          type: "health-check-response",
+          type: "health-check-response", 
           status: "ok",
           workerId: process.pid,
           memoryUsage: process.memoryUsage(),
           sessionCount: Object.keys(sessionHistories).length
         });
+        break;
+
+      case "system-settings":
+        // Handle system settings
+        logger.info("Received system settings update");
         break;
 
       default:
@@ -304,54 +302,6 @@ parentPort.on('message', async (msg) => {
     logger.error('Error handling message:', error);
   }
 });
-
-// Update verifyTriggerIntegrity function to handle more input formats
-function verifyTriggerIntegrity(triggers) {
-  // Check if triggers exist
-  if (!triggers) {
-    logger.warning("No triggers provided");
-    return false;
-  }
-
-  // Add detailed logging of the input
-  logger.info(`Verifying trigger integrity for: ${JSON.stringify(triggers).slice(0, 200)}`);
-
-  // Handle different potential formats of trigger data
-  let triggerArray = [];
-
-  if (typeof triggers === 'string') {
-    // Handle comma-separated string
-    triggerArray = triggers.split(',').map(t => t.trim()).filter(Boolean);
-  } else if (Array.isArray(triggers)) {
-    // Handle array of strings or objects
-    triggerArray = triggers.map(t => {
-      if (typeof t === 'string') return t.trim();
-      if (typeof t === 'object' && t.name) return t.name.trim();
-      return null;
-    }).filter(Boolean);
-  } else if (triggers.triggerNames) {
-    // Handle {triggerNames: string, triggerDetails: array} format from client
-    if (typeof triggers.triggerNames === 'string') {
-      triggerArray = triggers.triggerNames.split(',').map(t => t.trim()).filter(Boolean);
-    } else if (Array.isArray(triggers.triggerNames)) {
-      triggerArray = triggers.triggerNames.filter(Boolean);
-    }
-  } else if (typeof triggers === 'object') {
-    // Try to extract any string values from the object as a last resort
-    triggerArray = Object.values(triggers)
-      .filter(v => typeof v === 'string')
-      .map(v => v.trim());
-  }
-
-  // Verify we have at least one valid trigger
-  if (triggerArray.length === 0) {
-    logger.warning("No valid triggers found after parsing");
-    return false;
-  }
-
-  logger.info(`Verified ${triggerArray.length} valid triggers: ${triggerArray.join(', ')}`);
-  return true;
-}
 
 function handleResponse(response, socketId, username, wordCount) {
   parentPort.postMessage({
