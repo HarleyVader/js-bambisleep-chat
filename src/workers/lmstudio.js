@@ -416,8 +416,7 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
   // Run garbage collection if needed
   if (Object.keys(sessionHistories).length > MAX_SESSIONS) {
     collectGarbage(1);
-  }
-  // Store in database for registered users
+  }  // Store in database for registered users
   if (username && username !== 'anonBambi') {
     try {
       // Process triggers into a usable format
@@ -431,6 +430,7 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
       const sessionData = {
         username,
         socketId,
+        sessionId: socketId, // Add this line to fix validation error
         messages: [
           { role: 'system', content: collarText },
           { role: 'user', content: userPrompt },
@@ -607,11 +607,11 @@ async function syncSessionWithDatabase(socketId) {
             await existingSession.save();
             logger.debug(`Synced ${newMessages.length} messages to database before removing session ${socketId}`);
           }
-        } else {
-          // Create basic session record
+        } else {          // Create basic session record
           const newSession = new SessionHistoryModelInstance({
             username: session.metadata.username,
             socketId,
+            sessionId: socketId, // Add this line to fix validation error
             messages: session,
             title: `${session.metadata.username}'s saved session`,
             metadata: {
