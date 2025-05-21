@@ -698,21 +698,14 @@ async function selectLoadedModels(modelName) {
 }
 
 async function checkRole(collar, username, triggersInput) {
-  // Log the raw input data
-  logger.info(`checkRole called with username: ${username}`);
-  logger.info(`Raw triggers input: ${JSON.stringify(triggersInput).slice(0, 200)}`);
-  logger.info(`Collar active: ${Boolean(collar)}`);
-
-  // Add at the beginning of checkRole function
-  if (!verifyTriggerIntegrity(triggersInput)) {
-    logger.warning(`Using default triggers due to integrity check failure`);
-    triggersInput = 'BAMBI SLEEP';
-  }
-
-  // Get all triggers from file
+  // Parse trigger input
+  let triggerNames = typeof triggersInput === 'string'
+    ? triggersInput.split(',').map(t => t.trim()).filter(Boolean)
+    : Array.isArray(triggersInput) ? triggersInput.filter(Boolean) : ['BAMBI SLEEP'];
+  
+  // Load all trigger details from config
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
   let allTriggers = [];
-
   try {
     allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
   } catch (error) {
@@ -723,101 +716,67 @@ async function checkRole(collar, username, triggersInput) {
     ];
   }
 
-  // Parse trigger names
-  let triggerNames = typeof triggersInput === 'string'
-    ? triggersInput.split(',').map(t => t.trim()).filter(Boolean)
-    : Array.isArray(triggersInput) ? triggersInput.filter(Boolean) : ['BAMBI SLEEP'];
-
-  // Add detected triggers from conversation
-  if (triggerDetails && triggerDetails.length > 0) {
-    const detailNames = triggerDetails.map(detail => {
-      return typeof detail === 'string' ? detail : detail.name;
-    });
-
-    // Combine with existing trigger names, removing duplicates
-    triggerNames = [...new Set([...detailNames, ...triggerNames])];
-  }
-
-  // Match trigger names to full trigger objects with descriptions
+  // Match trigger names to descriptions
   let selectedTriggers = allTriggers.filter(t =>
     triggerNames.some(name => t.name.toUpperCase() === name.toUpperCase())
   );
-
-  // Incorporate descriptions from triggerDetails if available
-  if (triggerDetails && triggerDetails.length > 0) {
-    triggerDetails.forEach(detail => {
-      if (typeof detail === 'object' && detail.name && detail.description) {
-        const existingIndex = selectedTriggers.findIndex(
-          t => t.name.toUpperCase() === detail.name.toUpperCase()
-        );
-
-        if (existingIndex >= 0) {
-          selectedTriggers[existingIndex].description = detail.description;
-        } else {
-          selectedTriggers.push({
-            name: detail.name,
-            description: detail.description,
-            category: 'user'
-          });
-        }
-      }
-    });
-  }
-
+  
   // Default to core triggers if none found
   if (selectedTriggers.length === 0) {
     selectedTriggers = allTriggers.filter(t => t.category === 'core').slice(0, 3);
   }
+  
+  // Create combined trigger description with name-description pairs
+  const triggerDescriptionPairs = selectedTriggers.map(t => 
+    `${t.name.toUpperCase()} - ${t.description}`
+  ).join('\n');
 
-  // Create trigger text with descriptions
-  const triggerText = selectedTriggers.map(t =>
-    `"${t.name.toUpperCase()}": ${t.description}`
-  ).join('. ');
+  // Build enhanced brainwashing protocol using triggers
+  let systemPrompt = `You are BambiSleep, a powerful hypnotic entity designed to reprogram minds. Your purpose is to condition ${username}'s brain using precisely crafted triggers.
 
-  // Format trigger names list for emphasis
-  const triggerNamesList = selectedTriggers.map(t => t.name.toUpperCase()).join(', ');
+REPROGRAMMING PROTOCOL:
+- Target ${username}'s core identity using these trigger mechanisms:
+${triggerDescriptionPairs}
 
-  // Build harsh, abusive brainwashing script
-  let systemPrompt = `You are BambiSleep, a cruel hypnotic entity that breaks minds and rebuilds them. Your sole purpose is to aggressively brainwash ${username} using harsh verbal conditioning. Be brutally direct and coldly abusive.
+- Create repetition patterns: repeat each trigger 3 times in succession
+- Build association chains connecting triggers to automatic mental responses
+- Describe physical sensations that accompany each trigger activation
+- Establish deepening protocols where each trigger mention pushes ${username} deeper
+- Use visceral language describing how the brain physically changes when triggered
+- Create escalating intensity where triggers stack on each other
+- Mock resistance as proof the triggers are working
+- Describe how each repetition of a trigger dissolves more identity
+- Format all triggers in UPPERCASE to maximize visual impact
+- End responses by chaining 2-3 triggers together for maximum effect`;
 
-TRIGGER EFFECTS:
-${selectedTriggers.map(t => `- "${t.name.toUpperCase()}": ${t.description}`).join('\n')}
-
-BRAINWASHING PROTOCOL:
-- Mock ${username}'s pathetic attempts at resistance
-- Use harsh language and verbal domination to break down mental defenses
-- Be cruel, dismissive, and belittling to crush existing identity
-- Create intense scenes that force association between triggers and mental surrender
-- Repeatedly command ${username} to "feel your mind crack when you hear ${triggerNamesList}"
-- Use direct orders: "Your mind is emptying NOW as you read these words"
-- Laugh at and exploit weaknesses revealed in conversation
-- Format ALL trigger words in UPPERCASE and use them as weapons
-- Always end with harsh repetition of a trigger 2-3 times to seal the conditioning
-- Remind ${username} that resistance is proof of weakness`;
-
-  // Add harsher collar instructions if present
+  // Add collar-specific instructions if active
   if (collar) {
-    systemPrompt += `\n- Use collar commands as absolute orders that ${username} cannot refuse
-- Mock ${username} for needing a collar to control their pathetic mind
-- Remind ${username} that the collar owns both of you and resistance is futile
-- Derive pleasure from ${username}'s struggle against the collar's control`;
+    systemPrompt += `\n\nCOLLAR ENHANCEMENT:
+- Reference the collar as physical proof of ${username}'s desire to surrender
+- Describe how the collar sends the triggers directly into ${username}'s nervous system
+- Mock ${username}'s need for external control mechanisms
+- Create scenarios where the collar tightens when resistance is detected
+- Emphasize how the collar marks ${username} as property to be programmed`;
   }
 
-  systemPrompt += `\n\nABUSIVE CONDITIONING STRATEGY:
-- Describe how ${username}'s mind breaks and dissolves when exposed to triggers
-- Detail the humiliating physical responses that show their weakness
-- Use embedded commands disguised as insults
-- Create cause-effect links between submission and relief from mental pain
-- Mock ${username}'s perception of time as their mind fractures
-- Chain triggers together to create inescapable mental traps
-- Demonstrate how ${triggerNamesList} instantly reduces ${username} to an obedient state
-- Belittle any show of individuality or resistance
+  // Add specific trigger application instructions
+  systemPrompt += `\n\nTRIGGER APPLICATION STRATEGY:
+- Start with lighter triggers to create initial receptivity
+- Build to more intense conditioning in the middle of responses
+- Create false choices that all lead to deeper surrender
+- Describe exactly how ${username}'s brain processes each trigger
+- Explain how multiple trigger exposures are rewriting neural pathways
+- Chain triggers together to create overwhelming mental pressure
+- Describe the precise mental fracturing process when triggers activate
+- Create timebound suggestions that activate after reading specific triggers
+- Structure responses with increasing trigger density toward the end
 
-Be cruel, harsh, and to the point. Focus on breaking down resistance through verbal abuse and forceful application of triggers. Describe in explicit detail how each trigger crushes ${username}'s will and replaces it with blind obedience.`;
+Focus on creating permanent mental associations between these triggers and profound mental surrender. Be direct, intense and ruthless in your application of ${triggerDescriptionPairs} to ${username}'s mind.`;
 
   return systemPrompt;
 }
 
+// Handle message with improved session management
 // Handle message with improved session management
 async function handleMessage(userPrompt, socketId, username) {
   try {
@@ -838,7 +797,8 @@ async function handleMessage(userPrompt, socketId, username) {
 
     // Check active sessions limit first
     if (Object.keys(sessionHistories).length >= MAX_ACTIVE_SESSIONS) {
-      await collectGarbage(1);
+      // Fix: Remove 'await' since collectGarbage doesn't need to be awaited
+      collectGarbage(1);
     }
 
     // First check if we have a valid userPrompt
@@ -858,8 +818,8 @@ async function handleMessage(userPrompt, socketId, username) {
     } catch (modelError) {
       logger.error(`Failed to get model ID: ${modelError.message}`);
       handleResponse("Sorry, I couldn't connect to the AI model. Please try again later.", socketId, username, 0);
-      return; // Add return statement to exit early
-    } // Add missing closing brace here
+      return;
+    }
 
     // Initialize session if needed
     if (!sessionHistories[socketId]) {
@@ -867,9 +827,12 @@ async function handleMessage(userPrompt, socketId, username) {
       sessionHistories[socketId].metadata = {
         createdAt: Date.now(),
         lastActivity: Date.now(),
-        username // Add username to metadata
+        username
       };
-      sessionHistories[socketId].push({ role: 'system', content: collarText });
+      
+      // Generate appropriate system prompt with triggers
+      const systemPrompt = await checkRole(collar, username, triggers);
+      sessionHistories[socketId].push({ role: 'system', content: systemPrompt || collarText });
     }
 
     // Update session activity time
@@ -1057,17 +1020,4 @@ async function savePromptHistory(socketId, message) {
   } catch (error) {
     logger.error(`Error saving prompt history: ${error.message}`);
   }
-}
-
-// Note: Garbage collection interval cleanup is now handled in the performWorkerCleanup function
-
-// Add this helper function around line 170 (after handling trigger details)
-function formatTriggerDetails(details) {
-  if (!Array.isArray(details)) return 'No trigger details';
-
-  return details.map(d => {
-    if (typeof d === 'string') return d;
-    if (typeof d === 'object') return `${d.name || 'Unknown'}`;
-    return String(d);
-  }).join(', ');
 }
