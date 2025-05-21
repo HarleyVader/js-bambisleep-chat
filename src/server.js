@@ -940,7 +940,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             logger.info(`Triggers received from client ${socket.id}: ${typeof data === 'string' ? data : JSON.stringify(data)}`);
 
             // Send data directly to worker without extraction
-            worker.postMessage({
+            lmstudio.postMessage({
               type: 'triggers',
               data: data,
               socketId: socket.id
