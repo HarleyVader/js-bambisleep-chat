@@ -599,10 +599,10 @@ function handleTTSError(error, res) {
  * @returns {Promise<AxiosResponse>} - Response containing audio data
  */
 async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
-  // Add retry logic
   let attempts = 0;
   const maxAttempts = 3;
   
+  // Increase timeout incrementally with each attempt
   while (attempts < maxAttempts) {
     try {
       logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
@@ -614,6 +614,9 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
         response_format: "mp3"
       };
 
+      // Increase timeout with each retry
+      const timeout = 10000 + (attempts * 5000); // 10s, 15s, 20s
+      
       const response = await axios({
         method: 'post',
         url: `${config.KOKORO_API_URL}/audio/speech`,
@@ -623,19 +626,23 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
         },
         data: requestData,
         responseType: 'arraybuffer',
-        timeout: 10000 // Shorter timeout to fail fast
+        timeout: timeout
       });
 
       return response;
     } catch (error) {
       attempts++;
+      
+      // For timeout errors specifically, increase wait time
+      const waitTime = error.code === 'ECONNABORTED' ? 2000 * attempts : 1000 * attempts;
+      
       if (attempts >= maxAttempts) {
         logger.error(`Error fetching TTS audio after ${maxAttempts} attempts: ${error.message}`);
         throw error;
       }
       
-      // Wait between retries
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait longer between retries for timeouts
+      await new Promise(resolve => setTimeout(resolve, waitTime));
       logger.info(`TTS retry ${attempts}/${maxAttempts}`);
     }
   }
