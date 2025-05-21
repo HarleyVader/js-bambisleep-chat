@@ -606,21 +606,14 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
     
     // Notify all connected clients
     if (io) {
-      io.emit('system-error', 'The AI service has restarted. Please refresh your page.');
+      io.emit('system', {
+        message: 'AI service restarting, please wait...'
+      });
     }
     
     // Start a new worker after a short delay
     setTimeout(() => {
-      const newWorker = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
-      
-      // Update all socket references with new worker
-      if (socketStore) {
-        for (const [id, data] of socketStore.entries()) {
-          socketStore.set(id, { ...data, worker: newWorker });
-        }
-      }
-      
-      logger.info('Worker thread restarted');
+      setupSocketHandlers(io, socketStore, filteredWords);
     }, 1000);
   });
 
@@ -713,17 +706,19 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
 
   io.on('connection', (socket) => {
     try {
-      const cookies = socket.handshake.headers.cookie
-        ? socket.handshake.headers.cookie
-          .split(';')
-          .map(cookie => cookie.trim().split('='))
-          .reduce((acc, [key, value]) => {
-            acc[key] = value;
-            return acc;
-          }, {})
-        : {};
-      let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
-      logger.info('Cookies received in handshake:', socket.handshake.headers.cookie);
+      // Get username from handshake
+      const cookies = socket.handshake.headers.cookie || '';
+      const cookiePairs = cookies.split(';').map(cookie => cookie.trim().split('='));
+      const cookieObj = Object.fromEntries(cookiePairs.map(pair => [pair[0], pair[1] || '']));
+      
+      const username = cookieObj.bambiname 
+        ? decodeURIComponent(cookieObj.bambiname) 
+        : 'anonBambi';
+      
+      // Store socket reference
+      socketStore.set(socket.id, { socket, username });
+      
+      logger.info(`Socket connected: ${socket.id} - User: ${username}`);
       
       // Initialize user data
       socket.bambiUsername = username;
