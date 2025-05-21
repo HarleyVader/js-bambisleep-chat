@@ -335,6 +335,24 @@ export async function withDbConnection(callback, options = {}) {
   if (lastError) throw lastError;
 }
 
+/**
+ * Get a model from the main database or profiles database
+ * @param {string} modelName - The name of the model to get
+ * @param {string} connectionType - 'main' or 'profiles'
+ * @returns {mongoose.Model} The requested model
+ */
+export function getModel(modelName, connectionType = 'main') {
+  try {
+    if (connectionType === 'profiles' && profilesConnection) {
+      return profilesConnection.model(modelName);
+    }
+    return mongoose.model(modelName);
+  } catch (error) {
+    logger.error(`Failed to get model ${modelName}: ${error.message}`);
+    throw error;
+  }
+}
+
 export default {
   connectToDatabase,
   connectToProfilesDatabase,
@@ -351,6 +369,7 @@ export default {
   setFallbackMode,
   ensureModelsRegistered,
   withDbConnection,
+  getModel,
   getConnection: () => mongoose.connection,
   getProfilesConnection: () => profilesConnection
 };
