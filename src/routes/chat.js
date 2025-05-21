@@ -19,7 +19,14 @@ router.get('/', async (req, res) => {
       : 'anonBambi';
     
     // Get recent chat messages for the chat history
-    const chatMessages = await ChatMessage.getRecentMessages(50);
+    let chatMessages = [];
+    try {
+      chatMessages = await ChatMessage.getRecentMessages(50);
+      logger.info(`Retrieved ${chatMessages.length} messages for chat history`);
+    } catch (error) {
+      logger.error(`Error fetching chat messages: ${error.message}`);
+      // Continue with empty array rather than failing the whole page
+    }
     
     // Get profile data if available
     let profile = null;

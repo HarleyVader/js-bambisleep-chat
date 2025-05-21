@@ -54,6 +54,14 @@ async function registerModels() {
       mongoose.model('SessionHistory', schema);
       logger.info('SessionHistory model registered');
     }
+    
+    // Import and register ChatMessage model
+    const ChatMessageModel = await import('./models/ChatMessage.js');
+    if (!mongoose.models.ChatMessage) {
+      // Use the default export which should be the model
+      mongoose.model('ChatMessage', ChatMessageModel.default.schema);
+      logger.info('ChatMessage model registered');
+    }
   } catch (error) {
     logger.error(`Model registration error: ${error.message}`);
   }
@@ -811,14 +819,35 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       socket.on('chat message', async (msg) => {
         try {
           const timestamp = new Date().toISOString();
-          io.emit('chat message', {
-            ...msg,
-            timestamp: timestamp,
-            username: socket.bambiUsername,
-          });
           
-          // Give XP for chat interactions
-          xpSystem.awardXP(socket, 1, 'chat');
+          // Create message object with consistent structure
+          const messageData = {
+            username: socket.bambiUsername || 'anonymous',
+            data: msg.data,
+            timestamp: timestamp
+          };
+          
+          // Broadcast message to all connected clients first for responsiveness
+          io.emit('chat message', messageData);
+          
+          // Then save to database asynchronously
+          try {
+            // Ensure ChatMessage model is available
+            const ChatMessage = mongoose.models.ChatMessage || (await import('./models/ChatMessage.js')).default;
+            
+            // Save message to database
+            const savedMessage = await ChatMessage.saveMessage(messageData);
+            logger.debug(`Chat message saved to database: ${savedMessage._id}`);
+            
+            // Give XP for chat interactions
+            xpSystem.awardXP(socket, 1, 'chat');
+          } catch (dbError) {
+            // Log database error but don't disrupt the user experience
+            logger.error(`Failed to save chat message: ${dbError.message}`, { 
+              username: messageData.username,
+              messageLength: messageData.data?.length || 0
+            });
+          }
         } catch (error) {
           logger.error('Error in chat message handler:', error);
         }
