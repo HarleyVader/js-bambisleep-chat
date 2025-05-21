@@ -349,7 +349,8 @@ function getSelectedTriggers() {
   return selectedTriggers;
 }
 
-// Save toggle states to localStorage
+// Add inside saveToggleStatesToLocalStorage() function
+
 function saveToggleStatesToLocalStorage() {
   try {
     const selectedTriggers = getSelectedTriggers();
@@ -366,8 +367,19 @@ function saveToggleStatesToLocalStorage() {
     
     localStorage.setItem('bambiTriggerDescriptions', JSON.stringify(triggerDescriptions));
     
-    // Add debug logging
     console.log('Active triggers saved:', triggerNames);
+    
+    // Send updates to the server
+    if (window.socket && window.socket.connected) {
+      window.socket.emit('system-update', {
+        type: 'triggers',
+        data: {
+          triggerNames: triggerNames,
+          triggerDetails: selectedTriggers
+        }
+      });
+      console.log('Sent active triggers to server:', triggerNames);
+    }
     
     // Sync with other pages if the sync function exists
     if (typeof window.syncTriggersWithPages === 'function') {

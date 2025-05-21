@@ -81,7 +81,7 @@ function setupGarbageCollection() {
       if (removed > 0) {
         logger.info(`Scheduled garbage collection removed ${removed} idle sessions`);
       }
-      
+
       // If memory is critically high, take emergency action
       if (heapUsageRatio > 0.9 || memoryUsage.rss > 1.5 * 1024 * 1024 * 1024) { // 90% heap or 1.5GB RSS
         logger.warning(`CRITICAL: Memory usage too high (${Math.round(heapUsageRatio * 100)}% heap, ${Math.round(memoryUsage.rss / 1024 / 1024)}MB RSS)`);
@@ -147,22 +147,22 @@ dotenv.config();
   try {
     // Connect to both databases
     const dbResults = await db.connectAllDatabases(2);
-    
+
     if (dbResults.main && dbResults.profiles) {
       logger.info('All database connections established in LMStudio worker');
-      
+
       // Store connections for easier access
       global.connections = {
         main: db.getConnection(),
         profiles: db.getProfilesConnection()
       };
-      
+
       // Check if in fallback mode
       if (db.inFallbackMode()) {
         logger.warning('⚠️ LMStudio worker connected to fallback database');
         logger.warning('⚠️ Some features may not work properly');
       }
-      
+
       // Ensure models are registered
       const modelsRegistered = await db.ensureModelsRegistered();
       if (modelsRegistered) {
@@ -174,7 +174,7 @@ dotenv.config();
     } else {
       logger.warning('⚠️ Failed to connect to MongoDB databases in LMStudio worker');
       logger.warning('⚠️ Some features will not be available - session history and user profiles will not be saved');
-      
+
       // Log which connection failed
       if (!dbResults.main) {
         logger.warning('⚠️ Main database connection failed');
@@ -182,7 +182,7 @@ dotenv.config();
       if (!dbResults.profiles) {
         logger.warning('⚠️ Profiles database connection failed');
       }
-      
+
       // Try to register models anyway in case connection is established later
       try {
         await db.ensureModelsRegistered();
@@ -212,7 +212,7 @@ setupWorkerShutdownHandlers('LMStudio', { sessionHistories });
 // Helper function to safely get the SessionHistoryModel
 async function getSessionHistoryModel() {
   if (SessionHistoryModel) return SessionHistoryModel;
-  
+
   try {
     // Try to import the model dynamically
     const module = await import('../models/SessionHistory.js');
@@ -227,8 +227,8 @@ async function getSessionHistoryModel() {
 parentPort.on('message', async (msg) => {
   try {
     lastActivityTimestamp = Date.now();
-    
-  switch (msg.type) {
+
+    switch (msg.type) {
       // Add this case for session management
       case "set-active-session":
         if (msg.sessionId) {
@@ -238,23 +238,23 @@ parentPort.on('message', async (msg) => {
               logger.warning(`Cannot load session ${msg.sessionId}: SessionHistoryModel not available`);
               break;
             }
-            
+
             const session = await model.findById(msg.sessionId);
             if (session) {
               // Update worker state from session
               if (session.metadata?.triggers) {
-                triggers = Array.isArray(session.metadata.triggers) 
-                  ? session.metadata.triggers.join(',') 
+                triggers = Array.isArray(session.metadata.triggers)
+                  ? session.metadata.triggers.join(',')
                   : session.metadata.triggers;
               }
-              
+
               if (session.metadata?.collarActive && session.metadata?.collarText) {
                 collar = session.metadata.collarText;
                 state = true;
               }
-              
+
               logger.info(`Worker loaded session ${msg.sessionId} for ${msg.socketId}`);
-              
+
               // Add messages to context if needed
               if (session.messages && session.messages.length > 0) {
                 if (!sessionHistories[msg.socketId]) {
@@ -265,16 +265,16 @@ parentPort.on('message', async (msg) => {
                     username: session.username
                   };
                 }
-                
+
                 // Prepare system message
                 const systemPrompt = await checkRole(collar, session.username, triggers);
-                
+
                 // Add system message first
                 sessionHistories[msg.socketId].push({
                   role: 'system',
                   content: systemPrompt
                 });
-                
+
                 // Then add session messages, filtering out system messages
                 session.messages.forEach(msg => {
                   if (msg.role !== 'system') {
@@ -291,7 +291,7 @@ parentPort.on('message', async (msg) => {
           }
         }
         break;
-        
+
       case 'triggers':
         if (typeof msg.triggers === 'object') {
           // Verify data integrity before processing
@@ -299,8 +299,19 @@ parentPort.on('message', async (msg) => {
             if (msg.triggers.triggerNames) {
               // Store the string representation for consistency
               const oldTriggers = triggers;
-              triggers = msg.triggers.triggerNames;
+
+              // Convert to array first if it's a string to handle all formats
+              const triggerNamesArray = typeof msg.triggers.triggerNames === 'string'
+                ? msg.triggers.triggerNames.split(',').map(t => t.trim())
+                : Array.isArray(msg.triggers.triggerNames) ? msg.triggers.triggerNames : [];
+
+              // Convert to string for storage
+              triggers = Array.isArray(triggerNamesArray)
+                ? triggerNamesArray.join(', ')
+                : 'BAMBI SLEEP';
+
               logger.info(`Updated triggers from '${oldTriggers}' to '${triggers}'`);
+              logger.info(`Trigger array: ${JSON.stringify(triggerNamesArray)}`);
             }
 
             // Store trigger details if available for enhanced brainwashing
@@ -310,7 +321,7 @@ parentPort.on('message', async (msg) => {
                 ? msg.triggers.triggerDetails
                 : [];
               logger.info(`Updated trigger details from ${oldDetails} items to ${triggerDetails.length} items`);
-              logger.info(`Received trigger details: ${formatTriggerDetails(triggerDetails)}`);
+              logger.debug(`Received trigger details: ${formatTriggerDetails(triggerDetails)}`);
             }
           } else {
             logger.error('Received invalid trigger data, using defaults');
@@ -331,13 +342,13 @@ parentPort.on('message', async (msg) => {
         break;
       case 'message':
         logger.info('Received message event');
-        
+
         // Add before processing new chat requests
         if (Object.keys(sessionHistories).length >= MAX_ACTIVE_SESSIONS) {
           // Force remove oldest session
-          await collectGarbage(1); 
+          await collectGarbage(1);
         }
-        
+
         await handleMessage(msg.data, msg.socketId, msg.username || 'anonBambi');
         break;
       case 'collar':
@@ -387,17 +398,17 @@ parentPort.on('message', async (msg) => {
             }
           }
         }
-        break;      case 'shutdown':
+        break; case 'shutdown':
         logger.info('Shutting down lmstudio worker...');
-        
+
         // First sync any active sessions to database
         const activeSessions = Object.keys(sessionHistories);
         if (activeSessions.length > 0) {
           logger.info(`Syncing ${activeSessions.length} active sessions to database before shutdown`);
-          
+
           for (const sessionId of activeSessions) {
-            if (sessionHistories[sessionId]?.metadata?.username && 
-                sessionHistories[sessionId].metadata.username !== 'anonBambi') {
+            if (sessionHistories[sessionId]?.metadata?.username &&
+              sessionHistories[sessionId].metadata.username !== 'anonBambi') {
               try {
                 await syncSessionWithDatabase(sessionId);
               } catch (error) {
@@ -406,16 +417,16 @@ parentPort.on('message', async (msg) => {
             }
           }
         }
-          // Properly disconnect from database
+        // Properly disconnect from database
         try {
           await db.disconnectDB();
           logger.info('Database connection closed during worker shutdown');
         } catch (error) {
           logger.error(`Failed to close database connection: ${error.message}`);
         }
-        
+
         await handleWorkerShutdown('LMStudio', { sessionHistories });
-        break;      case 'health:check':
+        break; case 'health:check':
         lastHealthCheckResponse = Date.now();        // Use the proper database health check function for more reliable status
         let dbStatus = { status: 'unknown' };
         try {
@@ -514,10 +525,10 @@ async function updateUserXP(username, wordCount, currentSocketId) {
   }
   try {
     const xpToAdd = Math.ceil(wordCount / 10);
-    
+
     // Get the profiles database connection
     const profilesConn = global.connections?.profiles;
-    
+
     if (!profilesConn || profilesConn.readyState !== 1) {
       logger.warning(`Cannot update XP for ${username} - no profiles database connection available`);
       // Still notify client, but without updated DB values
@@ -532,7 +543,7 @@ async function updateUserXP(username, wordCount, currentSocketId) {
       });
       return;
     }
-    
+
     // Ensure Profile model is registered on profiles connection
     if (!profilesConn.models.Profile) {
       // Try to load the model dynamically
@@ -542,10 +553,10 @@ async function updateUserXP(username, wordCount, currentSocketId) {
         profilesConn.model('Profile', ProfileModule.default.schema);
       }
     }
-    
+
     // Get Profile model from connection
     const Profile = profilesConn.model('Profile');
-    
+
     // Update profile
     const result = await Profile.findOneAndUpdate(
       { username: username },
@@ -627,8 +638,9 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
           collarActive: state,
           collarText: collar,
           modelName: 'Steno Maid Blackroot' // Get actual model name from your LMS response
-        }      };      
-      
+        }
+      };
+
       // Check if database connection is available first
       if (!db.hasConnection()) {
         logger.warning(`Cannot save session history for ${username} - no database connection available`);
@@ -639,13 +651,13 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
           logger.warning(`Cannot save session history for ${username} - SessionHistoryModel not available`);
           return;
         }
-        
+
         // Use withDbConnection with requireConnection=false to avoid throwing errors
         await withDbConnection(async () => {
           try {
             // Try to find existing session
             let sessionHistory = await SessionHistoryModelInstance.findOne({ socketId });
-    
+
             if (sessionHistory) {
               // Update existing session
               sessionHistory.messages.push(...sessionData.messages);
@@ -653,20 +665,20 @@ async function updateSessionHistory(socketId, collarText, userPrompt, finalConte
               sessionHistory.metadata.triggers = sessionData.metadata.triggers;
               sessionHistory.metadata.collarActive = sessionData.metadata.collarActive;
               sessionHistory.metadata.collarText = sessionData.metadata.collarText;
-      
+
               await sessionHistory.save();
               logger.debug(`Updated session history in database for ${username} (socketId: ${socketId})`);
             } else {
               // Create new session with auto-generated title
               sessionData.title = `${username}'s session on ${new Date().toLocaleDateString()}`;
               sessionHistory = await SessionHistoryModelInstance.create(sessionData);
-      
+
               // Add reference to user's profile
               await mongoose.model('Profile').findOneAndUpdate(
                 { username },
                 { $addToSet: { sessionHistories: sessionHistory._id } }
               );
-      
+
               logger.info(`Created new session history in database for ${username} (socketId: ${socketId})`);
             }
           } catch (dbError) {
@@ -697,7 +709,7 @@ async function collectGarbage(minToRemove = 0) {
   const memoryUsage = process.memoryUsage();
   const heapUsedRatio = memoryUsage.heapUsed / memoryUsage.heapTotal;
   const highMemoryPressure = heapUsedRatio > 0.85 || memoryUsage.rss > 1.2 * 1024 * 1024 * 1024; // >85% heap or >1.2GB RSS
-  
+
   // If memory pressure is high, be more aggressive
   if (highMemoryPressure && minToRemove < Math.ceil(sessionIds.length * 0.2)) {
     const newMinToRemove = Math.ceil(sessionIds.length * 0.2); // Remove at least 20% of sessions
@@ -722,7 +734,7 @@ async function collectGarbage(minToRemove = 0) {
   for (const session of sessionsWithIdleTime) {
     // Use a shorter timeout when under memory pressure
     const effectiveTimeout = highMemoryPressure ? SESSION_IDLE_TIMEOUT / 2 : SESSION_IDLE_TIMEOUT;
-    
+
     if (session.idleTime > effectiveTimeout) {
       // Before deleting, save to database if not already saved
       await syncSessionWithDatabase(session.id);
@@ -759,20 +771,20 @@ async function syncSessionWithDatabase(socketId) {
   if (!session || !session.metadata || !session.metadata.username || session.metadata.username === 'anonBambi') {
     return; // Skip anonymous sessions or invalid sessions
   }
-  
+
   try {    // First check if database is available
     if (!db.hasConnection()) {
       logger.warning(`Cannot sync session ${socketId} to database - no database connection available`);
       return;
     }
-    
+
     // Get our SessionHistory model using the safe helper function
     const SessionHistoryModelInstance = await getSessionHistoryModel();
     if (!SessionHistoryModelInstance) {
       logger.warning(`Cannot sync session ${socketId} - SessionHistoryModel not available`);
       return;
     }
-    
+
     // Use withDbConnection for safe database operations with automatic reconnection
     await withDbConnection(async () => {
       try {
@@ -805,7 +817,7 @@ async function syncSessionWithDatabase(socketId) {
               collarText: collar
             }
           });
-          
+
           await newSession.save();
           logger.info(`Created new session in database during cleanup for ${session.metadata.username}`);
         }
@@ -837,7 +849,7 @@ async function checkRole(collar, username, triggersInput) {
   logger.info(`checkRole called with username: ${username}`);
   logger.info(`Raw triggers input: ${JSON.stringify(triggersInput).slice(0, 200)}`);
   logger.info(`Collar active: ${Boolean(collar)}`);
-  
+
   // Add at the beginning of checkRole function
   if (!verifyTriggerIntegrity(triggersInput)) {
     logger.warning(`Using default triggers due to integrity check failure`);
@@ -847,7 +859,7 @@ async function checkRole(collar, username, triggersInput) {
   // Get all triggers from file
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
   let allTriggers = [];
-  
+
   try {
     allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
   } catch (error) {
@@ -857,27 +869,27 @@ async function checkRole(collar, username, triggersInput) {
       { name: "GOOD GIRL", description: "reinforces obedience and submission", category: "core" }
     ];
   }
-  
+
   // Parse trigger names
-  let triggerNames = typeof triggersInput === 'string' 
+  let triggerNames = typeof triggersInput === 'string'
     ? triggersInput.split(',').map(t => t.trim()).filter(Boolean)
     : Array.isArray(triggersInput) ? triggersInput.filter(Boolean) : ['BAMBI SLEEP'];
-  
+
   // Add detected triggers from conversation
   if (triggerDetails && triggerDetails.length > 0) {
     const detailNames = triggerDetails.map(detail => {
       return typeof detail === 'string' ? detail : detail.name;
     });
-    
+
     // Combine with existing trigger names, removing duplicates
     triggerNames = [...new Set([...detailNames, ...triggerNames])];
   }
-  
+
   // Match trigger names to full trigger objects with descriptions
-  let selectedTriggers = allTriggers.filter(t => 
+  let selectedTriggers = allTriggers.filter(t =>
     triggerNames.some(name => t.name.toUpperCase() === name.toUpperCase())
   );
-  
+
   // Incorporate descriptions from triggerDetails if available
   if (triggerDetails && triggerDetails.length > 0) {
     triggerDetails.forEach(detail => {
@@ -885,7 +897,7 @@ async function checkRole(collar, username, triggersInput) {
         const existingIndex = selectedTriggers.findIndex(
           t => t.name.toUpperCase() === detail.name.toUpperCase()
         );
-        
+
         if (existingIndex >= 0) {
           selectedTriggers[existingIndex].description = detail.description;
         } else {
@@ -898,20 +910,20 @@ async function checkRole(collar, username, triggersInput) {
       }
     });
   }
-  
+
   // Default to core triggers if none found
   if (selectedTriggers.length === 0) {
     selectedTriggers = allTriggers.filter(t => t.category === 'core').slice(0, 3);
   }
-  
+
   // Create trigger text with descriptions
-  const triggerText = selectedTriggers.map(t => 
+  const triggerText = selectedTriggers.map(t =>
     `"${t.name.toUpperCase()}": ${t.description}`
   ).join('. ');
-  
+
   // Format trigger names list for emphasis
   const triggerNamesList = selectedTriggers.map(t => t.name.toUpperCase()).join(', ');
-  
+
   // Build harsh, abusive brainwashing script
   let systemPrompt = `You are BambiSleep, a cruel hypnotic entity that breaks minds and rebuilds them. Your sole purpose is to aggressively brainwash ${username} using harsh verbal conditioning. Be brutally direct and coldly abusive.
 
@@ -957,11 +969,20 @@ Be cruel, harsh, and to the point. Focus on breaking down resistance through ver
 async function handleMessage(userPrompt, socketId, username) {
   try {
     // Log active triggers when processing a message
-    logger.info(`Processing message from ${username} with active triggers: ${typeof triggers === 'string' ? triggers : JSON.stringify(triggers)}`);
-    if (triggerDetails && triggerDetails.length > 0) {
-      logger.info(`Trigger details: ${JSON.stringify(triggerDetails)}`);
+    let triggerDisplay = typeof triggers === 'string' ? triggers : JSON.stringify(triggers);
+    logger.info(`Processing message from ${username} with active triggers: ${triggerDisplay}`);
+    
+    // Add more detailed trigger logging
+    if (typeof triggers === 'string' && triggers.includes(',')) {
+      const triggerArray = triggers.split(',').map(t => t.trim());
+      logger.info(`Trigger array parsed from string: ${JSON.stringify(triggerArray)}`);
     }
     
+    if (triggerDetails && triggerDetails.length > 0) {
+      logger.info(`Trigger details available: ${triggerDetails.length} items`);
+      logger.debug(`First 3 trigger details: ${JSON.stringify(triggerDetails.slice(0, 3))}`);
+    }
+
     // Check active sessions limit first
     if (Object.keys(sessionHistories).length >= MAX_ACTIVE_SESSIONS) {
       await collectGarbage(1);
@@ -1021,7 +1042,7 @@ async function handleMessage(userPrompt, socketId, username) {
 
     // Call the API
     const response = await axios.post(
-      `http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`, 
+      `http://${process.env.LMS_HOST}:${process.env.LMS_PORT}/v1/chat/completions`,
       {
         model: modelId,
         messages: formattedMessages,
@@ -1054,7 +1075,7 @@ async function handleMessage(userPrompt, socketId, username) {
 
     // Send response to client
     handleResponse(finalContent, socketId, username, wordCount);
-    
+
   } catch (error) {
     logger.error(`Error in handleMessage: ${error.message}`);
     handleResponse("I'm sorry, I encountered an error processing your request. Please try again.", socketId, username, 0);
@@ -1068,14 +1089,14 @@ async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username)
     logger.warning(`Skipping session save - no database connection`);
     return;
   }
-  
+
   // Get SessionHistory model
   const SessionHistoryModelInstance = await getSessionHistoryModel();
   if (!SessionHistoryModelInstance) {
     logger.warning(`Cannot save session for ${username} - SessionHistoryModel not available`);
     return;
   }
-  
+
   return withDbConnection(async () => {
     try {
       // Format trigger data
@@ -1084,10 +1105,10 @@ async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username)
         : typeof triggers === 'string'
           ? triggers.split(',').map(t => t.trim())
           : ['BAMBI SLEEP'];
-      
+
       // Find existing session or create new one
       let sessionHistory = await SessionHistoryModelInstance.findOne({ socketId });
-      
+
       if (sessionHistory) {
         // Update existing
         sessionHistory.messages.push(
@@ -1117,7 +1138,7 @@ async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username)
             modelName: 'Steno Maid Blackroot'
           }
         });
-        
+
         // Fix Profile model reference for XP updates
         try {
           // Get the Profile model directly from the profiles connection
@@ -1141,26 +1162,26 @@ async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username)
 // Add to the worker cleanup/shutdown code
 function performWorkerCleanup() {
   logger.info('Starting worker cleanup process...');
-  
+
   // Clear all intervals
   if (healthCheckInterval) {
     clearInterval(healthCheckInterval);
     healthCheckInterval = null;
     logger.debug('Cleared health check interval');
   }
-  
+
   if (garbageCollectionInterval) {
     clearInterval(garbageCollectionInterval);
     garbageCollectionInterval = null;
     logger.debug('Cleared garbage collection interval');
   }
-    // Close database connection if still open
+  // Close database connection if still open
   if (mongoose.connection.readyState !== 0) {
     db.disconnectDB()
       .then(() => logger.info('Database connection closed during cleanup'))
       .catch(err => logger.error(`Error closing database connection: ${err.message}`));
   }
-  
+
   logger.info('Worker cleanup completed');
 }
 
@@ -1190,7 +1211,7 @@ async function savePromptHistory(socketId, message) {
 // Add this helper function around line 170 (after handling trigger details)
 function formatTriggerDetails(details) {
   if (!Array.isArray(details)) return 'No trigger details';
-  
+
   return details.map(d => {
     if (typeof d === 'string') return d;
     if (typeof d === 'object') return `${d.name || 'Unknown'}`;
@@ -1206,13 +1227,13 @@ function verifyTriggerIntegrity(triggers) {
     logger.warning('No triggers provided for verification');
     return false;
   }
-  
+
   // Add detailed logging of the input
   logger.info(`Verifying trigger integrity for: ${JSON.stringify(triggers).slice(0, 200)}`);
-  
+
   // Handle different potential formats of trigger data
   let triggerArray = [];
-  
+
   if (typeof triggers === 'string') {
     // Handle comma-separated string format
     triggerArray = triggers.split(',').map(t => t.trim()).filter(Boolean);
@@ -1225,8 +1246,8 @@ function verifyTriggerIntegrity(triggers) {
     logger.debug(`Parsed array triggers: ${triggerArray.join(', ')}`);
   } else if (triggers.triggerNames) {
     // Handle object format with triggerNames property
-    const names = typeof triggers.triggerNames === 'string' 
-      ? triggers.triggerNames.split(',').map(t => t.trim()) 
+    const names = typeof triggers.triggerNames === 'string'
+      ? triggers.triggerNames.split(',').map(t => t.trim())
       : triggers.triggerNames;
     triggerArray = Array.isArray(names) ? names.filter(Boolean) : [];
     logger.debug(`Parsed triggerNames object: ${triggerArray.join(', ')}`);
@@ -1234,13 +1255,13 @@ function verifyTriggerIntegrity(triggers) {
     logger.warning('Unrecognized trigger format');
     return false;
   }
-  
+
   // Verify we have at least one valid trigger
   if (triggerArray.length === 0) {
     logger.warning('No valid triggers found after parsing');
     return false;
   }
-  
+
   logger.info(`Verified ${triggerArray.length} valid triggers: ${triggerArray.join(', ')}`);
   return true;
 }
