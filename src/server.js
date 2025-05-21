@@ -629,37 +629,6 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
 }
 
 /**
- * Handle errors from the TTS API
- * 
- * @param {Error} error - The error that occurred
- * @param {Response} res - Express response object
- */
-function handleTTSError(error, res) {
-  logger.error(`TTS API Error: ${error.message}`);
-
-  if (error.response) {
-    const status = error.response.status;
-
-    if (status === 401) {
-      logger.error('Unauthorized access to Kokoro API - invalid API key');
-      return res.status(401).json({ error: 'Unauthorized access' });
-    } else {
-      // For other error types
-      const errorDetails = process.env.NODE_ENV === 'production' ? null : error.message;
-      return res.status(status).json({
-        error: 'Error generating speech',
-        details: errorDetails
-      });
-    }
-  }
-
-  return res.status(500).json({
-    error: 'Unexpected error in TTS service',
-    details: process.env.NODE_ENV === 'production' ? null : error.message
-  });
-}
-
-/**
  * Set up Socket.io event handlers
  * 
  * @param {SocketIO.Server} io - Socket.io server instance
@@ -1195,37 +1164,17 @@ async function startServer() {
     } else {
       memoryMonitor.start(process.env.NODE_ENV === 'production' ? 60000 : 30000);
       logger.info('Standard memory monitoring started to prevent overnight OOM kills');
-    }    process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
+    }    
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
     process.on('uncaughtException', (err) => {
       logger.error('Uncaught exception:', err);
-      gracefulShutdown('UNCAUGHT_EXCEPTION', server);
+      shutdown('UNCAUGHT_EXCEPTION');
     });
-    process.on('unhandledRejection', (reason, promise) => {
-      // Don't shut down for database connection issues
-      const errorMessage = reason instanceof Error ? reason.message : String(reason);
-      
-      // Check if it's a database-related error
-      if (errorMessage.includes('ECONNREFUSED') && errorMessage.includes('27017')) {
-        logger.error('Database connection failed:', errorMessage);
-        logger.warning('Database connection error - server will continue with limited functionality');
-          // Attempt reconnection in the background
-        setTimeout(async () => {
-          try {
-            logger.info('Attempting background reconnect to database...');
-            const db = await import('./config/db.js');
-            await Promise.resolve(db.default.connectAllDatabases(1)).catch(e => {
-              logger.error(`Background reconnection attempt failed: ${e.message}`);
-            });
-          } catch (reconnectError) {
-            logger.error(`Error during background reconnection: ${reconnectError.message}`);
-          }
-        }, 10000); // Try reconnecting in 10 seconds
-      } else {
-        // For other types of rejections, log and shutdown
-        logger.error('Unhandled rejection at:', promise, 'reason:', reason);
-        gracefulShutdown('UNHANDLED_REJECTION', server);
-      }
+    process.on('unhandledRejection', (reason) => {
+      logger.error('Unhandled rejection:', reason);
+      shutdown('UNHANDLED_REJECTION');
     });
 
     // Store the server and io instances globally for proper shutdown
@@ -1239,6 +1188,47 @@ async function startServer() {
   } catch (error) {
     logger.error('Error during server startup:', error);
     process.exit(1);
+  }
+}
+
+// Add this simple shutdown function
+function shutdown(signal) {
+  logger.info(`Shutdown initiated (${signal})`);
+  
+  // Force exit after 3 seconds, no matter what
+  setTimeout(() => {
+    logger.warning('Forcing process exit');
+    process.exit(0);
+  }, 3000);
+  
+  // Try to close server and database
+  try {
+    if (global.httpServer) {
+      global.httpServer.close();
+    }
+    
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      mongoose.connection.close();
+    }
+    
+    if (scheduledTasks) {
+      scheduledTasks.stopAll();
+    }
+    
+    if (memoryMonitor) {
+      memoryMonitor.stop();
+    }
+    
+    if (global.socketStore) {
+      for (const [, socketData] of global.socketStore.entries()) {
+        if (socketData.socket) {
+          socketData.socket.disconnect(true);
+        }
+      }
+      global.socketStore.clear();
+    }
+  } catch (error) {
+    logger.error(`Error during shutdown: ${error.message}`);
   }
 }
 
