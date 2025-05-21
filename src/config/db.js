@@ -37,7 +37,7 @@ export async function connectToDatabase() {
     });
     
     mongoose.connection.on('disconnected', () => {
-      logger.warn('Database disconnected');
+      logger.warning('Database disconnected');
       isConnected = false;
     });
     
@@ -71,7 +71,7 @@ export async function connectToProfilesDatabase() {
     });
     
     profilesConnection.on('disconnected', () => {
-      logger.warn('Profiles database disconnected');
+      logger.warning('Profiles database disconnected');
       profilesConnection = null;
     });
     
@@ -121,7 +121,7 @@ export async function connectDB(retries = 1, force = false) {
         return { success: true, connection };
       } catch (error) {
         lastError = error;
-        logger.warn(`Connection attempt ${i + 1}/${retries} failed: ${error.message}`);
+        logger.warning(`Connection attempt ${i + 1}/${retries} failed: ${error.message}`);
         if (i < retries - 1) {
           // Wait a bit before retrying
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -152,7 +152,7 @@ export async function connectProfilesDB(retries = 1, force = false) {
         return { success: true, connection };
       } catch (error) {
         lastError = error;
-        logger.warn(`Profiles connection attempt ${i + 1}/${retries} failed: ${error.message}`);
+        logger.warning(`Profiles connection attempt ${i + 1}/${retries} failed: ${error.message}`);
         if (i < retries - 1) {
           // Wait a bit before retrying
           await new Promise(resolve => setTimeout(resolve, 1000));
