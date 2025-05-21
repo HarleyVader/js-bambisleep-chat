@@ -151,7 +151,7 @@ button:hover,
     color: var(--button-color);
     background-color: var(--secondary-color);
     text-shadow: var(--nav-color) 0.3vw 0.3vw 0.3vw;
-    border: var(--button-color) 0.3vw inset;
+    border: var(--button-color) outset 0.3vw; /* Keep same border style and width */
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
