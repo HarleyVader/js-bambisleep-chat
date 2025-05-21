@@ -392,7 +392,7 @@ async function initializeApp() {
     // Set up routes and APIs
     setupRoutes(app);
     
-    // Add this line to set up TTS routes
+    // Set up TTS routes - add this line to fix the missing TTS endpoint
     setupTTSRoutes(app);
 
     // Include client-side memory monitoring script
