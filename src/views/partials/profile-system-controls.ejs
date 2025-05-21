@@ -506,49 +506,54 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       controlButtons[0].click();
     }
     
-    // Watch for trigger list changes with better handling
-    const triggerList = document.getElementById('trigger-list');
-    if (triggerList) {
-      // Check if triggers already exist
-      if (triggerList.children.length > 0) {
-        document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
-      } else {
-        const observer = new MutationObserver(function(mutations) {
-          if (mutations.some(m => m.addedNodes.length > 0)) {
-            document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
-            observer.disconnect();
-          }
-        });
-        
-        observer.observe(triggerList, { childList: true, subtree: true });
-        
-        // Safety timeout - dispatch event after 3 seconds if nothing happens
-        setTimeout(() => {
-          if (triggerList.children.length === 0) {
-            document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
-            observer.disconnect();
-          }
-        }, 3000);
+    // Consolidated trigger initialization - prevent multiple loads
+    let triggersInitialized = false;
+    const initTriggers = () => {
+      if (triggersInitialized) return;
+      
+      const triggerList = document.getElementById('trigger-list');
+      if (!triggerList) return;
+      
+      // Use a flag to prevent multiple initializations
+      triggersInitialized = true;
+      
+      if (window.bambiAudio && window.bambiAudio.refreshTriggers) {
+        window.bambiAudio.refreshTriggers();
       }
-    }
-  });
-
-  // Ensure triggers are initialized properly
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize triggers once the DOM is loaded
-  setTimeout(() => {
-    // Trigger a reload of trigger data
-    if (window.bambiAudio && window.bambiAudio.refreshTriggers) {
-      window.bambiAudio.refreshTriggers();
+      
+      if (triggerList.children.length === 0 && typeof loadTriggerData === 'function') {
+        loadTriggerData();
+      }
+      
+      document.dispatchEvent(new CustomEvent('trigger-controls-loaded'));
+    };
+    
+    // Try to initialize immediately
+    if (document.getElementById('trigger-list')) {
+      setTimeout(initTriggers, 100); // Short delay to ensure DOM is ready
     }
     
-    // Update UI if needed
+    // Also watch for changes in case the triggers are loaded dynamically
     const triggerList = document.getElementById('trigger-list');
-    if (triggerList && triggerList.children.length === 0 && typeof loadTriggerData === 'function') {
-      loadTriggerData();
+    if (triggerList) {
+      const observer = new MutationObserver(() => {
+        if (!triggersInitialized && triggerList.children.length > 0) {
+          initTriggers();
+          observer.disconnect();
+        }
+      });
+      
+      observer.observe(triggerList, { childList: true, subtree: true });
+      
+      // Final safety timeout - try once more after 2 seconds
+      setTimeout(() => {
+        if (!triggersInitialized) {
+          initTriggers();
+          observer.disconnect();
+        }
+      }, 2000);
     }
-  }, 500);
-});
+  });
 </script>
 
 <!-- Load modular system control scripts -->
