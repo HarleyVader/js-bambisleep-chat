@@ -5,7 +5,7 @@ import Logger from '../utils/logger.js';
 import { handleWorkerShutdown, setupWorkerShutdownHandlers } from '../utils/gracefulShutdown.js';
 import mongoose from 'mongoose';
 import db from '../config/db.js';
-const { connectDB, connectProfilesDB, withDbConnection, disconnectDB, checkDBHealth, ensureModelsRegistered } = db;
+const { withDbConnection } = db;
 // Import config
 import config from '../config/config.js';
 // Use a lazy import for SessionHistoryModel to handle database failures more gracefully
