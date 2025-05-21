@@ -650,14 +650,26 @@ async function selectLoadedModels(modelName) {
 
 async function checkRole(collar, username, triggers) {  // Load all trigger details from config
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
-  let allTriggers = triggers;
-  if (!fs.existsSync(triggersPath)) {
-    allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
+  let allTriggers = [];
+
+  // Make sure we have valid triggers array
+  const triggerArray = Array.isArray(triggers) ? triggers : [];
+
+  try {
+    if (fs.existsSync(triggersPath)) {
+      allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
+    }
+  } catch (error) {
+    logger.error(`Failed to load triggers from JSON: ${error.message}`);
+    // Fallback to empty array
+    allTriggers = [];
   }
 
-  // Match trigger names to descriptions
-  let selectedTriggers = allTriggers.filter(t =>
-    triggers.some(name => t.name.toUpperCase() === name.toUpperCase())
+  // Match trigger names to descriptions - with null checks
+  let selectedTriggers = allTriggers.filter(t => 
+    triggerArray.some(name => 
+      name && t && t.name && name.toUpperCase() === t.name.toUpperCase()
+    )
   );
 
   // Default to core triggers if none found
