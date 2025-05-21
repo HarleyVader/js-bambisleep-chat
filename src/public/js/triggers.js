@@ -23,9 +23,7 @@ const textElements = [
 function loadTriggerData() {
   fetch('/config/triggers.json')
     .then(response => {
-      if (!response.ok) {
-        throw new Error(`Failed to load triggers.json: ${response.status} ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error('Failed to load trigger data');
       return response.json();
     })
     .then(data => {
@@ -42,17 +40,16 @@ function loadTriggerData() {
       
       // Try loading from localStorage if available
       try {
-        const storedTriggers = localStorage.getItem('bambiTriggers');
+        const storedTriggers = localStorage.getItem('bambiActiveTriggers');
         if (storedTriggers) {
           const parsedTriggers = JSON.parse(storedTriggers);
           if (Array.isArray(parsedTriggers) && parsedTriggers.length > 0) {
-            triggerData = parsedTriggers;
-            // Recreate buttons with loaded data
-            createToggleButtons();
+            console.log('Loaded triggers from localStorage:', parsedTriggers);
+            updateTriggerToggles(parsedTriggers);
           }
         }
       } catch (storageError) {
-        console.log('Error loading triggers from localStorage:', storageError);
+        console.error('Error loading from localStorage:', storageError);
       }
     });
 }
@@ -70,6 +67,10 @@ function createToggleButtons() {
     const storedActiveTriggers = localStorage.getItem('bambiActiveTriggers');
     if (storedActiveTriggers) {
       activeTriggerNames = JSON.parse(storedActiveTriggers);
+      // Ensure it's an array
+      if (!Array.isArray(activeTriggerNames)) {
+        activeTriggerNames = storedActiveTriggers.split(',').map(t => t.trim());
+      }
     }
   } catch (error) {
     console.log('Error loading active triggers from localStorage:', error);
@@ -349,8 +350,6 @@ function getSelectedTriggers() {
   return selectedTriggers;
 }
 
-// Add inside saveToggleStatesToLocalStorage() function
-
 function saveToggleStatesToLocalStorage() {
   try {
     const selectedTriggers = getSelectedTriggers();
@@ -360,7 +359,7 @@ function saveToggleStatesToLocalStorage() {
     // Create trigger descriptions object
     const triggerDescriptions = {};
     selectedTriggers.forEach(trigger => {
-      if (trigger.description) {
+      if (trigger.name && trigger.description) {
         triggerDescriptions[trigger.name] = trigger.description;
       }
     });
@@ -371,19 +370,19 @@ function saveToggleStatesToLocalStorage() {
     
     // Send updates to the server
     if (window.socket && window.socket.connected) {
-      window.socket.emit('system-update', {
-        type: 'triggers',
-        data: {
+      const username = document.body.getAttribute('data-username');
+      if (username) {
+        window.socket.emit('triggers', {
           triggerNames: triggerNames,
-          triggerDetails: selectedTriggers
-        }
-      });
-      console.log('Sent active triggers to server:', triggerNames);
+          triggerDetails: selectedTriggers,
+          username: username
+        });
+      }
     }
     
     // Sync with other pages if the sync function exists
     if (typeof window.syncTriggersWithPages === 'function') {
-      window.syncTriggersWithPages(triggerNames, triggerDescriptions);
+      window.syncTriggersWithPages(triggerNames);
     }
   } catch (error) {
     console.log('Error saving trigger selection to localStorage:', error);
@@ -399,7 +398,7 @@ function playRandomPlaylist() {
     
     // Show notification if available
     if (typeof window.showNotification === 'function') {
-      window.showNotification('Please select at least one trigger first', 'warning');
+      window.showNotification('No triggers selected. Please select triggers first.');
     }
     return;
   }
@@ -419,7 +418,7 @@ function playRandomPlaylist() {
   if (typeof socket !== "undefined" && socket.connected) {
     const triggerNames = shuffledTriggers.map(t => t.name);
     socket.emit("triggers", { 
-      triggerNames: triggerNames.join(' '),
+      triggerNames: triggerNames,
       triggerDetails: shuffledTriggers.map(t => ({ 
         name: t.name, 
         description: t.description || '' 
@@ -513,14 +512,26 @@ function setupSocketListener() {
 
 // Update trigger toggles based on received active triggers
 function updateTriggerToggles(activeTriggers) {
+  if (!Array.isArray(activeTriggers)) {
+    // Try to convert to array if it's a string
+    if (typeof activeTriggers === 'string') {
+      activeTriggers = activeTriggers.split(',').map(t => t.trim());
+    } else {
+      return;
+    }
+  }
+  
   const toggleInputs = document.getElementsByClassName("toggle-input");
   
   for (let i = 0; i < toggleInputs.length; i++) {
-    const triggerName = toggleInputs[i].dataset.triggerName || toggleInputs[i].dataset.trigger;
-    
-    // Set checked state based on active triggers
-    toggleInputs[i].checked = activeTriggers.includes(triggerName);
+    const triggerName = toggleInputs[i].dataset.triggerName;
+    if (triggerName) {
+      toggleInputs[i].checked = activeTriggers.includes(triggerName);
+    }
   }
+  
+  // Save changes to localStorage
+  saveToggleStatesToLocalStorage();
 }
 
 let continuousPlaybackActive = false;
@@ -809,7 +820,6 @@ window.bambiAudio = {
   getAllTriggers: () => triggerData,
   refreshTriggers: loadTriggerData,
   toggleAllTriggers: toggleAllToggles,
-  // Add this new function to update UI based on stored triggers
   refreshTriggerUI: function() {
     try {
       const storedTriggers = localStorage.getItem('bambiActiveTriggers');

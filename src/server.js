@@ -930,96 +930,90 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
 
       // In the setupSocketHandlers function, inside the io.on('connection') handler:
 
-      socket.on('triggers', (data) => {
-        try {
-          // Get worker for this socket
-          const worker = socketStore.get(socket.id)?.worker;
-
-          if (worker) {
-            // Log what we received
-            logger.info(`Triggers received from client ${socket.id}: ${typeof data === 'string' ? data : JSON.stringify(data)}`);
-
-            // Send data directly to worker without extraction
-            lmstudio.postMessage({
-              type: 'triggers',
-              data: data,
-              socketId: socket.id
+      socket.on('triggers', async (data) => {
+        // Normalize trigger format to ensure consistent array handling
+        let triggerNames = [];
+        
+        if (data.triggerNames) {
+          if (Array.isArray(data.triggerNames)) {
+            triggerNames = data.triggerNames;
+          } else if (typeof data.triggerNames === 'string') {
+            triggerNames = data.triggerNames.split(',').map(t => t.trim()).filter(Boolean);
+          }
+        }
+        
+        // Get username either from data or socket
+        const username = data.username || socket.username;
+        
+        if (!username) {
+          socket.emit('trigger-debug', { error: 'No username provided' });
+          return;
+        }
+        
+        // Forward trigger names to worker
+        lmstudio.postMessage({
+          type: 'triggers',
+          triggers: triggerNames,
+          socketId: socket.id
+        });
+        
+        // Save triggers to profile if appropriate
+        if (username !== 'anonBambi') {
+          try {
+            // Update profile with trigger selection
+            await withDbConnection(async () => {
+              const Profile = mongoose.model('Profile');
+              await Profile.findOneAndUpdate(
+                { username },
+                { $set: { activeTriggers: triggerNames } },
+                { upsert: true }
+              );
+              
+              socket.emit('trigger:response', { success: true });
+            });
+          } catch (error) {
+            socket.emit('trigger-debug', { 
+              error: 'Failed to save triggers to profile',
+              details: error.message
             });
           }
-        } catch (error) {
-          logger.error(`Error processing triggers: ${error.message}`);
         }
       });
 
-      // System settings handling
-      socket.on('system-settings', (settings) => {
-        try {
-          // Make sure system-settings messages are handled
-          lmstudio.postMessage({
-            type: 'system-settings',
-            settings,
-            socketId: socket.id,
-            username: socket.bambiUsername
-          });
-        } catch (error) {
-          logger.error('Error in system settings handler:', error);
+      socket.on('get-profile-triggers', async (data) => {
+        const username = data.username;
+        
+        if (!username || username === 'anonBambi') {
+          socket.emit('profile-triggers', { triggerNames: [] });
+          return;
         }
-      });
-
-      // Fix session save handling in setupSocketHandlers function
-      socket.on('save-session', async (data) => {
+        
         try {
-          // Create session ID if not exists
-          const sessionId = data?.sessionId || socket.bambiData?.sessionId ||
-            `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
-          // Save ID on socket
-          if (!socket.bambiData) socket.bambiData = {};
-          socket.bambiData.sessionId = sessionId;
-
-          // Format messages according to schema
-          const messages = Array.isArray(data?.content) ? data.content.map(msg => ({
-            role: msg.role || 'user',
-            content: msg.content || msg.text || '',
-            timestamp: msg.timestamp || new Date()
-          })) : [];
-
-          // Create session data matching schema fields
-          const sessionData = {
-            sessionId,
-            username: socket.bambiUsername || 'anonymous',
-            messages: messages,
-            startedAt: new Date(),
-            lastUpdatedAt: new Date()
-          };
-
-          const result = await saveSessionToDatabase(sessionData);
-
-          socket.emit('session-saved', {
-            success: !!result,
-            sessionId
+          await withDbConnection(async () => {
+            const Profile = mongoose.model('Profile');
+            const profile = await Profile.findOne({ username });
+            
+            if (profile && profile.activeTriggers) {
+              // Ensure we're sending an array, even if stored differently
+              let triggerNames = [];
+              
+              if (Array.isArray(profile.activeTriggers)) {
+                triggerNames = profile.activeTriggers;
+              } else if (typeof profile.activeTriggers === 'string') {
+                triggerNames = profile.activeTriggers.split(',').map(t => t.trim()).filter(Boolean);
+              }
+              
+              socket.emit('profile-triggers', { triggerNames });
+            } else {
+              socket.emit('profile-triggers', { triggerNames: [] });
+            }
           });
         } catch (error) {
-          logger.error('Session save error:', error.message);
-          socket.emit('session-saved', { success: false, error: 'Failed to save session' });
-        }
-      });
-
-      socket.on('load-session', async (data) => {
-        try {
-          const sessionId = data.sessionId;
-          if (!sessionId) return;
-
-          // Would normally load from DB
-          // For now just notify the session is loaded
-          socket.emit('session-loaded', {
-            success: true,
-            sessionId,
-            session: { id: sessionId, username: socket.bambiUsername }
+          socket.emit('trigger-debug', { 
+            error: 'Failed to load profile triggers',
+            details: error.message
           });
-        } catch (error) {
-          logger.error('Error loading session:', error);
-          socket.emit('session-loaded', { success: false, error: 'Failed to load session' });
+          socket.emit('profile-triggers', { triggerNames: [] });
         }
       });
 

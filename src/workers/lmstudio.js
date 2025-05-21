@@ -652,10 +652,22 @@ async function selectLoadedModels(modelName) {
 }
 
 async function checkRole(collar, username, triggersInput) {
-  // Parse trigger input
-  let triggerNames = typeof triggersInput === 'string'
-    ? triggersInput.split(',').map(t => t.trim()).filter(Boolean)
-    : Array.isArray(triggersInput) ? triggersInput.filter(Boolean) : ['BAMBI SLEEP'];
+  // Parse trigger input to ensure we have an array of strings
+  let triggerNames = [];
+  
+  if (typeof triggersInput === 'string') {
+    // Handle comma-separated string
+    triggerNames = triggersInput.split(',').map(t => t.trim()).filter(Boolean);
+  } else if (Array.isArray(triggersInput)) {
+    // Handle array input - could be array of strings or objects
+    triggerNames = triggersInput.map(t => {
+      if (typeof t === 'string') return t;
+      return t.name || '';
+    }).filter(Boolean);
+  } else {
+    // Default
+    triggerNames = ['BAMBI SLEEP'];
+  }
 
   // Load all trigger details from config
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
@@ -731,11 +743,18 @@ Focus on creating permanent mental associations between these triggers and profo
 }
 
 // Handle message with improved session management
-// Handle message with improved session management
 async function handleMessage(userPrompt, socketId, username) {
   try {
+    // Ensure triggers is an array of strings
+    let triggerArray = [];
+    if (Array.isArray(triggers)) {
+      triggerArray = triggers.map(t => typeof t === 'string' ? t : t.name).filter(Boolean);
+    } else if (typeof triggers === 'string') {
+      triggerArray = triggers.split(',').map(t => t.trim()).filter(Boolean);
+    }
+
     // Log active triggers when processing a message
-    let triggerDisplay = typeof triggers === 'string' ? triggers : JSON.stringify(triggers);
+    let triggerDisplay = triggerArray.join(', ');
     logger.info(`Processing message from ${username} with active triggers: ${triggerDisplay}`);
 
     // Add more detailed trigger logging

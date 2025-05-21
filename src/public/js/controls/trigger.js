@@ -86,7 +86,10 @@ document.addEventListener('DOMContentLoaded', function() {
       // Fallback to localStorage
       try {
         const saved = localStorage.getItem('bambiActiveTriggers');
-        if (saved) triggers = JSON.parse(saved);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          triggers = Array.isArray(parsed) ? parsed : [];
+        }
       } catch (e) {
         console.error('Error loading triggers', e);
       }
@@ -119,14 +122,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (name) triggers.push({name, description: desc});
     });
     
+    // Save to localStorage
+    const triggerNames = triggers.map(t => t.name);
+    localStorage.setItem('bambiActiveTriggers', JSON.stringify(triggerNames));
+    
     // Send to server
     if (window.socket?.connected) {
       const username = document.body.getAttribute('data-username');
       if (username) {
-        const triggerNames = triggers.map(t => t.name).join(',');
-        
         window.socket.emit('triggers', {
-          triggerNames,
+          triggerNames: triggerNames,
           triggerDetails: triggers,
           username
         });
