@@ -229,269 +229,74 @@ parentPort.on('message', async (msg) => {
     lastActivityTimestamp = Date.now();
 
     switch (msg.type) {
-      // Add this case for session management
-      case "set-active-session":
-        if (msg.sessionId) {
-          try {
-            const model = await getSessionHistoryModel();
-            if (!model) {
-              logger.warning(`Cannot load session ${msg.sessionId}: SessionHistoryModel not available`);
-              break;
-            }
-
-            const session = await model.findById(msg.sessionId);
-            if (session) {
-              // Update worker state from session
-              if (session.metadata?.triggers) {
-                triggers = Array.isArray(session.metadata.triggers)
-                  ? session.metadata.triggers.join(',')
-                  : session.metadata.triggers;
-              }
-
-              if (session.metadata?.collarActive && session.metadata?.collarText) {
-                collar = session.metadata.collarText;
-                state = true;
-              }
-
-              logger.info(`Worker loaded session ${msg.sessionId} for ${msg.socketId}`);
-
-              // Add messages to context if needed
-              if (session.messages && session.messages.length > 0) {
-                if (!sessionHistories[msg.socketId]) {
-                  sessionHistories[msg.socketId] = [];
-                  sessionHistories[msg.socketId].metadata = {
-                    createdAt: Date.now(),
-                    lastActivity: Date.now(),
-                    username: session.username
-                  };
-                }
-
-                // Prepare system message
-                const systemPrompt = await checkRole(collar, session.username, triggers);
-
-                // Add system message first
-                sessionHistories[msg.socketId].push({
-                  role: 'system',
-                  content: systemPrompt
-                });
-
-                // Then add session messages, filtering out system messages
-                session.messages.forEach(msg => {
-                  if (msg.role !== 'system') {
-                    sessionHistories[msg.socketId].push({
-                      role: msg.role,
-                      content: msg.content
-                    });
-                  }
-                });
-              }
-            }
-          } catch (error) {
-            logger.error(`Error loading session ${msg.sessionId}: ${error.message}`);
-          }
-        }
+      case "message":
+        // Process incoming user message
+        await handleMessage(msg.data, msg.socketId, msg.username);
         break;
 
-      case 'triggers':
-        if (typeof msg.triggers === 'object') {
-          // Verify data integrity before processing
-          if (verifyTriggerIntegrity(msg.triggers)) {
-            if (msg.triggers.triggerNames) {
-              // Store the string representation for consistency
-              const oldTriggers = triggers;
-
-              // Convert to array first if it's a string to handle all formats
-              const triggerNamesArray = typeof msg.triggers.triggerNames === 'string'
-                ? msg.triggers.triggerNames.split(',').map(t => t.trim())
-                : Array.isArray(msg.triggers.triggerNames) ? msg.triggers.triggerNames : [];
-
-              // Convert to string for storage
-              triggers = Array.isArray(triggerNamesArray)
-                ? triggerNamesArray.join(', ')
-                : 'BAMBI SLEEP';
-
-              logger.info(`Updated triggers from '${oldTriggers}' to '${triggers}'`);
-              logger.info(`Trigger array: ${JSON.stringify(triggerNamesArray)}`);
+      case "triggers":
+        // Store triggers properly based on input format
+        if (msg.data) {
+          logger.info(`Received triggers update: ${JSON.stringify(msg.data).slice(0, 200)}`);
+          
+          // Store in the format checkRole expects
+          if (msg.data.triggerNames) {
+            // This is our preferred format from the client
+            triggers = msg.data.triggerNames;
+            
+            // If we have detailed trigger objects, store them separately
+            if (msg.data.triggerDetails && Array.isArray(msg.data.triggerDetails)) {
+              triggerDetails = msg.data.triggerDetails;
+              logger.info(`Updated trigger details with ${triggerDetails.length} items`);
             }
-
-            // Store trigger details if available for enhanced brainwashing
-            if (msg.triggers.triggerDetails) {
-              const oldDetails = triggerDetails ? triggerDetails.length : 0;
-              triggerDetails = Array.isArray(msg.triggers.triggerDetails)
-                ? msg.triggers.triggerDetails
-                : [];
-              logger.info(`Updated trigger details from ${oldDetails} items to ${triggerDetails.length} items`);
-              logger.debug(`Received trigger details: ${formatTriggerDetails(triggerDetails)}`);
-            }
-          } else {
-            logger.error('Received invalid trigger data, using defaults');
-            triggers = 'BAMBI SLEEP';
-            triggerDetails = [];
+          } else if (typeof msg.data === 'string') {
+            // Simple string format (backward compatibility)
+            triggers = msg.data;
+            logger.info(`Updated triggers with string: ${triggers}`);
+          } else if (Array.isArray(msg.data)) {
+            // Array format
+            triggers = msg.data.join(',');
+            logger.info(`Updated triggers from array: ${triggers}`);
           }
-        } else if (typeof msg.triggers === 'string') {
-          // Verify data integrity for string format
-          if (verifyTriggerIntegrity(msg.triggers)) {
-            const oldTriggers = triggers;
-            triggers = msg.triggers;
-            logger.info(`Updated triggers from string: '${oldTriggers}' to '${triggers}'`);
-          } else {
-            logger.error('Received invalid trigger string, using defaults');
-            triggers = 'BAMBI SLEEP';
-          }
-        }
-        break;
-      case 'message':
-        logger.info('Received message event');
-
-        // Add before processing new chat requests
-        if (Object.keys(sessionHistories).length >= MAX_ACTIVE_SESSIONS) {
-          // Force remove oldest session
-          await collectGarbage(1);
-        }
-
-        await handleMessage(msg.data, msg.socketId, msg.username || 'anonBambi');
-        break;
-      case 'collar':
-        collar = msg.data;
-        state = true;
-        logger.info('Collar set:', collar);
-        break;
-      case 'socket:disconnect':
-        if (msg.socketId) {
-          try {
-            // Save the session to database before cleanup
-            await syncSessionWithDatabase(msg.socketId);
-
-            const { cleanupSocketSession } = await import('../utils/gracefulShutdown.js');
-            const cleaned = cleanupSocketSession(msg.socketId, sessionHistories);
-
-            // Delete the session history for this socket
-            if (sessionHistories[msg.socketId]) {
-              delete sessionHistories[msg.socketId];
-              logger.info(`Deleted session history for socket: ${msg.socketId}`);
-            }
-
-            // Send confirmation of cleanup if requested
-            if (msg.requestCleanupConfirmation) {
-              parentPort.postMessage({
-                type: 'cleanup:complete',
-                socketId: msg.socketId,
-                success: true
-              });
-              logger.info(`Sent cleanup confirmation for socket: ${msg.socketId}`);
-            }
-
-            if (cleaned) {
-              logger.info(`Cleaned up session for disconnected socket: ${msg.socketId}`);
-            }
-          } catch (error) {
-            logger.error(`Error during session cleanup for socket ${msg.socketId}: ${error.message}`);
-
-            // Send failure notification if confirmation was requested
-            if (msg.requestCleanupConfirmation) {
-              parentPort.postMessage({
-                type: 'cleanup:complete',
-                socketId: msg.socketId,
-                success: false,
-                error: error.message
-              });
-            }
-          }
-        }
-        break; case 'shutdown':
-        logger.info('Shutting down lmstudio worker...');
-
-        // First sync any active sessions to database
-        const activeSessions = Object.keys(sessionHistories);
-        if (activeSessions.length > 0) {
-          logger.info(`Syncing ${activeSessions.length} active sessions to database before shutdown`);
-
-          for (const sessionId of activeSessions) {
-            if (sessionHistories[sessionId]?.metadata?.username &&
-              sessionHistories[sessionId].metadata.username !== 'anonBambi') {
-              try {
-                await syncSessionWithDatabase(sessionId);
-              } catch (error) {
-                logger.error(`Failed to sync session ${sessionId} during shutdown: ${error.message}`);
-              }
-            }
-          }
-        }
-        // Properly disconnect from database
-        try {
-          await db.disconnectDB();
-          logger.info('Database connection closed during worker shutdown');
-        } catch (error) {
-          logger.error(`Failed to close database connection: ${error.message}`);
-        }
-
-        await handleWorkerShutdown('LMStudio', { sessionHistories });
-        break; case 'health:check':
-        lastHealthCheckResponse = Date.now();        // Use the proper database health check function for more reliable status
-        let dbStatus = { status: 'unknown' };
-        try {
-          dbStatus = await db.checkDBHealth();
-        } catch (error) {
-          logger.error(`Failed to check database health: ${error.message}`);
-          dbStatus = { status: 'error', error: error.message };
-        }
-
-        // Perform self-diagnostics
-        const diagnostics = {
-          uptime: process.uptime(),
-          lastActivity: Date.now() - lastActivityTimestamp,
-          memoryUsage: process.memoryUsage(),
-          sessionCount: Object.keys(sessionHistories).length,
-          sessionSizes: {},
-          dbStatus
-        };
-
-        // Sample some session sizes (limit to 5 for performance)
-        const sessionIds = Object.keys(sessionHistories).slice(0, 5);
-        sessionIds.forEach(id => {
-          diagnostics.sessionSizes[id] = {
-            messageCount: sessionHistories[id] ? sessionHistories[id].length : 0,
-            approximateSize: sessionHistories[id] ?
-              JSON.stringify(sessionHistories[id]).length : 0
-          };
-        });
-
-        // Send health status back
-        parentPort.postMessage({
-          type: 'health:status',
-          socketId: msg.socketId,
-          status: isHealthy ? 'healthy' : 'unhealthy',
-          diagnostics
-        });
-
-        logger.debug(`Health check responded: ${isHealthy ? 'healthy' : 'unhealthy'}`);
-        break;
-      case 'load-history':
-        if (msg.messages && msg.socketId) {
-          // Initialize session history if needed
-          if (!sessionHistories[msg.socketId]) {
-            sessionHistories[msg.socketId] = [];
-            sessionHistories[msg.socketId].metadata = {
-              createdAt: Date.now(),
-              lastActivity: Date.now(),
-              username: msg.username
-            };
-          }
-
-          // Add historical messages to the session context
-          msg.messages.forEach(message => {
-            // Only add if role and content are valid
-            if (message.role && message.content) {
-              sessionHistories[msg.socketId].push({
-                role: message.role,
-                content: message.content
-              });
-            }
+          
+          // Send debug info back to client
+          parentPort.postMessage({
+            type: "trigger-debug",
+            data: {
+              storedAs: typeof triggers,
+              triggerValue: triggers,
+              detailsCount: triggerDetails ? triggerDetails.length : 0
+            },
+            socketId: msg.socketId
           });
-
-          logger.info(`Loaded ${msg.messages.length} historical messages for socket ${msg.socketId}`);
         }
         break;
+
+      case "collar":
+        // Process collar information
+        if (msg.data) {
+          collar = true;
+          collarText = msg.data;
+          logger.info(`Collar activated with text: ${collarText.slice(0, 50)}...`);
+        } else {
+          collar = false;
+          collarText = null;
+          logger.info("Collar deactivated");
+        }
+        break;
+
+      case "health-check":
+        // Respond to health check
+        lastHealthCheckResponse = Date.now();
+        parentPort.postMessage({
+          type: "health-check-response",
+          status: "ok",
+          workerId: process.pid,
+          memoryUsage: process.memoryUsage(),
+          sessionCount: Object.keys(sessionHistories).length
+        });
+        break;
+
       default:
         logger.warning(`Unknown message type: ${msg.type}`);
     }
@@ -499,6 +304,54 @@ parentPort.on('message', async (msg) => {
     logger.error('Error handling message:', error);
   }
 });
+
+// Update verifyTriggerIntegrity function to handle more input formats
+function verifyTriggerIntegrity(triggers) {
+  // Check if triggers exist
+  if (!triggers) {
+    logger.warning("No triggers provided");
+    return false;
+  }
+
+  // Add detailed logging of the input
+  logger.info(`Verifying trigger integrity for: ${JSON.stringify(triggers).slice(0, 200)}`);
+
+  // Handle different potential formats of trigger data
+  let triggerArray = [];
+
+  if (typeof triggers === 'string') {
+    // Handle comma-separated string
+    triggerArray = triggers.split(',').map(t => t.trim()).filter(Boolean);
+  } else if (Array.isArray(triggers)) {
+    // Handle array of strings or objects
+    triggerArray = triggers.map(t => {
+      if (typeof t === 'string') return t.trim();
+      if (typeof t === 'object' && t.name) return t.name.trim();
+      return null;
+    }).filter(Boolean);
+  } else if (triggers.triggerNames) {
+    // Handle {triggerNames: string, triggerDetails: array} format from client
+    if (typeof triggers.triggerNames === 'string') {
+      triggerArray = triggers.triggerNames.split(',').map(t => t.trim()).filter(Boolean);
+    } else if (Array.isArray(triggers.triggerNames)) {
+      triggerArray = triggers.triggerNames.filter(Boolean);
+    }
+  } else if (typeof triggers === 'object') {
+    // Try to extract any string values from the object as a last resort
+    triggerArray = Object.values(triggers)
+      .filter(v => typeof v === 'string')
+      .map(v => v.trim());
+  }
+
+  // Verify we have at least one valid trigger
+  if (triggerArray.length === 0) {
+    logger.warning("No valid triggers found after parsing");
+    return false;
+  }
+
+  logger.info(`Verified ${triggerArray.length} valid triggers: ${triggerArray.join(', ')}`);
+  return true;
+}
 
 function handleResponse(response, socketId, username, wordCount) {
   parentPort.postMessage({

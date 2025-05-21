@@ -104,6 +104,38 @@
               }
             }
 
+            // Helper function to load profile triggers
+            function loadProfileTriggers(username) {
+              if (typeof socket !== 'undefined' && socket.connected) {
+                socket.emit('get-profile-data', { username }, function (response) {
+                  if (response && response.success && response.profile) {
+                    const profile = response.profile;
+                    if (profile.systemControls && profile.systemControls.activeTriggers) {
+                      const activeTriggers = profile.systemControls.activeTriggers;
+
+                      // Send triggers to worker - ensure format is consistent with what checkRole expects
+                      socket.emit('triggers', {
+                        triggerNames: activeTriggers.join(','),  // Send as comma-separated string
+                        triggerDetails: activeTriggers.map(t => ({ 
+                          name: t,
+                          description: "" // Add empty description to match expected format
+                        }))
+                      });
+
+                      console.log('Loaded triggers from profile:', activeTriggers);
+                    }
+                  }
+                });
+              }
+            }
+
+            // Add socket handler for debugging trigger messages
+            if (typeof socket !== 'undefined') {
+              socket.on('trigger-debug', function(data) {
+                console.log('Trigger debug from server:', data);
+              });
+            }
+
             document.getElementById('username-submit').addEventListener('click', () => {
               const input = document.getElementById('username-input');
               const newUsername = input.value.trim();
@@ -124,28 +156,6 @@
 
             // Set username data attribute for profile-system-controls.ejs
             document.body.setAttribute('data-username', username);
-
-            // Helper function to load profile triggers
-            function loadProfileTriggers(username) {
-              if (typeof socket !== 'undefined' && socket.connected) {
-                socket.emit('get-profile-data', { username }, function (response) {
-                  if (response && response.success && response.profile) {
-                    const profile = response.profile;
-                    if (profile.systemControls && profile.systemControls.activeTriggers) {
-                      const activeTriggers = profile.systemControls.activeTriggers;
-
-                      // Send triggers to worker
-                      socket.emit('triggers', {
-                        triggerNames: activeTriggers.join(','),
-                        triggerDetails: activeTriggers.map(t => ({ name: t }))
-                      });
-
-                      console.log('Loaded triggers from profile:', activeTriggers);
-                    }
-                  }
-                });
-              }
-            }
 
             document.getElementById("chat-form").addEventListener("submit", (event) => {
               event.preventDefault();
