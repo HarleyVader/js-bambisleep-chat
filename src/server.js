@@ -527,8 +527,7 @@ function setupTTSRoutes(app) {
     } catch (error) {
       logger.error(`Voice listing error: ${error.message}`);
       res.status(500).json({
-        error: 'Error fetching voice list',
-        details: process.env.NODE_ENV === 'production' ? null : error.message
+        error: 'Error fetching voice list'
       });
     }
   });
@@ -543,49 +542,15 @@ function setupTTSRoutes(app) {
     }
 
     try {
-      logger.info(`TTS request: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}" (voice: ${voice})`);
-      
       const response = await fetchTTSFromKokoro(text, voice);
       
-      // Set headers and send audio data
       res.setHeader('Content-Type', 'audio/mpeg');
       res.setHeader('Cache-Control', 'no-cache');
       res.send(response.data);
     } catch (error) {
-      logger.error(`TTS error: ${error.message}`);
+      logger.error(`TTS API Error: ${error.message}`);
       res.status(500).json({ error: 'Failed to generate speech' });
     }
-  });
-}
-
-/**
- * Handle errors from the TTS API
- * 
- * @param {Error} error - The error that occurred
- * @param {Response} res - Express response object
- */
-function handleTTSError(error, res) {
-  logger.error(`TTS API Error: ${error.message}`);
-
-  if (error.response) {
-    const status = error.response.status;
-
-    if (status === 401) {
-      logger.error('Unauthorized access to Kokoro API - invalid API key');
-      return res.status(401).json({ error: 'Unauthorized access' });
-    } else {
-      // For other error types
-      const errorDetails = process.env.NODE_ENV === 'production' ? null : error.message;
-      return res.status(status).json({
-        error: 'Error generating speech',
-        details: errorDetails
-      });
-    }
-  }
-
-  return res.status(500).json({
-    error: 'Unexpected error in TTS service',
-    details: process.env.NODE_ENV === 'production' ? null : error.message
   });
 }
 
@@ -599,8 +564,7 @@ function handleTTSError(error, res) {
 async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
   const maxRetries = 3;
   let retries = 0;
-  let lastError = null;
-
+  
   while (retries < maxRetries) {
     try {
       logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
@@ -621,28 +585,22 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
         },
         data: requestData,
         responseType: 'arraybuffer',
-        timeout: config.TTS_TIMEOUT || 30000
+        timeout: config.TTS_TIMEOUT || 15000
       });
 
       return response;
     } catch (error) {
-      lastError = error;
       retries++;
       
-      // Only log after final retry to avoid log spam
       if (retries >= maxRetries) {
-        logger.error(`Error fetching TTS audio after ${maxRetries} attempts: ${error.message}`);
-      } else {
-        logger.info(`TTS retry ${retries}/${maxRetries} after error: ${error.message}`);
+        logger.error(`Error fetching TTS audio: ${error.message}`);
+        throw error;
       }
       
-      // Wait before retrying (exponential backoff)
+      logger.info(`TTS retry ${retries}/${maxRetries} after error: ${error.message}`);
       await new Promise(resolve => setTimeout(resolve, 1000 * retries));
     }
   }
-  
-  // If we got here, all retries failed
-  throw lastError;
 }
 
 /**
