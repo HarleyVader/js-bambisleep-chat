@@ -209,7 +209,7 @@ socket.on('response', async (message) => {
         
         // Add each sentence to the text array
         for (let sentence of sentences) {
-            if (sentence.trim()) {
+            if (sentence.trim(/(?<=[:;,.!?]["']?)\s+/g)) {
                 _textArray.push(sentence);
             }
         }

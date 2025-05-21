@@ -1,9 +1,12 @@
+// Instead of using let currentVoice, use the globally shared one
+window.currentVoice = window.currentVoice || 'af_bella'; // Default voice
+
 /**
  * Set the voice to use for TTS
  */
 function setVoice(voice) {
     if (voice && typeof voice === 'string') {
-        currentVoice = voice;
+        window.currentVoice = voice;
     }
 }
 
@@ -15,8 +18,8 @@ function arrayPush(array, e) {
         document.querySelector("#audio").hidden = true;
     }
     
-    // Update the URL to match the route structure in server.js
-    let URL = `/api/tts?text=${encodeURIComponent(e)}&voice=${encodeURIComponent(currentVoice)}`;
+    // Use window.currentVoice to access the shared voice setting
+    let URL = `/api/tts?text=${encodeURIComponent(e)}&voice=${encodeURIComponent(window.currentVoice)}`;
     array.push(URL);
 }
 
