@@ -27,7 +27,6 @@ import helpRoute from './routes/help.js';
 import chatRouter, { basePath as chatBasePath } from './routes/chat.js';
 
 import Logger from './utils/logger.js';
-import gracefulShutdown from './utils/gracefulShutdown.js';
 import errorHandler from './utils/errorHandler.js';
 
 // Fix registerModels function to properly import the schemas
@@ -45,12 +44,18 @@ async function registerModels() {
     }
     
     // Import SessionHistory model
-    const SessionHistory = await import('./models/SessionHistory.js');
+    const SessionHistoryModule = await import('./models/SessionHistory.js');
     if (!mongoose.models.SessionHistory) {
-      const schema = SessionHistory.default || SessionHistory.schema || SessionHistory;
-      if (!schema) {
-        throw new Error('Could not extract schema from SessionHistory model');
-      }
+      const schema = SessionHistoryModule.default?.schema || 
+                    SessionHistoryModule.schema || 
+                    new mongoose.Schema({
+                      sessionId: { type: String, required: true },
+                      userId: { type: String, default: 'anonymous' },
+                      messages: { type: Array, default: [] },
+                      startTime: { type: Date, default: Date.now },
+                      endTime: { type: Date }
+                    });
+      
       mongoose.model('SessionHistory', schema);
       logger.info('SessionHistory model registered');
     }
@@ -948,37 +953,34 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       // Fix session save handling in setupSocketHandlers function
       socket.on('save-session', async (data) => {
         try {
-          // Always generate a sessionId if it doesn't exist
+          // Generate sessionId if none exists
           const sessionId = data?.sessionId || 
                             socket.bambiData?.sessionId || 
-                            `sess_${Math.random().toString(36).substring(2, 10)}`;
+                            `sess_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
           
-          // Store the sessionId on the socket
+          // Store sessionId on socket
           if (!socket.bambiData) socket.bambiData = {};
           socket.bambiData.sessionId = sessionId;
           
-          // Ensure session data has all required fields
+          // Create session data object
           const sessionData = {
-            sessionId, // This is now guaranteed to exist
+            sessionId, // Guaranteed to exist
+            userId: socket.bambiUsername || 'anonymous',
             username: socket.bambiUsername || 'anonymous',
-            content: data?.content || [],
-            createdAt: new Date()
+            messages: data?.content || [],
+            startTime: new Date()
           };
           
-          // Log the session data for debugging
-          logger.debug(`Saving session ${sessionId} for ${sessionData.username}`);
+          // Save session to database
+          const result = await saveSessionToDatabase(sessionData);
           
-          // Attempt to save in database
-          try {
-            await registerModels(); // Make sure models are registered
-            const SessionHistory = mongoose.model('SessionHistory');
-            await SessionHistory.create(sessionData);
+          if (result) {
             logger.info(`Session saved: ${sessionId} for user ${sessionData.username}`);
-          } catch (dbError) {
-            logger.error(`Database error saving session: ${dbError.message}`);
+            socket.emit('session-saved', { success: true, sessionId });
+          } else {
+            logger.warning(`Session may not have been saved: ${sessionId}`);
+            socket.emit('session-saved', { success: true, sessionId });
           }
-          
-          socket.emit('session-saved', { success: true, sessionId });
         } catch (error) {
           logger.error('Error saving session:', error);
           socket.emit('session-saved', { success: false, error: 'Failed to save session' });
@@ -1292,5 +1294,47 @@ const loadModule = async (moduleName) => {
     return null;
   }
 };
+
+async function saveSessionToDatabase(session) {
+  try {
+    // Log the session object for debugging
+    logger.debug('Saving session:', session?.id || 'unknown ID');
+    
+    // Bail early if session is missing
+    if (!session) {
+      logger.error('Cannot save null or undefined session');
+      return null;
+    }
+    
+    // Always ensure we have a sessionId
+    const sessionId = session.id || session.sessionId || `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    
+    // Simple session data with required fields
+    const sessionData = {
+      sessionId: sessionId,
+      userId: session.userId || session.username || 'anonymous',
+      messages: session.messages || [],
+      startTime: session.startTime || new Date(),
+      endTime: session.active === false ? new Date() : null
+    };
+    
+    // Get SessionHistory model
+    await registerModels();
+    const SessionHistory = mongoose.model('SessionHistory');
+    
+    // Update or create session
+    const result = await SessionHistory.findOneAndUpdate(
+      { sessionId: sessionId },
+      sessionData,
+      { upsert: true, new: true, runValidators: true }
+    );
+    
+    logger.debug(`Session ${sessionId} saved successfully`);
+    return result;
+  } catch (error) {
+    logger.error(`Error saving session to database: ${error.message}`);
+    return null;
+  }
+}
 
 startServer();
