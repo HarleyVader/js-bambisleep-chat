@@ -928,271 +928,102 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         }
       });
 
-      // In the setupSocketHandlers function, inside the io.on('connection') handler:
-
       socket.on('triggers', async (data) => {
-        // Normalize trigger format to ensure consistent array handling
-        let triggerNames = [];
-        
-        if (data.triggerNames) {
-          if (Array.isArray(data.triggerNames)) {
-            triggerNames = data.triggerNames;
-          } else if (typeof data.triggerNames === 'string') {
-            triggerNames = data.triggerNames.split(',').map(t => t.trim()).filter(Boolean);
-          }
-        }
-        
-        // Get username either from data or socket
-        const username = data.username || socket.username;
-        
-        if (!username) {
-          socket.emit('trigger-debug', { error: 'No username provided' });
-          return;
-        }
-        
-        // Forward trigger names to worker
+        logger.info('Received triggers:', data);
         lmstudio.postMessage({
           type: 'triggers',
-          triggers: triggerNames,
+          triggers: data.triggerNames,
           socketId: socket.id
         });
-        
-        // Save triggers to profile if appropriate
-        if (username !== 'anonBambi') {
+
+        // Collar text handling
+        socket.on('collar', async (collarData) => {
           try {
-            // Update profile with trigger selection
-            await withDbConnection(async () => {
-              const Profile = mongoose.model('Profile');
-              await Profile.findOneAndUpdate(
-                { username },
-                { $set: { activeTriggers: triggerNames } },
-                { upsert: true }
-              );
-              
-              socket.emit('trigger:response', { success: true });
+            const filteredCollar = filter(collarData.data);
+            lmstudio.postMessage({
+              type: 'collar',
+              data: filteredCollar,
+              socketId: socket.id
             });
+
+            // Emit to target socket if specified
+            if (collarData.socketId) {
+              io.to(collarData.socketId).emit('collar', filteredCollar);
+            }
+
+            // Award XP for collar usage
+            xpSystem.awardXP(socket, 2, 'collar');
           } catch (error) {
-            socket.emit('trigger-debug', { 
-              error: 'Failed to save triggers to profile',
-              details: error.message
-            });
+            logger.error('Error in collar handler:', error);
           }
-        }
-      });
+        });
 
-      socket.on('get-profile-triggers', async (data) => {
-        const username = data.username;
-        
-        if (!username || username === 'anonBambi') {
-          socket.emit('profile-triggers', { triggerNames: [] });
-          return;
-        }
-        
-        try {
-          await withDbConnection(async () => {
-            const Profile = mongoose.model('Profile');
-            const profile = await Profile.findOne({ username });
-            
-            if (profile && profile.activeTriggers) {
-              // Ensure we're sending an array, even if stored differently
-              let triggerNames = [];
-              
-              if (Array.isArray(profile.activeTriggers)) {
-                triggerNames = profile.activeTriggers;
-              } else if (typeof profile.activeTriggers === 'string') {
-                triggerNames = profile.activeTriggers.split(',').map(t => t.trim()).filter(Boolean);
-              }
-              
-              socket.emit('profile-triggers', { triggerNames });
-            } else {
-              socket.emit('profile-triggers', { triggerNames: [] });
-            }
-          });
-        } catch (error) {
-          socket.emit('trigger-debug', { 
-            error: 'Failed to load profile triggers',
-            details: error.message
-          });
-          socket.emit('profile-triggers', { triggerNames: [] });
-        }
-      });
-
-      // Collar text handling
-      socket.on('collar', async (collarData) => {
-        try {
-          const filteredCollar = filter(collarData.data);
-          lmstudio.postMessage({
-            type: 'collar',
-            data: filteredCollar,
-            socketId: socket.id
-          });
-
-          // Emit to target socket if specified
-          if (collarData.socketId) {
-            io.to(collarData.socketId).emit('collar', filteredCollar);
-          }
-
-          // Award XP for collar usage
-          xpSystem.awardXP(socket, 2, 'collar');
-        } catch (error) {
-          logger.error('Error in collar handler:', error);
-        }
-      });
-
-      // Handle worker messages
-      lmstudio.on("message", async (msg) => {
-        try {
-          if (msg.type === "log") {
-            logger.info(msg.data, msg.socketId);
-          } else if (msg.type === 'response') {
-            // Convert object responses to strings
-            const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
-
-            // Send response to client
-            io.to(msg.socketId).emit("response", responseData);
-
-            // Award XP when AI responds
-            const socketData = socketStore.get(msg.socketId);
-            if (socketData && socketData.socket && socketData.socket.bambiData) {
-              // Ensure bambiData exists before attempting to award XP
-              xpSystem.awardXP(socketData.socket, 3, 'ai-response');
-            }
-          } else if (msg.type === 'error') {
-            // Handle error messages from worker
-            logger.error(`Worker error for socket ${msg.socketId}: ${msg.data}`);
-            io.to(msg.socketId).emit("error", msg.data);
-          } else {
-            // Handle unknown message types
-            logger.debug(`Received message of type: ${msg.type}`);
-          }
-        } catch (error) {
-          logger.error('Error in lmstudio message handler:', error);
-        }
-      });
-
-      // Handle worker info messages
-      lmstudio.on('info', (info) => {
-        try {
-          logger.info('Worker info:', info);
-        } catch (error) {
-          logger.error('Error in lmstudio info handler:', error);
-        }
-      });
-
-      // Handle worker errors
-      lmstudio.on('error', (err) => {
-        try {
-          logger.error('Worker error:', err);
-        } catch (error) {
-          logger.error('Error in lmstudio error handler:', error);
-        }
-      });
-
-      // Handle client disconnection
-      socket.on('disconnect', (reason) => {
-        try {
-          logger.info('Client disconnected:', socket.id, 'Reason:', reason);
-
-          // Get socket data and clean up
-          const socketData = socketStore.get(socket.id);
-          if (socketData) {
-            socketStore.delete(socket.id);
-          }
-
-          logger.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`);
-        } catch (error) {
-          logger.error('Error in disconnect handler:', error);
-        }
-      });
-
-      socket.on('system-update', async (data) => {
-        if (data.type === 'triggers' && socket.bambiUsername) {
+        // Handle worker messages
+        lmstudio.on("message", async (msg) => {
           try {
-            // Get the trigger names array
-            const triggerNames = data.data.triggerNames;
+            if (msg.type === "log") {
+              logger.info(msg.data, msg.socketId);
+            } else if (msg.type === 'response') {
+              // Convert object responses to strings
+              const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
 
-            // Find profile and update triggers
-            const Profile = mongoose.models.Profile;
-            const profile = await Profile.findOne({ username: socket.bambiUsername });
-            if (profile) {
-              profile.triggers = triggerNames;
-              await profile.save();
+              // Send response to client
+              io.to(msg.socketId).emit("response", responseData);
 
-              // Send confirmation back to client
-              socket.emit('trigger:response', {
-                success: true,
-                message: 'Triggers saved to profile'
-              });
-
-              logger.info(`Updated triggers for ${socket.bambiUsername}: ${triggerNames.join(', ')}`);
-
-              // Forward trigger data to LMStudio worker
-              const socketData = socketStore.get(socket.id);
-              if (socketData && socketData.worker) {
-                socketData.worker.postMessage({
-                  type: 'triggers',
-                  data: {
-                    triggerNames: triggerNames,
-                    triggerDetails: data.data.triggerDetails || []
-                  },
-                  socketId: socket.id,
-                  username: socket.bambiUsername
-                });
-
-                logger.debug(`Forwarded trigger data to worker for ${socket.bambiUsername}`);
+              // Award XP when AI responds
+              const socketData = socketStore.get(msg.socketId);
+              if (socketData && socketData.socket && socketData.socket.bambiData) {
+                // Ensure bambiData exists before attempting to award XP
+                xpSystem.awardXP(socketData.socket, 3, 'ai-response');
               }
+            } else if (msg.type === 'error') {
+              // Handle error messages from worker
+              logger.error(`Worker error for socket ${msg.socketId}: ${msg.data}`);
+              io.to(msg.socketId).emit("error", msg.data);
             } else {
-              // Create new profile with triggers
-              await Profile.create({
-                username: socket.bambiUsername,
-                triggers: triggerNames,
-                xp: socket.bambiData?.xp || 0
-              });
-
-              socket.emit('trigger:response', {
-                success: true,
-                message: 'New profile created with triggers'
-              });
-
-              logger.info(`Created new profile with triggers for ${socket.bambiUsername}`);
+              // Handle unknown message types
+              logger.debug(`Received message of type: ${msg.type}`);
             }
           } catch (error) {
-            logger.error(`Error saving triggers: ${error.message}`);
-            socket.emit('trigger:response', {
-              success: false,
-              message: 'Failed to save triggers'
-            });
+            logger.error('Error in lmstudio message handler:', error);
           }
-        }
-      });
-      // Add handler for get-profile-triggers
-      socket.on('get-profile-triggers', async (data) => {
-        if (!data || !data.username) return;
+        });
 
-        try {
-          // Find profile and get triggers
-          const Profile = mongoose.models.Profile;
-          const profile = await Profile.findOne({ username: data.username });
-          if (profile && profile.triggers) {
-            // Send triggers back to client
-            socket.emit('profile-triggers', {
-              triggerNames: profile.triggers
-            });
-
-            logger.debug(`Sent ${profile.triggers.length} triggers for ${data.username}`);
-          } else {
-            // Send empty array if no profile or triggers
-            socket.emit('profile-triggers', { triggerNames: [] });
+        // Handle worker info messages
+        lmstudio.on('info', (info) => {
+          try {
+            logger.info('Worker info:', info);
+          } catch (error) {
+            logger.error('Error in lmstudio info handler:', error);
           }
-        } catch (error) {
-          logger.error(`Error loading triggers: ${error.message}`);
-          socket.emit('profile-triggers', { triggerNames: [] });
-        }
-      });
-    } catch (error) {
-      logger.error('Error in connection handler:', error);
-    }
-  });
+        });
+
+        // Handle worker errors
+        lmstudio.on('error', (err) => {
+          try {
+            logger.error('Worker error:', err);
+          } catch (error) {
+            logger.error('Error in lmstudio error handler:', error);
+          }
+        });
+
+        // Handle client disconnection
+        socket.on('disconnect', (reason) => {
+          try {
+            logger.info('Client disconnected:', socket.id, 'Reason:', reason);
+
+            // Get socket data and clean up
+            const socketData = socketStore.get(socket.id);
+            if (socketData) {
+              socketStore.delete(socket.id);
+            }
+
+            logger.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`);
+          } catch (error) {
+            logger.error('Error in disconnect handler:', error);
+          }
+        });
+    });
 }
 
 /**

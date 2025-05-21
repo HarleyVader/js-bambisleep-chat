@@ -197,7 +197,7 @@ dotenv.config();
 })();
 
 const sessionHistories = {};
-let triggers = 'Bambi Sleep';
+let triggers = [];
 let triggerDetails = [];
 let collar;
 let collarText;
@@ -233,40 +233,14 @@ parentPort.on('message', async (msg) => {
         // Process incoming user message
         await handleMessage(msg.data, msg.socketId, msg.username);
         break;
-        
+
       case "triggers":
-        // Handle trigger data as array
+        // Process trigger updates
         if (msg.data) {
-          logger.info(`Triggers received from ${msg.socketId}`);
-
-          // Handle array format directly
-          if (Array.isArray(msg.data)) {
-            triggers = msg.data;
-            logger.info(`Active triggers set: ${JSON.stringify(triggers)}`);
-          }
-          // Handle data.triggerNames format (array inside object)
-          else if (msg.data.triggerNames && Array.isArray(msg.data.triggerNames)) {
-            triggers = msg.data.triggerNames;
-            triggerDetails = msg.data.triggerDetails || [];
-            logger.info(`Active triggers set: ${JSON.stringify(triggers)}`);
-          }
-
-          // Store triggers in session metadata if available
-          if (sessionHistories[msg.socketId]) {
-            if (!sessionHistories[msg.socketId].metadata) {
-              sessionHistories[msg.socketId].metadata = {};
-            }
-            sessionHistories[msg.socketId].metadata.triggers = triggers;
-            logger.debug(`Updated session metadata with triggers for ${msg.socketId}`);
-          }
-
-          // Notify client that triggers were registered
-          parentPort.postMessage({
-            type: "trigger-debug",
-            data: `Worker received ${Array.isArray(triggers) ? triggers.length : 0} triggers`,
-            socketId: msg.socketId
-          });
+          triggers = msg.data;
+          logger.info(`Triggers updated: ${JSON.stringify(triggers)}`);
         }
+
         break;
 
       case "collar":
@@ -651,35 +625,11 @@ async function selectLoadedModels(modelName) {
   return selectedModel ? selectedModel.id : models[0].id;
 }
 
-async function checkRole(collar, username, triggersInput) {
-  // Parse trigger input to ensure we have an array of strings
-  let triggerNames = [];
-  
-  if (typeof triggersInput === 'string') {
-    // Handle comma-separated string
-    triggerNames = triggersInput.split(',').map(t => t.trim()).filter(Boolean);
-  } else if (Array.isArray(triggersInput)) {
-    // Handle array input - could be array of strings or objects
-    triggerNames = triggersInput.map(t => {
-      if (typeof t === 'string') return t;
-      return t.name || '';
-    }).filter(Boolean);
-  } else {
-    // Default
-    triggerNames = ['BAMBI SLEEP'];
-  }
-
-  // Load all trigger details from config
+async function checkRole(collar, username, triggers) {  // Load all trigger details from config
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
   let allTriggers = [];
-  try {
+  if (!fs.existsSync(triggersPath)) {
     allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
-  } catch (error) {
-    logger.error(`Failed to load triggers: ${error.message}`);
-    allTriggers = [
-      { name: "BAMBI SLEEP", description: "triggers deep trance and receptivity", category: "core" },
-      { name: "GOOD GIRL", description: "reinforces obedience and submission", category: "core" }
-    ];
   }
 
   // Match trigger names to descriptions
