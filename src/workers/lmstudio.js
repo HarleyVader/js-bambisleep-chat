@@ -230,49 +230,66 @@ parentPort.on('message', async (msg) => {
 
     switch (msg.type) {
       case "message":
-        // Process incoming user message
-        await handleMessage(msg.data, msg.socketId, msg.username);
+        const { prompt, socketId, username } = msg;
+        
+        // Retrieve previous conversation history for this socket
+        let messageHistory = sessionHistories[socketId] || [];
+        
+        // Check for active triggers in this session
+        const activeTriggers = triggers.length > 0 
+          ? `Active triggers: ${triggers.join(', ')}`
+          : 'No active triggers';
+        
+        logger.info(`Processing message from ${username} with ${activeTriggers}`);
+        
+        // Handle the message using this socket's worker
+        await handleMessage(prompt, socketId, username);
         break;
-
+        
       case "triggers":
-        // Process trigger updates
-        if (msg.data) {
-          triggers = msg.data;
-          logger.info(`Triggers updated: ${JSON.stringify(triggers)}`);
+        triggers = msg.triggers || [];
+        
+        // Store the triggers in the session history for this socket
+        if (msg.socketId && sessionHistories[msg.socketId]) {
+          sessionHistories[msg.socketId].triggers = triggers;
         }
-
+        
+        // Process trigger descriptions
+        triggerDetails = triggers.map(trigger => {
+          const description = triggerDescriptions[trigger] || '';
+          return { name: trigger, description };
+        });
+        
+        logger.info(`Received triggers: ${triggers.join(', ')}`);
         break;
-
+      
       case "collar":
-        // Process collar information
-        if (msg.data) {
-          collar = true;
-          collarText = msg.data;
-          logger.info(`Collar activated with text: ${collarText.slice(0, 50)}...`);
-        } else {
-          collar = false;
-          collarText = null;
-          logger.info("Collar deactivated");
+        collar = true;
+        collarText = msg.data;
+        
+        // Store collar state in session history
+        if (msg.socketId && sessionHistories[msg.socketId]) {
+          sessionHistories[msg.socketId].collar = true;
+          sessionHistories[msg.socketId].collarText = collarText;
         }
+        
+        logger.info(`Collar text received for ${msg.socketId}: "${collarText.substring(0, 30)}${collarText.length > 30 ? '...' : ''}"`);
         break;
-
-      case "health-check":
-        // Respond to health check
+      
+      case "settings:update":
+        await handleSettingsUpdate(msg.data);
+        break;
+        
+      case "health:check":
         lastHealthCheckResponse = Date.now();
         parentPort.postMessage({
-          type: "health-check-response",
-          status: "ok",
-          workerId: process.pid,
-          memoryUsage: process.memoryUsage(),
-          sessionCount: Object.keys(sessionHistories).length
+          type: "health:response",
+          healthy: isHealthy,
+          sessionCount: Object.keys(sessionHistories).length,
+          memoryUsage: process.memoryUsage()
         });
         break;
-
-      case "system-settings":
-        // Handle system settings
-        logger.info("Received system settings update");
-        break;
-
+      
       default:
         logger.warning(`Unknown message type: ${msg.type}`);
     }
@@ -942,5 +959,149 @@ async function savePromptHistory(socketId, message) {
     });
   } catch (error) {
     logger.error(`Error saving prompt history: ${error.message}`);
+  }
+}
+
+// Add this function to handle settings updates
+async function handleSettingsUpdate(data) {
+  if (!data || !data.section) {
+    return parentPort.postMessage({
+      type: "settings:response",
+      socketId: data?.socketId,
+      data: { success: false, error: "Invalid settings data" }
+    });
+  }
+  
+  try {
+    const { section, settings, socketId, username } = data;
+    
+    // Log settings update
+    logger.info(`Received ${section} settings from ${username || socketId}`);
+    
+    let result = { success: true };
+    
+    // Process different types of settings
+    switch (section) {
+      case 'triggers':
+        if (settings.activeTriggers) {
+          triggers = settings.activeTriggers;
+          // Store in session state if we have a socketId
+          if (socketId && sessionHistories[socketId]) {
+            sessionHistories[socketId].triggers = triggers;
+          }
+          result.triggers = triggers;
+        }
+        break;
+        
+      case 'collar':
+        if (settings.enabled !== undefined) {
+          collar = settings.enabled;
+          collarText = settings.text || "";
+          
+          // Store in session if we have a socketId
+          if (socketId && sessionHistories[socketId]) {
+            sessionHistories[socketId].collar = collar;
+            sessionHistories[socketId].collarText = collarText;
+          }
+          
+          result.collarActive = collar;
+          result.collarText = collarText;
+        }
+        break;
+        
+      case 'spirals':
+      case 'hypnosis':
+      case 'brainwave':
+      case 'advancedBinaural':
+        // Store these settings in the user's session
+        if (socketId && sessionHistories[socketId]) {
+          if (!sessionHistories[socketId].systemSettings) {
+            sessionHistories[socketId].systemSettings = {};
+          }
+          sessionHistories[socketId].systemSettings[section] = settings;
+        }
+        
+        result[section] = settings;
+        break;
+        
+      default:
+        logger.warning(`Unknown settings section: ${section}`);
+        result = { success: false, error: `Unknown settings section: ${section}` };
+    }
+    
+    // Save settings to database if user exists
+    if (username && username !== 'anonBambi') {
+      await saveUserSettings(username, section, settings);
+    }
+    
+    // Send response back to client
+    parentPort.postMessage({
+      type: "settings:response",
+      socketId: socketId,
+      data: {
+        success: result.success !== false,
+        section: section,
+        ...result,
+        username: username
+      }
+    });
+  } catch (error) {
+    logger.error(`Error processing settings update: ${error.message}`);
+    
+    parentPort.postMessage({
+      type: "settings:response",
+      socketId: data.socketId,
+      data: {
+        success: false,
+        section: data.section,
+        error: "Error processing settings",
+        debug: error.message
+      }
+    });
+  }
+}
+
+// Helper function to save user settings to database
+async function saveUserSettings(username, section, settings) {
+  try {
+    // Skip if database isn't connected
+    if (!db.hasConnection()) {
+      logger.warning(`Cannot save user settings - no database connection`);
+      return false;
+    }
+    
+    // Get the profiles database connection
+    const profilesConn = global.connections?.profiles;
+    
+    if (!profilesConn || profilesConn.readyState !== 1) {
+      logger.warning(`Cannot save settings for ${username} - no profiles database connection`);
+      return false;
+    }
+    
+    // Ensure Profile model is registered on profiles connection
+    if (!profilesConn.models.Profile) {
+      logger.warning(`Profile model not available in worker`);
+      return false;
+    }
+    
+    // Get Profile model from connection
+    const Profile = profilesConn.model('Profile');
+    
+    // Create the update object with dot notation for nested path
+    const updatePath = `systemControls.${section}`;
+    const update = {};
+    update[updatePath] = settings;
+    
+    // Update user profile
+    await Profile.findOneAndUpdate(
+      { username: username },
+      { $set: update },
+      { new: true, upsert: true }
+    );
+    
+    return true;
+  } catch (error) {
+    logger.error(`Error saving user settings: ${error.message}`);
+    return false;
   }
 }

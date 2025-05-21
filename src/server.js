@@ -758,6 +758,23 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           // Handle error messages from worker
           logger.error(`Worker error for socket ${msg.socketId}: ${msg.data}`);
           io.to(msg.socketId).emit("error", msg.data);
+        } else if (msg.type === "settings:response") {
+          const socketId = msg.socketId;
+          
+          if (socketId && io.sockets.sockets.has(socketId)) {
+            io.sockets.sockets.get(socketId).emit('worker:settings:response', msg.data);
+          } else if (msg.data.username) {
+            // Try to find socket by username if socketId is not available
+            for (const [id, socket] of io.sockets.sockets.entries()) {
+              if (socket.username === msg.data.username) {
+                socket.emit('worker:settings:response', msg.data);
+                break;
+              }
+            }
+          }
+        } else if (msg.type === "settings:broadcast") {
+          // Broadcast settings update to all connected clients
+          io.emit('worker:update', msg.data);
         } else {
           // Handle unknown message types
           logger.debug(`Received message of type: ${msg.type}`);
@@ -967,6 +984,53 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             logger.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`);
           } catch (error) {
             logger.error('Error in disconnect handler:', error);
+          }
+        });
+
+        // Handle settings updates from client to worker
+        socket.on('worker:settings:update', (data) => {
+          try {
+            if (!data || !data.section) {
+              return socket.emit('worker:settings:response', {
+                success: false,
+                error: 'Invalid settings data'
+              });
+            }
+
+            // Add socket ID to identify the source
+            data.socketId = socket.id;
+            
+            // Log settings update
+            logger.debug(`Settings update for ${data.section} from ${socket.id}`);
+            
+            // Store username with socket if provided
+            if (data.username && !socket.username) {
+              socket.username = data.username;
+              socketStore.set(socket.id, { 
+                socket,
+                username: data.username,
+                lastActivity: Date.now()
+              });
+            }
+            
+            // Forward settings to worker
+            lmstudio.postMessage({
+              type: 'settings:update',
+              data: data
+            });
+            
+            // Acknowledge receipt (immediate response)
+            socket.emit('worker:settings:response', {
+              success: true,
+              section: data.section,
+              message: 'Settings received'
+            });
+          } catch (error) {
+            logger.error(`Error handling settings update: ${error.message}`);
+            socket.emit('worker:settings:response', {
+              success: false,
+              error: 'Server error processing settings'
+            });
           }
         });
       } catch (error) {

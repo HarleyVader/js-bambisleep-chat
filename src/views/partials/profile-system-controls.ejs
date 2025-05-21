@@ -553,6 +553,236 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
         }
       }, 2000);
     }
+    
+    // STANDARDIZED TWO-WAY COMMUNICATION PIPELINE
+    
+    // Check if socket is available
+    if (typeof socket === 'undefined' && typeof window.socket !== 'undefined') {
+      socket = window.socket;
+    }
+    
+    if (typeof socket === 'undefined') {
+      console.error('Socket.io not initialized');
+    } else {
+      // Listen for settings response from worker
+      socket.on('worker:settings:response', function(data) {
+        if (!data) return;
+        
+        // Update UI based on worker response
+        if (data.success) {
+          // Flash settings saved notification
+          showSettingsNotification(data.section);
+        } else {
+          showSettingsError(data.error || 'Unknown error');
+        }
+        
+        // Display debug info if provided
+        if (data.debug && console.debug) {
+          console.debug('Worker debug:', data.debug);
+        }
+      });
+      
+      // Listen for worker-initiated updates
+      socket.on('worker:update', function(data) {
+        if (!data || !data.type) return;
+        
+        switch (data.type) {
+          case 'triggers':
+            updateTriggerStatus(data.triggers);
+            break;
+          case 'collar':
+            updateCollarStatus(data.active, data.message);
+            break;
+          case 'system':
+            if (data.settings && window.bambiSystem) {
+              window.bambiSystem.updateSettings(data.settings);
+            }
+            break;
+        }
+      });
+    }
+    
+    // Function to send settings to worker
+    function sendSettingsToWorker(section, settings) {
+      if (!socket || !socket.connected) {
+        console.error('Cannot send settings: socket not connected');
+        return false;
+      }
+      
+      // Add timestamp and version
+      const payload = {
+        section: section,
+        settings: settings,
+        timestamp: Date.now(),
+        clientVersion: '1.0'
+      };
+      
+      // Add username if available
+      const username = document.body.getAttribute('data-username');
+      if (username) {
+        payload.username = username;
+      }
+      
+      socket.emit('worker:settings:update', payload);
+      return true;
+    }
+    
+    // Simple notification helper
+    function showSettingsNotification(section) {
+      const notificationId = 'settings-notification';
+      let notification = document.getElementById(notificationId);
+      
+      if (!notification) {
+        notification = document.createElement('div');
+        notification.id = notificationId;
+        notification.className = 'settings-notification';
+        document.body.appendChild(notification);
+      }
+      
+      notification.textContent = `${section} settings saved`;
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 2000);
+    }
+    
+    function showSettingsError(message) {
+      const errorId = 'settings-error';
+      let errorEl = document.getElementById(errorId);
+      
+      if (!errorEl) {
+        errorEl = document.createElement('div');
+        errorEl.id = errorId;
+        errorEl.className = 'settings-error';
+        document.body.appendChild(errorEl);
+      }
+      
+      errorEl.textContent = message;
+      errorEl.classList.add('show');
+      
+      setTimeout(() => {
+        errorEl.classList.remove('show');
+      }, 3000);
+    }
+    
+    // Helper to update trigger status
+    function updateTriggerStatus(triggers) {
+      if (!Array.isArray(triggers) || !window.bambiAudio) return;
+      
+      // Store in localStorage for persistence
+      localStorage.setItem('bambiActiveTriggers', JSON.stringify(triggers));
+      
+      if (typeof window.bambiAudio.refreshTriggers === 'function') {
+        window.bambiAudio.refreshTriggers();
+      }
+      
+      // Update UI checkboxes if they exist
+      triggers.forEach(trigger => {
+        const checkbox = document.querySelector(`.trigger-toggle-item input[data-trigger="${trigger}"]`);
+        if (checkbox) checkbox.checked = true;
+      });
+    }
+    
+    // Helper to update collar status
+    function updateCollarStatus(active, message) {
+      const collarEnable = document.getElementById('collar-enable');
+      const textareaCollar = document.getElementById('textarea-collar');
+      
+      if (collarEnable) collarEnable.checked = !!active;
+      if (textareaCollar && message) textareaCollar.value = message;
+      
+      // Update collar display if it exists
+      const collarContainer = document.getElementById('collar-container');
+      if (collarContainer) {
+        collarContainer.style.display = active ? 'block' : 'none';
+      }
+    }
+    
+    // Make the sendSettings function available globally
+    window.bambiSendSettings = sendSettingsToWorker;
+    
+    // Add event listeners to save buttons
+    document.querySelectorAll('.save-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        const panelId = this.closest('.control-panel').id;
+        let section, settings;
+        
+        switch (panelId) {
+          case 'collar-panel':
+            section = 'collar';
+            settings = {
+              enabled: document.getElementById('collar-enable').checked,
+              text: document.getElementById('textarea-collar').value
+            };
+            break;
+            
+          case 'spirals-panel':
+            section = 'spirals';
+            settings = {
+              enabled: document.getElementById('spirals-enable').checked,
+              spiral1Width: parseFloat(document.getElementById('spiral1-width').value),
+              spiral2Width: parseFloat(document.getElementById('spiral2-width').value),
+              spiral1Speed: parseInt(document.getElementById('spiral1-speed').value),
+              spiral2Speed: parseInt(document.getElementById('spiral2-speed').value)
+            };
+            break;
+            
+          case 'hypnosis-panel':
+            section = 'hypnosis';
+            settings = {
+              enabled: document.getElementById('hypnosis-enable').checked,
+              streaming: document.getElementById('streaming-enable').checked
+            };
+            break;
+            
+          case 'brainwave-panel':
+            section = 'brainwave';
+            settings = {
+              enabled: document.getElementById('brainwave-enable').checked,
+              mode: document.getElementById('brainwave-mode').value,
+              carrierFrequency: parseInt(document.getElementById('carrier-frequency').value),
+              volume: parseInt(document.getElementById('brainwave-volume').value)
+            };
+            
+            if (settings.mode === 'custom') {
+              settings.customFrequency = parseFloat(document.getElementById('custom-frequency').value);
+            }
+            break;
+            
+          case 'advanced-binaural-panel':
+            section = 'advancedBinaural';
+            settings = {
+              enabled: document.getElementById('advanced-binaural-enable').checked,
+              pattern: document.getElementById('pattern-select').value,
+              duration: parseInt(document.getElementById('pattern-duration').value),
+              transitionTime: parseInt(document.getElementById('transition-time').value)
+            };
+            
+            if (settings.pattern === 'custom') {
+              settings.segments = [];
+              document.querySelectorAll('.pattern-segment').forEach(segment => {
+                const wave = segment.querySelector('.segment-wave').value;
+                const duration = parseInt(segment.querySelector('.segment-duration').value);
+                if (wave && duration) {
+                  settings.segments.push({ wave, duration });
+                }
+              });
+            }
+            break;
+        }
+        
+        if (section && settings) {
+          sendSettingsToWorker(section, settings);
+        }
+      });
+    });
+    
+    // Support for trigger toggle events
+    document.addEventListener('triggers:changed', function(e) {
+      if (!e.detail || !Array.isArray(e.detail.activeTriggers)) return;
+      sendSettingsToWorker('triggers', { activeTriggers: e.detail.activeTriggers });
+    });
   });
 </script>
 
