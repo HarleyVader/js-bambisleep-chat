@@ -29,29 +29,30 @@ import chatRouter, { basePath as chatBasePath } from './routes/chat.js';
 import Logger from './utils/logger.js';
 import errorHandler from './utils/errorHandler.js';
 
-// Fix the registerModels function to properly import schemas
+// Fix the registerModels function to properly export the models
 async function registerModels() {
   try {
-    // Import Profile model - simpler approach
+    // Import Profile model - fix schema extraction
     const ProfileModule = await import('./models/Profile.js');
     if (!mongoose.models.Profile) {
-      // Use the schema directly from the imported module
-      mongoose.model('Profile', ProfileModule.default.schema);
+      // ProfileModule.default already has the model created in the file
+      // Just ensure it's registered in mongoose models
+      mongoose.models.Profile = ProfileModule.default;
       logger.info('Profile model registered');
     }
     
-    // Import SessionHistory model - simpler approach
+    // Import SessionHistory model - same fix
     const SessionHistoryModule = await import('./models/SessionHistory.js');
     if (!mongoose.models.SessionHistory) {
-      // Use the schema directly from the imported module
-      mongoose.model('SessionHistory', SessionHistoryModule.default.schema);
+      // SessionHistoryModule.default already has the model created in the file
+      mongoose.models.SessionHistory = SessionHistoryModule.default;
       logger.info('SessionHistory model registered');
     }
     
-    // Import ChatMessage model
+    // Import ChatMessage model - same approach
     const ChatMessageModule = await import('./models/ChatMessage.js');
     if (!mongoose.models.ChatMessage) {
-      mongoose.model('ChatMessage', ChatMessageModule.default.schema);
+      mongoose.models.ChatMessage = ChatMessageModule.default;
       logger.info('ChatMessage model registered');
     }
   } catch (error) {
@@ -1311,36 +1312,41 @@ async function saveSessionToDatabase(session) {
       return null;
     }
     
-    // Ensure session has ID
-    const sessionId = session.sessionId || session.id || `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    // Ensure session has ID - this is crucial
+    const sessionId = session.sessionId || session.id;
+    
+    // If still no sessionId, generate one
+    if (!sessionId) {
+      session.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    }
     
     // Make sure models are registered
     await registerModels();
     
     // Get model directly
-    const SessionHistory = mongoose.model('SessionHistory');
+    const SessionHistory = mongoose.models.SessionHistory;
     
-    // Match fields to your schema
+    // Match fields to your schema - ensure sessionId is always set
     const sessionData = {
-      sessionId: sessionId,
-      username: session.username || session.userId || 'anonymous', // Use username field from schema
-      messages: session.messages?.map(msg => ({
+      sessionId: session.sessionId,  // Using the field we just ensured exists
+      username: session.username || session.userId || 'anonymous',
+      messages: (session.messages || []).map(msg => ({
         role: msg.role || 'user',
         content: msg.content || msg.text || '',
         timestamp: msg.timestamp || new Date()
-      })) || [],
-      startedAt: session.startTime || new Date(),  // Match to your schema (startedAt)
-      lastUpdatedAt: new Date()  // Match to your schema
+      })),
+      startedAt: session.startTime || session.startedAt || new Date(),
+      lastUpdatedAt: new Date()
     };
     
     // Use findOneAndUpdate with upsert
     const result = await SessionHistory.findOneAndUpdate(
-      { sessionId },
+      { sessionId: sessionData.sessionId },  // Be explicit about using sessionId
       sessionData,
       { upsert: true, new: true }
     );
     
-    logger.debug(`Session saved: ${sessionId}`);
+    logger.debug(`Session saved: ${sessionData.sessionId}`);
     return result;
   } catch (error) {
     logger.error(`Error saving session: ${error.message}`);
