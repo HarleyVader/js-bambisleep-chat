@@ -235,6 +235,60 @@ function dbFeatureCheck(required) {
   };
 }
 
+// Add this function to your server.js file
+function checkServiceAvailability(req, res, next) {
+  // Skip health check endpoints
+  if (req.path === '/health' || req.path === '/api/health') {
+    return next();
+  }
+  
+  // Check if the server is in maintenance mode
+  if (global.maintenanceMode) {
+    const retryAfter = global.maintenanceRetryAfter || 30;
+    res.set('Retry-After', retryAfter);
+    
+    // For API endpoints return JSON
+    if (req.path.startsWith('/api/')) {
+      return res.status(503).json({
+        success: false,
+        error: 'Service temporarily unavailable due to maintenance',
+        retryAfter: retryAfter
+      });
+    }
+    
+    // For normal requests, render the service-unavailable page
+    return res.status(503).render('service-unavailable', {
+      message: 'Service temporarily unavailable due to maintenance',
+      retryAfter: retryAfter,
+      title: 'Service Unavailable'
+    });
+  }
+  
+  next();
+}
+
+// Add these helper functions for maintenance mode management
+function enableMaintenanceMode(duration = 300) {
+  global.maintenanceMode = true;
+  global.maintenanceRetryAfter = duration;
+  logger.warning(`Maintenance mode enabled. Will last for ${duration} seconds.`);
+  
+  // Schedule automatic disabling of maintenance mode
+  setTimeout(() => {
+    disableMaintenanceMode();
+  }, duration * 1000);
+}
+
+function disableMaintenanceMode() {
+  global.maintenanceMode = false;
+  global.maintenanceRetryAfter = null;
+  logger.info('Maintenance mode disabled. Service available again.');
+}
+
+// Expose these functions globally
+global.enableMaintenanceMode = enableMaintenanceMode;
+global.disableMaintenanceMode = disableMaintenanceMode;
+
 // Initialize environment and paths
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -340,25 +394,18 @@ async function initializeApp() {
  * @param {Express} app - Express application instance
  */
 function setupMiddleware(app) {
-  // Parse request bodies
+  app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
-
-  // Enable CORS
-  app.use(cors({
-    origin: config.ALLOWED_ORIGINS || ['https://bambisleep.chat'],
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true
-  }));
-
-  // Handle file uploads
+  app.use(express.static(path.join(__dirname, 'public')));
   app.use(fileUpload({
-    limits: { fileSize: config.MAX_UPLOAD_SIZE || (10 * 1024 * 1024) },
-    abortOnLimit: true
+    limits: { fileSize: 50 * 1024 * 1024 }
   }));
-
+  
+  // Add the service availability check middleware
+  app.use(checkServiceAvailability);
+  
   // Serve static files with correct MIME types
   app.use('/css', express.static(path.join(__dirname, 'public/css'), {
     setHeaders: (res, path) => {
