@@ -1111,10 +1111,6 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         }
       });
 
-      // Add to the io.on('connection', (socket) => {...}) handler in server.js
-
-      // Add to the io.on('connection', (socket) => {...}) handler in server.js
-
       socket.on('system-update', async (data) => {
         if (data.type === 'triggers' && socket.bambiUsername) {
           try {
@@ -1135,6 +1131,36 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
               });
 
               logger.info(`Updated triggers for ${socket.bambiUsername}: ${triggerNames.join(', ')}`);
+
+              // Forward trigger data to LMStudio worker
+              const socketData = socketStore.get(socket.id);
+              if (socketData && socketData.worker) {
+                socketData.worker.postMessage({
+                  type: 'triggers',
+                  data: {
+                    triggerNames: triggerNames,
+                    triggerDetails: data.data.triggerDetails || []
+                  },
+                  socketId: socket.id,
+                  username: socket.bambiUsername
+                });
+
+                logger.debug(`Forwarded trigger data to worker for ${socket.bambiUsername}`);
+              }
+            } else {
+              // Create new profile with triggers
+              await Profile.create({
+                username: socket.bambiUsername,
+                triggers: triggerNames,
+                xp: socket.bambiData?.xp || 0
+              });
+
+              socket.emit('trigger:response', {
+                success: true,
+                message: 'New profile created with triggers'
+              });
+
+              logger.info(`Created new profile with triggers for ${socket.bambiUsername}`);
             }
           } catch (error) {
             logger.error(`Error saving triggers: ${error.message}`);
@@ -1145,7 +1171,6 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           }
         }
       });
-
       // Add handler for get-profile-triggers
       socket.on('get-profile-triggers', async (data) => {
         if (!data || !data.username) return;
