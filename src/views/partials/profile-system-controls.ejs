@@ -532,12 +532,31 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
       }
     }
   });
+
+  // Ensure triggers are initialized properly
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize triggers once the DOM is loaded
+  setTimeout(() => {
+    // Trigger a reload of trigger data
+    if (window.bambiAudio && window.bambiAudio.refreshTriggers) {
+      window.bambiAudio.refreshTriggers();
+    }
+    
+    // Update UI if needed
+    const triggerList = document.getElementById('trigger-list');
+    if (triggerList && triggerList.children.length === 0 && typeof loadTriggerData === 'function') {
+      loadTriggerData();
+    }
+  }, 500);
+});
 </script>
 
 <!-- Load modular system control scripts -->
 <script src="/js/controls/utils.js"></script>
 <script src="/js/controls/system.js"></script>
-<script src="/js/controls/trigger.js"></script>
+<script src="/js/text2speech.js"></script> <!-- Add text2speech.js -->
+<script src="/js/triggers.js"></script> <!-- Add the main triggers.js file -->
+<script src="/js/controls/trigger.js"></script> <!-- Keep the existing trigger.js -->
 <script src="/js/controls/collar.js"></script>
 <script src="/js/controls/spiral.js"></script>
 <script src="/js/controls/brainwave.js"></script>
