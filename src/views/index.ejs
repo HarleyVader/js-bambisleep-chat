@@ -234,14 +234,13 @@
           document.addEventListener("DOMContentLoaded", () => {
             // Create a simple settings object if needed
             window.bambiSystemSettings = window.bambiSystemSettings || {};
-            
-            // Handle settings updates in a safer way
+              // Handle settings updates in a safer way
             const updateSettings = (settings) => {
               // Use provided settings or default to empty object
               const settingsToSend = settings || {};
               
               if (window.socket && window.socket.connected) {
-                socket.emit('worker:settings:update', window.payload || {});
+                window.socket.emit('worker:settings:update', window.payload || {});
               }
             };
             
