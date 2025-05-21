@@ -1110,6 +1110,62 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           logger.error('Error in disconnect handler:', error);
         }
       });
+
+      // Add to the io.on('connection', (socket) => {...}) handler in server.js
+
+      socket.on('system-update', async (data) => {
+        if (data.type === 'triggers' && socket.username) {
+          try {
+            // Get the trigger names array
+            const triggerNames = data.data.triggerNames;
+            
+            // Find profile and update triggers
+            const profile = await mongoose.models.Profile.findOne({ username: socket.username });
+            if (profile) {
+              profile.triggers = triggerNames;
+              await profile.save();
+              
+              // Send confirmation back to client
+              socket.emit('trigger:response', { 
+                success: true, 
+                message: 'Triggers saved to profile' 
+              });
+              
+              console.log(`Updated triggers for ${socket.username}: ${triggerNames.join(', ')}`);
+            }
+          } catch (error) {
+            console.error('Error saving triggers:', error);
+            socket.emit('trigger:response', { 
+              success: false, 
+              message: 'Failed to save triggers'
+            });
+          }
+        }
+      });
+
+      // Add handler for get-profile-triggers
+      socket.on('get-profile-triggers', async (data) => {
+        if (!data || !data.username) return;
+        
+        try {
+          // Find profile and get triggers
+          const profile = await mongoose.models.Profile.findOne({ username: data.username });
+          if (profile && profile.triggers) {
+            // Send triggers back to client
+            socket.emit('profile-triggers', {
+              triggerNames: profile.triggers
+            });
+            
+            console.log(`Sent ${profile.triggers.length} triggers for ${data.username}`);
+          } else {
+            // Send empty array if no profile or triggers
+            socket.emit('profile-triggers', { triggerNames: [] });
+          }
+        } catch (error) {
+          console.error('Error loading triggers:', error);
+          socket.emit('profile-triggers', { triggerNames: [] });
+        }
+      });
     } catch (error) {
       logger.error('Error in connection handler:', error);
     }

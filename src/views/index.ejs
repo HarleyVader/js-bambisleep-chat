@@ -104,37 +104,35 @@
               }
             }
 
-            // Helper function to load profile triggers
+            // Add function to load profile triggers
             function loadProfileTriggers(username) {
-              if (typeof socket !== 'undefined' && socket.connected) {
-                socket.emit('get-profile-data', { username }, function (response) {
-                  if (response && response.success && response.profile) {
-                    const profile = response.profile;
-                    if (profile.systemControls && profile.systemControls.activeTriggers) {
-                      const activeTriggers = profile.systemControls.activeTriggers;
-
-                      // Log triggers found in profile
-                      console.log('Profile triggers found:', activeTriggers);
-
-                      // Always convert to string for consistency
-                      const triggerString = Array.isArray(activeTriggers) ? activeTriggers.join(',') : activeTriggers;
-
-                      console.log('Sending triggers to server as string:', triggerString);
-
-                      // Send as simple string - most reliable format
-                      socket.emit('triggers', triggerString);
-                    } else {
-                      console.log('No active triggers found in profile, using default');
-                      socket.emit('triggers', 'BAMBI SLEEP');
-                    }
-                  }
-                });
+              if (typeof socket === 'undefined' || !socket.connected) {
+                console.log("Socket not connected, can't load profile triggers");
+                return;
               }
+              
+              // Request active triggers from server for this profile
+              socket.emit('get-profile-triggers', { username });
+              
+              // Listen for trigger data from server
+              socket.on('profile-triggers', function(data) {
+                if (data && data.triggerNames && Array.isArray(data.triggerNames)) {
+                  console.log("Received profile triggers:", data.triggerNames);
+                  
+                  // Use localStorage to apply these triggers
+                  localStorage.setItem('bambiActiveTriggers', JSON.stringify(data.triggerNames));
+                  
+                  // If trigger.js is loaded and has this function, update the UI
+                  if (window.bambiAudio && typeof window.bambiAudio.refreshTriggers === 'function') {
+                    window.bambiAudio.refreshTriggers();
+                  }
+                }
+              });
             }
 
             // Add socket handler for debugging trigger messages
             if (typeof socket !== 'undefined') {
-              socket.on('trigger-debug', function (data) {
+              socket.on('trigger-debug', function(data) {
                 console.log('Trigger debug from server:', data);
               });
             }
@@ -428,6 +426,28 @@
             socket.on('session-created', function (data) {
               if (data && data.sessionId && window.bambiSessions) {
                 window.bambiSessions.setActiveSessionId(data.sessionId);
+              }
+            });
+
+            // Add to the existing socket handlers section
+            socket.on('profile-triggers', function(data) {
+              if (data && data.triggerNames && Array.isArray(data.triggerNames)) {
+                console.log('Received profile triggers:', data.triggerNames);
+                
+                // Store in localStorage
+                localStorage.setItem('bambiActiveTriggers', JSON.stringify(data.triggerNames));
+                
+                // Update trigger UI if trigger.js is loaded
+                if (window.bambiAudio && typeof window.bambiAudio.refreshTriggerUI === 'function') {
+                  setTimeout(() => window.bambiAudio.refreshTriggerUI(), 500);
+                }
+              }
+            });
+
+            // Add this handler for specific trigger responses
+            socket.on('trigger:response', function(data) {
+              if (data && data.success) {
+                console.log('Trigger update successful');
               }
             });
           });

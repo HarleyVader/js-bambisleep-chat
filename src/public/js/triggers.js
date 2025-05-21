@@ -808,5 +808,25 @@ window.bambiAudio = {
   loadTriggerAudio: loadTriggerAudio,
   getAllTriggers: () => triggerData,
   refreshTriggers: loadTriggerData,
-  toggleAllTriggers: toggleAllToggles
+  toggleAllTriggers: toggleAllToggles,
+  // Add this new function to update UI based on stored triggers
+  refreshTriggerUI: function() {
+    try {
+      const storedTriggers = localStorage.getItem('bambiActiveTriggers');
+      if (storedTriggers) {
+        const activeTriggerNames = JSON.parse(storedTriggers);
+        
+        // Update all toggle inputs based on stored trigger names
+        const toggleInputs = document.getElementsByClassName("toggle-input");
+        for (let i = 0; i < toggleInputs.length; i++) {
+          const triggerName = toggleInputs[i].dataset.triggerName || toggleInputs[i].dataset.trigger;
+          toggleInputs[i].checked = activeTriggerNames.includes(triggerName);
+        }
+        
+        console.log('Trigger UI refreshed with stored triggers:', activeTriggerNames);
+      }
+    } catch (error) {
+      console.log('Error refreshing trigger UI:', error);
+    }
+  }
 };
