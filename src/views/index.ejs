@@ -213,14 +213,11 @@
             window.bambiSystemSettings = window.bambiSystemSettings || {};
             
             // Handle settings updates in a safer way
-            function updateSettings() {
-              // Only proceed if needed elements exist
-              const settingsData = window.bambiSystemSettings;
-              
-              if (window.socket && settingsData) {
-                window.socket.emit('worker:settings:update', settingsData);
+            const updateSettings = (settings) => {
+              if (window.socket && settings) {
+                window.socket.emit('worker:settings:update', settings);
               }
-            }
+            };
             
             // Make function available globally
             window.updateBambiSettings = updateSettings;
