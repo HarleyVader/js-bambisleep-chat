@@ -79,6 +79,29 @@
         <!-- Make sure these scripts appear in exactly this order -->
         <script src="/socket.io/socket.io.js"></script>
         <script>
+          // This should be the first script that runs on page load
+          document.addEventListener("DOMContentLoaded", () => {
+            // Create global objects for access across scripts
+            window.payload = {};
+            window.bambiSystemSettings = {};
+            
+            // Socket setup
+            if (window.socket && window.socket.connected) {
+              console.log("Socket already connected");
+            }
+            
+            // Make sure payload is defined before line 382 runs
+            setTimeout(() => {
+              // Add this at the beginning to catch any early payload references
+              if (typeof payload === 'undefined') {
+                window.payload = {};
+                // Assign it to the global scope as well
+                payload = window.payload;
+              }
+            }, 0);
+          });
+        </script>
+        <script>
           // Initialize socket at the global level
           window.socket = window.socket || io();
 
@@ -218,7 +241,7 @@
               const settingsToSend = settings || {};
               
               if (window.socket && window.socket.connected) {
-                window.socket.emit('worker:settings:update', settingsToSend);
+                socket.emit('worker:settings:update', window.payload || {});
               }
             };
             
