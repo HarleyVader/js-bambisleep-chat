@@ -84,7 +84,7 @@ npm run check:config
 npm run check:mongo-install
 ```
 
-See the detailed [MongoDB Setup Guide](src/utils/MONGODB-SETUP.md) for complete instructions.
+See the detailed [MongoDB Setup Guide](MONGODB-SETUP.md) for complete instructions.
 
 ### Getting Started
 
