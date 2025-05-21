@@ -2,11 +2,13 @@
 document.addEventListener('DOMContentLoaded', function() {
   // Core elements
   const triggerList = document.getElementById('trigger-list');
-  const selectAll = document.getElementById('select-all-triggers');
-  const clearAll = document.getElementById('clear-all-triggers');
   
   // Skip if no trigger list exists
   if (!triggerList) return;
+  
+  // Flag to track if triggers are already loaded
+  if (window.triggerControlsInitialized) return;
+  window.triggerControlsInitialized = true;
   
   // Initialize
   function init() {
@@ -38,6 +40,18 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Set up action buttons
   function setupActionButtons() {
+    const selectAll = document.getElementById('select-all-triggers');
+    const clearAll = document.getElementById('clear-all-triggers');
+    const activateAll = document.getElementById('activate-all');
+    const playTriggers = document.getElementById('play-triggers');
+    
+    if (activateAll) {
+      activateAll.addEventListener('click', function() {
+        document.querySelectorAll('.toggle-input').forEach(t => t.checked = !t.checked);
+        saveTriggerState();
+      });
+    }
+    
     if (selectAll) {
       selectAll.addEventListener('click', function() {
         document.querySelectorAll('.toggle-input').forEach(t => t.checked = true);
@@ -49,6 +63,14 @@ document.addEventListener('DOMContentLoaded', function() {
       clearAll.addEventListener('click', function() {
         document.querySelectorAll('.toggle-input').forEach(t => t.checked = false);
         saveTriggerState();
+      });
+    }
+    
+    if (playTriggers) {
+      playTriggers.addEventListener('click', function() {
+        if (window.bambiAudio?.playRandomPlaylist) {
+          window.bambiAudio.playRandomPlaylist();
+        }
       });
     }
   }
@@ -114,8 +136,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (username) {
         // Send both triggerNames (for backwards compatibility) and full trigger objects
         const triggerNames = triggers.map(t => t.name).join(',');
-        
-        console.log('Sent active triggers to server:', triggers.map(t => t.name));
         
         window.socket.emit('triggers', {
           triggerNames,
