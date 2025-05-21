@@ -214,13 +214,25 @@
             
             // Handle settings updates in a safer way
             const updateSettings = (settings) => {
-              if (window.socket && settings) {
-                window.socket.emit('worker:settings:update', settings);
+              // Use provided settings or default to empty object
+              const settingsToSend = settings || {};
+              
+              if (window.socket && window.socket.connected) {
+                window.socket.emit('worker:settings:update', settingsToSend);
               }
             };
             
+            // Fix for p5.js error about missing payload
+            window.payload = {}; // Create empty payload object
+            
             // Make function available globally
             window.updateBambiSettings = updateSettings;
+            
+            // Simple helper for safe JSON parsing
+            window.safeJsonParse = (str) => {
+              try { return JSON.parse(str); } 
+              catch(e) { return null; }
+            };
           });
         </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>

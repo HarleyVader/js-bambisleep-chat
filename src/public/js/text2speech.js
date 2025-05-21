@@ -31,7 +31,7 @@ function arrayPush(array, e) {
  * Shift and return first URL from audio array
  */
 function arrayShift(array) {
-    if (array.length > 0 && audio !== null) {
+    if (array.length > 0 && window.audio !== null) {
         let _currentURL = array.shift();
         console.log("Processing URL:", _currentURL);
         return _currentURL;
@@ -78,23 +78,23 @@ async function do_tts(array) {
             const audioUrl = URL.createObjectURL(audioBlob);
             
             // Set audio source to blob URL
-            if (audio) {
-                audio.src = audioUrl;
+            if (window.audio) {
+                window.audio.src = audioUrl;
                 console.log("Audio source set:", audioUrl);
                 
-                audio.load();
+                window.audio.load();
                 
                 // Set up event handlers
-                audio.onloadedmetadata = function() {
-                    console.log("Audio metadata loaded, duration:", audio.duration);
+                window.audio.onloadedmetadata = function() {
+                    console.log("Audio metadata loaded, duration:", window.audio.duration);
                     if (messageEl) messageEl.textContent = "Playing...";
-                    audio.play().catch(e => {
+                    window.audio.play().catch(e => {
                         console.error("Error playing audio:", e);
                         if (messageEl) messageEl.textContent = "Error playing audio: " + e.message;
                     });
                 };
                 
-                audio.onended = function() {
+                window.audio.onended = function() {
                     console.log("Audio playback ended");
                     if (messageEl) messageEl.textContent = "Finished!";
                     
@@ -107,12 +107,12 @@ async function do_tts(array) {
                     }
                 };
                 
-                audio.onerror = function(e) {
+                window.audio.onerror = function(e) {
                     console.error("Audio error:", e);
-                    console.error("Error code:", audio.error ? audio.error.code : "unknown");
-                    console.error("Error message:", audio.error ? audio.error.message : "unknown");
+                    console.error("Error code:", window.audio.error ? window.audio.error.code : "unknown");
+                    console.error("Error message:", window.audio.error ? window.audio.error.message : "unknown");
                     if (messageEl) messageEl.textContent = "Error playing audio: " + 
-                        (audio.error ? audio.error.message : "Unknown error");
+                        (window.audio.error ? window.audio.error.message : "Unknown error");
                     
                     // Release the blob URL on error
                     URL.revokeObjectURL(audioUrl);
