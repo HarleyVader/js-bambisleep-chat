@@ -1,8 +1,6 @@
 import mongoose from 'mongoose';
-import db from '../config/db.js';
+import { withDbConnection } from '../config/db.js';
 import Logger from '../utils/logger.js';
-
-const { withDbConnection } = db;
 
 // Create a logger instance properly
 const logger = new Logger('ChatMessage');
@@ -127,6 +125,6 @@ chatMessageSchema.statics.checkHealth = async function() {
   }
 };
 
-const ChatMessage = mongoose.models.ChatMessage || mongoose.model('ChatMessage', chatMessageSchema);
+const ChatMessage = mongoose.model('ChatMessage', chatMessageSchema);
 
 export default ChatMessage;

@@ -23,6 +23,7 @@ import footerConfig from './config/footer.config.js';
 import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
 import helpRoute from './routes/help.js';
+import chatRouter, { basePath as chatBasePath } from './routes/chat.js';
 
 import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
@@ -454,12 +455,13 @@ function setupRoutes(app) {    // Register main routes
   const basicRoutes = [
     { path: '/', handler: indexRoute, dbRequired: false },
     { path: '/psychodelic-trigger-mania', handler: psychodelicTriggerManiaRouter, dbRequired: false },
-    { path: '/help', handler: helpRoute, dbRequired: false }
+    { path: '/help', handler: helpRoute, dbRequired: false },
+    { path: chatBasePath, handler: chatRouter, dbRequired: true }
   ];
 
   // Setup routes with appropriate database checks
   basicRoutes.forEach(route => {
-    app.use(route.path, dbFeatureCheck(false), route.handler);
+    app.use(route.path, dbFeatureCheck(route.dbRequired), route.handler);
   });
   
   dbRoutes.forEach(route => {
