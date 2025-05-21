@@ -2,7 +2,7 @@ let state = true;
 let _audioArray = [];
 let duration = 0;
 const audio = document.getElementById('audio');
-let currentVoice = 'af_bella'; // Default voice from app.js (KOKORO_DEFAULT_VOICE)
+let currentVoice = 'af_bella'; // Default voice from config (KOKORO_DEFAULT_VOICE)
 
 /**
  * Set the voice to use for TTS
@@ -18,37 +18,31 @@ function setVoice(voice) {
 /**
  * Push text to TTS queue and create URL 
  * @param {Array} _audioArray - Array to store audio URLs
- * @param {string} e - Text to convert to speech
+ * @param {string} text - Text to convert to speech
  * @returns {Array} - Updated audio array
  */
-function arrayPush(_audioArray, e) {
+function arrayPush(_audioArray, text) {
   document.querySelector("#audio").hidden = true;
   
-  // Update the URL to match the route structure in server.js
-  // Try using a relative path that works with both server configurations
-  let URL = `/api/tts?text=${encodeURIComponent(e)}&voice=${encodeURIComponent(currentVoice)}`;
-  _audioArray.push(URL);
+  // Match server.js implementation - use the same endpoint
+  let url = `/api/tts?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(currentVoice)}`;
+  _audioArray.push(url);
   
   return _audioArray;
 }
 
 /**
  * Shift and return first URL from audio array
- * @param {Array} _audioArray - Array containing audio URLs
- * @returns {string|undefined} - URL for audio or undefined
  */
 function arrayShift(_audioArray) {
   if (_audioArray.length > 0 && audio !== null) {
-    let _currentURL = _audioArray.shift();
-    console.log("Processing URL:", _currentURL);
-    return _currentURL;
+    return _audioArray.shift();
   }
   return undefined;
 }
 
 /**
  * Process TTS queue and play audio
- * @param {Array} _audioArray - Array containing audio URLs
  */
 async function do_tts(_audioArray) {
   document.querySelector("#message").textContent = "Synthesizing...";
@@ -56,25 +50,30 @@ async function do_tts(_audioArray) {
   let currentURL = arrayShift(_audioArray);
   if (!currentURL) return;
   
-  let retries = 2; // Number of retry attempts
+  let attempts = 0;
+  const maxAttempts = 3;
   
-  while (retries >= 0) {
+  while (attempts < maxAttempts) {
     try {
+      // Match the timeout logic from server.js
+      const timeout = 10000 + (attempts * 5000); // 10s, 15s, 20s
+      
+      // Set up abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
       // Fetch the audio from the server
       const response = await fetch(currentURL, {
-        credentials: 'same-origin', // Include cookies for authentication
+        signal: controller.signal,
+        credentials: 'same-origin',
         headers: {
-          'Accept': 'audio/mpeg' // Expect MP3 format as set in app.js
+          'Accept': 'audio/mpeg'
         }
       });
       
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        if (retries > 0) {
-          console.log(`Retrying TTS request (${retries} attempts left)...`);
-          retries--;
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
-          continue;
-        }
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
@@ -86,25 +85,20 @@ async function do_tts(_audioArray) {
       
       // Set audio source to blob URL
       audio.src = audioUrl;
-      console.log("Audio source set:", audioUrl);
       
       audio.load();
       
       // Set up event handlers
       audio.onloadedmetadata = function() {
-        console.log("Audio metadata loaded, duration:", audio.duration);
         document.querySelector("#message").textContent = "Playing...";
         audio.play().catch(e => {
           console.error("Error playing audio:", e);
-          document.querySelector("#message").textContent = "Error playing audio: " + e.message;
+          document.querySelector("#message").textContent = "Error playing audio";
         });
       };
       
       audio.onended = function() {
-        console.log("Audio playback ended");
         document.querySelector("#message").textContent = "Finished!";
-        
-        // Release the blob URL to free memory
         URL.revokeObjectURL(audioUrl);
         
         // Process next item in queue if any
@@ -113,14 +107,8 @@ async function do_tts(_audioArray) {
         }
       };
       
-      audio.onerror = function(e) {
-        console.error("Audio error:", e);
-        console.error("Error code:", audio.error ? audio.error.code : "unknown");
-        console.error("Error message:", audio.error ? audio.error.message : "unknown");
-        document.querySelector("#message").textContent = "Error playing audio: " + 
-          (audio.error ? audio.error.message : "Unknown error");
-        
-        // Release the blob URL on error
+      audio.onerror = function() {
+        document.querySelector("#message").textContent = "Audio error";
         URL.revokeObjectURL(audioUrl);
         
         // Process next item in queue if any
@@ -132,25 +120,31 @@ async function do_tts(_audioArray) {
       break; // Exit the retry loop on success
       
     } catch (error) {
-      if (retries <= 0) {
-        console.error("Fetch error:", error);
-        document.querySelector("#message").textContent = "Error fetching audio: " + error.message;
+      attempts++;
+      
+      // Match server.js wait time logic for retries
+      const waitTime = error.name === 'AbortError' ? 2000 * attempts : 1000 * attempts;
+      
+      if (attempts >= maxAttempts) {
+        console.error("Fetch failed after all attempts:", error);
+        document.querySelector("#message").textContent = "Failed to generate speech";
         
         // Process next item in queue if any
         if (_audioArray.length > 0) {
           do_tts(_audioArray);
         }
-      } else {
-        retries--;
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+        return;
       }
+      
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      document.querySelector("#message").textContent = `Retry attempt ${attempts}...`;
     }
   }
 }
 
 /**
  * Fetch available TTS voices from the server
- * @returns {Promise<Array>} - Array of available voices
  */
 async function fetchAvailableVoices() {
   try {
@@ -160,7 +154,7 @@ async function fetchAvailableVoices() {
     }
     return await response.json();
   } catch (error) {
-    console.error("Error fetching available voices:", error);
+    console.error("Error fetching voices:", error);
     return [];
   }
 }
