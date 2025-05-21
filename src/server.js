@@ -1150,4 +1150,14 @@ async function startServer() {
   }
 }
 
+// Replace require with dynamic import
+const loadModule = async (moduleName) => {
+  try {
+    return await import(moduleName);
+  } catch (error) {
+    logger.error(`Failed to import ${moduleName}: ${error.message}`);
+    return null;
+  }
+};
+
 startServer();

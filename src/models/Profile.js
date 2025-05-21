@@ -51,6 +51,28 @@ ProfileSchema.methods.hasAccess = function(feature) {
   return this.level >= requiredLevel;
 };
 
+// Add findOrCreateByUsername method
+ProfileSchema.statics.findOrCreateByUsername = async function(username, userData = {}) {
+  if (!username) return null;
+  
+  let profile = await this.findOne({ username });
+  
+  if (!profile) {
+    profile = await this.create({
+      username,
+      xp: 0,
+      created: new Date(),
+      lastSeen: new Date(),
+      ...userData
+    });
+  } else {
+    profile.lastSeen = new Date();
+    await profile.save();
+  }
+  
+  return profile;
+};
+
 // Export both the schema and model to allow reuse in workers
 const Profile = mongoose.models.Profile || mongoose.model('Profile', ProfileSchema);
 
