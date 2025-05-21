@@ -695,7 +695,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
 
     // XP system functions
     const xpSystem = {
-      requirements: [100, 250, 450, 700, 1200],
+      requirements: [1000, 2500, 4500, 7000, 12000, 36000, 112000, 332000],
 
       calculateLevel(xp) {
         let level = 0;
@@ -765,22 +765,6 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       }
     }
 
-    // Add this helper function to fix session saving
-
-    // Simple function to ensure sessions have an ID before saving
-    function ensureSessionId(session) {
-      if (!session) return null;
-
-      // Use existing id or create a new one
-      if (!session.sessionId && !session.id) {
-        session.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      } else if (session.id && !session.sessionId) {
-        session.sessionId = session.id;
-      }
-
-      return session;
-    }
-
     io.on('connection', (socket) => {
       try {
         // Get username from handshake
@@ -832,7 +816,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
 
             // Create message object with consistent structure
             const messageData = {
-              username: socket.bambiUsername || 'anonymous',
+              username: socket.bambiUsername || 'anonbambi',
               data: msg.data,
               timestamp: timestamp
             };
@@ -930,7 +914,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         });
 
         socket.on('triggers', async (data) => {
-          logger.info('Received triggers:', data);
+          logger.error('Received triggers:', data);
           lmstudio.postMessage({
             type: 'triggers',
             triggers: data.triggerNames,
