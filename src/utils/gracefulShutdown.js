@@ -17,7 +17,7 @@ export default async function gracefulShutdown(signal, server) {
 
   // Force exit after exactly 3 seconds, no matter what
   setTimeout(() => {
-    logger.warn('Forcing exit after 3 second timeout');
+    logger.warning('Forcing exit after 3 second timeout');  // Changed from warn to warning
     process.exit(0);
   }, 3000);
   
@@ -126,7 +126,7 @@ export function setupWorkerShutdownHandlers(workerName, context = {}) {
     
     // Force exit after 3 seconds
     const forceExitTimeout = setTimeout(() => {
-      logger.warn(`Forced exit for ${workerName} worker after 3 second timeout`);
+      logger.warning(`Forced exit for ${workerName} worker after 3 second timeout`); // Changed from warn to warning
       process.exit(0);
     }, 3000);
     
