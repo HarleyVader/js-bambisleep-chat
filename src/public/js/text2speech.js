@@ -1,6 +1,3 @@
-// TTS settings
-let currentVoice = 'af_bella'; // Default voice
-
 /**
  * Set the voice to use for TTS
  */

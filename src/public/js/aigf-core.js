@@ -3,7 +3,6 @@ const socket = window.socket || io();
 window.socket = socket;
 
 let token = '';
-let currentVoice = 'af_bella';
 
 // Create arrays and cache DOM elements
 const _textArray = [];
