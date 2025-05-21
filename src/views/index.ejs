@@ -113,16 +113,19 @@
                     if (profile.systemControls && profile.systemControls.activeTriggers) {
                       const activeTriggers = profile.systemControls.activeTriggers;
 
-                      // Send triggers to worker - ensure format is consistent with what checkRole expects
-                      socket.emit('triggers', {
-                        triggerNames: activeTriggers.join(','),  // Send as comma-separated string
-                        triggerDetails: activeTriggers.map(t => ({ 
-                          name: t,
-                          description: "" // Add empty description to match expected format
-                        }))
-                      });
+                      // Log triggers found in profile
+                      console.log('Profile triggers found:', activeTriggers);
 
-                      console.log('Loaded triggers from profile:', activeTriggers);
+                      // Always convert to string for consistency
+                      const triggerString = Array.isArray(activeTriggers) ? activeTriggers.join(',') : activeTriggers;
+
+                      console.log('Sending triggers to server as string:', triggerString);
+
+                      // Send as simple string - most reliable format
+                      socket.emit('triggers', triggerString);
+                    } else {
+                      console.log('No active triggers found in profile, using default');
+                      socket.emit('triggers', 'BAMBI SLEEP');
                     }
                   }
                 });
@@ -131,7 +134,7 @@
 
             // Add socket handler for debugging trigger messages
             if (typeof socket !== 'undefined') {
-              socket.on('trigger-debug', function(data) {
+              socket.on('trigger-debug', function (data) {
                 console.log('Trigger debug from server:', data);
               });
             }

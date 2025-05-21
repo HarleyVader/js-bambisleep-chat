@@ -40,7 +40,7 @@ async function registerModels() {
       mongoose.models.Profile = ProfileModule.default;
       logger.info('Profile model registered');
     }
-    
+
     // Import SessionHistory model - same fix
     const SessionHistoryModule = await import('./models/SessionHistory.js');
     if (!mongoose.models.SessionHistory) {
@@ -48,7 +48,7 @@ async function registerModels() {
       mongoose.models.SessionHistory = SessionHistoryModule.default;
       logger.info('SessionHistory model registered');
     }
-    
+
     // Import ChatMessage model - same approach
     const ChatMessageModule = await import('./models/ChatMessage.js');
     if (!mongoose.models.ChatMessage) {
@@ -66,25 +66,25 @@ const memoryMonitor = {
     this.interval = setInterval(() => this.checkMemory(), interval);
     logger.info(`Memory monitor started with interval ${interval}ms`);
   },
-  
+
   stop() {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
     }
   },
-  
+
   checkMemory() {
     const used = process.memoryUsage();
     logger.debug(`Memory usage: RSS ${Math.round(used.rss / 1024 / 1024)}MB, Heap ${Math.round(used.heapUsed / 1024 / 1024)}/${Math.round(used.heapTotal / 1024 / 1024)}MB`);
-    
+
     // Force garbage collection if memory pressure is high
     if (used.heapUsed > used.heapTotal * 0.85) {
       logger.warning('Memory pressure detected, suggesting garbage collection');
       global.gc && global.gc();
     }
   },
-  
+
   getClientScript() {
     return `
       // Memory monitoring client script
@@ -105,7 +105,7 @@ const scheduledTasks = {
   initialize() {
     logger.info('Initializing scheduled tasks');
   },
-  
+
   addTask(name, fn, interval) {
     const task = {
       name,
@@ -116,14 +116,14 @@ const scheduledTasks = {
     this.tasks.push(task);
     return task;
   },
-  
+
   stopAll() {
     this.tasks.forEach(task => {
       clearInterval(task.timer);
     });
     this.tasks = [];
   },
-  
+
   stop() {
     // Adding alias for stopAll to handle shutdown correctly
     this.stopAll();
@@ -135,12 +135,12 @@ const dbRoutes = [];
 
 // Function to monitor database health
 function startDbHealthMonitor() {
-  const interval = config.DB_HEALTH_CHECK_INTERVAL || 60000;  scheduledTasks.addTask('dbHealthCheck', async () => {    
+  const interval = config.DB_HEALTH_CHECK_INTERVAL || 60000; scheduledTasks.addTask('dbHealthCheck', async () => {
     try {
       // Import database module dynamically to prevent circular dependencies
       const db = await import('./config/db.js');
       const { checkAllDatabasesHealth, connectAllDatabases, hasConnection } = db.default;
-      
+
       // First check if connection is available at all
       if (!hasConnection()) {
         logger.warning('Database connection is not available, attempting reconnection');
@@ -151,7 +151,7 @@ function startDbHealthMonitor() {
         }
         return;
       }
-      
+
       // Safely check health of all database connections with double protection
       let healthResults;
       try {
@@ -169,17 +169,17 @@ function startDbHealthMonitor() {
           profiles: { status: 'error', error: innerError.message }
         };
       }
-      
+
       // Log database health status
       for (const [type, status] of Object.entries(healthResults)) {
         if (status.status !== 'healthy' && status.status !== 'connected') {
           logger.warning(`${type} database connection not healthy: ${status.status}`);
-            // Try to reconnect to unhealthy database
+          // Try to reconnect to unhealthy database
           logger.info(`Attempting to reconnect to ${type} database`);
           try {            // Import database module dynamically to prevent circular dependencies
             const db = await import('./config/db.js');
             const { connectAllDatabases } = db.default;
-            
+
             await Promise.resolve(connectAllDatabases(1)).catch(err => {
               logger.error(`Failed to reconnect to ${type} database: ${err.message}`);
               // Continue server operations even if reconnection fails
@@ -208,33 +208,33 @@ function startConnectionPoolMonitor() {
         const db = await import('./config/db.js').catch(() => {
           return { default: { checkDBHealth: null } };
         });
-          if (db.default.checkAllDatabasesHealth) {
+        if (db.default.checkAllDatabasesHealth) {
           await db.default.checkAllDatabasesHealth();
           return;
         }
       } catch (importError) {
         logger.debug(`Could not use dedicated pool monitor: ${importError.message}`);
       }
-        // Fallback: Check if connection exists and is ready
+      // Fallback: Check if connection exists and is ready
       const dbModule = await import('./config/db.js');
       if (!dbModule.default.hasConnection()) {
         logger.debug('MongoDB connection not ready, skipping pool check');
         return;
       }
-      
+
       // Then check if db and serverConfig are available
       if (!mongoose.connection.db || !mongoose.connection.db.serverConfig) {
         logger.debug('MongoDB server configuration not available');
         return;
       }
-      
+
       // Check if pool exists
       const pool = mongoose.connection.db.serverConfig.s?.pool;
       if (!pool) {
         logger.debug('MongoDB connection pool not available');
         return;
       }
-      
+
       // Now safely log the pool stats
       logger.debug(`DB connection pool: ${pool.totalConnectionCount || 0} total, ${pool.availableConnectionCount || 0} available`);
     } catch (error) {
@@ -273,12 +273,12 @@ function checkServiceAvailability(req, res, next) {
   if (req.path === '/health' || req.path === '/api/health') {
     return next();
   }
-  
+
   // Check if the server is in maintenance mode
   if (global.maintenanceMode) {
     const retryAfter = global.maintenanceRetryAfter || 30;
     res.set('Retry-After', retryAfter);
-    
+
     // For API endpoints return JSON
     if (req.path.startsWith('/api/')) {
       return res.status(503).json({
@@ -287,7 +287,7 @@ function checkServiceAvailability(req, res, next) {
         retryAfter: retryAfter
       });
     }
-    
+
     // For normal requests, render the service-unavailable page
     return res.status(503).render('service-unavailable', {
       message: 'Service temporarily unavailable due to maintenance',
@@ -295,7 +295,7 @@ function checkServiceAvailability(req, res, next) {
       title: 'Service Unavailable'
     });
   }
-  
+
   next();
 }
 
@@ -304,7 +304,7 @@ function enableMaintenanceMode(duration = 300) {
   global.maintenanceMode = true;
   global.maintenanceRetryAfter = duration;
   logger.warning(`Maintenance mode enabled. Will last for ${duration} seconds.`);
-  
+
   // Schedule automatic disabling of maintenance mode
   setTimeout(() => {
     disableMaintenanceMode();
@@ -359,12 +359,12 @@ async function initializeApp() {
     ));    // Verify DB connection before proceeding with robust health check
     const db = await import('./config/db.js');
     const { isDatabaseConnectionHealthy, connectDB, ensureModelsRegistered } = db.default;
-    
+
     const isHealthy = await isDatabaseConnectionHealthy('main');
     if (!isHealthy || mongoose.connection.readyState !== 1) {
       logger.warning('Database not connected during app initialization, trying to reconnect...');
       const dbConnected = await connectDB(2, true); // Force reconnection
-      
+
       if (!dbConnected) {
         logger.warning('Could not establish database connection, some features may not work properly');
       } else {
@@ -400,7 +400,7 @@ async function initializeApp() {
 
     // Set up routes and APIs
     setupRoutes(app);
-    
+
     // Add this line to fix the TTS API endpoint
     setupTTSRoutes(app);
 
@@ -441,10 +441,10 @@ function setupMiddleware(app) {
   app.use(fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 }
   }));
-  
+
   // Add the service availability check middleware
   app.use(checkServiceAvailability);
-  
+
   // Serve static files with correct MIME types
   app.use('/css', express.static(path.join(__dirname, 'public/css'), {
     setHeaders: (res, path) => {
@@ -501,7 +501,7 @@ function setupRoutes(app) {    // Register main routes
   basicRoutes.forEach(route => {
     app.use(route.path, dbFeatureCheck(route.dbRequired), route.handler);
   });
-  
+
   dbRoutes.forEach(route => {
     app.use(route.path, dbFeatureCheck(true), route.handler);
   });
@@ -557,7 +557,7 @@ function setupTTSRoutes(app) {
       handleTTSError(error, res);
     }
   });
-  
+
   logger.info('TTS routes configured');
 }
 
@@ -602,7 +602,7 @@ function handleTTSError(error, res) {
 async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
   let attempts = 0;
   const maxAttempts = 3;
-  
+
   // Increase timeout incrementally with each attempt
   while (attempts < maxAttempts) {
     try {
@@ -617,7 +617,7 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
 
       // Increase timeout with each retry
       const timeout = 10000 + (attempts * 5000); // 10s, 15s, 20s
-      
+
       const response = await axios({
         method: 'post',
         url: `${config.KOKORO_API_URL}/audio/speech`,
@@ -633,15 +633,15 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
       return response;
     } catch (error) {
       attempts++;
-      
+
       // For timeout errors specifically, increase wait time
       const waitTime = error.code === 'ECONNABORTED' ? 2000 * attempts : 1000 * attempts;
-      
+
       if (attempts >= maxAttempts) {
         logger.error(`Error fetching TTS audio after ${maxAttempts} attempts: ${error.message}`);
         throw error;
       }
-      
+
       // Wait longer between retries for timeouts
       await new Promise(resolve => setTimeout(resolve, waitTime));
       logger.info(`TTS retry ${attempts}/${maxAttempts}`);
@@ -659,18 +659,18 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
 function setupSocketHandlers(io, socketStore, filteredWords) {
   // Initialize the LMStudio worker thread
   const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
-  
+
   // Handle worker exit
   lmstudio.on('exit', (code) => {
     logger.error(`Worker thread exited with code ${code}`);
-    
+
     // Notify all connected clients
     if (io) {
       io.emit('system', {
         message: 'AI service restarting, please wait...'
       });
     }
-    
+
     // Start a new worker after a short delay
     setTimeout(() => {
       setupSocketHandlers(io, socketStore, filteredWords);
@@ -680,11 +680,11 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
   // Simple filter function to avoid bad words
   function filter(content) {
     if (!content || !filteredWords || !filteredWords.length) return content;
-    
+
     if (typeof content !== 'string') {
       content = String(content);
     }
-    
+
     return content
       .split(' ')
       .map(word => filteredWords.includes(word.toLowerCase()) ? '[filtered]' : word)
@@ -695,7 +695,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
   // XP system functions
   const xpSystem = {
     requirements: [100, 250, 450, 700, 1200],
-    
+
     calculateLevel(xp) {
       let level = 0;
       while (level < this.requirements.length && xp >= this.requirements[level]) {
@@ -703,17 +703,17 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       }
       return level;
     },
-    
+
     awardXP(socket, amount, reason = 'interaction') {
       if (!socket.bambiData) return;
-      
+
       const oldXP = socket.bambiData.xp || 0;
       const oldLevel = this.calculateLevel(oldXP);
-      
+
       // Add XP
       socket.bambiData.xp = oldXP + amount;
       const newLevel = this.calculateLevel(socket.bambiData.xp);
-      
+
       // Notify client of XP gain
       socket.emit('xp:update', {
         xp: socket.bambiData.xp,
@@ -721,25 +721,25 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         xpEarned: amount,
         reason: reason
       });
-      
+
       // Check for level up
       if (newLevel > oldLevel) {
         socket.emit('level-up', { level: newLevel });
         logger.info(`User ${socket.bambiUsername} leveled up to ${newLevel}`);
       }
-      
+
       // Save to database if available
       if (socket.bambiUsername && socket.bambiUsername !== 'anonBambi') {
         updateProfileXP(socket.bambiUsername, socket.bambiData.xp);
       }
     }
   };
-    // Function to update profile XP in DB
+  // Function to update profile XP in DB
   async function updateProfileXP(username, xp) {
     try {
       // Register models first
       await registerModels();
-      
+
       const Profile = mongoose.model('Profile');
       await Profile.findOneAndUpdate(
         { username },
@@ -750,12 +750,12 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       logger.error(`Error updating XP for ${username}: ${error.message}`);
     }
   }
-    // Function to get profile data for a user
+  // Function to get profile data for a user
   async function getProfileData(username) {
     try {
       const db = await import('./config/db.js');
       if (!db.default.hasConnection()) return null;
-      
+
       const Profile = mongoose.model('Profile');
       return await Profile.findOne({ username });
     } catch (error) {
@@ -769,14 +769,14 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
   // Simple function to ensure sessions have an ID before saving
   function ensureSessionId(session) {
     if (!session) return null;
-    
+
     // Use existing id or create a new one
     if (!session.sessionId && !session.id) {
       session.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     } else if (session.id && !session.sessionId) {
       session.sessionId = session.id;
     }
-    
+
     return session;
   }
 
@@ -786,24 +786,24 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       const cookies = socket.handshake.headers.cookie || '';
       const cookiePairs = cookies.split(';').map(cookie => cookie.trim().split('='));
       const cookieObj = Object.fromEntries(cookiePairs.map(pair => [pair[0], pair[1] || '']));
-      
-      const username = cookieObj.bambiname 
-        ? decodeURIComponent(cookieObj.bambiname) 
+
+      const username = cookieObj.bambiname
+        ? decodeURIComponent(cookieObj.bambiname)
         : 'anonBambi';
-      
+
       // Store socket reference
       socketStore.set(socket.id, { socket, username });
-      
+
       logger.info(`Socket connected: ${socket.id} - User: ${username}`);
-      
+
       // Initialize user data
       socket.bambiUsername = username;
-      socket.bambiData = { 
-        xp: 0, 
+      socket.bambiData = {
+        xp: 0,
         username: username,
         sessionId: null
       };
-      
+
       if (username === 'anonBambi') {
         socket.emit('prompt username');
       } else {
@@ -812,7 +812,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           if (profile) {
             socket.bambiData.xp = profile.xp || 0;
             socket.emit('profile-data', { profile });
-            socket.emit('profile-update', { 
+            socket.emit('profile-update', {
               xp: profile.xp,
               level: xpSystem.calculateLevel(profile.xp || 0)
             });
@@ -823,36 +823,36 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       // Add socket to global store
       socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
       logger.info(`Client connected: ${socket.id} sockets: ${socketStore.size}`);
-      
+
       // Chat message handling
       socket.on('chat message', async (msg) => {
         try {
           const timestamp = new Date().toISOString();
-          
+
           // Create message object with consistent structure
           const messageData = {
             username: socket.bambiUsername || 'anonymous',
             data: msg.data,
             timestamp: timestamp
           };
-          
+
           // Broadcast message to all connected clients first for responsiveness
           io.emit('chat message', messageData);
-          
+
           // Then save to database asynchronously
           try {
             // Ensure ChatMessage model is available
             const ChatMessage = mongoose.models.ChatMessage || (await import('./models/ChatMessage.js')).default;
-            
+
             // Save message to database
             const savedMessage = await ChatMessage.saveMessage(messageData);
             logger.debug(`Chat message saved to database: ${savedMessage._id}`);
-            
+
             // Give XP for chat interactions
             xpSystem.awardXP(socket, 1, 'chat');
           } catch (dbError) {
             // Log database error but don't disrupt the user experience
-            logger.error(`Failed to save chat message: ${dbError.message}`, { 
+            logger.error(`Failed to save chat message: ${dbError.message}`, {
               username: messageData.username,
               messageLength: messageData.data?.length || 0
             });
@@ -870,15 +870,15 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           socket.bambiUsername = username;
           socket.emit('username set', username);
           logger.info('Username set:', username);
-          
+
           // Load profile data for the new username
           getProfileData(username).then(profile => {
             if (profile) {
               socket.bambiData.xp = profile.xp || 0;
               socket.emit('profile-data', { profile });
-              socket.emit('profile-update', { 
+              socket.emit('profile-update', {
                 xp: profile.xp,
-                level: xpSystem.calculateLevel(profile.xp || 0) 
+                level: xpSystem.calculateLevel(profile.xp || 0)
               });
             }
           });
@@ -902,13 +902,13 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       socket.on("message", (message) => {
         try {
           const filteredMessage = filter(message);
-          
+
           // Create session ID if none exists
           if (!socket.bambiData.sessionId) {
             socket.bambiData.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
             socket.emit('session-created', { sessionId: socket.bambiData.sessionId });
           }
-          
+
           lmstudio.postMessage({
             type: "message",
             data: filteredMessage,
@@ -916,10 +916,10 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             username: socket.bambiUsername,
             sessionId: socket.bambiData.sessionId
           });
-          
+
           // Award XP for AI interactions
           xpSystem.awardXP(socket, 5, 'ai-prompt');
-          
+
           // Notify about conversation start
           socket.emit('conversation-start');
         } catch (error) {
@@ -928,17 +928,40 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         }
       });
 
-      // Trigger word handling
-      socket.on("triggers", (triggers) => {
+      // In the setupSocketHandlers function, inside the io.on('connection') handler:
+
+      socket.on('triggers', (data) => {
         try {
-          lmstudio.postMessage({ 
-            type: "triggers", 
-            triggers,
-            socketId: socket.id
-          });
-          logger.info(`Triggers set for ${socket.bambiUsername}:`, triggers.triggerNames || 'none');
+          // Get worker for this socket
+          const worker = socketStore.get(socket.id)?.worker;
+
+          if (worker) {
+            // Log what we received
+            logger.info(`Triggers received from client ${socket.id}: ${typeof data === 'string' ? data : JSON.stringify(data)}`);
+
+            // Always forward as string for consistency
+            const triggerString = typeof data === 'string'
+              ? data
+              : (data.triggerNames || (Array.isArray(data) ? data.join(',') : 'BAMBI SLEEP'));
+
+            logger.info(`Forwarding triggers to worker: ${triggerString}`);
+
+            // Send to worker as string
+            worker.postMessage({
+              type: 'triggers',
+              data: triggerString,
+              socketId: socket.id
+            });
+
+            // Send debug info back to client
+            socket.emit('trigger-debug', {
+              message: 'Triggers processed by server',
+              received: data,
+              forwarded: triggerString
+            });
+          }
         } catch (error) {
-          logger.error('Error in triggers handler:', error);
+          logger.error(`Error processing triggers: ${error.message}`);
         }
       });
 
@@ -961,20 +984,20 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       socket.on('save-session', async (data) => {
         try {
           // Create session ID if not exists
-          const sessionId = data?.sessionId || socket.bambiData?.sessionId || 
-                           `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-          
+          const sessionId = data?.sessionId || socket.bambiData?.sessionId ||
+            `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
           // Save ID on socket
           if (!socket.bambiData) socket.bambiData = {};
           socket.bambiData.sessionId = sessionId;
-          
+
           // Format messages according to schema
           const messages = Array.isArray(data?.content) ? data.content.map(msg => ({
             role: msg.role || 'user',
             content: msg.content || msg.text || '',
             timestamp: msg.timestamp || new Date()
           })) : [];
-          
+
           // Create session data matching schema fields
           const sessionData = {
             sessionId,
@@ -983,12 +1006,12 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             startedAt: new Date(),
             lastUpdatedAt: new Date()
           };
-          
+
           const result = await saveSessionToDatabase(sessionData);
-          
-          socket.emit('session-saved', { 
-            success: !!result, 
-            sessionId 
+
+          socket.emit('session-saved', {
+            success: !!result,
+            sessionId
           });
         } catch (error) {
           logger.error('Session save error:', error.message);
@@ -1000,11 +1023,11 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         try {
           const sessionId = data.sessionId;
           if (!sessionId) return;
-          
+
           // Would normally load from DB
           // For now just notify the session is loaded
-          socket.emit('session-loaded', { 
-            success: true, 
+          socket.emit('session-loaded', {
+            success: true,
             sessionId,
             session: { id: sessionId, username: socket.bambiUsername }
           });
@@ -1023,12 +1046,12 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             data: filteredCollar,
             socketId: socket.id
           });
-          
+
           // Emit to target socket if specified
           if (collarData.socketId) {
             io.to(collarData.socketId).emit('collar', filteredCollar);
           }
-          
+
           // Award XP for collar usage
           xpSystem.awardXP(socket, 2, 'collar');
         } catch (error) {
@@ -1044,10 +1067,10 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           } else if (msg.type === 'response') {
             // Convert object responses to strings
             const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
-            
+
             // Send response to client
             io.to(msg.socketId).emit("response", responseData);
-            
+
             // Award XP when AI responds
             const socketData = socketStore.get(msg.socketId);
             if (socketData && socketData.socket && socketData.socket.bambiData) {
@@ -1089,13 +1112,13 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       socket.on('disconnect', (reason) => {
         try {
           logger.info('Client disconnected:', socket.id, 'Reason:', reason);
-          
+
           // Get socket data and clean up
           const socketData = socketStore.get(socket.id);
           if (socketData) {
             socketStore.delete(socket.id);
           }
-          
+
           logger.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`);
         } catch (error) {
           logger.error('Error in disconnect handler:', error);
@@ -1148,20 +1171,20 @@ function getServerAddress() {
 async function startServer() {
   try {
     logger.info('Step 1/5: Connecting to MongoDB...');
-    
+
     // Import database module
     const db = await import('./config/db.js');
-    const { 
-      connectAllDatabases, 
-      ensureModelsRegistered, 
-      inFallbackMode, 
-      checkAllDatabasesHealth, 
-      isDatabaseConnectionHealthy 
+    const {
+      connectAllDatabases,
+      ensureModelsRegistered,
+      inFallbackMode,
+      checkAllDatabasesHealth,
+      isDatabaseConnectionHealthy
     } = db.default;
-    
+
     // Connect to all databases with 3 retry attempts
     const dbResults = await connectAllDatabases(3);
-    
+
     // Check connection results
     if (!dbResults.main) {
       logger.warning('⚠️ Failed to connect to main MongoDB database after multiple attempts.');
@@ -1169,8 +1192,8 @@ async function startServer() {
     } else if (!(await isDatabaseConnectionHealthy())) {
       logger.warning('⚠️ Database connection reported success but connection is not ready.');
       logger.warning('⚠️ Server will start with LIMITED FUNCTIONALITY - database-dependent features disabled.');
-    } 
-    
+    }
+
     // Ensure all models are properly registered
     try {
       await ensureModelsRegistered();
@@ -1178,10 +1201,10 @@ async function startServer() {
     } catch (modelError) {
       logger.error(`Failed to register database models: ${modelError.message}`);
     }
-    
+
     // Log connection status
     const dbHealth = await checkAllDatabasesHealth();
-    
+
     if (inFallbackMode()) {
       logger.warning('⚠️ Connected to FALLBACK DATABASE - running with limited functionality');
     } else if (dbResults.main && (await isDatabaseConnectionHealthy())) {
@@ -1226,7 +1249,7 @@ async function startServer() {
     } else {
       memoryMonitor.start(process.env.NODE_ENV === 'production' ? 60000 : 30000);
       logger.info('Standard memory monitoring started to prevent overnight OOM kills');
-    }    
+    }
 
     process.on('SIGTERM', () => shutdown('SIGTERM'));
     process.on('SIGINT', () => shutdown('SIGINT'));
@@ -1256,31 +1279,31 @@ async function startServer() {
 // Add this simple shutdown function
 function shutdown(signal) {
   logger.info(`Shutdown initiated (${signal})`);
-  
+
   // Force exit after 3 seconds, no matter what
   setTimeout(() => {
     logger.warning('Forcing process exit');
     process.exit(0);
   }, 3000);
-  
+
   // Try to close server and database
   try {
     if (global.httpServer) {
       global.httpServer.close();
     }
-    
+
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       mongoose.connection.close();
     }
-    
+
     if (scheduledTasks) {
       scheduledTasks.stopAll();
     }
-    
+
     if (memoryMonitor) {
       memoryMonitor.stop();
     }
-    
+
     if (global.socketStore) {
       for (const [, socketData] of global.socketStore.entries()) {
         if (socketData.socket) {
@@ -1311,21 +1334,21 @@ async function saveSessionToDatabase(session) {
       logger.error('Cannot save null session');
       return null;
     }
-    
+
     // Ensure session has ID - this is crucial
     const sessionId = session.sessionId || session.id;
-    
+
     // If still no sessionId, generate one
     if (!sessionId) {
       session.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     }
-    
+
     // Make sure models are registered
     await registerModels();
-    
+
     // Get model directly
     const SessionHistory = mongoose.models.SessionHistory;
-    
+
     // Match fields to your schema - ensure sessionId is always set
     const sessionData = {
       sessionId: session.sessionId,  // Using the field we just ensured exists
@@ -1338,14 +1361,14 @@ async function saveSessionToDatabase(session) {
       startedAt: session.startTime || session.startedAt || new Date(),
       lastUpdatedAt: new Date()
     };
-    
+
     // Use findOneAndUpdate with upsert
     const result = await SessionHistory.findOneAndUpdate(
       { sessionId: sessionData.sessionId },  // Be explicit about using sessionId
       sessionData,
       { upsert: true, new: true }
     );
-    
+
     logger.debug(`Session saved: ${sessionData.sessionId}`);
     return result;
   } catch (error) {

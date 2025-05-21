@@ -235,33 +235,61 @@ parentPort.on('message', async (msg) => {
         break;
 
       case "triggers":
-        // Process trigger data - handle different formats consistently
+        // Process trigger data consistently as string
         if (msg.data) {
-          logger.info(`Received triggers update: ${typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data).slice(0, 200)}`);
-          
-          // Handle string format (basic format from client)
-          if (typeof msg.data === 'string') {
-            triggers = msg.data;
-            triggerDetails = msg.data.split(',').map(t => ({ 
-              name: t.trim(), 
-              description: triggerDescriptions[t.trim()] || "" 
-            }));
-          } 
-          // Handle object format from index.ejs
-          else if (msg.data && msg.data.triggerNames) {
-            triggers = msg.data.triggerNames; // Already comma-separated string
-            triggerDetails = msg.data.triggerDetails || [];
+          const triggerData = msg.data;
+          logger.info(`Received triggers: ${typeof triggerData === 'string' ? triggerData : JSON.stringify(triggerData)}`);
+
+          // Always store as string
+          if (typeof triggerData === 'string') {
+            triggers = triggerData;
+
+            // Parse string to generate triggerDetails
+            const triggerNames = triggerData.split(',').map(t => t.trim()).filter(Boolean);
+            triggerDetails = triggerNames.map(name => {
+              return {
+                name: name,
+                description: triggerDescriptions[name] || ""
+              };
+            });
+
+            logger.info(`Updated triggers to string: "${triggers}"`);
+            logger.info(`Generated ${triggerDetails.length} trigger details`);
+          } else {
+            // Convert any other format to string
+            triggers = typeof triggerData === 'object' && triggerData.triggerNames
+              ? triggerData.triggerNames
+              : Array.isArray(triggerData)
+                ? triggerData.join(',')
+                : 'BAMBI SLEEP';
+
+            logger.info(`Converted non-string triggers to: "${triggers}"`);
+
+            // Generate consistent triggerDetails
+            const triggerNames = triggers.split(',').map(t => t.trim()).filter(Boolean);
+            triggerDetails = triggerNames.map(name => {
+              return {
+                name: name,
+                description: triggerDescriptions[name] || ""
+              };
+            });
           }
-          // Handle array format (fallback)
-          else if (Array.isArray(msg.data)) {
-            triggers = msg.data.join(',');
-            triggerDetails = msg.data.map(t => ({ 
-              name: t, 
-              description: triggerDescriptions[t] || "" 
-            }));
-          }
-          
-          logger.info(`Updated triggers to: ${triggers}`);
+
+          // Log final trigger data for debugging
+          logger.info(`Final triggers value: "${triggers}"`);
+          logger.info(`Final triggerDetails (${triggerDetails.length}): ${JSON.stringify(triggerDetails.slice(0, 3))}`);
+
+          // Send debug confirmation back to client
+          parentPort.postMessage({
+            type: "trigger-debug",
+            socketId: msg.socketId,
+            data: {
+              receivedType: typeof triggerData,
+              storedTriggers: triggers,
+              triggerCount: triggers.split(',').length,
+              detailsCount: triggerDetails.length
+            }
+          });
         }
         break;
 
@@ -282,7 +310,7 @@ parentPort.on('message', async (msg) => {
         // Respond to health check
         lastHealthCheckResponse = Date.now();
         parentPort.postMessage({
-          type: "health-check-response", 
+          type: "health-check-response",
           status: "ok",
           workerId: process.pid,
           memoryUsage: process.memoryUsage(),
@@ -652,7 +680,7 @@ async function checkRole(collar, username, triggersInput) {
   let triggerNames = typeof triggersInput === 'string'
     ? triggersInput.split(',').map(t => t.trim()).filter(Boolean)
     : Array.isArray(triggersInput) ? triggersInput.filter(Boolean) : ['BAMBI SLEEP'];
-  
+
   // Load all trigger details from config
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
   let allTriggers = [];
@@ -670,14 +698,14 @@ async function checkRole(collar, username, triggersInput) {
   let selectedTriggers = allTriggers.filter(t =>
     triggerNames.some(name => t.name.toUpperCase() === name.toUpperCase())
   );
-  
+
   // Default to core triggers if none found
   if (selectedTriggers.length === 0) {
     selectedTriggers = allTriggers.filter(t => t.category === 'core').slice(0, 3);
   }
-  
+
   // Create combined trigger description with name-description pairs
-  const triggerDescriptionPairs = selectedTriggers.map(t => 
+  const triggerDescriptionPairs = selectedTriggers.map(t =>
     `${t.name.toUpperCase()} - ${t.description}`
   ).join('\n');
 
@@ -733,13 +761,13 @@ async function handleMessage(userPrompt, socketId, username) {
     // Log active triggers when processing a message
     let triggerDisplay = typeof triggers === 'string' ? triggers : JSON.stringify(triggers);
     logger.info(`Processing message from ${username} with active triggers: ${triggerDisplay}`);
-    
+
     // Add more detailed trigger logging
     if (typeof triggers === 'string' && triggers.includes(',')) {
       const triggerArray = triggers.split(',').map(t => t.trim());
       logger.info(`Trigger array parsed from string: ${JSON.stringify(triggerArray)}`);
     }
-    
+
     if (triggerDetails && triggerDetails.length > 0) {
       logger.info(`Trigger details available: ${triggerDetails.length} items`);
       logger.debug(`First 3 trigger details: ${JSON.stringify(triggerDetails.slice(0, 3))}`);
@@ -779,7 +807,7 @@ async function handleMessage(userPrompt, socketId, username) {
         lastActivity: Date.now(),
         username
       };
-      
+
       // Generate appropriate system prompt with triggers
       const systemPrompt = await checkRole(collar, username, triggers);
       sessionHistories[socketId].push({ role: 'system', content: systemPrompt || collarText });
