@@ -165,11 +165,183 @@ async function fetchAvailableVoices() {
   }
 }
 
+// Function to populate triggers in the trigger panel
+async function populateTriggerPanel() {
+  try {
+    const response = await fetch('/config/triggers.json');
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const triggerList = document.getElementById('trigger-list');
+    
+    if (triggerList && data.triggers) {
+      // Get previously active triggers
+      let activeTriggerNames = [];
+      try {
+        const storedActiveTriggers = localStorage.getItem('bambiActiveTriggers');
+        if (storedActiveTriggers) {
+          activeTriggerNames = JSON.parse(storedActiveTriggers);
+        }
+      } catch (error) {
+        console.log('Error loading active triggers from localStorage:', error);
+      }
+      
+      triggerList.innerHTML = '';
+      
+      data.triggers.forEach(trigger => {
+        const toggleItem = document.createElement('div');
+        toggleItem.className = 'trigger-toggle-item';
+        
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.className = 'toggle-input';
+        input.id = `trigger-${trigger.name.replace(/\s+/g, '-').toLowerCase()}`;
+        input.dataset.trigger = trigger.name;
+        input.dataset.description = trigger.description || '';
+        
+        // Check if this trigger was previously active
+        if (Array.isArray(activeTriggerNames) && activeTriggerNames.includes(trigger.name)) {
+          input.checked = true;
+        }
+        
+        const label = document.createElement('label');
+        label.className = 'toggle-label';
+        label.htmlFor = input.id;
+        label.textContent = trigger.name;
+        label.title = trigger.description || '';
+        
+        toggleItem.appendChild(input);
+        toggleItem.appendChild(label);
+        triggerList.appendChild(toggleItem);
+      });
+      
+      // Setup event listeners for triggers
+      const triggerInputs = triggerList.querySelectorAll('.toggle-input');
+      triggerInputs.forEach(input => {
+        input.addEventListener('change', function() {
+          saveTriggerState();
+        });
+      });
+    }
+  } catch (error) {
+    console.error("Error loading trigger data:", error);
+    
+    // Populate with fallback data if fetch fails
+    populateFallbackTriggers();
+  }
+}
+
+// Populate triggers with fallback data
+function populateFallbackTriggers() {
+  const triggerList = document.getElementById('trigger-list');
+  if (!triggerList) return;
+  
+  const fallbackTriggers = [
+    { name: "BAMBI SLEEP", description: "Primary conditioning trigger for Bambi personality" },
+    { name: "GOOD GIRL", description: "Makes you feel pleasure when obeying commands" },
+    { name: "BAMBI RESET", description: "Resets Bambi to default programming state" },
+    { name: "BIMBO DOLL", description: "Turns you into a mindless, giggly bimbo doll" },
+    { name: "BAMBI FREEZE", description: "Locks you in place, unable to move" }
+  ];
+  
+  triggerList.innerHTML = '';
+  
+  fallbackTriggers.forEach(trigger => {
+    const toggleItem = document.createElement('div');
+    toggleItem.className = 'trigger-toggle-item';
+    
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.className = 'toggle-input';
+    input.id = `trigger-${trigger.name.replace(/\s+/g, '-').toLowerCase()}`;
+    input.dataset.trigger = trigger.name;
+    input.dataset.description = trigger.description || '';
+    
+    const label = document.createElement('label');
+    label.className = 'toggle-label';
+    label.htmlFor = input.id;
+    label.textContent = trigger.name;
+    label.title = trigger.description || '';
+    
+    toggleItem.appendChild(input);
+    toggleItem.appendChild(label);
+    triggerList.appendChild(toggleItem);
+  });
+}
+
+// Helper function to save trigger state
+function saveTriggerState() {
+  const triggerList = document.getElementById('trigger-list');
+  if (!triggerList) return;
+  
+  const activeTriggers = [];
+  triggerList.querySelectorAll('.toggle-input:checked').forEach(input => {
+    const name = input.dataset.trigger;
+    const desc = input.dataset.description || '';
+    
+    if (name) activeTriggers.push(name);
+  });
+  
+  localStorage.setItem('bambiActiveTriggers', JSON.stringify(activeTriggers));
+  
+  // Send to server if socket is available
+  if (window.socket && window.socket.connected) {
+    window.socket.emit('triggers', {
+      triggerNames: activeTriggers.join(','),
+      triggerDetails: activeTriggers.map(name => ({
+        name,
+        description: document.querySelector(`input[data-trigger="${name}"]`).dataset.description || ''
+      }))
+    });
+  }
+}
+
 // Export functions for use in other modules
 window.tts = {
   arrayPush,
   arrayShift,
   do_tts,
   setVoice,
-  fetchAvailableVoices
+  fetchAvailableVoices,
+  populateTriggerPanel
 };
+
+// Initialize trigger panel when document is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  const triggerList = document.getElementById('trigger-list');
+  if (triggerList) {
+    populateTriggerPanel();
+    
+    // Setup play all triggers button
+    const playTriggersBtn = document.getElementById('play-triggers');
+    if (playTriggersBtn) {
+      playTriggersBtn.addEventListener('click', () => {
+        const activeTriggers = [];
+        triggerList.querySelectorAll('.toggle-input:checked').forEach(input => {
+          activeTriggers.push(input.dataset.trigger);
+        });
+        
+        if (activeTriggers.length > 0 && window.socket && window.socket.connected) {
+          window.socket.emit('play-triggers', { triggers: activeTriggers });
+        }
+      });
+    }
+    
+    // Setup toggle all button
+    const toggleAllBtn = document.getElementById('activate-all');
+    if (toggleAllBtn) {
+      toggleAllBtn.addEventListener('click', () => {
+        const inputs = triggerList.querySelectorAll('.toggle-input');
+        const allChecked = Array.from(inputs).every(input => input.checked);
+        
+        inputs.forEach(input => {
+          input.checked = !allChecked;
+        });
+        
+        saveTriggerState();
+      });
+    }
+  }
+});
