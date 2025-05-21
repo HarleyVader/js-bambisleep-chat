@@ -1316,37 +1316,42 @@ const loadModule = async (moduleName) => {
 
 async function saveSessionToDatabase(session) {
   try {
-    // Skip if no session data
-    if (!session) return null;
+    // Log the session object for debugging
+    logger.debug('Saving session:', session?.id || 'unknown ID');
     
-    // Ensure session has ID
-    session = ensureSessionId(session);
-    if (!session) return null;
-    
-    // Get the SessionHistory model
-    const SessionHistory = mongoose.models.SessionHistory;
-    if (!SessionHistory) {
-      logger.error('SessionHistory model not registered');
+    // Bail early if session is missing
+    if (!session) {
+      logger.error('Cannot save null or undefined session');
       return null;
     }
     
-    // Create a clean object with required fields
-    const dataToSave = {
-      sessionId: session.sessionId,
-      userId: session.userId || 'anonymous',
+    // Always ensure we have a sessionId
+    const sessionId = session.id || session.sessionId || `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    
+    // Simple session data with required fields
+    const sessionData = {
+      sessionId: sessionId,
+      userId: session.userId || session.username || 'anonymous',
       messages: session.messages || [],
       startTime: session.startTime || new Date(),
-      endTime: session.endTime || null
+      endTime: session.active === false ? new Date() : null
     };
     
-    // Save to database
-    return await SessionHistory.findOneAndUpdate(
-      { sessionId: session.sessionId },
-      dataToSave,
-      { upsert: true, new: true }
+    // Get SessionHistory model
+    await registerModels();
+    const SessionHistory = mongoose.model('SessionHistory');
+    
+    // Update or create session
+    const result = await SessionHistory.findOneAndUpdate(
+      { sessionId: sessionId },
+      sessionData,
+      { upsert: true, new: true, runValidators: true }
     );
+    
+    logger.debug(`Session ${sessionId} saved successfully`);
+    return result;
   } catch (error) {
-    logger.error(`Error saving session: ${error.message}`);
+    logger.error(`Error saving session to database: ${error.message}`);
     return null;
   }
 }
