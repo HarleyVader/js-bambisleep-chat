@@ -501,7 +501,7 @@ function countWords(text) {
   return text.trim().split(/\s+/).length;
 }
 
-// Function to update user XP based on generated content
+// Fix updateUserXP function to properly access Profile model
 async function updateUserXP(username, wordCount, currentSocketId) {
   if (!username || username === 'anonBambi' || wordCount <= 0) {
     return;
@@ -509,7 +509,7 @@ async function updateUserXP(username, wordCount, currentSocketId) {
   try {
     const xpToAdd = Math.ceil(wordCount / 10);
     
-    // Get the profiles database connection if available
+    // Get the profiles database connection
     const profilesConn = global.connections?.profiles;
     
     if (!profilesConn || profilesConn.readyState !== 1) {
@@ -527,12 +527,20 @@ async function updateUserXP(username, wordCount, currentSocketId) {
       return;
     }
     
-    // Get the Profile model from the profiles connection
-    const Profile = profilesConn.model('Profile');
-    if (!Profile) {
-      throw new Error(`Profile model not available when updating XP for ${username}`);
+    // Ensure Profile model is registered on profiles connection
+    if (!profilesConn.models.Profile) {
+      // Try to load the model dynamically
+      const ProfileModule = await import('../models/Profile.js');
+      if (ProfileModule.default) {
+        // Register the model directly on the profiles connection
+        profilesConn.model('Profile', ProfileModule.default.schema);
+      }
     }
-      // Update the profile directly
+    
+    // Get Profile model from connection
+    const Profile = profilesConn.model('Profile');
+    
+    // Update profile
     const result = await Profile.findOneAndUpdate(
       { username: username },
       {
@@ -541,26 +549,23 @@ async function updateUserXP(username, wordCount, currentSocketId) {
           generatedWords: wordCount
         }
       },
-      { new: true }
+      { new: true, upsert: true }
     );
 
     if (result) {
-      // Also send a socket message to update UI in real-time
       parentPort.postMessage({
         type: "xp:update",
         username: username,
-        socketId: currentSocketId, // Make sure you have access to the user's socket ID
+        socketId: currentSocketId,
         data: {
           xp: result.xp,
-          level: result.level,
-          generatedWords: result.generatedWords,
+          level: result.level || 1,
+          generatedWords: result.generatedWords || wordCount,
           xpEarned: xpToAdd
         }
       });
 
       logger.info(`Updated XP for ${username}: +${xpToAdd} (total: ${result.xp})`);
-    } else {
-      logger.warn(`User ${username} not found when updating XP`);
     }
   } catch (error) {
     logger.error(`Error updating XP for ${username}: ${error.message}`);
@@ -1042,14 +1047,15 @@ async function handleMessage(userPrompt, socketId, username) {
   }
 }
 
-// Helper function to save session to database
-async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username) {  // Check connection before attempting database operations
+// Fix saveSessionToDatabase function to properly handle sessionId requirement
+async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username) {
+  // Check connection before attempting database operations
   if (!db.hasConnection()) {
     logger.warning(`Skipping session save - no database connection`);
     return;
   }
   
-  // Get our SessionHistory model using the safe helper function
+  // Get SessionHistory model
   const SessionHistoryModelInstance = await getSessionHistoryModel();
   if (!SessionHistoryModelInstance) {
     logger.warning(`Cannot save session for ${username} - SessionHistoryModel not available`);
@@ -1077,30 +1083,41 @@ async function saveSessionToDatabase(socketId, userPrompt, aiResponse, username)
         sessionHistory.metadata.lastActivity = new Date();
         await sessionHistory.save();
       } else {
-        // Create new
+        // Create new session with explicit sessionId
         sessionHistory = await SessionHistoryModelInstance.create({
           username,
           socketId,
+          // Add this line to fix the sessionId validation error
+          sessionId: socketId,
           title: `${username}'s session on ${new Date().toLocaleDateString()}`,
           messages: [
             { role: 'system', content: collarText },
             { role: 'user', content: userPrompt },
             { role: 'assistant', content: aiResponse }
           ],
-        metadata: {
-          lastActivity: new Date(),
-          triggers: triggerList,
-          collarActive: state,
-          collarText: collar,
-          modelName: 'Steno Maid Blackroot'
+          metadata: {
+            lastActivity: new Date(),
+            triggers: triggerList,
+            collarActive: state,
+            collarText: collar,
+            modelName: 'Steno Maid Blackroot'
+          }
+        });
+        
+        // Fix Profile model reference for XP updates
+        try {
+          // Get the Profile model directly from the profiles connection
+          const profilesConn = global.connections?.profiles;
+          if (profilesConn && profilesConn.readyState === 1) {
+            await profilesConn.model('Profile').findOneAndUpdate(
+              { username },
+              { $addToSet: { sessionHistories: sessionHistory._id } }
+            );
+          }
+        } catch (profileErr) {
+          logger.warning(`Failed to update profile for ${username}: ${profileErr.message}`);
         }
-      });
-        // Link to user profile
-      await mongoose.model('Profile').findOneAndUpdate(
-        { username },
-        { $addToSet: { sessionHistories: sessionHistory._id } }
-      );
-    }
+      }
     } catch (dbError) {
       logger.error(`Database operation failed in saveSessionToDatabase: ${dbError.message}`);
     }
