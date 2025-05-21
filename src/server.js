@@ -30,22 +30,30 @@ import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
 import errorHandler from './utils/errorHandler.js';
 
-// Add this function near the beginning of the file, where other imports are
+// Fix registerModels function to properly import the schemas
 async function registerModels() {
   try {
     // Import Profile model
     const ProfileModel = await import('./models/Profile.js');
     if (!mongoose.models.Profile) {
-      mongoose.model('Profile', ProfileModel.default);
+      // Make sure we're getting the schema, not just the model
+      const schema = ProfileModel.default || ProfileModel.schema || ProfileModel;
+      mongoose.model('Profile', schema);
       logger.info('Profile model registered');
     }
     
     // Import SessionHistory model
     const SessionHistory = await import('./models/SessionHistory.js');
     if (!mongoose.models.SessionHistory) {
-      mongoose.model('SessionHistory', SessionHistory.default);
+      // Make sure we're getting the schema, not just the model
+      const schema = SessionHistory.default || SessionHistory.schema || SessionHistory;
+      mongoose.model('SessionHistory', schema);
       logger.info('SessionHistory model registered');
     }
+    
+    // Verify registrations worked
+    const modelCount = Object.keys(mongoose.models).length;
+    logger.info(`Total registered Mongoose models: ${modelCount}`);
   } catch (error) {
     logger.error(`Failed to register models: ${error.message}`);
   }
@@ -903,26 +911,34 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         }
       });
 
-      // Session management
+      // Fix session save handling in setupSocketHandlers function
       socket.on('save-session', async (data) => {
         try {
-          const sessionId = data.sessionId || socket.bambiData.sessionId || Math.random().toString(36).substring(2, 15);
-          socket.bambiData.sessionId = sessionId;
+          // Always generate a sessionId if it doesn't exist
+          const sessionId = data.sessionId || socket.bambiData?.sessionId || Math.random().toString(36).substring(2, 15);
           
-          // Ensure session has required fields
+          // Store the sessionId on the socket
+          if (socket.bambiData) {
+            socket.bambiData.sessionId = sessionId;
+          }
+          
+          // Ensure session data has all required fields
           const sessionData = {
-            sessionId,
-            username: socket.bambiUsername,
+            sessionId, // This is now guaranteed to exist
+            username: socket.bambiUsername || 'anonymous',
             content: data.content || [],
             createdAt: new Date()
           };
           
+          // Log the session data for debugging
+          logger.debug(`Saving session ${sessionId} for ${sessionData.username}`);
+          
           // Attempt to save in database
           try {
-            await registerModels();
+            await registerModels(); // Make sure models are registered
             const SessionHistory = mongoose.model('SessionHistory');
             await SessionHistory.create(sessionData);
-            logger.info(`Session saved: ${sessionId} for user ${socket.bambiUsername}`);
+            logger.info(`Session saved: ${sessionId} for user ${sessionData.username}`);
           } catch (dbError) {
             logger.error(`Database error saving session: ${dbError.message}`);
           }
