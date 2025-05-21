@@ -1,6 +1,3 @@
-// Use existing audio and arrays from window
-const _audioArray = window._audioArray;
-
 // TTS settings
 let currentVoice = 'af_bella'; // Default voice
 
