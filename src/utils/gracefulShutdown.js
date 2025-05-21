@@ -4,7 +4,7 @@ import Logger from './logger.js';
 const logger = new Logger('Shutdown');
 let isShuttingDown = false;
 
-// Main graceful shutdown for the server
+// Modify the main graceful shutdown function to force exit after 3 seconds
 export default async function gracefulShutdown(signal, server) {
   // Prevent multiple shutdown attempts
   if (isShuttingDown) {
@@ -15,27 +15,22 @@ export default async function gracefulShutdown(signal, server) {
   isShuttingDown = true;
   logger.info('Received shutdown signal');
 
-  // Set a 3 second timeout to force exit if shutdown takes too long
-  const forceExitTimeout = setTimeout(() => {
-    logger.warn('Forced exit after 3 second timeout');
+  // Force exit after exactly 3 seconds, no matter what
+  setTimeout(() => {
+    logger.warn('Forcing exit after 3 second timeout');
     process.exit(0);
   }, 3000);
   
+  // Attempt graceful shutdown in parallel, but don't wait for completion
   try {
-    // Run these tasks in parallel to speed up shutdown
-    await Promise.all([
-      closeServer(server),
-      performCleanupTasks(),
-      closeMongoConnection()
-    ]);
-
-    clearTimeout(forceExitTimeout);
-    logger.success('Graceful shutdown complete');
-    process.exit(0);
+    // Start the shutdown processes but don't await them
+    closeServer(server);
+    performCleanupTasks();
+    closeMongoConnection();
+    
+    logger.info('Shutdown processes initiated, waiting for timeout');
   } catch (error) {
-    clearTimeout(forceExitTimeout);
     logger.error('Error during shutdown:', error);
-    process.exit(1);
   }
 }
 
