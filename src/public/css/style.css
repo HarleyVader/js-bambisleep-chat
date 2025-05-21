@@ -414,28 +414,14 @@ button i,
 .trigger-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 5px;
-    margin-top: 10px;
     max-height: 100%;
     overflow-y: auto;
-    padding-right: 5px;
-}
-
-.trigger-toggle-item {
-    padding: 5px 8px;
-    margin: 0;
-    border-radius: 4px;
 }
 
 /* Make control panels smaller */
 .control-panel {
     padding: 5px 8px;
     margin-bottom: 5px;
-}
-
-.control-panel h3 {
-    font-size: 0.9rem;
-    margin: 5px 0;
 }
 
 /* Reduce the size of the XP progress bar */
@@ -854,10 +840,8 @@ a:hover {
     display: flex;
     align-items: center;
     background-color: rgba(var(--nav-color-rgb), 0.3);
-    padding: 10px 12px;
     border-radius: 6px;
     transition: all 0.2s ease;
-    border-left: 3px solid var(--button-color);
 }
 
 .trigger-toggle-item:hover {
