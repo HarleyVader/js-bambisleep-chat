@@ -5,11 +5,14 @@ const socket = window.BambiSocket ? window.BambiSocket.getSocket() : io();
 let token = '';
 
 const _textArray = [];
+const _audioArray = [];
 const textarea = document.getElementById('textarea');
 const submit = document.getElementById('submit');
 const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
-let currentMessage = '';
+const audio = document.getElementById('audio');
+let text = '';
+let state = true;
 
 socket.on('disconnect', () => {
     console.log('Disconnected');
@@ -32,26 +35,68 @@ socket.on('reconnect_failed', () => {
     console.error('Failed to reconnect to server');
 });
 
+// Handle message events from server
+socket.on('message', (message) => {
+    console.log('Received message:', message);
+    // Display in UI if needed
+});
+
+// Handle system messages
+socket.on('system', (data) => {
+    console.log('System message:', data.message);
+    if (data.type === 'error') {
+        showError(data.message);
+    } else {
+        showSystemMessage(data.message);
+    }
+});
+
+function showError(message) {
+    const errorMessage = document.getElementById('error-message');
+    if (errorMessage) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+        setTimeout(() => {
+            errorMessage.style.display = 'none';
+        }, 5000);
+    }
+}
+
+function showSystemMessage(message) {
+    const messageElement = document.createElement('p');
+    messageElement.className = 'system-message';
+    messageElement.textContent = message;
+    
+    if (response && response.firstChild) {
+        response.insertBefore(messageElement, response.firstChild);
+    } else if (response) {
+        response.appendChild(messageElement);
+    }
+}
+
 let debounceTimeout;
 let isProcessing = false;
-submit.addEventListener('click', (event) => {
-    event.preventDefault();
-    
-    // Prevent multiple rapid clicks
-    if (isProcessing) return;
-    
-    isProcessing = true;
-    clearTimeout(debounceTimeout);
-    
-    debounceTimeout = setTimeout(() => {
-        handleClick();
+
+if (submit) {
+    submit.addEventListener('click', (event) => {
+        event.preventDefault();
         
-        // Reset processing state after completion or timeout
-        setTimeout(() => {
-            isProcessing = false;
-        }, 1000); // Ensure at least 1 second between submissions
-    }, 200);
-});
+        // Prevent multiple rapid clicks
+        if (isProcessing) return;
+        
+        isProcessing = true;
+        clearTimeout(debounceTimeout);
+        
+        debounceTimeout = setTimeout(() => {
+            handleClick();
+            
+            // Reset processing state after completion or timeout
+            setTimeout(() => {
+                isProcessing = false;
+            }, 1000); // Ensure at least 1 second between submissions
+        }, 200);
+    });
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     // Fix cookie parsing to handle empty cookie strings
@@ -64,36 +109,44 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-    console.log("Site Cookies:", cookies);
     
     let username = decodeURIComponent(cookies['bambiname'] || 'anonBambi').replace(/%20/g, ' ');
-    if (username === 'anonBambi') {
-        socket.emit('username set');
-        showAuthModal('Please set your BambiName');
-    }
-    console.log("Username:", username);
     window.username = username;
 });
 
-// Add this function to safely handle the modal
-function showAuthModal(message) {
-    const modal = document.getElementById('bambiname-modal') || 
-                  document.getElementById('username-modal');
-    
-    if (modal) {
-        // Set any message if needed
-        const messageElement = modal.querySelector('.modal-message');
-        if (messageElement && message) {
-            messageElement.textContent = message;
-        }
-        modal.style.display = 'block';
-    } else {
-        console.error('Authentication modal not found');
+function arrayPush(array, text) {
+    if (Array.isArray(array)) {
+        array.push(text);
     }
+}
+
+function applyUppercaseStyle() {
+    // Get all message paragraphs in the response
+    const paragraphs = response ? response.querySelectorAll('p') : [];
+    
+    // Apply uppercase to trigger words
+    paragraphs.forEach(p => {
+        if (!p) return;
+        
+        // Get triggers from localStorage
+        const triggers = JSON.parse(localStorage.getItem('bambiActiveTriggers') || '[]');
+        if (!triggers || triggers.length === 0) return;
+        
+        // Replace trigger words with uppercase versions
+        let html = p.textContent;
+        triggers.forEach(trigger => {
+            const regex = new RegExp(`\\b${trigger}\\b`, 'gi');
+            html = html.replace(regex, match => `<strong>${match.toUpperCase()}</strong>`);
+        });
+        
+        p.innerHTML = html;
+    });
 }
 
 function flashTrigger(trigger, duration) {
     const container = document.getElementById("eye");
+    if (!container) return;
+    
     container.innerHTML = "";
     const span = document.createElement("span");
     span.textContent = trigger;
@@ -107,60 +160,100 @@ function flashTrigger(trigger, duration) {
 }
 
 function handleClick() {
-    const message = textarea.value.trim();
-    console.log('Message:', message);
+    const message = textarea ? textarea.value.trim() : '';
 
     if (message === '') {
         alert('Message cannot be empty');
         return;
     }
-    userPrompt.textContent = message;
+    
+    if (userPrompt) userPrompt.textContent = message;
     socket.emit('message', message);
 
-    textarea.value = '';
-    textarea.style.height = 'inherit';
+    if (textarea) {
+        textarea.value = '';
+        textarea.style.height = 'inherit';
+    }
 }
 
 socket.on('response', async (message) => {
-    const messageText = message;
-    const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
-    for (let sentence of sentences) {
-        _textArray.push(sentence);
-        console.log('Text array:', _textArray);
-        if (state) {
+    try {
+        // Handle both string and object responses
+        const messageText = typeof message === 'object' ? JSON.stringify(message) : message;
+        const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
+        
+        // Reset text array
+        _textArray.length = 0;
+        
+        // Add each sentence to the text array
+        for (let sentence of sentences) {
+            if (sentence.trim()) {
+                _textArray.push(sentence);
+            }
+        }
+        
+        // Display the full message in response area
+        const messageElement = document.createElement('p');
+        messageElement.textContent = messageText;
+        
+        if (response) {
+            if (response.firstChild) {
+                response.insertBefore(messageElement, response.firstChild);
+            } else {
+                response.appendChild(messageElement);
+            }
+        }
+        
+        // Apply uppercase style to triggers
+        applyUppercaseStyle();
+        
+        // Start processing audio if needed
+        if (state && _textArray.length > 0) {
             handleAudioEnded();
         }
-        sentence = '';
+    } catch (error) {
+        console.error('Error handling response:', error);
     }
-    applyUppercaseStyle();
 });
 
 function handleAudioEnded() {
-    if (_textArray.length > 0) {
-        state = false;
-        text = _textArray.shift();
-    } else if (_textArray.length === 0) {
+    try {
+        if (_textArray.length > 0) {
+            state = false;
+            text = _textArray.shift();
+            
+            if (text && text.trim()) {
+                arrayPush(_audioArray, text);
+                if (typeof do_tts === 'function') {
+                    do_tts(_audioArray);
+                }
+            } else {
+                // If text is empty, move to the next item
+                handleAudioEnded();
+            }
+        } else {
+            state = true;
+        }
+    } catch (error) {
+        console.error('Error in handleAudioEnded:', error);
         state = true;
-        return;
     }
-    arrayPush(_audioArray, text);
-    do_tts(_audioArray);
 }
 
 function handleAudioPlay() {
-    console.log('Audio is playing');
-    const duration = audio.duration * 1000;
-    new Promise(resolve => setTimeout(resolve, duration));
-    flashTrigger(text, duration);
-    const messageElement = document.createElement('p');
-    messageElement.textContent = text;
-    console.log('Text reply: ', messageElement.textContent);
-    if (response.firstChild) {
-        response.insertBefore(messageElement, response.firstChild);
-    } else {
-        response.appendChild(messageElement);
+    try {
+        if (!audio) return;
+        
+        console.log('Audio is playing');
+        const duration = audio.duration * 1000;
+        
+        // Flash trigger for the duration of the audio
+        if (text && text.trim()) {
+            flashTrigger(text, duration);
+        }
+    } catch (error) {
+        console.error('Error in handleAudioPlay:', error);
     }
-    applyUppercaseStyle();
 }
 
 // Fix audio event listeners by checking element exists
@@ -169,17 +262,25 @@ if (audio) {
     audio.addEventListener('play', handleAudioPlay);
 }
 
-// Clean up event listeners when appropriate (add to a cleanup function)
+// Clean up event listeners when appropriate
 function cleanup() {
     if (audio) {
         audio.removeEventListener('ended', handleAudioEnded);
         audio.removeEventListener('play', handleAudioPlay);
     }
-    submit.removeEventListener('click', handleClick);
+    if (submit) {
+        submit.removeEventListener('click', handleClick);
+    }
     socket.off('response');
     socket.off('reconnect');
     socket.off('disconnect');
+    socket.off('message');
+    socket.off('system');
 }
 
-// Call cleanup when needed (e.g., page unload)
+// Call cleanup when needed
 window.addEventListener('beforeunload', cleanup);
+
+// Make key functions available globally
+window.handleClick = handleClick;
+window.applyUppercaseStyle = applyUppercaseStyle;

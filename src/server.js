@@ -736,7 +736,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       }, 1000);
     });
 
-    // Set up worker message handlers BEFORE socket connections
+    // Set up worker message handlers
     lmstudio.on("message", async (msg) => {
       try {
         if (msg.type === "log") {
@@ -747,13 +747,8 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
 
           // Send response to client
           io.to(msg.socketId).emit("response", responseData);
-
-          // Award XP when AI responds
-          const socketData = socketStore.get(msg.socketId);
-          if (socketData && socketData.socket && socketData.socket.bambiData) {
-            // Ensure bambiData exists before attempting to award XP
-            xpSystem.awardXP(socketData.socket, 3, 'ai-response');
-          }
+          
+          // More code...
         } else if (msg.type === 'error') {
           // Handle error messages from worker
           logger.error(`Worker error for ${msg.socketId}: ${msg.error}`);
@@ -775,7 +770,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             io.to(msg.socketId).emit('xp:update', msg.data);
           }
         }
-        // Other message types handling...
+        // More code...
       } catch (error) {
         logger.error('Error in lmstudio message handler:', error);
       }
@@ -943,7 +938,12 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
         // Message handler
         socket.on("message", (message) => {
           try {
-            // Handle message code...
+            lmstudio.postMessage({
+              type: "message",
+              prompt: message,
+              socketId: socket.id,
+              username: socket.bambiUsername
+            });
           } catch (error) {
             logger.error('Error in message handler:', error);
             socket.emit('error', { message: 'Failed to process your message' });

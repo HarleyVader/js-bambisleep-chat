@@ -600,6 +600,9 @@ const systemControls = profile && profile.systemControls ? profile.systemControl
             break;
         }
       });
+
+      // From profile-system-controls.ejs
+      socket.emit('worker:settings:update', payload);
     }
     
     // Function to send settings to worker

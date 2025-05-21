@@ -295,9 +295,15 @@ parentPort.on('message', async (msg) => {
     }
   } catch (error) {
     logger.error('Error handling message:', error);
+    parentPort.postMessage({
+      type: "error",
+      error: error.message,
+      socketId: msg.socketId
+    });
   }
 });
 
+// Send response to server
 function handleResponse(response, socketId, username, wordCount) {
   parentPort.postMessage({
     type: "response",

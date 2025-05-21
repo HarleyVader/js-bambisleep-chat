@@ -147,6 +147,8 @@
                   if (window.bambiAudio && typeof window.bambiAudio.refreshTriggers === 'function') {
                     window.bambiAudio.refreshTriggers();
                   }
+
+                  socket.emit('triggers', { triggerNames: data.triggerNames });
                 }
               });
             }
