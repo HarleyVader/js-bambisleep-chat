@@ -400,7 +400,7 @@ async function initializeApp() {
     // Set up routes and APIs
     setupRoutes(app);
     
-    // Set up TTS routes - add this line to fix the missing TTS endpoint
+    // Add this line to fix the TTS API endpoint
     setupTTSRoutes(app);
 
     // Include client-side memory monitoring script
@@ -538,22 +538,22 @@ function setupTTSRoutes(app) {
     const text = req.query.text;
     const voice = req.query.voice || config.KOKORO_DEFAULT_VOICE;
 
-    if (typeof text !== 'string' || text.trim() === '') {
-      return res.status(400).json({ error: 'Invalid input: text must be a non-empty string' });
+    if (!text) {
+      return res.status(400).json({ error: 'Text parameter is required' });
     }
 
     try {
+      logger.info(`TTS request: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}" (voice: ${voice})`);
+      
       const response = await fetchTTSFromKokoro(text, voice);
-
-      // Set appropriate headers
+      
+      // Set headers and send audio data
       res.setHeader('Content-Type', 'audio/mpeg');
-      res.setHeader('Content-Length', response.data.length);
       res.setHeader('Cache-Control', 'no-cache');
-
-      // Send the audio data
       res.send(response.data);
     } catch (error) {
-      handleTTSError(error, res);
+      logger.error(`TTS error: ${error.message}`);
+      res.status(500).json({ error: 'Failed to generate speech' });
     }
   });
 }
