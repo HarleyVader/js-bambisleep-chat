@@ -6,6 +6,7 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
+import axios from 'axios';
 
 // Import modules
 import { Server as SocketIOServer } from 'socket.io';
@@ -365,6 +366,9 @@ async function initializeApp() {
 
     // Set up routes and APIs
     setupRoutes(app);
+    
+    // Add this line to set up TTS routes
+    setupTTSRoutes(app);
 
     // Include client-side memory monitoring script
     app.get('/js/memory-monitoring.js', (req, res) => {
