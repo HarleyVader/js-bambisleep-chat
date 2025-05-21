@@ -650,6 +650,64 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
 }
 
 /**
+ * Get profile data for a username
+ * @param {string} username - Username to look up
+ * @returns {Promise<Object|null>} - Profile data or null if not found
+ */
+async function getProfileData(username) {
+  try {
+    // Skip if username is invalid
+    if (!username || username === 'anonBambi') return null;
+    
+    // Ensure models are registered
+    await registerModels();
+    
+    // Get profile from database
+    const Profile = mongoose.models.Profile;
+    if (!Profile) {
+      logger.error('Profile model not available');
+      return null;
+    }
+    
+    // Find profile
+    const profile = await Profile.findOne({ username: username });
+    
+    // Convert to plain object to avoid mongoose issues
+    return profile ? profile.toObject() : null;
+  } catch (error) {
+    logger.error(`Error getting profile for ${username}: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Update profile XP
+ * @param {string} username - Username to update
+ * @param {number} xp - New XP amount
+ */
+async function updateProfileXP(username, xp) {
+  try {
+    // Skip if username is invalid
+    if (!username || username === 'anonBambi') return;
+    
+    // Ensure models are registered
+    await registerModels();
+    
+    const Profile = mongoose.models.Profile;
+    if (!Profile) return;
+    
+    // Update or create profile
+    await Profile.findOneAndUpdate(
+      { username },
+      { $set: { xp, lastUpdated: new Date() } },
+      { upsert: true }
+    );
+  } catch (error) {
+    logger.error(`Failed to update profile XP for ${username}: ${error.message}`);
+  }
+}
+
+/**
  * Set up Socket.io event handlers
  * 
  * @param {SocketIO.Server} io - Socket.io server instance
