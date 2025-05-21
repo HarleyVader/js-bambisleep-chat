@@ -36,8 +36,10 @@ async function registerModels() {
     // Import Profile model
     const ProfileModel = await import('./models/Profile.js');
     if (!mongoose.models.Profile) {
-      // Make sure we're getting the schema, not just the model
       const schema = ProfileModel.default || ProfileModel.schema || ProfileModel;
+      if (!schema) {
+        throw new Error('Could not extract schema from Profile model');
+      }
       mongoose.model('Profile', schema);
       logger.info('Profile model registered');
     }
@@ -45,17 +47,15 @@ async function registerModels() {
     // Import SessionHistory model
     const SessionHistory = await import('./models/SessionHistory.js');
     if (!mongoose.models.SessionHistory) {
-      // Make sure we're getting the schema, not just the model
       const schema = SessionHistory.default || SessionHistory.schema || SessionHistory;
+      if (!schema) {
+        throw new Error('Could not extract schema from SessionHistory model');
+      }
       mongoose.model('SessionHistory', schema);
       logger.info('SessionHistory model registered');
     }
-    
-    // Verify registrations worked
-    const modelCount = Object.keys(mongoose.models).length;
-    logger.info(`Total registered Mongoose models: ${modelCount}`);
   } catch (error) {
-    logger.error(`Failed to register models: ${error.message}`);
+    logger.error(`Model registration error: ${error.message}`);
   }
 }
 
@@ -599,32 +599,45 @@ function handleTTSError(error, res) {
  * @returns {Promise<AxiosResponse>} - Response containing audio data
  */
 async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
-  try {
-    logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+  // Add retry logic
+  let attempts = 0;
+  const maxAttempts = 3;
+  
+  while (attempts < maxAttempts) {
+    try {
+      logger.info(`TTS: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
 
-    const requestData = {
-      model: "kokoro",
-      voice: voice,
-      input: text,
-      response_format: "mp3"
-    };
+      const requestData = {
+        model: "kokoro",
+        voice: voice,
+        input: text,
+        response_format: "mp3"
+      };
 
-    const response = await axios({
-      method: 'post',
-      url: `${config.KOKORO_API_URL}/audio/speech`,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.KOKORO_API_KEY}`
-      },
-      data: requestData,
-      responseType: 'arraybuffer',
-      timeout: config.TTS_TIMEOUT || 30000
-    });
+      const response = await axios({
+        method: 'post',
+        url: `${config.KOKORO_API_URL}/audio/speech`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.KOKORO_API_KEY}`
+        },
+        data: requestData,
+        responseType: 'arraybuffer',
+        timeout: 10000 // Shorter timeout to fail fast
+      });
 
-    return response;
-  } catch (error) {
-    logger.error(`Error fetching TTS audio: ${error.message}`);
-    throw error;
+      return response;
+    } catch (error) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        logger.error(`Error fetching TTS audio after ${maxAttempts} attempts: ${error.message}`);
+        throw error;
+      }
+      
+      // Wait between retries
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      logger.info(`TTS retry ${attempts}/${maxAttempts}`);
+    }
   }
 }
 
@@ -716,17 +729,17 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
     // Function to update profile XP in DB
   async function updateProfileXP(username, xp) {
     try {
-      const db = await import('./config/db.js');
-      if (!db.default.hasConnection()) return;
+      // Register models first
+      await registerModels();
       
       const Profile = mongoose.model('Profile');
       await Profile.findOneAndUpdate(
         { username },
         { $set: { xp } },
-        { new: true, upsert: false }
+        { new: true, upsert: true } // Create if it doesn't exist
       );
     } catch (error) {
-      logger.error(`Failed to update profile XP: ${error.message}`);
+      logger.error(`Error updating XP for ${username}: ${error.message}`);
     }
   }
     // Function to get profile data for a user
@@ -884,10 +897,12 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       // System settings handling
       socket.on('system-settings', (settings) => {
         try {
+          // Make sure system-settings messages are handled
           lmstudio.postMessage({
             type: 'system-settings',
             settings,
-            socketId: socket.id
+            socketId: socket.id,
+            username: socket.bambiUsername
           });
         } catch (error) {
           logger.error('Error in system settings handler:', error);
@@ -898,18 +913,19 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
       socket.on('save-session', async (data) => {
         try {
           // Always generate a sessionId if it doesn't exist
-          const sessionId = data.sessionId || socket.bambiData?.sessionId || Math.random().toString(36).substring(2, 15);
+          const sessionId = data?.sessionId || 
+                            socket.bambiData?.sessionId || 
+                            `sess_${Math.random().toString(36).substring(2, 10)}`;
           
           // Store the sessionId on the socket
-          if (socket.bambiData) {
-            socket.bambiData.sessionId = sessionId;
-          }
+          if (!socket.bambiData) socket.bambiData = {};
+          socket.bambiData.sessionId = sessionId;
           
           // Ensure session data has all required fields
           const sessionData = {
             sessionId, // This is now guaranteed to exist
             username: socket.bambiUsername || 'anonymous',
-            content: data.content || [],
+            content: data?.content || [],
             createdAt: new Date()
           };
           
@@ -987,21 +1003,20 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             
             // Award XP when AI responds
             const socketData = socketStore.get(msg.socketId);
-            if (socketData && socketData.socket) {
+            if (socketData && socketData.socket && socketData.socket.bambiData) {
+              // Ensure bambiData exists before attempting to award XP
               xpSystem.awardXP(socketData.socket, 3, 'ai-response');
             }
           } else if (msg.type === 'error') {
             // Handle error messages from worker
             logger.error(`Worker error for socket ${msg.socketId}: ${msg.data}`);
             io.to(msg.socketId).emit("error", msg.data);
+          } else {
+            // Handle unknown message types
+            logger.debug(`Received message of type: ${msg.type}`);
           }
         } catch (error) {
           logger.error('Error in lmstudio message handler:', error);
-          
-          // Try to send an error message to the client
-          if (msg && msg.socketId) {
-            io.to(msg.socketId).emit("error", "Error processing response");
-          }
         }
       });
 
