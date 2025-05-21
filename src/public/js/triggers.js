@@ -366,6 +366,9 @@ function saveToggleStatesToLocalStorage() {
     
     localStorage.setItem('bambiTriggerDescriptions', JSON.stringify(triggerDescriptions));
     
+    // Add debug logging
+    console.log('Active triggers saved:', triggerNames);
+    
     // Sync with other pages if the sync function exists
     if (typeof window.syncTriggersWithPages === 'function') {
       window.syncTriggersWithPages(triggerNames, triggerDescriptions);

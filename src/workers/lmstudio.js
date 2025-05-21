@@ -298,14 +298,18 @@ parentPort.on('message', async (msg) => {
           if (verifyTriggerIntegrity(msg.triggers)) {
             if (msg.triggers.triggerNames) {
               // Store the string representation for consistency
+              const oldTriggers = triggers;
               triggers = msg.triggers.triggerNames;
+              logger.info(`Updated triggers from '${oldTriggers}' to '${triggers}'`);
             }
 
             // Store trigger details if available for enhanced brainwashing
             if (msg.triggers.triggerDetails) {
+              const oldDetails = triggerDetails ? triggerDetails.length : 0;
               triggerDetails = Array.isArray(msg.triggers.triggerDetails)
                 ? msg.triggers.triggerDetails
                 : [];
+              logger.info(`Updated trigger details from ${oldDetails} items to ${triggerDetails.length} items`);
               logger.info(`Received trigger details: ${formatTriggerDetails(triggerDetails)}`);
             }
           } else {
@@ -316,7 +320,9 @@ parentPort.on('message', async (msg) => {
         } else if (typeof msg.triggers === 'string') {
           // Verify data integrity for string format
           if (verifyTriggerIntegrity(msg.triggers)) {
+            const oldTriggers = triggers;
             triggers = msg.triggers;
+            logger.info(`Updated triggers from string: '${oldTriggers}' to '${triggers}'`);
           } else {
             logger.error('Received invalid trigger string, using defaults');
             triggers = 'BAMBI SLEEP';
@@ -827,6 +833,11 @@ async function selectLoadedModels(modelName) {
 }
 
 async function checkRole(collar, username, triggersInput) {
+  // Log the raw input data
+  logger.info(`checkRole called with username: ${username}`);
+  logger.info(`Raw triggers input: ${JSON.stringify(triggersInput).slice(0, 200)}`);
+  logger.info(`Collar active: ${Boolean(collar)}`);
+  
   // Add at the beginning of checkRole function
   if (!verifyTriggerIntegrity(triggersInput)) {
     logger.warning(`Using default triggers due to integrity check failure`);
@@ -945,6 +956,12 @@ Be cruel, harsh, and to the point. Focus on breaking down resistance through ver
 // Handle message with improved session management
 async function handleMessage(userPrompt, socketId, username) {
   try {
+    // Log active triggers when processing a message
+    logger.info(`Processing message from ${username} with active triggers: ${typeof triggers === 'string' ? triggers : JSON.stringify(triggers)}`);
+    if (triggerDetails && triggerDetails.length > 0) {
+      logger.info(`Trigger details: ${JSON.stringify(triggerDetails)}`);
+    }
+    
     // Check active sessions limit first
     if (Object.keys(sessionHistories).length >= MAX_ACTIVE_SESSIONS) {
       await collectGarbage(1);
@@ -966,12 +983,9 @@ async function handleMessage(userPrompt, socketId, username) {
       }
     } catch (modelError) {
       logger.error(`Failed to get model ID: ${modelError.message}`);
-      handleResponse("Sorry, I'm having trouble accessing the AI model. Please try again in a moment.", socketId, username, 0);
-      return;
-    }
-
-    // Generate system prompt
-    collarText = await checkRole(collar, username, triggers);
+      handleResponse("Sorry, I couldn't connect to the AI model. Please try again later.", socketId, username, 0);
+      return; // Add return statement to exit early
+    } // Add missing closing brace here
 
     // Initialize session if needed
     if (!sessionHistories[socketId]) {
@@ -1184,7 +1198,8 @@ function formatTriggerDetails(details) {
   }).join(', ');
 }
 
-// Add this function to verify data integrity in the worker
+// Modify verifyTriggerIntegrity function around line 1188 to add more detailed logging
+
 function verifyTriggerIntegrity(triggers) {
   // Check if triggers exist and are in a valid format
   if (!triggers) {
@@ -1192,24 +1207,29 @@ function verifyTriggerIntegrity(triggers) {
     return false;
   }
   
+  // Add detailed logging of the input
+  logger.info(`Verifying trigger integrity for: ${JSON.stringify(triggers).slice(0, 200)}`);
+  
   // Handle different potential formats of trigger data
   let triggerArray = [];
   
   if (typeof triggers === 'string') {
     // Handle comma-separated string format
     triggerArray = triggers.split(',').map(t => t.trim()).filter(Boolean);
+    logger.debug(`Parsed string triggers: ${triggerArray.join(', ')}`);
   } else if (Array.isArray(triggers)) {
     // Handle array format - could be array of strings or objects
     triggerArray = triggers.map(t => {
       return typeof t === 'string' ? t : (t && t.name ? t.name : null);
     }).filter(Boolean);
+    logger.debug(`Parsed array triggers: ${triggerArray.join(', ')}`);
   } else if (triggers.triggerNames) {
     // Handle object format with triggerNames property
     const names = typeof triggers.triggerNames === 'string' 
       ? triggers.triggerNames.split(',').map(t => t.trim()) 
       : triggers.triggerNames;
-    
     triggerArray = Array.isArray(names) ? names.filter(Boolean) : [];
+    logger.debug(`Parsed triggerNames object: ${triggerArray.join(', ')}`);
   } else {
     logger.warning('Unrecognized trigger format');
     return false;
