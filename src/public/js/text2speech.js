@@ -16,10 +16,10 @@ function setVoice(voice) {
 function arrayPush(_audioArray, text) {
   document.querySelector("#audio").hidden = true;
   
-  // Use shorter text chunks if text is very long
+  // Further reduce text length to avoid timeouts
   let processedText = text;
-  if (text.length > 500) {
-    processedText = text.substring(0, 500);
+  if (text.length > 200) {
+    processedText = text.substring(0, 200);
     console.log("Text truncated for TTS to avoid timeouts");
   }
   
@@ -40,93 +40,54 @@ function arrayShift(_audioArray) {
 // Process TTS queue
 async function do_tts(_audioArray) {
   document.querySelector("#message").textContent = "Synthesizing...";
-
+  
   let currentURL = arrayShift(_audioArray);
   if (!currentURL) return;
   
+  // Create an audio element each time instead of reusing
+  const tempAudio = new Audio();
+  
   try {
-    // Single attempt with shorter timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
-    
-    const response = await fetch(currentURL, {
-      signal: controller.signal,
-      credentials: 'same-origin',
-      headers: {'Accept': 'audio/mpeg'}
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    
-    audio.src = audioUrl;
-    audio.load();
-    
-    // Set up audio event handlers
-    audio.onloadedmetadata = function() {
+    tempAudio.src = currentURL;
+    tempAudio.onloadeddata = () => {
       document.querySelector("#message").textContent = "Playing...";
-      audio.play().catch(e => {
-        document.querySelector("#message").textContent = "Error playing audio";
-        processNextAudio(_audioArray, audioUrl);
-      });
+      tempAudio.play();
     };
     
-    audio.onended = function() {
-      document.querySelector("#message").textContent = "Finished!";
-      processNextAudio(_audioArray, audioUrl);
+    tempAudio.onended = () => {
+      document.querySelector("#message").textContent = "Finished";
+      // Process next in queue after a small delay
+      if (_audioArray.length > 0) {
+        setTimeout(() => do_tts(_audioArray), 500);
+      }
     };
     
-    audio.onerror = function() {
-      document.querySelector("#message").textContent = "Audio error";
-      processNextAudio(_audioArray, audioUrl);
+    tempAudio.onerror = () => {
+      console.log("Audio error, skipping to next");
+      document.querySelector("#message").textContent = "TTS error, skipping";
+      
+      if (_audioArray.length > 0) {
+        setTimeout(() => do_tts(_audioArray), 500);
+      }
     };
-    
   } catch (error) {
-    console.error("TTS fetch failed:", error.message);
+    console.log("TTS error:", error);
     document.querySelector("#message").textContent = "TTS failed";
     
-    // Continue with next item
     if (_audioArray.length > 0) {
       setTimeout(() => do_tts(_audioArray), 500);
     }
   }
 }
 
-// Process next audio in queue
-function processNextAudio(_audioArray, currentUrl) {
-  if (currentUrl) {
-    URL.revokeObjectURL(currentUrl);
-  }
-  
-  if (_audioArray.length > 0) {
-    setTimeout(() => do_tts(_audioArray), 500);
-  }
-}
-
-// Get available voices
+// Get available voices - simplified without timeout handling
 async function fetchAvailableVoices() {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    const response = await fetch('/api/tts/voices', {
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    
+    const response = await fetch('/api/tts/voices');
+    if (!response.ok) return [];
     return await response.json();
   } catch (error) {
-    console.error("Error fetching voices:", error);
+    console.log("Voice fetch error:", error);
     return [];
   }
 }
