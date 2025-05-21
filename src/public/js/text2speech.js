@@ -1,5 +1,4 @@
 // Use existing audio and arrays from window
-const audio = window.audio;
 const _audioArray = window._audioArray;
 
 // TTS settings
