@@ -78,12 +78,36 @@
       <%- include('../views/partials/footer.ejs') %>
         <!-- Make sure these scripts appear in exactly this order -->
         <script src="/socket.io/socket.io.js"></script>
+        <script>
+          // Initialize socket at the global level
+          window.socket = io();
+
+          // Log socket connection
+          window.socket.on('connect', function() {
+            console.log('Socket.io connected with ID:', window.socket.id);
+          });
+
+          // Handle reconnection
+          window.socket.on('reconnect', function() {
+            console.log('Socket.io reconnected');
+            // Re-initialize as needed
+            if (typeof initProfileAndTriggers === 'function') {
+              initProfileAndTriggers();
+            }
+          });
+
+          // Handle disconnect
+          window.socket.on('disconnect', function() {
+            console.log('Socket.io disconnected');
+          });
+        </script>
         <script src="js/aigf-core.js"></script>
         <script src="js/psychodelic-trigger-mania.js"></script>
         <script src="js/text2speech.js"></script>
         <script src="js/responsive.js"></script>
         <script>
           document.addEventListener("DOMContentLoaded", () => {
+            // Use window.socket instead of socket
             // Ensure socket is initialized before using it
             const initProfileAndTriggers = () => {
               const modal = document.getElementById('username-modal');
@@ -103,7 +127,7 @@
               document.body.setAttribute('data-username', username);
 
               // Only load profile triggers if socket exists and is connected
-              if (window.username && typeof socket !== 'undefined' && socket.connected) {
+              if (window.username && window.socket && window.socket.connected) {
                 loadProfileTriggers(window.username);
               }
             };
@@ -119,7 +143,7 @@
             // Only initialize triggers after socket is ready
             // Use a short delay to ensure socket.io has initialized
             setTimeout(() => {
-              if (typeof socket !== 'undefined') {
+              if (window.socket) {
                 initProfileAndTriggers();
               } else {
                 console.error("Socket not available - check script loading order");
@@ -128,16 +152,16 @@
 
             // Helper function to load profile triggers
             function loadProfileTriggers(username) {
-              if (typeof socket === 'undefined' || !socket.connected) {
+              if (!window.socket || !window.socket.connected) {
                 console.log("Socket not connected, can't load profile triggers");
                 return;
               }
               
               // Request active triggers from server for this profile
-              socket.emit('get-profile-triggers', { username });
+              window.socket.emit('get-profile-triggers', { username });
               
               // Listen for trigger data from server
-              socket.on('profile-triggers', function(data) {
+              window.socket.on('profile-triggers', function(data) {
                 if (data && data.triggerNames && Array.isArray(data.triggerNames)) {
                   console.log("Received profile triggers:", data.triggerNames);
                   
@@ -149,7 +173,7 @@
                     window.bambiAudio.refreshTriggers();
                   }
 
-                  socket.emit('triggers', { triggerNames: data.triggerNames });
+                  window.socket.emit('triggers', { triggerNames: data.triggerNames });
                 }
               });
             }
@@ -160,8 +184,8 @@
               const message = messageInput.value.trim();
 
               if (message && window.username) {
-                if (typeof socket !== 'undefined' && socket.connected) {
-                  socket.emit("chat message", {
+                if (window.socket && window.socket.connected) {
+                  window.socket.emit("chat message", {
                     data: message,
                     username: window.username
                   });
@@ -173,6 +197,10 @@
                 }
               }
             });
+            
+            // Make functions available globally
+            window.initProfileAndTriggers = initProfileAndTriggers;
+            window.loadProfileTriggers = loadProfileTriggers;
           });
         </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>

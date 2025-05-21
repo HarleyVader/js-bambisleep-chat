@@ -1,6 +1,7 @@
 // BambiSleep Chat Client
 // This is a client-side JavaScript code for a chat application that interacts with a server using WebSocket.
-const socket = window.BambiSocket ? window.BambiSocket.getSocket() : io();
+const socket = window.socket || io();
+window.socket = socket;
 
 let token = '';
 
@@ -11,8 +12,11 @@ const submit = document.getElementById('submit');
 const response = document.getElementById('response');
 const userPrompt = document.getElementById('user-prompt');
 const audio = document.getElementById('audio');
+window.audio = audio; // Make audio available globally
 let text = '';
 let state = true;
+window._textArray = _textArray; // Make text array available globally
+window._audioArray = _audioArray; // Make audio array available globally
 
 socket.on('disconnect', () => {
     console.log('Disconnected');

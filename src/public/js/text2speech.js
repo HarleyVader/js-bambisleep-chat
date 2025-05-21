@@ -1,7 +1,5 @@
-let state = true;
-let _audioArray = [];
-let duration = 0;
-const audio = document.getElementById('audio');
+const duration = 0;
+const audio = document.getElementById('audio') || window.audio;
 let currentVoice = 'af_bella'; // Default voice from app.js (KOKORO_DEFAULT_VOICE)
 
 /**
@@ -17,29 +15,28 @@ function setVoice(voice) {
 
 /**
  * Push text to TTS queue and create URL 
- * @param {Array} _audioArray - Array to store audio URLs
- * @param {string} e - Text to convert to speech
  * @returns {Array} - Updated audio array
  */
-function arrayPush(_audioArray, e) {
-  document.querySelector("#audio").hidden = true;
+function arrayPush(array, e) {
+  if (document.querySelector("#audio")) {
+    document.querySelector("#audio").hidden = true;
+  }
   
   // Update the URL to match the route structure in server.js
   // Try using a relative path that works with both server configurations
   let URL = `/api/tts?text=${encodeURIComponent(e)}&voice=${encodeURIComponent(currentVoice)}`;
-  _audioArray.push(URL);
+  array.push(URL);
   
-  return _audioArray;
+  return array;
 }
 
 /**
  * Shift and return first URL from audio array
- * @param {Array} _audioArray - Array containing audio URLs
  * @returns {string|undefined} - URL for audio or undefined
  */
-function arrayShift(_audioArray) {
-  if (_audioArray.length > 0 && audio !== null) {
-    let _currentURL = _audioArray.shift();
+function arrayShift(array) {
+  if (array.length > 0 && audio !== null) {
+    let _currentURL = array.shift();
     console.log("Processing URL:", _currentURL);
     return _currentURL;
   }
@@ -48,12 +45,12 @@ function arrayShift(_audioArray) {
 
 /**
  * Process TTS queue and play audio
- * @param {Array} _audioArray - Array containing audio URLs
  */
-async function do_tts(_audioArray) {
-  document.querySelector("#message").textContent = "Synthesizing...";
+async function do_tts(array) {
+  const messageEl = document.querySelector("#message");
+  if (messageEl) messageEl.textContent = "Synthesizing...";
 
-  let currentURL = arrayShift(_audioArray);
+  let currentURL = arrayShift(array);
   if (!currentURL) return;
   
   let retries = 2; // Number of retry attempts
@@ -85,60 +82,62 @@ async function do_tts(_audioArray) {
       const audioUrl = URL.createObjectURL(audioBlob);
       
       // Set audio source to blob URL
-      audio.src = audioUrl;
-      console.log("Audio source set:", audioUrl);
-      
-      audio.load();
-      
-      // Set up event handlers
-      audio.onloadedmetadata = function() {
-        console.log("Audio metadata loaded, duration:", audio.duration);
-        document.querySelector("#message").textContent = "Playing...";
-        audio.play().catch(e => {
-          console.error("Error playing audio:", e);
-          document.querySelector("#message").textContent = "Error playing audio: " + e.message;
-        });
-      };
-      
-      audio.onended = function() {
-        console.log("Audio playback ended");
-        document.querySelector("#message").textContent = "Finished!";
+      if (audio) {
+        audio.src = audioUrl;
+        console.log("Audio source set:", audioUrl);
         
-        // Release the blob URL to free memory
-        URL.revokeObjectURL(audioUrl);
+        audio.load();
         
-        // Process next item in queue if any
-        if (_audioArray.length > 0) {
-          do_tts(_audioArray);
-        }
-      };
-      
-      audio.onerror = function(e) {
-        console.error("Audio error:", e);
-        console.error("Error code:", audio.error ? audio.error.code : "unknown");
-        console.error("Error message:", audio.error ? audio.error.message : "unknown");
-        document.querySelector("#message").textContent = "Error playing audio: " + 
-          (audio.error ? audio.error.message : "Unknown error");
+        // Set up event handlers
+        audio.onloadedmetadata = function() {
+          console.log("Audio metadata loaded, duration:", audio.duration);
+          if (messageEl) messageEl.textContent = "Playing...";
+          audio.play().catch(e => {
+            console.error("Error playing audio:", e);
+            if (messageEl) messageEl.textContent = "Error playing audio: " + e.message;
+          });
+        };
         
-        // Release the blob URL on error
-        URL.revokeObjectURL(audioUrl);
+        audio.onended = function() {
+          console.log("Audio playback ended");
+          if (messageEl) messageEl.textContent = "Finished!";
+          
+          // Release the blob URL to free memory
+          URL.revokeObjectURL(audioUrl);
+          
+          // Process next item in queue if any
+          if (array.length > 0) {
+            do_tts(array);
+          }
+        };
         
-        // Process next item in queue if any
-        if (_audioArray.length > 0) {
-          do_tts(_audioArray);
-        }
-      };
+        audio.onerror = function(e) {
+          console.error("Audio error:", e);
+          console.error("Error code:", audio.error ? audio.error.code : "unknown");
+          console.error("Error message:", audio.error ? audio.error.message : "unknown");
+          if (messageEl) messageEl.textContent = "Error playing audio: " + 
+            (audio.error ? audio.error.message : "Unknown error");
+          
+          // Release the blob URL on error
+          URL.revokeObjectURL(audioUrl);
+          
+          // Process next item in queue if any
+          if (array.length > 0) {
+            do_tts(array);
+          }
+        };
+      }
       
       break; // Exit the retry loop on success
       
     } catch (error) {
       if (retries <= 0) {
         console.error("Fetch error:", error);
-        document.querySelector("#message").textContent = "Error fetching audio: " + error.message;
+        if (messageEl) messageEl.textContent = "Error fetching audio: " + error.message;
         
         // Process next item in queue if any
-        if (_audioArray.length > 0) {
-          do_tts(_audioArray);
+        if (array.length > 0) {
+          do_tts(array);
         }
       } else {
         retries--;
