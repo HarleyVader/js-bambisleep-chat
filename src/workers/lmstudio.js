@@ -233,7 +233,7 @@ parentPort.on('message', async (msg) => {
         // Process incoming user message
         await handleMessage(msg.data, msg.socketId, msg.username);
         break;
-
+        
       case "triggers":
         // Handle trigger data as array
         if (msg.data) {
@@ -250,6 +250,22 @@ parentPort.on('message', async (msg) => {
             triggerDetails = msg.data.triggerDetails || [];
             logger.info(`Active triggers set: ${JSON.stringify(triggers)}`);
           }
+
+          // Store triggers in session metadata if available
+          if (sessionHistories[msg.socketId]) {
+            if (!sessionHistories[msg.socketId].metadata) {
+              sessionHistories[msg.socketId].metadata = {};
+            }
+            sessionHistories[msg.socketId].metadata.triggers = triggers;
+            logger.debug(`Updated session metadata with triggers for ${msg.socketId}`);
+          }
+
+          // Notify client that triggers were registered
+          parentPort.postMessage({
+            type: "trigger-debug",
+            data: `Worker received ${Array.isArray(triggers) ? triggers.length : 0} triggers`,
+            socketId: msg.socketId
+          });
         }
         break;
 
