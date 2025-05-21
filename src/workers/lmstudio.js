@@ -627,14 +627,14 @@ async function selectLoadedModels(modelName) {
 
 async function checkRole(collar, username, triggers) {  // Load all trigger details from config
   const triggersPath = path.resolve(__dirname, '../config/triggers.json');
-  let allTriggers = [];
+  let allTriggers = triggers;
   if (!fs.existsSync(triggersPath)) {
     allTriggers = JSON.parse(fs.readFileSync(triggersPath, 'utf8')).triggers;
   }
 
   // Match trigger names to descriptions
   let selectedTriggers = allTriggers.filter(t =>
-    triggerNames.some(name => t.name.toUpperCase() === name.toUpperCase())
+    triggers.some(name => t.name.toUpperCase() === name.toUpperCase())
   );
 
   // Default to core triggers if none found

@@ -657,221 +657,158 @@ async function fetchTTSFromKokoro(text, voice = config.KOKORO_DEFAULT_VOICE) {
  * @param {string[]} filteredWords - List of words to filter
  */
 function setupSocketHandlers(io, socketStore, filteredWords) {
-  // Initialize the LMStudio worker thread
-  const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
+  try {
+    // Initialize the LMStudio worker thread
+    const lmstudio = new Worker(path.join(__dirname, 'workers/lmstudio.js'));
 
-  // Handle worker exit
-  lmstudio.on('exit', (code) => {
-    logger.error(`Worker thread exited with code ${code}`);
+    // Handle worker exit
+    lmstudio.on('exit', (code) => {
+      logger.error(`Worker thread exited with code ${code}`);
 
-    // Notify all connected clients
-    if (io) {
-      io.emit('system', {
-        message: 'AI service restarting, please wait...'
-      });
-    }
-
-    // Start a new worker after a short delay
-    setTimeout(() => {
-      setupSocketHandlers(io, socketStore, filteredWords);
-    }, 1000);
-  });
-
-  // Simple filter function to avoid bad words
-  function filter(content) {
-    if (!content || !filteredWords || !filteredWords.length) return content;
-
-    if (typeof content !== 'string') {
-      content = String(content);
-    }
-
-    return content
-      .split(' ')
-      .map(word => filteredWords.includes(word.toLowerCase()) ? '[filtered]' : word)
-      .join(' ')
-      .trim();
-  }
-
-  // XP system functions
-  const xpSystem = {
-    requirements: [100, 250, 450, 700, 1200],
-
-    calculateLevel(xp) {
-      let level = 0;
-      while (level < this.requirements.length && xp >= this.requirements[level]) {
-        level++;
-      }
-      return level;
-    },
-
-    awardXP(socket, amount, reason = 'interaction') {
-      if (!socket.bambiData) return;
-
-      const oldXP = socket.bambiData.xp || 0;
-      const oldLevel = this.calculateLevel(oldXP);
-
-      // Add XP
-      socket.bambiData.xp = oldXP + amount;
-      const newLevel = this.calculateLevel(socket.bambiData.xp);
-
-      // Notify client of XP gain
-      socket.emit('xp:update', {
-        xp: socket.bambiData.xp,
-        level: newLevel,
-        xpEarned: amount,
-        reason: reason
-      });
-
-      // Check for level up
-      if (newLevel > oldLevel) {
-        socket.emit('level-up', { level: newLevel });
-        logger.info(`User ${socket.bambiUsername} leveled up to ${newLevel}`);
-      }
-
-      // Save to database if available
-      if (socket.bambiUsername && socket.bambiUsername !== 'anonBambi') {
-        updateProfileXP(socket.bambiUsername, socket.bambiData.xp);
-      }
-    }
-  };
-  // Function to update profile XP in DB
-  async function updateProfileXP(username, xp) {
-    try {
-      // Register models first
-      await registerModels();
-
-      const Profile = mongoose.model('Profile');
-      await Profile.findOneAndUpdate(
-        { username },
-        { $set: { xp } },
-        { new: true, upsert: true } // Create if it doesn't exist
-      );
-    } catch (error) {
-      logger.error(`Error updating XP for ${username}: ${error.message}`);
-    }
-  }
-  // Function to get profile data for a user
-  async function getProfileData(username) {
-    try {
-      const db = await import('./config/db.js');
-      if (!db.default.hasConnection()) return null;
-
-      const Profile = mongoose.model('Profile');
-      return await Profile.findOne({ username });
-    } catch (error) {
-      logger.error(`Failed to get profile data: ${error.message}`);
-      return null;
-    }
-  }
-
-  // Add this helper function to fix session saving
-
-  // Simple function to ensure sessions have an ID before saving
-  function ensureSessionId(session) {
-    if (!session) return null;
-
-    // Use existing id or create a new one
-    if (!session.sessionId && !session.id) {
-      session.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    } else if (session.id && !session.sessionId) {
-      session.sessionId = session.id;
-    }
-
-    return session;
-  }
-
-  io.on('connection', (socket) => {
-    try {
-      // Get username from handshake
-      const cookies = socket.handshake.headers.cookie || '';
-      const cookiePairs = cookies.split(';').map(cookie => cookie.trim().split('='));
-      const cookieObj = Object.fromEntries(cookiePairs.map(pair => [pair[0], pair[1] || '']));
-
-      const username = cookieObj.bambiname
-        ? decodeURIComponent(cookieObj.bambiname)
-        : 'anonBambi';
-
-      // Store socket reference
-      socketStore.set(socket.id, { socket, username });
-
-      logger.info(`Socket connected: ${socket.id} - User: ${username}`);
-
-      // Initialize user data
-      socket.bambiUsername = username;
-      socket.bambiData = {
-        xp: 0,
-        username: username,
-        sessionId: null
-      };
-
-      if (username === 'anonBambi') {
-        socket.emit('prompt username');
-      } else {
-        // Load profile data if user is not anonymous
-        getProfileData(username).then(profile => {
-          if (profile) {
-            socket.bambiData.xp = profile.xp || 0;
-            socket.emit('profile-data', { profile });
-            socket.emit('profile-update', {
-              xp: profile.xp,
-              level: xpSystem.calculateLevel(profile.xp || 0)
-            });
-          }
+      // Notify all connected clients
+      if (io) {
+        io.emit('system', {
+          message: 'AI service restarting, please wait...'
         });
       }
 
-      // Add socket to global store
-      socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
-      logger.info(`Client connected: ${socket.id} sockets: ${socketStore.size}`);
+      // Start a new worker after a short delay
+      setTimeout(() => {
+        setupSocketHandlers(io, socketStore, filteredWords);
+      }, 1000);
+    });
 
-      // Chat message handling
-      socket.on('chat message', async (msg) => {
-        try {
-          const timestamp = new Date().toISOString();
+    // Simple filter function to avoid bad words
+    function filter(content) {
+      if (!content || !filteredWords || !filteredWords.length) return content;
 
-          // Create message object with consistent structure
-          const messageData = {
-            username: socket.bambiUsername || 'anonymous',
-            data: msg.data,
-            timestamp: timestamp
-          };
+      if (typeof content !== 'string') {
+        content = String(content);
+      }
 
-          // Broadcast message to all connected clients first for responsiveness
-          io.emit('chat message', messageData);
+      return content
+        .split(' ')
+        .map(word => filteredWords.includes(word.toLowerCase()) ? '[filtered]' : word)
+        .join(' ')
+        .trim();
+    }
 
-          // Then save to database asynchronously
-          try {
-            // Ensure ChatMessage model is available
-            const ChatMessage = mongoose.models.ChatMessage || (await import('./models/ChatMessage.js')).default;
+    // XP system functions
+    const xpSystem = {
+      requirements: [100, 250, 450, 700, 1200],
 
-            // Save message to database
-            const savedMessage = await ChatMessage.saveMessage(messageData);
-            logger.debug(`Chat message saved to database: ${savedMessage._id}`);
-
-            // Give XP for chat interactions
-            xpSystem.awardXP(socket, 1, 'chat');
-          } catch (dbError) {
-            // Log database error but don't disrupt the user experience
-            logger.error(`Failed to save chat message: ${dbError.message}`, {
-              username: messageData.username,
-              messageLength: messageData.data?.length || 0
-            });
-          }
-        } catch (error) {
-          logger.error('Error in chat message handler:', error);
+      calculateLevel(xp) {
+        let level = 0;
+        while (level < this.requirements.length && xp >= this.requirements[level]) {
+          level++;
         }
-      });
+        return level;
+      },
 
-      // Username setting
-      socket.on('set username', (username) => {
-        try {
-          const encodedUsername = encodeURIComponent(username);
-          socket.handshake.headers.cookie = `bambiname=${encodedUsername}; path=/`;
-          socket.bambiUsername = username;
-          socket.emit('username set', username);
-          logger.info('Username set:', username);
+      awardXP(socket, amount, reason = 'interaction') {
+        if (!socket.bambiData) return;
 
-          // Load profile data for the new username
+        const oldXP = socket.bambiData.xp || 0;
+        const oldLevel = this.calculateLevel(oldXP);
+
+        // Add XP
+        socket.bambiData.xp = oldXP + amount;
+        const newLevel = this.calculateLevel(socket.bambiData.xp);
+
+        // Notify client of XP gain
+        socket.emit('xp:update', {
+          xp: socket.bambiData.xp,
+          level: newLevel,
+          xpEarned: amount,
+          reason: reason
+        });
+
+        // Check for level up
+        if (newLevel > oldLevel) {
+          socket.emit('level-up', { level: newLevel });
+          logger.info(`User ${socket.bambiUsername} leveled up to ${newLevel}`);
+        }
+
+        // Save to database if available
+        if (socket.bambiUsername && socket.bambiUsername !== 'anonBambi') {
+          updateProfileXP(socket.bambiUsername, socket.bambiData.xp);
+        }
+      }
+    };
+    // Function to update profile XP in DB
+    async function updateProfileXP(username, xp) {
+      try {
+        // Register models first
+        await registerModels();
+
+        const Profile = mongoose.model('Profile');
+        await Profile.findOneAndUpdate(
+          { username },
+          { $set: { xp } },
+          { new: true, upsert: true } // Create if it doesn't exist
+        );
+      } catch (error) {
+        logger.error(`Error updating XP for ${username}: ${error.message}`);
+      }
+    }
+    // Function to get profile data for a user
+    async function getProfileData(username) {
+      try {
+        const db = await import('./config/db.js');
+        if (!db.default.hasConnection()) return null;
+
+        const Profile = mongoose.model('Profile');
+        return await Profile.findOne({ username });
+      } catch (error) {
+        logger.error(`Failed to get profile data: ${error.message}`);
+        return null;
+      }
+    }
+
+    // Add this helper function to fix session saving
+
+    // Simple function to ensure sessions have an ID before saving
+    function ensureSessionId(session) {
+      if (!session) return null;
+
+      // Use existing id or create a new one
+      if (!session.sessionId && !session.id) {
+        session.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      } else if (session.id && !session.sessionId) {
+        session.sessionId = session.id;
+      }
+
+      return session;
+    }
+
+    io.on('connection', (socket) => {
+      try {
+        // Get username from handshake
+        const cookies = socket.handshake.headers.cookie || '';
+        const cookiePairs = cookies.split(';').map(cookie => cookie.trim().split('='));
+        const cookieObj = Object.fromEntries(cookiePairs.map(pair => [pair[0], pair[1] || '']));
+
+        const username = cookieObj.bambiname
+          ? decodeURIComponent(cookieObj.bambiname)
+          : 'anonBambi';
+
+        // Store socket reference
+        socketStore.set(socket.id, { socket, username });
+
+        logger.info(`Socket connected: ${socket.id} - User: ${username}`);
+
+        // Initialize user data
+        socket.bambiUsername = username;
+        socket.bambiData = {
+          xp: 0,
+          username: username,
+          sessionId: null
+        };
+
+        if (username === 'anonBambi') {
+          socket.emit('prompt username');
+        } else {
+          // Load profile data if user is not anonymous
           getProfileData(username).then(profile => {
             if (profile) {
               socket.bambiData.xp = profile.xp || 0;
@@ -882,148 +819,219 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
               });
             }
           });
-        } catch (error) {
-          logger.error('Error in set username handler:', error);
         }
-      });
 
-      // Get profile data
-      socket.on('get-profile-data', async (data, callback) => {
-        try {
-          const profile = await getProfileData(data.username);
-          callback({ success: true, profile });
-        } catch (error) {
-          logger.error('Error getting profile data:', error);
-          callback({ success: false, error: 'Failed to load profile data' });
-        }
-      });
+        // Add socket to global store
+        socketStore.set(socket.id, { socket, worker: lmstudio, files: [] });
+        logger.info(`Client connected: ${socket.id} sockets: ${socketStore.size}`);
 
-      // Update the LMStudio message handler to set sessionId properly
-      socket.on("message", (message) => {
-        try {
-          const filteredMessage = filter(message);
+        // Chat message handling
+        socket.on('chat message', async (msg) => {
+          try {
+            const timestamp = new Date().toISOString();
 
-          // Create session ID if none exists
-          if (!socket.bambiData.sessionId) {
-            socket.bambiData.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-            socket.emit('session-created', { sessionId: socket.bambiData.sessionId });
+            // Create message object with consistent structure
+            const messageData = {
+              username: socket.bambiUsername || 'anonymous',
+              data: msg.data,
+              timestamp: timestamp
+            };
+
+            // Broadcast message to all connected clients first for responsiveness
+            io.emit('chat message', messageData);
+
+            // Then save to database asynchronously
+            try {
+              // Ensure ChatMessage model is available
+              const ChatMessage = mongoose.models.ChatMessage || (await import('./models/ChatMessage.js')).default;
+
+              // Save message to database
+              const savedMessage = await ChatMessage.saveMessage(messageData);
+              logger.debug(`Chat message saved to database: ${savedMessage._id}`);
+
+              // Give XP for chat interactions
+              xpSystem.awardXP(socket, 1, 'chat');
+            } catch (dbError) {
+              // Log database error but don't disrupt the user experience
+              logger.error(`Failed to save chat message: ${dbError.message}`, {
+                username: messageData.username,
+                messageLength: messageData.data?.length || 0
+              });
+            }
+          } catch (error) {
+            logger.error('Error in chat message handler:', error);
           }
-
-          lmstudio.postMessage({
-            type: "message",
-            data: filteredMessage,
-            socketId: socket.id,
-            username: socket.bambiUsername,
-            sessionId: socket.bambiData.sessionId
-          });
-
-          // Award XP for AI interactions
-          xpSystem.awardXP(socket, 5, 'ai-prompt');
-
-          // Notify about conversation start
-          socket.emit('conversation-start');
-        } catch (error) {
-          logger.error('Error in message handler:', error);
-          socket.emit('error', { message: 'Failed to process your message' });
-        }
-      });
-
-      socket.on('triggers', async (data) => {
-        logger.info('Received triggers:', data);
-        lmstudio.postMessage({
-          type: 'triggers',
-          triggers: data.triggerNames,
-          socketId: socket.id
         });
 
-        // Collar text handling
-        socket.on('collar', async (collarData) => {
+        // Username setting
+        socket.on('set username', (username) => {
           try {
-            const filteredCollar = filter(collarData.data);
+            const encodedUsername = encodeURIComponent(username);
+            socket.handshake.headers.cookie = `bambiname=${encodedUsername}; path=/`;
+            socket.bambiUsername = username;
+            socket.emit('username set', username);
+            logger.info('Username set:', username);
+
+            // Load profile data for the new username
+            getProfileData(username).then(profile => {
+              if (profile) {
+                socket.bambiData.xp = profile.xp || 0;
+                socket.emit('profile-data', { profile });
+                socket.emit('profile-update', {
+                  xp: profile.xp,
+                  level: xpSystem.calculateLevel(profile.xp || 0)
+                });
+              }
+            });
+          } catch (error) {
+            logger.error('Error in set username handler:', error);
+          }
+        });
+
+        // Get profile data
+        socket.on('get-profile-data', async (data, callback) => {
+          try {
+            const profile = await getProfileData(data.username);
+            callback({ success: true, profile });
+          } catch (error) {
+            logger.error('Error getting profile data:', error);
+            callback({ success: false, error: 'Failed to load profile data' });
+          }
+        });
+
+        // Update the LMStudio message handler to set sessionId properly
+        socket.on("message", (message) => {
+          try {
+            const filteredMessage = filter(message);
+
+            // Create session ID if none exists
+            if (!socket.bambiData.sessionId) {
+              socket.bambiData.sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+              socket.emit('session-created', { sessionId: socket.bambiData.sessionId });
+            }
+
             lmstudio.postMessage({
-              type: 'collar',
-              data: filteredCollar,
-              socketId: socket.id
+              type: "message",
+              data: filteredMessage,
+              socketId: socket.id,
+              username: socket.bambiUsername,
+              sessionId: socket.bambiData.sessionId
             });
 
-            // Emit to target socket if specified
-            if (collarData.socketId) {
-              io.to(collarData.socketId).emit('collar', filteredCollar);
-            }
+            // Award XP for AI interactions
+            xpSystem.awardXP(socket, 5, 'ai-prompt');
 
-            // Award XP for collar usage
-            xpSystem.awardXP(socket, 2, 'collar');
+            // Notify about conversation start
+            socket.emit('conversation-start');
           } catch (error) {
-            logger.error('Error in collar handler:', error);
+            logger.error('Error in message handler:', error);
+            socket.emit('error', { message: 'Failed to process your message' });
           }
         });
 
-        // Handle worker messages
-        lmstudio.on("message", async (msg) => {
-          try {
-            if (msg.type === "log") {
-              logger.info(msg.data, msg.socketId);
-            } else if (msg.type === 'response') {
-              // Convert object responses to strings
-              const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
+        socket.on('triggers', async (data) => {
+          logger.info('Received triggers:', data);
+          lmstudio.postMessage({
+            type: 'triggers',
+            triggers: data.triggerNames,
+            socketId: socket.id
+          });
 
-              // Send response to client
-              io.to(msg.socketId).emit("response", responseData);
+          // Collar text handling
+          socket.on('collar', async (collarData) => {
+            try {
+              const filteredCollar = filter(collarData.data);
+              lmstudio.postMessage({
+                type: 'collar',
+                data: filteredCollar,
+                socketId: socket.id
+              });
 
-              // Award XP when AI responds
-              const socketData = socketStore.get(msg.socketId);
-              if (socketData && socketData.socket && socketData.socket.bambiData) {
-                // Ensure bambiData exists before attempting to award XP
-                xpSystem.awardXP(socketData.socket, 3, 'ai-response');
+              // Emit to target socket if specified
+              if (collarData.socketId) {
+                io.to(collarData.socketId).emit('collar', filteredCollar);
               }
-            } else if (msg.type === 'error') {
-              // Handle error messages from worker
-              logger.error(`Worker error for socket ${msg.socketId}: ${msg.data}`);
-              io.to(msg.socketId).emit("error", msg.data);
-            } else {
-              // Handle unknown message types
-              logger.debug(`Received message of type: ${msg.type}`);
+
+              // Award XP for collar usage
+              xpSystem.awardXP(socket, 2, 'collar');
+            } catch (error) {
+              logger.error('Error in collar handler:', error);
             }
-          } catch (error) {
-            logger.error('Error in lmstudio message handler:', error);
-          }
-        });
+          });
 
-        // Handle worker info messages
-        lmstudio.on('info', (info) => {
-          try {
-            logger.info('Worker info:', info);
-          } catch (error) {
-            logger.error('Error in lmstudio info handler:', error);
-          }
-        });
+          // Handle worker messages
+          lmstudio.on("message", async (msg) => {
+            try {
+              if (msg.type === "log") {
+                logger.info(msg.data, msg.socketId);
+              } else if (msg.type === 'response') {
+                // Convert object responses to strings
+                const responseData = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
 
-        // Handle worker errors
-        lmstudio.on('error', (err) => {
-          try {
-            logger.error('Worker error:', err);
-          } catch (error) {
-            logger.error('Error in lmstudio error handler:', error);
-          }
-        });
+                // Send response to client
+                io.to(msg.socketId).emit("response", responseData);
 
-        // Handle client disconnection
-        socket.on('disconnect', (reason) => {
-          try {
-            logger.info('Client disconnected:', socket.id, 'Reason:', reason);
-
-            // Get socket data and clean up
-            const socketData = socketStore.get(socket.id);
-            if (socketData) {
-              socketStore.delete(socket.id);
+                // Award XP when AI responds
+                const socketData = socketStore.get(msg.socketId);
+                if (socketData && socketData.socket && socketData.socket.bambiData) {
+                  // Ensure bambiData exists before attempting to award XP
+                  xpSystem.awardXP(socketData.socket, 3, 'ai-response');
+                }
+              } else if (msg.type === 'error') {
+                // Handle error messages from worker
+                logger.error(`Worker error for socket ${msg.socketId}: ${msg.data}`);
+                io.to(msg.socketId).emit("error", msg.data);
+              } else {
+                // Handle unknown message types
+                logger.debug(`Received message of type: ${msg.type}`);
+              }
+            } catch (error) {
+              logger.error('Error in lmstudio message handler:', error);
             }
+          });
 
-            logger.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`);
-          } catch (error) {
-            logger.error('Error in disconnect handler:', error);
-          }
+          // Handle worker info messages
+          lmstudio.on('info', (info) => {
+            try {
+              logger.info('Worker info:', info);
+            } catch (error) {
+              logger.error('Error in lmstudio info handler:', error);
+            }
+          });
+
+          // Handle worker errors
+          lmstudio.on('error', (err) => {
+            try {
+              logger.error('Worker error:', err);
+            } catch (error) {
+              logger.error('Error in lmstudio error handler:', error);
+            }
+          });
+
+          // Handle client disconnection
+          socket.on('disconnect', (reason) => {
+            try {
+              logger.info('Client disconnected:', socket.id, 'Reason:', reason);
+
+              // Get socket data and clean up
+              const socketData = socketStore.get(socket.id);
+              if (socketData) {
+                socketStore.delete(socket.id);
+              }
+
+              logger.info(`Client disconnected: ${socket.id} sockets: ${socketStore.size}`);
+            } catch (error) {
+              logger.error('Error in disconnect handler:', error);
+            }
+          });
         });
+      } catch (error) {
+        logger.error('Error handling socket connection:', error);
+      }
     });
+  } catch (error) {
+    logger.error('Error in setupSocketHandlers:', error);
+  }
 }
 
 /**
