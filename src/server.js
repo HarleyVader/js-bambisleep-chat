@@ -658,20 +658,20 @@ async function getProfileData(username) {
   try {
     // Skip if username is invalid
     if (!username || username === 'anonBambi') return null;
-    
+
     // Ensure models are registered
     await registerModels();
-    
+
     // Get profile from database
     const Profile = mongoose.models.Profile;
     if (!Profile) {
       logger.error('Profile model not available');
       return null;
     }
-    
+
     // Find profile
     const profile = await Profile.findOne({ username: username });
-    
+
     // Convert to plain object to avoid mongoose issues
     return profile ? profile.toObject() : null;
   } catch (error) {
@@ -689,13 +689,13 @@ async function updateProfileXP(username, xp) {
   try {
     // Skip if username is invalid
     if (!username || username === 'anonBambi') return;
-    
+
     // Ensure models are registered
     await registerModels();
-    
+
     const Profile = mongoose.models.Profile;
     if (!Profile) return;
-    
+
     // Update or create profile
     await Profile.findOneAndUpdate(
       { username },
@@ -756,29 +756,26 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
           }
         } else if (msg.type === 'error') {
           // Handle error messages from worker
-          logger.error(`Worker error for socket ${msg.socketId}: ${msg.data}`);
-          io.to(msg.socketId).emit("error", msg.data);
-        } else if (msg.type === "settings:response") {
-          const socketId = msg.socketId;
+          logger.error(`Worker error for ${msg.socketId}: ${msg.error}`);
           
-          if (socketId && io.sockets.sockets.has(socketId)) {
-            io.sockets.sockets.get(socketId).emit('worker:settings:response', msg.data);
-          } else if (msg.data.username) {
-            // Try to find socket by username if socketId is not available
-            for (const [id, socket] of io.sockets.sockets.entries()) {
-              if (socket.username === msg.data.username) {
-                socket.emit('worker:settings:response', msg.data);
-                break;
-              }
-            }
+          // Send friendly error message to client
+          const errorMessage = process.env.NODE_ENV === 'production' 
+            ? "Sorry, I couldn't process your request. Please try again."
+            : `Error: ${msg.error}`;
+            
+          io.to(msg.socketId).emit("error", { message: errorMessage });
+        } else if (msg.type === 'worker:settings:response') {
+          // Forward settings response to client
+          if (msg.socketId) {
+            io.to(msg.socketId).emit('worker:settings:response', msg.data);
           }
-        } else if (msg.type === "settings:broadcast") {
-          // Broadcast settings update to all connected clients
-          io.emit('worker:update', msg.data);
-        } else {
-          // Handle unknown message types
-          logger.debug(`Received message of type: ${msg.type}`);
+        } else if (msg.type === 'xp:update') {
+          // Forward XP updates to client
+          if (msg.socketId) {
+            io.to(msg.socketId).emit('xp:update', msg.data);
+          }
         }
+        // Other message types handling...
       } catch (error) {
         logger.error('Error in lmstudio message handler:', error);
       }
@@ -792,6 +789,24 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
     // Handle worker errors - moved outside socket handler
     lmstudio.on('error', (err) => {
       logger.error('Worker error:', err);
+      
+      // Notify all clients about system issues
+      if (io) {
+        io.emit('system', {
+          message: 'AI service encountered an error, trying to recover...',
+          type: 'error'
+        });
+      }
+      
+      // Attempt to restart worker if it's a critical error
+      if (err.fatal) {
+        logger.error('Fatal worker error, attempting restart');
+        
+        // Start a new worker after a short delay
+        setTimeout(() => {
+          setupSocketHandlers(io, socketStore, filteredWords);
+        }, 5000);
+      }
     });
 
     // Simple filter function to avoid bad words
@@ -812,7 +827,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
     // XP system functions
     const xpSystem = {
       requirements: [1000, 2500, 4500, 7000, 12000, 36000, 112000, 332000],
-      
+
       // Rest of xp system code...
       calculateLevel(xp) {
         let level = 0;
@@ -943,7 +958,7 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
             triggers: data.triggerNames,
             socketId: socket.id
           });
-          
+
           // Award XP for using triggers
           xpSystem.awardXP(socket, 2, 'triggers');
         });
@@ -999,26 +1014,26 @@ function setupSocketHandlers(io, socketStore, filteredWords) {
 
             // Add socket ID to identify the source
             data.socketId = socket.id;
-            
+
             // Log settings update
             logger.debug(`Settings update for ${data.section} from ${socket.id}`);
-            
+
             // Store username with socket if provided
             if (data.username && !socket.username) {
               socket.username = data.username;
-              socketStore.set(socket.id, { 
+              socketStore.set(socket.id, {
                 socket,
                 username: data.username,
                 lastActivity: Date.now()
               });
             }
-            
+
             // Forward settings to worker
             lmstudio.postMessage({
               type: 'settings:update',
               data: data
             });
-            
+
             // Acknowledge receipt (immediate response)
             socket.emit('worker:settings:response', {
               success: true,
