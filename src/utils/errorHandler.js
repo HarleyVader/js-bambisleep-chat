@@ -1,3 +1,7 @@
+import Logger from '../utils/logger.js';
+
+const logger = new Logger('ErrorHandler');
+
 /**
  * Formats error for consistent client-side display
  * @param {Error} error - The error object
@@ -28,29 +32,22 @@ export function formatError(error, includeDetails = false) {
 }
 
 /**
- * Express middleware for handling errors
- * @param {Error} err - Error object
- * @param {Request} req - Express request
- * @param {Response} res - Express response
- * @param {Function} next - Next middleware
+ * Express error handler middleware
  */
 export default function errorHandler(err, req, res, next) {
-  const status = err.status || 500;
-  const message = err.message || 'Something went wrong';
-  
   // Log the error
-  console.error(`[${status}] ${err.message}`);
+  logger.error(`API Error: ${err.message}`);
   
-  // Render error page for HTML requests
-  if (req.accepts('html')) {
-    res.status(status).render('error', {
-      message,
-      error: process.env.NODE_ENV === 'production' ? {} : err,
-      validConstantsCount: 5,
-      title: `Error - ${status}`
-    });
-  } else {
-    // JSON response for API requests
-    res.status(status).json(formatError(err, process.env.NODE_ENV !== 'production'));
-  }
+  // Determine status code (default to 500)
+  const statusCode = err.statusCode || 500;
+  
+  // Send error response
+  res.status(statusCode).json({
+    success: false,
+    error: {
+      message: process.env.NODE_ENV === 'production' 
+        ? 'Server error occurred'
+        : err.message
+    }
+  });
 }

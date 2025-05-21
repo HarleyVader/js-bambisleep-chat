@@ -10,7 +10,7 @@
     "chat",
     "scrape",
     "lmstudio",
-    "f5-tts",
+    "kokoro",
     "bambisleep",
     "llama3",
     "bambisleep",
@@ -27,17 +27,14 @@
     "url": "git+https://github.com/HarleyVader/js-bambisleep-chat.git"
   },
   "license": "Apache-2.0",
-  "author": "melkanea",  "type": "module",
+  "author": "melkanea",  
+  "type": "module",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "start:gc": "node --expose-gc src/server.js",
     "dev": "nodemon src/server.js",
-    "dev:gc": "nodemon --expose-gc src/server.js",
-    "test:mongodb": "node src/test/mongodbTest.js",
-    "check:mongodb": "node src/utils/db-check.js",
-    "check:config": "node src/utils/mongoConfig.js",
-    "check:mongo-install": "bash src/utils/check-mongodb.sh"
+    "dev:gc": "nodemon --expose-gc src/server.js"
   },
   "dependencies": {
     "axios": "^1.8.4",
@@ -56,7 +53,6 @@
     "mongodb": "6.15",
     "mongoose": "^8.13.2",
     "node-fetch": "^2.6.7",
-    "npm": "^11.1.0",
     "socket.io": "^4.8.1",
     "uuid": "^11.1.0"
   },

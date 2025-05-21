@@ -17,17 +17,16 @@ import { Worker } from 'worker_threads';
 // Import configuration
 import config from './config/config.js';
 import footerConfig from './config/footer.config.js';
-import { connectDB } from './config/db.js';
+// Database functions are imported dynamically to prevent circular dependencies
 
 // Import routes
 import indexRoute from './routes/index.js';
 import psychodelicTriggerManiaRouter from './routes/psychodelic-trigger-mania.js';
 import helpRoute from './routes/help.js';
 
-import errorHandler from './middleware/error.js';
-
 import Logger from './utils/logger.js';
 import gracefulShutdown from './utils/gracefulShutdown.js';
+import errorHandler from './utils/errorHandler.js';
 
 // Initialize these at the top of the file
 const memoryMonitor = {
@@ -91,6 +90,11 @@ const scheduledTasks = {
       clearInterval(task.timer);
     });
     this.tasks = [];
+  },
+  
+  stop() {
+    // Adding alias for stopAll to handle shutdown correctly
+    this.stopAll();
   }
 };
 
@@ -99,15 +103,64 @@ const dbRoutes = [];
 
 // Function to monitor database health
 function startDbHealthMonitor() {
-  const interval = config.DB_HEALTH_CHECK_INTERVAL || 60000;
-  scheduledTasks.addTask('dbHealthCheck', async () => {
+  const interval = config.DB_HEALTH_CHECK_INTERVAL || 60000;  scheduledTasks.addTask('dbHealthCheck', async () => {    
     try {
-      if (mongoose.connection.readyState !== 1) {
-        logger.warning('Database connection not ready, attempting reconnect');
-        await connectDB(1);
+      // Import database functions dynamically to prevent circular dependencies
+      const { checkAllDatabasesHealth, connectAllDatabases, hasConnection } = await import('./config/db.js');
+      
+      // First check if connection is available at all
+      if (!hasConnection()) {
+        logger.warning('Database connection is not available, attempting reconnection');
+        try {
+          await connectAllDatabases(1);
+        } catch (reconnErr) {
+          logger.error(`Failed to reconnect to database: ${reconnErr.message}`);
+        }
+        return;
+      }
+      
+      // Safely check health of all database connections with double protection
+      let healthResults;
+      try {
+        healthResults = await Promise.resolve(checkAllDatabasesHealth()).catch(err => {
+          logger.error(`Failed to check database health: ${err.message}`);
+          return {
+            main: { status: 'error', error: err.message },
+            profiles: { status: 'error', error: err.message }
+          };
+        });
+      } catch (innerError) {
+        logger.error(`Unexpected error during health check: ${innerError.message}`);
+        healthResults = {
+          main: { status: 'error', error: innerError.message },
+          profiles: { status: 'error', error: innerError.message }
+        };
+      }
+      
+      // Log database health status
+      for (const [type, status] of Object.entries(healthResults)) {
+        if (status.status !== 'healthy' && status.status !== 'connected') {
+          logger.warning(`${type} database connection not healthy: ${status.status}`);
+            // Try to reconnect to unhealthy database
+          logger.info(`Attempting to reconnect to ${type} database`);
+          try {
+            // Import database functions dynamically to prevent circular dependencies
+            const { connectAllDatabases } = await import('./config/db.js');
+            
+            await Promise.resolve(connectAllDatabases(1)).catch(err => {
+              logger.error(`Failed to reconnect to ${type} database: ${err.message}`);
+              // Continue server operations even if reconnection fails
+            });
+          } catch (reconnectError) {
+            logger.error(`Error during database reconnection: ${reconnectError.message}`);
+            // Continue server operations even if reconnection fails
+          }
+        }
       }
     } catch (error) {
-      logger.error(`DB health check failed: ${error.message}`);
+      // This outer catch provides an additional safety net
+      logger.error(`DB health check critical failure: ${error.message}`);
+      logger.info('Server will continue running with limited database functionality');
     }
   }, interval);
 }
@@ -115,14 +168,47 @@ function startDbHealthMonitor() {
 // Function to monitor connection pool
 function startConnectionPoolMonitor() {
   const interval = config.CONNECTION_POOL_CHECK_INTERVAL || 300000;
-  scheduledTasks.addTask('connectionPoolMonitor', () => {
+  scheduledTasks.addTask('connectionPoolMonitor', async () => {
     try {
-      if (mongoose.connection.readyState === 1) {
-        const pool = mongoose.connection.db.serverConfig.s.pool;
-        logger.debug(`DB connection pool: ${pool.totalConnectionCount} total, ${pool.availableConnectionCount} available`);
+      // First check if we have a connection monitor function available
+      try {
+        // Dynamically import to avoid circular dependencies
+        const { checkMongoConnectionPool } = await import('./utils/dbReconnector.js').catch(() => {
+          return { checkMongoConnectionPool: null };
+        });
+        
+        if (typeof checkMongoConnectionPool === 'function') {
+          await checkMongoConnectionPool();
+          return;
+        }
+      } catch (importError) {
+        logger.debug(`Could not use dedicated pool monitor: ${importError.message}`);
       }
+      
+      // Fallback: Check if mongoose connection exists and is ready
+      if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+        logger.debug('MongoDB connection not ready, skipping pool check');
+        return;
+      }
+      
+      // Then check if db and serverConfig are available
+      if (!mongoose.connection.db || !mongoose.connection.db.serverConfig) {
+        logger.debug('MongoDB server configuration not available');
+        return;
+      }
+      
+      // Check if pool exists
+      const pool = mongoose.connection.db.serverConfig.s?.pool;
+      if (!pool) {
+        logger.debug('MongoDB connection pool not available');
+        return;
+      }
+      
+      // Now safely log the pool stats
+      logger.debug(`DB connection pool: ${pool.totalConnectionCount || 0} total, ${pool.availableConnectionCount || 0} available`);
     } catch (error) {
       logger.error(`Connection pool check failed: ${error.message}`);
+      // Error in pool check shouldn't affect server operation
     }
   }, interval);
 }
@@ -182,14 +268,30 @@ async function initializeApp() {
     // Load filtered words for content moderation
     const filteredWords = JSON.parse(await fsPromises.readFile(
       path.join(__dirname, 'filteredWords.json'), 'utf8'
-    ));
-
-    // Verify DB connection before proceeding
-    if (mongoose.connection.readyState !== 1) {
+    ));    // Verify DB connection before proceeding with robust health check
+    const { isDatabaseConnectionHealthy, connectDB, ensureModelsRegistered } = await import('./config/db.js');
+    
+    const isHealthy = await isDatabaseConnectionHealthy('main');
+    if (!isHealthy || mongoose.connection.readyState !== 1) {
       logger.warning('Database not connected during app initialization, trying to reconnect...');
-      const dbConnected = await connectDB(2);
+      const dbConnected = await connectDB(2, true); // Force reconnection
+      
       if (!dbConnected) {
         logger.warning('Could not establish database connection, some features may not work properly');
+      } else {
+        // Even if connection appears successful, verify it works with a real operation
+        try {
+          await ensureModelsRegistered();
+          logger.info('Initializing scheduled tasks');
+          // Additional database health verification
+          const isReallyHealthy = await isDatabaseConnectionHealthy('main');
+          if (!isReallyHealthy) {
+            logger.warning('Database connection appears unreliable, some features may not work properly');
+          }
+        } catch (dbError) {
+          logger.error(`Database initialization error: ${dbError.message}`);
+          logger.warning('Database models could not be properly registered');
+        }
       }
     }
 
@@ -873,20 +975,45 @@ function getServerAddress() {
 async function startServer() {
   try {
     logger.info('Step 1/5: Connecting to MongoDB...');
-    const dbConnected = await connectDB(3);
-
-    if (!dbConnected) {
-      logger.warning('⚠️ Failed to connect to MongoDB after multiple attempts.');
+    
+    // Import database functions
+    const { 
+      connectAllDatabases, 
+      ensureModelsRegistered, 
+      inFallbackMode, 
+      checkAllDatabasesHealth, 
+      isDatabaseConnectionHealthy 
+    } = await import('./config/db.js');
+    
+    // Connect to all databases with 3 retry attempts
+    const dbResults = await connectAllDatabases(3);
+    
+    // Check connection results
+    if (!dbResults.main) {
+      logger.warning('⚠️ Failed to connect to main MongoDB database after multiple attempts.');
       logger.warning('⚠️ Server will start with LIMITED FUNCTIONALITY - database-dependent features disabled.');
-    } else if (mongoose.connection.readyState !== 1) {
+    } else if (!(await isDatabaseConnectionHealthy())) {
       logger.warning('⚠️ Database connection reported success but connection is not ready.');
       logger.warning('⚠️ Server will start with LIMITED FUNCTIONALITY - database-dependent features disabled.');
-    } else {
-      const { inFallbackMode } = await import('./config/db.js');
-      if (inFallbackMode()) {
-        logger.warning('⚠️ Connected to FALLBACK DATABASE - running with limited functionality');
-      } else {
-        logger.success('MongoDB connection established');
+    } 
+    
+    // Ensure all models are properly registered
+    try {
+      await ensureModelsRegistered();
+      logger.debug('All database models registered successfully');
+    } catch (modelError) {
+      logger.error(`Failed to register database models: ${modelError.message}`);
+    }
+    
+    // Log connection status
+    const dbHealth = await checkAllDatabasesHealth();
+    
+    if (inFallbackMode()) {
+      logger.warning('⚠️ Connected to FALLBACK DATABASE - running with limited functionality');
+    } else if (dbResults.main && (await isDatabaseConnectionHealthy())) {
+      logger.success(`MongoDB connection established (${dbHealth.main?.database || 'unknown'})`);
+      if (dbResults.profiles) {
+        logger.success(`Profiles database connected (${dbHealth.profiles?.database || 'unknown'})`);
       }
     }
 
@@ -925,17 +1052,37 @@ async function startServer() {
     } else {
       memoryMonitor.start(process.env.NODE_ENV === 'production' ? 60000 : 30000);
       logger.info('Standard memory monitoring started to prevent overnight OOM kills');
-    }
-
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
+    }    process.on('SIGTERM', () => gracefulShutdown('SIGTERM', server));
     process.on('SIGINT', () => gracefulShutdown('SIGINT', server));
     process.on('uncaughtException', (err) => {
       logger.error('Uncaught exception:', err);
       gracefulShutdown('UNCAUGHT_EXCEPTION', server);
     });
     process.on('unhandledRejection', (reason, promise) => {
-      logger.error('Unhandled rejection at:', promise, 'reason:', reason);
-      gracefulShutdown('UNHANDLED_REJECTION', server);
+      // Don't shut down for database connection issues
+      const errorMessage = reason instanceof Error ? reason.message : String(reason);
+      
+      // Check if it's a database-related error
+      if (errorMessage.includes('ECONNREFUSED') && errorMessage.includes('27017')) {
+        logger.error('Database connection failed:', errorMessage);
+        logger.warning('Database connection error - server will continue with limited functionality');
+        
+        // Attempt reconnection in the background
+        setTimeout(async () => {
+          try {
+            logger.info('Attempting background reconnect to database...');
+            await Promise.resolve(connectAllDatabases(1)).catch(e => {
+              logger.error(`Background reconnection attempt failed: ${e.message}`);
+            });
+          } catch (reconnectError) {
+            logger.error(`Error during background reconnection: ${reconnectError.message}`);
+          }
+        }, 10000); // Try reconnecting in 10 seconds
+      } else {
+        // For other types of rejections, log and shutdown
+        logger.error('Unhandled rejection at:', promise, 'reason:', reason);
+        gracefulShutdown('UNHANDLED_REJECTION', server);
+      }
     });
 
     // Store the server and io instances globally for proper shutdown

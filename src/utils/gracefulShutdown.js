@@ -86,25 +86,7 @@ async function performCleanupTasks() {
       global.scheduledTasks.stop();
       logger.info('Scheduled tasks stopped');
     }
-    
-    // Stop DB health monitor
-    try {
-      const { stopDbHealthMonitor } = await import('./dbHealthMonitor.js');
-      stopDbHealthMonitor();
-      logger.info('Database health monitor stopped');
-    } catch (err) {
-      logger.warning(`Could not stop DB health monitor: ${err.message}`);
-    }
-    
-    // Stop Connection Pool monitor
-    try {
-      const { stopConnectionPoolMonitor } = await import('./connectionPoolMonitor.js');
-      stopConnectionPoolMonitor();
-      logger.info('Connection pool monitor stopped');
-    } catch (err) {
-      logger.warning(`Could not stop connection pool monitor: ${err.message}`);
-    }
-    
+        
     // Cleanup socket store
     if (global.socketStore) {
       const storeSize = global.socketStore.size;
