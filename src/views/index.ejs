@@ -78,6 +78,8 @@
       <%- include('../views/partials/footer.ejs') %>
         <!-- Make sure these scripts appear in exactly this order -->
         <script src="/socket.io/socket.io.js"></script>
+        
+        <!--
         <script>
           // This should be the first script that runs on page load
           document.addEventListener("DOMContentLoaded", () => {
@@ -101,6 +103,7 @@
             }, 0);
           });
         </script>
+        -->
         <script>
           // Initialize socket at the global level
           window.socket = window.socket || io();
@@ -159,23 +162,42 @@
               }
             };
 
-            // Helper function to get cookie by name
+            // ALL HAIL THE COOKIE MONSTERS! pew🍪pew🍪pew🍪
             function getCookie(name) {
               const value = `; ${document.cookie}`;
               const parts = value.split(`; ${name}=`);
               if (parts.length === 2) return parts.pop().split(';').shift();
-              return '';
             }
 
-            // Only initialize triggers after socket is ready
-            // Use a short delay to ensure socket.io has initialized
-            setTimeout(() => {
-              if (window.socket) {
-                initProfileAndTriggers();
-              } else {
-                console.error("Socket not available - check script loading order");
+             username = getCookie('bambiname');
+            if (!username) {
+              modal.style.display = 'block';
+            } else {
+              // If we have a username and it's not anonBambi, load the profile triggers
+              if (username !== 'anonBambi') {
+                loadProfileTriggers(username);
               }
-            }, 100);
+            }
+
+            document.getElementById('username-submit').addEventListener('click', () => {
+              const input = document.getElementById('username-input');
+              const newUsername = input.value.trim();
+              if (newUsername) {
+                username = newUsername;
+                document.cookie = `bambiname=${encodeURIComponent(username)}; path=/`;
+                socket.emit('set username', username);
+                modal.style.display = 'none';
+                window.username = username;
+
+                // Reload the page to update the profile data
+                window.location.reload();
+                });
+
+            const style = document.createElement('style');
+            document.head.appendChild(style);
+
+            // Set username data attribute for profile-system-controls.ejs
+            document.body.setAttribute('data-username', username);
 
             // Helper function to load profile triggers
             function loadProfileTriggers(username) {
