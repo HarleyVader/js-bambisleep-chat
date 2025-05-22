@@ -1,7 +1,6 @@
 # 🧠 [BambiSleep.Chat](https://bambisleep.chat) 👁️
 💖 A [r/bambisleep](https://www.reddit.com/r/BambiSleep/) targeted Hypnotic AIGF (AI Girlfriend) 🤖
 
-```markdown
 <details>
 <summary>My AIGF will reprogram your OS if bambi lets her</summary>
 
@@ -16,7 +15,6 @@
 > - Custom Trigger Creation
 
 </details>
-```
 
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
