@@ -1,4 +1,4 @@
-// Clean Psychedelic Spiral Implementation - WebGL Version
+// Rebuilt Psychedelic Spiral Implementation - WebGL Version
 class SpiralAnimation {
     constructor() {
         this.eyeCursor = null;
@@ -8,24 +8,13 @@ class SpiralAnimation {
         this.height = 0;
         this.frameCount = 0;
         this.isEnabled = false;
-
-        // Control parameters - simplified (matching template)
-        this.spiral1Width = 5.0;
-        this.spiral2Width = 3.0;
-        this.spiral1Speed = 40; // Reduced by 50% (was 20, now 40 for slower animation)
-        this.spiral2Speed = 30; // Reduced by 50% (was 15, now 30 for slower animation)
-        this.spiral1Color = [0, 255, 255]; // Bright Cyan (more neon)
-        this.spiral2Color = [255, 0, 255]; // Bright Magenta (more neon)
-        this.opacityLevel = 1.0;
-        this.zoomFactor = 1.3; // 30% zoom in
-
-        // Performance settings - minimal approach
-        this.ITERATIONS = 400;
+        this.animationId = null;
+        this.trancePoint = [0, 0];
 
         // WebGL specific
         this.shaderProgram = null;
         this.vertexBuffer = null;
-        this.animationId = null;
+        this.locations = {};
 
         this.init();
     }
@@ -61,7 +50,7 @@ class SpiralAnimation {
 
         this.initWebGL();
         window.addEventListener("resize", () => this.onWindowResize());
-
+        
         // Start the render loop
         this.draw();
     }
@@ -150,15 +139,20 @@ class SpiralAnimation {
     }
 
     draw() {
-        if (!this.gl || !this.isEnabled) {
+        if (!this.gl) {
+            this.animationId = requestAnimationFrame(() => this.draw());
+            return;
+        }
+
+        if (!this.isEnabled) {
             this.animationId = requestAnimationFrame(() => this.draw());
             return;
         }
 
         const gl = this.gl;
 
-        // Clear canvas
-        gl.clearColor(0, 0, 0, 0);
+        // Clear background to black
+        gl.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         // Use shader program
@@ -167,12 +161,12 @@ class SpiralAnimation {
         // Set resolution
         gl.uniform2f(this.locations.resolution, this.width, this.height);
 
-        // Simple wave patterns (matching template)
-        const a = this.map(Math.sin(this.frameCount / this.spiral1Speed), -1, 1, 0.5, 1.5);
-        const b = this.map(Math.cos(this.frameCount / this.spiral2Speed), -1, 1, 1, 1.5);
-
+        // Calculate animation parameters exactly like template
+        const a = this.map(Math.sin(this.frameCount/20), -1, 1, 0.5, 1.5);
+        const b = this.map(Math.cos(this.frameCount/20), -1, 1, 1, 1.5);
+        
         // Set transform matrix for rotation and translation
-        const rotation = this.frameCount / 10; // Reduced rotation speed by 50% (was /5, now /10)
+        const rotation = this.frameCount / 10;
         const cos_r = Math.cos(rotation);
         const sin_r = Math.sin(rotation);
         const tx = this.width / 2;
@@ -186,36 +180,36 @@ class SpiralAnimation {
 
         gl.uniformMatrix3fv(this.locations.transform, false, transform);
 
-        // Draw spirals
-        this.spiral(a, 1, this.spiral1Color, this.spiral1Width);
-        this.spiral(b, 0.3, this.spiral2Color, this.spiral2Width);
-
+        // Draw spirals exactly like template
+        this.spiral(a, 1, [199, 0, 199]);
+        this.spiral(b, 0.3, [255, 130, 255]);
+        
+        // Calibration complete placeholder
+        this.calibrationComplete();
+        
+        // Draw trance point circle
+        this.drawCircle(this.trancePoint[0], this.trancePoint[1], 40, [255, 255, 255]);
+        
         this.frameCount++;
         this.animationId = requestAnimationFrame(() => this.draw());
     }
 
-    spiral(step, ang, colorArray, baseWidth) {
+    spiral(a, x, d) {
         const gl = this.gl;
-
-        // Prepare vertices
+        
+        // Generate spiral vertices as a line strip
         const vertices = [];
         let r1 = 0;
-        let r2 = 2;
-        let spiralWidth = baseWidth;
-        const dw = spiralWidth / (this.ITERATIONS * 0.8);
+        const step = a;
 
-        for (let i = 0; i < this.ITERATIONS; i++) {
+        for (let i = 0; i < 250; i++) {
             r1 += step;
-            spiralWidth -= dw;
-            r2 = r1 + spiralWidth;
+            const ang = x;
 
-            // Apply zoom factor to spiral coordinates
-            const r1x = (r1 * Math.sin(ang * i)) * this.zoomFactor;
-            const r1y = (r1 * Math.cos(ang * i)) * this.zoomFactor;
-            const r2x = (r2 * Math.sin(ang * i)) * this.zoomFactor;
-            const r2y = (r2 * Math.cos(ang * i)) * this.zoomFactor;
+            const r1x = r1 * Math.sin(ang * i);
+            const r1y = r1 * Math.cos(ang * i);
 
-            vertices.push(r1x, r1y, r2x, r2y);
+            vertices.push(r1x, r1y);
         }
 
         // Upload vertices to buffer
@@ -226,16 +220,52 @@ class SpiralAnimation {
         gl.enableVertexAttribArray(this.locations.position);
         gl.vertexAttribPointer(this.locations.position, 2, gl.FLOAT, false, 0, 0);
 
-        // Set color with brightness boost
-        const brightnessBoost = 1.5; // Increase brightness by 50%
-        const r = Math.min(1.0, (colorArray[0] / 255) * brightnessBoost);
-        const g = Math.min(1.0, (colorArray[1] / 255) * brightnessBoost);
-        const b = Math.min(1.0, (colorArray[2] / 255) * brightnessBoost);
-        const a = this.opacityLevel;
-        gl.uniform4f(this.locations.color, r, g, b, a);
+        // Set color
+        const r = d[0] / 255;
+        const g = d[1] / 255;
+        const b = d[2] / 255;
+        gl.uniform4f(this.locations.color, r, g, b, 1.0);
 
-        // Draw triangle strip
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertices.length / 2);
+        // Draw as line strip for thin lines
+        gl.drawArrays(gl.LINE_STRIP, 0, vertices.length / 2);
+    }
+
+    drawCircle(x, y, radius, color) {
+        const gl = this.gl;
+        
+        // Generate circle vertices
+        const vertices = [];
+        const segments = 32;
+        
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            vertices.push(
+                x + Math.cos(angle) * radius,
+                y + Math.sin(angle) * radius
+            );
+        }
+
+        // Upload vertices to buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
+
+        // Set up vertex attribute
+        gl.enableVertexAttribArray(this.locations.position);
+        gl.vertexAttribPointer(this.locations.position, 2, gl.FLOAT, false, 0, 0);
+
+        // Set color
+        const r = color[0] / 255;
+        const g = color[1] / 255;
+        const b = color[2] / 255;
+        gl.uniform4f(this.locations.color, r, g, b, 1.0);
+
+        // Draw as line loop for circle outline
+        gl.drawArrays(gl.LINE_LOOP, 0, vertices.length / 2);
+    }
+
+    calibrationComplete() {
+        // Placeholder for calibration logic
+        // This can be expanded as needed
     }
 
     onWindowResize() {
@@ -250,23 +280,6 @@ class SpiralAnimation {
         if (this.gl) {
             this.gl.viewport(0, 0, this.width, this.height);
         }
-    }
-
-    // Simple parameter update functions (matching template)
-    updateSpiralParams(w1, w2, s1, s2) {
-        this.spiral1Width = w1 || this.spiral1Width;
-        this.spiral2Width = w2 || this.spiral2Width;
-        this.spiral1Speed = s1 || this.spiral1Speed;
-        this.spiral2Speed = s2 || this.spiral2Speed;
-    }
-
-    updateSpiralColors(c1, c2) {
-        if (c1) this.spiral1Color = c1;
-        if (c2) this.spiral2Color = c2;
-    }
-
-    updateSpiralOpacity(opacity) {
-        this.opacityLevel = Math.max(0.1, Math.min(1.0, opacity || 1.0));
     }
 
     // Utility functions
@@ -287,16 +300,13 @@ class SpiralAnimation {
 
     triggerPulse() {
         if (this.isEnabled) {
-            // Temporary speed boost
-            const originalSpeed1 = this.spiral1Speed;
-            const originalSpeed2 = this.spiral2Speed;
-            this.spiral1Speed *= 0.3; // Faster (lower divisor)
-            this.spiral2Speed *= 0.3;
-
+            // Create a brief visual pulse effect
+            const originalFrameCount = this.frameCount;
+            this.frameCount += 50; // Jump forward in animation
+            
             setTimeout(() => {
-                this.spiral1Speed = originalSpeed1;
-                this.spiral2Speed = originalSpeed2;
-            }, 1000);
+                this.frameCount = originalFrameCount;
+            }, 500);
         }
     }
 
@@ -313,11 +323,6 @@ class SpiralAnimation {
 // Initialize spiral animation when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.spiralAnimation = new SpiralAnimation();
-
-    // Export functions globally (matching template)
-    window.updateSpiralParams = (w1, w2, s1, s2) => window.spiralAnimation.updateSpiralParams(w1, w2, s1, s2);
-    window.updateSpiralColors = (c1, c2) => window.spiralAnimation.updateSpiralColors(c1, c2);
-    window.updateSpiralOpacity = (opacity) => window.spiralAnimation.updateSpiralOpacity(opacity);
 
     // Trigger pulse effect when triggers are activated
     if (window.triggerSystem) {
