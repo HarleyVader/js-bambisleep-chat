@@ -2,19 +2,30 @@
 @import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
 
 :root {
-  --primary-color: #0c2a2aE6;
-  --primary-alt: #15aab5E6;
-  --secondary-color: #40002fE6;
-  --secondary-alt: #cc0174E6;
-  --tertiary-color: #cc0174E6;
-  --tertiary-alt: #02b893E6;
-  --button-color: #df0471E6;
-  --button-alt: #110000E6;
-  --nav-color: #0a2626E6;
-  --nav-alt: #17dbd8E6;
-  --transparent: #124141E6;
-  --transparent-alt: #ffffff00;
-  --error: #ff3333E6;
+    --primary-color: #0c2a2aE6;
+    /* Dark teal */
+    --primary-alt: #15aab5E6;
+    /* Bright teal */
+    --secondary-color: #40002fE6;
+    /* Dark magenta */
+    --secondary-alt: #cc0174E6;
+    /* Bright pink */
+    --tertiary-color: #cc0174E6;
+    /* Pink */
+    --tertiary-alt: #02b893E6;
+    /* Turquoise */
+    --button-color: #df0471E6;
+    /* Hot pink */
+    --button-alt: #110000E6;
+    /* Near black */
+    --nav-color: #0a2626E6;
+    /* Dark nav */
+    --nav-alt: #17dbd8E6;
+    /* Bright cyan */
+    --transparent: #124141E6;
+    /* Semi-transparent teal */
+    --error: #ff3333E6;
+    /* Error red */
 }
 
 * {
@@ -170,6 +181,7 @@ body {
 }
 
 @keyframes flashTrigger {
+
     0%,
     100% {
         opacity: 1;

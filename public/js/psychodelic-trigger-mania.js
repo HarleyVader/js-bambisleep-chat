@@ -9,11 +9,11 @@ class SpiralAnimation {
         this.colorPhase = 0;
         this.particles = [];
         this.maxParticles = 100;
-        
+
         // Theme colors matching CSS variables
         this.themeColors = {
             primary: [180, 85, 17],      // #0c2a2a
-            primaryAlt: [185, 85, 67],   // #15aab5  
+            primaryAlt: [185, 85, 67],   // #15aab5
             secondary: [315, 100, 25],   // #40002f
             secondaryAlt: [323, 100, 80], // #cc0174
             tertiary: [323, 100, 80],    // #cc0174
@@ -22,9 +22,9 @@ class SpiralAnimation {
             nav: [180, 85, 15],          // #0a2626
             navAlt: [181, 92, 86]        // #17dbd8
         };
-        
+
         this.init();
-    }    init() {
+    } init() {
         // Wait for p5.js to load
         if (typeof p5 !== 'undefined') {
             this.createSketch();
@@ -103,7 +103,7 @@ class SpiralAnimation {
                     const colorKeys = Object.keys(this.themeColors);
                     const colorIndex = (arm + Math.floor(i / 30)) % colorKeys.length;
                     const themeColor = this.themeColors[colorKeys[colorIndex]];
-                    
+
                     const hue = themeColor[0] + (this.colorPhase + i * 0.5) % 60;
                     const saturation = themeColor[1] + 20 * p.sin(this.angle * 2 + i * 0.1);
                     const brightness = themeColor[2] + 30 * p.sin(this.angle + i * 0.05);
@@ -134,7 +134,7 @@ class SpiralAnimation {
         const colorKeys = Object.keys(this.themeColors);
         const randomColorKey = colorKeys[Math.floor(Math.random() * colorKeys.length)];
         const themeColor = this.themeColors[randomColorKey];
-        
+
         return {
             x: p.random(p.width),
             y: p.random(p.height),

@@ -54,6 +54,7 @@ npm start
 ```
 
 3. **Open your browser:**
+
 Navigate to `http://localhost:6969`
 
 ### Development Mode
@@ -68,7 +69,7 @@ This runs both the backend server and frontend build process concurrently.
 
 ## Project Structure
 
-```
+```tree
 js-bambisleep-chat/
 ├── public/                 # Frontend static files
 │   ├── index.html         # Main HTML template
@@ -223,7 +224,7 @@ NODE_ENV=development npm start
 
 MIT License - see LICENSE file for details
 
-## Contributing
+## Contributing **Enjoy the hypnotic chat experience! 🌀💖**
 
 1. Fork the repository
 2. Create a feature branch
@@ -232,5 +233,3 @@ MIT License - see LICENSE file for details
 5. Submit a pull request
 
 ---
-
-**Enjoy the hypnotic chat experience! 🌀💖**
