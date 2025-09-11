@@ -8,7 +8,7 @@ class TriggerSystem {
         ];
         this.flashDuration = 1000; // ms
         this.audioEnabled = false;
-        
+
         this.init();
     }
 
@@ -40,7 +40,7 @@ class TriggerSystem {
         }
 
         let processedText = this.escapeHtml(text);
-        
+
         // Find and wrap trigger words
         this.triggers.forEach(trigger => {
             const regex = new RegExp(`\\b(${this.escapeRegex(trigger)})\\b`, 'gi');
@@ -57,7 +57,7 @@ class TriggerSystem {
         if (this.audioEnabled) {
             this.playTriggerSound();
         }
-        
+
         // Add visual flash effect to screen
         this.flashScreen();
     }
@@ -67,14 +67,14 @@ class TriggerSystem {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
-        
+
         oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
         gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-        
+
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + 0.1);
     }
@@ -87,12 +87,12 @@ class TriggerSystem {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 107, 157, 0.3);
+            background: rgba(223, 4, 113, 0.4);
             z-index: 9999;
             pointer-events: none;
             animation: triggerFlash 0.3s ease-out;
         `;
-        
+
         // Add flash animation
         const style = document.createElement('style');
         style.textContent = `
@@ -104,7 +104,7 @@ class TriggerSystem {
         `;
         document.head.appendChild(style);
         document.body.appendChild(flashOverlay);
-        
+
         setTimeout(() => {
             document.body.removeChild(flashOverlay);
             document.head.removeChild(style);

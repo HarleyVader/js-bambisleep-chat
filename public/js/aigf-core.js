@@ -5,7 +5,7 @@ class ChatCore {
         this.isConnected = false;
         this.messageHistory = [];
         this.maxMessages = 100;
-        
+
         this.init();
     }
 
@@ -18,7 +18,7 @@ class ChatCore {
 
     initSocket() {
         this.socket = io();
-        
+
         this.socket.on('connect', () => {
             this.isConnected = true;
             this.addSystemMessage('Connected to server');
@@ -63,7 +63,7 @@ class ChatCore {
     bindEvents() {
         // Send message on button click
         this.sendButton.addEventListener('click', () => this.sendMessage());
-        
+
         // Send message on Enter key
         this.chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -88,7 +88,7 @@ class ChatCore {
 
         // Add message to UI immediately
         this.addMessage(message, new Date(), true);
-        
+
         // Send to server
         this.socket.emit('message', {
             message: message,
@@ -103,27 +103,27 @@ class ChatCore {
     addMessage(text, timestamp, isOwn = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own' : ''}`;
-        
+
         const timeDiv = document.createElement('div');
         timeDiv.className = 'message-time';
         timeDiv.textContent = this.formatTime(timestamp);
-        
+
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
-        
+
         // Process triggers if enabled
         if (window.triggerSystem && window.triggerSystem.isEnabled) {
             textDiv.innerHTML = window.triggerSystem.processMessage(text);
         } else {
             textDiv.textContent = text;
         }
-        
+
         messageDiv.appendChild(timeDiv);
         messageDiv.appendChild(textDiv);
-        
+
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
-        
+
         // Store in history
         this.messageHistory.push({ text, timestamp, isOwn });
         if (this.messageHistory.length > this.maxMessages) {
@@ -139,27 +139,27 @@ class ChatCore {
     addSystemMessage(text) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message system';
-        
+
         const timeDiv = document.createElement('div');
         timeDiv.className = 'message-time';
         timeDiv.textContent = this.formatTime(new Date());
-        
+
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
         textDiv.textContent = text;
-        
+
         messageDiv.appendChild(timeDiv);
         messageDiv.appendChild(textDiv);
-        
+
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
     }
 
     formatTime(timestamp) {
         const date = new Date(timestamp);
-        return date.toLocaleTimeString('en-US', { 
-            hour12: false, 
-            hour: '2-digit', 
+        return date.toLocaleTimeString('en-US', {
+            hour12: false,
+            hour: '2-digit',
             minute: '2-digit',
             second: '2-digit'
         });

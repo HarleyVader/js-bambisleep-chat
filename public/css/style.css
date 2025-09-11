@@ -1,4 +1,22 @@
 /* BambiSleep Chat Styles */
+@import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
+
+:root {
+  --primary-color: #0c2a2aE6;
+  --primary-alt: #15aab5E6;
+  --secondary-color: #40002fE6;
+  --secondary-alt: #cc0174E6;
+  --tertiary-color: #cc0174E6;
+  --tertiary-alt: #02b893E6;
+  --button-color: #df0471E6;
+  --button-alt: #110000E6;
+  --nav-color: #0a2626E6;
+  --nav-alt: #17dbd8E6;
+  --transparent: #124141E6;
+  --transparent-alt: #ffffff00;
+  --error: #ff3333E6;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -6,8 +24,8 @@
 }
 
 body {
-    font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    font-family: "Audiowide", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color), var(--tertiary-color));
     color: #fff;
     height: 100vh;
     overflow: hidden;
@@ -27,7 +45,7 @@ body {
     width: 100%;
     height: 100%;
     z-index: 0;
-    opacity: 0.3;
+    opacity: 0.4;
 }
 
 #spiral-canvas {
@@ -45,7 +63,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--transparent);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
 }
@@ -53,16 +71,19 @@ body {
 /* Chat Header */
 #chat-header {
     padding: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--nav-alt);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: var(--nav-color);
 }
 
 #chat-header h1 {
-    color: #ff6b9d;
+    color: var(--nav-alt);
     font-size: 1.8rem;
-    text-shadow: 0 0 10px rgba(255, 107, 157, 0.5);
+    text-shadow: 0 0 10px var(--nav-alt);
+    font-weight: 400;
+    letter-spacing: 2px;
 }
 
 #controls {
@@ -72,22 +93,25 @@ body {
 
 #controls button {
     padding: 8px 16px;
-    background: rgba(255, 107, 157, 0.2);
-    border: 1px solid #ff6b9d;
+    background: var(--button-alt);
+    border: 1px solid var(--button-color);
     border-radius: 20px;
     color: #fff;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.9rem;
 }
 
 #controls button:hover {
-    background: rgba(255, 107, 157, 0.4);
+    background: var(--button-color);
     transform: scale(1.05);
+    box-shadow: 0 0 15px var(--button-color);
 }
 
 #controls button.active {
-    background: #ff6b9d;
-    box-shadow: 0 0 15px rgba(255, 107, 157, 0.6);
+    background: var(--button-color);
+    box-shadow: 0 0 20px var(--button-color);
 }
 
 /* Chat Messages */
@@ -101,10 +125,11 @@ body {
 .message {
     margin-bottom: 15px;
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--primary-color);
     border-radius: 15px;
-    border-left: 3px solid #ff6b9d;
+    border-left: 3px solid var(--tertiary-color);
     animation: messageSlide 0.3s ease-out;
+    border: 1px solid var(--primary-alt);
 }
 
 @keyframes messageSlide {
@@ -112,6 +137,7 @@ body {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -119,14 +145,16 @@ body {
 }
 
 .message.system {
-    border-left-color: #4ecdc4;
-    background: rgba(78, 205, 196, 0.1);
+    border-left-color: var(--tertiary-alt);
+    background: var(--nav-color);
+    border-color: var(--tertiary-alt);
 }
 
 .message-time {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--primary-alt);
     margin-bottom: 5px;
+    font-family: "Audiowide", sans-serif;
 }
 
 .message-text {
@@ -136,59 +164,69 @@ body {
 /* Trigger Text Effects */
 .trigger-text {
     animation: flashTrigger 1s ease-in-out infinite;
-    color: #ff6b9d;
+    color: var(--secondary-alt);
     font-weight: bold;
-    text-shadow: 0 0 8px rgba(255, 107, 157, 0.8);
+    text-shadow: 0 0 8px var(--secondary-alt);
 }
 
 @keyframes flashTrigger {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
 }
 
 /* Chat Input */
 #chat-input-container {
     padding: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--nav-alt);
     display: flex;
     gap: 10px;
+    background: var(--nav-color);
 }
 
 #chat-input {
     flex: 1;
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--primary-color);
+    border: 1px solid var(--primary-alt);
     border-radius: 25px;
     color: #fff;
     font-size: 1rem;
     outline: none;
     transition: all 0.3s ease;
+    font-family: "Audiowide", sans-serif;
 }
 
 #chat-input:focus {
-    border-color: #ff6b9d;
-    box-shadow: 0 0 10px rgba(255, 107, 157, 0.3);
+    border-color: var(--tertiary-color);
+    box-shadow: 0 0 10px var(--tertiary-color);
 }
 
 #chat-input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--primary-alt);
 }
 
 #send-button {
     padding: 12px 24px;
-    background: linear-gradient(45deg, #ff6b9d, #4ecdc4);
+    background: linear-gradient(45deg, var(--button-color), var(--tertiary-alt));
     border: none;
     border-radius: 25px;
     color: #fff;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-family: "Audiowide", sans-serif;
+    font-size: 1rem;
 }
 
 #send-button:hover {
     transform: scale(1.05);
-    box-shadow: 0 5px 15px rgba(255, 107, 157, 0.4);
+    box-shadow: 0 5px 15px var(--button-color);
 }
 
 /* Scrollbar Styling */
@@ -197,17 +235,17 @@ body {
 }
 
 #chat-messages::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--primary-color);
     border-radius: 4px;
 }
 
 #chat-messages::-webkit-scrollbar-thumb {
-    background: rgba(255, 107, 157, 0.6);
+    background: var(--tertiary-color);
     border-radius: 4px;
 }
 
 #chat-messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 107, 157, 0.8);
+    background: var(--secondary-alt);
 }
 
 /* Responsive Design */
@@ -216,12 +254,12 @@ body {
         flex-direction: column;
         gap: 15px;
     }
-    
+
     #controls {
         flex-wrap: wrap;
         justify-content: center;
     }
-    
+
     #chat-input-container {
         flex-direction: column;
     }

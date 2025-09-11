@@ -5,22 +5,26 @@ A modern real-time chat application with psychedelic visual effects, text-to-spe
 ## Features
 
 ### 🎨 Visual Effects
+
 - **Spiral Animations**: Hypnotic spiral patterns with particle effects
 - **Trigger Flashing**: Screen flash effects when trigger words are detected
 - **Gradient Backgrounds**: Beautiful animated gradients
 
-### 🔊 Audio Features  
+### 🔊 Audio Features
+
 - **Text-to-Speech**: Automatic voice synthesis for incoming messages
 - **Trigger Sounds**: Audio cues when trigger words are mentioned
 - **Volume Control**: Adjustable audio settings
 
 ### 💬 Chat Features
+
 - **Real-time Messaging**: Instant message delivery via WebSockets
 - **Message History**: Persistent chat history
 - **User Count**: Live user counter
 - **Trigger Detection**: Customizable trigger word highlighting
 
 ### ⚙️ Controls
+
 - Toggle spiral animations on/off
 - Enable/disable text-to-speech
 - Toggle trigger word system
@@ -29,12 +33,14 @@ A modern real-time chat application with psychedelic visual effects, text-to-spe
 ## Quick Start
 
 ### Prerequisites
-- Node.js v18+ 
+
+- Node.js v18+
 - npm (comes with Node.js)
 
 ### Installation
 
 1. **Clone and install dependencies:**
+
 ```bash
 git clone <repository-url>
 cd js-bambisleep-chat
@@ -42,6 +48,7 @@ npm install
 ```
 
 2. **Start the application:**
+
 ```bash
 npm start
 ```
@@ -52,6 +59,7 @@ Navigate to `http://localhost:6969`
 ### Development Mode
 
 For development with hot reload:
+
 ```bash
 npm run dev
 ```
@@ -96,6 +104,7 @@ CHAT_HISTORY_LIMIT=100      # Chat history size
 ### Default Trigger Words
 
 The application comes with pre-configured trigger words:
+
 - bambi, bimbo, good girl, pink, spiral
 - obey, submit, empty, blank, mindless
 - doll, pretty, cute, sleep
@@ -114,12 +123,14 @@ Trigger words can be customized via the `/api/triggers` endpoint.
 ## Technology Stack
 
 ### Backend
+
 - **Node.js** - Runtime environment
 - **Express** - Web framework
 - **Socket.io** - Real-time communication
 - **dotenv** - Environment configuration
 
 ### Frontend
+
 - **Vanilla JavaScript** - Core functionality
 - **p5.js** - Creative coding and animations
 - **Socket.io Client** - Real-time communication
@@ -127,6 +138,7 @@ Trigger words can be customized via the `/api/triggers` endpoint.
 - **CSS3** - Styling and animations
 
 ### Build Tools
+
 - **Vite** - Frontend build tool
 - **Nodemon** - Development server
 - **Concurrently** - Run multiple scripts
@@ -140,8 +152,8 @@ Trigger words can be customized via the `/api/triggers` endpoint.
 fetch('/api/triggers', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-        triggers: ['new', 'trigger', 'words'] 
+    body: JSON.stringify({
+        triggers: ['new', 'trigger', 'words']
     })
 });
 
@@ -163,6 +175,7 @@ this.colorPhase = 0;        // Color cycling
 ### Styling Changes
 
 Modify `public/css/style.css` to customize:
+
 - Color schemes
 - Animation timing
 - Layout and typography
@@ -171,7 +184,7 @@ Modify `public/css/style.css` to customize:
 ## Browser Compatibility
 
 - **Chrome/Edge**: Full support
-- **Firefox**: Full support  
+- **Firefox**: Full support
 - **Safari**: Full support (with webkit prefixes)
 - **Mobile**: Responsive design works on all devices
 
@@ -201,6 +214,7 @@ Modify `public/css/style.css` to customize:
 ### Debug Mode
 
 Enable detailed logging:
+
 ```bash
 NODE_ENV=development npm start
 ```

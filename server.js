@@ -31,10 +31,10 @@ let connectedUsers = 0;
 io.on('connection', (socket) => {
     connectedUsers++;
     console.log(`User connected. Total users: ${connectedUsers}`);
-    
+
     // Send recent chat history to new user
     socket.emit('chat-history', chatHistory.slice(-20));
-    
+
     // Broadcast user count
     io.emit('user-count', connectedUsers);
 
@@ -45,18 +45,18 @@ io.on('connection', (socket) => {
             timestamp: data.timestamp || new Date().toISOString(),
             user: socket.id
         };
-        
+
         // Store message
         chatHistory.push(messageData);
-        
+
         // Keep only last 100 messages
         if (chatHistory.length > 100) {
             chatHistory.shift();
         }
-        
+
         // Broadcast to all clients
         socket.broadcast.emit('message', messageData);
-        
+
         console.log(`Message from ${socket.id}: ${data.message}`);
     });
 
@@ -71,19 +71,19 @@ io.on('connection', (socket) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
+    res.json({
+        status: 'ok',
         timestamp: new Date().toISOString(),
-        users: connectedUsers 
+        users: connectedUsers
     });
 });
 
 // Chat history
 app.get('/api/history', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
-    res.json({ 
+    res.json({
         messages: chatHistory.slice(-limit),
-        total: chatHistory.length 
+        total: chatHistory.length
     });
 });
 
@@ -105,16 +105,16 @@ app.post('/api/triggers', (req, res) => {
 // Text-to-Speech endpoint (placeholder)
 app.post('/api/tts', (req, res) => {
     const { text } = req.body;
-    
+
     if (!text || typeof text !== 'string') {
         return res.status(400).json({ error: 'Invalid text input' });
     }
-    
+
     // For now, return error to force client to use Web Speech API
     // In production, this would integrate with TTS service
-    res.status(503).json({ 
-        error: 'Server TTS not implemented', 
-        message: 'Use browser TTS instead' 
+    res.status(503).json({
+        error: 'Server TTS not implemented',
+        message: 'Use browser TTS instead'
     });
 });
 

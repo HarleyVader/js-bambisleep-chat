@@ -7,7 +7,7 @@ class TextToSpeechSystem {
         this.audioContext = null;
         this.currentAudio = null;
         this.volume = 0.7;
-        
+
         this.init();
     }
 
@@ -38,10 +38,10 @@ class TextToSpeechSystem {
 
         // Clean text for TTS
         const cleanText = this.cleanTextForTTS(text);
-        
+
         // Add to queue
         this.queue.push(cleanText);
-        
+
         // Process queue if not already playing
         if (!this.isPlaying) {
             this.processQueue();
@@ -56,7 +56,7 @@ class TextToSpeechSystem {
 
         this.isPlaying = true;
         const text = this.queue.shift();
-        
+
         try {
             // Try using built-in TTS first
             await this.speakWithWebAPI(text);
@@ -68,7 +68,7 @@ class TextToSpeechSystem {
                 console.error('TTS failed:', serverError);
             }
         }
-        
+
         // Continue with next item in queue
         setTimeout(() => this.processQueue(), 100);
     }
@@ -84,23 +84,23 @@ class TextToSpeechSystem {
             utterance.volume = this.volume;
             utterance.rate = 0.9;
             utterance.pitch = 1.1;
-            
+
             // Try to find a female voice
             const voices = speechSynthesis.getVoices();
-            const femaleVoice = voices.find(voice => 
-                voice.name.toLowerCase().includes('female') || 
+            const femaleVoice = voices.find(voice =>
+                voice.name.toLowerCase().includes('female') ||
                 voice.name.toLowerCase().includes('woman') ||
                 voice.name.toLowerCase().includes('zira') ||
                 voice.name.toLowerCase().includes('hazel')
             );
-            
+
             if (femaleVoice) {
                 utterance.voice = femaleVoice;
             }
 
             utterance.onend = () => resolve();
             utterance.onerror = (event) => reject(new Error(event.error));
-            
+
             speechSynthesis.speak(utterance);
         });
     }
@@ -114,14 +114,14 @@ class TextToSpeechSystem {
                 },
                 body: JSON.stringify({ text })
             });
-            
+
             if (!response.ok) {
                 throw new Error(`TTS API error: ${response.status}`);
             }
-            
+
             const audioBlob = await response.blob();
             await this.playAudioBlob(audioBlob);
-            
+
         } catch (error) {
             throw new Error(`Server TTS failed: ${error.message}`);
         }
@@ -131,17 +131,17 @@ class TextToSpeechSystem {
         return new Promise((resolve, reject) => {
             const audio = new Audio();
             audio.volume = this.volume;
-            
+
             audio.onended = () => {
                 this.currentAudio = null;
                 resolve();
             };
-            
+
             audio.onerror = () => {
                 this.currentAudio = null;
                 reject(new Error('Audio playback failed'));
             };
-            
+
             audio.src = URL.createObjectURL(blob);
             this.currentAudio = audio;
             audio.play().catch(reject);
@@ -154,12 +154,12 @@ class TextToSpeechSystem {
             this.currentAudio.pause();
             this.currentAudio = null;
         }
-        
+
         // Stop Web Speech API
         if ('speechSynthesis' in window) {
             speechSynthesis.cancel();
         }
-        
+
         this.isPlaying = false;
     }
 
@@ -170,26 +170,26 @@ class TextToSpeechSystem {
     cleanTextForTTS(text) {
         // Remove URLs
         text = text.replace(/https?:\/\/[^\s]+/g, 'link');
-        
+
         // Remove excessive punctuation
         text = text.replace(/[!]{2,}/g, '!');
         text = text.replace(/[?]{2,}/g, '?');
         text = text.replace(/[.]{3,}/g, '...');
-        
+
         // Replace common emoticons with words
         text = text.replace(/:\)/g, 'smile');
         text = text.replace(/:\(/g, 'sad');
         text = text.replace(/:D/g, 'laugh');
         text = text.replace(/<3/g, 'heart');
-        
+
         // Remove excessive whitespace
         text = text.replace(/\s+/g, ' ').trim();
-        
+
         // Limit length
         if (text.length > 200) {
             text = text.substring(0, 197) + '...';
         }
-        
+
         return text;
     }
 
