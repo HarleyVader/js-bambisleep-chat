@@ -13,58 +13,52 @@ class ChatCore {
         this.init();
     }
 
-    // Configure marked for AI response processing on frontend
-    initMarked() {
-        if (typeof marked !== 'undefined') {
-            // Configure marked options
-            marked.setOptions({
-                breaks: true,
-                gfm: true,
-                sanitize: false
-            });
+    // Initialize text effects system
+    initTextEffects() {
+        // Ensure textEffects is available
+        if (typeof window.textEffects === 'undefined') {
+            console.warn('TextEffects not loaded yet, retrying...');
+            setTimeout(() => this.initTextEffects(), 100);
+            return;
+        }
+        console.log('TextEffects system initialized');
+    }
 
-            // Custom renderer for AI-generated highlighted text
-            const renderer = new marked.Renderer();
-
-            // Override strong (bold) rendering to apply our enhanced trigger styling
-            renderer.strong = function(text) {
-                // This will convert **text** to our enhanced trigger format
-                return `<span class="ai-generated-highlight">${text}</span>`;
-            };
-
-            marked.setOptions({ renderer });
+    // Process AI response with custom effects system
+    processAIResponse(aiResponse) {
+        try {
+            if (typeof window.textEffects !== 'undefined') {
+                // Use custom effects system for enhanced CAPS processing
+                return window.textEffects.processMessage(aiResponse, true);
+            } else {
+                // Fallback: manual processing if effects system is not available
+                return this.manualProcessHighlights(aiResponse);
+            }
+        } catch (error) {
+            console.error('Error processing AI response with effects system:', error);
+            // Fallback: manual processing if effects system fails
+            return this.manualProcessHighlights(aiResponse);
         }
     }
 
-    // Process AI response with marked on frontend
-    processAIResponse(aiResponse) {
-        try {
-            if (typeof marked !== 'undefined') {
-                // Use marked to process the AI response, which will convert **text** to highlighted spans
-                let processedResponse = marked.parse(aiResponse);
-                
-                // Clean up any unwanted HTML tags that marked might have added
-                processedResponse = processedResponse
-                    .replace(/<p>/g, '')
-                    .replace(/<\/p>/g, '')
-                    .trim();
-                    
-                return processedResponse;
+    // Manual processing for **text** highlighting with CAPS detection
+    manualProcessHighlights(text) {
+        return text.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
+            // Check if the content is in ALL CAPS
+            const isAllCaps = /^[A-Z\s\-!'.,;:?]*$/.test(content) && /[A-Z]/.test(content);
+            
+            if (isAllCaps) {
+                return `<span class="ai-generated-highlight caps-trigger">${content}</span>`;
             } else {
-                // Fallback: manual processing if marked is not available
-                return aiResponse.replace(/\*\*([^*]+)\*\*/g, '<span class="ai-generated-highlight">$1</span>');
+                return `<span class="ai-generated-highlight">${content}</span>`;
             }
-        } catch (error) {
-            console.error('Error processing AI response with marked:', error);
-            // Fallback: manual processing if marked fails
-            return aiResponse.replace(/\*\*([^*]+)\*\*/g, '<span class="ai-generated-highlight">$1</span>');
-        }
+        });
     }
 
     init() {
         this.initSocket();
         this.initUI();
-        this.initMarked();
+        this.initTextEffects();
         this.bindEvents();
         this.addSystemMessage('Welcome to BambiSleep Chat');
         this.addSystemMessage(`Your username: ${this.username}`);
