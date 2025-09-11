@@ -57,22 +57,32 @@ class DropdownManager {
             // REMOVED AGGRESSIVE HOVER FUNCTIONALITY
             // Only click-based interaction now for user-friendly experience
 
-            // Set up click handlers for non-collar dropdowns
+            // Set up click handlers for ALL dropdowns EXCEPT collar (collar has its own handler)
             if (btn && btn.id !== 'toggle-collar') {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    // Handle dropdown open/close
-                    if (dropdown.classList.contains('active')) {
-                        this.closeDropdown(dropdown);
-                    } else {
-                        this.openDropdown(dropdown);
-                    }
-
-                    // Also handle toggle functionality for toggle buttons
+                    // Check if this button is a toggle button with special behavior
                     if (btn.classList.contains('toggle-button')) {
+                        // For toggle buttons, handle both toggle AND dropdown functionality
                         this.handleToggleClick(btn);
+                        
+                        // Then handle dropdown if it has content
+                        if (content) {
+                            if (dropdown.classList.contains('active')) {
+                                this.closeDropdown(dropdown);
+                            } else {
+                                this.openDropdown(dropdown);
+                            }
+                        }
+                    } else {
+                        // For regular dropdown buttons, just handle dropdown
+                        if (dropdown.classList.contains('active')) {
+                            this.closeDropdown(dropdown);
+                        } else {
+                            this.openDropdown(dropdown);
+                        }
                     }
                 });
             }
@@ -205,8 +215,9 @@ class DropdownManager {
     }
 
     initializeToggleButtons() {
-        // Toggle functionality is now handled directly in dropdown click handlers
-        console.log('✅ Toggle button functionality integrated with dropdown handlers');
+        // Toggle buttons are now handled by initializeDropdowns() to avoid conflicts
+        // This method kept for future toggle-only buttons that don't have dropdowns
+        console.log('✅ Toggle button initialization delegated to dropdown handlers');
     }
 
     initializeCollarFunctionality() {
