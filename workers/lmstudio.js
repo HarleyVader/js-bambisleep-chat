@@ -1,5 +1,4 @@
-// workers/lmstudio.js
-// LM Studio Worker for BambiSleep Chat
+// workers/lmstudio.js - LM Studio Worker for BambiSleep Chat
 const { parentPort } = require('worker_threads');
 const axios = require('axios');
 const dotenv = require('dotenv');
@@ -18,20 +17,39 @@ const sessionHistories = {};
 let triggers = [];
 let collar = false;
 let collarText = '';
+let triggerDescriptions = {}; // Will be loaded from official triggers.json
 
-// Core trigger descriptions (simplified from template)
-const triggerDescriptions = {
-    'BAMBI SLEEP': 'Core trigger for deep mindless trance state',
-    'GOOD GIRL': 'Reinforcement trigger for obedience and submission',
-    'BLANK': 'Empty mind trigger, removes all thoughts',
-    'MINDLESS': 'Complete mental surrender trigger',
-    'OBEY': 'Command compliance trigger',
-    'SUBMIT': 'Surrender and acceptance trigger',
-    'BIMBO': 'Personality transformation trigger',
-    'DOLL': 'Object transformation trigger',
-    'PINK': 'Feminization and aesthetic trigger',
-    'SPIRAL': 'Visual hypnotic induction trigger'
-};
+// Load OFFICIAL BambiSleep triggers from JSON file
+async function loadOfficialTriggers() {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const triggersPath = path.join(__dirname, 'triggers.json');
+        
+        const data = JSON.parse(fs.readFileSync(triggersPath, 'utf8'));
+        
+        // Build trigger descriptions from official data
+        triggerDescriptions = {};
+        if (data.triggers && Array.isArray(data.triggers)) {
+            data.triggers.forEach(trigger => {
+                const triggerName = trigger.name.toUpperCase();
+                triggerDescriptions[triggerName] = trigger.description;
+            });
+        }
+        
+        console.log('Loaded OFFICIAL BambiSleep trigger descriptions from:', data.source);
+        console.log('Trigger version:', data.version);
+        console.log('Available triggers:', Object.keys(triggerDescriptions));
+        
+    } catch (error) {
+        console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
+        // NO FALLBACK - Only use official triggers
+        triggerDescriptions = {};
+    }
+}
+
+// Initialize official triggers on startup
+loadOfficialTriggers();
 
 // Worker message handling
 if (parentPort) {

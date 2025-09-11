@@ -1,0 +1,153 @@
+{
+    "version": "2.0.0",
+    "updated": "2025-09-10T00:00:00.000Z",
+    "source": "https://bambisleep.info/Triggers",
+    "description": "BambiSleep trigger definitions extracted from official knowledge base https://bambisleep.info/Triggers",
+    "categories": {
+        "primary": "Main personality triggers for Bambi activation",
+        "physical": "Physical body and movement triggers",
+        "mental": "Mental state and cognitive triggers"
+    },
+    "triggers": [
+        {
+            "id": "sleep",
+            "name": "Sleep",
+            "category": "primary",
+            "description": "Primary trigger to activate the Bambi personality state",
+            "effects": [
+                "Personality switch to Bambi",
+                "Increased suggestibility",
+                "Reduced critical thinking",
+                "Enhanced compliance"
+            ],
+            "usage": "Trigger activation for Bambi Sleep",
+            "safetyLevel": "moderate"
+        },
+        {
+            "id": "good_girl",
+            "name": "Good Girl",
+            "category": "primary",
+            "description": "Reinforcement trigger for positive behavior conditioning",
+            "effects": [
+                "Pleasure response",
+                "Behavior reinforcement",
+                "Increased compliance",
+                "Emotional reward"
+            ],
+            "usage": "Positive reinforcement trigger",
+            "safetyLevel": "safe"
+        },
+        {
+            "id": "blank_and_empty",
+            "name": "Blank and Empty",
+            "category": "mental",
+            "description": "Mental state trigger for emptying the mind of thoughts",
+            "effects": [
+                "Thought suppression",
+                "Mental emptiness",
+                "Increased receptivity",
+                "Reduced resistance"
+            ],
+            "usage": "Mental conditioning trigger",
+            "safetyLevel": "moderate"
+        },
+        {
+            "id": "uniform",
+            "name": "Uniform Lock",
+            "category": "physical",
+            "description": "Physical presentation and posture trigger",
+            "effects": [
+                "Posture correction",
+                "Appearance focus",
+                "Physical compliance",
+                "Presentation awareness"
+            ],
+            "usage": "Physical conditioning trigger",
+            "safetyLevel": "safe"
+        },
+        {
+            "id": "bambi_sleep",
+            "name": "Bambi Sleep",
+            "category": "primary",
+            "description": "Deep conditioning state activation trigger",
+            "effects": [
+                "Deep trance state",
+                "Enhanced conditioning receptivity",
+                "Memory formation",
+                "Subconscious programming"
+            ],
+            "usage": "Deep conditioning session trigger",
+            "safetyLevel": "advanced"
+        },
+        {
+            "id": "dumb_and_happy",
+            "name": "Dumb and Happy",
+            "category": "mental",
+            "description": "Cognitive suppression with euphoric state",
+            "effects": [
+                "Intelligence reduction",
+                "Euphoric feelings",
+                "Simplified thinking",
+                "Emotional elevation"
+            ],
+            "usage": "Mental state modification trigger",
+            "safetyLevel": "moderate"
+        },
+        {
+            "id": "focus",
+            "name": "Focus",
+            "category": "mental",
+            "description": "Attention and concentration enhancement trigger",
+            "effects": [
+                "Enhanced focus",
+                "Distraction elimination",
+                "Task orientation",
+                "Attention amplification"
+            ],
+            "usage": "Concentration enhancement trigger",
+            "safetyLevel": "safe"
+        },
+        {
+            "id": "freeze",
+            "name": "Freeze",
+            "category": "physical",
+            "description": "Physical immobilization trigger",
+            "effects": [
+                "Physical paralysis",
+                "Movement restriction",
+                "Muscle relaxation",
+                "Position holding"
+            ],
+            "usage": "Physical control trigger",
+            "safetyLevel": "moderate"
+        },
+        {
+            "id": "obey",
+            "name": "Obey",
+            "category": "primary",
+            "description": "Compliance and obedience enhancement trigger",
+            "effects": [
+                "Increased obedience",
+                "Resistance reduction",
+                "Authority acceptance",
+                "Command following"
+            ],
+            "usage": "Obedience conditioning trigger",
+            "safetyLevel": "moderate"
+        },
+        {
+            "id": "open_and_empty",
+            "name": "Open and Empty",
+            "category": "mental",
+            "description": "Mental receptivity and emptiness trigger",
+            "effects": [
+                "Mental openness",
+                "Thought clearing",
+                "Receptivity increase",
+                "Programming readiness"
+            ],
+            "usage": "Mental preparation trigger",
+            "safetyLevel": "advanced"
+        }
+    ]
+}

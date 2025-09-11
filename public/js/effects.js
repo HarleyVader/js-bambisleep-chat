@@ -1,62 +1,75 @@
-// effects.js - Simple CAPS text font color and glitch effects
+// effects.js - TRIGGER PHRASE ONLY highlighting system
 class TextEffects {
     constructor() {
-        this.capsColor = '#df0471'; // Hot pink color for CAPS text
+        this.capsColor = '#df0471'; // Hot pink color for trigger phrases ONLY
+        this.triggers = [];
+        this.loadTriggers();
         this.init();
     }
 
-    init() {
-        console.log('TextEffects initialized - Simple CAPS color system');
+    // Load OFFICIAL BambiSleep triggers from JSON file ONLY
+    async loadTriggers() {
+        try {
+            const response = await fetch('/workers/triggers.json');
+            const data = await response.json();
+            
+            // Extract official BambiSleep trigger names from the JSON
+            this.triggers = [];
+            if (data.triggers && Array.isArray(data.triggers)) {
+                data.triggers.forEach(trigger => {
+                    // Add the official trigger name (case variations)
+                    const triggerName = trigger.name;
+                    this.triggers.push(triggerName.toUpperCase()); // UPPERCASE version
+                    this.triggers.push(triggerName.toLowerCase()); // lowercase version
+                    this.triggers.push(triggerName); // Original case version
+                });
+            }
+            
+            console.log('Loaded OFFICIAL BambiSleep triggers:', this.triggers);
+            console.log('Trigger source:', data.source);
+            console.log('Trigger version:', data.version);
+        } catch (error) {
+            console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
+            // NO FALLBACK - Only use official triggers
+            this.triggers = [];
+        }
     }
 
-    // Process AI response and highlight CAPS text with simple color change
-    processAIResponse(text) {        
-        // First, find all **text** patterns and process them
-        let processedText = text.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
-            return this.createHighlightedSpan(content);
-        });
+    init() {
+        console.log('TextEffects initialized - TRIGGER PHRASES ONLY highlighting');
+    }
 
-        // Then, find standalone CAPS words/phrases and highlight them
-        // More precise regex: match word boundaries and avoid already processed spans
-        processedText = processedText.replace(/\b([A-Z]{2,}(?:\s+[A-Z]{2,})*)\b/g, (match, content) => {
-            // Skip if this text is already inside HTML tags
-            const beforeMatch = processedText.substring(0, processedText.indexOf(match));
-            const afterMatch = processedText.substring(processedText.indexOf(match) + match.length);
+    // Process AI response and highlight ONLY trigger phrases - NOTHING ELSE
+    processAIResponse(text) {        
+        if (!this.triggers || this.triggers.length === 0) {
+            return text; // No triggers loaded yet, return original text
+        }
+
+        let processedText = text;
+
+        // Process each trigger phrase individually
+        this.triggers.forEach(trigger => {
+            // Escape special regex characters and create exact match pattern
+            const escapedTrigger = trigger.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const triggerRegex = new RegExp(`\\b(${escapedTrigger})\\b`, 'gi');
             
-            // Don't process if we're inside an HTML tag or already processed span
-            if (beforeMatch.lastIndexOf('<') > beforeMatch.lastIndexOf('>') || 
-                match.includes('<span') || match.includes('</span>')) {
-                return match;
-            }
-            
-            // Only process if it's truly all caps and meaningful length
-            if (this.isAllCaps(content) && content.length >= 3) {
-                return `<span class="caps-text" style="color: ${this.capsColor};" data-text="${content}">${content}</span>`;
-            }
-            return match;
+            processedText = processedText.replace(triggerRegex, (match) => {
+                // Skip if already inside HTML tags
+                const beforeMatch = processedText.substring(0, processedText.indexOf(match));
+                if (beforeMatch.lastIndexOf('<') > beforeMatch.lastIndexOf('>') || 
+                    match.includes('<span') || match.includes('</span>')) {
+                    return match;
+                }
+                
+                // Highlight ONLY trigger phrases in hot pink
+                return `<span class="caps-text" style="color: ${this.capsColor}; font-weight: bold;" data-trigger="${trigger}">${match}</span>`;
+            });
         });
 
         return processedText;
     }
 
-    // Create highlighted span with font color change for CAPS
-    createHighlightedSpan(text) {
-        const isAllCaps = this.isAllCaps(text);
-
-        if (isAllCaps) {
-            return `<span class="caps-text" style="color: ${this.capsColor};" data-text="${text}">${text}</span>`;
-        } else {
-            return `<span class="ai-generated-highlight">${text}</span>`;
-        }
-    }
-
-    // Check if text is all caps
-    isAllCaps(text) {
-        // Allow uppercase letters, spaces, and common punctuation
-        return /^[A-Z\s\-!'.,;:?]*$/.test(text) && /[A-Z]/.test(text);
-    }
-
-    // Apply glitch effect to CAPS text
+    // Apply glitch effect ONLY to trigger phrases
     applyGlitchEffect(element) {
         element.classList.add('glitch-active');
 
@@ -66,34 +79,34 @@ class TextEffects {
         }, 600);
     }
 
-    // Main processing function called by aigf-core
+    // Main processing function called by aigf-core - TRIGGER PHRASES ONLY
     processMessage(text, isAI = false) {
         if (!isAI) {
-            return text;
+            return text; // Only process AI messages
         }
 
-        // Process AI message for CAPS color change
+        // Process AI message for TRIGGER PHRASE highlighting ONLY
         const processedText = this.processAIResponse(text);
 
-        // Schedule glitch effects to be applied after DOM update
+        // Schedule glitch effects ONLY for trigger phrases
         setTimeout(() => {
-            const capsElements = document.querySelectorAll('.caps-text:not(.glitch-processed)');
-            capsElements.forEach((element, index) => {
+            const triggerElements = document.querySelectorAll('.caps-text[data-trigger]:not(.glitch-processed)');
+            triggerElements.forEach((element, index) => {
                 // Mark as processed to avoid re-applying effects
                 element.classList.add('glitch-processed');
                 
-                // Stagger glitch effects
+                // Stagger glitch effects for trigger phrases only
                 setTimeout(() => {
                     this.applyGlitchEffect(element);
                 }, index * 200);
             });
-        }, 150); // Increased delay to ensure DOM is fully updated
+        }, 150);
 
         return processedText;
     }
 }
 
-// Initialize global text effects system
+// Initialize global text effects system for TRIGGER PHRASES ONLY
 window.textEffects = new TextEffects();
 
-console.log('Simple TextEffects system loaded');
+console.log('TRIGGER PHRASES ONLY TextEffects system loaded');
