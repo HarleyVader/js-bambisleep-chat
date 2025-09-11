@@ -12,6 +12,12 @@ class TriggerSystem {
     init() {
         // Load official triggers from JSON
         this.loadOfficialTriggers();
+
+        // Listen for trigger system toggle events
+        document.addEventListener('triggerSystemToggle', (event) => {
+            this.isEnabled = event.detail.enabled;
+            console.log(`TriggerSystem: ${this.isEnabled ? 'ENABLED' : 'DISABLED'}`);
+        });
     }
 
     async loadOfficialTriggers() {
@@ -66,7 +72,7 @@ class TriggerSystem {
         let processedText;
 
         if (isAlreadyProcessed) {
-            // Already contains HTML highlighting, just process any remaining unhighlighted triggers
+            // Already contains HTML highlighting, still process new triggers
             processedText = text;
         } else {
             // Regular text that needs full processing
@@ -75,35 +81,51 @@ class TriggerSystem {
             processedText = this.processEnhancedTriggers(processedText);
         }
 
-        // Then find and wrap regular trigger words (but avoid double-processing)
-        this.triggers.forEach(trigger => {
-            // Skip processing if this trigger is already wrapped in any highlight span
-            if (processedText.includes(`<span class="enhanced-trigger">${trigger.toUpperCase()}</span>`) ||
-                processedText.includes(`<span class="ai-generated-highlight">${trigger.toUpperCase()}</span>`)) {
-                return;
-            }
-
-            const regex = new RegExp(`\\b(${this.escapeRegex(trigger)})\\b`, 'gi');
-            processedText = processedText.replace(regex, (match) => {
-                // Don't process if it's inside any highlight span
-                const beforeMatch = processedText.substring(0, processedText.indexOf(match));
-                const openSpanCount = (beforeMatch.match(/<span class="[^"]*highlight[^"]*">/g) || []).length;
-                const closeSpanCount = (beforeMatch.match(/<\/span>/g) || []).length;
-
-                // If we're inside a highlight span, skip
-                if (openSpanCount > closeSpanCount) {
-                    return match;
-                }
-
-                this.playTriggerEffect();
-                return `<span class="trigger-text">${match}</span>`;
-            });
-        });
+        // Process all triggers with overlapping support
+        processedText = this.processAllTriggersWithOverlap(processedText);
 
         return processedText;
     }
 
-    processEnhancedTriggers(text) {
+    processAllTriggersWithOverlap(text) {
+        // Sort triggers by length (longest first) to handle "Bambi Sleep" before "Bambi"
+        const sortedTriggers = [...this.triggers].sort((a, b) => b.length - a.length);
+
+        let processedText = text;
+
+        // Process each trigger independently
+        sortedTriggers.forEach(trigger => {
+            const regex = new RegExp(`\\b(${this.escapeRegex(trigger)})\\b`, 'gi');
+
+            processedText = processedText.replace(regex, (match, p1, offset, string) => {
+                // Check if this match is already inside a trigger span
+                const beforeMatch = string.substring(0, offset);
+
+                // Count open and close spans before this position
+                const openSpans = (beforeMatch.match(/<span[^>]*class="[^"]*trigger[^"]*"[^>]*>/g) || []).length;
+                const closeSpans = (beforeMatch.match(/<\/span>/g) || []).length;
+
+                // If we're inside a span, don't process
+                if (openSpans > closeSpans) {
+                    return match;
+                }
+
+                // Check if this exact text is already highlighted
+                const alreadyHighlighted =
+                    string.includes(`<span class="trigger-text" data-trigger="${trigger}">${match}</span>`) ||
+                    string.includes(`<span class="enhanced-trigger">${match.toUpperCase()}</span>`);
+
+                if (alreadyHighlighted) {
+                    return match;
+                }
+
+                this.playTriggerEffect();
+                return `<span class="trigger-text" data-trigger="${trigger}">${match}</span>`;
+            });
+        });
+
+        return processedText;
+    } processEnhancedTriggers(text) {
         // Use string.replace() to find **TRIGGER** patterns and convert them
         // Matches **[CAPS WORDS]** format - handles single words or multiple words
         const enhancedTriggerRegex = /\*\*([A-Z]+(?:\s+[A-Z]+)*)\*\*/g;

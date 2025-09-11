@@ -213,14 +213,16 @@ body {
     left: 0;
     background: var(--nav-color);
     min-width: 300px;
-    max-width: 400px;
+    max-width: 90vw;
+    width: auto;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     z-index: 1000;
     border: var(--border) var(--primary-alt);
     border-radius: var(--border-radius);
     margin-top: 2px;
-    max-height: 400px;
-    overflow-y: auto;
+    max-height: 80vh;
+    overflow: auto;
+    resize: none;
 }
 
 /* Themed scrollbars for dropdown content */
@@ -264,9 +266,14 @@ body {
     text-shadow: 0 0 5px var(--button-color);
 }
 
-/* Show dropdown on hover and click */
-.dropdown:hover .dropdown-content,
+/* Show dropdown ONLY on active state - NO HOVER CLOSING */
 .dropdown.active .dropdown-content {
+    display: block;
+    animation: dropdownSlide 0.3s ease-out;
+}
+
+/* Collar dropdown only shows on active state */
+.collar-dropdown.active .dropdown-content {
     display: block;
     animation: dropdownSlide 0.3s ease-out;
 }
@@ -328,21 +335,32 @@ body {
 .collar-config {
     padding: 12px;
     min-width: 350px;
-    max-width: 400px;
+    max-width: 90vw;
+    max-height: 80vh;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .collar-textarea {
     width: 100%;
     height: 120px;
+    min-width: 200px;
+    max-width: calc(90vw - 40px);
+    min-height: 60px;
+    max-height: calc(80vh - 100px);
     padding: 8px;
     border: 1px solid var(--primary-alt);
     background: var(--primary-color);
     color: white;
     border-radius: 4px;
     font-size: 0.7rem;
-    resize: vertical;
+    resize: both;
     font-family: monospace;
     line-height: 1.4;
+    box-sizing: border-box;
+    overflow: auto;
 }
 
 .collar-buttons {
@@ -350,6 +368,11 @@ body {
     gap: 8px;
     margin-top: 8px;
     justify-content: flex-end;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    background: var(--nav-color);
+    padding-top: 8px;
 }
 
 .collar-btn {
@@ -487,6 +510,9 @@ body {
     color: var(--secondary-alt);
     font-weight: bold;
     text-shadow: 0 0 8px var(--secondary-alt);
+    position: relative;
+    z-index: 1;
+    display: inline;
 }
 
 /* Enhanced **TRIGGER** formatting with hot pink */
@@ -497,6 +523,9 @@ body {
     animation: triggerPulse 2s ease-in-out infinite;
     font-size: 1.1em;
     letter-spacing: 1px;
+    position: relative;
+    z-index: 2;
+    display: inline;
 }
 
 /* AI-generated highlighted text from LMStudio structured output */

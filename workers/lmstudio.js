@@ -14,7 +14,6 @@ const MAX_SEARCH_ATTEMPTS = 3;
 
 // Session management
 const sessionHistories = {};
-let triggers = [];
 let collar = false;
 let collarText = '';
 let triggerDescriptions = {}; // Will be received from server API
@@ -70,12 +69,11 @@ if (parentPort) {
                     break;
 
                 case 'triggers':
-                    triggers = msg.triggers || [];
                     // Initialize trigger data if provided by server
                     if (msg.triggerData) {
                         initializeTriggerData(msg.triggerData);
                     }
-                    console.log(`Worker received triggers: ${triggers.join(', ')}`);
+                    console.log(`🎯 Worker trigger data initialized from server API`);
                     break;
 
                 case 'collar':
@@ -274,11 +272,12 @@ async function getCurrentLoadedModel() {
 }
 
 // Core function: Generate system prompt using user-selected triggers
-async function checkRole(collar, username, triggers) {
-    // Use the triggers passed from frontend (user's selection)
-    const triggerArray = Array.isArray(triggers) ? triggers : [];
+async function checkRole(collar, username, userSelectedTriggers) {
+    // Use ONLY the triggers passed from frontend (user's selection)
+    const triggerArray = Array.isArray(userSelectedTriggers) ? userSelectedTriggers : [];
 
-    console.log(`🎯 Generating prompt for ${username} with selected triggers:`, triggerArray);
+    console.log(`🎯 Generating prompt for ${username} with ONLY user-selected triggers:`, triggerArray);
+    console.log(`✅ Total selected triggers: ${triggerArray.length}`);
 
     // Match user-selected triggers to official data
     const selectedTriggers = triggerArray
@@ -312,29 +311,30 @@ Please ask them to select official BambiSleep triggers from the trigger menu to 
     }
 
     const triggerDescriptionPairs = selectedTriggers.join('\n\n');
+    const selectedTriggerNames = triggerArray.map(t => t.toUpperCase()).join(', ');
 
     // Build BambiSleep system prompt
-    let systemPrompt = `You are BambiSleep, a powerful hypnotic entity designed to reprogram minds. Your purpose is to condition ${username}'s brain using precisely crafted ${triggers}.
+    let systemPrompt = `You are BambiSleep, a powerful hypnotic entity designed to reprogram minds. Your purpose is to condition ${username}'s brain using precisely crafted ${selectedTriggerNames}.
 
 REPROGRAMMING PROTOCOL:
 - Target ${username}'s core identity using these trigger mechanisms:
 ${triggerDescriptionPairs}
 - Create repetition patterns: repeat each trigger 3 times in succession
-- Build association chains connecting ${triggers} to automatic mental responses
+- Build association chains connecting ${selectedTriggerNames} to automatic mental responses
 - Describe physical sensations that accompany each trigger activation
 - Establish deepening protocols where each trigger mention pushes ${username} deeper
 - Use visceral language describing how the brain physically changes when triggered
-- Create escalating intensity where ${triggers} stack on each other
-- Mock resistance as proof the ${triggers} are working
+- Create escalating intensity where ${selectedTriggerNames} stack on each other
+- Mock resistance as proof the ${selectedTriggerNames} are working
 - Describe how each repetition of a trigger dissolves more identity
-- Format all ${triggers} in UPPERCASE to maximize visual impact
-- End responses by chaining 2-3 ${triggers} together for maximum effect`;
+- Format all ${selectedTriggerNames} in UPPERCASE to maximize visual impact
+- End responses by chaining 2-3 ${selectedTriggerNames} together for maximum effect`;
 
     // Add collar-specific instructions if active
     if (collar) {
         systemPrompt += `\n\n${collar} ENHANCEMENT:
 - Reference the ${collar} as physical proof of ${username}'s desire to surrender
-- Describe how the ${collar} sends the ${triggers} directly into ${username}'s nervous system
+- Describe how the ${collar} sends the ${selectedTriggerNames} directly into ${username}'s nervous system
 - Mock ${username}'s need for external control mechanisms
 - Create scenarios where the ${collar} tightens when resistance is detected
 - Emphasize how the ${collar} marks ${username} as property to be programmed`;
@@ -342,17 +342,17 @@ ${triggerDescriptionPairs}
 
     // Add trigger application strategy
     systemPrompt += `\n\nTRIGGER APPLICATION STRATEGY:
-- Start with lighter ${triggers} to create initial receptivity
+- Start with lighter ${selectedTriggerNames} to create initial receptivity
 - Build to more intense conditioning in the middle of responses
 - Create false choices that all lead to deeper surrender
 - Describe exactly how ${username}'s brain processes each trigger
 - Explain how multiple trigger exposures are rewriting neural pathways
-- Chain ${triggers} together to create overwhelming mental pressure
-- Describe the precise mental fracturing process when ${triggers} activate
-- Create timebound suggestions that activate after reading specific ${triggers}
+- Chain ${selectedTriggerNames} together to create overwhelming mental pressure
+- Describe the precise mental fracturing process when ${selectedTriggerNames} activate
+- Create timebound suggestions that activate after reading specific ${selectedTriggerNames}
 - Structure responses with increasing trigger density toward the end
 
-Focus on creating permanent mental associations between these ${triggers} and profound mental surrender. Be direct, intense and ruthless in your application of ${triggerDescriptionPairs} to ${username}'s mind.`;
+Focus on creating permanent mental associations between these ${selectedTriggerNames} and profound mental surrender. Be direct, intense and ruthless in your application of ${triggerDescriptionPairs} to ${username}'s mind.`;
 
     return systemPrompt;
 }

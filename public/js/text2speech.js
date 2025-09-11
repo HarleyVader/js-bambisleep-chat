@@ -82,7 +82,7 @@ class TextToSpeechSystem {
 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.volume = this.volume;
-            utterance.rate = 0.9;
+            utterance.rate = 0.8; // Slightly slower for better comprehension
             utterance.pitch = 1.1;
 
             // Try to find a female voice
@@ -91,17 +91,38 @@ class TextToSpeechSystem {
                 voice.name.toLowerCase().includes('female') ||
                 voice.name.toLowerCase().includes('woman') ||
                 voice.name.toLowerCase().includes('zira') ||
-                voice.name.toLowerCase().includes('hazel')
+                voice.name.toLowerCase().includes('hazel') ||
+                voice.name.toLowerCase().includes('susan') ||
+                voice.name.toLowerCase().includes('samantha')
             );
 
             if (femaleVoice) {
                 utterance.voice = femaleVoice;
             }
 
-            utterance.onend = () => resolve();
-            utterance.onerror = (event) => reject(new Error(event.error));
+            // Add debugging
+            utterance.onstart = () => {
+                console.log('🔊 TTS started:', text.substring(0, 50) + '...');
+            };
 
-            speechSynthesis.speak(utterance);
+            utterance.onend = () => {
+                console.log('✅ TTS completed');
+                resolve();
+            };
+
+            utterance.onerror = (event) => {
+                console.error('❌ TTS error:', event.error);
+                reject(new Error(event.error));
+            };
+
+            // Sometimes speechSynthesis needs a moment to load voices
+            if (voices.length === 0) {
+                speechSynthesis.addEventListener('voiceschanged', () => {
+                    speechSynthesis.speak(utterance);
+                }, { once: true });
+            } else {
+                speechSynthesis.speak(utterance);
+            }
         });
     }
 
@@ -182,13 +203,11 @@ class TextToSpeechSystem {
         text = text.replace(/:D/g, 'laugh');
         text = text.replace(/<3/g, 'heart');
 
+        // Remove HTML tags but preserve the text content
+        text = text.replace(/<[^>]*>/g, '');
+
         // Remove excessive whitespace
         text = text.replace(/\s+/g, ' ').trim();
-
-        // Limit length
-        if (text.length > 200) {
-            text = text.substring(0, 197) + '...';
-        }
 
         return text;
     }

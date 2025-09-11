@@ -384,13 +384,10 @@ class ChatCore {
             }
         });
 
-        // Toggle controls
-        this.toggleSpiral.addEventListener('click', () => this.toggleSpiralAnimation());
-        this.toggleTTS.addEventListener('click', () => this.toggleTextToSpeech());
-        this.toggleTriggers.addEventListener('click', () => this.toggleTriggerSystem());
-
-        // AI controls - handled by dropdown.js
-        // this.aiModeButton.addEventListener('click', () => this.toggleAIMode());
+        // Toggle controls - now handled by dropdown.js
+        // this.toggleSpiral.addEventListener('click', () => this.toggleSpiralAnimation());
+        // this.toggleTTS.addEventListener('click', () => this.toggleTextToSpeech());
+        // this.toggleTriggers.addEventListener('click', () => this.toggleTriggerSystem());
 
         // Listen for AI mode changes from dropdown
         document.addEventListener('aiModeChange', (event) => {
@@ -399,6 +396,23 @@ class ChatCore {
             if (this.aiMode) {
                 this.updateTriggers();
             }
+        });
+
+        // Listen for collar events from dropdown.js
+        document.addEventListener('collarActivated', (event) => {
+            this.collarActive = event.detail.active;
+            this.updateCollarUI();
+        });
+
+        // Listen for trigger selection events from dropdown.js
+        document.addEventListener('triggerSelection', (event) => {
+            const { trigger, active } = event.detail;
+            console.log(`Trigger ${trigger} ${active ? 'activated' : 'deactivated'}`);
+        });
+
+        // Listen for trigger system toggle events
+        document.addEventListener('triggerSystemToggle', (event) => {
+            console.log(`Trigger system ${event.detail.enabled ? 'enabled' : 'disabled'}`);
         });
 
         // Model loading control
@@ -413,10 +427,8 @@ class ChatCore {
             select.addEventListener('change', () => this.updateSelectedTriggers());
         }
 
-        // Collar button event listeners
-        this.setupCollarButtons();
-
-        // Click outside handler for collar dropdown
+        // COLLAR FUNCTIONALITY MOVED TO dropdown.js
+        // Click outside handler for dropdowns
         this.setupClickOutsideHandling();
 
         // Focus on input when page loads
@@ -426,11 +438,10 @@ class ChatCore {
     }
 
     setupClickOutsideHandling() {
-        // Handle click outside for all dropdowns
+        // SIMPLIFIED - Only handle basic click-outside for all dropdowns
         document.addEventListener('click', (e) => {
             document.querySelectorAll('.dropdown').forEach(dropdown => {
                 const isInsideDropdown = dropdown.contains(e.target);
-                
                 if (!isInsideDropdown) {
                     dropdown.classList.remove('active');
                 }
@@ -449,7 +460,7 @@ class ChatCore {
                 });
             }
         });
-    }    sendMessage() {
+    } sendMessage() {
         const message = this.chatInput.value.trim();
         if (!message || !this.isConnected) return;
 
@@ -597,117 +608,6 @@ class ChatCore {
         }
     }
 
-    setupCollarButtons() {
-        const collarButtons = document.querySelectorAll('.collar-btn');
-
-        // Regular collar buttons (Copy, Paste, Save)
-        collarButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const action = button.getAttribute('data-action');
-
-                switch (action) {
-                    case 'collar-copy':
-                        this.copyCollarText();
-                        break;
-                    case 'collar-paste':
-                        this.pasteCollarText();
-                        break;
-                    case 'collar-save':
-                        this.saveCollarSettings();
-                        break;
-                }
-            });
-        });
-    }
-
-    copyCollarText() {
-        const collarTextarea = document.getElementById('collar-text');
-        if (collarTextarea && collarTextarea.value.trim()) {
-            navigator.clipboard.writeText(collarTextarea.value).then(() => {
-                this.addSystemMessage('🔗 Collar settings copied to clipboard');
-            }).catch(() => {
-                this.addSystemMessage('❌ Failed to copy collar settings');
-            });
-        }
-    }
-
-    pasteCollarText() {
-        const collarTextarea = document.getElementById('collar-text');
-        if (collarTextarea) {
-            navigator.clipboard.readText().then(text => {
-                collarTextarea.value = text;
-                this.addSystemMessage('🔗 Collar settings pasted from clipboard');
-            }).catch(() => {
-                this.addSystemMessage('❌ Failed to paste collar settings');
-            });
-        }
-    }
-
-    saveCollarSettings() {
-        const collarTextarea = document.getElementById('collar-text');
-        const collarText = collarTextarea ? collarTextarea.value.trim() : '';
-
-        if (collarText) {
-            // Activate collar with custom text
-            this.collarActive = true;
-            this.socket.emit('activate-collar', {
-                text: collarText
-            });
-            this.addSystemMessage(`🔗 ✨ COLLAR ACTIVATED ✨ - Custom submission protocol engaged`);
-        } else {
-            // Deactivate collar if no text
-            this.collarActive = false;
-            this.socket.emit('deactivate-collar');
-            this.addSystemMessage('🔗 💔 Collar deactivated - No submission text provided');
-        }
-
-        // Close dropdown after save (remove hover state)
-        const dropdown = this.collarButton.parentElement;
-        // Force close dropdown by removing hover state temporarily
-        dropdown.style.pointerEvents = 'none';
-        setTimeout(() => {
-            dropdown.style.pointerEvents = '';
-        }, 100);
-
-        // Update UI with enhanced status
-        this.updateCollarUI();
-
-        // Add visual feedback
-        if (this.collarActive) {
-            this.collarButton.style.animation = 'collarActivation 1s ease-in-out';
-            setTimeout(() => {
-                this.collarButton.style.animation = '';
-            }, 1000);
-        }
-    }
-
-    toggleCollar() {
-        this.collarActive = !this.collarActive;
-
-        if (this.collarActive) {
-            this.socket.emit('activate-collar', {
-                text: 'You feel the collar tighten around your neck, a constant reminder of your submission and desire to obey. Every trigger becomes more powerful, every word more commanding.'
-            });
-        } else {
-            this.socket.emit('deactivate-collar');
-        }
-    }
-
-    updateCollarUI() {
-        if (this.collarActive) {
-            this.collarButton.textContent = `🔗 Collar: ON`;
-            this.collarButton.classList.add('active');
-            this.collarButton.setAttribute('data-state', 'on');
-        } else {
-            this.collarButton.textContent = `🔗 Collar: OFF`;
-            this.collarButton.classList.remove('active');
-            this.collarButton.setAttribute('data-state', 'off');
-        }
-    }
-
     updateSelectedTriggers() {
         const select = this.triggerSelector.querySelector('select');
         if (select) {
@@ -723,6 +623,30 @@ class ChatCore {
                 triggers: this.activeTriggers
             });
         }
+    }
+
+    // COLLAR FUNCTIONALITY MOVED TO dropdown.js
+    // Only keep UI update method for external communication
+    updateCollarUI() {
+        if (this.collarActive) {
+            this.collarButton.textContent = `🔗 Collar: ON`;
+            this.collarButton.classList.add('active');
+            this.collarButton.setAttribute('data-state', 'on');
+        } else {
+            this.collarButton.textContent = `🔗 Collar: OFF`;
+            this.collarButton.classList.remove('active');
+            this.collarButton.setAttribute('data-state', 'off');
+        }
+    }
+
+    // Expose socket for dropdown.js to use
+    getSocket() {
+        return this.socket;
+    }
+
+    // Expose addSystemMessage for dropdown.js to use
+    addSystemMessagePublic(message) {
+        this.addSystemMessage(message);
     }
 
     loadModel() {
