@@ -48,6 +48,9 @@
 
 ## Critical Rules
 
+
+- **ALWAYS FOLLOW `.github/build-instructions.md` AS THE CORE GUIDE.**
+
 - When the task is complete, **STOP**.
 	No extra features, improvements, or optimizations.
 - **Think before you code.**

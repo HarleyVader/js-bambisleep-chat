@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BambiSleep Chat</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Spiral Animation Canvas -->
+        <div id="spiral-container">
+            <canvas id="spiral-canvas"></canvas>
+        </div>
+
+        <!-- Chat Container -->
+        <div id="chat-container">
+            <div id="chat-header">
+                <h1>BambiSleep Chat</h1>
+                <div id="controls">
+                    <button id="toggle-spiral">Toggle Spiral</button>
+                    <button id="toggle-tts">TTS: OFF</button>
+                    <button id="toggle-triggers">Triggers: OFF</button>
+                </div>
+            </div>
+            
+            <div id="chat-messages"></div>
+            
+            <div id="chat-input-container">
+                <input type="text" id="chat-input" placeholder="Type your message..." maxlength="500">
+                <button id="send-button">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load scripts in order -->
+    <script src="/js/triggers.js"></script>
+    <script src="/js/text2speech.js"></script>
+    <script src="/js/psychodelic-trigger-mania.js"></script>
+    <script src="/js/aigf-core.js"></script>
+</body>
+</html>
