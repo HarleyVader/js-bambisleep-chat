@@ -166,6 +166,45 @@ body {
     box-shadow: 0 0 20px var(--button-color);
 }
 
+/* Enhanced Collar Button Styling */
+#toggle-collar {
+    background: linear-gradient(45deg, var(--button-alt), var(--secondary-color));
+    border: 2px solid var(--tertiary-alt);
+    font-weight: bold;
+    text-shadow: 0 0 5px var(--tertiary-alt);
+    position: relative;
+    overflow: hidden;
+}
+
+#toggle-collar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(23, 219, 216, 0.4), transparent);
+    transition: left 0.5s;
+}
+
+#toggle-collar:hover::before {
+    left: 100%;
+}
+
+#toggle-collar:hover {
+    background: linear-gradient(45deg, var(--button-color), var(--tertiary-color));
+    border-color: var(--button-color);
+    box-shadow: 0 0 20px var(--tertiary-alt);
+    text-shadow: 0 0 10px var(--button-color);
+}
+
+#toggle-collar.active {
+    background: linear-gradient(45deg, var(--tertiary-color), var(--button-color));
+    border-color: var(--button-color);
+    box-shadow: 0 0 25px var(--button-color), inset 0 0 15px var(--tertiary-color);
+    animation: collarPulse 2s ease-in-out infinite;
+}
+
 /* Dropdown Content */
 .dropdown-content {
     display: none;
@@ -232,8 +271,17 @@ body {
     animation: dropdownSlide 0.3s ease-out;
 }
 
-/* Collar dropdown - only show when parent dropdown is active */
+/* Collar dropdown - special behavior for collar only */
 .dropdown.collar-active .dropdown-content {
+    display: block !important;
+}
+
+/* Prevent collar dropdown from showing on hover */
+.dropdown:has(#toggle-collar):hover .dropdown-content {
+    display: none;
+}
+
+.dropdown:has(#toggle-collar).collar-active .dropdown-content {
     display: block !important;
 }
 
@@ -948,6 +996,29 @@ body {
 
     50% {
         transform: scale(1.02);
+    }
+}
+
+@keyframes collarActivation {
+    0% {
+        transform: scale(1) rotate(0deg);
+        box-shadow: 0 0 25px var(--button-color);
+    }
+    25% {
+        transform: scale(1.1) rotate(2deg);
+        box-shadow: 0 0 35px var(--tertiary-alt);
+    }
+    50% {
+        transform: scale(1.05) rotate(-1deg);
+        box-shadow: 0 0 45px var(--button-color);
+    }
+    75% {
+        transform: scale(1.08) rotate(1deg);
+        box-shadow: 0 0 35px var(--tertiary-alt);
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        box-shadow: 0 0 25px var(--button-color);
     }
 }
 

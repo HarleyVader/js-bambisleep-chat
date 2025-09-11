@@ -423,9 +423,51 @@ class ChatCore {
         // Collar button event listeners
         this.setupCollarButtons();
 
+        // Click outside handler for collar dropdown
+        this.setupClickOutsideHandling();
+
         // Focus on input when page loads
         window.addEventListener('load', () => {
             this.chatInput.focus();
+        });
+    }
+
+    setupClickOutsideHandling() {
+        // Handle click outside for collar dropdown
+        document.addEventListener('click', (e) => {
+            const collarDropdown = document.querySelector('#toggle-collar').parentElement;
+            const isCollarButton = e.target.closest('#toggle-collar');
+            const isInsideCollarDropdown = e.target.closest('.collar-config');
+            
+            // Close collar dropdown if clicked outside (but not on collar button or inside dropdown)
+            if (!isCollarButton && !isInsideCollarDropdown && collarDropdown.classList.contains('collar-active')) {
+                collarDropdown.classList.remove('collar-active');
+            }
+        });
+
+        // Restore normal dropdown behavior for non-collar dropdowns
+        document.querySelectorAll('.dropdown').forEach(dropdown => {
+            const button = dropdown.querySelector('.dropdown-btn');
+            const isCollarDropdown = button && button.id === 'toggle-collar';
+            
+            if (!isCollarDropdown) {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    dropdown.classList.toggle('active');
+                });
+            }
+        });
+
+        // Close dropdowns when clicking outside (except collar)
+        document.addEventListener('click', (e) => {
+            document.querySelectorAll('.dropdown').forEach(dropdown => {
+                const button = dropdown.querySelector('.dropdown-btn');
+                const isCollarDropdown = button && button.id === 'toggle-collar';
+                
+                if (!isCollarDropdown && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('active');
+                }
+            });
         });
     }
 
@@ -636,20 +678,28 @@ class ChatCore {
             this.socket.emit('activate-collar', {
                 text: collarText
             });
-            this.addSystemMessage('🔗 Collar activated with custom settings');
+            this.addSystemMessage(`🔗 ✨ COLLAR ACTIVATED ✨ - Custom submission protocol engaged`);
         } else {
             // Deactivate collar if no text
             this.collarActive = false;
             this.socket.emit('deactivate-collar');
-            this.addSystemMessage('🔗 Collar deactivated - no settings provided');
+            this.addSystemMessage('🔗 💔 Collar deactivated - No submission text provided');
         }
         
         // Close dropdown after save
         const dropdown = this.collarButton.parentElement;
         dropdown.classList.remove('collar-active');
         
-        // Update UI
+        // Update UI with enhanced status
         this.updateCollarUI();
+        
+        // Add visual feedback
+        if (this.collarActive) {
+            this.collarButton.style.animation = 'collarActivation 1s ease-in-out';
+            setTimeout(() => {
+                this.collarButton.style.animation = '';
+            }, 1000);
+        }
     }
 
     toggleCollar() {
@@ -665,8 +715,15 @@ class ChatCore {
     }
 
     updateCollarUI() {
-        this.collarButton.textContent = `🔗 Collar: ${this.collarActive ? 'ON' : 'OFF'}`;
-        this.collarButton.classList.toggle('active', this.collarActive);
+        if (this.collarActive) {
+            this.collarButton.textContent = `🔗 Collar: ACTIVE`;
+            this.collarButton.classList.add('active');
+            this.collarButton.setAttribute('data-state', 'on');
+        } else {
+            this.collarButton.textContent = `🔗 Collar: INACTIVE`;
+            this.collarButton.classList.remove('active');
+            this.collarButton.setAttribute('data-state', 'off');
+        }
     }
 
     updateSelectedTriggers() {
