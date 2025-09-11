@@ -42,9 +42,9 @@ class TriggerSystem {
 
         // Check if this is already processed HTML (contains our highlight classes)
         const isAlreadyProcessed = text.includes('ai-generated-highlight') || text.includes('enhanced-trigger');
-        
+
         let processedText;
-        
+
         if (isAlreadyProcessed) {
             // Already contains HTML highlighting, just process any remaining unhighlighted triggers
             processedText = text;
@@ -62,19 +62,19 @@ class TriggerSystem {
                 processedText.includes(`<span class="ai-generated-highlight">${trigger.toUpperCase()}</span>`)) {
                 return;
             }
-            
+
             const regex = new RegExp(`\\b(${this.escapeRegex(trigger)})\\b`, 'gi');
             processedText = processedText.replace(regex, (match) => {
                 // Don't process if it's inside any highlight span
                 const beforeMatch = processedText.substring(0, processedText.indexOf(match));
                 const openSpanCount = (beforeMatch.match(/<span class="[^"]*highlight[^"]*">/g) || []).length;
                 const closeSpanCount = (beforeMatch.match(/<\/span>/g) || []).length;
-                
+
                 // If we're inside a highlight span, skip
                 if (openSpanCount > closeSpanCount) {
                     return match;
                 }
-                
+
                 this.playTriggerEffect();
                 return `<span class="trigger-text">${match}</span>`;
             });
@@ -87,11 +87,11 @@ class TriggerSystem {
         // Use string.replace() to find **TRIGGER** patterns and convert them
         // Matches **[CAPS WORDS]** format - handles single words or multiple words
         const enhancedTriggerRegex = /\*\*([A-Z]+(?:\s+[A-Z]+)*)\*\*/g;
-        
+
         return text.replace(enhancedTriggerRegex, (match, triggerText) => {
             // Play enhanced trigger effect
             this.playEnhancedTriggerEffect();
-            
+
             // Return the trigger without asterisks but with hot pink styling
             return `<span class="enhanced-trigger">${triggerText}</span>`;
         });
@@ -148,7 +148,7 @@ class TriggerSystem {
                 100% { opacity: 0; }
             }
         `;
-        
+
         if (!document.querySelector('#enhanced-trigger-flash-style')) {
             style.id = 'enhanced-trigger-flash-style';
             document.head.appendChild(style);

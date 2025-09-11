@@ -143,13 +143,13 @@ function findTargetModelVariants(models) {
 
         // Check for exact match or variants with different quantization
         return modelName.includes(targetName) ||
-               modelName.includes(targetName.replace('-8b-', '-')) ||
-               modelName.includes('sthenomaidblackroot') ||
-               modelName.includes('stheno') && modelName.includes('maid') && modelName.includes('blackroot');
+            modelName.includes(targetName.replace('-8b-', '-')) ||
+            modelName.includes('sthenomaidblackroot') ||
+            modelName.includes('stheno') && modelName.includes('maid') && modelName.includes('blackroot');
     });
 
     console.log(`Found ${targetModels.length} potential model variants:`,
-                targetModels.map(m => `${m.id} (${formatFileSize(m.size_bytes)})`));
+        targetModels.map(m => `${m.id} (${formatFileSize(m.size_bytes)})`));
 
     return targetModels;
 }

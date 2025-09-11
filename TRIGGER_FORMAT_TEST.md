@@ -4,7 +4,7 @@
 
 Use these test messages in the chat to verify the new **TRIGGER** formatting works correctly:
 
-### Test Cases:
+### Test Cases
 
 1. **Single Enhanced Trigger:**
    - `This is a test with **BAMBI SLEEP** trigger formatting`
@@ -23,7 +23,7 @@ Use these test messages in the chat to verify the new **TRIGGER** formatting wor
    - `**MULTI WORD TRIGGER** with spaces`
    - `Text with **TRIGGER** in middle of sentence`
 
-### Visual Effects Expected:
+### Visual Effects Expected
 
 - ✅ **TRIGGER** text appears in hot pink color (--button-color CSS variable)
 - ✅ Text has glowing text-shadow effect
@@ -33,24 +33,25 @@ Use these test messages in the chat to verify the new **TRIGGER** formatting wor
 - ✅ Asterisks (**) are removed from display
 - ✅ Text size slightly larger (1.1em) with letter spacing
 
-### CSS Classes Applied:
+### CSS Classes Applied
 
 - `.enhanced-trigger` - For **TRIGGER** format
 - `.trigger-text` - For regular trigger words
 
-### Processing Order:
+### Processing Order
 
 1. First: Process **TRIGGER** patterns with `processEnhancedTriggers()`
 2. Second: Process regular trigger words with existing logic
 3. All text is HTML escaped for security
 
-### Regex Pattern Used:
+### Regex Pattern Used
 
 ```javascript
 const enhancedTriggerRegex = /\*\*([A-Z][A-Z\s]*[A-Z])\*\*/g;
 ```
 
 This pattern matches:
+
 - `**` (opening asterisks)
 - `[A-Z]` (starts with capital letter)
 - `[A-Z\s]*` (followed by capitals and spaces)

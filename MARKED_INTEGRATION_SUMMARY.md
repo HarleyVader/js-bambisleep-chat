@@ -5,6 +5,7 @@
 ### What Was Implemented
 
 #### 🔧 **Backend Changes (workers/lmstudio.js)**
+
 - **Added marked library** for processing AI responses
 - **Enhanced system prompt** to instruct AI to use `**text**` format for highlights
 - **Custom marked renderer** to convert `**text**` to `<span class="ai-generated-highlight">text</span>`
@@ -12,13 +13,16 @@
 - **Dual storage** - original response in session history, processed response to client
 
 #### 🎨 **Frontend Changes (CSS & JavaScript)**
+
 - **New CSS class** `.ai-generated-highlight` with hot pink styling and enhanced effects
 - **Improved message handling** to distinguish AI vs user messages
 - **Smart trigger processing** to avoid double-highlighting already processed content
 - **HTML preservation** for AI-generated structured output
 
 #### 📝 **System Prompt Enhancement**
+
 Added mandatory formatting instructions to the AI:
+
 ```
 FORMATTING INSTRUCTIONS - MANDATORY:
 - Surround ALL trigger words and phrases with double asterisks: **TRIGGER**
@@ -31,6 +35,7 @@ FORMATTING INSTRUCTIONS - MANDATORY:
 ### Technical Implementation
 
 #### 🔧 **Marked Configuration**
+
 ```javascript
 // Custom renderer for AI-generated highlighted text
 const renderer = new marked.Renderer();
@@ -42,6 +47,7 @@ renderer.strong = function(text) {
 ```
 
 #### 🎯 **Response Processing Flow**
+
 1. **AI generates response** with `**highlighted text**` format
 2. **Marked processes** the response and converts `**text**` to HTML spans
 3. **Backend sends** processed HTML to frontend
@@ -49,6 +55,7 @@ renderer.strong = function(text) {
 5. **Trigger system** adds additional highlighting for any missed triggers
 
 #### 🎨 **CSS Styling**
+
 ```css
 .ai-generated-highlight {
     color: var(--button-color);           /* Hot pink */
@@ -61,6 +68,7 @@ renderer.strong = function(text) {
 ```
 
 #### 🔄 **Smart Processing Logic**
+
 - **AI messages**: Display HTML directly + optional trigger processing
 - **User messages**: Apply trigger processing as before
 - **Avoid double-processing**: Check for existing highlight classes
@@ -77,6 +85,7 @@ renderer.strong = function(text) {
 ### Test Results
 
 The AI will now generate responses like:
+
 ```
 Input: "brainwash me"
 AI Output: "Feel **BAMBI SLEEP** taking control as your **MIND GOES BLANK**..."
@@ -94,12 +103,14 @@ Rendered: Feel [HOT PINK]BAMBI SLEEP[/HOT PINK] taking control as your [HOT PINK
 ### API Integration
 
 #### **LMStudio Structured Output**
+
 - AI receives clear formatting instructions in system prompt
 - AI uses `**text**` format for all highlighted content
 - Backend processes with marked library
 - Frontend receives ready-to-display HTML
 
 #### **Processing Chain**
+
 ```
 User Input → LMStudio AI → **highlighted** text → Marked → HTML spans → Frontend Display
 ```

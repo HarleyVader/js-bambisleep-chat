@@ -46,7 +46,7 @@ class ChatCore {
         return text.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
             // Check if the content is in ALL CAPS
             const isAllCaps = /^[A-Z\s\-!'.,;:?]*$/.test(content) && /[A-Z]/.test(content);
-            
+
             if (isAllCaps) {
                 return `<span class="ai-generated-highlight caps-trigger">${content}</span>`;
             } else {
@@ -307,16 +307,9 @@ class ChatCore {
 
         // Handle AI messages with structured output differently
         if (isAI) {
-            // Process AI response with marked on frontend to convert **text** to highlights
+            // Process AI response with simple CAPS detection only
             const processedAIResponse = this.processAIResponse(text);
             textDiv.innerHTML = processedAIResponse;
-            
-            // Also apply trigger processing if enabled (for additional triggers not highlighted by AI)
-            if (window.triggerSystem && window.triggerSystem.isEnabled) {
-                const currentHTML = textDiv.innerHTML;
-                const processedHTML = window.triggerSystem.processMessage(currentHTML);
-                textDiv.innerHTML = processedHTML;
-            }
         } else {
             // Regular user messages - process triggers if enabled
             if (window.triggerSystem && window.triggerSystem.isEnabled) {

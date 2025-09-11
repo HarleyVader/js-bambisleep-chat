@@ -79,7 +79,7 @@ function handleWorkerMessage(msg) {
                     wordCount: msg.wordCount || 0
                 });
 
-                // Also add to chat history
+                // Add to chat history for this user only
                 const messageData = {
                     id: Date.now(),
                     message: msg.response,
@@ -92,9 +92,6 @@ function handleWorkerMessage(msg) {
                 if (chatHistory.length > 100) {
                     chatHistory.shift();
                 }
-
-                // Broadcast to all clients
-                io.emit('message', messageData);
             }
             break;
 
@@ -246,7 +243,7 @@ io.on('connection', (socket) => {
             lmWorker.postMessage({
                 type: 'auto_load_model'
             });
-            
+
             socket.emit('model-status', {
                 loading: true,
                 message: 'Searching for best l3-sthenomaidblackroot-8b-v1 model...',
