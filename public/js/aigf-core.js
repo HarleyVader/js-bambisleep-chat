@@ -557,9 +557,11 @@ class ChatCore {
         }
 
         // Trigger selector
-        const select = this.triggerSelector.querySelector('select');
-        if (select) {
-            select.addEventListener('change', () => this.updateSelectedTriggers());
+        if (this.triggerSelector) {
+            const select = this.triggerSelector.querySelector('select');
+            if (select) {
+                select.addEventListener('change', () => this.updateSelectedTriggers());
+            }
         }
 
         // COLLAR FUNCTIONALITY MOVED TO dropdown.js
@@ -740,11 +742,13 @@ class ChatCore {
     }
 
     updateSelectedTriggers() {
-        const select = this.triggerSelector.querySelector('select');
-        if (select) {
-            this.activeTriggers = Array.from(select.selectedOptions).map(option => option.value);
-            this.updateTriggers();
-            this.addSystemMessage(`Active triggers updated: ${this.activeTriggers.join(', ')}`);
+        if (this.triggerSelector) {
+            const select = this.triggerSelector.querySelector('select');
+            if (select) {
+                this.activeTriggers = Array.from(select.selectedOptions).map(option => option.value);
+                this.updateTriggers();
+                this.addSystemMessage(`Active triggers updated: ${this.activeTriggers.join(', ')}`);
+            }
         }
     }
 

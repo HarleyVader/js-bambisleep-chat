@@ -467,18 +467,35 @@ body {
 
 /* Animations for Brainwash Mode */
 @keyframes brainwashPulse {
-    0%, 100% { box-shadow: 0 0 5px var(--button-color); }
-    50% { box-shadow: 0 0 20px var(--button-color), 0 0 30px var(--button-color); }
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px var(--button-color);
+    }
+
+    50% {
+        box-shadow: 0 0 20px var(--button-color), 0 0 30px var(--button-color);
+    }
 }
 
 @keyframes textGlow {
-    0% { text-shadow: 0 0 8px var(--button-color); }
-    100% { text-shadow: 0 0 15px var(--button-color), 0 0 25px var(--button-color); }
+    0% {
+        text-shadow: 0 0 8px var(--button-color);
+    }
+
+    100% {
+        text-shadow: 0 0 15px var(--button-color), 0 0 25px var(--button-color);
+    }
 }
 
 @keyframes brainwashGlow {
-    0% { box-shadow: 0 0 10px #ff0080; }
-    100% { box-shadow: 0 0 20px #ff0080, 0 0 30px #ff4080; }
+    0% {
+        box-shadow: 0 0 10px #ff0080;
+    }
+
+    100% {
+        box-shadow: 0 0 20px #ff0080, 0 0 30px #ff4080;
+    }
 }
 
 /* Responsive adjustments for spiral controls */
@@ -486,12 +503,12 @@ body {
     .spiral-controls {
         max-height: 60vh;
     }
-    
+
     .control-section a {
         font-size: 0.5rem !important;
         padding: 5px 8px !important;
     }
-    
+
     .brainwash-btn {
         font-size: 0.55rem !important;
         padding: 6px 10px !important;

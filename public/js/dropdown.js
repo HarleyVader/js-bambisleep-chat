@@ -883,11 +883,11 @@ document.addEventListener('dropdownAction', (e) => {
             if (window.spiralControls) {
                 const controls = window.spiralControls.getControls();
                 window.spiralControls.setSpiralAColor(
-                    controls.spiralA_color[0], controls.spiralA_color[1], 
+                    controls.spiralA_color[0], controls.spiralA_color[1],
                     controls.spiralA_color[2], 0.3
                 );
                 window.spiralControls.setSpiralBColor(
-                    controls.spiralB_color[0], controls.spiralB_color[1], 
+                    controls.spiralB_color[0], controls.spiralB_color[1],
                     controls.spiralB_color[2], 0.3
                 );
             }
@@ -898,11 +898,11 @@ document.addEventListener('dropdownAction', (e) => {
             if (window.spiralControls) {
                 const controls = window.spiralControls.getControls();
                 window.spiralControls.setSpiralAColor(
-                    controls.spiralA_color[0], controls.spiralA_color[1], 
+                    controls.spiralA_color[0], controls.spiralA_color[1],
                     controls.spiralA_color[2], 0.7
                 );
                 window.spiralControls.setSpiralBColor(
-                    controls.spiralB_color[0], controls.spiralB_color[1], 
+                    controls.spiralB_color[0], controls.spiralB_color[1],
                     controls.spiralB_color[2], 0.7
                 );
             }
@@ -913,11 +913,11 @@ document.addEventListener('dropdownAction', (e) => {
             if (window.spiralControls) {
                 const controls = window.spiralControls.getControls();
                 window.spiralControls.setSpiralAColor(
-                    controls.spiralA_color[0], controls.spiralA_color[1], 
+                    controls.spiralA_color[0], controls.spiralA_color[1],
                     controls.spiralA_color[2], 1.0
                 );
                 window.spiralControls.setSpiralBColor(
-                    controls.spiralB_color[0], controls.spiralB_color[1], 
+                    controls.spiralB_color[0], controls.spiralB_color[1],
                     controls.spiralB_color[2], 1.0
                 );
             }

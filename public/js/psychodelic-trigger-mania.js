@@ -22,25 +22,25 @@ class SpiralAnimation {
             frameSpeed1: 20,    // frameCount divisor for spiral A
             frameSpeed2: 20,    // frameCount divisor for spiral B
             rotationSpeed: 10,  // rotation divisor
-            
+
             // Spiral Geometry Controls
             spiralA_geometry: 4.7,
             spiralB_geometry: 0.9,
-            
+
             // Color Controls (RGBA)
             spiralA_color: [199, 0, 199, 1.0],
             spiralB_color: [255, 130, 255, 1.0],
-            
+
             // Range Controls
             spiralA_range_min: 0.5,
             spiralA_range_max: 1.5,
             spiralB_range_min: 1.0,
             spiralB_range_max: 1.5,
-            
+
             // Visual Effects
             iterations: 250,
             pulseIntensity: 50,
-            
+
             // Randomizer Settings
             randomizer: {
                 enabled: false,
@@ -195,10 +195,10 @@ class SpiralAnimation {
         gl.uniform2f(this.locations.resolution, this.width, this.height);
 
         // Calculate animation parameters with configurable controls
-        const a = this.map(Math.sin(this.frameCount/this.controls.frameSpeed1), -1, 1, 
-                          this.controls.spiralA_range_min, this.controls.spiralA_range_max);
-        const b = this.map(Math.cos(this.frameCount/this.controls.frameSpeed2), -1, 1, 
-                          this.controls.spiralB_range_min, this.controls.spiralB_range_max);
+        const a = this.map(Math.sin(this.frameCount / this.controls.frameSpeed1), -1, 1,
+            this.controls.spiralA_range_min, this.controls.spiralA_range_max);
+        const b = this.map(Math.cos(this.frameCount / this.controls.frameSpeed2), -1, 1,
+            this.controls.spiralB_range_min, this.controls.spiralB_range_max);
 
         // Set transform matrix for rotation and translation
         const rotation = this.frameCount / this.controls.rotationSpeed;
@@ -262,8 +262,8 @@ class SpiralAnimation {
         const r = d[0] / 255;
         const g = d[1] / 255;
         const b = d[2] / 255;
-        const a = d[3] || 1.0; // Alpha channel
-        gl.uniform4f(this.locations.color, r, g, b, a);
+        const alpha = d[3] || 1.0; // Alpha channel
+        gl.uniform4f(this.locations.color, r, g, b, alpha);
 
         // Draw as line strip for thin lines
         gl.drawArrays(gl.LINE_STRIP, 0, vertices.length / 2);
@@ -342,7 +342,7 @@ class SpiralAnimation {
             // Create a brief visual pulse effect
             const originalFrameCount = this.frameCount;
             this.frameCount += this.controls.pulseIntensity;
-            
+
             setTimeout(() => {
                 this.frameCount = originalFrameCount;
             }, 500);
@@ -356,7 +356,7 @@ class SpiralAnimation {
         } else if (this.controls[property] !== undefined) {
             this.controls[property] = value;
         }
-        
+
         // Dispatch control change event
         document.dispatchEvent(new CustomEvent('spiralControlChange', {
             detail: { category, property, value }
@@ -418,7 +418,7 @@ class SpiralAnimation {
 
     updateRandomizer() {
         if (!this.controls.randomizer.enabled) return;
-        
+
         const now = Date.now();
         if (now - this.controls.randomizer.lastChange > this.controls.randomizer.interval) {
             this.randomizeParameters();
@@ -498,7 +498,7 @@ class SpiralAnimation {
 
         if (presets[presetName]) {
             Object.assign(this.controls, presets[presetName]);
-            
+
             // Dispatch preset loaded event
             document.dispatchEvent(new CustomEvent('spiralPresetLoaded', {
                 detail: { preset: presetName, controls: this.controls }
