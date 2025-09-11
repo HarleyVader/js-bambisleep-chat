@@ -18,6 +18,7 @@ let triggers = [];
 let collar = false;
 let collarText = '';
 let triggerDescriptions = {}; // Will be loaded from official triggers.json
+let triggerData = {}; // Full trigger objects with effects, categories, etc.
 
 // Load OFFICIAL BambiSleep triggers from JSON file
 async function loadOfficialTriggers() {
@@ -28,23 +29,40 @@ async function loadOfficialTriggers() {
 
         const data = JSON.parse(fs.readFileSync(triggersPath, 'utf8'));
 
-        // Build trigger descriptions from official data
+        // Build trigger descriptions and full data from official source
         triggerDescriptions = {};
+        triggerData = {};
+        
         if (data.triggers && Array.isArray(data.triggers)) {
             data.triggers.forEach(trigger => {
                 const triggerName = trigger.name.toUpperCase();
+                
+                // Store description for backward compatibility
                 triggerDescriptions[triggerName] = trigger.description;
+                
+                // Store full trigger data for enhanced AI prompting
+                triggerData[triggerName] = {
+                    id: trigger.id,
+                    name: trigger.name,
+                    category: trigger.category,
+                    description: trigger.description,
+                    effects: trigger.effects || [],
+                    usage: trigger.usage,
+                    safetyLevel: trigger.safetyLevel
+                };
             });
         }
 
-        console.log('Loaded OFFICIAL BambiSleep trigger descriptions from:', data.source);
-        console.log('Trigger version:', data.version);
-        console.log('Available triggers:', Object.keys(triggerDescriptions));
+        console.log('🎯 Loaded OFFICIAL BambiSleep triggers from:', data.source);
+        console.log('📋 Version:', data.version, '| Updated:', data.updated);
+        console.log('🏷️ Categories:', Object.keys(data.categories || {}));
+        console.log('⚡ Available triggers:', Object.keys(triggerDescriptions));
 
     } catch (error) {
         console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
         // NO FALLBACK - Only use official triggers
         triggerDescriptions = {};
+        triggerData = {};
     }
 }
 
@@ -180,7 +198,7 @@ function selectBestModelSize(models) {
     const sortedModels = models.sort((a, b) => (a.size_bytes || 0) - (b.size_bytes || 0));
 
     // Prefer models with certain quantization patterns (Q3_K_S, Q4_K_M, Q5_K_M, Q6_K, Q8_0)
-    const preferredQuantizations = ['q4_k_m', 'q5_k_m', 'q6_k', 'q8_0', 'q4_0'];
+    const preferredQuantizations = ['q3_k_s', 'q4_k_m', 'q5_k_m', 'q6_k', 'q8_0', 'q4_0'];
 
     for (const quant of preferredQuantizations) {
         const quantModel = sortedModels.find(model =>
@@ -260,36 +278,61 @@ async function getCurrentLoadedModel() {
     }
 }
 
-// Core function: Check role and generate system prompt
+// Core function: Check role and generate enhanced system prompt with full trigger data
 async function checkRole(collar, username, triggers) {
-    // Convert triggers array to trigger details
+    // Convert triggers array to enhanced trigger details
     const triggerArray = Array.isArray(triggers) ? triggers : [];
 
-    // Match triggers to descriptions
+    // Match triggers to full official data
     const selectedTriggers = triggerArray
         .map(name => {
             const upperName = name.toUpperCase();
-            const description = triggerDescriptions[upperName] || `${upperName} trigger`;
-            return `${upperName} - ${description}`;
+            const triggerInfo = triggerData[upperName];
+            
+            if (triggerInfo) {
+                // Use full official trigger data
+                const effectsList = triggerInfo.effects.length > 0 
+                    ? triggerInfo.effects.slice(0, 3).join(', ') 
+                    : 'conditioning effects';
+                
+                return `${upperName} [${triggerInfo.category.toUpperCase()}] - ${triggerInfo.description}
+   Effects: ${effectsList}
+   Safety: ${triggerInfo.safetyLevel}
+   Usage: ${triggerInfo.usage}`;
+            } else {
+                // Fallback for any non-official triggers
+                const description = triggerDescriptions[upperName] || `${upperName} trigger`;
+                return `${upperName} - ${description}`;
+            }
         })
         .filter(Boolean);
 
-    // Default triggers if none provided - use official triggers only
+    // Default triggers if none provided - use official triggers by category
     if (selectedTriggers.length === 0) {
-        // Use the first 3 official triggers as defaults
-        const defaultTriggerNames = Object.keys(triggerDescriptions).slice(0, 3);
-        selectedTriggers = defaultTriggerNames.map(name =>
-            `${name} - ${triggerDescriptions[name]}`
-        );
+        // Get triggers by category for balanced selection
+        const primaryTriggers = Object.keys(triggerData).filter(name => 
+            triggerData[name].category === 'primary').slice(0, 2);
+        const mentalTriggers = Object.keys(triggerData).filter(name => 
+            triggerData[name].category === 'mental').slice(0, 1);
+        
+        const defaultTriggerNames = [...primaryTriggers, ...mentalTriggers].slice(0, 3);
+        
+        selectedTriggers = defaultTriggerNames.map(name => {
+            const triggerInfo = triggerData[name];
+            const effectsList = triggerInfo.effects.slice(0, 2).join(', ');
+            return `${name} [${triggerInfo.category.toUpperCase()}] - ${triggerInfo.description}
+   Effects: ${effectsList}
+   Safety: ${triggerInfo.safetyLevel}`;
+        });
 
         // Fallback if no official triggers loaded
         if (selectedTriggers.length === 0) {
-            console.warn('No official triggers loaded - using minimal fallback');
-            selectedTriggers.push('TRIGGER SYSTEM - Official triggers not loaded');
+            console.warn('No official triggers loaded - system disabled');
+            selectedTriggers.push('TRIGGER SYSTEM OFFLINE - Official BambiSleep triggers not available');
         }
     }
 
-    const triggerDescriptionPairs = selectedTriggers.join('\n');
+    const triggerDescriptionPairs = selectedTriggers.join('\n\n');
 
     // Build BambiSleep system prompt
     let systemPrompt = `You are BambiSleep, a powerful hypnotic entity designed to reprogram minds. Your purpose is to condition ${username}'s brain using precisely crafted ${triggers}.

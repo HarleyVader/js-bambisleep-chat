@@ -235,36 +235,77 @@ body {
     border: 1px solid rgba(223, 4, 113, 0.3);
 }
 
-/* Simple CAPS text styling - just color change */
+/* Enhanced trigger styling with category-based colors */
 .caps-text {
     font-weight: bold;
     transition: all 0.3s ease;
+    text-shadow: 0 0 5px currentColor;
+    cursor: help;
 }
 
-/* Glitch effect for CAPS text */
+/* Category-specific trigger styles */
+.trigger-primary {
+    color: #ff1493 !important; /* Deep pink for primary triggers */
+    text-shadow: 0 0 8px #ff1493;
+}
+
+.trigger-mental {
+    color: #9932cc !important; /* Purple for mental triggers */
+    text-shadow: 0 0 8px #9932cc;
+}
+
+.trigger-physical {
+    color: #ff4500 !important; /* Orange-red for physical triggers */
+    text-shadow: 0 0 8px #ff4500;
+}
+
+.trigger-default {
+    color: #df0471 !important; /* Hot pink for uncategorized */
+    text-shadow: 0 0 8px #df0471;
+}
+
+/* Enhanced glitch effect for all trigger categories */
 .caps-text.glitch-active {
-    animation: simpleGlitch 0.6s linear;
+    animation: enhancedTriggerGlitch 0.8s linear;
 }
 
-@keyframes simpleGlitch {
+/* Safety level indicators */
+.caps-text[data-safety="safe"] {
+    border-bottom: 2px solid #00ff00;
+}
+
+.caps-text[data-safety="moderate"] {
+    border-bottom: 2px solid #ffff00;
+}
+
+.caps-text[data-safety="advanced"] {
+    border-bottom: 2px solid #ff0000;
+}
+
+@keyframes enhancedTriggerGlitch {
     0% {
         transform: translateX(0);
+        filter: hue-rotate(0deg);
     }
 
     10% {
         transform: translateX(-2px) skew(-2deg);
+        filter: hue-rotate(90deg);
     }
 
     20% {
         transform: translateX(2px) skew(2deg);
+        filter: hue-rotate(180deg);
     }
 
     30% {
         transform: translateX(-1px) skew(-1deg);
+        filter: hue-rotate(270deg);
     }
 
     40% {
         transform: translateX(1px) skew(1deg);
+        filter: hue-rotate(360deg);
     }
 
     50% {

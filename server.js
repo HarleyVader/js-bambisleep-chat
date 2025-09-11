@@ -26,9 +26,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // In-memory storage (replace with database in production)
 let chatHistory = [];
 let triggerWords = []; // Will be loaded from official triggers.json
+let triggerData = {}; // Full trigger data for API endpoints
 let connectedUsers = 0;
 
-// Load OFFICIAL BambiSleep triggers from JSON file
+// Load OFFICIAL BambiSleep triggers from JSON file with enhanced data
 function loadOfficialTriggers() {
     try {
         const fs = require('fs');
@@ -37,8 +38,10 @@ function loadOfficialTriggers() {
 
         const data = JSON.parse(fs.readFileSync(triggersPath, 'utf8'));
 
-        // Extract trigger names from official data
+        // Extract trigger names and full data from official source
         triggerWords = [];
+        triggerData = data; // Store complete trigger data
+        
         if (data.triggers && Array.isArray(data.triggers)) {
             data.triggers.forEach(trigger => {
                 const triggerName = trigger.name.toLowerCase();
@@ -47,12 +50,15 @@ function loadOfficialTriggers() {
         }
 
         console.log('🎯 Loaded OFFICIAL BambiSleep triggers:', triggerWords);
-        console.log('📋 Trigger source:', data.source);
+        console.log('📋 Source:', data.source, '| Version:', data.version);
+        console.log('🏷️ Categories available:', Object.keys(data.categories || {}));
+        console.log('⚡ Full trigger data loaded for API endpoints');
 
     } catch (error) {
         console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
         // NO FALLBACK - Only use official triggers
         triggerWords = [];
+        triggerData = {};
     }
 }
 
@@ -317,28 +323,62 @@ app.get('/api/history', (req, res) => {
     });
 });
 
-// Trigger words management
+// Enhanced trigger management with full official data
 app.get('/api/triggers', (req, res) => {
-    res.json({ triggers: triggerWords });
+    res.json({ 
+        triggers: triggerWords,
+        data: triggerData,
+        source: triggerData.source || 'Unknown',
+        version: triggerData.version || 'Unknown',
+        categories: triggerData.categories || {},
+        count: triggerWords.length
+    });
+});
+
+// Get triggers by category
+app.get('/api/triggers/category/:category', (req, res) => {
+    const { category } = req.params;
+    
+    if (!triggerData.triggers) {
+        return res.status(404).json({ error: 'Trigger data not loaded' });
+    }
+    
+    const categoryTriggers = triggerData.triggers.filter(trigger => 
+        trigger.category === category
+    );
+    
+    res.json({
+        category,
+        triggers: categoryTriggers,
+        count: categoryTriggers.length,
+        description: triggerData.categories ? triggerData.categories[category] : 'No description'
+    });
+});
+
+// Get specific trigger details
+app.get('/api/triggers/details/:triggerName', (req, res) => {
+    const { triggerName } = req.params;
+    
+    if (!triggerData.triggers) {
+        return res.status(404).json({ error: 'Trigger data not loaded' });
+    }
+    
+    const trigger = triggerData.triggers.find(t => 
+        t.name.toLowerCase() === triggerName.toLowerCase()
+    );
+    
+    if (trigger) {
+        res.json(trigger);
+    } else {
+        res.status(404).json({ error: 'Trigger not found' });
+    }
 });
 
 app.post('/api/triggers', (req, res) => {
-    const { triggers } = req.body;
-    if (Array.isArray(triggers)) {
-        triggerWords = triggers.filter(word => typeof word === 'string' && word.trim());
-
-        // Update worker with new triggers
-        if (lmWorker) {
-            lmWorker.postMessage({
-                type: 'triggers',
-                triggers: triggerWords
-            });
-        }
-
-        res.json({ success: true, triggers: triggerWords });
-    } else {
-        res.status(400).json({ error: 'Invalid triggers format' });
-    }
+    res.status(403).json({ 
+        error: 'Trigger modification disabled - Only official BambiSleep triggers are supported',
+        message: 'This system uses exclusively official triggers from https://bambisleep.info/Triggers'
+    });
 });
 
 // AI Chat endpoint

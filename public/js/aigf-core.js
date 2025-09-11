@@ -14,28 +14,54 @@ class ChatCore {
         this.init();
     }
 
-    // Load OFFICIAL BambiSleep triggers from JSON file
+    // Load OFFICIAL BambiSleep triggers with enhanced data
     async loadOfficialTriggers() {
         try {
             const response = await fetch('/workers/triggers.json');
             const data = await response.json();
 
-            // Extract first 3 official trigger names as active triggers
+            // Extract triggers with category prioritization
             this.activeTriggers = [];
+            this.triggerCategories = data.categories || {};
+            this.allTriggers = []; // Store all available triggers
+            
             if (data.triggers && Array.isArray(data.triggers)) {
-                const firstThreeTriggers = data.triggers.slice(0, 3);
-                firstThreeTriggers.forEach(trigger => {
+                // Store all triggers for selector
+                this.allTriggers = data.triggers.map(trigger => ({
+                    name: trigger.name.toUpperCase(),
+                    category: trigger.category,
+                    safetyLevel: trigger.safetyLevel,
+                    description: trigger.description
+                }));
+                
+                // Select default active triggers - prioritize primary category
+                const primaryTriggers = data.triggers.filter(t => t.category === 'primary').slice(0, 2);
+                const mentalTriggers = data.triggers.filter(t => t.category === 'mental').slice(0, 1);
+                
+                [...primaryTriggers, ...mentalTriggers].forEach(trigger => {
                     this.activeTriggers.push(trigger.name.toUpperCase());
                 });
+                
+                // Fallback if no categorized triggers
+                if (this.activeTriggers.length === 0) {
+                    const firstThree = data.triggers.slice(0, 3);
+                    firstThree.forEach(trigger => {
+                        this.activeTriggers.push(trigger.name.toUpperCase());
+                    });
+                }
             }
 
             console.log('🎯 Loaded OFFICIAL active triggers:', this.activeTriggers);
-            console.log('📋 Trigger source:', data.source);
+            console.log('📋 Source:', data.source, '| Version:', data.version);
+            console.log('🏷️ Available categories:', Object.keys(this.triggerCategories));
+            console.log('⚡ Total triggers available:', this.allTriggers.length);
 
         } catch (error) {
             console.error('CRITICAL: Failed to load official triggers for active list:', error);
             // NO FALLBACK - Only use official triggers
             this.activeTriggers = [];
+            this.allTriggers = [];
+            this.triggerCategories = {};
         }
     }
 
@@ -241,35 +267,57 @@ class ChatCore {
         return container;
     }
 
-    // Populate trigger select with OFFICIAL triggers from JSON
+    // Populate trigger selector with OFFICIAL triggers organized by category
     async populateOfficialTriggers(selectElement) {
         try {
-            const response = await fetch('/workers/triggers.json');
-            const data = await response.json();
-
-            if (data.triggers && Array.isArray(data.triggers)) {
-                data.triggers.forEach(trigger => {
-                    const option = document.createElement('option');
-                    option.value = trigger.name.toUpperCase();
-                    option.textContent = trigger.name.toUpperCase();
-                    option.selected = this.activeTriggers.includes(trigger.name.toUpperCase());
-                    selectElement.appendChild(option);
+            if (!this.allTriggers || this.allTriggers.length === 0) {
+                // Data not loaded yet, try to load it
+                await this.loadOfficialTriggers();
+            }
+            
+            if (this.allTriggers && this.allTriggers.length > 0) {
+                // Group triggers by category
+                const triggersByCategory = {};
+                this.allTriggers.forEach(trigger => {
+                    const category = trigger.category || 'other';
+                    if (!triggersByCategory[category]) {
+                        triggersByCategory[category] = [];
+                    }
+                    triggersByCategory[category].push(trigger);
+                });
+                
+                // Create optgroups for each category
+                Object.keys(triggersByCategory).forEach(category => {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = `${category.toUpperCase()} - ${this.triggerCategories[category] || 'Triggers'}`;
+                    
+                    triggersByCategory[category].forEach(trigger => {
+                        const option = document.createElement('option');
+                        option.value = trigger.name;
+                        option.textContent = `${trigger.name} [${trigger.safetyLevel}]`;
+                        option.title = trigger.description;
+                        option.selected = this.activeTriggers.includes(trigger.name);
+                        option.dataset.category = trigger.category;
+                        option.dataset.safety = trigger.safetyLevel;
+                        optgroup.appendChild(option);
+                    });
+                    
+                    selectElement.appendChild(optgroup);
                 });
             }
-
-            console.log('🎯 Populated trigger selector with official triggers');
-
+            
+            console.log('🎯 Populated trigger selector with categorized official triggers');
+            
         } catch (error) {
             console.error('Failed to load official triggers for selector:', error);
             // Create minimal fallback option
             const option = document.createElement('option');
             option.value = 'LOADING...';
             option.textContent = 'LOADING OFFICIAL TRIGGERS...';
+            option.disabled = true;
             selectElement.appendChild(option);
         }
-    }
-
-    bindEvents() {
+    }    bindEvents() {
         // Send message on button click
         this.sendButton.addEventListener('click', () => this.sendMessage());
 

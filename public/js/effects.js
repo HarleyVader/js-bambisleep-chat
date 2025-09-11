@@ -7,31 +7,44 @@ class TextEffects {
         this.init();
     }
 
-    // Load OFFICIAL BambiSleep triggers from JSON file ONLY
+    // Load OFFICIAL BambiSleep triggers from JSON file with enhanced data
     async loadTriggers() {
         try {
             const response = await fetch('/workers/triggers.json');
             const data = await response.json();
 
-            // Extract official BambiSleep trigger names from the JSON
+            // Extract official BambiSleep trigger names and metadata
             this.triggers = [];
+            this.triggerData = {}; // Store full trigger information
+            
             if (data.triggers && Array.isArray(data.triggers)) {
                 data.triggers.forEach(trigger => {
-                    // Add the official trigger name (case variations)
+                    // Add case variations for matching
                     const triggerName = trigger.name;
-                    this.triggers.push(triggerName.toUpperCase()); // UPPERCASE version
-                    this.triggers.push(triggerName.toLowerCase()); // lowercase version
-                    this.triggers.push(triggerName); // Original case version
+                    this.triggers.push(triggerName.toUpperCase()); // UPPERCASE
+                    this.triggers.push(triggerName.toLowerCase()); // lowercase
+                    this.triggers.push(triggerName); // Original case
+                    
+                    // Store full trigger data for enhanced highlighting
+                    this.triggerData[triggerName.toUpperCase()] = {
+                        category: trigger.category,
+                        safetyLevel: trigger.safetyLevel,
+                        effects: trigger.effects || [],
+                        description: trigger.description
+                    };
                 });
             }
 
-            console.log('Loaded OFFICIAL BambiSleep triggers:', this.triggers);
-            console.log('Trigger source:', data.source);
-            console.log('Trigger version:', data.version);
+            console.log('🎯 Loaded OFFICIAL BambiSleep triggers:', this.triggers.length, 'variations');
+            console.log('📋 Source:', data.source, '| Version:', data.version);
+            console.log('🏷️ Categories:', Object.keys(data.categories || {}));
+            console.log('⚡ Trigger data loaded for enhanced highlighting');
+            
         } catch (error) {
             console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
             // NO FALLBACK - Only use official triggers
             this.triggers = [];
+            this.triggerData = {};
         }
     }
 
@@ -47,7 +60,7 @@ class TextEffects {
 
         let processedText = text;
 
-        // Process each trigger phrase individually
+        // Process each trigger phrase individually with category-based styling
         this.triggers.forEach(trigger => {
             // Escape special regex characters and create exact match pattern
             const escapedTrigger = trigger.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -61,8 +74,38 @@ class TextEffects {
                     return match;
                 }
 
-                // Highlight ONLY trigger phrases in hot pink
-                return `<span class="caps-text" style="color: ${this.capsColor}; font-weight: bold;" data-trigger="${trigger}">${match}</span>`;
+                // Get trigger data for enhanced styling
+                const upperTrigger = match.toUpperCase();
+                const triggerInfo = this.triggerData[upperTrigger] || {};
+                
+                // Category-based color scheme
+                let triggerColor = this.capsColor; // Default hot pink
+                let additionalClasses = 'caps-text';
+                
+                switch (triggerInfo.category) {
+                    case 'primary':
+                        triggerColor = '#ff1493'; // Deep pink for primary triggers
+                        additionalClasses += ' trigger-primary';
+                        break;
+                    case 'mental':
+                        triggerColor = '#9932cc'; // Purple for mental triggers
+                        additionalClasses += ' trigger-mental';
+                        break;
+                    case 'physical':
+                        triggerColor = '#ff4500'; // Orange-red for physical triggers
+                        additionalClasses += ' trigger-physical';
+                        break;
+                    default:
+                        additionalClasses += ' trigger-default';
+                }
+
+                // Enhanced highlighting with category info
+                return `<span class="${additionalClasses}" 
+                              style="color: ${triggerColor}; font-weight: bold;" 
+                              data-trigger="${trigger}" 
+                              data-category="${triggerInfo.category || 'unknown'}"
+                              data-safety="${triggerInfo.safetyLevel || 'unknown'}"
+                              title="${triggerInfo.description || 'Official BambiSleep trigger'}">${match}</span>`;
             });
         });
 
