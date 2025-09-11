@@ -401,7 +401,12 @@ class ChatCore {
             }
         });
 
-        this.collarButton.addEventListener('click', () => this.toggleCollar());
+        this.collarButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Don't toggle collar on button click, only show/hide dropdown
+            const dropdown = this.collarButton.parentElement;
+            dropdown.classList.toggle('collar-active');
+        });
 
         // Model loading control
         const loadModelButton = document.getElementById('load-model');
@@ -414,6 +419,9 @@ class ChatCore {
         if (select) {
             select.addEventListener('change', () => this.updateSelectedTriggers());
         }
+
+        // Collar button event listeners
+        this.setupCollarButtons();
 
         // Focus on input when page loads
         window.addEventListener('load', () => {
@@ -567,6 +575,81 @@ class ChatCore {
         } else {
             this.addSystemMessage('� GLOBAL CHAT MODE 🗫');
         }
+    }
+
+    setupCollarButtons() {
+        const collarButtons = document.querySelectorAll('.collar-btn');
+        const collarTextarea = document.getElementById('collar-text');
+        
+        collarButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const action = button.getAttribute('data-action');
+                
+                switch(action) {
+                    case 'collar-copy':
+                        this.copyCollarText();
+                        break;
+                    case 'collar-paste':
+                        this.pasteCollarText();
+                        break;
+                    case 'collar-save':
+                        this.saveCollarSettings();
+                        break;
+                }
+            });
+        });
+    }
+
+    copyCollarText() {
+        const collarTextarea = document.getElementById('collar-text');
+        if (collarTextarea && collarTextarea.value.trim()) {
+            navigator.clipboard.writeText(collarTextarea.value).then(() => {
+                this.addSystemMessage('🔗 Collar settings copied to clipboard');
+            }).catch(() => {
+                this.addSystemMessage('❌ Failed to copy collar settings');
+            });
+        }
+    }
+
+    pasteCollarText() {
+        const collarTextarea = document.getElementById('collar-text');
+        if (collarTextarea) {
+            navigator.clipboard.readText().then(text => {
+                collarTextarea.value = text;
+                this.addSystemMessage('🔗 Collar settings pasted from clipboard');
+            }).catch(() => {
+                this.addSystemMessage('❌ Failed to paste collar settings');
+            });
+        }
+    }
+
+    saveCollarSettings() {
+        const collarTextarea = document.getElementById('collar-text');
+        const collarText = collarTextarea ? collarTextarea.value.trim() : '';
+        
+        if (collarText) {
+            // Activate collar with custom text
+            this.collarActive = true;
+            this.socket.emit('activate-collar', {
+                text: collarText
+            });
+            this.addSystemMessage('🔗 Collar activated with custom settings');
+        } else {
+            // Deactivate collar if no text
+            this.collarActive = false;
+            this.socket.emit('deactivate-collar');
+            this.addSystemMessage('🔗 Collar deactivated - no settings provided');
+        }
+        
+        // Close dropdown after save
+        const dropdown = this.collarButton.parentElement;
+        dropdown.classList.remove('collar-active');
+        
+        // Update UI
+        this.updateCollarUI();
     }
 
     toggleCollar() {
