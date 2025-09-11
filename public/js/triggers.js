@@ -2,10 +2,7 @@
 class TriggerSystem {
     constructor() {
         this.isEnabled = false;
-        this.triggers = [
-            'bambi', 'bimbo', 'good girl', 'pink', 'spiral', 'obey', 'submit',
-            'empty', 'blank', 'mindless', 'doll', 'pretty', 'cute', 'sleep'
-        ];
+        this.triggers = []; // Will be loaded from official triggers.json
         this.flashDuration = 1000; // ms
         this.audioEnabled = false;
 
@@ -13,8 +10,31 @@ class TriggerSystem {
     }
 
     init() {
-        // Load triggers from server or local storage
-        this.loadTriggers();
+        // Load official triggers from JSON
+        this.loadOfficialTriggers();
+    }
+
+    async loadOfficialTriggers() {
+        try {
+            const response = await fetch('/workers/triggers.json');
+            const data = await response.json();
+            
+            // Extract trigger names from official data
+            this.triggers = [];
+            if (data.triggers && Array.isArray(data.triggers)) {
+                data.triggers.forEach(trigger => {
+                    this.triggers.push(trigger.name.toLowerCase());
+                });
+            }
+            
+            console.log('🎯 TriggerSystem loaded OFFICIAL triggers:', this.triggers);
+            console.log('📋 Source:', data.source);
+            
+        } catch (error) {
+            console.error('CRITICAL: TriggerSystem failed to load official triggers:', error);
+            // NO FALLBACK - Only use official triggers
+            this.triggers = [];
+        }
     }
 
     async loadTriggers() {
