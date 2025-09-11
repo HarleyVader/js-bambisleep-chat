@@ -7,6 +7,12 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
+// Model configuration
+const TARGET_MODEL_NAME = process.env.TARGET_MODEL_NAME || 'l3-sthenomaidblackroot-8b-v1';
+let currentModelId = null;
+let modelSearchAttempts = 0;
+const MAX_SEARCH_ATTEMPTS = 3;
+
 // Session management
 const sessionHistories = {};
 let triggers = [];
@@ -47,6 +53,10 @@ if (parentPort) {
                     console.log(`Worker collar activated: "${collarText.substring(0, 30)}..."`);
                     break;
 
+                case 'auto_load_model':
+                    await autoLoadBestModel();
+                    break;
+
                 case 'health':
                     parentPort.postMessage({
                         type: 'health_response',
@@ -67,6 +77,169 @@ if (parentPort) {
             });
         }
     });
+}
+
+// Auto-load best available model for target model name
+async function autoLoadBestModel() {
+    try {
+        console.log(`🔍 Searching for best ${TARGET_MODEL_NAME} model variant...`);
+
+        const availableModels = await getAvailableModels();
+        if (!availableModels.length) {
+            console.warn('⚠️ No models found in LM Studio');
+            return false;
+        }
+
+        const targetModels = findTargetModelVariants(availableModels);
+        if (!targetModels.length) {
+            console.warn(`⚠️ No ${TARGET_MODEL_NAME} variants found`);
+            return false;
+        }
+
+        const bestModel = selectBestModelSize(targetModels);
+        console.log(`✅ Selected best model: ${bestModel.id} (${formatFileSize(bestModel.size_bytes)})`);
+
+        const loaded = await loadModel(bestModel.id);
+        if (loaded) {
+            currentModelId = bestModel.id;
+            console.log(`🚀 Successfully loaded model: ${bestModel.id}`);
+
+            // Notify main thread
+            if (parentPort) {
+                parentPort.postMessage({
+                    type: 'model_loaded',
+                    modelId: bestModel.id,
+                    modelSize: formatFileSize(bestModel.size_bytes)
+                });
+            }
+            return true;
+        } else {
+            console.error(`❌ Failed to load model: ${bestModel.id}`);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Auto-load model error:', error.message);
+        return false;
+    }
+}
+
+// Get available models from LM Studio
+async function getAvailableModels() {
+    try {
+        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/v1/models`;
+        const response = await axios.get(apiUrl, { timeout: 5000 });
+        return response.data.data || [];
+    } catch (error) {
+        console.error('Error fetching models:', error.message);
+        return [];
+    }
+}
+
+// Find all variants of the target model
+function findTargetModelVariants(models) {
+    const targetModels = models.filter(model => {
+        const modelName = model.id.toLowerCase();
+        const targetName = TARGET_MODEL_NAME.toLowerCase();
+
+        // Check for exact match or variants with different quantization
+        return modelName.includes(targetName) ||
+               modelName.includes(targetName.replace('-8b-', '-')) ||
+               modelName.includes('sthenomaidblackroot') ||
+               modelName.includes('stheno') && modelName.includes('maid') && modelName.includes('blackroot');
+    });
+
+    console.log(`Found ${targetModels.length} potential model variants:`,
+                targetModels.map(m => `${m.id} (${formatFileSize(m.size_bytes)})`));
+
+    return targetModels;
+}
+
+// Select the best model size based on available system resources
+function selectBestModelSize(models) {
+    if (!models.length) return null;
+
+    // Sort by file size (ascending) to prefer smaller, faster models
+    const sortedModels = models.sort((a, b) => (a.size_bytes || 0) - (b.size_bytes || 0));
+
+    // Prefer models with certain quantization patterns (Q4_K_M, Q5_K_M, Q6_K, Q8_0)
+    const preferredQuantizations = ['q4_k_m', 'q5_k_m', 'q6_k', 'q8_0', 'q4_0'];
+
+    for (const quant of preferredQuantizations) {
+        const quantModel = sortedModels.find(model =>
+            model.id.toLowerCase().includes(quant.toLowerCase())
+        );
+        if (quantModel) {
+            console.log(`🎯 Selected preferred quantization: ${quant.toUpperCase()}`);
+            return quantModel;
+        }
+    }
+
+    // If no preferred quantization found, use the smallest available
+    console.log('📊 Using smallest available model');
+    return sortedModels[0];
+}
+
+// Load a specific model in LM Studio
+async function loadModel(modelId) {
+    try {
+        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '1234'}/v1/models/load`;
+
+        console.log(`🔄 Loading model: ${modelId}...`);
+
+        const response = await axios.post(apiUrl, {
+            model: modelId
+        }, {
+            timeout: 30000 // 30 seconds timeout for model loading
+        });
+
+        return response.status === 200;
+    } catch (error) {
+        console.error(`Failed to load model ${modelId}:`, error.message);
+        return false;
+    }
+}
+
+// Format file size for display
+function formatFileSize(bytes) {
+    if (!bytes) return 'Unknown size';
+
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+}
+
+// Auto-detect and load model on startup
+async function initializeModelSystem() {
+    try {
+        // Check if a model is already loaded
+        const currentModel = await getCurrentLoadedModel();
+        if (currentModel && currentModel.includes(TARGET_MODEL_NAME.toLowerCase())) {
+            console.log(`✅ Target model already loaded: ${currentModel}`);
+            currentModelId = currentModel;
+            return;
+        }
+
+        // Auto-load the best available model
+        console.log('🚀 Initializing auto-model loading system...');
+        await autoLoadBestModel();
+    } catch (error) {
+        console.error('Model initialization error:', error.message);
+    }
+}
+
+// Get currently loaded model
+async function getCurrentLoadedModel() {
+    try {
+        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/v1/models`;
+        const response = await axios.get(apiUrl, { timeout: 5000 });
+
+        // Find the currently loaded model (usually marked with a specific flag)
+        const loadedModel = response.data.data.find(model => model.loaded || model.active);
+        return loadedModel ? loadedModel.id : null;
+    } catch (error) {
+        console.error('Error checking loaded model:', error.message);
+        return null;
+    }
 }
 
 // Core function: Check role and generate system prompt
@@ -148,6 +321,16 @@ async function handleMessage(userPrompt, socketId, username) {
             return;
         }
 
+        // Auto-load model if none is currently loaded
+        if (!currentModelId) {
+            console.log('🔄 No model loaded, attempting auto-load...');
+            const loaded = await autoLoadBestModel();
+            if (!loaded) {
+                sendResponse("Sorry, I'm having trouble loading the AI model. Please ensure LM Studio is running and has models available.", socketId, username);
+                return;
+            }
+        }
+
         // Initialize session if needed
         if (!sessionHistories[socketId]) {
             sessionHistories[socketId] = [];
@@ -188,7 +371,7 @@ async function handleMessage(userPrompt, socketId, username) {
 
         // Call LM Studio API
         const response = await axios.post(apiUrl, {
-            model: 'local-model', // LM Studio uses loaded model
+            model: currentModelId || 'l3-sthenomaidblackroot-8b-v1', // Use loaded model or fallback
             messages: formattedMessages,
             max_tokens: 4096,
             temperature: 0.87,
@@ -274,6 +457,9 @@ function collectGarbage() {
 
 // Run garbage collection every 5 minutes
 setInterval(collectGarbage, 5 * 60 * 1000);
+
+// Initialize the model system on startup
+initializeModelSystem();
 
 console.log('LM Studio worker started and ready');
 

@@ -38,15 +38,15 @@ let collarText = '';
 function initializeLMWorker() {
     try {
         lmWorker = new Worker(path.join(__dirname, 'workers', 'lmstudio.js'));
-        
+
         lmWorker.on('message', (msg) => {
             handleWorkerMessage(msg);
         });
-        
+
         lmWorker.on('error', (error) => {
             console.error('LM Studio worker error:', error);
         });
-        
+
         lmWorker.on('exit', (code) => {
             console.log(`LM Studio worker exited with code ${code}`);
             if (code !== 0) {
@@ -54,13 +54,13 @@ function initializeLMWorker() {
                 setTimeout(initializeLMWorker, 5000);
             }
         });
-        
+
         // Send initial triggers to worker
         lmWorker.postMessage({
             type: 'triggers',
             triggers: triggerWords
         });
-        
+
         console.log('LM Studio worker initialized');
     } catch (error) {
         console.error('Failed to initialize LM Studio worker:', error);
@@ -78,7 +78,7 @@ function handleWorkerMessage(msg) {
                     timestamp: new Date().toISOString(),
                     wordCount: msg.wordCount || 0
                 });
-                
+
                 // Also add to chat history
                 const messageData = {
                     id: Date.now(),
@@ -87,17 +87,17 @@ function handleWorkerMessage(msg) {
                     user: 'BambiSleep',
                     isAI: true
                 };
-                
+
                 chatHistory.push(messageData);
                 if (chatHistory.length > 100) {
                     chatHistory.shift();
                 }
-                
+
                 // Broadcast to all clients
                 io.emit('message', messageData);
             }
             break;
-            
+
         case 'error':
             console.error('Worker error:', msg.error);
             if (msg.socketId) {
@@ -107,9 +107,19 @@ function handleWorkerMessage(msg) {
                 });
             }
             break;
-            
+
         case 'health_response':
             console.log(`Worker health: ${msg.healthy}, sessions: ${msg.sessionCount}`);
+            break;
+
+        case 'model_loaded':
+            console.log(`✅ Model loaded: ${msg.modelId} (${msg.modelSize})`);
+            io.emit('model-status', {
+                loaded: true,
+                modelId: msg.modelId,
+                modelSize: msg.modelSize,
+                timestamp: new Date().toISOString()
+            });
             break;
     }
 }
@@ -155,7 +165,7 @@ io.on('connection', (socket) => {
     // Handle AI chat requests
     socket.on('ai-chat', (data) => {
         if (!lmWorker) {
-            socket.emit('ai-error', { 
+            socket.emit('ai-error', {
                 error: 'AI worker not available',
                 timestamp: new Date().toISOString()
             });
@@ -196,7 +206,7 @@ io.on('connection', (socket) => {
     socket.on('activate-collar', (data) => {
         collarActive = true;
         collarText = data.text || 'Collar activated for deeper submission and control.';
-        
+
         if (lmWorker) {
             lmWorker.postMessage({
                 type: 'collar',
@@ -204,9 +214,9 @@ io.on('connection', (socket) => {
                 socketId: socket.id
             });
         }
-        
+
         console.log(`Collar activated for ${socket.id}: "${collarText.substring(0, 30)}..."`);
-        
+
         // Notify client
         socket.emit('collar-activated', {
             active: true,
@@ -219,14 +229,36 @@ io.on('connection', (socket) => {
     socket.on('deactivate-collar', () => {
         collarActive = false;
         collarText = '';
-        
+
         console.log(`Collar deactivated for ${socket.id}`);
-        
+
         // Notify client
         socket.emit('collar-activated', {
             active: false,
             timestamp: new Date().toISOString()
         });
+    });
+
+    // Manual model loading trigger
+    socket.on('load-model', () => {
+        console.log(`Manual model load requested by ${socket.id}`);
+        if (lmWorker) {
+            lmWorker.postMessage({
+                type: 'auto_load_model'
+            });
+            
+            socket.emit('model-status', {
+                loading: true,
+                message: 'Searching for best l3-sthenomaidblackroot-8b-v1 model...',
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            socket.emit('model-status', {
+                error: true,
+                message: 'LM Studio worker not available',
+                timestamp: new Date().toISOString()
+            });
+        }
     });
 
     socket.on('disconnect', () => {
@@ -266,7 +298,7 @@ app.post('/api/triggers', (req, res) => {
     const { triggers } = req.body;
     if (Array.isArray(triggers)) {
         triggerWords = triggers.filter(word => typeof word === 'string' && word.trim());
-        
+
         // Update worker with new triggers
         if (lmWorker) {
             lmWorker.postMessage({
@@ -274,7 +306,7 @@ app.post('/api/triggers', (req, res) => {
                 triggers: triggerWords
             });
         }
-        
+
         res.json({ success: true, triggers: triggerWords });
     } else {
         res.status(400).json({ error: 'Invalid triggers format' });
@@ -329,17 +361,17 @@ app.post('/api/chat', (req, res) => {
 // Collar management
 app.post('/api/collar', (req, res) => {
     const { active, text } = req.body;
-    
+
     collarActive = Boolean(active);
     collarText = active ? (text || 'Collar activated for deeper submission and control.') : '';
-    
+
     if (lmWorker && active) {
         lmWorker.postMessage({
             type: 'collar',
             data: collarText
         });
     }
-    
+
     res.json({
         success: true,
         active: collarActive,

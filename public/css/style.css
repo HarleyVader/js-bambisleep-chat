@@ -77,6 +77,10 @@ body {
     background: var(--transparent);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
+    border-left: var(--primary-alt) 2px ridge;
+    border-right: var(--primary-alt) 2px ridge;
+    border-top: var(--button-color) 2px ridge;
+    border-bottom: var(--button-color) 2px ridge;
 }
 
 /* Chat Header */
@@ -87,6 +91,10 @@ body {
     justify-content: space-between;
     align-items: center;
     background: var(--nav-color);
+    border-left: var(--primary-alt) 2px ridge;
+    border-right: var(--primary-alt) 2px ridge;
+    border-top: var(--button-color) 2px ridge;
+    border-bottom: var(--button-color) 2px ridge;
 }
 
 #chat-header h1 {
@@ -131,16 +139,28 @@ body {
     padding: 20px;
     overflow-y: auto;
     scroll-behavior: smooth;
+    border-left: var(--primary-alt) 2px ridge;
+    border-right: var(--primary-alt) 2px ridge;
+    border-top: var(--button-color) 2px ridge;
+    border-bottom: var(--button-color) 2px ridge;
 }
 
 .message {
-    margin-bottom: 15px;
-    padding: 12px 16px;
+    margin-bottom: 8px;
+    padding: 8px 12px;
     background: var(--primary-color);
     border-radius: 15px;
     border-left: 3px solid var(--tertiary-color);
     animation: messageSlide 0.3s ease-out;
     border: 1px solid var(--primary-alt);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    white-space: normal;
+    overflow: visible;
+    min-height: 40px;
+    max-width: 100%;
+    flex-wrap: wrap;
 }
 
 @keyframes messageSlide {
@@ -162,14 +182,25 @@ body {
 }
 
 .message-time {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--primary-alt);
-    margin-bottom: 5px;
     font-family: "Audiowide", sans-serif;
+    flex-shrink: 0;
+    min-width: 80px;
+}
+
+.message-emoji {
+    font-size: 1.2rem;
+    flex-shrink: 0;
 }
 
 .message-text {
     line-height: 1.4;
+    flex: 1;
+    overflow: visible;
+    word-wrap: break-word;
+    white-space: normal;
+    width: 100%;
 }
 
 /* Trigger Text Effects */
@@ -199,6 +230,10 @@ body {
     display: flex;
     gap: 10px;
     background: var(--nav-color);
+    border-left: var(--primary-alt) 2px ridge;
+    border-right: var(--primary-alt) 2px ridge;
+    border-top: var(--button-color) 2px ridge;
+    border-bottom: var(--button-color) 2px ridge;
 }
 
 #chat-input {
@@ -265,19 +300,34 @@ body {
     background: linear-gradient(135deg, var(--secondary-color), var(--tertiary-color));
     border-left: 4px solid var(--tertiary-alt);
     animation: aiGlow 2s ease-in-out;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    white-space: normal;
+    overflow: visible;
+    flex-wrap: wrap;
 }
 
 @keyframes aiGlow {
-    0% { box-shadow: 0 0 5px var(--tertiary-color); }
-    50% { box-shadow: 0 0 20px var(--tertiary-color); }
-    100% { box-shadow: 0 0 5px var(--tertiary-color); }
+    0% {
+        box-shadow: 0 0 5px var(--tertiary-color);
+    }
+
+    50% {
+        box-shadow: 0 0 20px var(--tertiary-color);
+    }
+
+    100% {
+        box-shadow: 0 0 5px var(--tertiary-color);
+    }
 }
 
 .message-user {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--primary-alt);
-    margin-bottom: 4px;
     font-weight: bold;
+    flex-shrink: 0;
+    min-width: 60px;
 }
 
 .control-button.active {
@@ -327,8 +377,15 @@ body {
 }
 
 @keyframes collarPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.02); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
 }
 
 /* System messages styling */
@@ -337,6 +394,12 @@ body {
     border-left: 4px solid var(--nav-alt);
     font-style: italic;
     opacity: 0.8;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    white-space: normal;
+    overflow: visible;
+    flex-wrap: wrap;
 }
 
 /* Responsive Design */
@@ -353,5 +416,22 @@ body {
 
     #chat-input-container {
         flex-direction: column;
+    }
+
+    .message {
+        flex-direction: column;
+        align-items: flex-start;
+        white-space: normal;
+        padding: 10px 12px;
+    }
+
+    .message-time,
+    .message-user {
+        min-width: auto;
+    }
+
+    .message-text {
+        white-space: normal;
+        margin-top: 4px;
     }
 }

@@ -35,10 +35,10 @@ class ChatCore {
         this.socket.on('connect', () => {
             this.isConnected = true;
             this.addSystemMessage('Connected to server');
-            
+
             // Send initial triggers to worker
             this.updateTriggers();
-            
+
             console.log('Connected to server');
         });
 
@@ -88,6 +88,17 @@ class ChatCore {
             }
         });
 
+        // Model loading events
+        this.socket.on('model-status', (data) => {
+            if (data.loading) {
+                this.addSystemMessage(`🔄 ${data.message}`);
+            } else if (data.loaded) {
+                this.addSystemMessage(`✅ Model loaded: ${data.modelId} (${data.modelSize})`);
+            } else if (data.error) {
+                this.addSystemMessage(`❌ Model error: ${data.message}`);
+            }
+        });
+
         this.socket.on('error', (error) => {
             this.addSystemMessage(`Error: ${error}`);
             console.error('Socket error:', error);
@@ -101,7 +112,7 @@ class ChatCore {
         this.toggleSpiral = document.getElementById('toggle-spiral');
         this.toggleTTS = document.getElementById('toggle-tts');
         this.toggleTriggers = document.getElementById('toggle-triggers');
-        
+
         // AI-specific controls
         this.aiModeButton = document.getElementById('toggle-ai') || this.createAIButton();
         this.collarButton = document.getElementById('toggle-collar') || this.createCollarButton();
@@ -114,11 +125,11 @@ class ChatCore {
         button.className = 'control-button';
         button.textContent = 'AI: OFF';
         button.title = 'Toggle AI chat mode';
-        
+
         // Add to controls container
         const controls = document.querySelector('.controls') || document.body;
         controls.appendChild(button);
-        
+
         return button;
     }
 
@@ -128,11 +139,11 @@ class ChatCore {
         button.className = 'control-button';
         button.textContent = '🔗 Collar: OFF';
         button.title = 'Toggle collar mode for deeper submission';
-        
+
         // Add to controls container
         const controls = document.querySelector('.controls') || document.body;
         controls.appendChild(button);
-        
+
         return button;
     }
 
@@ -140,14 +151,14 @@ class ChatCore {
         const container = document.createElement('div');
         container.id = 'trigger-selector';
         container.className = 'trigger-controls';
-        
+
         const label = document.createElement('label');
         label.textContent = 'Active Triggers: ';
-        
+
         const select = document.createElement('select');
         select.multiple = true;
         select.size = 3;
-        
+
         const triggers = ['BAMBI SLEEP', 'GOOD GIRL', 'BLANK', 'MINDLESS', 'OBEY', 'SUBMIT', 'BIMBO', 'DOLL', 'PINK', 'SPIRAL'];
         triggers.forEach(trigger => {
             const option = document.createElement('option');
@@ -156,14 +167,14 @@ class ChatCore {
             option.selected = this.activeTriggers.includes(trigger);
             select.appendChild(option);
         });
-        
+
         container.appendChild(label);
         container.appendChild(select);
-        
+
         // Add to controls container
         const controls = document.querySelector('.controls') || document.body;
         controls.appendChild(container);
-        
+
         return container;
     }
 
@@ -182,11 +193,17 @@ class ChatCore {
         this.toggleSpiral.addEventListener('click', () => this.toggleSpiralAnimation());
         this.toggleTTS.addEventListener('click', () => this.toggleTextToSpeech());
         this.toggleTriggers.addEventListener('click', () => this.toggleTriggerSystem());
-        
+
         // AI controls
         this.aiModeButton.addEventListener('click', () => this.toggleAIMode());
         this.collarButton.addEventListener('click', () => this.toggleCollar());
-        
+
+        // Model loading control
+        const loadModelButton = document.getElementById('load-model');
+        if (loadModelButton) {
+            loadModelButton.addEventListener('click', () => this.loadModel());
+        }
+
         // Trigger selector
         const select = this.triggerSelector.querySelector('select');
         if (select) {
@@ -214,7 +231,7 @@ class ChatCore {
                 username: this.username,
                 timestamp: new Date().toISOString()
             });
-            
+
             this.addSystemMessage('🤖 Sending to BambiSleep AI...');
         } else {
             // Send to regular chat
@@ -309,7 +326,7 @@ class ChatCore {
         this.aiMode = !this.aiMode;
         this.aiModeButton.textContent = `AI: ${this.aiMode ? 'ON' : 'OFF'}`;
         this.aiModeButton.classList.toggle('active', this.aiMode);
-        
+
         if (this.aiMode) {
             this.addSystemMessage('🤖 AI mode activated - messages will be sent to BambiSleep');
             this.updateTriggers();
@@ -320,7 +337,7 @@ class ChatCore {
 
     toggleCollar() {
         this.collarActive = !this.collarActive;
-        
+
         if (this.collarActive) {
             this.socket.emit('activate-collar', {
                 text: 'You feel the collar tighten around your neck, a constant reminder of your submission and desire to obey. Every trigger becomes more powerful, every word more commanding.'
@@ -349,6 +366,15 @@ class ChatCore {
             this.socket.emit('update-triggers', {
                 triggers: this.activeTriggers
             });
+        }
+    }
+
+    loadModel() {
+        if (this.socket && this.isConnected) {
+            this.socket.emit('load-model');
+            this.addSystemMessage('🔍 Requesting auto-load of best l3-sthenomaidblackroot-8b-v1 model...');
+        } else {
+            this.addSystemMessage('❌ Not connected to server');
         }
     }
 
