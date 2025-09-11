@@ -161,6 +161,12 @@ class ChatCore {
         this.socket.on('ai-response', (data) => {
             this.addMessage(data.message, data.timestamp, false, 'BambiSleep', true);
             this.addSystemMessage(`AI generated ${data.wordCount} words`);
+
+            // Process TTS for AI response using enhanced system
+            if (window.tts && window.tts.isEnabled()) {
+                console.log('🎤 Processing AI response for TTS');
+                window.tts.processAIResponse(data.message);
+            }
         });
 
         this.socket.on('ai-error', (data) => {
@@ -555,10 +561,6 @@ class ChatCore {
             this.messageHistory.shift();
         }
 
-        // Process TTS if enabled and not own message
-        if (!isOwn && window.ttsSystem && window.ttsSystem.isEnabled) {
-            window.ttsSystem.speak(text);
-        }
     }
 
     addSystemMessage(text) {
@@ -667,10 +669,17 @@ class ChatCore {
     }
 
     toggleTextToSpeech() {
-        if (window.ttsSystem) {
-            const isEnabled = window.ttsSystem.toggle();
+        if (window.tts) {
+            const isEnabled = window.tts.toggle();
             this.toggleTTS.textContent = `TTS: ${isEnabled ? 'ON' : 'OFF'}`;
             this.toggleTTS.classList.toggle('active', isEnabled);
+
+            if (isEnabled) {
+                this.addSystemMessage('🎤 Enhanced TTS with Kokoro enabled');
+            } else {
+                this.addSystemMessage('🎤 TTS disabled');
+                window.tts.stop(); // Stop any current playback
+            }
         }
     }
 
