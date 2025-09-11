@@ -3,8 +3,10 @@ class TextEffects {
     constructor() {
         this.capsColor = '#df0471'; // Hot pink color for trigger phrases ONLY
         this.triggers = [];
+        this.chatVisible = true; // Track chat container visibility
         this.loadTriggers();
         this.init();
+        this.initChatToggle();
     }
 
     // Load OFFICIAL BambiSleep triggers from JSON file with enhanced data
@@ -52,7 +54,98 @@ class TextEffects {
         console.log('TextEffects initialized - TRIGGER PHRASES ONLY highlighting');
     }
 
-    // Process AI response and highlight ONLY trigger phrases - NOTHING ELSE
+    // Initialize chat container toggle functionality
+    initChatToggle() {
+        this.createToggleButton();
+        this.setupToggleEvents();
+        this.initializeStates();
+        console.log('Chat container toggle system initialized');
+    }
+
+    // Initialize default states
+    initializeStates() {
+        const chatContainer = document.getElementById('chat-container');
+        const spiralContainer = document.getElementById('spiral-container');
+        
+        if (chatContainer && spiralContainer) {
+            // Set initial visible state
+            chatContainer.classList.add('chat-visible');
+            spiralContainer.classList.add('spiral-normal');
+        }
+    }
+
+    // Create the toggle button outside chat container
+    createToggleButton() {
+        const toggleButton = document.createElement('div');
+        toggleButton.id = 'chat-toggle-button';
+        toggleButton.innerHTML = '<';
+        toggleButton.className = 'chat-toggle-btn';
+        toggleButton.title = 'Hide/Show Chat';
+
+        // Insert button right after chat-container
+        const chatContainer = document.getElementById('chat-container');
+        if (chatContainer && chatContainer.parentNode) {
+            chatContainer.parentNode.insertBefore(toggleButton, chatContainer.nextSibling);
+        }
+    }
+
+    // Setup toggle button events
+    setupToggleEvents() {
+        const toggleButton = document.getElementById('chat-toggle-button');
+        const chatContainer = document.getElementById('chat-container');
+
+        if (!toggleButton || !chatContainer) return;
+
+        toggleButton.addEventListener('click', () => {
+            this.toggleChatContainer();
+        });
+
+        // Add keyboard shortcut (Ctrl+H)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'h') {
+                e.preventDefault();
+                this.toggleChatContainer();
+            }
+        });
+    }
+
+    // Toggle chat container visibility with sliding animation
+    toggleChatContainer() {
+        const chatContainer = document.getElementById('chat-container');
+        const toggleButton = document.getElementById('chat-toggle-button');
+        const spiralContainer = document.getElementById('spiral-container');
+        
+        if (!chatContainer || !toggleButton || !spiralContainer) return;
+
+        this.chatVisible = !this.chatVisible;
+
+        if (this.chatVisible) {
+            // Show chat container
+            chatContainer.classList.remove('chat-hidden');
+            chatContainer.classList.add('chat-visible');
+            toggleButton.innerHTML = '<';
+            toggleButton.title = 'Hide Chat';
+            toggleButton.style.left = '30vw';
+            
+            // Adjust spiral container
+            spiralContainer.classList.remove('spiral-expanded');
+            spiralContainer.classList.add('spiral-normal');
+            
+        } else {
+            // Hide chat container
+            chatContainer.classList.remove('chat-visible');
+            chatContainer.classList.add('chat-hidden');
+            toggleButton.innerHTML = '>';
+            toggleButton.title = 'Show Chat';
+            toggleButton.style.left = '0';
+            
+            // Expand spiral container
+            spiralContainer.classList.remove('spiral-normal');
+            spiralContainer.classList.add('spiral-expanded');
+        }
+
+        console.log('Chat container toggled:', this.chatVisible ? 'visible' : 'hidden');
+    }    // Process AI response and highlight ONLY trigger phrases - NOTHING ELSE
     processAIResponse(text) {
         if (!this.triggers || this.triggers.length === 0) {
             return text; // No triggers loaded yet, return original text
@@ -84,15 +177,15 @@ class TextEffects {
 
                 switch (triggerInfo.category) {
                     case 'primary':
-                        triggerColor = '#ff1493'; // Deep pink for primary triggers
+                        triggerColor = '#ff1482e5'; // Deep pink for primary triggers
                         additionalClasses += ' trigger-primary';
                         break;
                     case 'mental':
-                        triggerColor = '#9932cc'; // Purple for mental triggers
+                        triggerColor = '#a032cce7'; // Purple for mental triggers
                         additionalClasses += ' trigger-mental';
                         break;
                     case 'physical':
-                        triggerColor = '#ff4500'; // Orange-red for physical triggers
+                        triggerColor = '#00ffffe7'; // Orange-red for physical triggers
                         additionalClasses += ' trigger-physical';
                         break;
                     default:
