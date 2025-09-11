@@ -1,0 +1,63 @@
+{
+    "name": "bambi-sleep-chat",
+    "version": "1.0.0",
+    "description": "Modern hypnotic AI experience platform using React, Express.js, MCP, and ElevenLabs",
+    "main": "src/server/app.js",
+    "type": "module",
+    "scripts": {
+        "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\" \"npm run mcp:dev\"",
+        "server:dev": "nodemon src/server/app.js",
+        "client:dev": "react-scripts start",
+        "mcp:dev": "nodemon --watch src/mcp-servers src/mcp-servers/coordinator.js",
+        "build": "react-scripts build && npm run server:build",
+        "server:build": "tsc src/server/**/*.js --outDir dist/server",
+        "start": "node dist/server/app.js",
+        "test": "react-scripts test",
+        "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
+        "format": "prettier --write src/",
+        "mcp:install": "node scripts/install-mcp-servers.js",
+        "lmstudio:setup": "node scripts/setup-lmstudio.js"
+    },
+    "dependencies": {
+        "@elevenlabs/react": "^1.0.0",
+        "@lmstudio/sdk": "^0.2.0",
+        "@modelcontextprotocol/sdk": "^1.17.5",
+        "express": "^4.18.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "socket.io": "^4.7.0",
+        "socket.io-client": "^4.7.0",
+        "chalk": "^5.3.0",
+        "highlight.js": "^11.9.0",
+        "dotenv": "^16.3.0",
+        "helmet": "^7.1.0",
+        "zod": "^3.22.0",
+        "cors": "^2.8.5",
+        "patreon": "^1.1.1"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.0",
+        "@types/node": "^20.0.0",
+        "@types/react": "^18.2.0",
+        "typescript": "^5.2.0",
+        "nodemon": "^3.0.0",
+        "concurrently": "^8.2.0",
+        "eslint": "^8.0.0",
+        "prettier": "^3.0.0",
+        "react-scripts": "^5.0.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "keywords": [
+        "hypnosis",
+        "ai",
+        "mcp",
+        "elevenlabs",
+        "bambi-sleep",
+        "react",
+        "express"
+    ],
+    "author": "Bambi Sleep Community",
+    "license": "MIT"
+}

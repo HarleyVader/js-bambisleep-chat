@@ -1,0 +1,60 @@
+{
+    "triggers": [
+        {
+            "id": "bambi_sleep",
+            "name": "BAMBI SLEEP",
+            "category": "core_conditioning",
+            "description": "Primary trigger for entering Bambi headspace",
+            "audioUrl": "/audio/triggers/bambi_sleep.mp3",
+            "intensity": 10,
+            "duration": 300
+        },
+        {
+            "id": "good_girl",
+            "name": "GOOD GIRL",
+            "category": "pleasure",
+            "description": "Positive reinforcement trigger",
+            "audioUrl": "/audio/triggers/good_girl.mp3",
+            "intensity": 7,
+            "duration": 60
+        },
+        {
+            "id": "bambi_reset",
+            "name": "BAMBI RESET",
+            "category": "memory_manipulation",
+            "description": "Resets and reinforces conditioning",
+            "audioUrl": "/audio/triggers/bambi_reset.mp3",
+            "intensity": 9,
+            "duration": 180
+        },
+        {
+            "id": "bimbo_doll",
+            "name": "BIMBO DOLL",
+            "category": "behavior",
+            "description": "Activates bimbo personality traits",
+            "audioUrl": "/audio/triggers/bimbo_doll.mp3",
+            "intensity": 8,
+            "duration": 240
+        },
+        {
+            "id": "bambi_freeze",
+            "name": "BAMBI FREEZE",
+            "category": "submission",
+            "description": "Induces temporary paralysis and compliance",
+            "audioUrl": "/audio/triggers/bambi_freeze.mp3",
+            "intensity": 9,
+            "duration": 120
+        }
+    ],
+    "categories": {
+        "core_conditioning": "Fundamental identity and personality triggers",
+        "dumbdown": "Intelligence reduction and simplification triggers",
+        "submission": "Obedience and compliance triggers",
+        "body_modification": "Physical sensation and body image triggers",
+        "memory_manipulation": "Memory alteration and conditioning triggers",
+        "appearance": "Physical appearance and presentation triggers",
+        "behavior": "Behavioral modification triggers",
+        "pleasure": "Reward and reinforcement triggers",
+        "comfort": "Relaxation and safety triggers"
+    }
+}
