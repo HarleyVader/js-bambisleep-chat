@@ -782,6 +782,57 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM loaded, initializing DropdownManager...');
     window.dropdownManager = new DropdownManager();
 
+    // Add a short delay to allow all scripts to fully initialize
+    setTimeout(() => {
+        console.log('🔍 Checking spiral controls availability...');
+        const spiralControls = window.dropdownManager.getSpiralControls();
+        const triggerSystem = window.dropdownManager.getTriggerSystem();
+        
+        if (spiralControls) {
+            console.log('✅ Spiral controls are available and ready!');
+            console.log('🌀 Spiral animation object:', window.spiralAnimation);
+            console.log('🎛️ Spiral controls object:', spiralControls);
+            
+            // Create a success indicator on the page
+            const indicator = document.createElement('div');
+            indicator.style.cssText = `
+                position: fixed; top: 10px; left: 10px; z-index: 10000;
+                background: green; color: white; padding: 5px 10px;
+                border-radius: 5px; font-family: monospace; font-size: 12px;
+            `;
+            indicator.textContent = '✅ Spiral Controls Ready';
+            document.body.appendChild(indicator);
+            
+            // Test a spiral control function
+            try {
+                spiralControls.setSpiralAColor(255, 100, 255, 0.8);
+                console.log('🧪 Quick spiral color test successful');
+            } catch (e) {
+                console.error('❌ Quick spiral test failed:', e);
+            }
+        } else {
+            console.warn('❌ Spiral controls not available!');
+            console.log('🔧 window.spiralAnimation:', window.spiralAnimation);
+            console.log('🔧 window.spiralControls:', window.spiralControls);
+            
+            // Create an error indicator on the page
+            const indicator = document.createElement('div');
+            indicator.style.cssText = `
+                position: fixed; top: 10px; left: 10px; z-index: 10000;
+                background: red; color: white; padding: 5px 10px;
+                border-radius: 5px; font-family: monospace; font-size: 12px;
+            `;
+            indicator.textContent = '❌ Spiral Controls NOT Ready';
+            document.body.appendChild(indicator);
+        }
+        
+        if (triggerSystem) {
+            console.log('✅ Trigger system is available and ready!');
+        } else {
+            console.warn('❌ Trigger system not available!');
+        }
+    }, 1000);
+
     // Load saved collar settings
     const savedCollarSettings = localStorage.getItem('bambi-collar-settings');
     if (savedCollarSettings) {
@@ -794,6 +845,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('✅ DropdownManager initialization complete');
 });
+
+// Debug function for testing spiral controls
+window.testSpiralControls = function() {
+    console.log('🧪 Testing spiral controls...');
+    
+    if (!window.dropdownManager) {
+        console.error('❌ DropdownManager not initialized');
+        return false;
+    }
+    
+    const spiralControls = window.dropdownManager.getSpiralControls();
+    if (!spiralControls) {
+        console.error('❌ Spiral controls not available');
+        return false;
+    }
+    
+    console.log('✅ Spiral controls available! Testing functions...');
+    
+    // Test color change
+    try {
+        spiralControls.setSpiralAColor(255, 0, 0, 1.0); // Red
+        console.log('✅ setSpiralAColor test passed');
+    } catch (e) {
+        console.error('❌ setSpiralAColor test failed:', e);
+    }
+    
+    // Test speed change
+    try {
+        spiralControls.setFrameSpeed('A', 15);
+        console.log('✅ setFrameSpeed test passed');
+    } catch (e) {
+        console.error('❌ setFrameSpeed test failed:', e);
+    }
+    
+    // Test preset loading
+    try {
+        spiralControls.loadPreset('hypnotic');
+        console.log('✅ loadPreset test passed');
+    } catch (e) {
+        console.error('❌ loadPreset test failed:', e);
+    }
+    
+    console.log('🧪 Spiral controls test complete');
+    return true;
+};
 
 // Listen for dropdown actions to integrate with existing functionality
 document.addEventListener('dropdownAction', (e) => {
