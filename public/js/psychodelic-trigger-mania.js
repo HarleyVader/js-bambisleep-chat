@@ -17,6 +17,7 @@ class SpiralAnimation {
         this.spiral1Color = [0, 128, 128]; // Teal
         this.spiral2Color = [255, 20, 147]; // Barbie Pink
         this.opacityLevel = 1.0;
+        this.zoomFactor = 1.3; // 30% zoom in
 
         // Performance settings - minimal approach
         this.ITERATIONS = 400;
@@ -208,10 +209,11 @@ class SpiralAnimation {
             spiralWidth -= dw;
             r2 = r1 + spiralWidth;
 
-            const r1x = r1 * Math.sin(ang * i);
-            const r1y = r1 * Math.cos(ang * i);
-            const r2x = r2 * Math.sin(ang * i);
-            const r2y = r2 * Math.cos(ang * i);
+            // Apply zoom factor to spiral coordinates
+            const r1x = (r1 * Math.sin(ang * i)) * this.zoomFactor;
+            const r1y = (r1 * Math.cos(ang * i)) * this.zoomFactor;
+            const r2x = (r2 * Math.sin(ang * i)) * this.zoomFactor;
+            const r2y = (r2 * Math.cos(ang * i)) * this.zoomFactor;
 
             vertices.push(r1x, r1y, r2x, r2y);
         }
