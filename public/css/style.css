@@ -83,7 +83,7 @@ body {
     box-sizing: border-box;
     /* Include padding in dimensions */
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Spiral Text Center - For TTS Display */
@@ -159,7 +159,7 @@ body {
     /* Include border in dimensions */
     filter: brightness(1.4) saturate(1.6) contrast(1.2);
     /* Enhanced neon brightness */
-    box-shadow: 
+    box-shadow:
         0 0 20px rgba(0, 255, 255, 0.3),
         0 0 40px rgba(255, 0, 255, 0.2),
         inset 0 0 30px rgba(255, 255, 255, 0.1);
@@ -1260,7 +1260,8 @@ body {
 
 #spiral-container.spiral-expanded {
     width: 100vw;
-    margin-left: -30vw; /* Offset to cover the hidden chat area */
+    margin-left: -30vw;
+    /* Offset to cover the hidden chat area */
 }
 
 /* Toggle Button Position Adjustment When Chat is Hidden */
