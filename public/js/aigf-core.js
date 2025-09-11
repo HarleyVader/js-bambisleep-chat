@@ -622,7 +622,9 @@ class ChatCore {
     setupCollarButtons() {
         const collarButtons = document.querySelectorAll('.collar-btn');
         const collarTextarea = document.getElementById('collar-text');
+        const collarCloseBtn = document.querySelector('.collar-close-btn');
         
+        // Regular collar buttons (Copy, Paste, Save)
         collarButtons.forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -643,6 +645,21 @@ class ChatCore {
                 }
             });
         });
+
+        // Close button event listener
+        if (collarCloseBtn) {
+            collarCloseBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.closeCollarDropdown();
+            });
+        }
+    }
+
+    closeCollarDropdown() {
+        const dropdown = this.collarButton.parentElement;
+        dropdown.classList.remove('collar-active');
+        this.addSystemMessage('🔗 Collar settings closed');
     }
 
     copyCollarText() {
