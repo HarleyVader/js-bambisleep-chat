@@ -271,20 +271,6 @@ body {
     animation: dropdownSlide 0.3s ease-out;
 }
 
-/* Collar dropdown - special behavior for collar only */
-.dropdown.collar-active .dropdown-content {
-    display: block !important;
-}
-
-/* Prevent collar dropdown from showing on hover */
-.dropdown:has(#toggle-collar):hover .dropdown-content {
-    display: none;
-}
-
-.dropdown:has(#toggle-collar).collar-active .dropdown-content {
-    display: block !important;
-}
-
 /* Hidden dropdowns for future development */
 .dropdown-hidden {
     display: none !important;
@@ -343,37 +329,6 @@ body {
     padding: 12px;
     min-width: 350px;
     max-width: 400px;
-}
-
-.collar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.collar-close-btn {
-    background: transparent;
-    border: 1px solid var(--error);
-    color: var(--error);
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    font-family: Arial, sans-serif;
-}
-
-.collar-close-btn:hover {
-    background: var(--error);
-    color: white;
-    transform: scale(1.1);
-    box-shadow: 0 0 10px var(--error);
 }
 
 .collar-textarea {
@@ -1035,18 +990,22 @@ body {
         transform: scale(1) rotate(0deg);
         box-shadow: 0 0 25px var(--button-color);
     }
+
     25% {
         transform: scale(1.1) rotate(2deg);
         box-shadow: 0 0 35px var(--tertiary-alt);
     }
+
     50% {
         transform: scale(1.05) rotate(-1deg);
         box-shadow: 0 0 45px var(--button-color);
     }
+
     75% {
         transform: scale(1.08) rotate(1deg);
         box-shadow: 0 0 35px var(--tertiary-alt);
     }
+
     100% {
         transform: scale(1) rotate(0deg);
         box-shadow: 0 0 25px var(--button-color);

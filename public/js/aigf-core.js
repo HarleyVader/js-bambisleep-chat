@@ -401,13 +401,6 @@ class ChatCore {
             }
         });
 
-        this.collarButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            // Don't toggle collar on button click, only show/hide dropdown
-            const dropdown = this.collarButton.parentElement;
-            dropdown.classList.toggle('collar-active');
-        });
-
         // Model loading control
         const loadModelButton = document.getElementById('load-model');
         if (loadModelButton) {
@@ -433,23 +426,22 @@ class ChatCore {
     }
 
     setupClickOutsideHandling() {
-        // Handle click outside for collar dropdown
+        // Handle click outside for all dropdowns
         document.addEventListener('click', (e) => {
-            const collarDropdown = document.querySelector('#toggle-collar').parentElement;
-            const isCollarButton = e.target.closest('#toggle-collar');
-            const isInsideCollarDropdown = e.target.closest('.collar-config');
-            
-            // Close collar dropdown if clicked outside (but not on collar button or inside dropdown)
-            if (!isCollarButton && !isInsideCollarDropdown && collarDropdown.classList.contains('collar-active')) {
-                collarDropdown.classList.remove('collar-active');
-            }
+            document.querySelectorAll('.dropdown').forEach(dropdown => {
+                const isInsideDropdown = dropdown.contains(e.target);
+                
+                if (!isInsideDropdown) {
+                    dropdown.classList.remove('active');
+                }
+            });
         });
 
-        // Restore normal dropdown behavior for non-collar dropdowns
+        // Set up normal dropdown behavior for non-collar dropdowns
         document.querySelectorAll('.dropdown').forEach(dropdown => {
             const button = dropdown.querySelector('.dropdown-btn');
             const isCollarDropdown = button && button.id === 'toggle-collar';
-            
+
             if (!isCollarDropdown) {
                 button.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -457,21 +449,7 @@ class ChatCore {
                 });
             }
         });
-
-        // Close dropdowns when clicking outside (except collar)
-        document.addEventListener('click', (e) => {
-            document.querySelectorAll('.dropdown').forEach(dropdown => {
-                const button = dropdown.querySelector('.dropdown-btn');
-                const isCollarDropdown = button && button.id === 'toggle-collar';
-                
-                if (!isCollarDropdown && !dropdown.contains(e.target)) {
-                    dropdown.classList.remove('active');
-                }
-            });
-        });
-    }
-
-    sendMessage() {
+    }    sendMessage() {
         const message = this.chatInput.value.trim();
         if (!message || !this.isConnected) return;
 
@@ -621,18 +599,16 @@ class ChatCore {
 
     setupCollarButtons() {
         const collarButtons = document.querySelectorAll('.collar-btn');
-        const collarTextarea = document.getElementById('collar-text');
-        const collarCloseBtn = document.querySelector('.collar-close-btn');
-        
+
         // Regular collar buttons (Copy, Paste, Save)
         collarButtons.forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const action = button.getAttribute('data-action');
-                
-                switch(action) {
+
+                switch (action) {
                     case 'collar-copy':
                         this.copyCollarText();
                         break;
@@ -645,21 +621,6 @@ class ChatCore {
                 }
             });
         });
-
-        // Close button event listener
-        if (collarCloseBtn) {
-            collarCloseBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.closeCollarDropdown();
-            });
-        }
-    }
-
-    closeCollarDropdown() {
-        const dropdown = this.collarButton.parentElement;
-        dropdown.classList.remove('collar-active');
-        this.addSystemMessage('🔗 Collar settings closed');
     }
 
     copyCollarText() {
@@ -688,7 +649,7 @@ class ChatCore {
     saveCollarSettings() {
         const collarTextarea = document.getElementById('collar-text');
         const collarText = collarTextarea ? collarTextarea.value.trim() : '';
-        
+
         if (collarText) {
             // Activate collar with custom text
             this.collarActive = true;
@@ -702,14 +663,18 @@ class ChatCore {
             this.socket.emit('deactivate-collar');
             this.addSystemMessage('🔗 💔 Collar deactivated - No submission text provided');
         }
-        
-        // Close dropdown after save
+
+        // Close dropdown after save (remove hover state)
         const dropdown = this.collarButton.parentElement;
-        dropdown.classList.remove('collar-active');
-        
+        // Force close dropdown by removing hover state temporarily
+        dropdown.style.pointerEvents = 'none';
+        setTimeout(() => {
+            dropdown.style.pointerEvents = '';
+        }, 100);
+
         // Update UI with enhanced status
         this.updateCollarUI();
-        
+
         // Add visual feedback
         if (this.collarActive) {
             this.collarButton.style.animation = 'collarActivation 1s ease-in-out';
@@ -733,11 +698,11 @@ class ChatCore {
 
     updateCollarUI() {
         if (this.collarActive) {
-            this.collarButton.textContent = `🔗 Collar: ACTIVE`;
+            this.collarButton.textContent = `🔗 Collar: ON`;
             this.collarButton.classList.add('active');
             this.collarButton.setAttribute('data-state', 'on');
         } else {
-            this.collarButton.textContent = `🔗 Collar: INACTIVE`;
+            this.collarButton.textContent = `🔗 Collar: OFF`;
             this.collarButton.classList.remove('active');
             this.collarButton.setAttribute('data-state', 'off');
         }
