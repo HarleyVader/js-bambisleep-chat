@@ -16,20 +16,49 @@
         <!-- Chat Container -->
         <div id="chat-container">
             <div id="chat-header">
-                <h1>BambiSleep Chat</h1>
+                <h1>🧠BambiSleep.Chat 🌀</h1>
                 <div id="controls" class="controls">
-                    <button id="toggle-spiral">Toggle Spiral</button>
-                    <button id="toggle-tts">TTS: OFF</button>
-                    <button id="toggle-triggers">Triggers: OFF</button>
-                    <button id="toggle-ai" class="control-button">AI: OFF</button>
-                    <button id="toggle-collar" class="control-button">🔗 Collar: OFF</button>
-                    <button id="load-model" class="control-button" title="Auto-load best l3-sthenomaidblackroot-8b-v1 model">🤖 Load Model</button>
-                </div>
-                <div id="trigger-selector" class="trigger-controls">
-                    <label for="trigger-categories">Official BambiSleep Triggers:</label>
-                    <div id="trigger-categories" class="trigger-categories">
-                        <!-- Categories and triggers will be populated by aigf-core.js from triggers.json -->
-                        <div class="category-loading">Loading official triggers...</div>
+                    <div class="dropdown">
+                        <button id="toggle-spiral" class="dropdown-btn toggle-button" data-state="off">Spiral: OFF</button>
+                        <div class="dropdown-content dropdown-hidden">
+                            <p class="coming-soon">Coming Soon...</p>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <button id="toggle-tts" class="dropdown-btn toggle-button" data-state="off">TTS: OFF</button>
+                        <div class="dropdown-content dropdown-hidden">
+                            <div class="tts-config">
+                                <p class="config-label">Cloud TTS API Keys:</p>
+                                <input type="text" class="api-key-input" placeholder="Enter API Key...">
+                                <p class="coming-soon-small">More features coming soon...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <button id="toggle-triggers" class="dropdown-btn toggle-button" data-state="off">Triggers: OFF</button>
+                        <div class="dropdown-content">
+                            <div id="trigger-categories-dropdown" class="trigger-categories">
+                                <!-- Categories and triggers will be populated by aigf-core.js from triggers.json -->
+                                <div class="category-loading">Loading official triggers...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <button id="toggle-ai" class="dropdown-btn toggle-button control-button" data-state="CHAT" data-mode="chat">CHAT</button>
+                    </div>
+                    <div class="dropdown">
+                        <button id="toggle-collar" class="dropdown-btn toggle-button control-button" data-state="off">🔗 Collar: OFF</button>
+                        <div class="dropdown-content">
+                            <div class="collar-config">
+                                <p class="config-label">Collar Settings:</p>
+                                <textarea id="collar-text" class="collar-textarea" placeholder="Enter collar settings..."></textarea>
+                                <div class="collar-buttons">
+                                    <button class="collar-btn" data-action="collar-copy">Copy</button>
+                                    <button class="collar-btn" data-action="collar-paste">Paste</button>
+                                    <button class="collar-btn" data-action="collar-save">Save</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -44,6 +73,7 @@
     </div>
 
     <!-- Load scripts in order -->
+    <script src="/js/dropdown.js"></script>
     <script src="/js/effects.js"></script>
     <script src="/js/triggers.js"></script>
     <script src="/js/text2speech.js"></script>

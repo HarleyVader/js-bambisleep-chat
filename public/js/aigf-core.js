@@ -223,7 +223,7 @@ class ChatCore {
         const button = document.createElement('button');
         button.id = 'toggle-ai';
         button.className = 'control-button';
-        button.textContent = 'AI: OFF';
+        button.textContent = 'CHAT';
         button.title = 'Toggle AI chat mode';
 
         // Add to controls container
@@ -389,8 +389,18 @@ class ChatCore {
         this.toggleTTS.addEventListener('click', () => this.toggleTextToSpeech());
         this.toggleTriggers.addEventListener('click', () => this.toggleTriggerSystem());
 
-        // AI controls
-        this.aiModeButton.addEventListener('click', () => this.toggleAIMode());
+        // AI controls - handled by dropdown.js
+        // this.aiModeButton.addEventListener('click', () => this.toggleAIMode());
+
+        // Listen for AI mode changes from dropdown
+        document.addEventListener('aiModeChange', (event) => {
+            this.aiMode = event.detail.mode === 'ai';
+            this.aiModeButton.classList.toggle('active', this.aiMode);
+            if (this.aiMode) {
+                this.updateTriggers();
+            }
+        });
+
         this.collarButton.addEventListener('click', () => this.toggleCollar());
 
         // Model loading control
@@ -447,34 +457,55 @@ class ChatCore {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own' : ''} ${isAI ? 'ai' : ''}`;
 
-        const timeDiv = document.createElement('div');
-        timeDiv.className = 'message-time';
-        timeDiv.textContent = this.formatTime(timestamp);
-
-        const userDiv = document.createElement('div');
-        userDiv.className = 'message-user';
-        userDiv.textContent = username;
-
-        const textDiv = document.createElement('div');
-        textDiv.className = 'message-text';
-
-        // Handle AI messages with structured output differently
         if (isAI) {
+            // Create special layout for AI messages
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'message-header';
+
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message-user';
+            userDiv.textContent = username;
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = this.formatTime(timestamp);
+
+            headerDiv.appendChild(userDiv);
+            headerDiv.appendChild(timeDiv);
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'message-text';
+
             // Process AI response with simple CAPS detection only
             const processedAIResponse = this.processAIResponse(text);
             textDiv.innerHTML = processedAIResponse;
+
+            messageDiv.appendChild(headerDiv);
+            messageDiv.appendChild(textDiv);
         } else {
+            // Regular layout for user messages
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = this.formatTime(timestamp);
+
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message-user';
+            userDiv.textContent = username;
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'message-text';
+
             // Regular user messages - process triggers if enabled
             if (window.triggerSystem && window.triggerSystem.isEnabled) {
                 textDiv.innerHTML = window.triggerSystem.processMessage(text);
             } else {
                 textDiv.textContent = text;
             }
-        }
 
-        messageDiv.appendChild(timeDiv);
-        messageDiv.appendChild(userDiv);
-        messageDiv.appendChild(textDiv);
+            messageDiv.appendChild(timeDiv);
+            messageDiv.appendChild(userDiv);
+            messageDiv.appendChild(textDiv);
+        }
 
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
@@ -527,14 +558,14 @@ class ChatCore {
     // AI-specific methods
     toggleAIMode() {
         this.aiMode = !this.aiMode;
-        this.aiModeButton.textContent = `AI: ${this.aiMode ? 'ON' : 'OFF'}`;
+        this.aiModeButton.textContent = this.aiMode ? 'AIGF' : 'CHAT';
         this.aiModeButton.classList.toggle('active', this.aiMode);
 
         if (this.aiMode) {
-            this.addSystemMessage('🤖 AI mode activated - messages will be sent to BambiSleep');
+            this.addSystemMessage('🌀 AIGF BRAINWASH MODE 🌀');
             this.updateTriggers();
         } else {
-            this.addSystemMessage('💬 Regular chat mode activated');
+            this.addSystemMessage('� GLOBAL CHAT MODE 🗫');
         }
     }
 

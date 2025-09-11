@@ -3,29 +3,19 @@
 
 :root {
     --primary-color: #0c2a2aE6;
-    /* Dark teal */
     --primary-alt: #15aab5E6;
-    /* Bright teal */
     --secondary-color: #40002fE6;
-    /* Dark magenta */
     --secondary-alt: #cc0174E6;
-    /* Bright pink */
     --tertiary-color: #cc0174E6;
-    /* Pink */
     --tertiary-alt: #02b893E6;
-    /* Turquoise */
     --button-color: #df0471E6;
-    /* Hot pink */
     --button-alt: #110000E6;
-    /* Near black */
     --nav-color: #0a2626E6;
-    /* Dark nav */
     --nav-alt: #17dbd8E6;
-    /* Bright cyan */
     --transparent: #124141E6;
-    /* Semi-transparent teal */
     --error: #ff3333E6;
-    /* Error red */
+    --border: 3px ridge;
+    --border-radius: 8px;
 }
 
 * {
@@ -40,6 +30,8 @@ body {
     color: #fff;
     height: 100vh;
     overflow: hidden;
+    font-size: 0.75rem;
+    /* Reduced by 25% */
 }
 
 #app {
@@ -48,58 +40,77 @@ body {
     position: relative;
 }
 
-/* Spiral Animation Container */
-#spiral-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    opacity: 0.4;
-}
-
-#spiral-canvas {
-    width: 100%;
-    height: 100%;
-}
-
-/* Chat Container */
+/* Chat Container - Left Side */
 #chat-container {
     position: relative;
     z-index: 10;
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
+    width: 30vw;
+    /* Use viewport width, max 30% */
+    max-width: 30vw;
+    margin: 0;
     display: flex;
     flex-direction: column;
     height: 100vh;
     background: var(--transparent);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    border-left: var(--primary-alt) 2px ridge;
-    border-right: var(--primary-alt) 2px ridge;
-    border-top: var(--button-color) 2px ridge;
-    border-bottom: var(--button-color) 2px ridge;
+    border: var(--border) var(--primary-alt);
+    border-radius: var(--border-radius);
+    /* Rounded borders */
+    flex-shrink: 0;
+    /* Prevent shrinking */
+    order: 1;
+    /* Ensure it comes first */
 }
 
-/* Chat Header */
+/* Spiral Animation Container - Right Side */
+#spiral-container {
+    position: relative;
+    width: 70vw;
+    /* Take remaining viewport width */
+    height: 100vh;
+    z-index: 0;
+    opacity: 0.4;
+    order: 2;
+    /* Ensure it comes second */
+    border: var(--border) var(--primary-alt);
+    border-radius: var(--border-radius);
+    /* Rounded borders */
+    padding: var(--border-radius);
+    /* Padding to fit canvas perfectly inside */
+    box-sizing: border-box;
+    /* Include padding in dimensions */
+}
+
+#spiral-canvas {
+    width: 100%;
+    height: 100%;
+    border: 2px solid var(--button-color);
+    /* Hot pink border */
+    border-radius: var(--border-radius);
+    /* Rounded corners to match container */
+    box-sizing: border-box;
+    /* Include border in dimensions */
+}
+
+/* Chat Header - Navbar Style */
 #chat-header {
-    padding: 20px;
+    padding: 14px;
+    /* Reduced by 30% from 20px */
     border-bottom: 1px solid var(--nav-alt);
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: var(--nav-color);
-    border-left: var(--primary-alt) 2px ridge;
-    border-right: var(--primary-alt) 2px ridge;
-    border-top: var(--button-color) 2px ridge;
-    border-bottom: var(--button-color) 2px ridge;
+    border: var(--border) var(--button-color);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    /* Rounded top corners */
 }
 
 #chat-header h1 {
     color: var(--nav-alt);
-    font-size: 1.8rem;
+    font-size: 1.35rem;
+    /* Reduced by 25% from 1.8rem */
     text-shadow: 0 0 10px var(--nav-alt);
     font-weight: 400;
     letter-spacing: 2px;
@@ -107,11 +118,21 @@ body {
 
 #controls {
     display: flex;
-    gap: 10px;
+    gap: 7px;
+    /* Reduced by 30% from 10px */
+    flex-wrap: wrap;
 }
 
-#controls button {
-    padding: 8px 16px;
+/* Dropdown Container */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Dropdown Button */
+.dropdown-btn {
+    padding: 5.6px 11.2px;
+    /* Reduced by 30% from 8px 16px */
     background: var(--button-alt);
     border: 1px solid var(--button-color);
     border-radius: 20px;
@@ -119,16 +140,196 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     font-family: "Audiowide", sans-serif;
-    font-size: 0.9rem;
+    font-size: 0.675rem;
+    /* Reduced by 25% from 0.9rem */
+    white-space: nowrap;
 }
 
-#controls button:hover {
+.dropdown-btn:hover {
     background: var(--button-color);
     transform: scale(1.05);
     box-shadow: 0 0 15px var(--button-color);
 }
 
-#controls button.active {
+.dropdown-btn.active {
+    background: var(--button-color);
+    box-shadow: 0 0 20px var(--button-color);
+}
+
+/* Dropdown Content */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--nav-color);
+    min-width: 160px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    border: var(--border) var(--primary-alt);
+    border-radius: var(--border-radius);
+    margin-top: 2px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Dropdown Links */
+.dropdown-content a {
+    color: var(--nav-alt);
+    padding: 8px 12px;
+    text-decoration: none;
+    display: block;
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.6rem;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid var(--primary-color);
+}
+
+.dropdown-content a:last-child {
+    border-bottom: none;
+}
+
+.dropdown-content a:hover {
+    background: var(--primary-color);
+    color: var(--button-color);
+    text-shadow: 0 0 5px var(--button-color);
+}
+
+/* Show dropdown on hover and click */
+.dropdown:hover .dropdown-content,
+.dropdown.active .dropdown-content {
+    display: block;
+    animation: dropdownSlide 0.3s ease-out;
+}
+
+/* Hidden dropdowns for future development */
+.dropdown-hidden {
+    display: none !important;
+}
+
+/* Toggle button states */
+.toggle-button[data-state="on"] {
+    background: var(--button-color);
+    box-shadow: 0 0 20px var(--button-color);
+}
+
+.toggle-button[data-state="off"] {
+    background: var(--button-alt);
+}
+
+/* TTS Configuration */
+.tts-config {
+    padding: 8px;
+}
+
+.config-label {
+    color: var(--nav-alt);
+    font-size: 0.5rem;
+    margin-bottom: 5px;
+}
+
+.api-key-input {
+    width: 100%;
+    padding: 4px;
+    border: 1px solid var(--primary-alt);
+    background: var(--primary-color);
+    color: white;
+    border-radius: 4px;
+    font-size: 0.5rem;
+    font-family: "Audiowide", sans-serif;
+}
+
+.coming-soon {
+    color: var(--nav-alt);
+    padding: 8px;
+    font-style: italic;
+    text-align: center;
+    font-size: 0.6rem;
+}
+
+.coming-soon-small {
+    color: var(--nav-alt);
+    padding: 4px 0;
+    font-style: italic;
+    text-align: center;
+    font-size: 0.4rem;
+}
+
+/* Collar Configuration */
+.collar-config {
+    padding: 8px;
+    min-width: 200px;
+}
+
+.collar-textarea {
+    width: 100%;
+    height: 60px;
+    padding: 4px;
+    border: 1px solid var(--primary-alt);
+    background: var(--primary-color);
+    color: white;
+    border-radius: 4px;
+    font-size: 0.5rem;
+    resize: none;
+    font-family: monospace;
+}
+
+.collar-buttons {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.collar-btn {
+    padding: 4px 8px;
+    background: var(--button-alt);
+    border: 1px solid var(--button-color);
+    border-radius: 4px;
+    color: white;
+    font-size: 0.4rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "Audiowide", sans-serif;
+}
+
+.collar-btn:hover {
+    background: var(--button-color);
+}
+
+@keyframes dropdownSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Legacy button support */
+#controls button:not(.dropdown-btn) {
+    padding: 5.6px 11.2px;
+    /* Reduced by 30% from 8px 16px */
+    background: var(--button-alt);
+    border: 1px solid var(--button-color);
+    border-radius: 20px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.675rem;
+    /* Reduced by 25% from 0.9rem */
+}
+
+#controls button:not(.dropdown-btn):hover {
+    background: var(--button-color);
+    transform: scale(1.05);
+    box-shadow: 0 0 15px var(--button-color);
+}
+
+#controls button:not(.dropdown-btn).active {
     background: var(--button-color);
     box-shadow: 0 0 20px var(--button-color);
 }
@@ -136,18 +337,20 @@ body {
 /* Chat Messages */
 #chat-messages {
     flex: 1;
-    padding: 20px;
+    padding: 14px;
+    /* Reduced by 30% from 20px */
     overflow-y: auto;
     scroll-behavior: smooth;
-    border-left: var(--primary-alt) 2px ridge;
-    border-right: var(--primary-alt) 2px ridge;
-    border-top: var(--button-color) 2px ridge;
-    border-bottom: var(--button-color) 2px ridge;
+    border: var(--border) var(--primary-alt);
+    background: transparent;
+    /* Make transparent */
 }
 
 .message {
-    margin-bottom: 8px;
-    padding: 8px 12px;
+    margin-bottom: 5.6px;
+    /* Reduced by 30% from 8px */
+    padding: 5.6px 8.4px;
+    /* Reduced by 30% from 8px 12px */
     background: var(--primary-color);
     border-radius: 15px;
     border-left: 3px solid var(--tertiary-color);
@@ -155,10 +358,12 @@ body {
     border: 1px solid var(--primary-alt);
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: 5.6px;
+    /* Reduced by 30% from 8px */
     white-space: normal;
     overflow: visible;
-    min-height: 40px;
+    min-height: 28px;
+    /* Reduced by 30% from 40px */
     max-width: 100%;
     flex-wrap: wrap;
 }
@@ -182,11 +387,13 @@ body {
 }
 
 .message-time {
-    font-size: 0.7rem;
+    font-size: 0.525rem;
+    /* Reduced by 25% from 0.7rem */
     color: var(--primary-alt);
     font-family: "Audiowide", sans-serif;
     flex-shrink: 0;
-    min-width: 80px;
+    min-width: 56px;
+    /* Reduced by 30% from 80px */
 }
 
 .message-emoji {
@@ -381,25 +588,28 @@ body {
 
 /* Chat Input */
 #chat-input-container {
-    padding: 20px;
+    padding: 14px;
+    /* Reduced by 30% from 20px */
     border-top: 1px solid var(--nav-alt);
     display: flex;
-    gap: 10px;
+    gap: 7px;
+    /* Reduced by 30% from 10px */
     background: var(--nav-color);
-    border-left: var(--primary-alt) 2px ridge;
-    border-right: var(--primary-alt) 2px ridge;
-    border-top: var(--button-color) 2px ridge;
-    border-bottom: var(--button-color) 2px ridge;
+    border: var(--border) var(--button-color);
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    /* Rounded bottom corners */
 }
 
 #chat-input {
     flex: 1;
-    padding: 12px 16px;
+    padding: 8.4px 11.2px;
+    /* Reduced by 30% from 12px 16px */
     background: var(--primary-color);
     border: 1px solid var(--primary-alt);
     border-radius: 25px;
     color: #fff;
-    font-size: 1rem;
+    font-size: 0.75rem;
+    /* Reduced by 25% from 1rem */
     outline: none;
     transition: all 0.3s ease;
     font-family: "Audiowide", sans-serif;
@@ -415,7 +625,8 @@ body {
 }
 
 #send-button {
-    padding: 12px 24px;
+    padding: 8.4px 16.8px;
+    /* Reduced by 30% from 12px 24px */
     background: linear-gradient(45deg, var(--button-color), var(--tertiary-alt));
     border: none;
     border-radius: 25px;
@@ -424,7 +635,8 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     font-family: "Audiowide", sans-serif;
-    font-size: 1rem;
+    font-size: 0.75rem;
+    /* Reduced by 25% from 1rem */
 }
 
 #send-button:hover {
@@ -453,15 +665,33 @@ body {
 
 /* AI Features Styling */
 .message.ai {
-    background: linear-gradient(135deg, var(--primary-color), var(--transparent));
+    background: transparent;
+    /* Made transparent */
     border-left: 4px solid var(--tertiary-alt);
     animation: aiGlow 2s ease-in-out;
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
     white-space: normal;
     overflow: visible;
-    flex-wrap: wrap;
+    padding: 8px 12px;
+}
+
+.message.ai .message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.message.ai .message-text {
+    line-height: 1.5;
+    width: 100%;
+    word-wrap: break-word;
+    white-space: normal;
+    margin: 0;
 }
 
 @keyframes aiGlow {
@@ -479,11 +709,13 @@ body {
 }
 
 .message-user {
-    font-size: 0.7rem;
+    font-size: 0.525rem;
+    /* Reduced by 25% from 0.7rem */
     color: var(--primary-alt);
     font-weight: bold;
     flex-shrink: 0;
-    min-width: 60px;
+    min-width: 42px;
+    /* Reduced by 30% from 60px */
 }
 
 .control-button.active {
@@ -495,12 +727,15 @@ body {
 .trigger-controls {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    margin: 10px 0;
+    gap: 3.5px;
+    /* Reduced by 30% from 5px */
+    margin: 7px 0;
+    /* Reduced by 30% from 10px */
 }
 
 .trigger-controls label {
-    font-size: 0.8rem;
+    font-size: 0.6rem;
+    /* Reduced by 25% from 0.8rem */
     color: var(--primary-alt);
     font-weight: bold;
 }
@@ -508,12 +743,15 @@ body {
 .trigger-controls select {
     background: var(--primary-color);
     border: 1px solid var(--primary-alt);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     color: #fff;
     font-family: "Audiowide", sans-serif;
-    font-size: 0.8rem;
-    padding: 5px;
-    max-width: 200px;
+    font-size: 0.6rem;
+    /* Reduced by 25% from 0.8rem */
+    padding: 3.5px;
+    /* Reduced by 30% from 5px */
+    max-width: 140px;
+    /* Reduced by 30% from 200px */
 }
 
 .trigger-controls select option {
@@ -531,30 +769,37 @@ body {
 .trigger-categories {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    margin: 10px 0;
+    gap: 10.5px;
+    /* Reduced by 30% from 15px */
+    margin: 7px 0;
+    /* Reduced by 30% from 10px */
     max-width: 100%;
 }
 
 .trigger-category {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    padding: 10px;
+    background: transparent;
+    /* Made transparent */
+    border-radius: var(--border-radius);
+    padding: 7px;
+    /* Reduced by 30% from 10px */
     border: 1px solid var(--primary-alt);
 }
 
 .category-header {
-    font-size: 0.8rem;
+    font-size: 0.6rem;
+    /* Reduced by 25% from 0.8rem */
     color: var(--tertiary-color);
     font-weight: bold;
-    margin: 0 0 8px 0;
+    margin: 0 0 5.6px 0;
+    /* Reduced by 30% from 8px */
     text-transform: uppercase;
 }
 
 .trigger-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 3.5px;
+    /* Reduced by 30% from 5px */
 }
 
 .trigger-button {
@@ -563,8 +808,10 @@ body {
     border-radius: 6px;
     color: #fff;
     font-family: "Audiowide", sans-serif;
-    font-size: 0.7rem;
-    padding: 6px 12px;
+    font-size: 0.525rem;
+    /* Reduced by 25% from 0.7rem */
+    padding: 4.2px 8.4px;
+    /* Reduced by 30% from 6px 12px */
     cursor: pointer;
     transition: all 0.3s ease;
     white-space: nowrap;
@@ -627,7 +874,8 @@ body {
     text-align: center;
     color: var(--tertiary-color);
     font-style: italic;
-    padding: 20px;
+    padding: 14px;
+    /* Reduced by 30% from 20px */
 }
 
 #toggle-collar.active {
@@ -655,7 +903,8 @@ body {
     opacity: 0.8;
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: 5.6px;
+    /* Reduced by 30% from 8px */
     white-space: normal;
     overflow: visible;
     flex-wrap: wrap;
@@ -663,14 +912,53 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    #app {
+        flex-direction: column;
+    }
+
+    #chat-container {
+        width: 100vw;
+        /* Full width on mobile */
+        max-width: 100vw;
+        height: 60vh;
+        /* Take 60% height on mobile */
+        order: 1;
+        /* Chat container first on mobile */
+    }
+
+    #spiral-container {
+        position: relative;
+        width: 100vw;
+        height: 40vh;
+        /* Take remaining 40% height on mobile */
+        order: 2;
+        /* Spiral container second on mobile */
+    }
+
     #chat-header {
         flex-direction: column;
-        gap: 15px;
+        gap: 10.5px;
+        /* Reduced by 30% from 15px */
+        padding: 10.5px;
+        /* Reduced by 30% from 15px */
     }
 
     #controls {
         flex-wrap: wrap;
         justify-content: center;
+    }
+
+    /* Mobile dropdown adjustments */
+    .dropdown-content {
+        right: 0;
+        left: auto;
+        min-width: 140px;
+        max-width: 90vw;
+    }
+
+    .dropdown-btn {
+        font-size: 0.6rem;
+        padding: 4px 8px;
     }
 
     #chat-input-container {
@@ -681,7 +969,8 @@ body {
         flex-direction: column;
         align-items: flex-start;
         white-space: normal;
-        padding: 10px 12px;
+        padding: 7px 8.4px;
+        /* Reduced by 30% from 10px 12px */
     }
 
     .message-time,
@@ -691,6 +980,7 @@ body {
 
     .message-text {
         white-space: normal;
-        margin-top: 4px;
+        margin-top: 2.8px;
+        /* Reduced by 30% from 4px */
     }
 }
