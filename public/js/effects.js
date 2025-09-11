@@ -66,7 +66,7 @@ class TextEffects {
     initializeStates() {
         const chatContainer = document.getElementById('chat-container');
         const spiralContainer = document.getElementById('spiral-container');
-        
+
         if (chatContainer && spiralContainer) {
             // Set initial visible state
             chatContainer.classList.add('chat-visible');
@@ -114,7 +114,7 @@ class TextEffects {
         const chatContainer = document.getElementById('chat-container');
         const toggleButton = document.getElementById('chat-toggle-button');
         const spiralContainer = document.getElementById('spiral-container');
-        
+
         if (!chatContainer || !toggleButton || !spiralContainer) return;
 
         this.chatVisible = !this.chatVisible;
@@ -126,11 +126,11 @@ class TextEffects {
             toggleButton.innerHTML = '<';
             toggleButton.title = 'Hide Chat';
             toggleButton.style.left = '30vw';
-            
+
             // Adjust spiral container
             spiralContainer.classList.remove('spiral-expanded');
             spiralContainer.classList.add('spiral-normal');
-            
+
         } else {
             // Hide chat container
             chatContainer.classList.remove('chat-visible');
@@ -138,7 +138,7 @@ class TextEffects {
             toggleButton.innerHTML = '>';
             toggleButton.title = 'Show Chat';
             toggleButton.style.left = '0';
-            
+
             // Expand spiral container
             spiralContainer.classList.remove('spiral-normal');
             spiralContainer.classList.add('spiral-expanded');
