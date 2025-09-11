@@ -101,14 +101,14 @@ body {
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    color: #FF1493 !important;
+    color: var(--tertiary-alt) !important;
     font-size: 2.5rem !important;
     font-weight: bold !important;
     text-align: center !important;
     text-shadow: 
-        0 0 10px #FF1493, 
-        0 0 20px #FF1493,
-        0 0 30px #FF1493 !important;
+        0 0 10px var(--tertiary-alt), 
+        0 0 20px var(--tertiary-alt),
+        0 0 30px var(--tertiary-alt) !important;
     z-index: 1002 !important;
     pointer-events: none !important;
     max-width: 80% !important;
@@ -117,7 +117,7 @@ body {
     font-family: 'Audiowide', sans-serif !important;
     -webkit-user-select: none !important;
     user-select: none !important;
-    white-space: pre-wrap !important;
+    white-space: nowrap !important;
     line-height: 1.2 !important;
 }
 

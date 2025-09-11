@@ -272,20 +272,22 @@ class TextToSpeechSystem {
         if (!textDisplay) {
             textDisplay = document.createElement('div');
             textDisplay.className = 'tts-text-display';
+            // Use CSS variables for proper theming and single-line display
             textDisplay.style.cssText = `
                 position: absolute;
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                color: #FF1493;
+                color: var(--tertiary-alt);
                 font-size: 2rem;
                 font-weight: bold;
                 text-align: center;
-                text-shadow: 0 0 10px #FF1493, 0 0 20px #FF1493;
+                text-shadow: 0 0 10px var(--tertiary-alt), 0 0 20px var(--tertiary-alt);
                 z-index: 1000;
                 pointer-events: none;
                 max-width: 80%;
                 word-wrap: break-word;
+                white-space: nowrap;
                 animation: pulse 0.5s ease-in-out infinite alternate;
             `;
             container.appendChild(textDisplay);
@@ -543,10 +545,13 @@ class TextToSpeechSystem {
         // Remove URLs
         text = text.replace(/https?:\/\/[^\s]+/g, 'link');
 
+        // Remove ALL punctuation marks that should not be spoken
+        text = text.replace(/[.,;:!?"""''`~@#$%^&*()_+=\[\]{}|\\<>/\-]/g, ' ');
+        
         // Remove excessive punctuation
-        text = text.replace(/[!]{2,}/g, '!');
-        text = text.replace(/[?]{2,}/g, '?');
-        text = text.replace(/[.]{3,}/g, '...');
+        text = text.replace(/[!]{2,}/g, '');
+        text = text.replace(/[?]{2,}/g, '');
+        text = text.replace(/[.]{3,}/g, '');
 
         // Replace common emoticons with words
         text = text.replace(/:\)/g, 'smile');
@@ -557,7 +562,12 @@ class TextToSpeechSystem {
         // Remove HTML tags but preserve the text content
         text = text.replace(/<[^>]*>/g, '');
 
-        // Remove excessive whitespace
+        // Remove markdown formatting
+        text = text.replace(/\*\*(.*?)\*\*/g, '$1'); // Remove **bold** 
+        text = text.replace(/\*(.*?)\*/g, '$1'); // Remove *italic*
+        text = text.replace(/__(.*?)__/g, '$1'); // Remove __underline__
+
+        // Remove excessive whitespace and normalize
         text = text.replace(/\s+/g, ' ').trim();
 
         return text;
@@ -637,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .tts-text-display {
             font-family: 'Audiowide', sans-serif;
             user-select: none;
-            white-space: pre-wrap;
+            white-space: nowrap;
             line-height: 1.2;
         }
         
