@@ -17,15 +17,20 @@ class TextEffects {
         });
 
         // Then, find standalone CAPS words/phrases and highlight them
-        // Look for sequences of uppercase letters, spaces, and common punctuation
-        processedText = processedText.replace(/\b([A-Z][A-Z\s\-!'.,;:?]*[A-Z])\b/g, (match, content) => {
-            // Skip if this text is already wrapped in a span (avoid double processing)
-            if (match.includes('<span') || match.includes('</span>')) {
+        // More precise regex: match word boundaries and avoid already processed spans
+        processedText = processedText.replace(/\b([A-Z]{2,}(?:\s+[A-Z]{2,})*)\b/g, (match, content) => {
+            // Skip if this text is already inside HTML tags
+            const beforeMatch = processedText.substring(0, processedText.indexOf(match));
+            const afterMatch = processedText.substring(processedText.indexOf(match) + match.length);
+            
+            // Don't process if we're inside an HTML tag or already processed span
+            if (beforeMatch.lastIndexOf('<') > beforeMatch.lastIndexOf('>') || 
+                match.includes('<span') || match.includes('</span>')) {
                 return match;
             }
             
-            // Only process if it's truly all caps with at least 2 uppercase letters
-            if (this.isAllCaps(content) && content.replace(/[^A-Z]/g, '').length >= 2) {
+            // Only process if it's truly all caps and meaningful length
+            if (this.isAllCaps(content) && content.length >= 3) {
                 return `<span class="caps-text" style="color: ${this.capsColor};" data-text="${content}">${content}</span>`;
             }
             return match;
