@@ -11,10 +11,27 @@ class TextEffects {
 
     // Process AI response and highlight CAPS text with simple color change
     processAIResponse(text) {        
-        // Find all **text** patterns and process them
-        return text.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
+        // First, find all **text** patterns and process them
+        let processedText = text.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
             return this.createHighlightedSpan(content);
         });
+
+        // Then, find standalone CAPS words/phrases and highlight them
+        // Look for sequences of uppercase letters, spaces, and common punctuation
+        processedText = processedText.replace(/\b([A-Z][A-Z\s\-!'.,;:?]*[A-Z])\b/g, (match, content) => {
+            // Skip if this text is already wrapped in a span (avoid double processing)
+            if (match.includes('<span') || match.includes('</span>')) {
+                return match;
+            }
+            
+            // Only process if it's truly all caps with at least 2 uppercase letters
+            if (this.isAllCaps(content) && content.replace(/[^A-Z]/g, '').length >= 2) {
+                return `<span class="caps-text" style="color: ${this.capsColor};" data-text="${content}">${content}</span>`;
+            }
+            return match;
+        });
+
+        return processedText;
     }
 
     // Create highlighted span with font color change for CAPS
