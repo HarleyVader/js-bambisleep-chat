@@ -12,10 +12,10 @@ class SpiralAnimation {
         // Control parameters - simplified (matching template)
         this.spiral1Width = 5.0;
         this.spiral2Width = 3.0;
-        this.spiral1Speed = 20;
-        this.spiral2Speed = 15;
-        this.spiral1Color = [0, 128, 128]; // Teal
-        this.spiral2Color = [255, 20, 147]; // Barbie Pink
+        this.spiral1Speed = 40; // Reduced by 50% (was 20, now 40 for slower animation)
+        this.spiral2Speed = 30; // Reduced by 50% (was 15, now 30 for slower animation)
+        this.spiral1Color = [0, 255, 255]; // Bright Cyan (more neon)
+        this.spiral2Color = [255, 0, 255]; // Bright Magenta (more neon)
         this.opacityLevel = 1.0;
         this.zoomFactor = 1.3; // 30% zoom in
 
@@ -172,7 +172,7 @@ class SpiralAnimation {
         const b = this.map(Math.cos(this.frameCount / this.spiral2Speed), -1, 1, 1, 1.5);
 
         // Set transform matrix for rotation and translation
-        const rotation = this.frameCount / 5;
+        const rotation = this.frameCount / 10; // Reduced rotation speed by 50% (was /5, now /10)
         const cos_r = Math.cos(rotation);
         const sin_r = Math.sin(rotation);
         const tx = this.width / 2;
@@ -226,10 +226,11 @@ class SpiralAnimation {
         gl.enableVertexAttribArray(this.locations.position);
         gl.vertexAttribPointer(this.locations.position, 2, gl.FLOAT, false, 0, 0);
 
-        // Set color
-        const r = colorArray[0] / 255;
-        const g = colorArray[1] / 255;
-        const b = colorArray[2] / 255;
+        // Set color with brightness boost
+        const brightnessBoost = 1.5; // Increase brightness by 50%
+        const r = Math.min(1.0, (colorArray[0] / 255) * brightnessBoost);
+        const g = Math.min(1.0, (colorArray[1] / 255) * brightnessBoost);
+        const b = Math.min(1.0, (colorArray[2] / 255) * brightnessBoost);
         const a = this.opacityLevel;
         gl.uniform4f(this.locations.color, r, g, b, a);
 

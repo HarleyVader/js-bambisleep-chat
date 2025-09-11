@@ -157,6 +157,13 @@ body {
     /* Rounded corners to match container */
     box-sizing: border-box;
     /* Include border in dimensions */
+    filter: brightness(1.4) saturate(1.6) contrast(1.2);
+    /* Enhanced neon brightness */
+    box-shadow: 
+        0 0 20px rgba(0, 255, 255, 0.3),
+        0 0 40px rgba(255, 0, 255, 0.2),
+        inset 0 0 30px rgba(255, 255, 255, 0.1);
+    /* Neon glow effects */
 }
 
 /* Chat Header - Navbar Style */
