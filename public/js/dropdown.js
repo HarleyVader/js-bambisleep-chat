@@ -17,6 +17,24 @@ class DropdownManager {
         this.init();
     }
 
+    // Helper function to safely access spiral controls
+    getSpiralControls() {
+        if (window.spiralControls && window.spiralAnimation) {
+            return window.spiralControls;
+        }
+        console.warn('⚠️ Spiral controls not available yet');
+        return null;
+    }
+
+    // Helper function to safely access trigger system
+    getTriggerSystem() {
+        if (window.triggerSystem) {
+            return window.triggerSystem;
+        }
+        console.warn('⚠️ Trigger system not available yet');
+        return null;
+    }
+
     init() {
         console.log('⚙️ DropdownManager init started');
         // Add event listeners
@@ -249,9 +267,13 @@ class DropdownManager {
         btn.textContent = `Triggers: ${newState.toUpperCase()}`;
 
         // Enable/disable trigger system
-        if (window.triggerSystem) {
-            window.triggerSystem.isEnabled = (newState === 'on');
+        const triggerSystem = this.getTriggerSystem();
+        if (triggerSystem) {
+            triggerSystem.isEnabled = (newState === 'on');
             this.addSystemMessage(`🎯 Trigger system ${newState === 'on' ? 'ENABLED' : 'DISABLED'}`);
+        } else {
+            console.warn('⚠️ Trigger system not available');
+            this.addSystemMessage(`⚠️ Trigger system not available - please refresh page`);
         }
 
         // Add visual feedback
@@ -286,6 +308,10 @@ class DropdownManager {
             if (window.spiralAnimation) {
                 const isEnabled = window.spiralAnimation.toggle();
                 btn.classList.toggle('active', isEnabled);
+                console.log(`🌀 Spiral animation ${isEnabled ? 'ENABLED' : 'DISABLED'}`);
+            } else {
+                console.warn('⚠️ Spiral animation not available');
+                this.addSystemMessage(`⚠️ Spiral animation not available - please refresh page`);
             }
         } else if (buttonId === 'toggle-tts') {
             btn.textContent = `TTS: ${newState.toUpperCase()}`;
@@ -778,165 +804,213 @@ document.addEventListener('dropdownAction', (e) => {
         case 'spiral-speed-slow':
         case 'spiral-speed-normal':
         case 'spiral-speed-fast':
-            if (window.spiralControls) {
+            const spiralControls = window.dropdownManager?.getSpiralControls();
+            if (spiralControls) {
                 const speeds = {
                     'spiral-speed-slow': { frame1: 40, frame2: 35, rotation: 15 },
                     'spiral-speed-normal': { frame1: 20, frame2: 20, rotation: 10 },
                     'spiral-speed-fast': { frame1: 8, frame2: 12, rotation: 4 }
                 };
                 const speed = speeds[action];
-                window.spiralControls.setFrameSpeed('A', speed.frame1);
-                window.spiralControls.setFrameSpeed('B', speed.frame2);
-                window.spiralControls.setRotationSpeed(speed.rotation);
+                spiralControls.setFrameSpeed('A', speed.frame1);
+                spiralControls.setFrameSpeed('B', speed.frame2);
+                spiralControls.setRotationSpeed(speed.rotation);
+                console.log(`✅ Setting spiral speed to: ${selectedText}`);
+            } else {
+                console.warn(`⚠️ Failed to set spiral speed to: ${selectedText} - controls not available`);
             }
-            console.log(`Setting spiral speed to: ${selectedText}`);
             break;
 
         case 'spiral-color-cycle':
-            if (window.spiralControls) {
-                window.spiralControls.randomizeParameters();
+            const spiralControls2 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls2) {
+                spiralControls2.randomizeParameters();
+                console.log('✅ Enabling spiral color cycle');
+            } else {
+                console.warn('⚠️ Failed to enable spiral color cycle - controls not available');
             }
-            console.log('Enabling spiral color cycle');
             break;
 
         case 'spiral-color-pink':
-            if (window.spiralControls) {
-                window.spiralControls.setSpiralAColor(255, 20, 147, 1.0);
-                window.spiralControls.setSpiralBColor(255, 105, 180, 0.8);
+            const spiralControls3 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls3) {
+                spiralControls3.setSpiralAColor(255, 20, 147, 1.0);
+                spiralControls3.setSpiralBColor(255, 105, 180, 0.8);
+                console.log('✅ Setting spiral to pink colors');
+            } else {
+                console.warn('⚠️ Failed to set pink colors - controls not available');
             }
-            console.log('Setting spiral to pink colors');
             break;
 
         case 'spiral-color-purple':
-            if (window.spiralControls) {
-                window.spiralControls.setSpiralAColor(138, 43, 226, 1.0);
-                window.spiralControls.setSpiralBColor(186, 85, 211, 0.8);
+            const spiralControls4 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls4) {
+                spiralControls4.setSpiralAColor(138, 43, 226, 1.0);
+                spiralControls4.setSpiralBColor(186, 85, 211, 0.8);
+                console.log('✅ Setting spiral to purple colors');
+            } else {
+                console.warn('⚠️ Failed to set purple colors - controls not available');
             }
-            console.log('Setting spiral to purple colors');
             break;
 
         case 'spiral-color-blue':
-            if (window.spiralControls) {
-                window.spiralControls.setSpiralAColor(0, 191, 255, 1.0);
-                window.spiralControls.setSpiralBColor(30, 144, 255, 0.8);
+            const spiralControls5 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls5) {
+                spiralControls5.setSpiralAColor(0, 191, 255, 1.0);
+                spiralControls5.setSpiralBColor(30, 144, 255, 0.8);
+                console.log('✅ Setting spiral to blue colors');
+            } else {
+                console.warn('⚠️ Failed to set blue colors - controls not available');
             }
-            console.log('Setting spiral to blue colors');
             break;
 
         case 'spiral-color-rainbow':
-            if (window.spiralControls) {
-                window.spiralControls.enableRandomizer(2000); // Change every 2 seconds
+            const spiralControls6 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls6) {
+                spiralControls6.enableRandomizer(2000); // Change every 2 seconds
+                console.log('✅ Enabling rainbow color randomizer');
+            } else {
+                console.warn('⚠️ Failed to enable rainbow randomizer - controls not available');
             }
-            console.log('Enabling rainbow color randomizer');
             break;
 
         case 'spiral-preset-hypnotic':
         case 'spiral-preset-intense':
         case 'spiral-preset-peaceful':
         case 'spiral-preset-chaos':
-            if (window.spiralControls) {
+            const spiralControls7 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls7) {
                 const preset = action.replace('spiral-preset-', '');
-                window.spiralControls.loadPreset(preset);
+                spiralControls7.loadPreset(preset);
+                console.log(`✅ Loading spiral preset: ${selectedText}`);
+            } else {
+                console.warn(`⚠️ Failed to load preset: ${selectedText} - controls not available`);
             }
-            console.log(`Loading spiral preset: ${selectedText}`);
             break;
 
         case 'spiral-geometry-tight':
-            if (window.spiralControls) {
-                window.spiralControls.setSpiralGeometry('A', 1.2);
-                window.spiralControls.setSpiralGeometry('B', 0.4);
+            const spiralControls8 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls8) {
+                spiralControls8.setSpiralGeometry('A', 1.2);
+                spiralControls8.setSpiralGeometry('B', 0.4);
+                console.log('✅ Setting spiral geometry to tight');
+            } else {
+                console.warn('⚠️ Failed to set tight geometry - controls not available');
             }
-            console.log('Setting spiral geometry to tight');
             break;
 
         case 'spiral-geometry-normal':
-            if (window.spiralControls) {
-                window.spiralControls.setSpiralGeometry('A', 4.7);
-                window.spiralControls.setSpiralGeometry('B', 0.9);
+            const spiralControls9 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls9) {
+                spiralControls9.setSpiralGeometry('A', 4.7);
+                spiralControls9.setSpiralGeometry('B', 0.9);
+                console.log('✅ Setting spiral geometry to normal');
+            } else {
+                console.warn('⚠️ Failed to set normal geometry - controls not available');
             }
-            console.log('Setting spiral geometry to normal');
             break;
 
         case 'spiral-geometry-wide':
-            if (window.spiralControls) {
-                window.spiralControls.setSpiralGeometry('A', 8.5);
-                window.spiralControls.setSpiralGeometry('B', 3.2);
+            const spiralControls10 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls10) {
+                spiralControls10.setSpiralGeometry('A', 8.5);
+                spiralControls10.setSpiralGeometry('B', 3.2);
+                console.log('✅ Setting spiral geometry to wide');
+            } else {
+                console.warn('⚠️ Failed to set wide geometry - controls not available');
             }
-            console.log('Setting spiral geometry to wide');
             break;
 
         case 'spiral-randomizer-on':
-            if (window.spiralControls) {
-                window.spiralControls.enableRandomizer(5000);
+            const spiralControls11 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls11) {
+                spiralControls11.enableRandomizer(5000);
+                console.log('✅ Enabling spiral randomizer');
+            } else {
+                console.warn('⚠️ Failed to enable randomizer - controls not available');
             }
-            console.log('Enabling spiral randomizer');
             break;
 
         case 'spiral-randomizer-off':
-            if (window.spiralControls) {
-                window.spiralControls.disableRandomizer();
+            const spiralControls12 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls12) {
+                spiralControls12.disableRandomizer();
+                console.log('✅ Disabling spiral randomizer');
+            } else {
+                console.warn('⚠️ Failed to disable randomizer - controls not available');
             }
-            console.log('Disabling spiral randomizer');
             break;
 
         case 'spiral-alpha-low':
-            if (window.spiralControls) {
-                const controls = window.spiralControls.getControls();
-                window.spiralControls.setSpiralAColor(
+            const spiralControls13 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls13) {
+                const controls = spiralControls13.getControls();
+                spiralControls13.setSpiralAColor(
                     controls.spiralA_color[0], controls.spiralA_color[1],
                     controls.spiralA_color[2], 0.3
                 );
-                window.spiralControls.setSpiralBColor(
+                spiralControls13.setSpiralBColor(
                     controls.spiralB_color[0], controls.spiralB_color[1],
                     controls.spiralB_color[2], 0.3
                 );
+                console.log('✅ Setting spiral alpha to low');
+            } else {
+                console.warn('⚠️ Failed to set low alpha - controls not available');
             }
-            console.log('Setting spiral alpha to low');
             break;
 
         case 'spiral-alpha-medium':
-            if (window.spiralControls) {
-                const controls = window.spiralControls.getControls();
-                window.spiralControls.setSpiralAColor(
+            const spiralControls14 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls14) {
+                const controls = spiralControls14.getControls();
+                spiralControls14.setSpiralAColor(
                     controls.spiralA_color[0], controls.spiralA_color[1],
                     controls.spiralA_color[2], 0.7
                 );
-                window.spiralControls.setSpiralBColor(
+                spiralControls14.setSpiralBColor(
                     controls.spiralB_color[0], controls.spiralB_color[1],
                     controls.spiralB_color[2], 0.7
                 );
+                console.log('✅ Setting spiral alpha to medium');
+            } else {
+                console.warn('⚠️ Failed to set medium alpha - controls not available');
             }
-            console.log('Setting spiral alpha to medium');
             break;
 
         case 'spiral-alpha-high':
-            if (window.spiralControls) {
-                const controls = window.spiralControls.getControls();
-                window.spiralControls.setSpiralAColor(
+            const spiralControls15 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls15) {
+                const controls = spiralControls15.getControls();
+                spiralControls15.setSpiralAColor(
                     controls.spiralA_color[0], controls.spiralA_color[1],
                     controls.spiralA_color[2], 1.0
                 );
-                window.spiralControls.setSpiralBColor(
+                spiralControls15.setSpiralBColor(
                     controls.spiralB_color[0], controls.spiralB_color[1],
                     controls.spiralB_color[2], 1.0
                 );
+                console.log('✅ Setting spiral alpha to high');
+            } else {
+                console.warn('⚠️ Failed to set high alpha - controls not available');
             }
-            console.log('Setting spiral alpha to high');
             break;
 
         case 'spiral-brainwash-mode':
-            if (window.spiralControls) {
+            const spiralControls16 = window.dropdownManager?.getSpiralControls();
+            if (spiralControls16) {
                 // Ultra intense brainwash settings
-                window.spiralControls.setFrameSpeed('A', 3);
-                window.spiralControls.setFrameSpeed('B', 5);
-                window.spiralControls.setRotationSpeed(2);
-                window.spiralControls.setSpiralGeometry('A', 9.5);
-                window.spiralControls.setSpiralGeometry('B', 6.2);
-                window.spiralControls.setSpiralAColor(255, 0, 255, 1.0);
-                window.spiralControls.setSpiralBColor(255, 20, 147, 0.9);
-                window.spiralControls.enableRandomizer(1500);
+                spiralControls16.setFrameSpeed('A', 3);
+                spiralControls16.setFrameSpeed('B', 5);
+                spiralControls16.setRotationSpeed(2);
+                spiralControls16.setSpiralGeometry('A', 9.5);
+                spiralControls16.setSpiralGeometry('B', 6.2);
+                spiralControls16.setSpiralAColor(255, 0, 255, 1.0);
+                spiralControls16.setSpiralBColor(255, 20, 147, 0.9);
+                spiralControls16.enableRandomizer(1500);
+                console.log('🌀 ✅ BRAINWASH MODE ACTIVATED 🌀');
+            } else {
+                console.warn('⚠️ Failed to activate brainwash mode - controls not available');
             }
-            console.log('🌀 BRAINWASH MODE ACTIVATED 🌀');
             break;
 
         case 'spiral-reverse':

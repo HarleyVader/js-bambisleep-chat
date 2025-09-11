@@ -72,14 +72,12 @@ body {
     /* Take remaining viewport width */
     height: 100vh;
     z-index: 0;
-    opacity: 0.4;
+    opacity: 0.6;
     order: 2;
     /* Ensure it comes second */
     border: var(--border) var(--primary-alt);
     border-radius: var(--border-radius);
     /* Rounded borders */
-    padding: var(--border-radius);
-    /* Padding to fit canvas perfectly inside */
     box-sizing: border-box;
     /* Include padding in dimensions */
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),

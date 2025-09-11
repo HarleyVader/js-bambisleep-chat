@@ -21,11 +21,11 @@ class SpiralAnimation {
             // Animation Speed Controls
             frameSpeed1: 20,    // frameCount divisor for spiral A
             frameSpeed2: 20,    // frameCount divisor for spiral B
-            rotationSpeed: 10,  // rotation divisor
+            rotationSpeed: 50,  // rotation divisor
 
             // Spiral Geometry Controls
-            spiralA_geometry: 4.7,
-            spiralB_geometry: 0.9,
+            spiralA_geometry: 5.7,
+            spiralB_geometry: 0.6,
 
             // Color Controls (RGBA)
             spiralA_color: [199, 0, 199, 1.0],
@@ -34,17 +34,17 @@ class SpiralAnimation {
             // Range Controls
             spiralA_range_min: 0.5,
             spiralA_range_max: 1.5,
-            spiralB_range_min: 1.0,
+            spiralB_range_min: 5.0,
             spiralB_range_max: 1.5,
 
             // Visual Effects
-            iterations: 250,
-            pulseIntensity: 50,
+            iterations: 150,
+            pulseIntensity: 150,
 
             // Randomizer Settings
             randomizer: {
-                enabled: false,
-                interval: 5000, // 5 seconds
+                enabled: true,
+                interval: 30000, // 30 seconds
                 lastChange: 0
             }
         };
@@ -197,7 +197,7 @@ class SpiralAnimation {
         // Calculate animation parameters with configurable controls
         const a = this.map(Math.sin(this.frameCount / this.controls.frameSpeed1), -1, 1,
             this.controls.spiralA_range_min, this.controls.spiralA_range_max);
-        const b = this.map(Math.cos(this.frameCount / this.controls.frameSpeed2), -1, 1,
+        const b = this.map(Math.cos(this.frameCount / this.controls.frameSpeed2), 1, -1,
             this.controls.spiralB_range_min, this.controls.spiralB_range_max);
 
         // Set transform matrix for rotation and translation
