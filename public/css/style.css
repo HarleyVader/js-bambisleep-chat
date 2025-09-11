@@ -245,22 +245,26 @@ body {
 
 /* Category-specific trigger styles */
 .trigger-primary {
-    color: #ff1493 !important; /* Deep pink for primary triggers */
+    color: #ff1493 !important;
+    /* Deep pink for primary triggers */
     text-shadow: 0 0 8px #ff1493;
 }
 
 .trigger-mental {
-    color: #9932cc !important; /* Purple for mental triggers */
+    color: #9932cc !important;
+    /* Purple for mental triggers */
     text-shadow: 0 0 8px #9932cc;
 }
 
 .trigger-physical {
-    color: #ff4500 !important; /* Orange-red for physical triggers */
+    color: #ff4500 !important;
+    /* Orange-red for physical triggers */
     text-shadow: 0 0 8px #ff4500;
 }
 
 .trigger-default {
-    color: #df0471 !important; /* Hot pink for uncategorized */
+    color: #df0471 !important;
+    /* Hot pink for uncategorized */
     text-shadow: 0 0 8px #df0471;
 }
 
@@ -521,6 +525,109 @@ body {
 .trigger-controls select option:selected {
     background: var(--tertiary-color);
     color: #fff;
+}
+
+/* Trigger Categories - Button Layout */
+.trigger-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 10px 0;
+    max-width: 100%;
+}
+
+.trigger-category {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid var(--primary-alt);
+}
+
+.category-header {
+    font-size: 0.8rem;
+    color: var(--tertiary-color);
+    font-weight: bold;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+}
+
+.trigger-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.trigger-button {
+    background: var(--primary-color);
+    border: 1px solid var(--primary-alt);
+    border-radius: 6px;
+    color: #fff;
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.7rem;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.trigger-button:hover {
+    background: var(--secondary-color);
+    border-color: var(--secondary-alt);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.trigger-button.active {
+    background: var(--tertiary-color);
+    border-color: var(--tertiary-alt);
+    color: #000;
+    font-weight: bold;
+    box-shadow: 0 0 10px var(--tertiary-color);
+}
+
+.trigger-button.active:hover {
+    background: #ff69b4;
+    transform: translateY(-1px);
+}
+
+/* Category-specific button colors */
+.trigger-button[data-category="primary"] {
+    border-left: 3px solid #ff1493;
+}
+
+.trigger-button[data-category="mental"] {
+    border-left: 3px solid #9370db;
+}
+
+.trigger-button[data-category="physical"] {
+    border-left: 3px solid #ff4500;
+}
+
+/* Safety level indicators */
+.trigger-button[data-safety="safe"]:after {
+    content: "🟢";
+    margin-left: 4px;
+    font-size: 0.6rem;
+}
+
+.trigger-button[data-safety="moderate"]:after {
+    content: "🟡";
+    margin-left: 4px;
+    font-size: 0.6rem;
+}
+
+.trigger-button[data-safety="advanced"]:after {
+    content: "🔴";
+    margin-left: 4px;
+    font-size: 0.6rem;
+}
+
+.category-loading,
+.category-error {
+    text-align: center;
+    color: var(--tertiary-color);
+    font-style: italic;
+    padding: 20px;
 }
 
 #toggle-collar.active {

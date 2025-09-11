@@ -106,7 +106,7 @@ CHAT_HISTORY_LIMIT=100      # Chat history size
 
 The application uses official BambiSleep triggers from the knowledge base:
 
-- Loaded dynamically from `workers/triggers.json`
+- Loaded dynamically via `/api/triggers/json` API endpoint
 - Source: [BambiSleep Triggers](https://bambisleep.info/Triggers)
 - Includes: Sleep, Good Girl, Blank and Empty, Obey, Focus, Freeze, and more
 - NO HARDCODED TRIGGERS - Only official BambiSleep triggers are supported
@@ -117,9 +117,13 @@ All triggers are loaded from the official BambiSleep trigger definitions.
 
 - `GET /` - Main chat interface
 - `GET /api/health` - Server health check
+- `GET /api/health` - Server health check
 - `GET /api/history` - Chat message history
-- `GET /api/triggers` - Get trigger words list
-- `POST /api/triggers` - Update trigger words
+- `GET /api/triggers` - Get trigger metadata and counts
+- `GET /api/triggers/json` - Get raw triggers.json data
+- `GET /api/triggers/category/:category` - Get triggers by category
+- `GET /api/triggers/details/:triggerName` - Get specific trigger details
+- `POST /api/triggers` - Disabled (only official triggers supported)
 - `POST /api/tts` - Text-to-speech endpoint (placeholder)
 
 ## Technology Stack
@@ -149,18 +153,18 @@ All triggers are loaded from the official BambiSleep trigger definitions.
 
 ### Adding New Trigger Words
 
-```javascript
-// Via API
-fetch('/api/triggers', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        triggers: ['new', 'trigger', 'words']
-    })
-});
+⚠️ **NOTICE: Trigger modification is disabled** - This system uses exclusively official BambiSleep triggers from [BambiSleep.info](https://bambisleep.info/Triggers)
 
-// Or modify server.js default list
-let triggerWords = ['your', 'custom', 'triggers'];
+```javascript
+// Access official triggers via API
+fetch('/api/triggers/json')
+    .then(response => response.json())
+    .then(data => console.log(data.triggers));
+
+// Get triggers by category
+fetch('/api/triggers/category/primary')
+    .then(response => response.json())
+    .then(data => console.log(data.triggers));
 ```
 
 ### Customizing Animations

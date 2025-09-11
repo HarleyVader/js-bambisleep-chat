@@ -17,14 +17,14 @@ class ChatCore {
     // Load OFFICIAL BambiSleep triggers with enhanced data
     async loadOfficialTriggers() {
         try {
-            const response = await fetch('/workers/triggers.json');
+            const response = await fetch('/api/triggers/json');
             const data = await response.json();
 
             // Extract triggers with category prioritization
             this.activeTriggers = [];
             this.triggerCategories = data.categories || {};
             this.allTriggers = []; // Store all available triggers
-            
+
             if (data.triggers && Array.isArray(data.triggers)) {
                 // Store all triggers for selector
                 this.allTriggers = data.triggers.map(trigger => ({
@@ -33,15 +33,15 @@ class ChatCore {
                     safetyLevel: trigger.safetyLevel,
                     description: trigger.description
                 }));
-                
+
                 // Select default active triggers - prioritize primary category
                 const primaryTriggers = data.triggers.filter(t => t.category === 'primary').slice(0, 2);
                 const mentalTriggers = data.triggers.filter(t => t.category === 'mental').slice(0, 1);
-                
+
                 [...primaryTriggers, ...mentalTriggers].forEach(trigger => {
                     this.activeTriggers.push(trigger.name.toUpperCase());
                 });
-                
+
                 // Fallback if no categorized triggers
                 if (this.activeTriggers.length === 0) {
                     const firstThree = data.triggers.slice(0, 3);
@@ -211,7 +211,12 @@ class ChatCore {
         // AI-specific controls
         this.aiModeButton = document.getElementById('toggle-ai') || this.createAIButton();
         this.collarButton = document.getElementById('toggle-collar') || this.createCollarButton();
-        this.triggerSelector = document.getElementById('trigger-selector') || this.createTriggerSelector();
+        this.triggerContainer = document.getElementById('trigger-categories');
+
+        // Initialize trigger buttons after loading triggers
+        if (this.triggerContainer) {
+            this.populateTriggerButtons();
+        }
     }
 
     createAIButton() {
@@ -267,14 +272,22 @@ class ChatCore {
         return container;
     }
 
-    // Populate trigger selector with OFFICIAL triggers organized by category
-    async populateOfficialTriggers(selectElement) {
+    // Populate trigger container with selectable buttons organized by category
+    async populateTriggerButtons() {
         try {
             if (!this.allTriggers || this.allTriggers.length === 0) {
                 // Data not loaded yet, try to load it
                 await this.loadOfficialTriggers();
             }
-            
+
+            if (!this.triggerContainer) {
+                console.warn('Trigger container not found');
+                return;
+            }
+
+            // Clear loading message
+            this.triggerContainer.innerHTML = '';
+
             if (this.allTriggers && this.allTriggers.length > 0) {
                 // Group triggers by category
                 const triggersByCategory = {};
@@ -285,39 +298,82 @@ class ChatCore {
                     }
                     triggersByCategory[category].push(trigger);
                 });
-                
-                // Create optgroups for each category
+
+                // Create sections for each category
                 Object.keys(triggersByCategory).forEach(category => {
-                    const optgroup = document.createElement('optgroup');
-                    optgroup.label = `${category.toUpperCase()} - ${this.triggerCategories[category] || 'Triggers'}`;
-                    
+                    const categorySection = document.createElement('div');
+                    categorySection.className = 'trigger-category';
+
+                    const categoryHeader = document.createElement('h4');
+                    categoryHeader.className = 'category-header';
+                    categoryHeader.textContent = `${category.toUpperCase()} - ${this.triggerCategories[category] || 'Triggers'}`;
+                    categorySection.appendChild(categoryHeader);
+
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.className = 'trigger-buttons';
+
                     triggersByCategory[category].forEach(trigger => {
-                        const option = document.createElement('option');
-                        option.value = trigger.name;
-                        option.textContent = `${trigger.name} [${trigger.safetyLevel}]`;
-                        option.title = trigger.description;
-                        option.selected = this.activeTriggers.includes(trigger.name);
-                        option.dataset.category = trigger.category;
-                        option.dataset.safety = trigger.safetyLevel;
-                        optgroup.appendChild(option);
+                        const button = document.createElement('button');
+                        button.className = 'trigger-button';
+                        button.dataset.triggerName = trigger.name;
+                        button.dataset.category = trigger.category;
+                        button.dataset.safety = trigger.safetyLevel;
+                        button.textContent = trigger.name;
+                        button.title = `${trigger.description} (${trigger.safetyLevel})`;
+
+                        // Set initial active state
+                        if (this.activeTriggers.includes(trigger.name)) {
+                            button.classList.add('active');
+                        }
+
+                        // Add click handler
+                        button.addEventListener('click', () => {
+                            this.toggleTrigger(trigger.name, button);
+                        });
+
+                        buttonContainer.appendChild(button);
                     });
-                    
-                    selectElement.appendChild(optgroup);
+
+                    categorySection.appendChild(buttonContainer);
+                    this.triggerContainer.appendChild(categorySection);
                 });
+
+                console.log('🎯 Populated trigger buttons with categorized official triggers');
+            } else {
+                // Show error message
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'category-error';
+                errorMsg.textContent = 'Failed to load official triggers';
+                this.triggerContainer.appendChild(errorMsg);
             }
-            
-            console.log('🎯 Populated trigger selector with categorized official triggers');
-            
+
         } catch (error) {
-            console.error('Failed to load official triggers for selector:', error);
-            // Create minimal fallback option
-            const option = document.createElement('option');
-            option.value = 'LOADING...';
-            option.textContent = 'LOADING OFFICIAL TRIGGERS...';
-            option.disabled = true;
-            selectElement.appendChild(option);
+            console.error('Failed to load official triggers for buttons:', error);
+            if (this.triggerContainer) {
+                this.triggerContainer.innerHTML = '<div class="category-error">Error loading triggers</div>';
+            }
         }
-    }    bindEvents() {
+    }
+
+    // Toggle trigger selection
+    toggleTrigger(triggerName, buttonElement) {
+        const index = this.activeTriggers.indexOf(triggerName);
+
+        if (index > -1) {
+            // Remove trigger
+            this.activeTriggers.splice(index, 1);
+            buttonElement.classList.remove('active');
+        } else {
+            // Add trigger
+            this.activeTriggers.push(triggerName);
+            buttonElement.classList.add('active');
+        }
+
+        console.log('🎯 Updated active triggers:', this.activeTriggers);
+        this.updateTriggers();
+    }
+
+    bindEvents() {
         // Send message on button click
         this.sendButton.addEventListener('click', () => this.sendMessage());
 
@@ -364,14 +420,15 @@ class ChatCore {
 
         // Send to appropriate handler based on AI mode
         if (this.aiMode) {
-            // Send to AI
+            // Send to AI with selected triggers
             this.socket.emit('ai-chat', {
                 message: message,
                 username: this.username,
+                triggers: this.activeTriggers, // Include user-selected triggers
                 timestamp: new Date().toISOString()
             });
 
-            this.addSystemMessage('🤖 Sending to BambiSleep AI...');
+            this.addSystemMessage(`🤖 Sending to BambiSleep AI with triggers: ${this.activeTriggers.join(', ')}`);
         } else {
             // Send to regular chat
             this.socket.emit('message', {

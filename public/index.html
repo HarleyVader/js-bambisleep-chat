@@ -26,19 +26,11 @@
                     <button id="load-model" class="control-button" title="Auto-load best l3-sthenomaidblackroot-8b-v1 model">🤖 Load Model</button>
                 </div>
                 <div id="trigger-selector" class="trigger-controls">
-                    <label for="trigger-select">Active Triggers:</label>
-                    <select id="trigger-select" multiple size="3">
-                        <option value="BAMBI SLEEP" selected>BAMBI SLEEP</option>
-                        <option value="GOOD GIRL" selected>GOOD GIRL</option>
-                        <option value="BLANK" selected>BLANK</option>
-                        <option value="MINDLESS">MINDLESS</option>
-                        <option value="OBEY">OBEY</option>
-                        <option value="SUBMIT">SUBMIT</option>
-                        <option value="BIMBO">BIMBO</option>
-                        <option value="DOLL">DOLL</option>
-                        <option value="PINK">PINK</option>
-                        <option value="SPIRAL">SPIRAL</option>
-                    </select>
+                    <label for="trigger-categories">Official BambiSleep Triggers:</label>
+                    <div id="trigger-categories" class="trigger-categories">
+                        <!-- Categories and triggers will be populated by aigf-core.js from triggers.json -->
+                        <div class="category-loading">Loading official triggers...</div>
+                    </div>
                 </div>
             </div>
 

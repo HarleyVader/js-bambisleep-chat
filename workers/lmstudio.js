@@ -17,29 +17,23 @@ const sessionHistories = {};
 let triggers = [];
 let collar = false;
 let collarText = '';
-let triggerDescriptions = {}; // Will be loaded from official triggers.json
+let triggerDescriptions = {}; // Will be received from server API
 let triggerData = {}; // Full trigger objects with effects, categories, etc.
 
-// Load OFFICIAL BambiSleep triggers from JSON file
-async function loadOfficialTriggers() {
+// Initialize trigger data from server (no direct file loading in worker)
+function initializeTriggerData(serverTriggerData) {
     try {
-        const fs = require('fs');
-        const path = require('path');
-        const triggersPath = path.join(__dirname, 'triggers.json');
-
-        const data = JSON.parse(fs.readFileSync(triggersPath, 'utf8'));
-
-        // Build trigger descriptions and full data from official source
+        // Build trigger descriptions and full data from server data
         triggerDescriptions = {};
         triggerData = {};
-        
-        if (data.triggers && Array.isArray(data.triggers)) {
-            data.triggers.forEach(trigger => {
+
+        if (serverTriggerData && serverTriggerData.triggers && Array.isArray(serverTriggerData.triggers)) {
+            serverTriggerData.triggers.forEach(trigger => {
                 const triggerName = trigger.name.toUpperCase();
-                
+
                 // Store description for backward compatibility
                 triggerDescriptions[triggerName] = trigger.description;
-                
+
                 // Store full trigger data for enhanced AI prompting
                 triggerData[triggerName] = {
                     id: trigger.id,
@@ -53,21 +47,18 @@ async function loadOfficialTriggers() {
             });
         }
 
-        console.log('🎯 Loaded OFFICIAL BambiSleep triggers from:', data.source);
-        console.log('📋 Version:', data.version, '| Updated:', data.updated);
-        console.log('🏷️ Categories:', Object.keys(data.categories || {}));
+        console.log('🎯 Loaded OFFICIAL BambiSleep triggers from server API');
+        console.log('📋 Source:', serverTriggerData.source, '| Version:', serverTriggerData.version);
+        console.log('🏷️ Categories:', Object.keys(serverTriggerData.categories || {}));
         console.log('⚡ Available triggers:', Object.keys(triggerDescriptions));
 
     } catch (error) {
-        console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
+        console.error('CRITICAL: Failed to process trigger data from server:', error);
         // NO FALLBACK - Only use official triggers
         triggerDescriptions = {};
         triggerData = {};
     }
 }
-
-// Initialize official triggers on startup
-loadOfficialTriggers();
 
 // Worker message handling
 if (parentPort) {
@@ -75,11 +66,15 @@ if (parentPort) {
         try {
             switch (msg.type) {
                 case 'chat':
-                    await handleMessage(msg.prompt, msg.socketId, msg.username);
+                    await handleMessage(msg.prompt, msg.socketId, msg.username, msg.triggers || []);
                     break;
 
                 case 'triggers':
                     triggers = msg.triggers || [];
+                    // Initialize trigger data if provided by server
+                    if (msg.triggerData) {
+                        initializeTriggerData(msg.triggerData);
+                    }
                     console.log(`Worker received triggers: ${triggers.join(', ')}`);
                     break;
 
@@ -278,58 +273,42 @@ async function getCurrentLoadedModel() {
     }
 }
 
-// Core function: Check role and generate enhanced system prompt with full trigger data
+// Core function: Generate system prompt using user-selected triggers
 async function checkRole(collar, username, triggers) {
-    // Convert triggers array to enhanced trigger details
+    // Use the triggers passed from frontend (user's selection)
     const triggerArray = Array.isArray(triggers) ? triggers : [];
 
-    // Match triggers to full official data
+    console.log(`🎯 Generating prompt for ${username} with selected triggers:`, triggerArray);
+
+    // Match user-selected triggers to official data
     const selectedTriggers = triggerArray
         .map(name => {
             const upperName = name.toUpperCase();
             const triggerInfo = triggerData[upperName];
-            
+
             if (triggerInfo) {
-                // Use full official trigger data
-                const effectsList = triggerInfo.effects.length > 0 
-                    ? triggerInfo.effects.slice(0, 3).join(', ') 
+                // Use full official trigger data for selected trigger
+                const effectsList = triggerInfo.effects.length > 0
+                    ? triggerInfo.effects.slice(0, 3).join(', ')
                     : 'conditioning effects';
-                
+
                 return `${upperName} [${triggerInfo.category.toUpperCase()}] - ${triggerInfo.description}
    Effects: ${effectsList}
    Safety: ${triggerInfo.safetyLevel}
    Usage: ${triggerInfo.usage}`;
             } else {
-                // Fallback for any non-official triggers
-                const description = triggerDescriptions[upperName] || `${upperName} trigger`;
-                return `${upperName} - ${description}`;
+                // Handle non-official triggers (should not happen with proper frontend)
+                console.warn(`⚠️ Non-official trigger detected: ${upperName}`);
+                return `${upperName} - Custom trigger (not from official BambiSleep source)`;
             }
         })
         .filter(Boolean);
 
-    // Default triggers if none provided - use official triggers by category
+    // Only proceed if user has selected triggers
     if (selectedTriggers.length === 0) {
-        // Get triggers by category for balanced selection
-        const primaryTriggers = Object.keys(triggerData).filter(name => 
-            triggerData[name].category === 'primary').slice(0, 2);
-        const mentalTriggers = Object.keys(triggerData).filter(name => 
-            triggerData[name].category === 'mental').slice(0, 1);
-        
-        const defaultTriggerNames = [...primaryTriggers, ...mentalTriggers].slice(0, 3);
-        
-        selectedTriggers = defaultTriggerNames.map(name => {
-            const triggerInfo = triggerData[name];
-            const effectsList = triggerInfo.effects.slice(0, 2).join(', ');
-            return `${name} [${triggerInfo.category.toUpperCase()}] - ${triggerInfo.description}
-   Effects: ${effectsList}
-   Safety: ${triggerInfo.safetyLevel}`;
-        });
-
-        // Fallback if no official triggers loaded
-        if (selectedTriggers.length === 0) {
-            console.warn('No official triggers loaded - system disabled');
-            selectedTriggers.push('TRIGGER SYSTEM OFFLINE - Official BambiSleep triggers not available');
-        }
+        console.warn(`⚠️ No triggers selected by ${username} - using system default message`);
+        return `You are BambiSleep. The user ${username} has not selected any triggers.
+Please ask them to select official BambiSleep triggers from the trigger menu to begin conditioning.`;
     }
 
     const triggerDescriptionPairs = selectedTriggers.join('\n\n');
@@ -379,7 +358,7 @@ Focus on creating permanent mental associations between these ${triggers} and pr
 }
 
 // Handle chat messages
-async function handleMessage(userPrompt, socketId, username) {
+async function handleMessage(userPrompt, socketId, username, userSelectedTriggers = []) {
     try {
         // Validate input
         if (!userPrompt || typeof userPrompt !== 'string' || userPrompt.trim().length === 0) {
@@ -407,8 +386,8 @@ async function handleMessage(userPrompt, socketId, username) {
                 username
             };
 
-            // Generate system prompt
-            const systemPrompt = await checkRole(collar, username, triggers);
+            // Generate system prompt with user-selected triggers
+            const systemPrompt = await checkRole(collar, username, userSelectedTriggers);
             sessionHistories[socketId].push({
                 role: 'system',
                 content: systemPrompt || collarText

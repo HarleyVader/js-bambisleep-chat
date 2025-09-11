@@ -16,9 +16,9 @@ class TriggerSystem {
 
     async loadOfficialTriggers() {
         try {
-            const response = await fetch('/workers/triggers.json');
+            const response = await fetch('/api/triggers/json');
             const data = await response.json();
-            
+
             // Extract trigger names from official data
             this.triggers = [];
             if (data.triggers && Array.isArray(data.triggers)) {
@@ -26,10 +26,10 @@ class TriggerSystem {
                     this.triggers.push(trigger.name.toLowerCase());
                 });
             }
-            
+
             console.log('🎯 TriggerSystem loaded OFFICIAL triggers:', this.triggers);
             console.log('📋 Source:', data.source);
-            
+
         } catch (error) {
             console.error('CRITICAL: TriggerSystem failed to load official triggers:', error);
             // NO FALLBACK - Only use official triggers

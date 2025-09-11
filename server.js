@@ -41,7 +41,7 @@ function loadOfficialTriggers() {
         // Extract trigger names and full data from official source
         triggerWords = [];
         triggerData = data; // Store complete trigger data
-        
+
         if (data.triggers && Array.isArray(data.triggers)) {
             data.triggers.forEach(trigger => {
                 const triggerName = trigger.name.toLowerCase();
@@ -92,10 +92,11 @@ function initializeLMWorker() {
             }
         });
 
-        // Send initial triggers to worker
+        // Send initial triggers and full trigger data to worker
         lmWorker.postMessage({
             type: 'triggers',
-            triggers: triggerWords
+            triggers: triggerWords,
+            triggerData: triggerData // Send full trigger data to worker
         });
 
         console.log('LM Studio worker initialized');
@@ -207,17 +208,21 @@ io.on('connection', (socket) => {
         }
 
         const username = data.username || `User_${socket.id}`;
+        const userTriggers = data.triggers || []; // Get user-selected triggers
+
         console.log(`AI chat request from ${username}: ${data.message}`);
+        console.log(`🎯 User selected triggers:`, userTriggers);
 
         // Track this user as using AI
         workerUsers.set(socket.id, username);
 
-        // Send message to worker
+        // Send message to worker with user-selected triggers
         lmWorker.postMessage({
             type: 'chat',
             prompt: data.message,
             socketId: socket.id,
-            username: username
+            username: username,
+            triggers: userTriggers // Pass user-selected triggers to worker
         });
     });
 
@@ -325,7 +330,7 @@ app.get('/api/history', (req, res) => {
 
 // Enhanced trigger management with full official data
 app.get('/api/triggers', (req, res) => {
-    res.json({ 
+    res.json({
         triggers: triggerWords,
         data: triggerData,
         source: triggerData.source || 'Unknown',
@@ -335,18 +340,23 @@ app.get('/api/triggers', (req, res) => {
     });
 });
 
+// Serve the raw triggers.json file
+app.get('/api/triggers/json', (req, res) => {
+    res.json(triggerData);
+});
+
 // Get triggers by category
 app.get('/api/triggers/category/:category', (req, res) => {
     const { category } = req.params;
-    
+
     if (!triggerData.triggers) {
         return res.status(404).json({ error: 'Trigger data not loaded' });
     }
-    
-    const categoryTriggers = triggerData.triggers.filter(trigger => 
+
+    const categoryTriggers = triggerData.triggers.filter(trigger =>
         trigger.category === category
     );
-    
+
     res.json({
         category,
         triggers: categoryTriggers,
@@ -358,15 +368,15 @@ app.get('/api/triggers/category/:category', (req, res) => {
 // Get specific trigger details
 app.get('/api/triggers/details/:triggerName', (req, res) => {
     const { triggerName } = req.params;
-    
+
     if (!triggerData.triggers) {
         return res.status(404).json({ error: 'Trigger data not loaded' });
     }
-    
-    const trigger = triggerData.triggers.find(t => 
+
+    const trigger = triggerData.triggers.find(t =>
         t.name.toLowerCase() === triggerName.toLowerCase()
     );
-    
+
     if (trigger) {
         res.json(trigger);
     } else {
@@ -375,7 +385,7 @@ app.get('/api/triggers/details/:triggerName', (req, res) => {
 });
 
 app.post('/api/triggers', (req, res) => {
-    res.status(403).json({ 
+    res.status(403).json({
         error: 'Trigger modification disabled - Only official BambiSleep triggers are supported',
         message: 'This system uses exclusively official triggers from https://bambisleep.info/Triggers'
     });

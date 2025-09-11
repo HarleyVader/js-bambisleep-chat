@@ -10,13 +10,13 @@ class TextEffects {
     // Load OFFICIAL BambiSleep triggers from JSON file with enhanced data
     async loadTriggers() {
         try {
-            const response = await fetch('/workers/triggers.json');
+            const response = await fetch('/api/triggers/json');
             const data = await response.json();
 
             // Extract official BambiSleep trigger names and metadata
             this.triggers = [];
             this.triggerData = {}; // Store full trigger information
-            
+
             if (data.triggers && Array.isArray(data.triggers)) {
                 data.triggers.forEach(trigger => {
                     // Add case variations for matching
@@ -24,7 +24,7 @@ class TextEffects {
                     this.triggers.push(triggerName.toUpperCase()); // UPPERCASE
                     this.triggers.push(triggerName.toLowerCase()); // lowercase
                     this.triggers.push(triggerName); // Original case
-                    
+
                     // Store full trigger data for enhanced highlighting
                     this.triggerData[triggerName.toUpperCase()] = {
                         category: trigger.category,
@@ -39,7 +39,7 @@ class TextEffects {
             console.log('📋 Source:', data.source, '| Version:', data.version);
             console.log('🏷️ Categories:', Object.keys(data.categories || {}));
             console.log('⚡ Trigger data loaded for enhanced highlighting');
-            
+
         } catch (error) {
             console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
             // NO FALLBACK - Only use official triggers
@@ -77,11 +77,11 @@ class TextEffects {
                 // Get trigger data for enhanced styling
                 const upperTrigger = match.toUpperCase();
                 const triggerInfo = this.triggerData[upperTrigger] || {};
-                
+
                 // Category-based color scheme
                 let triggerColor = this.capsColor; // Default hot pink
                 let additionalClasses = 'caps-text';
-                
+
                 switch (triggerInfo.category) {
                     case 'primary':
                         triggerColor = '#ff1493'; // Deep pink for primary triggers
@@ -100,9 +100,9 @@ class TextEffects {
                 }
 
                 // Enhanced highlighting with category info
-                return `<span class="${additionalClasses}" 
-                              style="color: ${triggerColor}; font-weight: bold;" 
-                              data-trigger="${trigger}" 
+                return `<span class="${additionalClasses}"
+                              style="color: ${triggerColor}; font-weight: bold;"
+                              data-trigger="${trigger}"
                               data-category="${triggerInfo.category || 'unknown'}"
                               data-safety="${triggerInfo.safetyLevel || 'unknown'}"
                               title="${triggerInfo.description || 'Official BambiSleep trigger'}">${match}</span>`;
