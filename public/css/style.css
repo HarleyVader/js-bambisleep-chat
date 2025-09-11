@@ -247,17 +247,49 @@ body {
 }
 
 @keyframes simpleGlitch {
-    0% { transform: translateX(0); }
-    10% { transform: translateX(-2px) skew(-2deg); }
-    20% { transform: translateX(2px) skew(2deg); }
-    30% { transform: translateX(-1px) skew(-1deg); }
-    40% { transform: translateX(1px) skew(1deg); }
-    50% { transform: translateX(-3px) skew(-3deg); }
-    60% { transform: translateX(3px) skew(3deg); }
-    70% { transform: translateX(-1px) skew(-1deg); }
-    80% { transform: translateX(1px) skew(1deg); }
-    90% { transform: translateX(-2px) skew(-2deg); }
-    100% { transform: translateX(0) skew(0deg); }
+    0% {
+        transform: translateX(0);
+    }
+
+    10% {
+        transform: translateX(-2px) skew(-2deg);
+    }
+
+    20% {
+        transform: translateX(2px) skew(2deg);
+    }
+
+    30% {
+        transform: translateX(-1px) skew(-1deg);
+    }
+
+    40% {
+        transform: translateX(1px) skew(1deg);
+    }
+
+    50% {
+        transform: translateX(-3px) skew(-3deg);
+    }
+
+    60% {
+        transform: translateX(3px) skew(3deg);
+    }
+
+    70% {
+        transform: translateX(-1px) skew(-1deg);
+    }
+
+    80% {
+        transform: translateX(1px) skew(1deg);
+    }
+
+    90% {
+        transform: translateX(-2px) skew(-2deg);
+    }
+
+    100% {
+        transform: translateX(0) skew(0deg);
+    }
 }
 
 @keyframes aiHighlightPulse {
@@ -376,7 +408,7 @@ body {
 
 /* AI Features Styling */
 .message.ai {
-    background: linear-gradient(135deg, var(--secondary-color), var(--tertiary-color));
+    background: linear-gradient(135deg, var(--primary-color), var(--transparent));
     border-left: 4px solid var(--tertiary-alt);
     animation: aiGlow 2s ease-in-out;
     display: flex;

@@ -10,7 +10,7 @@ class TextEffects {
     }
 
     // Process AI response and highlight CAPS text with simple color change
-    processAIResponse(text) {
+    processAIResponse(text) {        
         // Find all **text** patterns and process them
         return text.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
             return this.createHighlightedSpan(content);
@@ -37,7 +37,7 @@ class TextEffects {
     // Apply glitch effect to CAPS text
     applyGlitchEffect(element) {
         element.classList.add('glitch-active');
-        
+
         // Remove glitch after animation duration
         setTimeout(() => {
             element.classList.remove('glitch-active');
@@ -55,14 +55,17 @@ class TextEffects {
 
         // Schedule glitch effects to be applied after DOM update
         setTimeout(() => {
-            const capsElements = document.querySelectorAll('.caps-text');
+            const capsElements = document.querySelectorAll('.caps-text:not(.glitch-processed)');
             capsElements.forEach((element, index) => {
+                // Mark as processed to avoid re-applying effects
+                element.classList.add('glitch-processed');
+                
                 // Stagger glitch effects
                 setTimeout(() => {
                     this.applyGlitchEffect(element);
                 }, index * 200);
             });
-        }, 100);
+        }, 150); // Increased delay to ensure DOM is fully updated
 
         return processedText;
     }
