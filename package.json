@@ -11,16 +11,18 @@
         "dev:client": "vite"
     },
     "dependencies": {
+        "@lmstudio/sdk": "^1.5.0",
+        "axios": "^1.11.0",
         "dotenv": "^17.2.2",
         "express": "^4.18.2",
         "react": "^19.1.1",
         "socket.io": "^4.7.5",
-        "worker-threads": "^1.0.0"
+        "worker-thread": "^1.1.0"
     },
     "devDependencies": {
+        "concurrently": "^9.1.0",
         "nodemon": "^3.0.0",
-        "vite": "^7.1.5",
-        "concurrently": "^9.1.0"
+        "vite": "^7.1.5"
     },
     "engines": {
         "node": ">=18"

@@ -260,6 +260,85 @@ body {
     background: var(--secondary-alt);
 }
 
+/* AI Features Styling */
+.message.ai {
+    background: linear-gradient(135deg, var(--secondary-color), var(--tertiary-color));
+    border-left: 4px solid var(--tertiary-alt);
+    animation: aiGlow 2s ease-in-out;
+}
+
+@keyframes aiGlow {
+    0% { box-shadow: 0 0 5px var(--tertiary-color); }
+    50% { box-shadow: 0 0 20px var(--tertiary-color); }
+    100% { box-shadow: 0 0 5px var(--tertiary-color); }
+}
+
+.message-user {
+    font-size: 0.8rem;
+    color: var(--primary-alt);
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+.control-button.active {
+    background: linear-gradient(45deg, var(--tertiary-color), var(--secondary-alt));
+    transform: scale(1.05);
+    box-shadow: 0 0 15px var(--tertiary-color);
+}
+
+.trigger-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin: 10px 0;
+}
+
+.trigger-controls label {
+    font-size: 0.8rem;
+    color: var(--primary-alt);
+    font-weight: bold;
+}
+
+.trigger-controls select {
+    background: var(--primary-color);
+    border: 1px solid var(--primary-alt);
+    border-radius: 8px;
+    color: #fff;
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.8rem;
+    padding: 5px;
+    max-width: 200px;
+}
+
+.trigger-controls select option {
+    background: var(--primary-color);
+    color: #fff;
+    padding: 4px;
+}
+
+.trigger-controls select option:selected {
+    background: var(--tertiary-color);
+    color: #fff;
+}
+
+#toggle-collar.active {
+    background: linear-gradient(45deg, #8B0000, #DC143C);
+    animation: collarPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes collarPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+/* System messages styling */
+.message.system {
+    background: var(--nav-color);
+    border-left: 4px solid var(--nav-alt);
+    font-style: italic;
+    opacity: 0.8;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     #chat-header {

@@ -5,6 +5,10 @@ class ChatCore {
         this.isConnected = false;
         this.messageHistory = [];
         this.maxMessages = 100;
+        this.username = this.generateUsername();
+        this.aiMode = false;
+        this.collarActive = false;
+        this.activeTriggers = ['BAMBI SLEEP', 'GOOD GIRL', 'BLANK'];
 
         this.init();
     }
@@ -14,6 +18,15 @@ class ChatCore {
         this.initUI();
         this.bindEvents();
         this.addSystemMessage('Welcome to BambiSleep Chat');
+        this.addSystemMessage(`Your username: ${this.username}`);
+    }
+
+    generateUsername() {
+        const adjectives = ['Sweet', 'Pretty', 'Cute', 'Good', 'Pink', 'Dreamy', 'Sleepy'];
+        const nouns = ['Bambi', 'Doll', 'Girl', 'Bimbo', 'Angel', 'Princess'];
+        const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        return `${adj}${noun}${Math.floor(Math.random() * 100)}`;
     }
 
     initSocket() {
@@ -22,6 +35,10 @@ class ChatCore {
         this.socket.on('connect', () => {
             this.isConnected = true;
             this.addSystemMessage('Connected to server');
+            
+            // Send initial triggers to worker
+            this.updateTriggers();
+            
             console.log('Connected to server');
         });
 
@@ -32,17 +49,43 @@ class ChatCore {
         });
 
         this.socket.on('message', (data) => {
-            this.addMessage(data.message, data.timestamp, false);
+            this.addMessage(data.message, data.timestamp, false, data.user);
         });
 
         this.socket.on('chat-history', (messages) => {
             messages.forEach(msg => {
-                this.addMessage(msg.message, msg.timestamp, msg.user === this.socket.id);
+                this.addMessage(msg.message, msg.timestamp, msg.user === this.socket.id, msg.user);
             });
         });
 
         this.socket.on('user-count', (count) => {
             this.addSystemMessage(`Users online: ${count}`);
+        });
+
+        // AI-specific events
+        this.socket.on('ai-response', (data) => {
+            this.addMessage(data.message, data.timestamp, false, 'BambiSleep', true);
+            this.addSystemMessage(`AI generated ${data.wordCount} words`);
+        });
+
+        this.socket.on('ai-error', (data) => {
+            this.addSystemMessage(`AI Error: ${data.error}`);
+        });
+
+        this.socket.on('collar-activated', (data) => {
+            this.collarActive = data.active;
+            if (data.active) {
+                this.addSystemMessage('🔗 Collar activated - deeper submission engaged');
+            } else {
+                this.addSystemMessage('🔗 Collar deactivated');
+            }
+            this.updateCollarUI();
+        });
+
+        this.socket.on('detected-triggers', (data) => {
+            if (data.triggers && data.triggers.length > 0) {
+                this.addSystemMessage(`⚡ Triggers detected: ${data.triggers.map(t => t.name).join(', ')}`);
+            }
         });
 
         this.socket.on('error', (error) => {
@@ -58,6 +101,70 @@ class ChatCore {
         this.toggleSpiral = document.getElementById('toggle-spiral');
         this.toggleTTS = document.getElementById('toggle-tts');
         this.toggleTriggers = document.getElementById('toggle-triggers');
+        
+        // AI-specific controls
+        this.aiModeButton = document.getElementById('toggle-ai') || this.createAIButton();
+        this.collarButton = document.getElementById('toggle-collar') || this.createCollarButton();
+        this.triggerSelector = document.getElementById('trigger-selector') || this.createTriggerSelector();
+    }
+
+    createAIButton() {
+        const button = document.createElement('button');
+        button.id = 'toggle-ai';
+        button.className = 'control-button';
+        button.textContent = 'AI: OFF';
+        button.title = 'Toggle AI chat mode';
+        
+        // Add to controls container
+        const controls = document.querySelector('.controls') || document.body;
+        controls.appendChild(button);
+        
+        return button;
+    }
+
+    createCollarButton() {
+        const button = document.createElement('button');
+        button.id = 'toggle-collar';
+        button.className = 'control-button';
+        button.textContent = '🔗 Collar: OFF';
+        button.title = 'Toggle collar mode for deeper submission';
+        
+        // Add to controls container
+        const controls = document.querySelector('.controls') || document.body;
+        controls.appendChild(button);
+        
+        return button;
+    }
+
+    createTriggerSelector() {
+        const container = document.createElement('div');
+        container.id = 'trigger-selector';
+        container.className = 'trigger-controls';
+        
+        const label = document.createElement('label');
+        label.textContent = 'Active Triggers: ';
+        
+        const select = document.createElement('select');
+        select.multiple = true;
+        select.size = 3;
+        
+        const triggers = ['BAMBI SLEEP', 'GOOD GIRL', 'BLANK', 'MINDLESS', 'OBEY', 'SUBMIT', 'BIMBO', 'DOLL', 'PINK', 'SPIRAL'];
+        triggers.forEach(trigger => {
+            const option = document.createElement('option');
+            option.value = trigger;
+            option.textContent = trigger;
+            option.selected = this.activeTriggers.includes(trigger);
+            select.appendChild(option);
+        });
+        
+        container.appendChild(label);
+        container.appendChild(select);
+        
+        // Add to controls container
+        const controls = document.querySelector('.controls') || document.body;
+        controls.appendChild(container);
+        
+        return container;
     }
 
     bindEvents() {
@@ -75,6 +182,16 @@ class ChatCore {
         this.toggleSpiral.addEventListener('click', () => this.toggleSpiralAnimation());
         this.toggleTTS.addEventListener('click', () => this.toggleTextToSpeech());
         this.toggleTriggers.addEventListener('click', () => this.toggleTriggerSystem());
+        
+        // AI controls
+        this.aiModeButton.addEventListener('click', () => this.toggleAIMode());
+        this.collarButton.addEventListener('click', () => this.toggleCollar());
+        
+        // Trigger selector
+        const select = this.triggerSelector.querySelector('select');
+        if (select) {
+            select.addEventListener('change', () => this.updateSelectedTriggers());
+        }
 
         // Focus on input when page loads
         window.addEventListener('load', () => {
@@ -87,26 +204,43 @@ class ChatCore {
         if (!message || !this.isConnected) return;
 
         // Add message to UI immediately
-        this.addMessage(message, new Date(), true);
+        this.addMessage(message, new Date(), true, this.username);
 
-        // Send to server
-        this.socket.emit('message', {
-            message: message,
-            timestamp: new Date().toISOString()
-        });
+        // Send to appropriate handler based on AI mode
+        if (this.aiMode) {
+            // Send to AI
+            this.socket.emit('ai-chat', {
+                message: message,
+                username: this.username,
+                timestamp: new Date().toISOString()
+            });
+            
+            this.addSystemMessage('🤖 Sending to BambiSleep AI...');
+        } else {
+            // Send to regular chat
+            this.socket.emit('message', {
+                message: message,
+                username: this.username,
+                timestamp: new Date().toISOString()
+            });
+        }
 
         // Clear input
         this.chatInput.value = '';
         this.chatInput.focus();
     }
 
-    addMessage(text, timestamp, isOwn = false) {
+    addMessage(text, timestamp, isOwn = false, username = 'Unknown', isAI = false) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isOwn ? 'own' : ''}`;
+        messageDiv.className = `message ${isOwn ? 'own' : ''} ${isAI ? 'ai' : ''}`;
 
         const timeDiv = document.createElement('div');
         timeDiv.className = 'message-time';
         timeDiv.textContent = this.formatTime(timestamp);
+
+        const userDiv = document.createElement('div');
+        userDiv.className = 'message-user';
+        userDiv.textContent = username;
 
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
@@ -119,13 +253,14 @@ class ChatCore {
         }
 
         messageDiv.appendChild(timeDiv);
+        messageDiv.appendChild(userDiv);
         messageDiv.appendChild(textDiv);
 
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
 
         // Store in history
-        this.messageHistory.push({ text, timestamp, isOwn });
+        this.messageHistory.push({ text, timestamp, isOwn, username, isAI });
         if (this.messageHistory.length > this.maxMessages) {
             this.messageHistory.shift();
         }
@@ -167,6 +302,54 @@ class ChatCore {
 
     scrollToBottom() {
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+
+    // AI-specific methods
+    toggleAIMode() {
+        this.aiMode = !this.aiMode;
+        this.aiModeButton.textContent = `AI: ${this.aiMode ? 'ON' : 'OFF'}`;
+        this.aiModeButton.classList.toggle('active', this.aiMode);
+        
+        if (this.aiMode) {
+            this.addSystemMessage('🤖 AI mode activated - messages will be sent to BambiSleep');
+            this.updateTriggers();
+        } else {
+            this.addSystemMessage('💬 Regular chat mode activated');
+        }
+    }
+
+    toggleCollar() {
+        this.collarActive = !this.collarActive;
+        
+        if (this.collarActive) {
+            this.socket.emit('activate-collar', {
+                text: 'You feel the collar tighten around your neck, a constant reminder of your submission and desire to obey. Every trigger becomes more powerful, every word more commanding.'
+            });
+        } else {
+            this.socket.emit('deactivate-collar');
+        }
+    }
+
+    updateCollarUI() {
+        this.collarButton.textContent = `🔗 Collar: ${this.collarActive ? 'ON' : 'OFF'}`;
+        this.collarButton.classList.toggle('active', this.collarActive);
+    }
+
+    updateSelectedTriggers() {
+        const select = this.triggerSelector.querySelector('select');
+        if (select) {
+            this.activeTriggers = Array.from(select.selectedOptions).map(option => option.value);
+            this.updateTriggers();
+            this.addSystemMessage(`Active triggers updated: ${this.activeTriggers.join(', ')}`);
+        }
+    }
+
+    updateTriggers() {
+        if (this.socket && this.isConnected) {
+            this.socket.emit('update-triggers', {
+                triggers: this.activeTriggers
+            });
+        }
     }
 
     toggleSpiralAnimation() {
