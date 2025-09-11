@@ -778,11 +778,165 @@ document.addEventListener('dropdownAction', (e) => {
         case 'spiral-speed-slow':
         case 'spiral-speed-normal':
         case 'spiral-speed-fast':
+            if (window.spiralControls) {
+                const speeds = {
+                    'spiral-speed-slow': { frame1: 40, frame2: 35, rotation: 15 },
+                    'spiral-speed-normal': { frame1: 20, frame2: 20, rotation: 10 },
+                    'spiral-speed-fast': { frame1: 8, frame2: 12, rotation: 4 }
+                };
+                const speed = speeds[action];
+                window.spiralControls.setFrameSpeed('A', speed.frame1);
+                window.spiralControls.setFrameSpeed('B', speed.frame2);
+                window.spiralControls.setRotationSpeed(speed.rotation);
+            }
             console.log(`Setting spiral speed to: ${selectedText}`);
             break;
 
         case 'spiral-color-cycle':
+            if (window.spiralControls) {
+                window.spiralControls.randomizeParameters();
+            }
             console.log('Enabling spiral color cycle');
+            break;
+
+        case 'spiral-color-pink':
+            if (window.spiralControls) {
+                window.spiralControls.setSpiralAColor(255, 20, 147, 1.0);
+                window.spiralControls.setSpiralBColor(255, 105, 180, 0.8);
+            }
+            console.log('Setting spiral to pink colors');
+            break;
+
+        case 'spiral-color-purple':
+            if (window.spiralControls) {
+                window.spiralControls.setSpiralAColor(138, 43, 226, 1.0);
+                window.spiralControls.setSpiralBColor(186, 85, 211, 0.8);
+            }
+            console.log('Setting spiral to purple colors');
+            break;
+
+        case 'spiral-color-blue':
+            if (window.spiralControls) {
+                window.spiralControls.setSpiralAColor(0, 191, 255, 1.0);
+                window.spiralControls.setSpiralBColor(30, 144, 255, 0.8);
+            }
+            console.log('Setting spiral to blue colors');
+            break;
+
+        case 'spiral-color-rainbow':
+            if (window.spiralControls) {
+                window.spiralControls.enableRandomizer(2000); // Change every 2 seconds
+            }
+            console.log('Enabling rainbow color randomizer');
+            break;
+
+        case 'spiral-preset-hypnotic':
+        case 'spiral-preset-intense':
+        case 'spiral-preset-peaceful':
+        case 'spiral-preset-chaos':
+            if (window.spiralControls) {
+                const preset = action.replace('spiral-preset-', '');
+                window.spiralControls.loadPreset(preset);
+            }
+            console.log(`Loading spiral preset: ${selectedText}`);
+            break;
+
+        case 'spiral-geometry-tight':
+            if (window.spiralControls) {
+                window.spiralControls.setSpiralGeometry('A', 1.2);
+                window.spiralControls.setSpiralGeometry('B', 0.4);
+            }
+            console.log('Setting spiral geometry to tight');
+            break;
+
+        case 'spiral-geometry-normal':
+            if (window.spiralControls) {
+                window.spiralControls.setSpiralGeometry('A', 4.7);
+                window.spiralControls.setSpiralGeometry('B', 0.9);
+            }
+            console.log('Setting spiral geometry to normal');
+            break;
+
+        case 'spiral-geometry-wide':
+            if (window.spiralControls) {
+                window.spiralControls.setSpiralGeometry('A', 8.5);
+                window.spiralControls.setSpiralGeometry('B', 3.2);
+            }
+            console.log('Setting spiral geometry to wide');
+            break;
+
+        case 'spiral-randomizer-on':
+            if (window.spiralControls) {
+                window.spiralControls.enableRandomizer(5000);
+            }
+            console.log('Enabling spiral randomizer');
+            break;
+
+        case 'spiral-randomizer-off':
+            if (window.spiralControls) {
+                window.spiralControls.disableRandomizer();
+            }
+            console.log('Disabling spiral randomizer');
+            break;
+
+        case 'spiral-alpha-low':
+            if (window.spiralControls) {
+                const controls = window.spiralControls.getControls();
+                window.spiralControls.setSpiralAColor(
+                    controls.spiralA_color[0], controls.spiralA_color[1], 
+                    controls.spiralA_color[2], 0.3
+                );
+                window.spiralControls.setSpiralBColor(
+                    controls.spiralB_color[0], controls.spiralB_color[1], 
+                    controls.spiralB_color[2], 0.3
+                );
+            }
+            console.log('Setting spiral alpha to low');
+            break;
+
+        case 'spiral-alpha-medium':
+            if (window.spiralControls) {
+                const controls = window.spiralControls.getControls();
+                window.spiralControls.setSpiralAColor(
+                    controls.spiralA_color[0], controls.spiralA_color[1], 
+                    controls.spiralA_color[2], 0.7
+                );
+                window.spiralControls.setSpiralBColor(
+                    controls.spiralB_color[0], controls.spiralB_color[1], 
+                    controls.spiralB_color[2], 0.7
+                );
+            }
+            console.log('Setting spiral alpha to medium');
+            break;
+
+        case 'spiral-alpha-high':
+            if (window.spiralControls) {
+                const controls = window.spiralControls.getControls();
+                window.spiralControls.setSpiralAColor(
+                    controls.spiralA_color[0], controls.spiralA_color[1], 
+                    controls.spiralA_color[2], 1.0
+                );
+                window.spiralControls.setSpiralBColor(
+                    controls.spiralB_color[0], controls.spiralB_color[1], 
+                    controls.spiralB_color[2], 1.0
+                );
+            }
+            console.log('Setting spiral alpha to high');
+            break;
+
+        case 'spiral-brainwash-mode':
+            if (window.spiralControls) {
+                // Ultra intense brainwash settings
+                window.spiralControls.setFrameSpeed('A', 3);
+                window.spiralControls.setFrameSpeed('B', 5);
+                window.spiralControls.setRotationSpeed(2);
+                window.spiralControls.setSpiralGeometry('A', 9.5);
+                window.spiralControls.setSpiralGeometry('B', 6.2);
+                window.spiralControls.setSpiralAColor(255, 0, 255, 1.0);
+                window.spiralControls.setSpiralBColor(255, 20, 147, 0.9);
+                window.spiralControls.enableRandomizer(1500);
+            }
+            console.log('🌀 BRAINWASH MODE ACTIVATED 🌀');
             break;
 
         case 'spiral-reverse':
@@ -824,5 +978,26 @@ document.addEventListener('dropdownAction', (e) => {
 
         default:
             console.log(`Unknown action: ${action}`);
+    }
+});
+
+// Listen for spiral control changes to update UI feedback
+document.addEventListener('spiralControlChange', (e) => {
+    const { category, property, value } = e.detail;
+    console.log(`🌀 Spiral control updated: ${property} = ${value}`);
+});
+
+document.addEventListener('spiralRandomized', (e) => {
+    console.log('🎲 Spiral parameters randomized!');
+    if (window.dropdownManager) {
+        window.dropdownManager.showActionFeedback('SPIRAL', 'RANDOMIZED');
+    }
+});
+
+document.addEventListener('spiralPresetLoaded', (e) => {
+    const { preset } = e.detail;
+    console.log(`🎭 Spiral preset loaded: ${preset}`);
+    if (window.dropdownManager) {
+        window.dropdownManager.showActionFeedback('SPIRAL', `PRESET: ${preset.toUpperCase()}`);
     }
 });

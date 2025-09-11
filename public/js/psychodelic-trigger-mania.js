@@ -16,6 +16,39 @@ class SpiralAnimation {
         this.vertexBuffer = null;
         this.locations = {};
 
+        // Psychedelic Control Parameters
+        this.controls = {
+            // Animation Speed Controls
+            frameSpeed1: 20,    // frameCount divisor for spiral A
+            frameSpeed2: 20,    // frameCount divisor for spiral B
+            rotationSpeed: 10,  // rotation divisor
+            
+            // Spiral Geometry Controls
+            spiralA_geometry: 4.7,
+            spiralB_geometry: 0.9,
+            
+            // Color Controls (RGBA)
+            spiralA_color: [199, 0, 199, 1.0],
+            spiralB_color: [255, 130, 255, 1.0],
+            
+            // Range Controls
+            spiralA_range_min: 0.5,
+            spiralA_range_max: 1.5,
+            spiralB_range_min: 1.0,
+            spiralB_range_max: 1.5,
+            
+            // Visual Effects
+            iterations: 250,
+            pulseIntensity: 50,
+            
+            // Randomizer Settings
+            randomizer: {
+                enabled: false,
+                interval: 5000, // 5 seconds
+                lastChange: 0
+            }
+        };
+
         this.init();
     }
 
@@ -50,7 +83,7 @@ class SpiralAnimation {
 
         this.initWebGL();
         window.addEventListener("resize", () => this.onWindowResize());
-        
+
         // Start the render loop
         this.draw();
     }
@@ -161,12 +194,14 @@ class SpiralAnimation {
         // Set resolution
         gl.uniform2f(this.locations.resolution, this.width, this.height);
 
-        // Calculate animation parameters exactly like template
-        const a = this.map(Math.sin(this.frameCount/20), -1, 1, 0.5, 1.5);
-        const b = this.map(Math.cos(this.frameCount/20), -1, 1, 1, 1.5);
-        
+        // Calculate animation parameters with configurable controls
+        const a = this.map(Math.sin(this.frameCount/this.controls.frameSpeed1), -1, 1, 
+                          this.controls.spiralA_range_min, this.controls.spiralA_range_max);
+        const b = this.map(Math.cos(this.frameCount/this.controls.frameSpeed2), -1, 1, 
+                          this.controls.spiralB_range_min, this.controls.spiralB_range_max);
+
         // Set transform matrix for rotation and translation
-        const rotation = this.frameCount / 10;
+        const rotation = this.frameCount / this.controls.rotationSpeed;
         const cos_r = Math.cos(rotation);
         const sin_r = Math.sin(rotation);
         const tx = this.width / 2;
@@ -180,29 +215,32 @@ class SpiralAnimation {
 
         gl.uniformMatrix3fv(this.locations.transform, false, transform);
 
-        // Draw spirals exactly like template
-        this.spiral(a, 1, [199, 0, 199]);
-        this.spiral(b, 0.3, [255, 130, 255]);
-        
+        // Check randomizer
+        this.updateRandomizer();
+
+        // Draw spirals with configurable parameters
+        this.spiral(a, this.controls.spiralA_geometry, this.controls.spiralA_color);
+        this.spiral(b, this.controls.spiralB_geometry, this.controls.spiralB_color);
+
         // Calibration complete placeholder
         this.calibrationComplete();
-        
+
         // Draw trance point circle
         this.drawCircle(this.trancePoint[0], this.trancePoint[1], 40, [255, 255, 255]);
-        
+
         this.frameCount++;
         this.animationId = requestAnimationFrame(() => this.draw());
     }
 
     spiral(a, x, d) {
         const gl = this.gl;
-        
+
         // Generate spiral vertices as a line strip
         const vertices = [];
         let r1 = 0;
         const step = a;
 
-        for (let i = 0; i < 250; i++) {
+        for (let i = 0; i < this.controls.iterations; i++) {
             r1 += step;
             const ang = x;
 
@@ -220,11 +258,12 @@ class SpiralAnimation {
         gl.enableVertexAttribArray(this.locations.position);
         gl.vertexAttribPointer(this.locations.position, 2, gl.FLOAT, false, 0, 0);
 
-        // Set color
+        // Set color with alpha support
         const r = d[0] / 255;
         const g = d[1] / 255;
         const b = d[2] / 255;
-        gl.uniform4f(this.locations.color, r, g, b, 1.0);
+        const a = d[3] || 1.0; // Alpha channel
+        gl.uniform4f(this.locations.color, r, g, b, a);
 
         // Draw as line strip for thin lines
         gl.drawArrays(gl.LINE_STRIP, 0, vertices.length / 2);
@@ -232,11 +271,11 @@ class SpiralAnimation {
 
     drawCircle(x, y, radius, color) {
         const gl = this.gl;
-        
+
         // Generate circle vertices
         const vertices = [];
         const segments = 32;
-        
+
         for (let i = 0; i <= segments; i++) {
             const angle = (i / segments) * Math.PI * 2;
             vertices.push(
@@ -302,12 +341,174 @@ class SpiralAnimation {
         if (this.isEnabled) {
             // Create a brief visual pulse effect
             const originalFrameCount = this.frameCount;
-            this.frameCount += 50; // Jump forward in animation
+            this.frameCount += this.controls.pulseIntensity;
             
             setTimeout(() => {
                 this.frameCount = originalFrameCount;
             }, 500);
         }
+    }
+
+    // Control Methods for Psychedelic Trigger Mania
+    updateControl(category, property, value) {
+        if (this.controls[category] && this.controls[category][property] !== undefined) {
+            this.controls[category][property] = value;
+        } else if (this.controls[property] !== undefined) {
+            this.controls[property] = value;
+        }
+        
+        // Dispatch control change event
+        document.dispatchEvent(new CustomEvent('spiralControlChange', {
+            detail: { category, property, value }
+        }));
+    }
+
+    // Color Control Methods
+    setSpiralAColor(r, g, b, a = 1.0) {
+        this.controls.spiralA_color = [r, g, b, a];
+    }
+
+    setSpiralBColor(r, g, b, a = 1.0) {
+        this.controls.spiralB_color = [r, g, b, a];
+    }
+
+    // Speed Control Methods
+    setFrameSpeed(spiral, speed) {
+        if (spiral === 'A') {
+            this.controls.frameSpeed1 = speed;
+        } else if (spiral === 'B') {
+            this.controls.frameSpeed2 = speed;
+        }
+    }
+
+    setRotationSpeed(speed) {
+        this.controls.rotationSpeed = speed;
+    }
+
+    // Geometry Control Methods
+    setSpiralGeometry(spiral, geometry) {
+        if (spiral === 'A') {
+            this.controls.spiralA_geometry = geometry;
+        } else if (spiral === 'B') {
+            this.controls.spiralB_geometry = geometry;
+        }
+    }
+
+    // Range Control Methods
+    setSpiralRange(spiral, min, max) {
+        if (spiral === 'A') {
+            this.controls.spiralA_range_min = min;
+            this.controls.spiralA_range_max = max;
+        } else if (spiral === 'B') {
+            this.controls.spiralB_range_min = min;
+            this.controls.spiralB_range_max = max;
+        }
+    }
+
+    // Randomizer Methods
+    enableRandomizer(interval = 5000) {
+        this.controls.randomizer.enabled = true;
+        this.controls.randomizer.interval = interval;
+        this.controls.randomizer.lastChange = Date.now();
+    }
+
+    disableRandomizer() {
+        this.controls.randomizer.enabled = false;
+    }
+
+    updateRandomizer() {
+        if (!this.controls.randomizer.enabled) return;
+        
+        const now = Date.now();
+        if (now - this.controls.randomizer.lastChange > this.controls.randomizer.interval) {
+            this.randomizeParameters();
+            this.controls.randomizer.lastChange = now;
+        }
+    }
+
+    randomizeParameters() {
+        // Randomize colors
+        this.controls.spiralA_color = [
+            Math.floor(Math.random() * 256),
+            Math.floor(Math.random() * 256),
+            Math.floor(Math.random() * 256),
+            0.7 + Math.random() * 0.3 // Alpha between 0.7-1.0
+        ];
+
+        this.controls.spiralB_color = [
+            Math.floor(Math.random() * 256),
+            Math.floor(Math.random() * 256),
+            Math.floor(Math.random() * 256),
+            0.7 + Math.random() * 0.3
+        ];
+
+        // Randomize speeds
+        this.controls.frameSpeed1 = 10 + Math.random() * 30; // 10-40
+        this.controls.frameSpeed2 = 10 + Math.random() * 30;
+        this.controls.rotationSpeed = 5 + Math.random() * 15; // 5-20
+
+        // Randomize geometry
+        this.controls.spiralA_geometry = 0.5 + Math.random() * 8; // 0.5-8.5
+        this.controls.spiralB_geometry = 0.5 + Math.random() * 8;
+
+        // Randomize ranges
+        this.controls.spiralA_range_min = Math.random() * 2; // 0-2
+        this.controls.spiralA_range_max = 1 + Math.random() * 3; // 1-4
+        this.controls.spiralB_range_min = Math.random() * 2;
+        this.controls.spiralB_range_max = 1 + Math.random() * 3;
+
+        // Dispatch randomization event
+        document.dispatchEvent(new CustomEvent('spiralRandomized', {
+            detail: { controls: this.controls }
+        }));
+    }
+
+    // Preset Methods
+    loadPreset(presetName) {
+        const presets = {
+            'hypnotic': {
+                frameSpeed1: 25, frameSpeed2: 30, rotationSpeed: 8,
+                spiralA_geometry: 3.2, spiralB_geometry: 1.8,
+                spiralA_color: [148, 0, 211, 0.9], spiralB_color: [75, 0, 130, 0.8],
+                spiralA_range_min: 0.3, spiralA_range_max: 1.2,
+                spiralB_range_min: 0.8, spiralB_range_max: 1.8
+            },
+            'intense': {
+                frameSpeed1: 8, frameSpeed2: 12, rotationSpeed: 4,
+                spiralA_geometry: 6.5, spiralB_geometry: 2.1,
+                spiralA_color: [255, 20, 147, 1.0], spiralB_color: [255, 69, 0, 0.95],
+                spiralA_range_min: 0.8, spiralA_range_max: 2.5,
+                spiralB_range_min: 1.2, spiralB_range_max: 2.8
+            },
+            'peaceful': {
+                frameSpeed1: 40, frameSpeed2: 35, rotationSpeed: 15,
+                spiralA_geometry: 2.1, spiralB_geometry: 0.7,
+                spiralA_color: [135, 206, 235, 0.7], spiralB_color: [176, 196, 222, 0.8],
+                spiralA_range_min: 0.2, spiralA_range_max: 0.8,
+                spiralB_range_min: 0.5, spiralB_range_max: 1.2
+            },
+            'chaos': {
+                frameSpeed1: 3, frameSpeed2: 7, rotationSpeed: 2,
+                spiralA_geometry: 9.2, spiralB_geometry: 4.8,
+                spiralA_color: [255, 0, 0, 1.0], spiralB_color: [0, 255, 0, 1.0],
+                spiralA_range_min: 1.5, spiralA_range_max: 3.5,
+                spiralB_range_min: 2.0, spiralB_range_max: 4.0
+            }
+        };
+
+        if (presets[presetName]) {
+            Object.assign(this.controls, presets[presetName]);
+            
+            // Dispatch preset loaded event
+            document.dispatchEvent(new CustomEvent('spiralPresetLoaded', {
+                detail: { preset: presetName, controls: this.controls }
+            }));
+        }
+    }
+
+    // Get current state for UI updates
+    getControls() {
+        return { ...this.controls };
     }
 
     cleanup() {
@@ -334,4 +535,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
+
+    // Export control functions globally for dropdown integration
+    window.spiralControls = {
+        setSpiralAColor: (r, g, b, a) => window.spiralAnimation.setSpiralAColor(r, g, b, a),
+        setSpiralBColor: (r, g, b, a) => window.spiralAnimation.setSpiralBColor(r, g, b, a),
+        setFrameSpeed: (spiral, speed) => window.spiralAnimation.setFrameSpeed(spiral, speed),
+        setRotationSpeed: (speed) => window.spiralAnimation.setRotationSpeed(speed),
+        setSpiralGeometry: (spiral, geometry) => window.spiralAnimation.setSpiralGeometry(spiral, geometry),
+        setSpiralRange: (spiral, min, max) => window.spiralAnimation.setSpiralRange(spiral, min, max),
+        enableRandomizer: (interval) => window.spiralAnimation.enableRandomizer(interval),
+        disableRandomizer: () => window.spiralAnimation.disableRandomizer(),
+        randomizeParameters: () => window.spiralAnimation.randomizeParameters(),
+        loadPreset: (preset) => window.spiralAnimation.loadPreset(preset),
+        getControls: () => window.spiralAnimation.getControls()
+    };
 });

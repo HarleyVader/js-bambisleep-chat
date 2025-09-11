@@ -388,6 +388,116 @@ body {
     font-family: "Audiowide", sans-serif;
 }
 
+/* Spiral Controls Styles */
+.spiral-controls {
+    padding: 8px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.control-section {
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--primary-color);
+    padding-bottom: 8px;
+}
+
+.control-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.control-section .config-label {
+    color: var(--button-color);
+    font-weight: bold;
+    margin-bottom: 6px;
+    text-align: center;
+    text-shadow: 0 0 3px var(--button-color);
+}
+
+.control-section a {
+    padding: 6px 10px !important;
+    margin: 2px 0;
+    font-size: 0.55rem !important;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.control-section a:hover {
+    background: var(--button-color) !important;
+    color: white !important;
+    text-shadow: 0 0 5px white;
+    transform: translateX(3px);
+}
+
+/* Special Brainwash Section */
+.brainwash-section {
+    background: linear-gradient(45deg, var(--secondary-color), var(--button-color));
+    border: 2px solid var(--button-color);
+    border-radius: 8px;
+    padding: 10px !important;
+    margin-top: 15px;
+    animation: brainwashPulse 2s infinite;
+}
+
+.brainwash-section .config-label {
+    color: #fff;
+    font-size: 0.6rem;
+    text-shadow: 0 0 8px var(--button-color);
+    animation: textGlow 1.5s infinite alternate;
+}
+
+.brainwash-btn {
+    background: linear-gradient(45deg, #ff0080, #ff4080) !important;
+    color: white !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    border: 2px solid #fff !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 0.6rem !important;
+    animation: brainwashGlow 1s infinite alternate;
+    text-shadow: 0 0 5px #fff;
+}
+
+.brainwash-btn:hover {
+    background: linear-gradient(45deg, #ff4080, #ff0080) !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 0 15px var(--button-color) !important;
+}
+
+/* Animations for Brainwash Mode */
+@keyframes brainwashPulse {
+    0%, 100% { box-shadow: 0 0 5px var(--button-color); }
+    50% { box-shadow: 0 0 20px var(--button-color), 0 0 30px var(--button-color); }
+}
+
+@keyframes textGlow {
+    0% { text-shadow: 0 0 8px var(--button-color); }
+    100% { text-shadow: 0 0 15px var(--button-color), 0 0 25px var(--button-color); }
+}
+
+@keyframes brainwashGlow {
+    0% { box-shadow: 0 0 10px #ff0080; }
+    100% { box-shadow: 0 0 20px #ff0080, 0 0 30px #ff4080; }
+}
+
+/* Responsive adjustments for spiral controls */
+@media (max-width: 768px) {
+    .spiral-controls {
+        max-height: 60vh;
+    }
+    
+    .control-section a {
+        font-size: 0.5rem !important;
+        padding: 5px 8px !important;
+    }
+    
+    .brainwash-btn {
+        font-size: 0.55rem !important;
+        padding: 6px 10px !important;
+    }
+}
+
 .coming-soon {
     color: var(--nav-alt);
     padding: 8px;
