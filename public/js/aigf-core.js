@@ -8,9 +8,35 @@ class ChatCore {
         this.username = this.generateUsername();
         this.aiMode = false;
         this.collarActive = false;
-        this.activeTriggers = ['BAMBI SLEEP', 'GOOD GIRL', 'BLANK'];
+        this.activeTriggers = []; // Will be loaded from official triggers.json
 
+        this.loadOfficialTriggers(); // Load official triggers
         this.init();
+    }
+
+    // Load OFFICIAL BambiSleep triggers from JSON file
+    async loadOfficialTriggers() {
+        try {
+            const response = await fetch('/workers/triggers.json');
+            const data = await response.json();
+
+            // Extract first 3 official trigger names as active triggers
+            this.activeTriggers = [];
+            if (data.triggers && Array.isArray(data.triggers)) {
+                const firstThreeTriggers = data.triggers.slice(0, 3);
+                firstThreeTriggers.forEach(trigger => {
+                    this.activeTriggers.push(trigger.name.toUpperCase());
+                });
+            }
+
+            console.log('🎯 Loaded OFFICIAL active triggers:', this.activeTriggers);
+            console.log('📋 Trigger source:', data.source);
+
+        } catch (error) {
+            console.error('CRITICAL: Failed to load official triggers for active list:', error);
+            // NO FALLBACK - Only use official triggers
+            this.activeTriggers = [];
+        }
     }
 
     // Initialize text effects system
@@ -202,14 +228,8 @@ class ChatCore {
         select.multiple = true;
         select.size = 3;
 
-        const triggers = ['BAMBI SLEEP', 'GOOD GIRL', 'BLANK', 'MINDLESS', 'OBEY', 'SUBMIT', 'BIMBO', 'DOLL', 'PINK', 'SPIRAL'];
-        triggers.forEach(trigger => {
-            const option = document.createElement('option');
-            option.value = trigger;
-            option.textContent = trigger;
-            option.selected = this.activeTriggers.includes(trigger);
-            select.appendChild(option);
-        });
+        // Load official triggers dynamically
+        this.populateOfficialTriggers(select);
 
         container.appendChild(label);
         container.appendChild(select);
@@ -219,6 +239,34 @@ class ChatCore {
         controls.appendChild(container);
 
         return container;
+    }
+
+    // Populate trigger select with OFFICIAL triggers from JSON
+    async populateOfficialTriggers(selectElement) {
+        try {
+            const response = await fetch('/workers/triggers.json');
+            const data = await response.json();
+
+            if (data.triggers && Array.isArray(data.triggers)) {
+                data.triggers.forEach(trigger => {
+                    const option = document.createElement('option');
+                    option.value = trigger.name.toUpperCase();
+                    option.textContent = trigger.name.toUpperCase();
+                    option.selected = this.activeTriggers.includes(trigger.name.toUpperCase());
+                    selectElement.appendChild(option);
+                });
+            }
+
+            console.log('🎯 Populated trigger selector with official triggers');
+
+        } catch (error) {
+            console.error('Failed to load official triggers for selector:', error);
+            // Create minimal fallback option
+            const option = document.createElement('option');
+            option.value = 'LOADING...';
+            option.textContent = 'LOADING OFFICIAL TRIGGERS...';
+            selectElement.appendChild(option);
+        }
     }
 
     bindEvents() {

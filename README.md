@@ -102,15 +102,16 @@ MAX_MESSAGE_LENGTH=500      # Message length limit
 CHAT_HISTORY_LIMIT=100      # Chat history size
 ```
 
-### Default Trigger Words
+### Official BambiSleep Triggers
 
-The application comes with pre-configured trigger words:
+The application uses official BambiSleep triggers from the knowledge base:
 
-- bambi, bimbo, good girl, pink, spiral
-- obey, submit, empty, blank, mindless
-- doll, pretty, cute, sleep
+- Loaded dynamically from `workers/triggers.json`
+- Source: [BambiSleep Triggers](https://bambisleep.info/Triggers)
+- Includes: Sleep, Good Girl, Blank and Empty, Obey, Focus, Freeze, and more
+- NO HARDCODED TRIGGERS - Only official BambiSleep triggers are supported
 
-Trigger words can be customized via the `/api/triggers` endpoint.
+All triggers are loaded from the official BambiSleep trigger definitions.
 
 ## API Endpoints
 

@@ -25,9 +25,9 @@ async function loadOfficialTriggers() {
         const fs = require('fs');
         const path = require('path');
         const triggersPath = path.join(__dirname, 'triggers.json');
-        
+
         const data = JSON.parse(fs.readFileSync(triggersPath, 'utf8'));
-        
+
         // Build trigger descriptions from official data
         triggerDescriptions = {};
         if (data.triggers && Array.isArray(data.triggers)) {
@@ -36,11 +36,11 @@ async function loadOfficialTriggers() {
                 triggerDescriptions[triggerName] = trigger.description;
             });
         }
-        
+
         console.log('Loaded OFFICIAL BambiSleep trigger descriptions from:', data.source);
         console.log('Trigger version:', data.version);
         console.log('Available triggers:', Object.keys(triggerDescriptions));
-        
+
     } catch (error) {
         console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
         // NO FALLBACK - Only use official triggers
@@ -274,13 +274,19 @@ async function checkRole(collar, username, triggers) {
         })
         .filter(Boolean);
 
-    // Default triggers if none provided
+    // Default triggers if none provided - use official triggers only
     if (selectedTriggers.length === 0) {
-        selectedTriggers.push(
-            'BAMBI SLEEP - Core trigger for deep mindless trance state',
-            'GOOD GIRL - Reinforcement trigger for obedience and submission',
-            'BLANK - Empty mind trigger, removes all thoughts'
+        // Use the first 3 official triggers as defaults
+        const defaultTriggerNames = Object.keys(triggerDescriptions).slice(0, 3);
+        selectedTriggers = defaultTriggerNames.map(name =>
+            `${name} - ${triggerDescriptions[name]}`
         );
+
+        // Fallback if no official triggers loaded
+        if (selectedTriggers.length === 0) {
+            console.warn('No official triggers loaded - using minimal fallback');
+            selectedTriggers.push('TRIGGER SYSTEM - Official triggers not loaded');
+        }
     }
 
     const triggerDescriptionPairs = selectedTriggers.join('\n');

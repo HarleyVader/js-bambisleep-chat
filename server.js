@@ -25,8 +25,39 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // In-memory storage (replace with database in production)
 let chatHistory = [];
-let triggerWords = ['bambi', 'bimbo', 'good girl', 'pink', 'spiral', 'obey', 'submit', 'empty', 'blank', 'mindless', 'doll', 'pretty', 'cute', 'sleep'];
+let triggerWords = []; // Will be loaded from official triggers.json
 let connectedUsers = 0;
+
+// Load OFFICIAL BambiSleep triggers from JSON file
+function loadOfficialTriggers() {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const triggersPath = path.join(__dirname, 'workers', 'triggers.json');
+
+        const data = JSON.parse(fs.readFileSync(triggersPath, 'utf8'));
+
+        // Extract trigger names from official data
+        triggerWords = [];
+        if (data.triggers && Array.isArray(data.triggers)) {
+            data.triggers.forEach(trigger => {
+                const triggerName = trigger.name.toLowerCase();
+                triggerWords.push(triggerName);
+            });
+        }
+
+        console.log('🎯 Loaded OFFICIAL BambiSleep triggers:', triggerWords);
+        console.log('📋 Trigger source:', data.source);
+
+    } catch (error) {
+        console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
+        // NO FALLBACK - Only use official triggers
+        triggerWords = [];
+    }
+}
+
+// Initialize official triggers on startup
+loadOfficialTriggers();
 
 // LM Studio Worker Management
 let lmWorker = null;
