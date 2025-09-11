@@ -21,7 +21,7 @@
                 <div id="controls" class="controls">
                     <div class="dropdown">
                         <button id="toggle-spiral" class="dropdown-btn toggle-button" data-state="off">Spiral: OFF</button>
-                        <div class="dropdown-content dropdown-hidden">
+                        <div class="dropdown-content">
                             <div class="spiral-controls">
                                 <!-- Speed Controls -->
                                 <div class="control-section">
@@ -102,6 +102,16 @@
                     </div>
                     <div class="dropdown">
                         <button id="toggle-ai" class="dropdown-btn toggle-button control-button" data-state="CHAT" data-mode="chat">CHAT</button>
+                        <div class="dropdown-content">
+                            <div class="ai-config">
+                                <p class="config-label">AI Mode Selection:</p>
+                                <a href="#" data-action="ai-mode-chat">💬 Chat Mode</a>
+                                <a href="#" data-action="ai-mode-brainwash">🧠 Brainwash Mode</a>
+                                <a href="#" data-action="ai-model-creative">🎨 Creative Model</a>
+                                <a href="#" data-action="ai-model-balanced">⚖️ Balanced Model</a>
+                                <a href="#" data-action="ai-model-precise">🎯 Precise Model</a>
+                            </div>
+                        </div>
                     </div>
                     <div class="dropdown collar-dropdown">
                         <button id="toggle-collar" class="dropdown-btn toggle-button control-button" data-state="off">🔗 Collar: OFF</button>
