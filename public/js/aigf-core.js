@@ -13,9 +13,58 @@ class ChatCore {
         this.init();
     }
 
+    // Configure marked for AI response processing on frontend
+    initMarked() {
+        if (typeof marked !== 'undefined') {
+            // Configure marked options
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                sanitize: false
+            });
+
+            // Custom renderer for AI-generated highlighted text
+            const renderer = new marked.Renderer();
+
+            // Override strong (bold) rendering to apply our enhanced trigger styling
+            renderer.strong = function(text) {
+                // This will convert **text** to our enhanced trigger format
+                return `<span class="ai-generated-highlight">${text}</span>`;
+            };
+
+            marked.setOptions({ renderer });
+        }
+    }
+
+    // Process AI response with marked on frontend
+    processAIResponse(aiResponse) {
+        try {
+            if (typeof marked !== 'undefined') {
+                // Use marked to process the AI response, which will convert **text** to highlighted spans
+                let processedResponse = marked.parse(aiResponse);
+                
+                // Clean up any unwanted HTML tags that marked might have added
+                processedResponse = processedResponse
+                    .replace(/<p>/g, '')
+                    .replace(/<\/p>/g, '')
+                    .trim();
+                    
+                return processedResponse;
+            } else {
+                // Fallback: manual processing if marked is not available
+                return aiResponse.replace(/\*\*([^*]+)\*\*/g, '<span class="ai-generated-highlight">$1</span>');
+            }
+        } catch (error) {
+            console.error('Error processing AI response with marked:', error);
+            // Fallback: manual processing if marked fails
+            return aiResponse.replace(/\*\*([^*]+)\*\*/g, '<span class="ai-generated-highlight">$1</span>');
+        }
+    }
+
     init() {
         this.initSocket();
         this.initUI();
+        this.initMarked();
         this.bindEvents();
         this.addSystemMessage('Welcome to BambiSleep Chat');
         this.addSystemMessage(`Your username: ${this.username}`);
@@ -262,11 +311,25 @@ class ChatCore {
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
 
-        // Process triggers if enabled
-        if (window.triggerSystem && window.triggerSystem.isEnabled) {
-            textDiv.innerHTML = window.triggerSystem.processMessage(text);
+        // Handle AI messages with structured output differently
+        if (isAI) {
+            // Process AI response with marked on frontend to convert **text** to highlights
+            const processedAIResponse = this.processAIResponse(text);
+            textDiv.innerHTML = processedAIResponse;
+            
+            // Also apply trigger processing if enabled (for additional triggers not highlighted by AI)
+            if (window.triggerSystem && window.triggerSystem.isEnabled) {
+                const currentHTML = textDiv.innerHTML;
+                const processedHTML = window.triggerSystem.processMessage(currentHTML);
+                textDiv.innerHTML = processedHTML;
+            }
         } else {
-            textDiv.textContent = text;
+            // Regular user messages - process triggers if enabled
+            if (window.triggerSystem && window.triggerSystem.isEnabled) {
+                textDiv.innerHTML = window.triggerSystem.processMessage(text);
+            } else {
+                textDiv.textContent = text;
+            }
         }
 
         messageDiv.appendChild(timeDiv);

@@ -211,6 +211,54 @@ body {
     text-shadow: 0 0 8px var(--secondary-alt);
 }
 
+/* Enhanced **TRIGGER** formatting with hot pink */
+.enhanced-trigger {
+    color: var(--button-color);
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--button-color);
+    animation: triggerPulse 2s ease-in-out infinite;
+    font-size: 1.1em;
+    letter-spacing: 1px;
+}
+
+/* AI-generated highlighted text from LMStudio structured output */
+.ai-generated-highlight {
+    color: var(--button-color);
+    font-weight: bold;
+    text-shadow: 0 0 12px var(--button-color);
+    animation: aiHighlightPulse 3s ease-in-out infinite;
+    font-size: 1.05em;
+    letter-spacing: 0.5px;
+    background: rgba(223, 4, 113, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+    border: 1px solid rgba(223, 4, 113, 0.3);
+}
+
+@keyframes aiHighlightPulse {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 12px var(--button-color);
+        border-color: rgba(223, 4, 113, 0.3);
+    }
+    50% {
+        opacity: 0.9;
+        text-shadow: 0 0 18px var(--button-color), 0 0 25px var(--button-color);
+        border-color: rgba(223, 4, 113, 0.6);
+    }
+}
+
+@keyframes triggerPulse {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 10px var(--button-color);
+    }
+    50% {
+        opacity: 0.8;
+        text-shadow: 0 0 20px var(--button-color), 0 0 30px var(--button-color);
+    }
+}
+
 @keyframes flashTrigger {
 
     0%,

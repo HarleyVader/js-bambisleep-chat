@@ -161,7 +161,7 @@ function selectBestModelSize(models) {
     // Sort by file size (ascending) to prefer smaller, faster models
     const sortedModels = models.sort((a, b) => (a.size_bytes || 0) - (b.size_bytes || 0));
 
-    // Prefer models with certain quantization patterns (Q4_K_M, Q5_K_M, Q6_K, Q8_0)
+    // Prefer models with certain quantization patterns (Q3_K_S, Q4_K_M, Q5_K_M, Q6_K, Q8_0)
     const preferredQuantizations = ['q4_k_m', 'q5_k_m', 'q6_k', 'q8_0', 'q4_0'];
 
     for (const quant of preferredQuantizations) {
@@ -182,7 +182,7 @@ function selectBestModelSize(models) {
 // Load a specific model in LM Studio
 async function loadModel(modelId) {
     try {
-        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '1234'}/v1/models/load`;
+        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/v1/models/load`;
 
         console.log(`🔄 Loading model: ${modelId}...`);
 
@@ -398,7 +398,7 @@ async function handleMessage(userPrompt, socketId, username) {
             );
         }
 
-        // Send response
+        // Send original response to client (frontend will handle highlighting)
         const wordCount = countWords(finalContent);
         sendResponse(finalContent, socketId, username, wordCount);
 

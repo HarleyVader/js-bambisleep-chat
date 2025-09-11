@@ -36,21 +36,129 @@ class TriggerSystem {
 
     processMessage(text) {
         if (!this.isEnabled) {
-            return this.escapeHtml(text);
+            // If triggers are disabled but text contains HTML, preserve it
+            return text.includes('<span') ? text : this.escapeHtml(text);
         }
 
-        let processedText = this.escapeHtml(text);
+        // Check if this is already processed HTML (contains our highlight classes)
+        const isAlreadyProcessed = text.includes('ai-generated-highlight') || text.includes('enhanced-trigger');
+        
+        let processedText;
+        
+        if (isAlreadyProcessed) {
+            // Already contains HTML highlighting, just process any remaining unhighlighted triggers
+            processedText = text;
+        } else {
+            // Regular text that needs full processing
+            processedText = this.escapeHtml(text);
+            // First process **TRIGGER** format (enhanced triggers in caps between asterisks)
+            processedText = this.processEnhancedTriggers(processedText);
+        }
 
-        // Find and wrap trigger words
+        // Then find and wrap regular trigger words (but avoid double-processing)
         this.triggers.forEach(trigger => {
+            // Skip processing if this trigger is already wrapped in any highlight span
+            if (processedText.includes(`<span class="enhanced-trigger">${trigger.toUpperCase()}</span>`) ||
+                processedText.includes(`<span class="ai-generated-highlight">${trigger.toUpperCase()}</span>`)) {
+                return;
+            }
+            
             const regex = new RegExp(`\\b(${this.escapeRegex(trigger)})\\b`, 'gi');
             processedText = processedText.replace(regex, (match) => {
+                // Don't process if it's inside any highlight span
+                const beforeMatch = processedText.substring(0, processedText.indexOf(match));
+                const openSpanCount = (beforeMatch.match(/<span class="[^"]*highlight[^"]*">/g) || []).length;
+                const closeSpanCount = (beforeMatch.match(/<\/span>/g) || []).length;
+                
+                // If we're inside a highlight span, skip
+                if (openSpanCount > closeSpanCount) {
+                    return match;
+                }
+                
                 this.playTriggerEffect();
                 return `<span class="trigger-text">${match}</span>`;
             });
         });
 
         return processedText;
+    }
+
+    processEnhancedTriggers(text) {
+        // Use string.replace() to find **TRIGGER** patterns and convert them
+        // Matches **[CAPS WORDS]** format - handles single words or multiple words
+        const enhancedTriggerRegex = /\*\*([A-Z]+(?:\s+[A-Z]+)*)\*\*/g;
+        
+        return text.replace(enhancedTriggerRegex, (match, triggerText) => {
+            // Play enhanced trigger effect
+            this.playEnhancedTriggerEffect();
+            
+            // Return the trigger without asterisks but with hot pink styling
+            return `<span class="enhanced-trigger">${triggerText}</span>`;
+        });
+    }
+
+    playEnhancedTriggerEffect() {
+        // Enhanced effect for **TRIGGER** format
+        if (this.audioEnabled) {
+            this.playEnhancedTriggerSound();
+        }
+
+        // Enhanced visual flash effect
+        this.flashEnhancedScreen();
+    }
+
+    playEnhancedTriggerSound() {
+        // Create a more intense sound for enhanced triggers
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        // Higher frequency and longer duration for enhanced triggers
+        oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+    }
+
+    flashEnhancedScreen() {
+        const flashOverlay = document.createElement('div');
+        flashOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(223, 4, 113, 0.6);
+            z-index: 9999;
+            pointer-events: none;
+            animation: enhancedTriggerFlash 0.5s ease-out;
+        `;
+
+        // Add enhanced flash animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes enhancedTriggerFlash {
+                0% { opacity: 0; }
+                50% { opacity: 1; }
+                100% { opacity: 0; }
+            }
+        `;
+        
+        if (!document.querySelector('#enhanced-trigger-flash-style')) {
+            style.id = 'enhanced-trigger-flash-style';
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(flashOverlay);
+
+        setTimeout(() => {
+            document.body.removeChild(flashOverlay);
+        }, 500);
     }
 
     playTriggerEffect() {
