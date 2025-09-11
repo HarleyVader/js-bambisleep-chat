@@ -107,6 +107,135 @@ class ChatCore {
         });
     }
 
+    // Process AI response for TTS with proper sentence splitting and audioArray creation
+    processAIResponseForTTS(message) {
+        if (!message || typeof message !== 'string' || message.trim().length === 0) {
+            console.warn('🎤 Received empty or invalid AI response for TTS:', message);
+            return;
+        }
+
+        console.log('🎤 Processing AI response for TTS with sentence splitting:', message.substring(0, 50) + '...');
+
+        // Clean text for TTS (same cleaning as in text2speech.js)
+        let cleanText = this.cleanTextForTTS(message);
+
+        // Split into sentences with better logic
+        const sentences = this.splitIntoTTSSentences(cleanText);
+
+        console.log('🎤 Split into', sentences.length, 'sentences for TTS');
+
+        // Create audioArray for TTS system
+        const audioArray = [];
+        sentences.forEach((sentence, index) => {
+            if (sentence.trim().length > 0) {
+                audioArray.push(sentence.trim());
+                console.log(`🎤 Sentence ${index + 1}:`, sentence.trim().substring(0, 40) + '...');
+            }
+        });
+
+        // Pass to TTS system with pre-split sentences
+        if (window.ttsSystem) {
+            window.ttsSystem.speakSentences(audioArray);
+        } else if (window.tts) {
+            // Fallback to old method
+            audioArray.forEach(sentence => {
+                window.tts.speak(sentence);
+            });
+        }
+    }
+
+    // Clean text for TTS (mirror of text2speech.js cleanTextForTTS)
+    cleanTextForTTS(text) {
+        // Remove URLs
+        text = text.replace(/https?:\/\/[^\s]+/g, 'link');
+
+        // Remove ALL punctuation marks that should not be spoken
+        text = text.replace(/[.,;:!?"""''`~@#$%^&*()_+=\[\]{}|\\<>/\-]/g, ' ');
+
+        // Remove excessive punctuation
+        text = text.replace(/[!]{2,}/g, '');
+        text = text.replace(/[?]{2,}/g, '');
+        text = text.replace(/[.]{3,}/g, '');
+
+        // Replace common emoticons with words
+        text = text.replace(/:\)/g, 'smile');
+        text = text.replace(/:\(/g, 'sad');
+        text = text.replace(/:D/g, 'laugh');
+        text = text.replace(/<3/g, 'heart');
+
+        // Remove HTML tags but preserve the text content
+        text = text.replace(/<[^>]*>/g, '');
+
+        // Remove markdown formatting
+        text = text.replace(/\*\*(.*?)\*\*/g, '$1'); // Remove **bold**
+        text = text.replace(/\*(.*?)\*/g, '$1'); // Remove *italic*
+        text = text.replace(/__(.*?)__/g, '$1'); // Remove __underline__
+
+        // Remove excessive whitespace and normalize
+        text = text.replace(/\s+/g, ' ').trim();
+
+        return text;
+    }
+
+    // Enhanced sentence splitting for better TTS pacing
+    splitIntoTTSSentences(text) {
+        // Split on multiple types of sentence boundaries
+        // Preserve important trigger phrases as complete units
+
+        // First, protect trigger phrases by replacing spaces with placeholders
+        const triggerPatterns = [
+            'bambi sleep', 'good girl', 'bambi reset', 'bambi wake and obey',
+            'bambi freeze', 'bambi does as she\'s told', 'bimbo doll', 'blonde moment',
+            'snap and forget', 'bambi cum and collapse', 'drop for cock', 'bambi limp',
+            'airhead barbie', 'braindead bobblehead', 'cockblank lovedoll', 'cock zombie now',
+            'giggletime', 'primped and pampered', 'safe and secure', 'zap cock drain obey'
+        ];
+
+        let protectedText = text;
+        const protectedPhrases = [];
+
+        triggerPatterns.forEach((trigger, index) => {
+            const placeholder = `PROTECTED_PHRASE_${index}`;
+            const regex = new RegExp(trigger.replace(/'/g, "'?"), 'gi');
+            protectedText = protectedText.replace(regex, (match) => {
+                protectedPhrases[index] = match;
+                return placeholder;
+            });
+        });
+
+        // Split on sentence boundaries but be more conservative
+        const sentences = protectedText.split(/(?<=[.!?])\s+(?=[A-Z])/g)
+            .map(sentence => sentence.trim())
+            .filter(sentence => sentence.length > 0);
+
+        // Restore protected phrases
+        const restoredSentences = sentences.map(sentence => {
+            let restored = sentence;
+            protectedPhrases.forEach((phrase, index) => {
+                if (phrase) {
+                    restored = restored.replace(`PROTECTED_PHRASE_${index}`, phrase);
+                }
+            });
+            return restored;
+        });
+
+        // If splitting resulted in too many tiny fragments, recombine some
+        const finalSentences = [];
+        for (let i = 0; i < restoredSentences.length; i++) {
+            const sentence = restoredSentences[i];
+
+            // If sentence is very short and there's a next sentence, combine them
+            if (sentence.length < 20 && i < restoredSentences.length - 1 && restoredSentences[i + 1].length < 50) {
+                finalSentences.push(sentence + ' ' + restoredSentences[i + 1]);
+                i++; // Skip the next sentence since we combined it
+            } else {
+                finalSentences.push(sentence);
+            }
+        }
+
+        return finalSentences.length > 0 ? finalSentences : [text];
+    }
+
     init() {
         this.initSocket();
         this.initUI();
@@ -162,10 +291,10 @@ class ChatCore {
             this.addMessage(data.message, data.timestamp, false, 'BambiSleep', true);
             this.addSystemMessage(`AI generated ${data.wordCount} words`);
 
-            // Process TTS for AI response using enhanced system
+            // Process TTS for AI response using enhanced system with sentence splitting
             if (window.tts && window.tts.isEnabled()) {
-                console.log('🎤 Processing AI response for TTS');
-                window.tts.processAIResponse(data.message);
+                console.log('🎤 Processing AI response for TTS with sentence splitting');
+                this.processAIResponseForTTS(data.message);
             }
         });
 

@@ -11,8 +11,8 @@ class KokoroTTSWorker {
         // Determine Kokoro URL based on environment
         const kokoroHost =
             process.env.NODE_ENV === 'production'
-            ? (process.env.KOKORO_HOST_PRODUCTION || '192.168.0.69')
-            : (process.env.KOKORO_HOST_DEVELOPMENT || 'localhost');
+                ? (process.env.KOKORO_HOST_PRODUCTION || '192.168.0.69')
+                : (process.env.KOKORO_HOST_DEVELOPMENT || 'localhost');
         const kokoroPort = process.env.KOKORO_PORT || 8880;
         this.kokoroUrl = `http://${kokoroHost}:${kokoroPort}`;
         this.defaultVoice = 'af_sky+af_bella'; // Voice combination as per Kokoro docs
