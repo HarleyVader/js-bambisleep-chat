@@ -56,6 +56,7 @@ export class SpiralDropdown {
         const spiralControls = this.getSpiralControls();
         if (!spiralControls) {
             console.warn('⚠️ Spiral controls not available');
+            this.dropdownManager.showActionFeedback('SPIRAL', 'SYSTEM NOT AVAILABLE');
             return;
         }
 
@@ -65,78 +66,99 @@ export class SpiralDropdown {
             // Speed Controls
             case 'spiral-speed-slow':
                 spiralControls.setSpeed(0.3);
+                this.dropdownManager.showActionFeedback('SPIRAL', 'SLOW & HYPNOTIC');
                 break;
             case 'spiral-speed-normal':
                 spiralControls.setSpeed(1.0);
+                this.dropdownManager.showActionFeedback('SPIRAL', 'NORMAL SPEED');
                 break;
             case 'spiral-speed-fast':
                 spiralControls.setSpeed(2.0);
+                this.dropdownManager.showActionFeedback('SPIRAL', 'FAST & INTENSE');
                 break;
 
             // Color Controls
             case 'spiral-color-pink':
                 spiralControls.setColorScheme('pink');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'PINK DREAMS');
                 break;
             case 'spiral-color-purple':
                 spiralControls.setColorScheme('purple');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'PURPLE HAZE');
                 break;
             case 'spiral-color-blue':
                 spiralControls.setColorScheme('blue');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'BLUE DEPTH');
                 break;
             case 'spiral-color-rainbow':
                 spiralControls.setColorScheme('rainbow');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'RAINBOW CYCLE');
                 break;
             case 'spiral-color-cycle':
                 spiralControls.randomizeColors();
+                this.dropdownManager.showActionFeedback('SPIRAL', 'COLORS RANDOMIZED');
                 break;
 
             // Geometry Controls
             case 'spiral-geometry-tight':
                 spiralControls.setGeometry('tight');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'TIGHT SPIRALS');
                 break;
             case 'spiral-geometry-normal':
                 spiralControls.setGeometry('normal');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'NORMAL SPIRALS');
                 break;
             case 'spiral-geometry-wide':
                 spiralControls.setGeometry('wide');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'WIDE SPIRALS');
                 break;
 
             // Preset Controls
             case 'spiral-preset-hypnotic':
                 spiralControls.loadPreset('hypnotic');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'HYPNOTIC TRANCE');
                 break;
             case 'spiral-preset-intense':
                 spiralControls.loadPreset('intense');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'INTENSE FOCUS');
                 break;
             case 'spiral-preset-peaceful':
                 spiralControls.loadPreset('peaceful');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'PEACEFUL FLOW');
                 break;
             case 'spiral-preset-chaos':
                 spiralControls.loadPreset('chaos');
+                this.dropdownManager.showActionFeedback('SPIRAL', 'CHAOS MODE');
                 break;
 
             // Alpha/Transparency Controls
             case 'spiral-alpha-low':
                 spiralControls.setAlpha(0.3);
+                this.dropdownManager.showActionFeedback('SPIRAL', 'SUBTLE (30%)');
                 break;
             case 'spiral-alpha-medium':
                 spiralControls.setAlpha(0.7);
+                this.dropdownManager.showActionFeedback('SPIRAL', 'MEDIUM (70%)');
                 break;
             case 'spiral-alpha-high':
                 spiralControls.setAlpha(1.0);
+                this.dropdownManager.showActionFeedback('SPIRAL', 'SOLID (100%)');
                 break;
 
             // Randomizer Controls
             case 'spiral-randomizer-on':
                 spiralControls.enableRandomizer(true);
+                this.dropdownManager.showActionFeedback('SPIRAL', 'AUTO-CHANGE ON');
                 break;
             case 'spiral-randomizer-off':
                 spiralControls.enableRandomizer(false);
+                this.dropdownManager.showActionFeedback('SPIRAL', 'AUTO-CHANGE OFF');
                 break;
 
             // Special Brainwash Mode
             case 'spiral-brainwash-mode':
                 spiralControls.activateBrainwashMode();
+                this.dropdownManager.showActionFeedback('SPIRAL', '🧠 BRAINWASH ACTIVATED 🧠');
                 break;
 
             default:
@@ -183,37 +205,6 @@ export class SpiralDropdown {
         document.dispatchEvent(event);
 
         this.dropdownManager.showToggleFeedback('SPIRAL', newState);
-    }
-
-    showFeedback(message) {
-        // Create floating feedback notification (standardized like other dropdowns)
-        const feedback = document.createElement('div');
-        feedback.className = 'spiral-feedback';
-        feedback.textContent = message;
-        feedback.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--button-color);
-            color: var(--primary-color);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-family: "Audiowide", sans-serif;
-            font-size: 0.7rem;
-            font-weight: bold;
-            z-index: 10000;
-            box-shadow: 0 0 20px var(--button-color);
-            animation: slideInRight 0.3s ease-out, slideOutRight 0.3s ease-in 2.7s;
-            pointer-events: none;
-        `;
-
-        document.body.appendChild(feedback);
-
-        setTimeout(() => {
-            if (feedback && feedback.parentNode) {
-                feedback.parentNode.removeChild(feedback);
-            }
-        }, 3000);
     }
 
     // Get HTML content for the dropdown
@@ -271,11 +262,26 @@ export class SpiralDropdown {
                 </div>
 
                 <!-- Special Brainwash Mode -->
-                <div class="control-section brainwash-section">
-                    <p class="config-label">🌀 ULTIMATE CONTROL 🌀</p>
-                    <a href="#" data-action="spiral-brainwash-mode" class="brainwash-btn">🧠 BRAINWASH MODE 🧠</a>
+                <div class="control-section">
+                    <p class="config-label" style="color: var(--button-color); text-shadow: 0 0 10px var(--button-color);">🌀 ULTIMATE CONTROL 🌀</p>
+                    <a href="#" data-action="spiral-brainwash-mode" style="color: var(--button-color); text-shadow: 0 0 5px var(--button-color); font-weight: bold; animation: pulse 2s infinite;">🧠 BRAINWASH MODE 🧠</a>
                 </div>
             </div>
+            
+            <style>
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                }
+                
+                .spiral-controls .control-section:last-child {
+                    border-top: 1px solid var(--button-color);
+                    margin-top: 10px;
+                    padding-top: 10px;
+                    background: rgba(255, 20, 147, 0.05);
+                    border-radius: var(--border-radius);
+                }
+            </style>
         `;
     }
 

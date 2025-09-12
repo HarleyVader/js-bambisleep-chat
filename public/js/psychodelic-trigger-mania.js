@@ -16,25 +16,25 @@ class SpiralAnimation {
         this.vertexBuffer = null;
         this.locations = {};
 
-        // Psychedelic Control Parameters
+        // Psychedelic Control Parameters (Template-based defaults)
         this.controls = {
-            // Animation Speed Controls
+            // Animation Speed Controls (Template uses frameCount/20 and frameCount/10)
             frameSpeed1: 20,    // frameCount divisor for spiral A
-            frameSpeed2: 20,    // frameCount divisor for spiral B
-            rotationSpeed: 50,  // rotation divisor
+            frameSpeed2: 20,    // frameCount divisor for spiral B  
+            rotationSpeed: 10,  // rotation divisor (template uses frameCount/10)
 
-            // Spiral Geometry Controls
-            spiralA_geometry: 5.7,
-            spiralB_geometry: 0.6,
+            // Spiral Geometry Controls (Template values: a,1 and b,0.3)
+            spiralA_geometry: 1.0,
+            spiralB_geometry: 0.3,
 
-            // Color Controls (RGBA)
+            // Color Controls (Template colors)
             spiralA_color: [199, 0, 199, 1.0],
             spiralB_color: [255, 130, 255, 1.0],
 
-            // Range Controls
+            // Range Controls (Template ranges: 0.5,1.5 and 1,1.5)
             spiralA_range_min: 0.5,
             spiralA_range_max: 1.5,
-            spiralB_range_min: 5.0,
+            spiralB_range_min: 1.0,
             spiralB_range_max: 1.5,
 
             // Visual Effects
@@ -194,7 +194,7 @@ class SpiralAnimation {
         // Set resolution
         gl.uniform2f(this.locations.resolution, this.width, this.height);
 
-        // Calculate animation parameters with configurable controls
+        // Calculate animation parameters using TEMPLATE method
         const a = this.map(Math.sin(this.frameCount / this.controls.frameSpeed1), -1, 1, this.controls.spiralA_range_min, this.controls.spiralA_range_max);
         const b = this.map(Math.cos(this.frameCount / this.controls.frameSpeed2), -1, 1, this.controls.spiralB_range_min, this.controls.spiralB_range_max);
 
@@ -216,7 +216,7 @@ class SpiralAnimation {
         // Check randomizer
         this.updateRandomizer();
 
-        // Draw spirals with configurable parameters
+        // Draw spirals using TEMPLATE approach (step, geometry, color)
         this.spiral(a, this.controls.spiralA_geometry, this.controls.spiralA_color);
         this.spiral(b, this.controls.spiralB_geometry, this.controls.spiralB_color);
 
@@ -230,18 +230,17 @@ class SpiralAnimation {
         this.animationId = requestAnimationFrame(() => this.draw());
     }
 
-    spiral(a, x, d) {
+    spiral(step, ang, colorArray) {
         const gl = this.gl;
 
-        // Generate spiral vertices as a line strip
+        // Generate spiral vertices using template calculation method
         const vertices = [];
         let r1 = 0;
-        const step = a;
 
         for (let i = 0; i < this.controls.iterations; i++) {
-            r1 += step;
-            const ang = x;
-
+            r1 += step; // Simple step increment like template
+            
+            // Calculate spiral position using template formula
             const r1x = r1 * Math.sin(ang * i);
             const r1y = r1 * Math.cos(ang * i);
 
@@ -257,13 +256,13 @@ class SpiralAnimation {
         gl.vertexAttribPointer(this.locations.position, 2, gl.FLOAT, false, 0, 0);
 
         // Set color with alpha support
-        const r = d[0] / 255;
-        const g = d[1] / 255;
-        const b = d[2] / 255;
-        const alpha = d[3] || 1.0; // Alpha channel
+        const r = colorArray[0] / 255;
+        const g = colorArray[1] / 255;
+        const b = colorArray[2] / 255;
+        const alpha = colorArray[3] || 1.0;
         gl.uniform4f(this.locations.color, r, g, b, alpha);
 
-        // Draw as line strip for thin lines
+        // Draw as line strip like original template approach
         gl.drawArrays(gl.LINE_STRIP, 0, vertices.length / 2);
     }
 
@@ -536,16 +535,88 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Export control functions globally for dropdown integration
     window.spiralControls = {
+        // Speed Controls
+        setSpeed: (speed) => {
+            window.spiralAnimation.controls.frameSpeed1 = 20 / speed;
+            window.spiralAnimation.controls.frameSpeed2 = 20 / speed;
+            window.spiralAnimation.controls.rotationSpeed = 50 / speed;
+        },
+
+        // Color Scheme Controls  
+        setColorScheme: (scheme) => {
+            const schemes = {
+                'pink': {
+                    spiralA_color: [255, 20, 147, 0.9],
+                    spiralB_color: [255, 105, 180, 0.8]
+                },
+                'purple': {
+                    spiralA_color: [148, 0, 211, 0.9],
+                    spiralB_color: [138, 43, 226, 0.8]
+                },
+                'blue': {
+                    spiralA_color: [0, 100, 255, 0.9],
+                    spiralB_color: [30, 144, 255, 0.8]
+                },
+                'rainbow': {
+                    spiralA_color: [255, 0, 0, 0.9],
+                    spiralB_color: [0, 255, 0, 0.8]
+                }
+            };
+            if (schemes[scheme]) {
+                Object.assign(window.spiralAnimation.controls, schemes[scheme]);
+            }
+        },
+
+        // Geometry Controls
+        setGeometry: (type) => {
+            const geometries = {
+                'tight': { spiralA_geometry: 8.0, spiralB_geometry: 2.5 },
+                'normal': { spiralA_geometry: 5.7, spiralB_geometry: 0.6 },
+                'wide': { spiralA_geometry: 2.0, spiralB_geometry: 0.3 }
+            };
+            if (geometries[type]) {
+                Object.assign(window.spiralAnimation.controls, geometries[type]);
+            }
+        },
+
+        // Alpha/Transparency Controls
+        setAlpha: (alpha) => {
+            window.spiralAnimation.controls.spiralA_color[3] = alpha;
+            window.spiralAnimation.controls.spiralB_color[3] = alpha;
+        },
+
+        // Randomizer Controls
+        enableRandomizer: (enabled) => {
+            window.spiralAnimation.controls.randomizer.enabled = enabled;
+        },
+
+        // Preset Controls
+        loadPreset: (preset) => window.spiralAnimation.loadPreset(preset),
+
+        // Color Randomizer
+        randomizeColors: () => window.spiralAnimation.randomizeParameters(),
+
+        // Brainwash Mode
+        activateBrainwashMode: () => {
+            // Ultra intense settings
+            window.spiralAnimation.controls.frameSpeed1 = 5;
+            window.spiralAnimation.controls.frameSpeed2 = 7;
+            window.spiralAnimation.controls.rotationSpeed = 3;
+            window.spiralAnimation.controls.spiralA_color = [255, 0, 255, 1.0];
+            window.spiralAnimation.controls.spiralB_color = [255, 255, 0, 1.0];
+            window.spiralAnimation.controls.randomizer.enabled = true;
+            window.spiralAnimation.controls.randomizer.interval = 2000; // 2 seconds
+        },
+
+        // Legacy methods for compatibility
         setSpiralAColor: (r, g, b, a) => window.spiralAnimation.setSpiralAColor(r, g, b, a),
         setSpiralBColor: (r, g, b, a) => window.spiralAnimation.setSpiralBColor(r, g, b, a),
         setFrameSpeed: (spiral, speed) => window.spiralAnimation.setFrameSpeed(spiral, speed),
         setRotationSpeed: (speed) => window.spiralAnimation.setRotationSpeed(speed),
         setSpiralGeometry: (spiral, geometry) => window.spiralAnimation.setSpiralGeometry(spiral, geometry),
         setSpiralRange: (spiral, min, max) => window.spiralAnimation.setSpiralRange(spiral, min, max),
-        enableRandomizer: (interval) => window.spiralAnimation.enableRandomizer(interval),
         disableRandomizer: () => window.spiralAnimation.disableRandomizer(),
         randomizeParameters: () => window.spiralAnimation.randomizeParameters(),
-        loadPreset: (preset) => window.spiralAnimation.loadPreset(preset),
         getControls: () => window.spiralAnimation.getControls()
     };
 });
