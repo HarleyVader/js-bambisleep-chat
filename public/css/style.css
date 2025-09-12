@@ -6,7 +6,7 @@
     --primary-alt: #15aab5E6;
     --secondary-color: #40002fE6;
     --secondary-alt: #cc0174E6;
-    --tertiary-color: #cc0174E6;
+    --tertiary-color: #720241e6;
     --tertiary-alt: #02b893E6;
     --button-color: #df0471E6;
     --button-alt: #110000E6;
@@ -96,6 +96,17 @@ body {
     max-width: 80%;
     text-align: center;
     font-family: 'Audiowide', sans-serif;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.3;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    font-size: 1.76rem;
+    color: var(--tertiary-alt);
+    text-shadow:
+        0 0 10px var(--secondary-alt),
+        0 0 20px var(--secondary-alt),
+        0 0 30px var(--secondary-alt);
 }
 
 .tts-text-display {
