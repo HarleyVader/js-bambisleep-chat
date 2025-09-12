@@ -10,6 +10,67 @@ const path = require('path');
 // Load environment variables
 dotenv.config();
 
+// TTS Configuration
+const config = {
+    KOKORO_API_URL: process.env.KOKORO_API_URL || `http://${process.env.KOKORO_HOST_DEVELOPMENT || process.env.KOKORO_HOST_PRODUCTION || 'localhost'}:${process.env.KOKORO_PORT || 8880}`,
+    KOKORO_API_KEY: process.env.KOKORO_API_KEY,
+    KOKORO_DEFAULT_VOICE: process.env.KOKORO_DEFAULT_VOICE || 'af_sky+af_bella',
+    TTS_TIMEOUT: parseInt(process.env.TTS_TIMEOUT) || 30000
+};
+
+// Configuration validation and setup
+function validateConfiguration() {
+    console.log('🔧 Validating configuration...');
+
+    const warnings = [];
+    const errors = [];
+
+    // Check required environment variables
+    if (!process.env.PORT && !process.env.port) {
+        warnings.push('PORT not set, using default 6969');
+    }
+
+    // Validate Kokoro TTS configuration
+    const kokoroHost = process.env.KOKORO_HOST_DEVELOPMENT || process.env.KOKORO_HOST_PRODUCTION;
+    const kokoroPort = process.env.KOKORO_PORT;
+
+    if (!kokoroHost) {
+        warnings.push('Kokoro TTS host not configured - TTS will be limited to Web Speech API');
+    }
+
+    if (!kokoroPort) {
+        warnings.push('Kokoro TTS port not set, using default 8880');
+    }
+
+    // Validate LM Studio configuration
+    if (!process.env.LMS_HOST) {
+        warnings.push('LM Studio host not configured, using default localhost');
+    }
+
+    if (!process.env.LMS_PORT) {
+        warnings.push('LM Studio port not configured, using default 1234');
+    }
+
+    // Log warnings
+    warnings.forEach(warning => console.warn('⚠️ ', warning));
+
+    // Log errors and exit if critical
+    if (errors.length > 0) {
+        errors.forEach(error => console.error('❌', error));
+        console.error('💥 Configuration validation failed. Please check your .env file.');
+        process.exit(1);
+    }
+
+    console.log('✅ Configuration validation completed');
+
+    return {
+        warnings: warnings.length,
+        errors: errors.length,
+        ttsAvailable: !!kokoroHost,
+        lmStudioConfigured: !!(process.env.LMS_HOST || process.env.LMS_PORT)
+    };
+}
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -18,6 +79,9 @@ const io = new Server(server, {
         methods: ["GET", "POST"]
     }
 });
+
+// Validate configuration on startup
+const configStatus = validateConfiguration();
 
 // Middleware
 app.use(express.json());
@@ -227,6 +291,9 @@ function handleKokoroWorkerMessage(msg) {
 // Initialize workers on startup
 initializeLMWorker();
 initializeKokoroWorker();
+
+// Setup TTS Routes with configuration validation
+setupTTSRoutes(app, configStatus);
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
@@ -442,7 +509,13 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        users: connectedUsers
+        users: connectedUsers,
+        configuration: {
+            ttsAvailable: configStatus.ttsAvailable,
+            lmStudioConfigured: configStatus.lmStudioConfigured,
+            warnings: configStatus.warnings,
+            errors: configStatus.errors
+        }
     });
 });
 
@@ -593,76 +666,209 @@ app.get('/api/collar', (req, res) => {
     });
 });
 
-// Text-to-Speech endpoint with Kokoro integration
-app.post('/api/tts', (req, res) => {
-    const { text, voice, format } = req.body;
+// Setup TTS Routes with configuration validation
+function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
+    // Check if Kokoro API is configured
+    if (!config.KOKORO_API_URL || !kokoroWorker || !configStatus.ttsAvailable) {
+        console.warn('🎤 Kokoro API or worker not configured, TTS routes will return 503');
 
-    if (!text || typeof text !== 'string') {
-        return res.status(400).json({ error: 'Invalid text input' });
-    }
-
-    if (!kokoroWorker) {
-        return res.status(503).json({
-            error: 'Kokoro TTS worker not available',
-            message: 'TTS service is currently unavailable. Please ensure Kokoro-FastAPI is running on port 8880.'
+        // Return service unavailable for all TTS endpoints
+        app.get('/api/tts/voices', (req, res) => {
+            res.status(503).json({
+                error: 'TTS service not configured',
+                message: 'Kokoro TTS worker is not available or properly configured.',
+                fallback: 'Web Speech API may be available in browser'
+            });
         });
+
+        app.get('/api/tts', (req, res) => {
+            res.status(503).json({
+                error: 'TTS service not configured',
+                message: 'Kokoro TTS worker is not available or properly configured.',
+                fallback: 'Please use Web Speech API or configure Kokoro TTS'
+            });
+        });
+
+        app.post('/api/tts', (req, res) => {
+            res.status(503).json({
+                error: 'TTS service not configured',
+                message: 'Kokoro TTS worker is not available or properly configured.',
+                fallback: 'Please use Web Speech API or configure Kokoro TTS'
+            });
+        });
+
+        return;
     }
 
-    // Generate a temporary socket ID for API requests
-    const tempSocketId = `api_tts_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Get voice list
+    app.get('/api/tts/voices', async (req, res) => {
+        try {
+            const femaleVoices = [
+                'af_sky',
+                'af_bella',
+                'af_sarah',
+                'af_nicole',
+                'af_alloy'
+            ];
 
-    console.log(`🎤 API TTS request: "${text.substring(0, 50)}..." with voice: ${voice || 'default'}`);
+            const maleBanned = [
+                'am_adam',
+                'am_michael'
+            ];
 
-    // Send to Kokoro worker
-    kokoroWorker.postMessage({
-        type: 'tts',
-        text: text,
-        voice: voice,
-        format: format || 'mp3',
-        socketId: tempSocketId
+            // Generate all possible combinations (maximum 2 voices)
+            const voiceCombinations = [];
+
+            // Add individual voices
+            femaleVoices.forEach(voice => {
+                voiceCombinations.push({
+                    value: voice,
+                    name: voice.replace('af_', '').replace(/^\w/, c => c.toUpperCase()),
+                    type: 'single',
+                    voices: [voice]
+                });
+            });
+
+            // Add dual combinations
+            for (let i = 0; i < femaleVoices.length; i++) {
+                for (let j = i + 1; j < femaleVoices.length; j++) {
+                    const combination = `${femaleVoices[i]}+${femaleVoices[j]}`;
+                    const name1 = femaleVoices[i].replace('af_', '').replace(/^\w/, c => c.toUpperCase());
+                    const name2 = femaleVoices[j].replace('af_', '').replace(/^\w/, c => c.toUpperCase());
+
+                    voiceCombinations.push({
+                        value: combination,
+                        name: `${name1} + ${name2}`,
+                        type: 'combination',
+                        voices: [femaleVoices[i], femaleVoices[j]]
+                    });
+                }
+            }
+
+            res.json({
+                voices: voiceCombinations,
+                femaleOnly: femaleVoices,
+                bannedMaleVoices: maleBanned,
+                defaultVoice: config.KOKORO_DEFAULT_VOICE,
+                description: 'Available Kokoro TTS female voices. BambiSleep enforces female-only voices. Use + to combine up to 2 voices.',
+                maxCombination: 2,
+                language: 'en',
+                timestamp: new Date().toISOString()
+            });
+        } catch (error) {
+            console.error(`🎤 Voice listing error: ${error.message}`);
+            res.status(500).json({
+                error: 'Error fetching voice list',
+                details: process.env.NODE_ENV === 'production' ? null : error.message
+            });
+        }
     });
 
-    // Set a timeout to respond
-    const timeout = setTimeout(() => {
+    // Generate speech (GET method for compatibility)
+    app.get('/api/tts', async (req, res) => {
+        const text = req.query.text;
+        const voice = req.query.voice || config.KOKORO_DEFAULT_VOICE;
+
+        if (typeof text !== 'string' || text.trim() === '') {
+            return res.status(400).json({ error: 'Invalid input: text must be a non-empty string' });
+        }
+
+        try {
+            await generateTTSAudio(text, voice, res);
+        } catch (error) {
+            handleTTSError(error, res);
+        }
+    });
+
+    // Generate speech (POST method)
+    app.post('/api/tts', async (req, res) => {
+        const { text, voice, format } = req.body;
+        const selectedVoice = voice || config.KOKORO_DEFAULT_VOICE;
+
+        if (!text || typeof text !== 'string') {
+            return res.status(400).json({ error: 'Invalid text input' });
+        }
+
+        try {
+            await generateTTSAudio(text, selectedVoice, res, format);
+        } catch (error) {
+            handleTTSError(error, res);
+        }
+    });
+
+    console.log('🎤 TTS routes configured with Kokoro integration');
+}
+
+// Generate TTS audio using Kokoro worker
+async function generateTTSAudio(text, voice, res, format = 'mp3') {
+    return new Promise((resolve, reject) => {
+        // Generate a temporary socket ID for API requests
+        const tempSocketId = `api_tts_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        console.log(`🎤 API TTS request: "${text.substring(0, 50)}..." with voice: ${voice}`);
+
+        // Send to Kokoro worker
+        kokoroWorker.postMessage({
+            type: 'tts',
+            text: text,
+            voice: voice,
+            format: format,
+            socketId: tempSocketId
+        });
+
+        // Set a timeout to respond
+        const timeout = setTimeout(() => {
+            reject(new Error('TTS generation timeout'));
+        }, config.TTS_TIMEOUT);
+
+        // Listen for worker response
+        const originalHandler = handleKokoroWorkerMessage;
+        handleKokoroWorkerMessage = (msg) => {
+            if (msg.socketId === tempSocketId) {
+                clearTimeout(timeout);
+
+                if (msg.type === 'tts_success') {
+                    // Convert base64 to buffer and send as audio
+                    const audioBuffer = Buffer.from(msg.audioData, 'base64');
+
+                    res.setHeader('Content-Type', 'audio/mpeg');
+                    res.setHeader('Cache-Control', 'no-cache');
+                    res.setHeader('Content-Length', audioBuffer.length);
+
+                    res.send(audioBuffer);
+                    resolve();
+                } else if (msg.type === 'error') {
+                    reject(new Error(msg.error));
+                }
+
+                handleKokoroWorkerMessage = originalHandler;
+            } else {
+                originalHandler(msg);
+            }
+        };
+    });
+}
+
+// Handle TTS errors
+function handleTTSError(error, res) {
+    console.error('🎤 TTS Error:', error.message);
+
+    if (error.message.includes('timeout')) {
         res.status(504).json({
             error: 'TTS generation timeout',
             message: 'The text-to-speech generation took too long. Please try again with shorter text.'
         });
-    }, 30000);
+    } else {
+        res.status(500).json({
+            error: 'TTS generation failed',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+}
 
-    // Listen for worker response (simplified for API)
-    const originalHandler = handleKokoroWorkerMessage;
-    handleKokoroWorkerMessage = (msg) => {
-        if (msg.socketId === tempSocketId) {
-            clearTimeout(timeout);
-
-            if (msg.type === 'tts_success') {
-                res.json({
-                    success: true,
-                    audioData: msg.audioData,
-                    format: msg.format,
-                    voice: msg.voice,
-                    text: msg.text,
-                    size: msg.size,
-                    timestamp: msg.timestamp
-                });
-            } else if (msg.type === 'error') {
-                res.status(500).json({
-                    error: 'TTS generation failed',
-                    message: msg.error,
-                    timestamp: msg.timestamp
-                });
-            }
-
-            handleKokoroWorkerMessage = originalHandler;
-        } else {
-            originalHandler(msg);
-        }
-    };
-});
-
-// TTS Health check endpoint
-app.get('/api/tts/health', (req, res) => {
+// TTS Health check endpoint (enhanced)
+app.get('/api/tts/health', async (req, res) => {
     if (!kokoroWorker) {
         return res.status(503).json({
             healthy: false,
@@ -676,21 +882,51 @@ app.get('/api/tts/health', (req, res) => {
         type: 'health'
     });
 
-    // Simple response for now - in production, wait for worker response
+    // Determine correct Kokoro host based on NODE_ENV
+    let kokoroHost;
+    if (process.env.NODE_ENV === 'production') {
+        kokoroHost = process.env.KOKORO_HOST_PRODUCTION || process.env.KOKORO_HOST_DEVELOPMENT || 'localhost';
+    } else {
+        kokoroHost = process.env.KOKORO_HOST_DEVELOPMENT || process.env.KOKORO_HOST_PRODUCTION || 'localhost';
+    }
+    const kokoroPort = process.env.KOKORO_PORT || 8880;
+
     res.json({
         healthy: true,
         service: 'Kokoro TTS',
-        url: 'http://localhost:8880',
+        url: `http://${kokoroHost}:${kokoroPort}`,
+        config: config.KOKORO_API_URL,
+        defaultVoice: config.KOKORO_DEFAULT_VOICE,
+        timeout: config.TTS_TIMEOUT,
         timestamp: new Date().toISOString()
     });
 });
 
-// TTS Voice management endpoint
+// TTS Voice management endpoint (enhanced)
 app.post('/api/tts/voice', (req, res) => {
     const { voice } = req.body;
 
     if (!voice || typeof voice !== 'string') {
         return res.status(400).json({ error: 'Invalid voice parameter' });
+    }
+
+    // Validate that the voice is female only
+    const femaleVoices = ['af_alloy', 'af_aoede', 'af_bella', 'af_heart', 'af_jadzia', 'af_jessica', 'af_kore', 'af_nicole', 'af_nova', 'af_river', 'af_sarah', 'af_sky'];
+    const voiceParts = voice.split('+');
+
+    for (const voicePart of voiceParts) {
+        if (!femaleVoices.includes(voicePart.trim())) {
+            return res.status(400).json({
+                error: 'Invalid voice selection - only female voices are allowed',
+                allowedVoices: femaleVoices
+            });
+        }
+    }
+
+    if (voiceParts.length > 2) {
+        return res.status(400).json({
+            error: 'Voice combination limited to maximum 2 voices'
+        });
     }
 
     if (!kokoroWorker) {
@@ -707,62 +943,6 @@ app.post('/api/tts/voice', (req, res) => {
     res.json({
         success: true,
         voice: voice,
-        timestamp: new Date().toISOString()
-    });
-});
-
-// TTS Voice list endpoint with enhanced female voice combinations
-app.get('/api/tts/voices', (req, res) => {
-    const femaleVoices = [
-        'af_sky',
-        'af_bella',
-        'af_sarah',
-        'af_nicole',
-        'af_alloy'
-    ];
-
-    const maleBanned = [
-        'am_adam',
-        'am_michael'
-    ];
-
-    // Generate all possible combinations (maximum 2 voices)
-    const voiceCombinations = [];
-
-    // Add individual voices
-    femaleVoices.forEach(voice => {
-        voiceCombinations.push({
-            value: voice,
-            name: voice.replace('af_', '').replace(/^\w/, c => c.toUpperCase()),
-            type: 'single',
-            voices: [voice]
-        });
-    });
-
-    // Add dual combinations
-    for (let i = 0; i < femaleVoices.length; i++) {
-        for (let j = i + 1; j < femaleVoices.length; j++) {
-            const combination = `${femaleVoices[i]}+${femaleVoices[j]}`;
-            const name1 = femaleVoices[i].replace('af_', '').replace(/^\w/, c => c.toUpperCase());
-            const name2 = femaleVoices[j].replace('af_', '').replace(/^\w/, c => c.toUpperCase());
-
-            voiceCombinations.push({
-                value: combination,
-                name: `${name1} + ${name2}`,
-                type: 'combination',
-                voices: [femaleVoices[i], femaleVoices[j]]
-            });
-        }
-    }
-
-    res.json({
-        voices: voiceCombinations,
-        femaleOnly: femaleVoices,
-        bannedMaleVoices: maleBanned,
-        defaultVoice: 'af_sky+af_bella',
-        description: 'Available Kokoro TTS female voices. BambiSleep enforces female-only voices. Use + to combine up to 2 voices.',
-        maxCombination: 2,
-        language: 'en',
         timestamp: new Date().toISOString()
     });
 });

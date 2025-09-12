@@ -1,7 +1,9 @@
 /**
  * TTS Dropdown Component for BambiSleep Chat
- * Handles text-to-speech dropdown functionality
+ * Handles TTS system dropdown functionality
  */
+
+import { StorageUtils } from '../storage-utils.js';
 
 export class TTSDropdown {
     constructor(dropdownManager) {
@@ -22,15 +24,41 @@ export class TTSDropdown {
 
     loadSavedState() {
         // Load saved TTS state from localStorage
-        const savedState = localStorage.getItem('bambi-tts-state');
+        const savedState = StorageUtils.getItem('bambi-tts-state');
+
+        // Also sync with TTS system state if available
+        const ttsSystem = this.getTTSSystem();
+
         if (savedState) {
             try {
-                const state = JSON.parse(savedState);
-                this.setState(state);
-                console.log('📋 Loading saved TTS state:', state);
+                // savedState is already parsed by StorageUtils
+                this.setState(savedState);
+                console.log('📋 Loading saved TTS dropdown state:', savedState);
             } catch (e) {
                 console.warn('⚠️ Failed to load TTS state:', e);
             }
+        }
+
+        // Sync with TTS system state (enhanced integration)
+        if (ttsSystem) {
+            // Sync voice selection
+            if (ttsSystem.selectedVoices && Array.isArray(ttsSystem.selectedVoices)) {
+                this.selectedVoices = [...ttsSystem.selectedVoices];
+            }
+
+            // Sync current voice
+            if (ttsSystem.getCurrentVoice) {
+                this.currentVoice = ttsSystem.getCurrentVoice();
+            } else if (ttsSystem.currentVoice) {
+                this.currentVoice = ttsSystem.currentVoice;
+            }
+
+            // Sync speed
+            if (typeof ttsSystem.speed === 'number') {
+                this.currentSpeed = ttsSystem.speed;
+            }
+
+            console.log('🔗 Synced dropdown state with TTS system');
         }
     }
 
@@ -101,8 +129,15 @@ export class TTSDropdown {
     setVoice(voiceName) {
         const ttsSystem = this.getTTSSystem();
         if (ttsSystem) {
+            // Use enhanced voice selection method
             ttsSystem.setVoice(voiceName);
             this.currentVoice = voiceName;
+
+            // Update selectedVoices to match TTS system
+            if (ttsSystem.selectedVoices) {
+                this.selectedVoices = [...ttsSystem.selectedVoices];
+            }
+
             this.dropdownManager.showActionFeedback('TTS', 'VOICE: ' + voiceName.toUpperCase());
             this.saveState();
         } else {
@@ -147,7 +182,14 @@ export class TTSDropdown {
     }
 
     clearSelection() {
-        // Clear all selected voices
+        const ttsSystem = this.getTTSSystem();
+
+        // Clear selection in TTS system first
+        if (ttsSystem && ttsSystem.clearVoiceSelection) {
+            ttsSystem.clearVoiceSelection();
+        }
+
+        // Clear local selection
         this.selectedVoices = [];
         this.currentVoice = 'af_bella'; // Reset to default
 
@@ -170,16 +212,23 @@ export class TTSDropdown {
         btn.setAttribute('data-state', newState);
         btn.textContent = `TTS: ${newState.toUpperCase()}`;
 
-        // Enable/disable TTS system
+        // Enable/disable TTS system using enhanced methods
         const ttsSystem = this.getTTSSystem();
         if (ttsSystem) {
             if (newState === 'on') {
                 if (ttsSystem.enable) {
                     ttsSystem.enable();
+                } else {
+                    ttsSystem.isEnabled = true;
                 }
             } else {
                 if (ttsSystem.disable) {
                     ttsSystem.disable();
+                } else {
+                    ttsSystem.isEnabled = false;
+                    if (ttsSystem.stop) {
+                        ttsSystem.stop();
+                    }
                 }
             }
         } else {
@@ -233,7 +282,7 @@ export class TTSDropdown {
     saveState() {
         // Save current state to localStorage
         const state = this.getState();
-        localStorage.setItem('bambi-tts-state', JSON.stringify(state));
+        StorageUtils.setItem('bambi-tts-state', state);
         console.log('💾 TTS state saved to localStorage');
     }
 
@@ -341,11 +390,18 @@ export class TTSDropdown {
     }
 
     handleVoiceClick(button, voiceName) {
+        const ttsSystem = this.getTTSSystem();
+
         // Check if voice is already selected
         if (this.selectedVoices.includes(voiceName)) {
-            // Remove voice
+            // Remove voice from both dropdown and TTS system
             this.selectedVoices = this.selectedVoices.filter(voice => voice !== voiceName);
             button.classList.remove('active');
+
+            if (ttsSystem && ttsSystem.removeVoice) {
+                ttsSystem.removeVoice(voiceName);
+            }
+
             this.showFeedback('VOICE REMOVED: ' + voiceName.toUpperCase());
         } else {
             // Add voice (max 2)
@@ -353,20 +409,29 @@ export class TTSDropdown {
                 this.showFeedback('MAX 2 VOICES ALLOWED');
                 return;
             }
+
             this.selectedVoices.push(voiceName);
             button.classList.add('active');
+
+            if (ttsSystem && ttsSystem.addVoice) {
+                ttsSystem.addVoice(voiceName);
+            }
+
             this.showFeedback('VOICE ADDED: ' + voiceName.toUpperCase());
         }
 
         // Update current voice (combined string or single)
         if (this.selectedVoices.length > 0) {
             this.currentVoice = this.selectedVoices.join('+');
-            this.setVoice(this.currentVoice);
+            // TTS system will be updated automatically through addVoice/removeVoice
         } else {
             this.currentVoice = 'af_bella'; // Default
+            if (ttsSystem && ttsSystem.setVoice) {
+                ttsSystem.setVoice(this.currentVoice);
+            }
         }
 
-        // Update display
+        // Update display and save state
         this.updateVoiceDisplay();
         this.saveState();
     }

@@ -6,15 +6,24 @@ class TextToSpeechSystem {
         this.textArray = []; // Synchronized text queue for spiral display
         this.audioArray = []; // Audio URL queue for playback
         this.isPlaying = false;
-        this.state = false; // TTS state machine for synchronization
+        this.state = true; // TTS state machine for synchronization (true = ready to start)
         this.audioContext = null;
         this.currentAudio = null;
         this.currentText = ''; // Currently playing text
+        this.currentAudioUrl = null; // Track current blob URL for cleanup
         this.volume = 0.7;
         this.speed = 1.0; // Default speed setting
         this.socket = null;
         this.useKokoro = true; // Prefer Kokoro over Web Speech API
-        this.currentVoice = 'af_sky+af_bella'; // Default FEMALE Kokoro voice - BambiSleep is a GIRL!
+        this.currentVoice = 'af_bella'; // Default FEMALE Kokoro voice - BambiSleep is a GIRL!
+
+        // ENHANCED VOICE SELECTION - Integrated from TTS Dropdown
+        this.selectedVoices = []; // Track multiple selected voices (max 2)
+        this.maxVoices = 2; // Maximum number of voices that can be selected
+        this.availableVoices = [
+            'af_alloy', 'af_aoede', 'af_bella', 'af_heart', 'af_jadzia', 'af_jessica',
+            'af_kore', 'af_nicole', 'af_nova', 'af_river', 'af_sarah', 'af_sky'
+        ];
 
         this.init();
     }
@@ -28,6 +37,9 @@ class TextToSpeechSystem {
 
         // Create audio element for playback
         this.initAudioElement();
+
+        // ENHANCED: Load saved voice state
+        this.loadVoiceState();
     }
 
     initAudioContext() {
@@ -147,12 +159,36 @@ class TextToSpeechSystem {
         this.currentAudio.addEventListener('error', (e) => this.handleAudioError(e));
     }
 
+    // ENHANCED: Toggle with state persistence
     toggle() {
         this.isEnabled = !this.isEnabled;
         if (!this.isEnabled) {
             this.stop();
             this.clearQueue();
         }
+
+        // Save state when toggled
+        this.saveVoiceState();
+
+        console.log('🎤 TTS', this.isEnabled ? 'ENABLED' : 'DISABLED');
+        return this.isEnabled;
+    }
+
+    // ENHANCED: Enable TTS
+    enable() {
+        this.isEnabled = true;
+        this.saveVoiceState();
+        console.log('🎤 TTS ENABLED');
+        return this.isEnabled;
+    }
+
+    // ENHANCED: Disable TTS
+    disable() {
+        this.isEnabled = false;
+        this.stop();
+        this.clearQueue();
+        this.saveVoiceState();
+        console.log('🎤 TTS DISABLED');
         return this.isEnabled;
     }
 
@@ -174,8 +210,8 @@ class TextToSpeechSystem {
             }
         });
 
-        // Start processing if not already playing
-        if (!this.isPlaying && !this.state) {
+        // Start processing if not already playing (original pattern: state=true means ready)
+        if (!this.isPlaying && this.state) {
             this.processTextQueue();
         }
     }
@@ -195,8 +231,8 @@ class TextToSpeechSystem {
 
         console.log('🎤 Added', this.textArray.length, 'sentences to TTS queue');
 
-        // Start processing if not already playing
-        if (!this.isPlaying && !this.state) {
+        // Start processing if not already playing (original pattern: state=true means ready)
+        if (!this.isPlaying && this.state) {
             this.processTextQueue();
         }
     }
@@ -219,20 +255,26 @@ class TextToSpeechSystem {
 
         console.log('🎤 Processing text:', this.currentText);
 
-        // Add to audio queue and request TTS
+        // Add to audio queue and use do_tts like original working version
         this.arrayPush(this.audioArray, this.currentText);
-        this.requestTTS(this.currentText);
+        this.do_tts(this.audioArray); // CRITICAL: Use do_tts() not requestTTS()
     }
 
-    // Core synchronization function from tts.js - MUST BE EXACTLY AS IT IS
+    // Core synchronization function - RESTORED TO ORIGINAL WORKING PATTERN
     handleAudioEnded() {
         console.log('🎤 Audio ended, processing next in queue');
+
+        // Cleanup current audio URL
+        if (this.currentAudioUrl) {
+            URL.revokeObjectURL(this.currentAudioUrl);
+            this.currentAudioUrl = null;
+        }
 
         if (this.textArray.length > 0) {
             this.state = false;
             this.currentText = this.textArray.shift();
             this.arrayPush(this.audioArray, this.currentText);
-            this.requestTTS(this.currentText);
+            this.do_tts(this.audioArray); // CRITICAL: Use do_tts() like original, not requestTTS()
         } else if (this.textArray.length === 0) {
             this.state = true;
             this.isPlaying = false;
@@ -254,14 +296,21 @@ class TextToSpeechSystem {
     handleAudioError(e) {
         console.error('🎤 Audio error:', e);
 
-        // Clean up and continue with next item
-        this.cleanupCurrentAudio();
+        // Cleanup current audio URL
+        if (this.currentAudioUrl) {
+            URL.revokeObjectURL(this.currentAudioUrl);
+            this.currentAudioUrl = null;
+        }
 
-        if (this.textArray.length > 0 || this.audioArray.length > 0) {
-            setTimeout(() => this.processTextQueue(), 500);
+        // Continue with next item using original pattern
+        if (this.textArray.length > 0) {
+            this.state = false;
+            this.currentText = this.textArray.shift();
+            this.arrayPush(this.audioArray, this.currentText);
+            this.do_tts(this.audioArray);
         } else {
             this.isPlaying = false;
-            this.state = false;
+            this.state = true;
         }
     }
 
@@ -425,13 +474,13 @@ class TextToSpeechSystem {
         }
     }
 
-    // Array management functions from tts.js template
+    // Array management functions from tts.js template - UPGRADED
     arrayPush(array, text) {
         if (this.currentAudio) {
             this.currentAudio.hidden = true;
         }
 
-        // Create URL for Kokoro TTS request
+        // Use improved URL format with better encoding
         let URL = `/api/tts?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(this.currentVoice)}`;
         array.push(URL);
     }
@@ -445,7 +494,119 @@ class TextToSpeechSystem {
         return undefined;
     }
 
-    // Voice management with strict female-only validation
+    // UPGRADED: Enhanced TTS processing with better error handling and blob management
+    async do_tts(array) {
+        const messageEl = document.querySelector("#message");
+        if (messageEl) messageEl.textContent = "Synthesizing...";
+
+        let currentURL = this.arrayShift(array);
+        if (!currentURL) return;
+
+        let retries = 2; // Number of retry attempts
+        let audioUrl = null; // Track the blob URL for cleanup
+
+        while (retries >= 0) {
+            try {
+                // Fetch the audio from the server
+                const response = await fetch(currentURL, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'audio/mpeg' // Expect MP3 format
+                    }
+                });
+
+                if (!response.ok) {
+                    if (retries > 0) {
+                        console.log(`🎤 Retrying TTS request (${retries} attempts left)...`);
+                        retries--;
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+                        continue;
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                // Get audio data as blob
+                const audioBlob = await response.blob();
+
+                // Create object URL from blob
+                audioUrl = URL.createObjectURL(audioBlob);
+
+                // Set audio source to blob URL
+                if (this.currentAudio) {
+                    this.currentAudio.src = audioUrl;
+                    console.log("🎤 Audio source set:", audioUrl);
+
+                    this.currentAudio.load();
+
+                    // Set up event handlers - CRITICAL: Use class methods for proper synchronization
+                    this.currentAudio.onloadedmetadata = () => {
+                        console.log("🎤 Audio metadata loaded, duration:", this.currentAudio.duration);
+                        if (messageEl) messageEl.textContent = "Playing...";
+                        this.currentAudio.play().catch(e => {
+                            console.error("🎤 Error playing audio:", e);
+                            if (messageEl) messageEl.textContent = "Error playing audio: " + e.message;
+
+                            // Cleanup on play error
+                            if (audioUrl) {
+                                URL.revokeObjectURL(audioUrl);
+                                audioUrl = null;
+                            }
+
+                            // Use class method for proper queue handling
+                            this.handleAudioError(e);
+                        });
+                    };
+
+                    // CRITICAL: Remove inline event handlers and rely on setupAudioListeners() class methods
+                    // The class methods handleAudioEnded() and handleAudioPlay() are properly set up in setupAudioListeners()
+
+                    // Store current audioUrl for cleanup
+                    this.currentAudioUrl = audioUrl;
+                }
+
+                break; // Exit the retry loop on success
+
+            } catch (error) {
+                if (retries <= 0) {
+                    console.error("🎤 Fetch error:", error);
+                    if (messageEl) messageEl.textContent = "Error fetching audio: " + error.message;
+
+                    // Cleanup on fetch error
+                    if (audioUrl) {
+                        URL.revokeObjectURL(audioUrl);
+                        audioUrl = null;
+                    }
+
+                    // Process next item in queue if any
+                    if (array.length > 0) {
+                        this.do_tts(array);
+                    }
+                } else {
+                    retries--;
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+                }
+            }
+        }
+    }
+
+    // UPGRADED: Enhanced voice fetching with better error handling
+    async fetchAvailableVoices() {
+        try {
+            const response = await fetch('/api/tts/voices');
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log('🎤 Available voices loaded:', data.voices?.length || 0);
+            return data.voices || data; // Handle both new and legacy formats
+        } catch (error) {
+            console.error("🎤 Error fetching available voices:", error);
+            // Return fallback female voices if API fails
+            return this.getFemaleVoices();
+        }
+    }
+
+    // Voice management with strict female-only validation and ENHANCED SELECTION
     setVoice(voice) {
         if (voice && typeof voice === 'string') {
             // Validate that it's not a male voice pattern for Web Speech API
@@ -455,13 +616,186 @@ class TextToSpeechSystem {
                 return;
             }
 
+            // Enhanced voice setting - handle combinations and individual voices
             this.currentVoice = voice;
-            console.log('✅ Voice set to:', voice);
+
+            // Update selectedVoices array based on current voice
+            if (voice.includes('+')) {
+                // Voice combination (e.g., "af_sky+af_bella")
+                this.selectedVoices = voice.split('+').filter(v => v.trim().length > 0);
+            } else {
+                // Single voice
+                this.selectedVoices = [voice];
+            }
+
+            // Validate voice selection constraints
+            this.validateAndCleanVoiceSelection();
+
+            // Update global currentVoice like original working implementation
+            window.currentVoice = this.currentVoice;
+            console.log('✅ Voice set to:', voice, '| Selected voices:', this.selectedVoices);
 
             // Update voice on server if socket available
             if (this.socket) {
                 this.socket.emit('set-voice', { voice: voice });
             }
+
+            // Save state for persistence
+            this.saveVoiceState();
+        }
+    }
+
+    // ENHANCED: Add/remove individual voices (from dropdown methodology)
+    addVoice(voiceName) {
+        if (!voiceName || typeof voiceName !== 'string') {
+            console.warn('Invalid voice name:', voiceName);
+            return false;
+        }
+
+        // Check if voice is already selected
+        if (this.selectedVoices.includes(voiceName)) {
+            console.log('Voice already selected:', voiceName);
+            return false;
+        }
+
+        // Check max voices limit
+        if (this.selectedVoices.length >= this.maxVoices) {
+            console.warn(`Maximum ${this.maxVoices} voices allowed`);
+            return false;
+        }
+
+        // Validate it's a female voice
+        if (!this.availableVoices.includes(voiceName)) {
+            console.error('Invalid or non-female voice:', voiceName);
+            return false;
+        }
+
+        // Add voice
+        this.selectedVoices.push(voiceName);
+        this.updateCurrentVoiceFromSelection();
+        console.log('✅ Voice added:', voiceName, '| Selected:', this.selectedVoices);
+
+        return true;
+    }
+
+    // ENHANCED: Remove individual voice
+    removeVoice(voiceName) {
+        const index = this.selectedVoices.indexOf(voiceName);
+        if (index === -1) {
+            console.log('Voice not found in selection:', voiceName);
+            return false;
+        }
+
+        this.selectedVoices.splice(index, 1);
+        this.updateCurrentVoiceFromSelection();
+        console.log('✅ Voice removed:', voiceName, '| Selected:', this.selectedVoices);
+
+        return true;
+    }
+
+    // ENHANCED: Clear all voice selection
+    clearVoiceSelection() {
+        this.selectedVoices = [];
+        this.currentVoice = 'af_bella'; // Reset to default
+        window.currentVoice = this.currentVoice;
+        this.saveVoiceState();
+        console.log('🗑️ Voice selection cleared, reset to default');
+    }
+
+    // ENHANCED: Update currentVoice from selectedVoices array
+    updateCurrentVoiceFromSelection() {
+        if (this.selectedVoices.length === 0) {
+            this.currentVoice = 'af_bella'; // Default fallback
+        } else if (this.selectedVoices.length === 1) {
+            this.currentVoice = this.selectedVoices[0];
+        } else {
+            this.currentVoice = this.selectedVoices.join('+');
+        }
+
+        // Update global reference
+        window.currentVoice = this.currentVoice;
+        this.saveVoiceState();
+    }
+
+    // ENHANCED: Validate and clean voice selection
+    validateAndCleanVoiceSelection() {
+        // Remove any invalid voices
+        this.selectedVoices = this.selectedVoices.filter(voice =>
+            this.availableVoices.includes(voice)
+        );
+
+        // Enforce max voices limit
+        if (this.selectedVoices.length > this.maxVoices) {
+            console.warn(`Too many voices selected, keeping first ${this.maxVoices}`);
+            this.selectedVoices = this.selectedVoices.slice(0, this.maxVoices);
+        }
+
+        // Update currentVoice to match cleaned selection
+        this.updateCurrentVoiceFromSelection();
+    }
+
+    // ENHANCED: Get current voice display string (from dropdown methodology)
+    getCurrentVoiceDisplay() {
+        if (this.selectedVoices.length === 0) {
+            return 'None';
+        } else if (this.selectedVoices.length === 1) {
+            return this.selectedVoices[0];
+        } else {
+            return this.selectedVoices.join(' + ');
+        }
+    }
+
+    // ENHANCED: State persistence
+    saveVoiceState() {
+        const state = {
+            currentVoice: this.currentVoice,
+            selectedVoices: this.selectedVoices,
+            speed: this.speed,
+            isEnabled: this.isEnabled
+        };
+
+        try {
+            localStorage.setItem('bambi-tts-voice-state', JSON.stringify(state));
+            console.log('💾 TTS voice state saved');
+        } catch (e) {
+            console.warn('Failed to save TTS voice state:', e);
+        }
+    }
+
+    // ENHANCED: Load saved state
+    loadVoiceState() {
+        try {
+            const saved = localStorage.getItem('bambi-tts-voice-state');
+            if (saved) {
+                const state = JSON.parse(saved);
+
+                if (state.selectedVoices && Array.isArray(state.selectedVoices)) {
+                    this.selectedVoices = state.selectedVoices;
+                }
+
+                if (state.currentVoice) {
+                    this.currentVoice = state.currentVoice;
+                    window.currentVoice = this.currentVoice;
+                }
+
+                if (typeof state.speed === 'number') {
+                    this.speed = state.speed;
+                }
+
+                if (typeof state.isEnabled === 'boolean') {
+                    this.isEnabled = state.isEnabled;
+                }
+
+                // Validate loaded state
+                this.validateAndCleanVoiceSelection();
+
+                console.log('📋 TTS voice state loaded:', state);
+            }
+        } catch (e) {
+            console.warn('Failed to load TTS voice state:', e);
+            // Fallback to defaults
+            this.selectedVoices = [];
+            this.currentVoice = 'af_bella';
         }
     }
 
@@ -919,18 +1253,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.head.appendChild(style);
     }
 
-    // Export legacy functions for compatibility with existing code
+    // Export legacy functions for compatibility with existing code - UPGRADED
     window.do_tts = function (array) {
         if (window.ttsSystem && array && array.length > 0) {
-            const url = window.ttsSystem.arrayShift(array);
-            if (url) {
-                // Extract text from URL parameter
-                const urlParams = new URLSearchParams(url.split('?')[1]);
-                const text = urlParams.get('text');
-                if (text) {
-                    window.ttsSystem.speak(decodeURIComponent(text));
-                }
-            }
+            // Use the enhanced do_tts method
+            window.ttsSystem.do_tts(array);
         }
     };
 
@@ -940,27 +1267,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    window.arrayShift = function (array) {
+        if (window.ttsSystem) {
+            return window.ttsSystem.arrayShift(array);
+        }
+        return undefined;
+    };
+
     window.setVoice = function (voice) {
         if (window.ttsSystem) {
             window.ttsSystem.setVoice(voice);
         }
     };
 
+    window.fetchAvailableVoices = function () {
+        if (window.ttsSystem) {
+            return window.ttsSystem.fetchAvailableVoices();
+        }
+        return Promise.resolve([]);
+    };
+
+    // Export currentVoice like original working implementation
+    window.currentVoice = window.ttsSystem ? window.ttsSystem.currentVoice : 'af_bella';
+
     // Make the enhanced TTS API available globally
     // ⚠️ IMPORTANT: BambiSleep is a GIRL - ONLY FEMALE VOICES ALLOWED! ⚠️
     window.tts = {
+        // Core TTS functions
         speak: (text) => window.ttsSystem.speak(text),
         speakSentences: (sentences) => window.ttsSystem.speakSentences(sentences),
+        toggle: () => window.ttsSystem.toggle(),
+        enable: () => window.ttsSystem.enable(),
+        disable: () => window.ttsSystem.disable(),
+        stop: () => window.ttsSystem.stop(),
+        isEnabled: () => window.ttsSystem.isEnabled,
+        isPlaying: () => window.ttsSystem.isCurrentlyPlaying(),
+
+        // ENHANCED: Voice selection methods
         setVoice: (voice) => window.ttsSystem.setVoice(voice),
+        addVoice: (voice) => window.ttsSystem.addVoice(voice),
+        removeVoice: (voice) => window.ttsSystem.removeVoice(voice),
+        clearVoiceSelection: () => window.ttsSystem.clearVoiceSelection(),
+        getCurrentVoice: () => window.ttsSystem.getCurrentVoice(),
+        getCurrentVoiceDisplay: () => window.ttsSystem.getCurrentVoiceDisplay(),
+        getSelectedVoices: () => window.ttsSystem.selectedVoices,
+
+        // Voice management and validation
         setUseKokoro: (use) => window.ttsSystem.setUseKokoro(use),
         getAvailableVoices: () => window.ttsSystem.getAvailableVoices(), // Returns FEMALE voices only
         getFemaleVoices: () => window.ttsSystem.getFemaleVoices(), // Explicit female voice getter
         validateVoiceCombination: (voiceString) => window.ttsSystem.validateVoiceCombination(voiceString), // Voice combination validation
         getVoiceCombinations: () => window.ttsSystem.getVoiceCombinations(), // Available voice combinations
+
+        // Core processing
         processAIResponse: (message) => window.ttsSystem.processAIResponse(message),
-        toggle: () => window.ttsSystem.toggle(),
-        stop: () => window.ttsSystem.stop(),
-        isEnabled: () => window.ttsSystem.isEnabled,
-        isPlaying: () => window.ttsSystem.isCurrentlyPlaying()
+
+        // UPGRADED: Enhanced API methods (backward compatibility)
+        fetchAvailableVoices: () => window.ttsSystem.fetchAvailableVoices(),
+        do_tts: (array) => window.ttsSystem.do_tts(array),
+        arrayPush: (array, text) => window.ttsSystem.arrayPush(array, text),
+        arrayShift: (array) => window.ttsSystem.arrayShift(array)
     };
 });

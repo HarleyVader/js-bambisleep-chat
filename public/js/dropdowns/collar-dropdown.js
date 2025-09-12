@@ -3,6 +3,8 @@
  * Handles collar settings and socket.io connectivity
  */
 
+import { StorageUtils } from '../storage-utils.js';
+
 export class CollarDropdown {
     constructor(dropdownManager) {
         this.dropdownManager = dropdownManager;
@@ -115,18 +117,26 @@ export class CollarDropdown {
 
         if (collarText) {
             this.collarSettings = collarText;
-            localStorage.setItem('bambi-collar-settings', collarText);
+            StorageUtils.setItem('bambi-collar-settings', collarText);
             this.showFeedback('SETTINGS SAVED');
             console.log('💾 Collar settings saved to localStorage');
 
             // Send to server via socket if available
             const socket = this.getSocket();
             if (socket) {
-                socket.emit('collar-settings', {
+                // Ensure the socket data is properly structured and safe
+                const socketData = {
                     settings: collarText,
                     timestamp: Date.now()
-                });
-                console.log('📡 Collar settings sent via socket');
+                };
+
+                // Validate the data before sending
+                if (StorageUtils.isSafeToStore(socketData)) {
+                    socket.emit('collar-settings', socketData);
+                    console.log('📡 Collar settings sent via socket');
+                } else {
+                    console.warn('⚠️ Socket data validation failed, not sending');
+                }
             }
 
             // Update collar button state to ON
@@ -147,7 +157,7 @@ export class CollarDropdown {
         if (textarea) {
             textarea.value = '';
             this.collarSettings = '';
-            localStorage.removeItem('bambi-collar-settings');
+            StorageUtils.removeItem('bambi-collar-settings');
             this.showFeedback('SETTINGS CLEARED');
             this.updateCollarButton(false);
             console.log('🗑️ Collar settings cleared');
@@ -196,7 +206,7 @@ export class CollarDropdown {
     }
 
     loadSavedSettings() {
-        const savedSettings = localStorage.getItem('bambi-collar-settings');
+        const savedSettings = StorageUtils.getItem('bambi-collar-settings');
         if (savedSettings) {
             this.collarSettings = savedSettings;
             console.log('📋 Loading saved collar settings');

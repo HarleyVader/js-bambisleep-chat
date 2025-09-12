@@ -291,10 +291,28 @@ class ChatCore {
             this.addMessage(data.message, data.timestamp, false, 'BambiSleep', true);
             this.addSystemMessage(`AI generated ${data.wordCount} words`);
 
-            // Process TTS for AI response using enhanced system with sentence splitting
-            if (window.tts && window.tts.isEnabled()) {
-                console.log('🎤 Processing AI response for TTS with sentence splitting');
-                this.processAIResponseForTTS(data.message);
+            // Process TTS for AI response - RESTORED TO ORIGINAL WORKING PATTERN
+            if (window.ttsSystem && window.ttsSystem.isEnabled) {
+                console.log('🎤 Processing AI response for TTS - original pattern');
+
+                // Clean and split the message like original
+                const messageText = data.message.trim();
+                const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
+                console.log('🎤 Split into sentences:', sentences);
+
+                // Add sentences to TTS text array like original
+                for (let sentence of sentences) {
+                    sentence = sentence.trim();
+                    if (sentence.length > 0) {
+                        window.ttsSystem.textArray.push(sentence);
+                        console.log('🎤 Added to text array:', sentence);
+                    }
+                }
+
+                // Start TTS processing if not already playing (like original handleAudioEnded logic)
+                if (window.ttsSystem.state && !window.ttsSystem.isPlaying) {
+                    window.ttsSystem.processTextQueue();
+                }
             }
         });
 

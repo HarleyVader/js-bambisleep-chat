@@ -11,6 +11,8 @@ import {
     CollarDropdown
 } from './dropdowns/index.js';
 
+import { StorageUtils } from './storage-utils.js';
+
 class DropdownManager {
     constructor() {
         console.log('🔧 DropdownManager constructor called');
@@ -30,6 +32,22 @@ class DropdownManager {
 
     init() {
         console.log('⚙️ DropdownManager init started');
+
+        // Initialize StorageUtils protection
+        try {
+            StorageUtils.init();
+            console.log('🛡️ StorageUtils protection initialized');
+        } catch (error) {
+            console.error('❌ Error initializing StorageUtils protection:', error);
+        }
+
+        // Clean up any invalid localStorage entries on startup
+        try {
+            StorageUtils.cleanupInvalidEntries();
+            console.log('🧹 localStorage cleanup completed');
+        } catch (error) {
+            console.error('❌ Error during localStorage cleanup:', error);
+        }
 
         // Add universal event listeners
         document.addEventListener('click', this.handleClick.bind(this));
@@ -484,6 +502,32 @@ window.testDropdowns = function () {
     console.log(allPassed ? '✅ All dropdown tests passed' : '❌ Some dropdown tests failed');
     return allPassed;
 };
+
+// Add global error handling for localStorage issues
+window.addEventListener('error', (event) => {
+    if (event.error && event.error.message && event.error.message.includes('JSON.parse')) {
+        console.warn('🔍 JSON parsing error detected (possibly from external extension):', event.error);
+        // Don't let external JSON errors break our app
+        event.preventDefault();
+    }
+});
+
+// Storage change event listener to catch potential issues from external sources
+window.addEventListener('storage', (event) => {
+    if (event.key && event.key.startsWith('bambi-')) {
+        console.log('🔍 Storage change detected for bambi key:', event.key);
+
+        // Validate that the new value is not "[object Object]"
+        if (event.newValue === '[object Object]') {
+            console.warn('⚠️ Detected "[object Object]" storage value, cleaning up:', event.key);
+            try {
+                localStorage.removeItem(event.key);
+            } catch (error) {
+                console.error('Failed to clean up invalid storage:', error);
+            }
+        }
+    }
+});
 
 // Export for external use
 export default DropdownManager;

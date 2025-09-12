@@ -1,20 +1,10 @@
+
 /**
  * AI Dropdown Component for BambiSleep Chat
- * Handles AI mode and model selection dropdown         // Update button text following standard format: "AI: STATE"
-        if (mode === 'ai') {
-            btn.textContent = 'AI: AIGF';
-            // Remove inline styles to let CSS handle the cyber electric styling
-            btn.style.removeProperty('background');
-            btn.style.removeProperty('animation');
-            btn.style.minWidth = '80px'; // Fixed width to prevent button movement
-        } else {
-            btn.textContent = 'AI: OFF';
-            // Remove inline styles to let CSS handle the cyber electric styling
-            btn.style.removeProperty('background');
-            btn.style.removeProperty('animation');
-            btn.style.minWidth = '80px'; // Fixed width to prevent button movement
-        }y
+ * Handles AI mode and model selection dropdown functionality
  */
+
+import { StorageUtils } from '../storage-utils.js';
 
 export class AIDropdown {
     constructor(dropdownManager) {
@@ -62,12 +52,12 @@ export class AIDropdown {
 
     loadSavedState() {
         // Load saved AI state from localStorage
-        const savedState = localStorage.getItem('bambi-ai-state');
+        const savedState = StorageUtils.getItem('bambi-ai-state');
         if (savedState) {
             try {
-                const state = JSON.parse(savedState);
-                this.setState(state);
-                console.log('📋 Loading saved AI state:', state);
+                // savedState is already parsed by StorageUtils
+                this.setState(savedState);
+                console.log('📋 Loading saved AI state:', savedState);
             } catch (e) {
                 console.warn('⚠️ Failed to load AI state:', e);
             }
@@ -207,7 +197,7 @@ export class AIDropdown {
     saveState() {
         // Save current state to localStorage
         const state = this.getState();
-        localStorage.setItem('bambi-ai-state', JSON.stringify(state));
+        StorageUtils.setItem('bambi-ai-state', state);
         console.log('💾 AI state saved to localStorage');
     }
 
