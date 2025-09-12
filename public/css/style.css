@@ -1702,7 +1702,7 @@ body {
 .spiral-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 8px;
     margin-top: 5px;
 }
 
@@ -1710,15 +1710,16 @@ body {
     background: var(--panel-bg);
     border: 1px solid var(--border-color);
     color: var(--text-color);
-    padding: 6px 12px;
+    padding: 8px 16px;
     border-radius: var(--border-radius);
     font-family: "Audiowide", sans-serif;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
     flex: 1;
-    min-width: 80px;
+    min-width: 120px;
+    text-align: center;
 }
 
 .spiral-button:hover {
@@ -1745,11 +1746,19 @@ body {
     border-color: var(--button-color);
     color: white;
     font-weight: bold;
+    min-width: 200px;
+    padding: 12px 20px;
+    font-size: 0.75rem;
 }
 
 .spiral-button.brainwash-button.active {
     background: linear-gradient(45deg, var(--tertiary-color), var(--button-color));
     box-shadow: 0 0 15px var(--button-color);
+}
+
+/* Center the brainwash mode section */
+.spiral-controls .control-section:last-child .spiral-buttons {
+    justify-content: center;
 }
 
 @keyframes pulse {
@@ -1763,6 +1772,7 @@ body {
     padding-top: 10px;
     background: rgba(255, 20, 147, 0.05);
     border-radius: var(--border-radius);
+    text-align: center;
 }
 
 .voice-button.active:hover {
