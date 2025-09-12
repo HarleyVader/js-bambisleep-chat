@@ -405,7 +405,7 @@ class TextToSpeechSystem {
         if (!textDisplay) {
             textDisplay = document.createElement('div');
             textDisplay.className = 'tts-text-display';
-            // Use CSS variables for proper theming and single-line display
+            // Use CSS variables for proper theming and proper text wrapping
             textDisplay.style.cssText = `
                 position: absolute;
                 top: 50%;
@@ -418,10 +418,13 @@ class TextToSpeechSystem {
                 text-shadow: 0 0 10px var(--tertiary-alt), 0 0 20px var(--tertiary-alt);
                 z-index: 1000;
                 pointer-events: none;
-                max-width: 80%;
+                max-width: 90%;
                 word-wrap: break-word;
-                white-space: nowrap;
+                white-space: normal;
                 animation: pulse 0.5s ease-in-out infinite alternate;
+                overflow-wrap: break-word;
+                hyphens: auto;
+                line-height: 1.2;
             `;
             container.appendChild(textDisplay);
         }
@@ -440,7 +443,7 @@ class TextToSpeechSystem {
     }
 
     displayInChat(text) {
-        // Display text in chat response area if available
+        // Display text at the bottom of the message-text area
         const response = document.querySelector('.message.ai .message-text:last-child') ||
             document.querySelector('#response') ||
             document.querySelector('#message');
@@ -459,11 +462,8 @@ class TextToSpeechSystem {
                 border-radius: 4px;
             `;
 
-            if (response.firstChild) {
-                response.insertBefore(messageElement, response.firstChild);
-            } else {
-                response.appendChild(messageElement);
-            }
+            // Append to bottom of message-text (not insert at top)
+            response.appendChild(messageElement);
 
             // Remove after speaking
             setTimeout(() => {
