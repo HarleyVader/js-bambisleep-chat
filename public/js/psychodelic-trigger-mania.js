@@ -587,7 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Randomizer Controls
         enableRandomizer: (enabled) => {
-            window.spiralAnimation.controls.randomizer.enabled = enabled;
+            if (enabled) {
+                window.spiralAnimation.enableRandomizer(30000); // 30 seconds interval
+            } else {
+                window.spiralAnimation.disableRandomizer();
+            }
         },
 
         // Preset Controls

@@ -243,7 +243,7 @@ export class SpiralDropdown {
 
         // Toggle the active state and update the button text
         const isCurrentlyActive = button.classList.contains('active');
-        
+
         if (isCurrentlyActive) {
             // Currently ON, turning OFF
             button.classList.remove('active');
@@ -251,7 +251,7 @@ export class SpiralDropdown {
             spiralControls.enableRandomizer(false);
             this.dropdownManager.showActionFeedback('SPIRAL', 'AUTO-CHANGE OFF');
         } else {
-            // Currently OFF, turning ON  
+            // Currently OFF, turning ON
             button.classList.add('active');
             button.textContent = '⏸️ Auto-Change: ON';
             spiralControls.enableRandomizer(true);
@@ -320,7 +320,7 @@ export class SpiralDropdown {
                 <div class="control-section">
                     <p class="config-label">🎲 Auto Randomizer</p>
                     <div class="spiral-buttons">
-                        <button class="spiral-button active" data-action="spiral-randomizer-toggle" onclick="window.dropdownManager.getComponent('spiral').handleRandomizerToggle(this)">⏸️ Auto-Change: ON</button>
+                        <button class="spiral-button" data-action="spiral-randomizer-toggle" onclick="window.dropdownManager.getComponent('spiral').handleRandomizerToggle(this)">🔄 Auto-Change: OFF</button>
                     </div>
                 </div>
 

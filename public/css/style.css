@@ -1298,6 +1298,25 @@ body {
     background: var(--secondary-alt);
 }
 
+/* Themed scrollbars for spiral controls */
+.spiral-controls::-webkit-scrollbar {
+    width: 8px;
+}
+
+.spiral-controls::-webkit-scrollbar-track {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+.spiral-controls::-webkit-scrollbar-thumb {
+    background: var(--tertiary-color);
+    border-radius: 4px;
+}
+
+.spiral-controls::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-alt);
+}
+
 .trigger-category {
     background: transparent;
     /* Made transparent */
