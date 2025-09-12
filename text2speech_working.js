@@ -192,32 +192,6 @@ class TextToSpeechSystem {
         return this.isEnabled;
     }
 
-    // ENHANCED: Force refresh TTS state and clear inconsistent data
-    refreshState() {
-        console.log('🔄 Refreshing TTS state...');
-        
-        // Log current state
-        console.log('Current TTS state:', {
-            isEnabled: this.isEnabled,
-            currentVoice: this.currentVoice,
-            selectedVoices: this.selectedVoices
-        });
-        
-        // Clear potentially corrupted localStorage data
-        try {
-            const oldState = localStorage.getItem('bambi-tts-voice-state');
-            console.log('Old localStorage state:', oldState);
-            
-            // Force save current state
-            this.saveVoiceState();
-            console.log('✅ TTS state refreshed and saved');
-        } catch (e) {
-            console.warn('Failed to refresh TTS state:', e);
-        }
-        
-        return this.isEnabled;
-    }
-
     speak(text) {
         if (!this.isEnabled || !text.trim()) return;
 
@@ -431,7 +405,7 @@ class TextToSpeechSystem {
         if (!textDisplay) {
             textDisplay = document.createElement('div');
             textDisplay.className = 'tts-text-display';
-            // Use CSS variables for proper theming and proper text wrapping
+            // Use CSS variables for proper theming and single-line display
             textDisplay.style.cssText = `
                 position: absolute;
                 top: 50%;
@@ -444,13 +418,10 @@ class TextToSpeechSystem {
                 text-shadow: 0 0 10px var(--tertiary-alt), 0 0 20px var(--tertiary-alt);
                 z-index: 1000;
                 pointer-events: none;
-                max-width: 90%;
+                max-width: 80%;
                 word-wrap: break-word;
-                white-space: normal;
+                white-space: nowrap;
                 animation: pulse 0.5s ease-in-out infinite alternate;
-                overflow-wrap: break-word;
-                hyphens: auto;
-                line-height: 1.2;
             `;
             container.appendChild(textDisplay);
         }
@@ -469,7 +440,7 @@ class TextToSpeechSystem {
     }
 
     displayInChat(text) {
-        // Display text at the bottom of the message-text area
+        // Display text in chat response area if available
         const response = document.querySelector('.message.ai .message-text:last-child') ||
             document.querySelector('#response') ||
             document.querySelector('#message');
@@ -488,8 +459,11 @@ class TextToSpeechSystem {
                 border-radius: 4px;
             `;
 
-            // Append to bottom of message-text (not insert at top)
-            response.appendChild(messageElement);
+            if (response.firstChild) {
+                response.insertBefore(messageElement, response.firstChild);
+            } else {
+                response.appendChild(messageElement);
+            }
 
             // Remove after speaking
             setTimeout(() => {
@@ -1352,37 +1326,6 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAvailableVoices: () => window.ttsSystem.fetchAvailableVoices(),
         do_tts: (array) => window.ttsSystem.do_tts(array),
         arrayPush: (array, text) => window.ttsSystem.arrayPush(array, text),
-        arrayShift: (array) => window.ttsSystem.arrayShift(array),
-
-        // DIAGNOSTIC: State management and troubleshooting
-        refreshState: () => window.ttsSystem.refreshState(),
-        diagnose: () => {
-            console.log('🔍 TTS System Diagnosis:');
-            console.log('System State:', {
-                isEnabled: window.ttsSystem.isEnabled,
-                isPlaying: window.ttsSystem.isPlaying,
-                currentVoice: window.ttsSystem.currentVoice,
-                selectedVoices: window.ttsSystem.selectedVoices,
-                useKokoro: window.ttsSystem.useKokoro,
-                socketConnected: window.ttsSystem.socket?.connected
-            });
-            console.log('Queue Status:', {
-                textArrayLength: window.ttsSystem.textArray.length,
-                audioArrayLength: window.ttsSystem.audioArray.length,
-                currentText: window.ttsSystem.currentText
-            });
-            console.log('📋 To enable TTS: window.tts.enable()');
-            console.log('📋 To test TTS: window.tts.speak("test")');
-            console.log('📋 To check UI: window.diagnoseTTS()');
-        },
-        
-        // QUICK FIX: Emergency TTS enablement
-        forceEnable: () => {
-            console.log('🚨 Force enabling TTS...');
-            window.ttsSystem.isEnabled = true;
-            window.ttsSystem.saveVoiceState();
-            console.log('✅ TTS force enabled - try speaking now');
-            return true;
-        }
+        arrayShift: (array) => window.ttsSystem.arrayShift(array)
     };
 });

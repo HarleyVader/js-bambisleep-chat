@@ -20,36 +20,6 @@ export class TTSDropdown {
         this.setupEventListeners();
         this.setupToggleHandling();
         this.loadSavedState();
-
-        // Schedule multiple retry syncs to ensure state is properly synchronized
-        // First retry after 500ms (quick)
-        setTimeout(() => {
-            const ttsSystem = this.getTTSSystem();
-            if (ttsSystem) {
-                console.log('🔄 First TTS state sync attempt (500ms)');
-                this.syncButtonStateWithTTSSystem(ttsSystem);
-            }
-        }, 500);
-
-        // Second retry after 1 second (standard)
-        setTimeout(() => {
-            const ttsSystem = this.getTTSSystem();
-            if (ttsSystem) {
-                console.log('🔄 Second TTS state sync attempt (1000ms)');
-                this.syncButtonStateWithTTSSystem(ttsSystem);
-            }
-        }, 1000);
-
-        // Final retry after 2 seconds (backup)
-        setTimeout(() => {
-            const ttsSystem = this.getTTSSystem();
-            if (ttsSystem) {
-                console.log('🔄 Final TTS state sync attempt (2000ms)');
-                this.syncButtonStateWithTTSSystem(ttsSystem);
-            } else {
-                console.error('❌ TTS system still not available after 2 seconds');
-            }
-        }, 2000);
     }
 
     loadSavedState() {
@@ -87,9 +57,6 @@ export class TTSDropdown {
             if (typeof ttsSystem.speed === 'number') {
                 this.currentSpeed = ttsSystem.speed;
             }
-
-            // CRITICAL: Sync button state with TTS system's actual enabled state
-            this.syncButtonStateWithTTSSystem(ttsSystem);
 
             console.log('🔗 Synced dropdown state with TTS system');
         }
@@ -242,32 +209,18 @@ export class TTSDropdown {
         const currentState = btn.getAttribute('data-state');
         const newState = currentState === 'off' ? 'on' : 'off';
 
-        console.log(`🔄 TTS Toggle: ${currentState} → ${newState}`);
-
         btn.setAttribute('data-state', newState);
         btn.textContent = `TTS: ${newState.toUpperCase()}`;
-
-        // Add visual feedback classes
-        if (newState === 'on') {
-            btn.classList.add('tts-enabled');
-            btn.classList.remove('tts-disabled');
-        } else {
-            btn.classList.add('tts-disabled');
-            btn.classList.remove('tts-enabled');
-        }
 
         // Enable/disable TTS system using enhanced methods
         const ttsSystem = this.getTTSSystem();
         if (ttsSystem) {
-            const beforeState = ttsSystem.isEnabled;
-            
             if (newState === 'on') {
                 if (ttsSystem.enable) {
                     ttsSystem.enable();
                 } else {
                     ttsSystem.isEnabled = true;
                 }
-                console.log(`✅ TTS Enabled: ${beforeState} → ${ttsSystem.isEnabled}`);
             } else {
                 if (ttsSystem.disable) {
                     ttsSystem.disable();
@@ -277,16 +230,9 @@ export class TTSDropdown {
                         ttsSystem.stop();
                     }
                 }
-                console.log(`❌ TTS Disabled: ${beforeState} → ${ttsSystem.isEnabled}`);
-            }
-
-            // Force save state after toggle
-            if (ttsSystem.saveVoiceState) {
-                ttsSystem.saveVoiceState();
-                console.log('💾 TTS state saved after toggle');
             }
         } else {
-            console.warn('⚠️ TTS system not available during toggle');
+            console.warn('⚠️ TTS system not available');
         }
 
         // Dispatch toggle event
@@ -371,42 +317,7 @@ export class TTSDropdown {
         return null;
     }
 
-    // CRITICAL: Sync button visual state with TTS system's actual enabled state
-    syncButtonStateWithTTSSystem(ttsSystem) {
-        const ttsButton = document.getElementById(this.buttonId);
-        if (!ttsButton) {
-            console.warn('⚠️ TTS button not found during state sync');
-            return;
-        }
-
-        // Get actual TTS system enabled state
-        const actualTTSState = ttsSystem.isEnabled;
-        const targetState = actualTTSState ? 'on' : 'off';
-        const currentButtonState = ttsButton.getAttribute('data-state');
-
-        // ALWAYS log the current states for debugging
-        console.log(`🔍 TTS State Check:`, {
-            'TTS System Enabled': actualTTSState,
-            'Button Current State': currentButtonState,
-            'Target State': targetState,
-            'Needs Update': currentButtonState !== targetState
-        });
-
-        // Update button state regardless of current state to ensure consistency
-        ttsButton.setAttribute('data-state', targetState);
-        ttsButton.textContent = `TTS: ${targetState.toUpperCase()}`;
-        
-        // Add visual class for better user feedback
-        if (actualTTSState) {
-            ttsButton.classList.add('tts-enabled');
-            ttsButton.classList.remove('tts-disabled');
-        } else {
-            ttsButton.classList.add('tts-disabled');
-            ttsButton.classList.remove('tts-enabled');
-        }
-
-        console.log(`✅ TTS button state synced with TTS system (enabled: ${actualTTSState})`);
-    }    getDropdownContent() {
+    getDropdownContent() {
         return '<div class="tts-config">' +
             '<div class="control-section">' +
             '<p class="config-label">🎤 Voice Selection (Max 2)</p>' +
@@ -531,50 +442,4 @@ export class TTSDropdown {
             displayElement.textContent = this.getCurrentVoiceDisplay();
         }
     }
-
-    // DIAGNOSTIC: Debug TTS state issues
-    diagnoseTTSState() {
-        console.log('🔍 TTS State Diagnosis:');
-        
-        const ttsButton = document.getElementById(this.buttonId);
-        const ttsSystem = this.getTTSSystem();
-        
-        console.log('Button State:', {
-            'Button Exists': !!ttsButton,
-            'data-state': ttsButton?.getAttribute('data-state'),
-            'Button Text': ttsButton?.textContent,
-            'Button Classes': ttsButton?.className
-        });
-        
-        console.log('TTS System State:', {
-            'System Exists': !!ttsSystem,
-            'isEnabled': ttsSystem?.isEnabled,
-            'currentVoice': ttsSystem?.currentVoice,
-            'useKokoro': ttsSystem?.useKokoro,
-            'socket connected': ttsSystem?.socket?.connected
-        });
-        
-        console.log('LocalStorage State:', {
-            'bambi-tts-voice-state': localStorage.getItem('bambi-tts-voice-state'),
-            'bambi-tts-state': localStorage.getItem('bambi-tts-state')
-        });
-
-        // Test basic TTS functionality
-        if (ttsSystem) {
-            console.log('🧪 Testing TTS...');
-            ttsSystem.enable();
-            console.log('TTS enabled, testing speech...');
-            ttsSystem.speak('TTS test successful');
-        }
-    }
 }
-
-// Make diagnostic function available globally for easy access
-window.diagnoseTTS = () => {
-    const dropdown = window.dropdownManager?.getComponent('tts');
-    if (dropdown && dropdown.diagnoseTTSState) {
-        dropdown.diagnoseTTSState();
-    } else {
-        console.error('TTS dropdown not available for diagnosis');
-    }
-};
