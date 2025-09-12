@@ -454,11 +454,10 @@ class TextToSpeechSystem {
             container.appendChild(textDisplay);
         }
 
-        // Display the text as sentences, not a column
-        // Replace newlines or multiple spaces with <br> for sentence breaks
+        // Display the text horizontally, not as a vertical column
+        // Keep text flowing left to right, only break on explicit newlines
         let html = String(text)
-            .replace(/([.!?])\s+/g, '$1<br>')
-            .replace(/\n/g, '<br>');
+            .replace(/\n/g, ' '); // Replace newlines with spaces for horizontal flow
         textDisplay.innerHTML = html;
         textDisplay.style.display = 'block';
 
