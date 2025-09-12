@@ -195,26 +195,26 @@ class TextToSpeechSystem {
     // ENHANCED: Force refresh TTS state and clear inconsistent data
     refreshState() {
         console.log('🔄 Refreshing TTS state...');
-        
+
         // Log current state
         console.log('Current TTS state:', {
             isEnabled: this.isEnabled,
             currentVoice: this.currentVoice,
             selectedVoices: this.selectedVoices
         });
-        
+
         // Clear potentially corrupted localStorage data
         try {
             const oldState = localStorage.getItem('bambi-tts-voice-state');
             console.log('Old localStorage state:', oldState);
-            
+
             // Force save current state
             this.saveVoiceState();
             console.log('✅ TTS state refreshed and saved');
         } catch (e) {
             console.warn('Failed to refresh TTS state:', e);
         }
-        
+
         return this.isEnabled;
     }
 
@@ -1375,7 +1375,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('📋 To test TTS: window.tts.speak("test")');
             console.log('📋 To check UI: window.diagnoseTTS()');
         },
-        
+
         // QUICK FIX: Emergency TTS enablement
         forceEnable: () => {
             console.log('🚨 Force enabling TTS...');

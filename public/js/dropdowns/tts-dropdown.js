@@ -260,7 +260,7 @@ export class TTSDropdown {
         const ttsSystem = this.getTTSSystem();
         if (ttsSystem) {
             const beforeState = ttsSystem.isEnabled;
-            
+
             if (newState === 'on') {
                 if (ttsSystem.enable) {
                     ttsSystem.enable();
@@ -395,7 +395,7 @@ export class TTSDropdown {
         // Update button state regardless of current state to ensure consistency
         ttsButton.setAttribute('data-state', targetState);
         ttsButton.textContent = `TTS: ${targetState.toUpperCase()}`;
-        
+
         // Add visual class for better user feedback
         if (actualTTSState) {
             ttsButton.classList.add('tts-enabled');
@@ -406,7 +406,7 @@ export class TTSDropdown {
         }
 
         console.log(`✅ TTS button state synced with TTS system (enabled: ${actualTTSState})`);
-    }    getDropdownContent() {
+    } getDropdownContent() {
         return '<div class="tts-config">' +
             '<div class="control-section">' +
             '<p class="config-label">🎤 Voice Selection (Max 2)</p>' +
@@ -535,17 +535,17 @@ export class TTSDropdown {
     // DIAGNOSTIC: Debug TTS state issues
     diagnoseTTSState() {
         console.log('🔍 TTS State Diagnosis:');
-        
+
         const ttsButton = document.getElementById(this.buttonId);
         const ttsSystem = this.getTTSSystem();
-        
+
         console.log('Button State:', {
             'Button Exists': !!ttsButton,
             'data-state': ttsButton?.getAttribute('data-state'),
             'Button Text': ttsButton?.textContent,
             'Button Classes': ttsButton?.className
         });
-        
+
         console.log('TTS System State:', {
             'System Exists': !!ttsSystem,
             'isEnabled': ttsSystem?.isEnabled,
@@ -553,7 +553,7 @@ export class TTSDropdown {
             'useKokoro': ttsSystem?.useKokoro,
             'socket connected': ttsSystem?.socket?.connected
         });
-        
+
         console.log('LocalStorage State:', {
             'bambi-tts-voice-state': localStorage.getItem('bambi-tts-voice-state'),
             'bambi-tts-state': localStorage.getItem('bambi-tts-state')
