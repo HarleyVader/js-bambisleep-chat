@@ -11,6 +11,7 @@ class TextToSpeechSystem {
         this.currentAudio = null;
         this.currentText = ''; // Currently playing text
         this.volume = 0.7;
+        this.speed = 1.0; // Default speed setting
         this.socket = null;
         this.useKokoro = true; // Prefer Kokoro over Web Speech API
         this.currentVoice = 'af_sky+af_bella'; // Default FEMALE Kokoro voice - BambiSleep is a GIRL!
@@ -38,33 +39,87 @@ class TextToSpeechSystem {
     }
 
     initSocket() {
-        // Get socket from global chatCore if available
-        if (window.chatCore && window.chatCore.socket) {
-            this.socket = window.chatCore.socket;
-            this.setupSocketListeners();
-        } else {
-            // Wait for chatCore to be available
-            document.addEventListener('DOMContentLoaded', () => {
-                if (window.chatCore && window.chatCore.socket) {
-                    this.socket = window.chatCore.socket;
+        // Multiple attempts to connect to socket
+        const tryConnectSocket = () => {
+            if (window.chatCore && window.chatCore.socket) {
+                this.socket = window.chatCore.socket;
+                this.setupSocketListeners();
+                console.log('🎤 TTS connected to socket via chatCore');
+                return true;
+            }
+
+            // Also try direct socket.io connection
+            if (window.io && typeof window.io === 'function') {
+                try {
+                    this.socket = window.io();
                     this.setupSocketListeners();
+                    console.log('🎤 TTS connected to socket directly');
+                    return true;
+                } catch (error) {
+                    console.warn('🎤 Direct socket connection failed:', error);
                 }
-            });
+            }
+
+            return false;
+        };
+
+        // Try immediate connection
+        if (tryConnectSocket()) {
+            return;
         }
+
+        // Wait for DOM content loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            if (tryConnectSocket()) {
+                return;
+            }
+
+            // Keep trying every second for up to 10 seconds
+            let attempts = 0;
+            const maxAttempts = 10;
+            const retryInterval = setInterval(() => {
+                attempts++;
+                if (tryConnectSocket() || attempts >= maxAttempts) {
+                    clearInterval(retryInterval);
+                    if (attempts >= maxAttempts && !this.socket) {
+                        console.warn('🎤 TTS socket connection failed after', maxAttempts, 'attempts - will use Web Speech API only');
+                    }
+                }
+            }, 1000);
+        });
     }
 
     setupSocketListeners() {
-        if (!this.socket) return;
+        if (!this.socket) {
+            console.warn('🎤 No socket available for TTS');
+            return;
+        }
+
+        console.log('🎤 Setting up TTS socket listeners');
 
         // Listen for TTS responses from Kokoro
         this.socket.on('tts-response', (data) => {
+            console.log('🎤 Received TTS response:', data?.size || 'unknown size');
             this.handleKokoroResponse(data);
         });
 
         this.socket.on('tts-error', (data) => {
-            console.error('Kokoro TTS error:', data.error);
+            console.error('🎤 Kokoro TTS error from server:', data.error);
             // Fallback to Web Speech API
             this.fallbackToWebSpeech();
+        });
+
+        // Add connection monitoring
+        this.socket.on('connect', () => {
+            console.log('🎤 TTS socket connected');
+        });
+
+        this.socket.on('disconnect', () => {
+            console.warn('🎤 TTS socket disconnected - will use Web Speech API');
+        });
+
+        this.socket.on('connect_error', (error) => {
+            console.error('🎤 TTS socket connection error:', error);
         });
     }
 
@@ -212,7 +267,10 @@ class TextToSpeechSystem {
 
     // Request TTS from Kokoro or fallback to Web Speech API
     requestTTS(text) {
-        if (this.useKokoro && this.socket) {
+        console.log('🎤 Requesting TTS for:', text.substring(0, 50) + '...');
+
+        if (this.useKokoro && this.socket && this.socket.connected) {
+            console.log('🎤 Using Kokoro TTS via socket');
             // Use Kokoro TTS via socket
             this.socket.emit('tts-request', {
                 text: text,
@@ -220,6 +278,11 @@ class TextToSpeechSystem {
                 format: 'mp3'
             });
         } else {
+            console.log('🎤 Using Web Speech API fallback');
+            console.log('  - useKokoro:', this.useKokoro);
+            console.log('  - socket available:', !!this.socket);
+            console.log('  - socket connected:', this.socket?.connected);
+
             // Fallback to Web Speech API
             this.speakWithWebAPI(text);
         }
@@ -414,17 +477,21 @@ class TextToSpeechSystem {
         return malePatterns.some(pattern => name.includes(pattern));
     }
 
-    // Get only verified female voices
+    // Get only verified female voices with combination support
     getFemaleVoices() {
         if (this.useKokoro) {
-            // All Kokoro voices are female by design
-            return [
-                'af_sky',
-                'af_bella',
-                'af_sky+af_bella',
-                'af_sarah',
-                'af_nicole'
-            ];
+            // Base female voices
+            const baseVoices = ['af_sky', 'af_bella', 'af_sarah', 'af_nicole'];
+            const combinedVoices = [];
+
+            // Generate all valid combinations of 2 voices
+            for (let i = 0; i < baseVoices.length; i++) {
+                for (let j = i + 1; j < baseVoices.length; j++) {
+                    combinedVoices.push(`${baseVoices[i]}+${baseVoices[j]}`);
+                }
+            }
+
+            return [...baseVoices, ...combinedVoices];
         } else {
             // Filter Web Speech API voices to only females
             const voices = speechSynthesis.getVoices();
@@ -432,6 +499,40 @@ class TextToSpeechSystem {
                 (voice.lang.startsWith('en') || voice.lang === '') &&
                 !this.isMaleVoice(voice.name)
             );
+        }
+    }
+
+    // Validate voice combination (max 2 voices, female only)
+    validateVoiceCombination(voiceString) {
+        if (!voiceString) return false;
+
+        const voices = voiceString.split('+');
+
+        // Check max 2 voices
+        if (voices.length > 2) {
+            console.warn('Voice combination limited to maximum 2 voices');
+            return false;
+        }
+
+        // Check all voices are female
+        const femaleVoices = ['af_sky', 'af_bella', 'af_sarah', 'af_nicole', 'af_jadzia', 'af_jessica', 'af_nicole', 'af_nova', 'af_kore', 'af_hearth'];
+        for (const voice of voices) {
+            if (!femaleVoices.includes(voice.trim())) {
+                console.warn(`Voice ${voice} is not a valid female voice`);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Get available voice combinations for dropdown
+    getVoiceCombinations() {
+        if (this.useKokoro) {
+            return this.getFemaleVoices();
+        } else {
+            // For Web Speech API, just return individual female voices
+            return this.getFemaleVoices().map(voice => voice.name);
         }
     }
 
@@ -455,7 +556,7 @@ class TextToSpeechSystem {
 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.volume = this.volume;
-            utterance.rate = 0.6; // Much slower for better comprehension and pauses
+            utterance.rate = this.speed || 0.6; // Use speed setting, default to slower for better comprehension
             utterance.pitch = 1.3; // Higher pitch for feminine sound
 
             // Get all available voices
@@ -719,6 +820,32 @@ class TextToSpeechSystem {
         return this.volume;
     }
 
+    // Add missing methods for dropdown integration
+    clearCache() {
+        // Clear all queues and reset TTS state
+        this.textArray = [];
+        this.audioArray = [];
+        this.queue = [];
+        this.stop();
+        this.isPlaying = false;
+        this.state = false;
+        this.currentText = '';
+        console.log('🗑️ TTS cache cleared');
+    }
+
+    setSpeed(speed) {
+        // For Web Speech API voices, store speed setting
+        this.speed = Math.max(0.1, Math.min(10, speed));
+        console.log('⚡ TTS speed set to:', this.speed);
+
+        // Note: Kokoro TTS speed is controlled server-side
+        if (!this.useKokoro) {
+            console.log('🎤 Web Speech API speed updated');
+        } else {
+            console.log('🎤 Kokoro TTS speed updates require server configuration');
+        }
+    }
+
     getQueueLength() {
         return this.textArray.length + this.audioArray.length + this.queue.length;
     }
@@ -828,6 +955,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setUseKokoro: (use) => window.ttsSystem.setUseKokoro(use),
         getAvailableVoices: () => window.ttsSystem.getAvailableVoices(), // Returns FEMALE voices only
         getFemaleVoices: () => window.ttsSystem.getFemaleVoices(), // Explicit female voice getter
+        validateVoiceCombination: (voiceString) => window.ttsSystem.validateVoiceCombination(voiceString), // Voice combination validation
+        getVoiceCombinations: () => window.ttsSystem.getVoiceCombinations(), // Available voice combinations
         processAIResponse: (message) => window.ttsSystem.processAIResponse(message),
         toggle: () => window.ttsSystem.toggle(),
         stop: () => window.ttsSystem.stop(),

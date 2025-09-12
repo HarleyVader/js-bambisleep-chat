@@ -211,40 +211,113 @@ body {
     display: inline-block;
 }
 
-/* Dropdown Button */
+/* Dropdown Button - Enhanced Cyber Electric Style */
 .dropdown-btn {
     padding: 5.6px 11.2px;
     /* Reduced by 30% from 8px 16px */
-    background: var(--button-alt);
-    border: 1px solid var(--button-color);
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2), rgba(139, 0, 0, 0.8));
+    border: 2px solid #dc3545;
     border-radius: 20px;
     color: #fff;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: "Audiowide", sans-serif;
     font-size: 0.675rem;
     /* Reduced by 25% from 0.9rem */
     white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow:
+        0 0 20px rgba(220, 53, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
+    min-width: 80px;
+}
+
+/* Glass reflection effect */
+.dropdown-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent);
+    transition: left 0.6s ease;
+}
+
+.dropdown-btn:hover::before {
+    left: 100%;
 }
 
 .dropdown-btn:hover {
-    background: var(--button-color);
-    box-shadow: 0 0 15px var(--button-color);
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.4), rgba(139, 0, 0, 1));
+    border-color: #ff4757;
+    box-shadow:
+        0 0 30px rgba(220, 53, 69, 0.6),
+        0 0 60px rgba(220, 53, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 12px rgba(220, 53, 69, 1);
+    transform: translateY(-1px);
 }
 
-.dropdown-btn.active {
-    background: var(--button-color);
-    box-shadow: 0 0 20px var(--button-color);
+/* OFF State - Red Cyber Glow */
+.dropdown-btn[data-state="off"] {
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2), rgba(139, 0, 0, 0.8));
+    border: 2px solid #dc3545;
+    color: #fff;
+    box-shadow:
+        0 0 20px rgba(220, 53, 69, 0.4),
+        0 0 40px rgba(220, 53, 69, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
+    animation: redPulse 3s ease-in-out infinite;
 }
 
-/* Enhanced Collar Button Styling */
+/* ON State - Green Cyber Glow */
+.dropdown-btn[data-state="on"] {
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.3), rgba(25, 135, 84, 0.9));
+    border: 2px solid #28a745;
+    color: #fff;
+    box-shadow:
+        0 0 25px rgba(40, 167, 69, 0.6),
+        0 0 50px rgba(40, 167, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 10px rgba(40, 167, 69, 1);
+    animation: greenPulse 2s ease-in-out infinite;
+}
+
+/* Hover effects for ON state */
+.dropdown-btn[data-state="on"]:hover {
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.5), rgba(25, 135, 84, 1));
+    border-color: #34ce57;
+    box-shadow:
+        0 0 35px rgba(40, 167, 69, 0.8),
+        0 0 70px rgba(40, 167, 69, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+    text-shadow: 0 0 15px rgba(40, 167, 69, 1);
+}
+
+/* Enhanced Collar Button Styling - Updated for cyber electric style */
 #toggle-collar {
-    background: linear-gradient(45deg, var(--button-alt), var(--secondary-color));
-    border: 2px solid var(--tertiary-alt);
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2), rgba(139, 0, 0, 0.8));
+    border: 2px solid #dc3545;
     font-weight: bold;
-    text-shadow: 0 0 5px var(--tertiary-alt);
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
     position: relative;
     overflow: hidden;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
 }
 
 #toggle-collar::before {
@@ -254,7 +327,7 @@ body {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(23, 219, 216, 0.4), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
     transition: left 0.5s;
 }
 
@@ -263,17 +336,26 @@ body {
 }
 
 #toggle-collar:hover {
-    background: linear-gradient(45deg, var(--button-color), var(--tertiary-color));
-    border-color: var(--button-color);
-    box-shadow: 0 0 20px var(--tertiary-alt);
-    text-shadow: 0 0 10px var(--button-color);
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.4), rgba(139, 0, 0, 1));
+    border-color: #ff4757;
+    box-shadow:
+        0 0 30px rgba(220, 53, 69, 0.6),
+        0 0 60px rgba(220, 53, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 12px rgba(220, 53, 69, 1);
 }
 
-#toggle-collar.active {
-    background: linear-gradient(45deg, var(--tertiary-color), var(--button-color));
-    border-color: var(--button-color);
-    box-shadow: 0 0 25px var(--button-color), inset 0 0 15px var(--tertiary-color);
-    animation: collarPulse 2s ease-in-out infinite;
+#toggle-collar[data-state="on"] {
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.3), rgba(25, 135, 84, 0.9)) !important;
+    border: 2px solid #28a745 !important;
+    box-shadow:
+        0 0 25px rgba(40, 167, 69, 0.6),
+        0 0 50px rgba(40, 167, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3) !important;
+    text-shadow: 0 0 10px rgba(40, 167, 69, 1) !important;
+    animation: greenPulse 2s ease-in-out infinite !important;
 }
 
 /* Dropdown Content */
@@ -343,9 +425,10 @@ body {
     animation: dropdownSlide 0.3s ease-out;
 }
 
-/* Collar dropdown only shows on active state */
-.collar-dropdown.active .dropdown-content {
-    display: block;
+/* Collar dropdown only shows on active state - Same rule to ensure it works */
+.collar-dropdown.active .dropdown-content,
+.dropdown.collar-dropdown.active .dropdown-content {
+    display: block !important;
     animation: dropdownSlide 0.3s ease-out;
 }
 
@@ -354,14 +437,29 @@ body {
     display: none !important;
 }
 
-/* Toggle button states */
+/* Toggle button states - Updated for cyber electric style */
 .toggle-button[data-state="on"] {
-    background: var(--button-color);
-    box-shadow: 0 0 20px var(--button-color);
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.3), rgba(25, 135, 84, 0.9)) !important;
+    border: 2px solid #28a745 !important;
+    box-shadow:
+        0 0 25px rgba(40, 167, 69, 0.6),
+        0 0 50px rgba(40, 167, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3) !important;
+    text-shadow: 0 0 10px rgba(40, 167, 69, 1) !important;
+    animation: greenPulse 2s ease-in-out infinite !important;
 }
 
 .toggle-button[data-state="off"] {
-    background: var(--button-alt);
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2), rgba(139, 0, 0, 0.8)) !important;
+    border: 2px solid #dc3545 !important;
+    box-shadow:
+        0 0 20px rgba(220, 53, 69, 0.4),
+        0 0 40px rgba(220, 53, 69, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.8) !important;
+    animation: redPulse 3s ease-in-out infinite !important;
 }
 
 /* TTS Configuration */
@@ -589,6 +687,90 @@ body {
     background: var(--button-color);
 }
 
+/* Special AI AIGF Mode Styling */
+#toggle-ai[data-mode="ai"] {
+    background: linear-gradient(145deg, rgba(255, 20, 147, 0.3), rgba(255, 105, 180, 0.9)) !important;
+    border: 2px solid #ff1493 !important;
+    color: #fff !important;
+    box-shadow:
+        0 0 30px rgba(255, 20, 147, 0.8),
+        0 0 60px rgba(255, 20, 147, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.4) !important;
+    text-shadow: 0 0 15px rgba(255, 20, 147, 1) !important;
+    animation: aigfPulse 1.5s ease-in-out infinite !important;
+}
+
+/* AIGF Pulse Animation */
+@keyframes aigfPulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 0 30px rgba(255, 20, 147, 0.8),
+            0 0 60px rgba(255, 20, 147, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+        text-shadow: 0 0 15px rgba(255, 20, 147, 1);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow:
+            0 0 40px rgba(255, 20, 147, 1),
+            0 0 80px rgba(255, 20, 147, 0.6),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+        text-shadow: 0 0 20px rgba(255, 20, 147, 1.3);
+        transform: scale(1.02);
+    }
+}
+
+/* Cyber Electric Button Animations */
+@keyframes redPulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 0 20px rgba(220, 53, 69, 0.4),
+            0 0 40px rgba(220, 53, 69, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+        text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
+    }
+
+    50% {
+        box-shadow:
+            0 0 30px rgba(220, 53, 69, 0.6),
+            0 0 60px rgba(220, 53, 69, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+        text-shadow: 0 0 12px rgba(220, 53, 69, 1);
+    }
+}
+
+@keyframes greenPulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 0 25px rgba(40, 167, 69, 0.6),
+            0 0 50px rgba(40, 167, 69, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+        text-shadow: 0 0 10px rgba(40, 167, 69, 1);
+    }
+
+    50% {
+        box-shadow:
+            0 0 35px rgba(40, 167, 69, 0.8),
+            0 0 70px rgba(40, 167, 69, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.25),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+        text-shadow: 0 0 15px rgba(40, 167, 69, 1.2);
+    }
+}
+
 @keyframes dropdownSlide {
     from {
         opacity: 0;
@@ -601,29 +783,52 @@ body {
     }
 }
 
-/* Legacy button support */
+/* Legacy button support - Updated for cyber electric style */
 #controls button:not(.dropdown-btn) {
     padding: 5.6px 11.2px;
     /* Reduced by 30% from 8px 16px */
-    background: var(--button-alt);
-    border: 1px solid var(--button-color);
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2), rgba(139, 0, 0, 0.8));
+    border: 2px solid #dc3545;
     border-radius: 20px;
     color: #fff;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: "Audiowide", sans-serif;
     font-size: 0.675rem;
     /* Reduced by 25% from 0.9rem */
+    position: relative;
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow:
+        0 0 20px rgba(220, 53, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
 }
 
 #controls button:not(.dropdown-btn):hover {
-    background: var(--button-color);
-    box-shadow: 0 0 15px var(--button-color);
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.4), rgba(139, 0, 0, 1));
+    border-color: #ff4757;
+    box-shadow:
+        0 0 30px rgba(220, 53, 69, 0.6),
+        0 0 60px rgba(220, 53, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 12px rgba(220, 53, 69, 1);
+    transform: translateY(-1px);
 }
 
 #controls button:not(.dropdown-btn).active {
-    background: var(--button-color);
-    box-shadow: 0 0 20px var(--button-color);
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.3), rgba(25, 135, 84, 0.9));
+    border: 2px solid #28a745;
+    box-shadow:
+        0 0 25px rgba(40, 167, 69, 0.6),
+        0 0 50px rgba(40, 167, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 10px rgba(40, 167, 69, 1);
+    animation: greenPulse 2s ease-in-out infinite;
 }
 
 /* Chat Messages */
@@ -1398,6 +1603,13 @@ body {
     left: 0 !important;
 }
 
+/* Chat Toggle Button Transparent State When Dropdowns Are Active */
+.chat-toggle-btn.dropdown-active {
+    opacity: 0.1 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease-in-out, left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Responsive adjustments for toggle button */
 @media (max-width: 768px) {
     .chat-toggle-btn {
@@ -1413,4 +1625,98 @@ body {
         height: 40px;
         font-size: 12px;
     }
+}
+
+/* Voice Button Styling - Similar to Trigger Buttons */
+.voice-categories {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid var(--primary-alt);
+    border-radius: var(--border-radius);
+    background: var(--primary-color);
+    margin: 10px 0;
+}
+
+/* Themed scrollbars for voice categories */
+.voice-categories::-webkit-scrollbar {
+    width: 8px;
+}
+
+.voice-categories::-webkit-scrollbar-track {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+.voice-categories::-webkit-scrollbar-thumb {
+    background: var(--tertiary-color);
+    border-radius: 4px;
+}
+
+.voice-categories::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-alt);
+}
+
+.voice-category {
+    margin-bottom: 15px;
+    border: 1px solid var(--primary-alt);
+    border-radius: var(--border-radius);
+    background: var(--nav-color);
+    padding: 10px;
+}
+
+.voice-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.voice-button {
+    background: var(--primary-color);
+    color: var(--nav-alt);
+    border: 1px solid var(--primary-alt);
+    border-radius: 15px;
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    font-family: "Audiowide", sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.voice-button:hover {
+    background: var(--secondary-color);
+    border-color: var(--secondary-alt);
+    transform: translateY(-1px);
+}
+
+.voice-button.active {
+    background: var(--tertiary-color);
+    border-color: var(--tertiary-alt);
+    color: white;
+    box-shadow: 0 0 10px var(--tertiary-color);
+}
+
+.voice-button.active:hover {
+    background: var(--secondary-alt);
+    border-color: var(--tertiary-alt);
+}
+
+.selected-voices-display {
+    margin: 10px 0;
+    padding: 8px;
+    background: var(--nav-color);
+    border: 1px solid var(--primary-alt);
+    border-radius: var(--border-radius);
+}
+
+.selected-voices-display .config-label {
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+#current-voice-display {
+    color: var(--tertiary-alt);
+    font-weight: bold;
 }

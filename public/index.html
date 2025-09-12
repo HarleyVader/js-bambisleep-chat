@@ -22,109 +22,31 @@
                     <div class="dropdown">
                         <button id="toggle-spiral" class="dropdown-btn toggle-button" data-state="off">Spiral: OFF</button>
                         <div class="dropdown-content">
-                            <div class="spiral-controls">
-                                <!-- Speed Controls -->
-                                <div class="control-section">
-                                    <p class="config-label">🚀 Speed Control</p>
-                                    <a href="#" data-action="spiral-speed-slow">🐌 Slow & Hypnotic</a>
-                                    <a href="#" data-action="spiral-speed-normal">⚡ Normal Speed</a>
-                                    <a href="#" data-action="spiral-speed-fast">🌪️ Fast & Intense</a>
-                                </div>
-
-                                <!-- Color Controls -->
-                                <div class="control-section">
-                                    <p class="config-label">🎨 Color Schemes</p>
-                                    <a href="#" data-action="spiral-color-pink">💗 Pink Dreams</a>
-                                    <a href="#" data-action="spiral-color-purple">💜 Purple Haze</a>
-                                    <a href="#" data-action="spiral-color-blue">💙 Blue Depth</a>
-                                    <a href="#" data-action="spiral-color-rainbow">🌈 Rainbow Cycle</a>
-                                    <a href="#" data-action="spiral-color-cycle">🔄 Randomize Colors</a>
-                                </div>
-
-                                <!-- Geometry Controls -->
-                                <div class="control-section">
-                                    <p class="config-label">⚙️ Spiral Geometry</p>
-                                    <a href="#" data-action="spiral-geometry-tight">🎯 Tight Spirals</a>
-                                    <a href="#" data-action="spiral-geometry-normal">🌀 Normal Spirals</a>
-                                    <a href="#" data-action="spiral-geometry-wide">🌊 Wide Spirals</a>
-                                </div>
-
-                                <!-- Preset Controls -->
-                                <div class="control-section">
-                                    <p class="config-label">🎭 Effect Presets</p>
-                                    <a href="#" data-action="spiral-preset-hypnotic">😴 Hypnotic Trance</a>
-                                    <a href="#" data-action="spiral-preset-intense">🔥 Intense Focus</a>
-                                    <a href="#" data-action="spiral-preset-peaceful">☮️ Peaceful Flow</a>
-                                    <a href="#" data-action="spiral-preset-chaos">💫 Chaos Mode</a>
-                                </div>
-
-                                <!-- Alpha/Transparency Controls -->
-                                <div class="control-section">
-                                    <p class="config-label">✨ Transparency</p>
-                                    <a href="#" data-action="spiral-alpha-low">👻 Subtle (30%)</a>
-                                    <a href="#" data-action="spiral-alpha-medium">🌙 Medium (70%)</a>
-                                    <a href="#" data-action="spiral-alpha-high">☀️ Solid (100%)</a>
-                                </div>
-
-                                <!-- Randomizer Controls -->
-                                <div class="control-section">
-                                    <p class="config-label">🎲 Auto Randomizer</p>
-                                    <a href="#" data-action="spiral-randomizer-on">🔄 Enable Auto-Change</a>
-                                    <a href="#" data-action="spiral-randomizer-off">⏸️ Disable Auto-Change</a>
-                                </div>
-
-                                <!-- Special Brainwash Mode -->
-                                <div class="control-section brainwash-section">
-                                    <p class="config-label">🌀 ULTIMATE CONTROL 🌀</p>
-                                    <a href="#" data-action="spiral-brainwash-mode" class="brainwash-btn">🧠 BRAINWASH MODE 🧠</a>
-                                </div>
-                            </div>
+                            <!-- Content will be populated by spiral-dropdown.js -->
                         </div>
                     </div>
                     <div class="dropdown">
                         <button id="toggle-tts" class="dropdown-btn toggle-button" data-state="off">TTS: OFF</button>
-                        <div class="dropdown-content dropdown-hidden">
-                            <div class="tts-config">
-                                <p class="config-label">Cloud TTS API Keys:</p>
-                                <input type="text" class="api-key-input" placeholder="Enter API Key...">
-                                <p class="coming-soon-small">More features coming soon...</p>
-                            </div>
+                        <div class="dropdown-content">
+                            <!-- Content will be populated by tts-dropdown.js -->
                         </div>
                     </div>
                     <div class="dropdown">
                         <button id="toggle-triggers" class="dropdown-btn toggle-button" data-state="off">Triggers: OFF</button>
                         <div class="dropdown-content">
-                            <div id="trigger-categories-dropdown" class="trigger-categories">
-                                <!-- Categories and triggers will be populated by aigf-core.js from triggers.json -->
-                                <div class="category-loading">Loading official triggers...</div>
-                            </div>
+                            <!-- Content will be populated by triggers-dropdown.js -->
                         </div>
                     </div>
                     <div class="dropdown">
-                        <button id="toggle-ai" class="dropdown-btn toggle-button control-button" data-state="CHAT" data-mode="chat">CHAT</button>
+                        <button id="toggle-ai" class="dropdown-btn toggle-button" data-state="off">AI: OFF</button>
                         <div class="dropdown-content">
-                            <div class="ai-config">
-                                <p class="config-label">AI Mode Selection:</p>
-                                <a href="#" data-action="ai-mode-chat">💬 Chat Mode</a>
-                                <a href="#" data-action="ai-mode-brainwash">🧠 Brainwash Mode</a>
-                                <a href="#" data-action="ai-model-creative">🎨 Creative Model</a>
-                                <a href="#" data-action="ai-model-balanced">⚖️ Balanced Model</a>
-                                <a href="#" data-action="ai-model-precise">🎯 Precise Model</a>
-                            </div>
+                            <!-- Content will be populated by ai-dropdown.js -->
                         </div>
                     </div>
                     <div class="dropdown collar-dropdown">
-                        <button id="toggle-collar" class="dropdown-btn toggle-button control-button" data-state="off">🔗 Collar: OFF</button>
+                        <button id="toggle-collar" class="dropdown-btn toggle-button" data-state="off">Collar: OFF</button>
                         <div class="dropdown-content">
-                            <div class="collar-config">
-                                <p class="config-label">Collar Settings:</p>
-                                <textarea id="collar-text" class="collar-textarea" placeholder="Enter collar settings..."></textarea>
-                                <div class="collar-buttons">
-                                    <button class="collar-btn" data-action="collar-copy">Copy</button>
-                                    <button class="collar-btn" data-action="collar-paste">Paste</button>
-                                    <button class="collar-btn" data-action="collar-save">Save</button>
-                                </div>
-                            </div>
+                            <!-- Content will be populated by collar-dropdown.js -->
                         </div>
                     </div>
                 </div>
@@ -144,7 +66,7 @@
     <script src="/js/triggers.js"></script>
     <script src="/js/text2speech.js"></script>
     <script src="/js/psychodelic-trigger-mania.js"></script>
-    <script src="/js/dropdown.js"></script>
+    <script type="module" src="/js/dropdowns.js"></script>
     <script src="/js/aigf-core.js"></script>
 </body>
 </html>

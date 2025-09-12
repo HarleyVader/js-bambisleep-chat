@@ -318,7 +318,7 @@ io.on('connection', (socket) => {
         }
 
         const { text, voice, format } = data;
-        
+
         if (!text || typeof text !== 'string') {
             socket.emit('tts-error', {
                 error: 'Invalid text input for TTS',
@@ -350,7 +350,7 @@ io.on('connection', (socket) => {
         }
 
         const { voice } = data;
-        
+
         if (!voice || typeof voice !== 'string') {
             socket.emit('tts-error', {
                 error: 'Invalid voice parameter',
@@ -602,7 +602,7 @@ app.post('/api/tts', (req, res) => {
     }
 
     if (!kokoroWorker) {
-        return res.status(503).json({ 
+        return res.status(503).json({
             error: 'Kokoro TTS worker not available',
             message: 'TTS service is currently unavailable. Please ensure Kokoro-FastAPI is running on port 8880.'
         });
@@ -624,7 +624,7 @@ app.post('/api/tts', (req, res) => {
 
     // Set a timeout to respond
     const timeout = setTimeout(() => {
-        res.status(504).json({ 
+        res.status(504).json({
             error: 'TTS generation timeout',
             message: 'The text-to-speech generation took too long. Please try again with shorter text.'
         });
@@ -635,7 +635,7 @@ app.post('/api/tts', (req, res) => {
     handleKokoroWorkerMessage = (msg) => {
         if (msg.socketId === tempSocketId) {
             clearTimeout(timeout);
-            
+
             if (msg.type === 'tts_success') {
                 res.json({
                     success: true,
@@ -653,7 +653,7 @@ app.post('/api/tts', (req, res) => {
                     timestamp: msg.timestamp
                 });
             }
-            
+
             handleKokoroWorkerMessage = originalHandler;
         } else {
             originalHandler(msg);
@@ -694,8 +694,8 @@ app.post('/api/tts/voice', (req, res) => {
     }
 
     if (!kokoroWorker) {
-        return res.status(503).json({ 
-            error: 'Kokoro TTS worker not available' 
+        return res.status(503).json({
+            error: 'Kokoro TTS worker not available'
         });
     }
 
@@ -711,20 +711,58 @@ app.post('/api/tts/voice', (req, res) => {
     });
 });
 
-// TTS Voice list endpoint (static for now, can be enhanced later)
+// TTS Voice list endpoint with enhanced female voice combinations
 app.get('/api/tts/voices', (req, res) => {
+    const femaleVoices = [
+        'af_sky',
+        'af_bella',
+        'af_sarah',
+        'af_nicole',
+        'af_alloy'
+    ];
+
+    const maleBanned = [
+        'am_adam',
+        'am_michael'
+    ];
+
+    // Generate all possible combinations (maximum 2 voices)
+    const voiceCombinations = [];
+
+    // Add individual voices
+    femaleVoices.forEach(voice => {
+        voiceCombinations.push({
+            value: voice,
+            name: voice.replace('af_', '').replace(/^\w/, c => c.toUpperCase()),
+            type: 'single',
+            voices: [voice]
+        });
+    });
+
+    // Add dual combinations
+    for (let i = 0; i < femaleVoices.length; i++) {
+        for (let j = i + 1; j < femaleVoices.length; j++) {
+            const combination = `${femaleVoices[i]}+${femaleVoices[j]}`;
+            const name1 = femaleVoices[i].replace('af_', '').replace(/^\w/, c => c.toUpperCase());
+            const name2 = femaleVoices[j].replace('af_', '').replace(/^\w/, c => c.toUpperCase());
+
+            voiceCombinations.push({
+                value: combination,
+                name: `${name1} + ${name2}`,
+                type: 'combination',
+                voices: [femaleVoices[i], femaleVoices[j]]
+            });
+        }
+    }
+
     res.json({
-        voices: [
-            'af_sky',
-            'af_bella', 
-            'af_sky+af_bella',
-            'af_sarah',
-            'af_nicole',
-            'am_adam',
-            'am_michael'
-        ],
+        voices: voiceCombinations,
+        femaleOnly: femaleVoices,
+        bannedMaleVoices: maleBanned,
         defaultVoice: 'af_sky+af_bella',
-        description: 'Available Kokoro TTS voices. Use + to combine voices.',
+        description: 'Available Kokoro TTS female voices. BambiSleep enforces female-only voices. Use + to combine up to 2 voices.',
+        maxCombination: 2,
+        language: 'en',
         timestamp: new Date().toISOString()
     });
 });

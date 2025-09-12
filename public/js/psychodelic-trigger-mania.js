@@ -195,10 +195,8 @@ class SpiralAnimation {
         gl.uniform2f(this.locations.resolution, this.width, this.height);
 
         // Calculate animation parameters with configurable controls
-        const a = this.map(Math.sin(this.frameCount / this.controls.frameSpeed1), -1, 1,
-            this.controls.spiralA_range_min, this.controls.spiralA_range_max);
-        const b = this.map(Math.cos(this.frameCount / this.controls.frameSpeed2), 1, -1,
-            this.controls.spiralB_range_min, this.controls.spiralB_range_max);
+        const a = this.map(Math.sin(this.frameCount / this.controls.frameSpeed1), -1, 1, this.controls.spiralA_range_min, this.controls.spiralA_range_max);
+        const b = this.map(Math.cos(this.frameCount / this.controls.frameSpeed2), -1, 1, this.controls.spiralB_range_min, this.controls.spiralB_range_max);
 
         // Set transform matrix for rotation and translation
         const rotation = this.frameCount / this.controls.rotationSpeed;
