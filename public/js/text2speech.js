@@ -431,7 +431,6 @@ class TextToSpeechSystem {
         if (!textDisplay) {
             textDisplay = document.createElement('div');
             textDisplay.className = 'tts-text-display';
-            // Use CSS variables for proper theming and proper text wrapping
             textDisplay.style.cssText = `
                 position: absolute;
                 top: 50%;
@@ -455,15 +454,19 @@ class TextToSpeechSystem {
             container.appendChild(textDisplay);
         }
 
-        // Display the text
-        textDisplay.textContent = text;
+        // Display the text as sentences, not a column
+        // Replace newlines or multiple spaces with <br> for sentence breaks
+        let html = String(text)
+            .replace(/([.!?])\s+/g, '$1<br>')
+            .replace(/\n/g, '<br>');
+        textDisplay.innerHTML = html;
         textDisplay.style.display = 'block';
 
         // Clear after duration
         setTimeout(() => {
             if (textDisplay) {
                 textDisplay.style.display = 'none';
-                textDisplay.textContent = '';
+                textDisplay.innerHTML = '';
             }
         }, duration || 3000);
     }
