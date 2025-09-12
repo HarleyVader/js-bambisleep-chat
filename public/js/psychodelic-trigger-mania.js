@@ -20,7 +20,7 @@ class SpiralAnimation {
         this.controls = {
             // Animation Speed Controls (Template uses frameCount/20 and frameCount/10)
             frameSpeed1: 20,    // frameCount divisor for spiral A
-            frameSpeed2: 20,    // frameCount divisor for spiral B  
+            frameSpeed2: 20,    // frameCount divisor for spiral B
             rotationSpeed: 10,  // rotation divisor (template uses frameCount/10)
 
             // Spiral Geometry Controls (Template values: a,1 and b,0.3)
@@ -43,7 +43,7 @@ class SpiralAnimation {
 
             // Randomizer Settings
             randomizer: {
-                enabled: true,
+                enabled: false,
                 interval: 30000, // 30 seconds
                 lastChange: 0
             }
@@ -239,7 +239,7 @@ class SpiralAnimation {
 
         for (let i = 0; i < this.controls.iterations; i++) {
             r1 += step; // Simple step increment like template
-            
+
             // Calculate spiral position using template formula
             const r1x = r1 * Math.sin(ang * i);
             const r1y = r1 * Math.cos(ang * i);
@@ -542,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.spiralAnimation.controls.rotationSpeed = 50 / speed;
         },
 
-        // Color Scheme Controls  
+        // Color Scheme Controls
         setColorScheme: (scheme) => {
             const schemes = {
                 'pink': {

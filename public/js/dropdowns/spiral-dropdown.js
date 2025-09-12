@@ -145,16 +145,6 @@ export class SpiralDropdown {
                 this.dropdownManager.showActionFeedback('SPIRAL', 'SOLID (100%)');
                 break;
 
-            // Randomizer Controls
-            case 'spiral-randomizer-on':
-                spiralControls.enableRandomizer(true);
-                this.dropdownManager.showActionFeedback('SPIRAL', 'AUTO-CHANGE ON');
-                break;
-            case 'spiral-randomizer-off':
-                spiralControls.enableRandomizer(false);
-                this.dropdownManager.showActionFeedback('SPIRAL', 'AUTO-CHANGE OFF');
-                break;
-
             // Special Brainwash Mode
             case 'spiral-brainwash-mode':
                 spiralControls.activateBrainwashMode();
@@ -212,9 +202,9 @@ export class SpiralDropdown {
         button.classList.toggle('active');
 
         // Execute the spiral action
-        this.handleAction(action, { 
+        this.handleAction(action, {
             selectedText: button.textContent,
-            element: button 
+            element: button
         });
 
         // For single-selection categories, remove active from siblings
@@ -241,6 +231,32 @@ export class SpiralDropdown {
     isSingleSelectionCategory(category) {
         // These categories should only have one active selection at a time
         return ['speed', 'geometry', 'alpha', 'preset'].includes(category);
+    }
+
+    handleRandomizerToggle(button) {
+        const spiralControls = this.getSpiralControls();
+        if (!spiralControls) {
+            console.warn('⚠️ Spiral controls not available');
+            this.dropdownManager.showActionFeedback('SPIRAL', 'SYSTEM NOT AVAILABLE');
+            return;
+        }
+
+        // Toggle the active state and update the button text
+        const isCurrentlyActive = button.classList.contains('active');
+        
+        if (isCurrentlyActive) {
+            // Currently ON, turning OFF
+            button.classList.remove('active');
+            button.textContent = '🔄 Auto-Change: OFF';
+            spiralControls.enableRandomizer(false);
+            this.dropdownManager.showActionFeedback('SPIRAL', 'AUTO-CHANGE OFF');
+        } else {
+            // Currently OFF, turning ON  
+            button.classList.add('active');
+            button.textContent = '⏸️ Auto-Change: ON';
+            spiralControls.enableRandomizer(true);
+            this.dropdownManager.showActionFeedback('SPIRAL', 'AUTO-CHANGE ON');
+        }
     }
 
     // Get HTML content for the dropdown
@@ -304,8 +320,7 @@ export class SpiralDropdown {
                 <div class="control-section">
                     <p class="config-label">🎲 Auto Randomizer</p>
                     <div class="spiral-buttons">
-                        <button class="spiral-button" data-action="spiral-randomizer-on" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-randomizer-on')">🔄 Enable Auto-Change</button>
-                        <button class="spiral-button" data-action="spiral-randomizer-off" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-randomizer-off')">⏸️ Disable Auto-Change</button>
+                        <button class="spiral-button active" data-action="spiral-randomizer-toggle" onclick="window.dropdownManager.getComponent('spiral').handleRandomizerToggle(this)">⏸️ Auto-Change: ON</button>
                     </div>
                 </div>
 
@@ -313,7 +328,7 @@ export class SpiralDropdown {
                 <div class="control-section">
                     <p class="config-label" style="color: var(--button-color); text-shadow: 0 0 10px var(--button-color);">🌀 ULTIMATE CONTROL 🌀</p>
                     <div class="spiral-buttons">
-                        <button class="spiral-button brainwash-button" data-action="spiral-brainwash-mode" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-brainwash-mode')" style="color: var(--button-color); text-shadow: 0 0 5px var(--button-color); font-weight: bold; animation: pulse 2s infinite;">🧠 BRAINWASH MODE 🧠</button>
+                        <button class="spiral-button brainwash-button" data-action="spiral-brainwash-mode" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-brainwash-mode')">🧠 BRAINWASH MODE 🧠</button>
                     </div>
                 </div>
             </div>
