@@ -223,8 +223,9 @@ class SpiralAnimation {
         // Calibration complete placeholder
         this.calibrationComplete();
 
-        // Draw trance point circle
-        this.drawCircle(this.trancePoint[0], this.trancePoint[1], 40, [255, 255, 255]);
+        // Draw trance point circle at center with scaled radius
+        const centerRadius = Math.min(this.width, this.height) / 20; // Scale radius with viewport
+        this.drawCircle(0, 0, centerRadius, [255, 255, 255]);
 
         this.frameCount++;
         this.animationId = requestAnimationFrame(() => this.draw());
@@ -233,6 +234,11 @@ class SpiralAnimation {
     spiral(step, ang, colorArray) {
         const gl = this.gl;
 
+        // Calculate scale factor to fill viewport
+        const scaleX = this.width * 0.8; // Use 80% of canvas width for spiral coverage
+        const scaleY = this.height * 0.8; // Use 80% of canvas height for spiral coverage
+        const scale = Math.min(scaleX, scaleY) / 200; // Scale factor to ensure full coverage
+
         // Generate spiral vertices using template calculation method
         const vertices = [];
         let r1 = 0;
@@ -240,9 +246,9 @@ class SpiralAnimation {
         for (let i = 0; i < this.controls.iterations; i++) {
             r1 += step; // Simple step increment like template
 
-            // Calculate spiral position using template formula
-            const r1x = r1 * Math.sin(ang * i);
-            const r1y = r1 * Math.cos(ang * i);
+            // Calculate spiral position using template formula with viewport scaling
+            const r1x = (r1 * Math.sin(ang * i)) * scale;
+            const r1y = (r1 * Math.cos(ang * i)) * scale;
 
             vertices.push(r1x, r1y);
         }
