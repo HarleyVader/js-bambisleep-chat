@@ -207,6 +207,42 @@ export class SpiralDropdown {
         this.dropdownManager.showToggleFeedback('SPIRAL', newState);
     }
 
+    handleSpiralClick(button, action) {
+        // Toggle active state for visual feedback (like other dropdowns)
+        button.classList.toggle('active');
+
+        // Execute the spiral action
+        this.handleAction(action, { 
+            selectedText: button.textContent,
+            element: button 
+        });
+
+        // For single-selection categories, remove active from siblings
+        const category = this.getSpiralCategory(action);
+        if (this.isSingleSelectionCategory(category)) {
+            const siblings = button.parentElement.querySelectorAll('.spiral-button');
+            siblings.forEach(sibling => {
+                if (sibling !== button) {
+                    sibling.classList.remove('active');
+                }
+            });
+        }
+    }
+
+    getSpiralCategory(action) {
+        if (action.includes('speed')) return 'speed';
+        if (action.includes('geometry')) return 'geometry';
+        if (action.includes('alpha')) return 'alpha';
+        if (action.includes('preset')) return 'preset';
+        if (action.includes('randomizer')) return 'randomizer';
+        return 'other';
+    }
+
+    isSingleSelectionCategory(category) {
+        // These categories should only have one active selection at a time
+        return ['speed', 'geometry', 'alpha', 'preset'].includes(category);
+    }
+
     // Get HTML content for the dropdown
     getDropdownContent() {
         return `
@@ -214,74 +250,73 @@ export class SpiralDropdown {
                 <!-- Speed Controls -->
                 <div class="control-section">
                     <p class="config-label">🚀 Speed Control</p>
-                    <a href="#" data-action="spiral-speed-slow">🐌 Slow & Hypnotic</a>
-                    <a href="#" data-action="spiral-speed-normal">⚡ Normal Speed</a>
-                    <a href="#" data-action="spiral-speed-fast">🌪️ Fast & Intense</a>
+                    <div class="spiral-buttons">
+                        <button class="spiral-button" data-action="spiral-speed-slow" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-speed-slow')">🐌 Slow & Hypnotic</button>
+                        <button class="spiral-button" data-action="spiral-speed-normal" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-speed-normal')">⚡ Normal Speed</button>
+                        <button class="spiral-button" data-action="spiral-speed-fast" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-speed-fast')">🌪️ Fast & Intense</button>
+                    </div>
                 </div>
 
                 <!-- Color Controls -->
                 <div class="control-section">
                     <p class="config-label">🎨 Color Schemes</p>
-                    <a href="#" data-action="spiral-color-pink">💗 Pink Dreams</a>
-                    <a href="#" data-action="spiral-color-purple">💜 Purple Haze</a>
-                    <a href="#" data-action="spiral-color-blue">💙 Blue Depth</a>
-                    <a href="#" data-action="spiral-color-rainbow">🌈 Rainbow Cycle</a>
-                    <a href="#" data-action="spiral-color-cycle">🔄 Randomize Colors</a>
+                    <div class="spiral-buttons">
+                        <button class="spiral-button" data-action="spiral-color-pink" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-color-pink')">💗 Pink Dreams</button>
+                        <button class="spiral-button" data-action="spiral-color-purple" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-color-purple')">💜 Purple Haze</button>
+                        <button class="spiral-button" data-action="spiral-color-blue" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-color-blue')">💙 Blue Depth</button>
+                        <button class="spiral-button" data-action="spiral-color-rainbow" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-color-rainbow')">🌈 Rainbow Cycle</button>
+                        <button class="spiral-button" data-action="spiral-color-cycle" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-color-cycle')">🔄 Randomize Colors</button>
+                    </div>
                 </div>
 
                 <!-- Geometry Controls -->
                 <div class="control-section">
                     <p class="config-label">⚙️ Spiral Geometry</p>
-                    <a href="#" data-action="spiral-geometry-tight">🎯 Tight Spirals</a>
-                    <a href="#" data-action="spiral-geometry-normal">🌀 Normal Spirals</a>
-                    <a href="#" data-action="spiral-geometry-wide">🌊 Wide Spirals</a>
+                    <div class="spiral-buttons">
+                        <button class="spiral-button" data-action="spiral-geometry-tight" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-geometry-tight')">🎯 Tight Spirals</button>
+                        <button class="spiral-button" data-action="spiral-geometry-normal" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-geometry-normal')">🌀 Normal Spirals</button>
+                        <button class="spiral-button" data-action="spiral-geometry-wide" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-geometry-wide')">🌊 Wide Spirals</button>
+                    </div>
                 </div>
 
                 <!-- Preset Controls -->
                 <div class="control-section">
                     <p class="config-label">🎭 Effect Presets</p>
-                    <a href="#" data-action="spiral-preset-hypnotic">😴 Hypnotic Trance</a>
-                    <a href="#" data-action="spiral-preset-intense">🔥 Intense Focus</a>
-                    <a href="#" data-action="spiral-preset-peaceful">☮️ Peaceful Flow</a>
-                    <a href="#" data-action="spiral-preset-chaos">💫 Chaos Mode</a>
+                    <div class="spiral-buttons">
+                        <button class="spiral-button" data-action="spiral-preset-hypnotic" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-preset-hypnotic')">😴 Hypnotic Trance</button>
+                        <button class="spiral-button" data-action="spiral-preset-intense" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-preset-intense')">🔥 Intense Focus</button>
+                        <button class="spiral-button" data-action="spiral-preset-peaceful" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-preset-peaceful')">☮️ Peaceful Flow</button>
+                        <button class="spiral-button" data-action="spiral-preset-chaos" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-preset-chaos')">💫 Chaos Mode</button>
+                    </div>
                 </div>
 
                 <!-- Alpha/Transparency Controls -->
                 <div class="control-section">
                     <p class="config-label">✨ Transparency</p>
-                    <a href="#" data-action="spiral-alpha-low">👻 Subtle (30%)</a>
-                    <a href="#" data-action="spiral-alpha-medium">🌙 Medium (70%)</a>
-                    <a href="#" data-action="spiral-alpha-high">☀️ Solid (100%)</a>
+                    <div class="spiral-buttons">
+                        <button class="spiral-button" data-action="spiral-alpha-low" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-alpha-low')">👻 Subtle (30%)</button>
+                        <button class="spiral-button" data-action="spiral-alpha-medium" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-alpha-medium')">🌙 Medium (70%)</button>
+                        <button class="spiral-button" data-action="spiral-alpha-high" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-alpha-high')">☀️ Solid (100%)</button>
+                    </div>
                 </div>
 
                 <!-- Randomizer Controls -->
                 <div class="control-section">
                     <p class="config-label">🎲 Auto Randomizer</p>
-                    <a href="#" data-action="spiral-randomizer-on">🔄 Enable Auto-Change</a>
-                    <a href="#" data-action="spiral-randomizer-off">⏸️ Disable Auto-Change</a>
+                    <div class="spiral-buttons">
+                        <button class="spiral-button" data-action="spiral-randomizer-on" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-randomizer-on')">🔄 Enable Auto-Change</button>
+                        <button class="spiral-button" data-action="spiral-randomizer-off" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-randomizer-off')">⏸️ Disable Auto-Change</button>
+                    </div>
                 </div>
 
                 <!-- Special Brainwash Mode -->
                 <div class="control-section">
                     <p class="config-label" style="color: var(--button-color); text-shadow: 0 0 10px var(--button-color);">🌀 ULTIMATE CONTROL 🌀</p>
-                    <a href="#" data-action="spiral-brainwash-mode" style="color: var(--button-color); text-shadow: 0 0 5px var(--button-color); font-weight: bold; animation: pulse 2s infinite;">🧠 BRAINWASH MODE 🧠</a>
+                    <div class="spiral-buttons">
+                        <button class="spiral-button brainwash-button" data-action="spiral-brainwash-mode" onclick="window.dropdownManager.getComponent('spiral').handleSpiralClick(this, 'spiral-brainwash-mode')" style="color: var(--button-color); text-shadow: 0 0 5px var(--button-color); font-weight: bold; animation: pulse 2s infinite;">🧠 BRAINWASH MODE 🧠</button>
+                    </div>
                 </div>
             </div>
-            
-            <style>
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.7; }
-                }
-                
-                .spiral-controls .control-section:last-child {
-                    border-top: 1px solid var(--button-color);
-                    margin-top: 10px;
-                    padding-top: 10px;
-                    background: rgba(255, 20, 147, 0.05);
-                    border-radius: var(--border-radius);
-                }
-            </style>
         `;
     }
 
