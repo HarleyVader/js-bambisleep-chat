@@ -118,7 +118,7 @@ class ChatCore {
 
         // Split original message into sentences for display
         const originalSentences = this.splitIntoTTSSentences(message);
-        
+
         // Clean text for TTS (same cleaning as in text2speech.js)
         let cleanText = this.cleanTextForTTS(message);
 
