@@ -293,9 +293,9 @@ class TextToSpeechSystem {
     }
 
     splitTextIntoSentences(text) {
-        // Split on sentence boundaries but preserve triggers as single units
-        // Don't split triggers that might be highlighted
-        return text.split(/(?<=[:;,.!?]["']?)\s+/g).filter(s => s.trim().length > 0);
+        // Split on sentence boundaries including asterisks, but preserve triggers as single units
+        // Handle asterisks as sentence separators (common in AI responses)
+        return text.split(/(?<=[:;,.!?\*]["']?)\s+|(?<=\*\*)\s+|\*\s+/g).filter(s => s.trim().length > 0);
     }
 
     processTextQueue() {

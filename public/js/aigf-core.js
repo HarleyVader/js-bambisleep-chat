@@ -216,8 +216,9 @@ class ChatCore {
             });
         });
 
-        // Split on sentence boundaries but be more conservative
-        const sentences = protectedText.split(/(?<=[.!?])\s+(?=[A-Z])/g)
+        // Split on sentence boundaries including asterisks, but be more conservative
+        // Handle asterisks as sentence separators (common in AI responses for emphasis)
+        const sentences = protectedText.split(/(?<=[.!?\*])\s+(?=[A-Z])|(?<=\*\*)\s+|\*\s+/g)
             .map(sentence => sentence.trim())
             .filter(sentence => sentence.length > 0);
 
