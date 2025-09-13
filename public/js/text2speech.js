@@ -9,7 +9,8 @@ class TextToSpeechSystem {
         this.state = true; // TTS state machine for synchronization (true = ready to start)
         this.audioContext = null;
         this.currentAudio = null;
-        this.currentText = ''; // Currently playing text
+        this.currentText = ''; // Currently playing text (original for display)
+        this.currentTTSText = ''; // Currently playing text (cleaned for TTS)
         this.currentAudioUrl = null; // Track current blob URL for cleanup
         this.volume = 0.7;
         this.speed = 1.0; // Default speed setting
@@ -227,12 +228,16 @@ class TextToSpeechSystem {
         const cleanText = this.cleanTextForTTS(text);
 
         // Split text by punctuation for better synchronization
-        const sentences = this.splitTextIntoSentences(cleanText);
+        const sentences = this.splitTextIntoSentences(text); // Use original text for splitting
+        const cleanSentences = this.splitTextIntoSentences(cleanText); // Clean text for TTS
 
-        // Add sentences to text array for synchronized display
-        sentences.forEach(sentence => {
+        // Add sentences to text array for synchronized display (original) and TTS (cleaned)
+        sentences.forEach((sentence, index) => {
             if (sentence.trim().length > 0) {
-                this.textArray.push(sentence.trim());
+                this.textArray.push({
+                    display: sentence.trim(), // Original text for display
+                    tts: cleanSentences[index] ? cleanSentences[index].trim() : sentence.trim() // Cleaned text for TTS
+                });
             }
         });
 
@@ -248,7 +253,7 @@ class TextToSpeechSystem {
 
         console.log('🎤 TTS speakSentences request:', sentencesArray.length, 'sentences');
 
-        // Add pre-cleaned sentences directly to text array
+        // Add pre-cleaned sentences directly to text array (legacy support)
         sentencesArray.forEach(sentence => {
             if (sentence && sentence.trim().length > 0) {
                 this.textArray.push(sentence.trim());
@@ -256,6 +261,30 @@ class TextToSpeechSystem {
         });
 
         console.log('🎤 Added', this.textArray.length, 'sentences to TTS queue');
+
+        // Start processing if not already playing (original pattern: state=true means ready)
+        if (!this.isPlaying && this.state) {
+            this.processTextQueue();
+        }
+    }
+
+    // New method to handle sentence pairs with separate display and TTS text
+    speakSentencePairs(sentencePairsArray) {
+        if (!this.isEnabled || !sentencePairsArray || sentencePairsArray.length === 0) return;
+
+        console.log('🎤 TTS speakSentencePairs request:', sentencePairsArray.length, 'sentence pairs');
+
+        // Add sentence pairs to text array 
+        sentencePairsArray.forEach(pair => {
+            if (pair && pair.display && pair.tts && pair.display.trim().length > 0) {
+                this.textArray.push({
+                    display: pair.display.trim(),
+                    tts: pair.tts.trim()
+                });
+            }
+        });
+
+        console.log('🎤 Added', this.textArray.length, 'sentence pairs to TTS queue');
 
         // Start processing if not already playing (original pattern: state=true means ready)
         if (!this.isPlaying && this.state) {
@@ -277,12 +306,21 @@ class TextToSpeechSystem {
         }
 
         this.isPlaying = true;
-        this.currentText = this.textArray.shift();
+        const textItem = this.textArray.shift();
+        
+        // Handle both old string format and new object format for compatibility
+        if (typeof textItem === 'string') {
+            this.currentText = textItem; // Old format - display and TTS are the same
+            this.currentTTSText = textItem;
+        } else {
+            this.currentText = textItem.display; // New format - separate display and TTS text
+            this.currentTTSText = textItem.tts;
+        }
 
         console.log('🎤 Processing text:', this.currentText);
 
-        // Add to audio queue and use do_tts like original working version
-        this.arrayPush(this.audioArray, this.currentText);
+        // Add to audio queue using TTS text and use do_tts like original working version
+        this.arrayPush(this.audioArray, this.currentTTSText);
         this.do_tts(this.audioArray); // CRITICAL: Use do_tts() not requestTTS()
     }
 
@@ -298,8 +336,18 @@ class TextToSpeechSystem {
 
         if (this.textArray.length > 0) {
             this.state = false;
-            this.currentText = this.textArray.shift();
-            this.arrayPush(this.audioArray, this.currentText);
+            const textItem = this.textArray.shift();
+            
+            // Handle both old string format and new object format for compatibility
+            if (typeof textItem === 'string') {
+                this.currentText = textItem; // Old format
+                this.currentTTSText = textItem;
+            } else {
+                this.currentText = textItem.display; // New format
+                this.currentTTSText = textItem.tts;
+            }
+            
+            this.arrayPush(this.audioArray, this.currentTTSText);
             this.do_tts(this.audioArray); // CRITICAL: Use do_tts() like original, not requestTTS()
         } else if (this.textArray.length === 0) {
             this.state = true;
@@ -331,8 +379,18 @@ class TextToSpeechSystem {
         // Continue with next item using original pattern
         if (this.textArray.length > 0) {
             this.state = false;
-            this.currentText = this.textArray.shift();
-            this.arrayPush(this.audioArray, this.currentText);
+            const textItem = this.textArray.shift();
+            
+            // Handle both old string format and new object format for compatibility
+            if (typeof textItem === 'string') {
+                this.currentText = textItem; // Old format
+                this.currentTTSText = textItem;
+            } else {
+                this.currentText = textItem.display; // New format
+                this.currentTTSText = textItem.tts;
+            }
+            
+            this.arrayPush(this.audioArray, this.currentTTSText);
             this.do_tts(this.audioArray);
         } else {
             this.isPlaying = false;
@@ -1171,7 +1229,8 @@ class TextToSpeechSystem {
         // Remove excessive whitespace and normalize
         text = text.replace(/\s+/g, ' ').trim();
 
-        return text;
+        // Convert to lowercase for TTS (display stays uppercase, but speech is lowercase)
+        return text.toLowerCase();
     }
 
     setVolume(volume) {
@@ -1192,6 +1251,7 @@ class TextToSpeechSystem {
         this.isPlaying = false;
         this.state = false;
         this.currentText = '';
+        this.currentTTSText = '';
         console.log('🗑️ TTS cache cleared');
     }
 

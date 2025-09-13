@@ -116,30 +116,39 @@ class ChatCore {
 
         console.log('🎤 Processing AI response for TTS with sentence splitting:', message.substring(0, 50) + '...');
 
+        // Split original message into sentences for display
+        const originalSentences = this.splitIntoTTSSentences(message);
+        
         // Clean text for TTS (same cleaning as in text2speech.js)
         let cleanText = this.cleanTextForTTS(message);
 
-        // Split into sentences with better logic
-        const sentences = this.splitIntoTTSSentences(cleanText);
+        // Split cleaned text into sentences for TTS
+        const cleanSentences = this.splitIntoTTSSentences(cleanText);
 
-        console.log('🎤 Split into', sentences.length, 'sentences for TTS');
+        console.log('🎤 Split into', originalSentences.length, 'sentences for display and TTS');
 
-        // Create audioArray for TTS system
-        const audioArray = [];
-        sentences.forEach((sentence, index) => {
-            if (sentence.trim().length > 0) {
-                audioArray.push(sentence.trim());
-                console.log(`🎤 Sentence ${index + 1}:`, sentence.trim().substring(0, 40) + '...');
+        // Create pairs of original and cleaned sentences
+        const sentencePairs = [];
+        originalSentences.forEach((originalSentence, index) => {
+            if (originalSentence.trim().length > 0) {
+                const cleanSentence = cleanSentences[index] || originalSentence; // Fallback to original if no clean version
+                sentencePairs.push({
+                    display: originalSentence.trim(),
+                    tts: cleanSentence.trim()
+                });
+                console.log(`🎤 Sentence ${index + 1} - Display:`, originalSentence.trim().substring(0, 30) + '... TTS:', cleanSentence.trim().substring(0, 30) + '...');
             }
         });
 
-        // Pass to TTS system with pre-split sentences
+        // Pass to TTS system with sentence pairs
         if (window.ttsSystem) {
-            window.ttsSystem.speakSentences(audioArray);
+            window.ttsSystem.speakSentencePairs(sentencePairs);
         } else if (window.tts) {
-            // Fallback to old method
-            audioArray.forEach(sentence => {
-                window.tts.speak(sentence);
+            // Fallback to old method - use clean sentences for TTS
+            cleanSentences.forEach(sentence => {
+                if (sentence.trim().length > 0) {
+                    window.tts.speak(sentence.trim());
+                }
             });
         }
     }
@@ -174,7 +183,8 @@ class ChatCore {
         // Remove excessive whitespace and normalize
         text = text.replace(/\s+/g, ' ').trim();
 
-        return text;
+        // Convert to lowercase for TTS (display stays uppercase, but speech is lowercase)
+        return text.toLowerCase();
     }
 
     // Enhanced sentence splitting for better TTS pacing
