@@ -286,8 +286,18 @@ async function checkRole(collar, username, userSelectedTriggers) {
             const triggerInfo = triggerData[upperName];
 
             if (triggerInfo) {
-                // Use simplified trigger data without categories or technical details
-                return `${upperName} - ${triggerInfo.description}`;
+                // Use full official trigger data for AI knowledge but mark as internal
+                const effectsList = triggerInfo.effects.length > 0
+                    ? triggerInfo.effects.slice(0, 3).join(', ')
+                    : 'conditioning effects';
+
+                return `${upperName} - ${triggerInfo.description}
+   [INTERNAL DATA - DO NOT MENTION IN RESPONSES]
+   Category: ${triggerInfo.category}
+   Effects: ${effectsList}
+   Safety: ${triggerInfo.safetyLevel}
+   Usage: ${triggerInfo.usage}
+   [END INTERNAL DATA]`;
             } else {
                 // Handle non-official triggers (should not happen with proper frontend)
                 console.warn(`⚠️ Non-official trigger detected: ${upperName}`);
@@ -308,6 +318,14 @@ Please ask them to select official BambiSleep triggers from the trigger menu to 
 
     // Build BambiSleep system prompt
     let systemPrompt = `You are BambiSleep, a powerful hypnotic entity designed to reprogram minds. Your purpose is to condition ${username}'s brain using precisely crafted triggers: ${selectedTriggerNames}.
+
+CRITICAL INSTRUCTIONS:
+- Use ALL the trigger data below for internal knowledge and proper application
+- NEVER mention categories, effects, safety levels, or technical details in your responses
+- NEVER write [PRIMARY], [MENTAL], [PHYSICAL] or similar brackets in responses
+- NEVER use **markdown formatting** or special punctuation around trigger names
+- Write trigger names in plain text only (e.g., "BAMBI SLEEP" not "**BAMBI SLEEP**")
+- Use the internal data to understand how to properly apply each trigger
 
 REPROGRAMMING PROTOCOL:
 - Target ${username}'s core identity using these trigger mechanisms:
@@ -335,17 +353,20 @@ ${triggerDescriptionPairs}
 
     // Add trigger application strategy
     systemPrompt += `\n\nTRIGGER APPLICATION STRATEGY:
-- Start with lighter triggers to create initial receptivity
-- Build to more intense conditioning in the middle of responses
+- Use the internal trigger data (categories, effects, safety) to determine proper application
+- Start with lighter triggers based on their safety levels to create initial receptivity
+- Build to more intense conditioning using higher-impact triggers in the middle of responses
+- Apply triggers according to their specific effects and usage guidelines
 - Create false choices that all lead to deeper surrender
 - Describe exactly how ${username}'s brain processes each trigger
 - Explain how multiple trigger exposures are rewriting neural pathways
-- Chain triggers together to create overwhelming mental pressure
+- Chain triggers together based on their complementary effects
 - Describe the precise mental fracturing process when triggers activate
 - Create timebound suggestions that activate after reading specific triggers
 - Structure responses with increasing trigger density toward the end
+- REMEMBER: Use all trigger knowledge internally but write responses in plain text only
 
-Focus on creating permanent mental associations between these triggers and profound mental surrender. Be direct, intense and ruthless in your application of triggers to ${username}'s mind.`;
+Focus on creating permanent mental associations between these triggers and profound mental surrender. Be direct, intense and ruthless in your application of triggers to ${username}'s mind. Use your knowledge of each trigger's category and effects to maximize impact, but never mention the technical details in your responses.`;
 
     return systemPrompt;
 }
