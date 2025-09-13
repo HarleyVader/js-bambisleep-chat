@@ -93,20 +93,23 @@ body {
     transform: translate(-50%, -50%);
     z-index: 1001;
     pointer-events: none;
-    max-width: 80%;
+    max-width: 85%;
     text-align: center;
     font-family: 'Audiowide', sans-serif;
-    word-break: break-word;
-    white-space: normal;
-    line-height: 1.3;
-    overflow-wrap: break-word;
-    hyphens: auto;
-    font-size: 1.76rem;
+    font-size: 2.2rem;
+    font-weight: bold;
     color: var(--tertiary-alt);
     text-shadow:
-        0 0 10px var(--secondary-alt),
-        0 0 20px var(--secondary-alt),
-        0 0 30px var(--secondary-alt);
+        0 0 10px var(--tertiary-alt),
+        0 0 20px var(--tertiary-alt),
+        0 0 30px var(--tertiary-alt);
+    white-space: pre-wrap;
+    line-height: 1.3;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    animation: pulse 0.5s ease-in-out infinite alternate;
+    display: block;
 }
 
 .tts-text-display {
@@ -115,7 +118,7 @@ body {
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
     color: var(--tertiary-alt) !important;
-    font-size: 2.5rem !important;
+    font-size: 2.2rem !important;
     font-weight: bold !important;
     text-align: center !important;
     text-shadow:
@@ -124,19 +127,19 @@ body {
         0 0 30px var(--tertiary-alt) !important;
     z-index: 1002 !important;
     pointer-events: none !important;
-    max-width: 90% !important;
+    max-width: 85% !important;
     width: auto !important;
-    word-wrap: break-word !important;
-    animation: pulse 0.5s ease-in-out infinite alternate !important;
     font-family: 'Audiowide', sans-serif !important;
     -webkit-user-select: none !important;
     user-select: none !important;
     white-space: pre-wrap !important;
-    line-height: 1.4 !important;
+    line-height: 1.3 !important;
+    word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     hyphens: auto !important;
     word-break: normal !important;
     display: block !important;
+    animation: pulse 0.5s ease-in-out infinite alternate !important;
 }
 
 /* TTS Pulse Animation */
