@@ -158,6 +158,9 @@ class ChatCore {
         // Remove URLs
         text = text.replace(/https?:\/\/[^\s]+/g, 'link');
 
+        // Remove apostrophes from contractions and possessives (you'll -> youll, bambi's -> bambis)
+        text = text.replace(/'/g, '');
+
         // Remove ALL punctuation marks that should not be spoken
         text = text.replace(/[.,;:!?"""''`~@#$%^&*()_+=\[\]{}|\\<>/\-]/g, ' ');
 
