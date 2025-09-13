@@ -394,12 +394,15 @@ io.on('connection', (socket) => {
             return;
         }
 
-        console.log(`🎤 TTS request from ${socket.id}: "${text.substring(0, 50)}..."`);
+        // Clean and lowercase text for TTS (same cleaning as HTTP endpoint)
+        const cleanedText = cleanTextForTTS(text);
+
+        console.log(`🎤 TTS request from ${socket.id}: "${text.substring(0, 50)}..." -> cleaned: "${cleanedText.substring(0, 50)}..."`);
 
         // Send to Kokoro worker
         kokoroWorker.postMessage({
             type: 'tts',
-            text: text,
+            text: cleanedText, // Send cleaned lowercase text
             voice: voice,
             format: format,
             socketId: socket.id
@@ -799,18 +802,55 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
     console.log('🎤 TTS routes configured with Kokoro integration');
 }
 
+// Clean text for TTS processing - mirrors client-side cleanTextForTTS
+function cleanTextForTTS(text) {
+    // Remove URLs
+    text = text.replace(/https?:\/\/[^\s]+/g, 'link');
+
+    // Remove ALL punctuation marks that should not be spoken
+    text = text.replace(/[.,;:!?"""''`~@#$%^&*()_+=\[\]{}|\\<>/\-]/g, ' ');
+
+    // Remove excessive punctuation
+    text = text.replace(/[!]{2,}/g, '');
+    text = text.replace(/[?]{2,}/g, '');
+    text = text.replace(/[.]{3,}/g, '');
+
+    // Replace common emoticons with words
+    text = text.replace(/:\)/g, 'smile');
+    text = text.replace(/:\(/g, 'sad');
+    text = text.replace(/:D/g, 'laugh');
+    text = text.replace(/<3/g, 'heart');
+
+    // Remove HTML tags but preserve the text content
+    text = text.replace(/<[^>]*>/g, '');
+
+    // Remove markdown formatting
+    text = text.replace(/\*\*(.*?)\*\*/g, '$1'); // Remove **bold**
+    text = text.replace(/\*(.*?)\*/g, '$1'); // Remove *italic*
+    text = text.replace(/__(.*?)__/g, '$1'); // Remove __underline__
+
+    // Remove excessive whitespace and normalize
+    text = text.replace(/\s+/g, ' ').trim();
+
+    // Convert to lowercase for TTS (display stays uppercase, but speech is lowercase)
+    return text.toLowerCase();
+}
+
 // Generate TTS audio using Kokoro worker
 async function generateTTSAudio(text, voice, res, format = 'mp3') {
     return new Promise((resolve, reject) => {
         // Generate a temporary socket ID for API requests
         const tempSocketId = `api_tts_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-        console.log(`🎤 API TTS request: "${text.substring(0, 50)}..." with voice: ${voice}`);
+        // Clean and lowercase text for TTS (same cleaning as client-side cleanTextForTTS)
+        const cleanedText = cleanTextForTTS(text);
+
+        console.log(`🎤 API TTS request: "${text.substring(0, 50)}..." -> cleaned: "${cleanedText.substring(0, 50)}..." with voice: ${voice}`);
 
         // Send to Kokoro worker
         kokoroWorker.postMessage({
             type: 'tts',
-            text: text,
+            text: cleanedText, // Send cleaned lowercase text
             voice: voice,
             format: format,
             socketId: tempSocketId
