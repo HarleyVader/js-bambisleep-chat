@@ -48,6 +48,7 @@
     body {
         font-size: var(--mobile-font-size-base);
         -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
         overflow-x: hidden;
@@ -82,8 +83,8 @@
         height: calc(100dvh - var(--mobile-nav-height));
         z-index: 1000;
         background: var(--mobile-glass);
-        backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
         border: none;
         border-radius: 0;
         display: flex;
@@ -170,7 +171,6 @@
         overflow-y: auto;
         padding: var(--mobile-padding);
         scroll-behavior: smooth;
-        -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
     }
     
@@ -180,8 +180,8 @@
         padding: var(--mobile-margin);
         border-radius: var(--mobile-border-radius);
         background: var(--mobile-glass-light);
-        backdrop-filter: blur(5px);
         -webkit-backdrop-filter: blur(5px);
+        backdrop-filter: blur(5px);
         border: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: var(--mobile-shadow-light);
         animation: mobileMessageSlide 0.3s ease-out;
@@ -337,8 +337,8 @@
         z-index: 1002;
         padding: 8px;
         box-shadow: var(--mobile-shadow-heavy);
-        backdrop-filter: blur(15px);
         -webkit-backdrop-filter: blur(15px);
+        backdrop-filter: blur(15px);
     }
     
     /* Mobile nav buttons */
@@ -411,8 +411,8 @@
         left: 0;
         right: 0;
         background: var(--mobile-glass);
-        backdrop-filter: blur(15px);
         -webkit-backdrop-filter: blur(15px);
+        backdrop-filter: blur(15px);
         transform: translateY(100%);
         transition: transform var(--mobile-transition-medium);
         z-index: 1001;
@@ -564,8 +564,8 @@
         border: 1px solid var(--mobile-primary-alt);
         border-radius: var(--mobile-border-radius);
         padding: var(--mobile-padding);
-        backdrop-filter: blur(5px);
         -webkit-backdrop-filter: blur(5px);
+        backdrop-filter: blur(5px);
     }
     
     .mobile-category-header {
@@ -673,8 +673,8 @@
         border: 1px solid var(--mobile-primary-alt);
         border-radius: var(--mobile-border-radius);
         padding: var(--mobile-padding);
-        backdrop-filter: blur(5px);
         -webkit-backdrop-filter: blur(5px);
+        backdrop-filter: blur(5px);
     }
     
     .mobile-spiral-title {
@@ -739,8 +739,8 @@
         border-radius: var(--mobile-border-radius);
         padding: var(--mobile-padding);
         margin: var(--mobile-padding) 0;
-        backdrop-filter: blur(5px);
         -webkit-backdrop-filter: blur(5px);
+        backdrop-filter: blur(5px);
     }
     
     .mobile-collar-title {
