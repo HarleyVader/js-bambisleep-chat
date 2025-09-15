@@ -556,7 +556,7 @@ class MobileInterface {
         // Create new indicator
         const indicator = document.createElement('div');
         indicator.className = 'aigf-landscape-indicator';
-        indicator.textContent = '🤖 AIGF ACTIVE';
+        indicator.textContent = '🌟 AIGF Ready';
         indicator.style.display = 'none';
         
         document.body.appendChild(indicator);
@@ -564,7 +564,10 @@ class MobileInterface {
     }
     
     monitorOrientationForAIGF() {
-        // Simple, reliable orientation monitoring that works in all browsers
+        // Create recommendation banner instead of blocking overlay
+        this.createLandscapeRecommendation();
+        
+        // Simple orientation monitoring for recommendations only
         window.addEventListener('resize', () => {
             setTimeout(() => {
                 this.handleAIGFOrientationChange();
@@ -574,87 +577,57 @@ class MobileInterface {
         // Initial check
         this.handleAIGFOrientationChange();
         
-        console.log('🔄 Simple orientation detection enabled');
+        console.log('� Landscape recommendation enabled (non-blocking)');
+    }
+    
+    createLandscapeRecommendation() {
+        if (document.querySelector('.landscape-recommendation')) return;
+        
+        const banner = document.createElement('div');
+        banner.className = 'landscape-recommendation';
+        banner.innerHTML = '📱➡️📲 Rotate for better AIGF experience';
+        banner.style.display = 'none'; // Hidden by default
+        document.body.appendChild(banner);
     }
     
     handleAIGFOrientationChange() {
-        // Simple and reliable: landscape = width > height
+        // Simple check: landscape = width > height  
         const isLandscape = window.innerWidth > window.innerHeight;
         
-        const rotationOverlay = document.querySelector('.aigf-rotation-overlay');
-        const aiButton = document.getElementById('mobile-ai-btn');
-        const aiPanel = document.getElementById('mobile-ai-panel');
+        const banner = document.querySelector('.landscape-recommendation');
         
         if (isLandscape) {
-            // Landscape mode - AIGF access allowed
-            if (rotationOverlay) {
-                rotationOverlay.style.display = 'none';
-            }
+            // Hide recommendation banner
+            if (banner) banner.style.display = 'none';
             
+            // Show landscape indicator
             if (this.landscapeIndicator) {
                 this.landscapeIndicator.style.display = 'block';
             }
             
-            // Enable AI controls
-            if (aiButton) {
-                aiButton.style.pointerEvents = 'auto';
-                aiButton.style.opacity = '1';
-            }
-            
-            // Add haptic feedback for successful rotation
+            // Add haptic feedback for landscape mode
             if (navigator.vibrate) {
                 navigator.vibrate([50, 100, 50]);
             }
             
-            console.log('🤖 AIGF access granted - Landscape mode');
+            console.log('🤖 AIGF optimized - Landscape mode');
             
         } else {
-            // Portrait mode - AIGF access restricted
-            if (rotationOverlay) {
-                rotationOverlay.style.display = 'flex';
-            }
+            // Show recommendation banner (non-blocking)
+            if (banner) banner.style.display = 'block';
             
+            // Hide landscape indicator
             if (this.landscapeIndicator) {
                 this.landscapeIndicator.style.display = 'none';
             }
             
-            // Close AI panel if open
-            if (aiPanel && aiPanel.classList.contains('active')) {
-                this.closePanel('mobile-ai-panel');
-                this.setActiveNavItem('mobile-chat-btn');
-            }
-            
-            // Disable AI controls
-            if (aiButton) {
-                aiButton.style.pointerEvents = 'none';
-                aiButton.style.opacity = '0.5';
-            }
-            
-            console.log('🚫 AIGF access restricted - Portrait mode');
+            console.log('📱 AIGF available - Portrait mode (landscape recommended)');
         }
     }
     
-    // Override navigation handler to check AIGF access
+    // Navigation handler - now works in all orientations
     handleNavigation(button) {
         const buttonId = button.id;
-        
-        // Check if this is AI button and device is in portrait mode
-        if (buttonId === 'mobile-ai-btn') {
-            // Simple check: landscape = width > height
-            const isLandscape = window.innerWidth > window.innerHeight;
-            
-            if (!isLandscape) {
-                // Show rotation requirement notification
-                this.showNotification('🔄 Rotate device to landscape for AIGF access', 'warning');
-                
-                // Vibrate to indicate restriction
-                if (navigator.vibrate) {
-                    navigator.vibrate([100, 50, 100]);
-                }
-                
-                return; // Prevent navigation
-            }
-        }
         
         // Close any open panels first
         this.closeAllPanels();
@@ -678,12 +651,14 @@ class MobileInterface {
             case 'mobile-ai-btn':
                 this.togglePanel('mobile-ai-panel');
                 
-                // Special AIGF activation sequence
+                // AIGF activation haptic feedback
                 if (navigator.vibrate) {
                     navigator.vibrate([50, 100, 50, 100, 50]);
                 }
                 
-                console.log('🤖 AIGF panel activated in landscape mode');
+                // Check if landscape for better experience
+                const isLandscape = window.innerWidth > window.innerHeight;
+                console.log(isLandscape ? '🤖 AIGF panel activated in landscape mode' : '🤖 AIGF panel activated (landscape recommended)');
                 break;
         }
     }
