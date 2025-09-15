@@ -1,4 +1,4 @@
-/* 
+/*
  * BambiSleep Chat - Mobile-First Experience
  * Unique mobile interface with touch optimization and immersive design
  */
@@ -16,7 +16,7 @@
     --mobile-dark: #0a0a0aF0;
     --mobile-glass: rgba(18, 65, 65, 0.95);
     --mobile-glass-light: rgba(18, 65, 65, 0.85);
-    
+
     /* Mobile-specific spacing and sizing */
     --mobile-header-height: 60px;
     --mobile-nav-height: 70px;
@@ -28,12 +28,12 @@
     --mobile-font-size-base: 1rem;
     --mobile-font-size-large: 1.125rem;
     --mobile-font-size-xl: 1.25rem;
-    
+
     /* Mobile animation timing */
     --mobile-transition-fast: 0.2s ease-out;
     --mobile-transition-medium: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --mobile-transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     /* Mobile shadows and effects */
     --mobile-shadow-light: 0 2px 8px rgba(0, 0, 0, 0.1);
     --mobile-shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -44,23 +44,177 @@
 /* Mobile-Only Styles - Applied only on mobile devices */
 @media screen and (max-width: 768px) {
     
+    /* ===== AIGF ROTATION REQUIREMENT ===== */
+    
+    /* Hide AI controls in portrait mode */
+    @media (orientation: portrait) {
+        
+        /* Hide AI navigation button in portrait */
+        #mobile-ai-btn {
+            display: none !important;
+        }
+        
+        /* Hide AI panel in portrait */
+        #mobile-ai-panel {
+            display: none !important;
+        }
+        
+        /* Hide desktop AI button in portrait */
+        #toggle-ai {
+            display: none !important;
+        }
+        
+        /* Rotation requirement overlay */
+        .aigf-rotation-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--mobile-dark), var(--mobile-secondary));
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: var(--mobile-padding);
+            text-align: center;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        .aigf-rotation-title {
+            font-size: var(--mobile-font-size-xl);
+            color: var(--mobile-accent);
+            margin-bottom: var(--mobile-padding);
+            font-weight: bold;
+            text-shadow: var(--mobile-glow);
+            animation: aigfRotationPulse 2s ease-in-out infinite;
+        }
+        
+        .aigf-rotation-icon {
+            font-size: 4rem;
+            color: var(--mobile-tertiary-alt);
+            margin: var(--mobile-padding) 0;
+            animation: rotateIcon 2s ease-in-out infinite;
+        }
+        
+        .aigf-rotation-text {
+            font-size: var(--mobile-font-size-base);
+            color: white;
+            line-height: 1.5;
+            max-width: 300px;
+            margin-bottom: var(--mobile-padding);
+        }
+        
+        .aigf-rotation-subtitle {
+            font-size: var(--mobile-font-size-small);
+            color: var(--mobile-primary-alt);
+            opacity: 0.8;
+            font-style: italic;
+        }
+        
+        @keyframes aigfRotationPulse {
+            0%, 100% { 
+                text-shadow: var(--mobile-glow);
+                transform: scale(1);
+            }
+            50% { 
+                text-shadow: var(--mobile-glow), 0 0 30px var(--mobile-accent);
+                transform: scale(1.05);
+            }
+        }
+        
+        @keyframes rotateIcon {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
+            100% { transform: rotate(0deg); }
+        }
+    }
+    
+    /* Show AI controls only in landscape mode */
+    @media (orientation: landscape) {
+        
+        /* Show AI controls in landscape */
+        #mobile-ai-btn,
+        #mobile-ai-panel,
+        #toggle-ai {
+            display: block !important;
+        }
+        
+        /* Hide rotation overlay in landscape */
+        .aigf-rotation-overlay {
+            display: none !important;
+        }
+        
+        /* Enhanced AI button styling for landscape mode */
+        #mobile-ai-btn {
+            background: linear-gradient(135deg, var(--mobile-accent), var(--mobile-secondary-alt));
+            border: 2px solid var(--mobile-accent);
+            animation: aigfLandscapeGlow 3s ease-in-out infinite;
+        }
+        
+        #mobile-ai-btn.active {
+            box-shadow: 0 0 30px var(--mobile-accent), 0 0 50px rgba(223, 4, 113, 0.5);
+        }
+        
+        @keyframes aigfLandscapeGlow {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(223, 4, 113, 0.4);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(223, 4, 113, 0.8), 0 0 40px rgba(204, 1, 116, 0.6);
+            }
+        }
+        
+        /* Special landscape-only AIGF panel styling */
+        #mobile-ai-panel {
+            border: 3px solid var(--mobile-accent);
+            background: linear-gradient(135deg, var(--mobile-glass), var(--mobile-secondary));
+            box-shadow: 0 0 40px rgba(223, 4, 113, 0.3);
+        }
+        
+        /* AIGF activation indicator */
+        .aigf-landscape-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: var(--mobile-accent);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            z-index: 1001;
+            animation: aigfIndicatorPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes aigfIndicatorPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+    }
+    
+    /* ===== END AIGF ROTATION REQUIREMENT ===== */
+
     /* Mobile Body Reset */
     body {
         font-size: var(--mobile-font-size-base);
         -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
         text-size-adjust: 100%;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
         overflow-x: hidden;
-        background: linear-gradient(135deg, 
-            var(--mobile-primary), 
-            var(--mobile-secondary), 
+        background: linear-gradient(135deg,
+            var(--mobile-primary),
+            var(--mobile-secondary),
             var(--mobile-tertiary));
         background-attachment: fixed;
         height: 100vh;
         height: 100dvh; /* Dynamic viewport height for mobile */
     }
-    
+
     /* Mobile App Container */
     #app {
         flex-direction: column;
@@ -69,7 +223,7 @@
         position: relative;
         overflow: hidden;
     }
-    
+
     /* Mobile Chat Container - Redesigned for touch */
     #chat-container {
         position: fixed;
@@ -93,7 +247,7 @@
         order: unset;
         transform: translateX(0);
     }
-    
+
     /* Mobile chat header - Streamlined */
     #chat-header {
         position: sticky;
@@ -109,7 +263,7 @@
         justify-content: center;
         box-shadow: var(--mobile-shadow-medium);
     }
-    
+
     #chat-header h1 {
         font-size: var(--mobile-font-size-large);
         text-align: center;
@@ -119,12 +273,12 @@
         letter-spacing: 2px;
         line-height: 1.2;
     }
-    
+
     /* Hide desktop controls in mobile chat header */
     #chat-header #controls {
         display: none;
     }
-    
+
     /* Mobile Spiral Container - Background experience */
     #spiral-container {
         position: fixed;
@@ -142,7 +296,7 @@
         order: unset;
         transition: opacity var(--mobile-transition-medium);
     }
-    
+
     /* Mobile spiral canvas adjustments */
     #spiral-canvas {
         width: 100%;
@@ -151,7 +305,7 @@
         border-radius: 0;
         filter: brightness(0.8) saturate(1.2) contrast(1.1);
     }
-    
+
     /* Mobile TTS display - Optimized for mobile screens */
     #eye,
     .spiral-text-center,
@@ -164,7 +318,7 @@
         word-break: break-word !important;
         hyphens: auto !important;
     }
-    
+
     /* Mobile chat messages - Touch optimized */
     #chat-messages {
         flex: 1;
@@ -173,7 +327,7 @@
         scroll-behavior: smooth;
         overscroll-behavior: contain;
     }
-    
+
     /* Mobile message styling */
     .message {
         margin-bottom: var(--mobile-margin);
@@ -187,7 +341,7 @@
         animation: mobileMessageSlide 0.3s ease-out;
         touch-action: pan-y;
     }
-    
+
     @keyframes mobileMessageSlide {
         from {
             opacity: 0;
@@ -198,19 +352,19 @@
             transform: translateY(0);
         }
     }
-    
+
     /* Mobile message text sizing */
     .message-text {
         font-size: var(--mobile-font-size-base);
         line-height: 1.5;
         word-break: break-word;
     }
-    
+
     .message-time {
         font-size: var(--mobile-font-size-small);
         opacity: 0.7;
     }
-    
+
     /* Mobile chat input container */
     #chat-input-container {
         position: sticky;
@@ -224,7 +378,7 @@
         min-height: var(--mobile-touch-target);
         box-shadow: var(--mobile-shadow-medium);
     }
-    
+
     /* Mobile chat input */
     #chat-input {
         flex: 1;
@@ -237,13 +391,13 @@
         color: white;
         touch-action: manipulation;
     }
-    
+
     #chat-input:focus {
         outline: none;
         border-color: var(--mobile-tertiary-alt);
         box-shadow: 0 0 0 3px rgba(2, 184, 147, 0.3);
     }
-    
+
     /* Mobile send button */
     #send-button {
         min-width: var(--mobile-touch-target);
@@ -262,40 +416,40 @@
         transition: all var(--mobile-transition-fast);
         box-shadow: var(--mobile-shadow-light);
     }
-    
+
     #send-button:active {
         transform: scale(0.95);
         box-shadow: var(--mobile-shadow-heavy);
     }
-    
+
     /* Mobile scrollbar styling */
     #chat-messages::-webkit-scrollbar {
         width: 4px;
     }
-    
+
     #chat-messages::-webkit-scrollbar-track {
         background: transparent;
     }
-    
+
     #chat-messages::-webkit-scrollbar-thumb {
         background: var(--mobile-primary-alt);
         border-radius: 2px;
     }
-    
+
     /* AI message mobile styling */
     .message.ai {
         background: linear-gradient(135deg, var(--mobile-primary), var(--mobile-secondary));
         border: 2px solid var(--mobile-tertiary-alt);
         box-shadow: var(--mobile-glow), var(--mobile-shadow-medium);
     }
-    
+
     .message.system {
         background: var(--mobile-dark);
         border: 1px solid var(--mobile-accent);
         text-align: center;
         font-style: italic;
     }
-    
+
     /* Enhanced trigger styling for mobile */
     .trigger-text,
     .enhanced-trigger,
@@ -308,20 +462,20 @@
         background: rgba(223, 4, 113, 0.1);
         animation: mobileTriggerPulse 1.5s ease-in-out infinite;
     }
-    
+
     @keyframes mobileTriggerPulse {
-        0%, 100% { 
+        0%, 100% {
             text-shadow: 0 0 10px var(--mobile-accent);
             transform: scale(1);
         }
-        50% { 
+        50% {
             text-shadow: 0 0 20px var(--mobile-accent), 0 0 30px var(--mobile-accent);
             transform: scale(1.02);
         }
     }
-    
+
     /* ===== MOBILE NAVIGATION SYSTEM ===== */
-    
+
     /* Mobile Bottom Navigation Bar */
     .mobile-nav {
         position: fixed;
@@ -340,7 +494,7 @@
         -webkit-backdrop-filter: blur(15px);
         backdrop-filter: blur(15px);
     }
-    
+
     /* Mobile nav buttons */
     .mobile-nav-btn {
         display: flex;
@@ -361,7 +515,7 @@
         position: relative;
         overflow: hidden;
     }
-    
+
     .mobile-nav-btn:before {
         content: '';
         position: absolute;
@@ -374,35 +528,35 @@
         transform: translate(-50%, -50%);
         z-index: -1;
     }
-    
+
     .mobile-nav-btn:active:before {
         width: 100px;
         height: 100px;
     }
-    
+
     .mobile-nav-btn-icon {
         font-size: 1.5rem;
         margin-bottom: 2px;
     }
-    
+
     .mobile-nav-btn-label {
         font-size: 0.75rem;
         font-weight: 500;
         text-align: center;
         line-height: 1;
     }
-    
+
     .mobile-nav-btn.active {
         color: var(--mobile-tertiary-alt);
         border-color: var(--mobile-tertiary-alt);
         background: rgba(2, 184, 147, 0.1);
         box-shadow: 0 0 20px rgba(2, 184, 147, 0.3);
     }
-    
+
     .mobile-nav-btn:active {
         transform: scale(0.95);
     }
-    
+
     /* Mobile slide-out panels */
     .mobile-panel {
         position: fixed;
@@ -420,11 +574,11 @@
         padding: var(--mobile-padding);
         border-top: 2px solid var(--mobile-accent);
     }
-    
+
     .mobile-panel.active {
         transform: translateY(0);
     }
-    
+
     /* Mobile panel header */
     .mobile-panel-header {
         display: flex;
@@ -434,13 +588,13 @@
         border-bottom: 1px solid var(--mobile-primary-alt);
         margin-bottom: var(--mobile-padding);
     }
-    
+
     .mobile-panel-title {
         font-size: var(--mobile-font-size-large);
         color: var(--mobile-tertiary-alt);
         font-weight: bold;
     }
-    
+
     .mobile-panel-close {
         min-width: var(--mobile-touch-target);
         min-height: var(--mobile-touch-target);
@@ -455,9 +609,9 @@
         justify-content: center;
         touch-action: manipulation;
     }
-    
+
     /* ===== MOBILE CONTROLS OPTIMIZATION ===== */
-    
+
     /* Mobile dropdown redesign - Full screen overlay */
     .mobile-dropdown-overlay {
         position: fixed;
@@ -471,14 +625,14 @@
         opacity: 0;
         transition: opacity var(--mobile-transition-medium);
     }
-    
+
     .mobile-dropdown-overlay.active {
         display: flex;
         opacity: 1;
         align-items: center;
         justify-content: center;
     }
-    
+
     .mobile-dropdown-content {
         background: var(--mobile-dark);
         border: 2px solid var(--mobile-accent);
@@ -490,7 +644,7 @@
         box-shadow: var(--mobile-shadow-heavy);
         animation: mobileDropdownSlide 0.3s ease-out;
     }
-    
+
     @keyframes mobileDropdownSlide {
         from {
             opacity: 0;
@@ -501,7 +655,7 @@
             transform: scale(1) translateY(0);
         }
     }
-    
+
     /* Mobile button grid system */
     .mobile-button-grid {
         display: grid;
@@ -509,7 +663,7 @@
         gap: var(--mobile-margin);
         padding: var(--mobile-padding) 0;
     }
-    
+
     .mobile-control-btn {
         min-height: var(--mobile-touch-target);
         padding: var(--mobile-margin);
@@ -525,7 +679,7 @@
         position: relative;
         overflow: hidden;
     }
-    
+
     .mobile-control-btn:before {
         content: '';
         position: absolute;
@@ -536,29 +690,29 @@
         background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
         transition: left var(--mobile-transition-medium);
     }
-    
+
     .mobile-control-btn:active:before {
         left: 100%;
     }
-    
+
     .mobile-control-btn:active {
         transform: scale(0.98);
         border-color: var(--mobile-tertiary-alt);
     }
-    
+
     .mobile-control-btn.active {
         background: linear-gradient(135deg, var(--mobile-tertiary), var(--mobile-accent));
         border-color: var(--mobile-tertiary-alt);
         box-shadow: 0 0 20px rgba(2, 184, 147, 0.4);
     }
-    
+
     /* Mobile trigger categories */
     .mobile-trigger-categories {
         display: flex;
         flex-direction: column;
         gap: var(--mobile-padding);
     }
-    
+
     .mobile-trigger-category {
         background: var(--mobile-glass-light);
         border: 1px solid var(--mobile-primary-alt);
@@ -567,7 +721,7 @@
         -webkit-backdrop-filter: blur(5px);
         backdrop-filter: blur(5px);
     }
-    
+
     .mobile-category-header {
         display: flex;
         justify-content: space-between;
@@ -576,34 +730,34 @@
         cursor: pointer;
         touch-action: manipulation;
     }
-    
+
     .mobile-category-title {
         font-size: var(--mobile-font-size-large);
         color: var(--mobile-tertiary-alt);
         font-weight: bold;
     }
-    
+
     .mobile-category-toggle {
         font-size: 1.25rem;
         color: var(--mobile-primary-alt);
         transition: transform var(--mobile-transition-fast);
     }
-    
+
     .mobile-trigger-category.expanded .mobile-category-toggle {
         transform: rotate(180deg);
     }
-    
+
     .mobile-trigger-buttons {
         display: none;
         grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
         gap: 8px;
         margin-top: var(--mobile-margin);
     }
-    
+
     .mobile-trigger-category.expanded .mobile-trigger-buttons {
         display: grid;
     }
-    
+
     .mobile-trigger-btn {
         min-height: 40px;
         padding: 8px;
@@ -618,17 +772,17 @@
         text-align: center;
         position: relative;
     }
-    
+
     .mobile-trigger-btn:active {
         transform: scale(0.95);
     }
-    
+
     .mobile-trigger-btn.active {
         background: var(--mobile-accent);
         border-color: var(--mobile-secondary-alt);
         box-shadow: 0 0 15px rgba(223, 4, 113, 0.4);
     }
-    
+
     /* Mobile voice controls */
     .mobile-voice-selector {
         display: grid;
@@ -636,7 +790,7 @@
         gap: var(--mobile-margin);
         margin: var(--mobile-padding) 0;
     }
-    
+
     .mobile-voice-btn {
         min-height: var(--mobile-touch-target);
         padding: var(--mobile-margin);
@@ -650,24 +804,24 @@
         touch-action: manipulation;
         text-align: center;
     }
-    
+
     .mobile-voice-btn:active {
         transform: scale(0.98);
     }
-    
+
     .mobile-voice-btn.active {
         background: var(--mobile-tertiary);
         border-color: var(--mobile-tertiary-alt);
         box-shadow: 0 0 20px rgba(2, 184, 147, 0.3);
     }
-    
+
     /* Mobile spiral controls */
     .mobile-spiral-controls {
         display: flex;
         flex-direction: column;
         gap: var(--mobile-padding);
     }
-    
+
     .mobile-spiral-section {
         background: var(--mobile-glass-light);
         border: 1px solid var(--mobile-primary-alt);
@@ -676,20 +830,20 @@
         -webkit-backdrop-filter: blur(5px);
         backdrop-filter: blur(5px);
     }
-    
+
     .mobile-spiral-title {
         font-size: var(--mobile-font-size-large);
         color: var(--mobile-tertiary-alt);
         margin-bottom: var(--mobile-margin);
         text-align: center;
     }
-    
+
     .mobile-spiral-buttons {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: var(--mobile-margin);
     }
-    
+
     .mobile-spiral-btn {
         min-height: var(--mobile-touch-target);
         padding: var(--mobile-margin);
@@ -704,17 +858,17 @@
         text-align: center;
         font-weight: 500;
     }
-    
+
     .mobile-spiral-btn:active {
         transform: scale(0.98);
     }
-    
+
     .mobile-spiral-btn.active {
         background: linear-gradient(135deg, var(--mobile-tertiary), var(--mobile-accent));
         border-color: var(--mobile-tertiary-alt);
         box-shadow: 0 0 20px rgba(2, 184, 147, 0.4);
     }
-    
+
     /* Special brainwash button styling */
     .mobile-spiral-btn.brainwash {
         background: linear-gradient(135deg, var(--mobile-accent), var(--mobile-secondary-alt));
@@ -722,7 +876,7 @@
         font-weight: bold;
         animation: mobileBrainwashPulse 2s ease-in-out infinite;
     }
-    
+
     @keyframes mobileBrainwashPulse {
         0%, 100% {
             box-shadow: 0 0 20px rgba(223, 4, 113, 0.4);
@@ -731,7 +885,7 @@
             box-shadow: 0 0 30px rgba(223, 4, 113, 0.8), 0 0 40px rgba(204, 1, 116, 0.6);
         }
     }
-    
+
     /* Mobile collar controls */
     .mobile-collar-section {
         background: var(--mobile-glass-light);
@@ -742,7 +896,7 @@
         -webkit-backdrop-filter: blur(5px);
         backdrop-filter: blur(5px);
     }
-    
+
     .mobile-collar-title {
         font-size: var(--mobile-font-size-large);
         color: var(--mobile-accent);
@@ -750,7 +904,7 @@
         text-align: center;
         font-weight: bold;
     }
-    
+
     .mobile-collar-textarea {
         width: 100%;
         min-height: 100px;
@@ -764,19 +918,19 @@
         font-family: inherit;
         margin-bottom: var(--mobile-margin);
     }
-    
+
     .mobile-collar-textarea:focus {
         outline: none;
         border-color: var(--mobile-tertiary-alt);
         box-shadow: 0 0 0 3px rgba(2, 184, 147, 0.3);
     }
-    
+
     .mobile-collar-buttons {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: var(--mobile-margin);
     }
-    
+
     .mobile-collar-btn {
         min-height: var(--mobile-touch-target);
         padding: var(--mobile-margin);
@@ -790,34 +944,34 @@
         text-align: center;
         font-weight: 500;
     }
-    
+
     .mobile-collar-btn.activate {
         background: linear-gradient(135deg, var(--mobile-accent), var(--mobile-secondary-alt));
         border-color: var(--mobile-accent);
     }
-    
+
     .mobile-collar-btn.deactivate {
         background: linear-gradient(135deg, var(--mobile-primary), var(--mobile-secondary));
         border-color: var(--mobile-primary-alt);
     }
-    
+
     .mobile-collar-btn:active {
         transform: scale(0.98);
     }
-    
+
     /* Mobile-specific utility classes */
     .mobile-hidden {
         display: none !important;
     }
-    
+
     .mobile-visible {
         display: block !important;
     }
-    
+
     .mobile-flex {
         display: flex !important;
     }
-    
+
     .mobile-fullscreen {
         position: fixed !important;
         top: 0 !important;
@@ -829,22 +983,22 @@
         height: 100dvh !important;
         z-index: 9999 !important;
     }
-    
+
     /* Mobile immersive mode - Hide navigation for full experience */
     .mobile-immersive #chat-container {
         bottom: 0;
         height: 100vh;
         height: 100dvh;
     }
-    
+
     .mobile-immersive .mobile-nav {
         transform: translateY(100%);
     }
-    
+
     .mobile-immersive #spiral-container {
         opacity: 0.8;
     }
-    
+
     /* Mobile loading states */
     .mobile-loading {
         display: flex;
@@ -854,7 +1008,7 @@
         color: var(--mobile-tertiary-alt);
         font-size: var(--mobile-font-size-base);
     }
-    
+
     .mobile-loading:before {
         content: '';
         width: 20px;
@@ -865,17 +1019,108 @@
         animation: mobileSpinner 1s linear infinite;
         margin-right: 8px;
     }
-    
+
     @keyframes mobileSpinner {
         to {
             transform: rotate(360deg);
+        }
+    }
+    
+    /* ===== ENHANCED LANDSCAPE AIGF EXPERIENCE ===== */
+    
+    /* Special landscape-only AIGF features */
+    @media (orientation: landscape) {
+        
+        /* Enhanced immersive mode for AIGF in landscape */
+        .aigf-immersive-mode #chat-container {
+            background: linear-gradient(135deg, var(--mobile-dark), var(--mobile-secondary));
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+        }
+        
+        .aigf-immersive-mode #spiral-container {
+            opacity: 0.9;
+            filter: brightness(1.2) saturate(1.4) contrast(1.1);
+        }
+        
+        /* AIGF chat input enhancement for landscape */
+        .aigf-active #chat-input {
+            border: 2px solid var(--mobile-accent);
+            background: linear-gradient(135deg, var(--mobile-dark), var(--mobile-secondary));
+            box-shadow: 0 0 20px rgba(223, 4, 113, 0.3);
+        }
+        
+        .aigf-active #send-button {
+            background: linear-gradient(135deg, var(--mobile-accent), var(--mobile-secondary-alt));
+            box-shadow: 0 0 30px rgba(223, 4, 113, 0.5);
+        }
+        
+        /* Special TTS display for AIGF responses */
+        .aigf-response-display {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            color: var(--mobile-accent) !important;
+            font-size: clamp(1.5rem, 4vw, 2.5rem) !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            text-shadow: 
+                0 0 10px var(--mobile-accent),
+                0 0 20px var(--mobile-accent),
+                0 0 30px var(--mobile-accent) !important;
+            z-index: 1003 !important;
+            animation: aigfResponsePulse 1s ease-in-out infinite alternate !important;
+            border: 2px solid var(--mobile-accent);
+            border-radius: var(--mobile-border-radius);
+            padding: var(--mobile-padding);
+            background: rgba(223, 4, 113, 0.1);
+        }
+        
+        @keyframes aigfResponsePulse {
+            0% { 
+                opacity: 0.8;
+                transform: translate(-50%, -50%) scale(0.98);
+            }
+            100% { 
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.02);
+            }
+        }
+        
+        /* Landscape notification for AIGF activation */
+        .aigf-landscape-notification {
+            position: fixed;
+            bottom: calc(var(--mobile-nav-height) + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--mobile-accent), var(--mobile-secondary-alt));
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: bold;
+            z-index: 1001;
+            animation: aigfLandscapeNotificationSlide 0.5s ease-out;
+            box-shadow: 0 0 20px rgba(223, 4, 113, 0.4);
+        }
+        
+        @keyframes aigfLandscapeNotificationSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
         }
     }
 }
 
 /* Smaller Mobile Devices (480px and below) */
 @media screen and (max-width: 480px) {
-    
+
     :root {
         --mobile-header-height: 50px;
         --mobile-nav-height: 60px;
@@ -886,34 +1131,34 @@
         --mobile-font-size-large: 1rem;
         --mobile-font-size-xl: 1.125rem;
     }
-    
+
     /* Smaller header for tiny screens */
     #chat-header h1 {
         font-size: var(--mobile-font-size-base);
         letter-spacing: 1px;
     }
-    
+
     /* Compact navigation */
     .mobile-nav {
         height: var(--mobile-nav-height);
         padding: 4px;
     }
-    
+
     .mobile-nav-btn {
         min-width: 40px;
         min-height: 40px;
         padding: 2px;
     }
-    
+
     .mobile-nav-btn-icon {
         font-size: 1.25rem;
         margin-bottom: 1px;
     }
-    
+
     .mobile-nav-btn-label {
         font-size: 0.625rem;
     }
-    
+
     /* Smaller TTS display for tiny screens */
     #eye,
     .spiral-text-center,
@@ -922,51 +1167,51 @@
         max-width: 95% !important;
         width: 95% !important;
     }
-    
+
     /* Compact message styling */
     .message {
         margin-bottom: 8px;
         padding: 8px;
     }
-    
+
     /* Smaller input area */
     #chat-input-container {
         padding: 8px;
     }
-    
+
     #chat-input {
         min-height: 40px;
         padding: 8px;
         font-size: 0.875rem;
     }
-    
+
     #send-button {
         min-width: 40px;
         height: 40px;
         font-size: 1rem;
     }
-    
+
     /* Compact panels */
     .mobile-panel {
         top: var(--mobile-header-height);
         bottom: var(--mobile-nav-height);
         padding: var(--mobile-margin);
     }
-    
+
     .mobile-panel-header {
         padding: var(--mobile-margin) 0;
     }
-    
+
     .mobile-panel-title {
         font-size: var(--mobile-font-size-base);
     }
-    
+
     .mobile-panel-close {
         min-width: 36px;
         min-height: 36px;
         font-size: 1rem;
     }
-    
+
     /* Smaller control buttons */
     .mobile-control-btn,
     .mobile-voice-btn,
@@ -976,68 +1221,68 @@
         padding: 8px;
         font-size: 0.75rem;
     }
-    
+
     /* Compact trigger buttons */
     .mobile-trigger-btn {
         min-height: 36px;
         padding: 6px;
         font-size: 0.75rem;
     }
-    
+
     /* Smaller button grids */
     .mobile-button-grid {
         grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
         gap: 6px;
     }
-    
+
     .mobile-voice-selector {
         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 6px;
     }
-    
+
     .mobile-trigger-buttons {
         grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
         gap: 6px;
     }
-    
+
     /* Compact collar section */
     .mobile-collar-textarea {
         min-height: 80px;
         padding: 8px;
         font-size: 0.75rem;
     }
-    
+
     /* Landscape mode adjustments for very small screens */
     @media (orientation: landscape) and (max-height: 500px) {
-        
+
         :root {
             --mobile-header-height: 40px;
             --mobile-nav-height: 50px;
         }
-        
+
         #chat-header h1 {
             font-size: 0.875rem;
         }
-        
+
         .mobile-nav-btn-label {
             display: none;
         }
-        
+
         .mobile-nav-btn {
             min-width: 36px;
             min-height: 36px;
         }
-        
+
         .mobile-nav-btn-icon {
             font-size: 1.125rem;
             margin-bottom: 0;
         }
-        
+
         .mobile-panel {
             top: var(--mobile-header-height);
             bottom: var(--mobile-nav-height);
         }
-        
+
         /* Hide TTS text in landscape on tiny screens */
         #eye,
         .spiral-text-center,
@@ -1050,7 +1295,7 @@
 /* High DPI / Retina Display Optimizations */
 @media screen and (max-width: 768px) and (-webkit-min-device-pixel-ratio: 2),
        screen and (max-width: 768px) and (min-resolution: 192dpi) {
-    
+
     /* Crisp borders and shadows for high DPI */
     .mobile-nav,
     .mobile-panel,
@@ -1058,7 +1303,7 @@
     .message {
         border-width: 1px;
     }
-    
+
     /* Sharper text rendering */
     body,
     #chat-header h1,
@@ -1071,13 +1316,13 @@
 
 /* Dark mode optimizations for mobile */
 @media screen and (max-width: 768px) and (prefers-color-scheme: dark) {
-    
+
     :root {
         --mobile-glass: rgba(10, 10, 10, 0.95);
         --mobile-glass-light: rgba(10, 10, 10, 0.85);
         --mobile-dark: #000000F0;
     }
-    
+
     /* Deeper blacks for OLED screens */
     .mobile-nav,
     #chat-header,
@@ -1088,7 +1333,7 @@
 
 /* Reduced motion preferences */
 @media screen and (max-width: 768px) and (prefers-reduced-motion: reduce) {
-    
+
     /* Disable animations for users who prefer reduced motion */
     *,
     *::before,
@@ -1098,7 +1343,7 @@
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
-    
+
     /* Keep essential feedback animations but make them instant */
     .mobile-nav-btn:active,
     .mobile-control-btn:active {

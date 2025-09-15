@@ -29,6 +29,7 @@ class MobileInterface {
         this.setupMobileDropdowns();
         this.setupMobileGestures();
         this.setupResponsiveListeners();
+        this.setupAIGFRotationControls();
         this.populateMobileContent();
         
         // Set initial active state
@@ -58,34 +59,6 @@ class MobileInterface {
                 }, 150);
             });
         });
-    }
-    
-    handleNavigation(button) {
-        const buttonId = button.id;
-        
-        // Close any open panels first
-        this.closeAllPanels();
-        
-        // Set active navigation item
-        this.setActiveNavItem(buttonId);
-        
-        switch(buttonId) {
-            case 'mobile-chat-btn':
-                this.showChatMode();
-                break;
-            case 'mobile-spiral-btn':
-                this.togglePanel('mobile-spiral-panel');
-                break;
-            case 'mobile-triggers-btn':
-                this.togglePanel('mobile-triggers-panel');
-                break;
-            case 'mobile-tts-btn':
-                this.togglePanel('mobile-tts-panel');
-                break;
-            case 'mobile-ai-btn':
-                this.togglePanel('mobile-ai-panel');
-                break;
-        }
     }
     
     setActiveNavItem(activeId) {
@@ -559,11 +532,172 @@ class MobileInterface {
         }, 3000);
     }
     
+    // AIGF Rotation Control System
+    setupAIGFRotationControls() {
+        // Create landscape indicator
+        this.createLandscapeIndicator();
+        
+        // Monitor orientation changes for AIGF access
+        this.monitorOrientationForAIGF();
+        
+        // Initial orientation check
+        this.handleAIGFOrientationChange();
+        
+        console.log('🔄 AIGF rotation controls initialized');
+    }
+    
+    createLandscapeIndicator() {
+        // Remove existing indicator if present
+        const existing = document.querySelector('.aigf-landscape-indicator');
+        if (existing) {
+            existing.remove();
+        }
+        
+        // Create new indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'aigf-landscape-indicator';
+        indicator.textContent = '🤖 AIGF ACTIVE';
+        indicator.style.display = 'none';
+        
+        document.body.appendChild(indicator);
+        this.landscapeIndicator = indicator;
+    }
+    
+    monitorOrientationForAIGF() {
+        // Listen for orientation changes
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.handleAIGFOrientationChange();
+            }, 200); // Small delay to ensure orientation has changed
+        });
+        
+        // Also listen for resize events (for testing in desktop)
+        window.addEventListener('resize', () => {
+            if (this.isMobile) {
+                this.handleAIGFOrientationChange();
+            }
+        });
+    }
+    
+    handleAIGFOrientationChange() {
+        const isLandscape = window.innerHeight < window.innerWidth;
+        const rotationOverlay = document.querySelector('.aigf-rotation-overlay');
+        const aiButton = document.getElementById('mobile-ai-btn');
+        const aiPanel = document.getElementById('mobile-ai-panel');
+        
+        if (isLandscape) {
+            // Landscape mode - AIGF access allowed
+            if (rotationOverlay) {
+                rotationOverlay.style.display = 'none';
+            }
+            
+            if (this.landscapeIndicator) {
+                this.landscapeIndicator.style.display = 'block';
+            }
+            
+            // Enable AI controls
+            if (aiButton) {
+                aiButton.style.pointerEvents = 'auto';
+                aiButton.style.opacity = '1';
+            }
+            
+            // Add haptic feedback for successful rotation
+            if (navigator.vibrate) {
+                navigator.vibrate([50, 100, 50]);
+            }
+            
+            console.log('🤖 AIGF access granted - Landscape mode');
+            
+        } else {
+            // Portrait mode - AIGF access restricted
+            if (rotationOverlay) {
+                rotationOverlay.style.display = 'flex';
+            }
+            
+            if (this.landscapeIndicator) {
+                this.landscapeIndicator.style.display = 'none';
+            }
+            
+            // Close AI panel if open
+            if (aiPanel && aiPanel.classList.contains('active')) {
+                this.closePanel('mobile-ai-panel');
+                this.setActiveNavItem('mobile-chat-btn');
+            }
+            
+            // Disable AI controls
+            if (aiButton) {
+                aiButton.style.pointerEvents = 'none';
+                aiButton.style.opacity = '0.5';
+            }
+            
+            console.log('🚫 AIGF access restricted - Portrait mode');
+        }
+    }
+    
+    // Override navigation handler to check AIGF access
+    handleNavigation(button) {
+        const buttonId = button.id;
+        
+        // Check if this is AI button and device is in portrait mode
+        if (buttonId === 'mobile-ai-btn') {
+            const isLandscape = window.innerHeight < window.innerWidth;
+            
+            if (!isLandscape) {
+                // Show rotation requirement notification
+                this.showNotification('🔄 Rotate device to landscape for AIGF access', 'warning');
+                
+                // Vibrate to indicate restriction
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100]);
+                }
+                
+                return; // Prevent navigation
+            }
+        }
+        
+        // Close any open panels first
+        this.closeAllPanels();
+        
+        // Set active navigation item
+        this.setActiveNavItem(buttonId);
+        
+        switch(buttonId) {
+            case 'mobile-chat-btn':
+                this.showChatMode();
+                break;
+            case 'mobile-spiral-btn':
+                this.togglePanel('mobile-spiral-panel');
+                break;
+            case 'mobile-triggers-btn':
+                this.togglePanel('mobile-triggers-panel');
+                break;
+            case 'mobile-tts-btn':
+                this.togglePanel('mobile-tts-panel');
+                break;
+            case 'mobile-ai-btn':
+                this.togglePanel('mobile-ai-panel');
+                
+                // Special AIGF activation sequence
+                if (navigator.vibrate) {
+                    navigator.vibrate([50, 100, 50, 100, 50]);
+                }
+                
+                console.log('🤖 AIGF panel activated in landscape mode');
+                break;
+        }
+    }
+    
     cleanup() {
         // Cleanup when switching from mobile to desktop
         this.closeAllPanels();
         this.isInitialized = false;
         document.body.classList.remove('mobile-immersive');
+        
+        // Remove landscape indicator
+        if (this.landscapeIndicator) {
+            this.landscapeIndicator.remove();
+            this.landscapeIndicator = null;
+        }
     }
 }
 
