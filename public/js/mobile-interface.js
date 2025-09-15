@@ -564,23 +564,23 @@ class MobileInterface {
     }
     
     monitorOrientationForAIGF() {
-        // Listen for orientation changes
-        window.addEventListener('orientationchange', () => {
+        // Simple, reliable orientation monitoring that works in all browsers
+        window.addEventListener('resize', () => {
             setTimeout(() => {
                 this.handleAIGFOrientationChange();
-            }, 200); // Small delay to ensure orientation has changed
+            }, 100);
         });
         
-        // Also listen for resize events (for testing in desktop)
-        window.addEventListener('resize', () => {
-            if (this.isMobile) {
-                this.handleAIGFOrientationChange();
-            }
-        });
+        // Initial check
+        this.handleAIGFOrientationChange();
+        
+        console.log('🔄 Simple orientation detection enabled');
     }
     
     handleAIGFOrientationChange() {
-        const isLandscape = window.innerHeight < window.innerWidth;
+        // Simple and reliable: landscape = width > height
+        const isLandscape = window.innerWidth > window.innerHeight;
+        
         const rotationOverlay = document.querySelector('.aigf-rotation-overlay');
         const aiButton = document.getElementById('mobile-ai-btn');
         const aiPanel = document.getElementById('mobile-ai-panel');
@@ -640,7 +640,8 @@ class MobileInterface {
         
         // Check if this is AI button and device is in portrait mode
         if (buttonId === 'mobile-ai-btn') {
-            const isLandscape = window.innerHeight < window.innerWidth;
+            // Simple check: landscape = width > height
+            const isLandscape = window.innerWidth > window.innerHeight;
             
             if (!isLandscape) {
                 // Show rotation requirement notification

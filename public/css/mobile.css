@@ -64,23 +64,29 @@
             display: none !important;
         }
         
-        /* Rotation requirement overlay */
+        /* Rotation requirement overlay - Enhanced for Edge compatibility */
         .aigf-rotation-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, var(--mobile-dark), var(--mobile-secondary));
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: var(--mobile-padding);
-            text-align: center;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            background: linear-gradient(135deg, var(--mobile-dark), var(--mobile-secondary)) !important;
+            z-index: 9999 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            padding: var(--mobile-padding) !important;
+            text-align: center !important;
             -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
+            pointer-events: auto !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
         
         .aigf-rotation-title {
