@@ -29,14 +29,12 @@
         function isMobileDevice() {
             const userAgent = navigator.userAgent.toLowerCase();
             const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-            const isSmallScreen = window.innerWidth <= 768;
+            const isSmallScreen = window.innerWidth <= 480;
             const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
+            
             // Consider it mobile if it matches mobile user agent OR (small screen AND touch)
             return isMobileUA || (isSmallScreen && isTouchDevice);
-        }
-
-        // Load appropriate CSS based on device type
+        }        // Load appropriate CSS based on device type
         function loadDeviceCSS() {
             const head = document.head;
 
