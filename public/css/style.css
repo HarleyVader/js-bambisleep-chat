@@ -618,23 +618,6 @@ body {
     }
 }
 
-/* Responsive adjustments for spiral controls */
-@media (max-width: 768px) {
-    .spiral-controls {
-        max-height: 60vh;
-    }
-
-    .control-section a {
-        font-size: 0.5rem !important;
-        padding: 5px 8px !important;
-    }
-
-    .brainwash-btn {
-        font-size: 0.55rem !important;
-        padding: 6px 10px !important;
-    }
-}
-
 .coming-soon {
     color: var(--nav-alt);
     padding: 8px;
@@ -1502,81 +1485,6 @@ body {
     flex-wrap: wrap;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    #app {
-        flex-direction: column;
-    }
-
-    #chat-container {
-        width: 100vw;
-        /* Full width on mobile */
-        max-width: 100vw;
-        height: 60vh;
-        /* Take 60% height on mobile */
-        order: 1;
-        /* Chat container first on mobile */
-    }
-
-    #spiral-container {
-        position: relative;
-        width: 100vw;
-        height: 40vh;
-        /* Take remaining 40% height on mobile */
-        order: 2;
-        /* Spiral container second on mobile */
-    }
-
-    #chat-header {
-        flex-direction: column;
-        gap: 10.5px;
-        /* Reduced by 30% from 15px */
-        padding: 10.5px;
-        /* Reduced by 30% from 15px */
-    }
-
-    #controls {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    /* Mobile dropdown adjustments */
-    .dropdown-content {
-        right: 0;
-        left: auto;
-        min-width: 140px;
-        max-width: 90vw;
-    }
-
-    .dropdown-btn {
-        font-size: 0.6rem;
-        padding: 4px 8px;
-    }
-
-    #chat-input-container {
-        flex-direction: column;
-    }
-
-    .message {
-        flex-direction: column;
-        align-items: flex-start;
-        white-space: normal;
-        padding: 7px 8.4px;
-        /* Reduced by 30% from 10px 12px */
-    }
-
-    .message-time,
-    .message-user {
-        min-width: auto;
-    }
-
-    .message-text {
-        white-space: normal;
-        margin-top: 2.8px;
-        /* Reduced by 30% from 4px */
-    }
-}
-
 /* Chat Container Toggle Button */
 .chat-toggle-btn {
     position: fixed;
@@ -1651,23 +1559,6 @@ body {
     opacity: 0.1 !important;
     pointer-events: none !important;
     transition: opacity 0.3s ease-in-out, left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Responsive adjustments for toggle button */
-@media (max-width: 768px) {
-    .chat-toggle-btn {
-        width: 25px;
-        height: 50px;
-        font-size: 14px;
-    }
-}
-
-@media (max-width: 480px) {
-    .chat-toggle-btn {
-        width: 20px;
-        height: 40px;
-        font-size: 12px;
-    }
 }
 
 /* Voice Button Styling - Similar to Trigger Buttons */
