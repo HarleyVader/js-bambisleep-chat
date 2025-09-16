@@ -42,12 +42,12 @@
 }
 
 /* Mobile-Only Styles - Applied only on mobile devices */
-@media screen and (max-width: 768px) {
-    
+@media screen and (max-width: 480px) {
+
     /* ===== LANDSCAPE RECOMMENDATION (NON-BLOCKING) ===== */
-    
+
     @media (orientation: portrait) {
-        
+
         /* Show landscape recommendation banner instead of blocking */
         .landscape-recommendation {
             position: fixed;
@@ -62,43 +62,62 @@
             z-index: 1001;
             animation: recommendationSlide 0.5s ease-out;
         }
-        
+
         @keyframes recommendationSlide {
-            from { transform: translateY(-100%); }
-            to { transform: translateY(0); }
+            from {
+                transform: translateY(-100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
         }
-        
+
         /* AI button gets special styling to suggest landscape is better */
         #mobile-ai-btn {
             background: linear-gradient(135deg, var(--mobile-accent), var(--mobile-secondary-alt));
             animation: suggestLandscape 3s ease-in-out infinite;
         }
-        
+
         @keyframes suggestLandscape {
-            0%, 100% { box-shadow: 0 0 15px rgba(223, 4, 113, 0.3); }
-            50% { box-shadow: 0 0 25px rgba(223, 4, 113, 0.6); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 15px rgba(223, 4, 113, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 25px rgba(223, 4, 113, 0.6);
+            }
         }
     }
-    
+
     /* Enhanced experience in landscape mode */
     @media (orientation: landscape) {
-        
+
         /* Hide recommendation banner in landscape */
         .landscape-recommendation {
             display: none;
         }
-        
+
         /* Enhanced AI button styling for landscape mode */
         #mobile-ai-btn {
             background: linear-gradient(135deg, var(--mobile-accent), var(--mobile-secondary-alt));
             animation: aigfLandscapeGlow 3s ease-in-out infinite;
         }
-        
+
         @keyframes aigfLandscapeGlow {
-            0%, 100% { box-shadow: 0 0 20px rgba(223, 4, 113, 0.4); }
-            50% { box-shadow: 0 0 30px rgba(223, 4, 113, 0.8); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(223, 4, 113, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(223, 4, 113, 0.8);
+            }
         }
-        
+
         /* Landscape indicator */
         .aigf-landscape-indicator {
             position: fixed;
@@ -112,13 +131,20 @@
             z-index: 1001;
             animation: aigfIndicatorPulse 2s ease-in-out infinite;
         }
-        
+
         @keyframes aigfIndicatorPulse {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 1; }
+
+            0%,
+            100% {
+                opacity: 0.7;
+            }
+
+            50% {
+                opacity: 1;
+            }
         }
     }
-    
+
     /* ===== END LANDSCAPE RECOMMENDATION ===== */
 
     /* Mobile Body Reset */
@@ -131,12 +157,13 @@
         touch-action: manipulation;
         overflow-x: hidden;
         background: linear-gradient(135deg,
-            var(--mobile-primary),
-            var(--mobile-secondary),
-            var(--mobile-tertiary));
+                var(--mobile-primary),
+                var(--mobile-secondary),
+                var(--mobile-tertiary));
         background-attachment: fixed;
         height: 100vh;
-        height: 100dvh; /* Dynamic viewport height for mobile */
+        height: 100dvh;
+        /* Dynamic viewport height for mobile */
     }
 
     /* Mobile App Container */
@@ -271,6 +298,7 @@
             opacity: 0;
             transform: translateY(20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -388,10 +416,13 @@
     }
 
     @keyframes mobileTriggerPulse {
-        0%, 100% {
+
+        0%,
+        100% {
             text-shadow: 0 0 10px var(--mobile-accent);
             transform: scale(1);
         }
+
         50% {
             text-shadow: 0 0 20px var(--mobile-accent), 0 0 30px var(--mobile-accent);
             transform: scale(1.02);
@@ -574,6 +605,7 @@
             opacity: 0;
             transform: scale(0.9) translateY(20px);
         }
+
         to {
             opacity: 1;
             transform: scale(1) translateY(0);
@@ -802,9 +834,12 @@
     }
 
     @keyframes mobileBrainwashPulse {
-        0%, 100% {
+
+        0%,
+        100% {
             box-shadow: 0 0 20px rgba(223, 4, 113, 0.4);
         }
+
         50% {
             box-shadow: 0 0 30px rgba(223, 4, 113, 0.8), 0 0 40px rgba(204, 1, 116, 0.6);
         }
@@ -949,36 +984,36 @@
             transform: rotate(360deg);
         }
     }
-    
+
     /* ===== ENHANCED LANDSCAPE AIGF EXPERIENCE ===== */
-    
+
     /* Special landscape-only AIGF features */
     @media (orientation: landscape) {
-        
+
         /* Enhanced immersive mode for AIGF in landscape */
         .aigf-immersive-mode #chat-container {
             background: linear-gradient(135deg, var(--mobile-dark), var(--mobile-secondary));
             -webkit-backdrop-filter: blur(20px);
             backdrop-filter: blur(20px);
         }
-        
+
         .aigf-immersive-mode #spiral-container {
             opacity: 0.9;
             filter: brightness(1.2) saturate(1.4) contrast(1.1);
         }
-        
+
         /* AIGF chat input enhancement for landscape */
         .aigf-active #chat-input {
             border: 2px solid var(--mobile-accent);
             background: linear-gradient(135deg, var(--mobile-dark), var(--mobile-secondary));
             box-shadow: 0 0 20px rgba(223, 4, 113, 0.3);
         }
-        
+
         .aigf-active #send-button {
             background: linear-gradient(135deg, var(--mobile-accent), var(--mobile-secondary-alt));
             box-shadow: 0 0 30px rgba(223, 4, 113, 0.5);
         }
-        
+
         /* Special TTS display for AIGF responses */
         .aigf-response-display {
             position: absolute !important;
@@ -989,7 +1024,7 @@
             font-size: clamp(1.5rem, 4vw, 2.5rem) !important;
             font-weight: bold !important;
             text-align: center !important;
-            text-shadow: 
+            text-shadow:
                 0 0 10px var(--mobile-accent),
                 0 0 20px var(--mobile-accent),
                 0 0 30px var(--mobile-accent) !important;
@@ -1000,18 +1035,19 @@
             padding: var(--mobile-padding);
             background: rgba(223, 4, 113, 0.1);
         }
-        
+
         @keyframes aigfResponsePulse {
-            0% { 
+            0% {
                 opacity: 0.8;
                 transform: translate(-50%, -50%) scale(0.98);
             }
-            100% { 
+
+            100% {
                 opacity: 1;
                 transform: translate(-50%, -50%) scale(1.02);
             }
         }
-        
+
         /* Landscape notification for AIGF activation */
         .aigf-landscape-notification {
             position: fixed;
@@ -1028,12 +1064,13 @@
             animation: aigfLandscapeNotificationSlide 0.5s ease-out;
             box-shadow: 0 0 20px rgba(223, 4, 113, 0.4);
         }
-        
+
         @keyframes aigfLandscapeNotificationSlide {
             from {
                 opacity: 0;
                 transform: translateX(-50%) translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateX(-50%) translateY(0);
@@ -1217,8 +1254,8 @@
 }
 
 /* High DPI / Retina Display Optimizations */
-@media screen and (max-width: 768px) and (-webkit-min-device-pixel-ratio: 2),
-       screen and (max-width: 768px) and (min-resolution: 192dpi) {
+@media screen and (max-width: 480px) and (-webkit-min-device-pixel-ratio: 2),
+screen and (max-width: 480px) and (min-resolution: 192dpi) {
 
     /* Crisp borders and shadows for high DPI */
     .mobile-nav,
@@ -1239,7 +1276,7 @@
 }
 
 /* Dark mode optimizations for mobile */
-@media screen and (max-width: 768px) and (prefers-color-scheme: dark) {
+@media screen and (max-width: 480px) and (prefers-color-scheme: dark) {
 
     :root {
         --mobile-glass: rgba(10, 10, 10, 0.95);
@@ -1256,7 +1293,7 @@
 }
 
 /* Reduced motion preferences */
-@media screen and (max-width: 768px) and (prefers-reduced-motion: reduce) {
+@media screen and (max-width: 480px) and (prefers-reduced-motion: reduce) {
 
     /* Disable animations for users who prefer reduced motion */
     *,
@@ -1272,5 +1309,50 @@
     .mobile-nav-btn:active,
     .mobile-control-btn:active {
         transition-duration: 0.1s;
+    }
+}
+
+/* Desktop Protection Rules - Prevent mobile styles from affecting larger screens */
+@media screen and (min-width: 481px) {
+    /* Restore desktop chat container layout */
+    #chat-container {
+        position: relative !important;
+        width: 30vw !important;
+        height: 100vh !important;
+        left: auto !important;
+        top: auto !important;
+        flex-direction: column !important;
+    }
+    
+    /* Restore desktop spiral container */
+    #spiral-container {
+        position: relative !important;
+        width: 70vw !important;
+        opacity: 0.6 !important;
+        z-index: 0 !important;
+        left: auto !important;
+        top: auto !important;
+    }
+    
+    /* Hide mobile navigation on desktop */
+    .mobile-nav,
+    .mobile-panel,
+    .mobile-dropdown-overlay {
+        display: none !important;
+    }
+    
+    /* Restore desktop app layout */
+    #app {
+        flex-direction: row !important;
+        overflow: hidden !important;
+    }
+    
+    /* Restore desktop chat input container */
+    #chat-input-container {
+        position: relative !important;
+        bottom: auto !important;
+        width: auto !important;
+        margin: 0 !important;
+        padding: var(--padding) !important;
     }
 }
