@@ -17,13 +17,13 @@
     --mobile-glass: rgba(18, 65, 65, 0.95);
     --mobile-glass-light: rgba(18, 65, 65, 0.85);
 
-    /* Mobile-specific spacing and sizing */
-    --mobile-header-height: 60px;
-    --mobile-nav-height: 70px;
-    --mobile-padding: 16px;
-    --mobile-margin: 12px;
-    --mobile-border-radius: 12px;
-    --mobile-touch-target: 48px;
+    /* Mobile-specific spacing and sizing - Flexible units */
+    --mobile-header-height: 8vh;
+    --mobile-nav-height: 10vh;
+    --mobile-padding: 4vw;
+    --mobile-margin: 3vw;
+    --mobile-border-radius: 1.5vw;
+    --mobile-touch-target: 12vmin;
     --mobile-font-size-small: 0.875rem;
     --mobile-font-size-base: 1rem;
     --mobile-font-size-large: 1.125rem;
@@ -34,15 +34,15 @@
     --mobile-transition-medium: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --mobile-transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* Mobile shadows and effects */
-    --mobile-shadow-light: 0 2px 8px rgba(0, 0, 0, 0.1);
-    --mobile-shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.2);
-    --mobile-shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.3);
-    --mobile-glow: 0 0 20px var(--mobile-tertiary-alt);
+    /* Mobile shadows and effects - Flexible units */
+    --mobile-shadow-light: 0 0.5vmin 2vmin rgba(0, 0, 0, 0.1);
+    --mobile-shadow-medium: 0 1vmin 4vmin rgba(0, 0, 0, 0.2);
+    --mobile-shadow-heavy: 0 2vmin 8vmin rgba(0, 0, 0, 0.3);
+    --mobile-glow: 0 0 5vmin var(--mobile-tertiary-alt);
 }
 
-/* Mobile-Only Styles - Applied only on mobile devices */
-@media screen and (max-width: 480px) {
+/* Mobile-Only Styles - Applied on devices with mobile viewport characteristics */
+@media screen and (max-width: 100vw) and (max-height: 100vh) and (pointer: coarse) {
 
     /* ===== LANDSCAPE RECOMMENDATION (NON-BLOCKING) ===== */
 
@@ -56,7 +56,7 @@
             right: 0;
             background: linear-gradient(135deg, var(--mobile-accent), var(--mobile-secondary-alt));
             color: white;
-            padding: 8px 16px;
+            padding: 2vmin 4vmin;
             text-align: center;
             font-size: 0.75rem;
             z-index: 1001;
@@ -121,12 +121,12 @@
         /* Landscape indicator */
         .aigf-landscape-indicator {
             position: fixed;
-            top: 10px;
-            right: 10px;
+            top: 2vmin;
+            right: 2vmin;
             background: var(--mobile-accent);
             color: white;
-            padding: 4px 8px;
-            border-radius: 20px;
+            padding: 1vmin 2vmin;
+            border-radius: 5vmin;
             font-size: 0.75rem;
             z-index: 1001;
             animation: aigfIndicatorPulse 2s ease-in-out infinite;
@@ -206,7 +206,7 @@
         height: var(--mobile-header-height);
         padding: var(--mobile-margin);
         background: var(--mobile-dark);
-        border-bottom: 2px solid var(--mobile-accent);
+        border-bottom: 0.5vmin solid var(--mobile-accent);
         border-radius: 0;
         z-index: 1001;
         display: flex;
@@ -221,7 +221,7 @@
         margin: 0;
         color: var(--mobile-tertiary-alt);
         text-shadow: var(--mobile-glow);
-        letter-spacing: 2px;
+        letter-spacing: 0.5vmin;
         line-height: 1.2;
     }
 
@@ -323,7 +323,7 @@
         bottom: 0;
         background: var(--mobile-dark);
         padding: var(--mobile-padding);
-        border-top: 2px solid var(--mobile-accent);
+        border-top: 0.5vmin solid var(--mobile-accent);
         display: flex;
         gap: var(--mobile-margin);
         align-items: stretch;
@@ -339,7 +339,7 @@
         font-size: var(--mobile-font-size-base);
         border-radius: var(--mobile-border-radius);
         background: var(--mobile-glass);
-        border: 2px solid var(--mobile-primary-alt);
+        border: 0.5vmin solid var(--mobile-primary-alt);
         color: white;
         touch-action: manipulation;
     }
@@ -347,7 +347,7 @@
     #chat-input:focus {
         outline: none;
         border-color: var(--mobile-tertiary-alt);
-        box-shadow: 0 0 0 3px rgba(2, 184, 147, 0.3);
+        box-shadow: 0 0 0 0.75vmin rgba(2, 184, 147, 0.3);
     }
 
     /* Mobile send button */
@@ -376,7 +376,7 @@
 
     /* Mobile scrollbar styling */
     #chat-messages::-webkit-scrollbar {
-        width: 4px;
+        width: 1vmin;
     }
 
     #chat-messages::-webkit-scrollbar-track {
@@ -385,19 +385,19 @@
 
     #chat-messages::-webkit-scrollbar-thumb {
         background: var(--mobile-primary-alt);
-        border-radius: 2px;
+        border-radius: 0.5vmin;
     }
 
     /* AI message mobile styling */
     .message.ai {
         background: linear-gradient(135deg, var(--mobile-primary), var(--mobile-secondary));
-        border: 2px solid var(--mobile-tertiary-alt);
+        border: 0.5vmin solid var(--mobile-tertiary-alt);
         box-shadow: var(--mobile-glow), var(--mobile-shadow-medium);
     }
 
     .message.system {
         background: var(--mobile-dark);
-        border: 1px solid var(--mobile-accent);
+        border: 0.25vmin solid var(--mobile-accent);
         text-align: center;
         font-style: italic;
     }
@@ -408,9 +408,9 @@
     .caps-text {
         font-weight: bold;
         color: var(--mobile-accent) !important;
-        text-shadow: 0 0 10px var(--mobile-accent);
-        padding: 2px 4px;
-        border-radius: 4px;
+        text-shadow: 0 0 2.5vmin var(--mobile-accent);
+        padding: 0.5vmin 1vmin;
+        border-radius: 1vmin;
         background: rgba(223, 4, 113, 0.1);
         animation: mobileTriggerPulse 1.5s ease-in-out infinite;
     }
@@ -419,12 +419,12 @@
 
         0%,
         100% {
-            text-shadow: 0 0 10px var(--mobile-accent);
+            text-shadow: 0 0 2.5vmin var(--mobile-accent);
             transform: scale(1);
         }
 
         50% {
-            text-shadow: 0 0 20px var(--mobile-accent), 0 0 30px var(--mobile-accent);
+            text-shadow: 0 0 5vmin var(--mobile-accent), 0 0 7.5vmin var(--mobile-accent);
             transform: scale(1.02);
         }
     }
@@ -439,15 +439,15 @@
         right: 0;
         height: var(--mobile-nav-height);
         background: var(--mobile-dark);
-        border-top: 3px solid var(--mobile-accent);
+        border-top: 0.75vmin solid var(--mobile-accent);
         display: flex;
         justify-content: space-around;
         align-items: center;
         z-index: 1002;
-        padding: 8px;
+        padding: 2vmin;
         box-shadow: var(--mobile-shadow-heavy);
-        -webkit-backdrop-filter: blur(15px);
-        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(3.75vmin);
+        backdrop-filter: blur(3.75vmin);
     }
 
     /* Mobile nav buttons */
@@ -458,9 +458,9 @@
         justify-content: center;
         min-width: var(--mobile-touch-target);
         min-height: var(--mobile-touch-target);
-        padding: 4px;
+        padding: 1vmin;
         background: transparent;
-        border: 2px solid transparent;
+        border: 0.5vmin solid transparent;
         border-radius: var(--mobile-border-radius);
         color: var(--mobile-primary-alt);
         cursor: pointer;
@@ -485,13 +485,13 @@
     }
 
     .mobile-nav-btn:active:before {
-        width: 100px;
-        height: 100px;
+        width: 25vmin;
+        height: 25vmin;
     }
 
     .mobile-nav-btn-icon {
         font-size: 1.5rem;
-        margin-bottom: 2px;
+        margin-bottom: 0.5vmin;
     }
 
     .mobile-nav-btn-label {
@@ -527,7 +527,7 @@
         z-index: 1001;
         overflow-y: auto;
         padding: var(--mobile-padding);
-        border-top: 2px solid var(--mobile-accent);
+        border-top: 0.5vmin solid var(--mobile-accent);
     }
 
     .mobile-panel.active {
@@ -590,7 +590,7 @@
 
     .mobile-dropdown-content {
         background: var(--mobile-dark);
-        border: 2px solid var(--mobile-accent);
+        border: 0.5vmin solid var(--mobile-accent);
         border-radius: var(--mobile-border-radius);
         max-width: 90vw;
         max-height: 80vh;
@@ -624,7 +624,7 @@
         min-height: var(--mobile-touch-target);
         padding: var(--mobile-margin);
         background: linear-gradient(135deg, var(--mobile-primary), var(--mobile-secondary));
-        border: 2px solid var(--mobile-primary-alt);
+        border: 0.5vmin solid var(--mobile-primary-alt);
         border-radius: var(--mobile-border-radius);
         color: white;
         font-size: var(--mobile-font-size-base);
@@ -705,8 +705,8 @@
 
     .mobile-trigger-buttons {
         display: none;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(25vmin, 1fr));
+        gap: 2vmin;
         margin-top: var(--mobile-margin);
     }
 
@@ -715,11 +715,11 @@
     }
 
     .mobile-trigger-btn {
-        min-height: 40px;
-        padding: 8px;
+        min-height: 10vmin;
+        padding: 2vmin;
         background: var(--mobile-primary);
-        border: 1px solid var(--mobile-primary-alt);
-        border-radius: 8px;
+        border: 0.25vmin solid var(--mobile-primary-alt);
+        border-radius: 2vmin;
         color: white;
         font-size: 0.875rem;
         cursor: pointer;
@@ -742,7 +742,7 @@
     /* Mobile voice controls */
     .mobile-voice-selector {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(37.5vmin, 1fr));
         gap: var(--mobile-margin);
         margin: var(--mobile-padding) 0;
     }
@@ -751,7 +751,7 @@
         min-height: var(--mobile-touch-target);
         padding: var(--mobile-margin);
         background: var(--mobile-primary);
-        border: 2px solid var(--mobile-primary-alt);
+        border: 0.5vmin solid var(--mobile-primary-alt);
         border-radius: var(--mobile-border-radius);
         color: white;
         font-size: var(--mobile-font-size-base);
@@ -804,7 +804,7 @@
         min-height: var(--mobile-touch-target);
         padding: var(--mobile-margin);
         background: linear-gradient(135deg, var(--mobile-primary), var(--mobile-secondary));
-        border: 2px solid var(--mobile-primary-alt);
+        border: 0.5vmin solid var(--mobile-primary-alt);
         border-radius: var(--mobile-border-radius);
         color: white;
         font-size: var(--mobile-font-size-base);
@@ -866,10 +866,10 @@
 
     .mobile-collar-textarea {
         width: 100%;
-        min-height: 100px;
+        min-height: 25vmin;
         padding: var(--mobile-margin);
         background: var(--mobile-dark);
-        border: 2px solid var(--mobile-primary-alt);
+        border: 0.5vmin solid var(--mobile-primary-alt);
         border-radius: var(--mobile-border-radius);
         color: white;
         font-size: var(--mobile-font-size-base);
@@ -881,7 +881,7 @@
     .mobile-collar-textarea:focus {
         outline: none;
         border-color: var(--mobile-tertiary-alt);
-        box-shadow: 0 0 0 3px rgba(2, 184, 147, 0.3);
+        box-shadow: 0 0 0 0.75vmin rgba(2, 184, 147, 0.3);
     }
 
     .mobile-collar-buttons {
@@ -893,7 +893,7 @@
     .mobile-collar-btn {
         min-height: var(--mobile-touch-target);
         padding: var(--mobile-margin);
-        border: 2px solid;
+        border: 0.5vmin solid;
         border-radius: var(--mobile-border-radius);
         color: white;
         font-size: var(--mobile-font-size-base);
@@ -970,13 +970,13 @@
 
     .mobile-loading:before {
         content: '';
-        width: 20px;
-        height: 20px;
-        border: 2px solid var(--mobile-tertiary-alt);
+        width: 5vmin;
+        height: 5vmin;
+        border: 0.5vmin solid var(--mobile-tertiary-alt);
         border-top-color: transparent;
         border-radius: 50%;
         animation: mobileSpinner 1s linear infinite;
-        margin-right: 8px;
+        margin-right: 2vmin;
     }
 
     @keyframes mobileSpinner {
@@ -1079,14 +1079,14 @@
     }
 }
 
-/* Smaller Mobile Devices (480px and below) */
-@media screen and (max-width: 480px) {
+/* Very Small Mobile Devices (compact viewports) */
+@media screen and (max-width: 100vw) and (max-height: 75vh) and (pointer: coarse) {
 
     :root {
-        --mobile-header-height: 50px;
-        --mobile-nav-height: 60px;
-        --mobile-padding: 12px;
-        --mobile-margin: 8px;
+        --mobile-header-height: 7vh;
+        --mobile-nav-height: 8vh;
+        --mobile-padding: 3vw;
+        --mobile-margin: 2vw;
         --mobile-font-size-small: 0.75rem;
         --mobile-font-size-base: 0.875rem;
         --mobile-font-size-large: 1rem;
@@ -1230,8 +1230,8 @@
         }
 
         .mobile-nav-btn {
-            min-width: 36px;
-            min-height: 36px;
+            min-width: 9vmin;
+            min-height: 9vmin;
         }
 
         .mobile-nav-btn-icon {
@@ -1254,15 +1254,15 @@
 }
 
 /* High DPI / Retina Display Optimizations */
-@media screen and (max-width: 480px) and (-webkit-min-device-pixel-ratio: 2),
-screen and (max-width: 480px) and (min-resolution: 192dpi) {
+@media screen and (max-width: 100vw) and (pointer: coarse) and (-webkit-min-device-pixel-ratio: 2),
+screen and (max-width: 100vw) and (pointer: coarse) and (min-resolution: 192dpi) {
 
     /* Crisp borders and shadows for high DPI */
     .mobile-nav,
     .mobile-panel,
     .mobile-control-btn,
     .message {
-        border-width: 1px;
+        border-width: 0.25vmin;
     }
 
     /* Sharper text rendering */
@@ -1276,7 +1276,7 @@ screen and (max-width: 480px) and (min-resolution: 192dpi) {
 }
 
 /* Dark mode optimizations for mobile */
-@media screen and (max-width: 480px) and (prefers-color-scheme: dark) {
+@media screen and (max-width: 100vw) and (pointer: coarse) and (prefers-color-scheme: dark) {
 
     :root {
         --mobile-glass: rgba(10, 10, 10, 0.95);
@@ -1293,7 +1293,7 @@ screen and (max-width: 480px) and (min-resolution: 192dpi) {
 }
 
 /* Reduced motion preferences */
-@media screen and (max-width: 480px) and (prefers-reduced-motion: reduce) {
+@media screen and (max-width: 100vw) and (pointer: coarse) and (prefers-reduced-motion: reduce) {
 
     /* Disable animations for users who prefer reduced motion */
     *,
@@ -1315,24 +1315,24 @@ screen and (max-width: 480px) and (min-resolution: 192dpi) {
 /* Mobile rules moved from style.css for complete separation */
 
 /* Responsive adjustments for spiral controls - Mobile */
-@media (max-width: 480px) {
+@media (max-width: 100vw) and (pointer: coarse) {
     .spiral-controls {
         max-height: 60vh;
     }
 
     .control-section a {
         font-size: 0.5rem !important;
-        padding: 5px 8px !important;
+        padding: 1.25vmin 2vmin !important;
     }
 
     .brainwash-btn {
         font-size: 0.55rem !important;
-        padding: 6px 10px !important;
+        padding: 1.5vmin 2.5vmin !important;
     }
 }
 
 /* Main responsive layout for mobile */
-@media (max-width: 480px) {
+@media (max-width: 100vw) and (pointer: coarse) {
     #app {
         flex-direction: column;
     }
@@ -1398,10 +1398,10 @@ screen and (max-width: 480px) and (min-resolution: 192dpi) {
 }
 
 /* Mobile toggle button adjustments */
-@media (max-width: 480px) {
+@media (max-width: 100vw) and (pointer: coarse) {
     .chat-toggle-btn {
-        width: 20px;
-        height: 40px;
-        font-size: 12px;
+        width: 5vmin;
+        height: 10vmin;
+        font-size: 3vmin;
     }
 }
