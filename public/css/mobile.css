@@ -41,8 +41,8 @@
     --mobile-glow: 0 0 5vmin var(--mobile-tertiary-alt);
 }
 
-/* Mobile-Only Styles - Applied on devices with mobile viewport characteristics */
-@media screen and (max-width: 100vw) and (max-height: 100vh) and (pointer: coarse) {
+/* Mobile-Only Styles - Applied on touch devices */
+@media (pointer: coarse) {
 
     /* ===== LANDSCAPE RECOMMENDATION (NON-BLOCKING) ===== */
 
@@ -1080,7 +1080,7 @@
 }
 
 /* Very Small Mobile Devices (compact viewports) */
-@media screen and (max-width: 100vw) and (max-height: 75vh) and (pointer: coarse) {
+@media (pointer: coarse) and (max-height: 75vh) {
 
     :root {
         --mobile-header-height: 7vh;
@@ -1254,8 +1254,8 @@
 }
 
 /* High DPI / Retina Display Optimizations */
-@media screen and (max-width: 100vw) and (pointer: coarse) and (-webkit-min-device-pixel-ratio: 2),
-screen and (max-width: 100vw) and (pointer: coarse) and (min-resolution: 192dpi) {
+@media (pointer: coarse) and (-webkit-min-device-pixel-ratio: 2),
+(pointer: coarse) and (min-resolution: 192dpi) {
 
     /* Crisp borders and shadows for high DPI */
     .mobile-nav,
@@ -1276,7 +1276,7 @@ screen and (max-width: 100vw) and (pointer: coarse) and (min-resolution: 192dpi)
 }
 
 /* Dark mode optimizations for mobile */
-@media screen and (max-width: 100vw) and (pointer: coarse) and (prefers-color-scheme: dark) {
+@media (pointer: coarse) and (prefers-color-scheme: dark) {
 
     :root {
         --mobile-glass: rgba(10, 10, 10, 0.95);
@@ -1293,7 +1293,7 @@ screen and (max-width: 100vw) and (pointer: coarse) and (min-resolution: 192dpi)
 }
 
 /* Reduced motion preferences */
-@media screen and (max-width: 100vw) and (pointer: coarse) and (prefers-reduced-motion: reduce) {
+@media (pointer: coarse) and (prefers-reduced-motion: reduce) {
 
     /* Disable animations for users who prefer reduced motion */
     *,
@@ -1315,7 +1315,7 @@ screen and (max-width: 100vw) and (pointer: coarse) and (min-resolution: 192dpi)
 /* Mobile rules moved from style.css for complete separation */
 
 /* Responsive adjustments for spiral controls - Mobile */
-@media (max-width: 100vw) and (pointer: coarse) {
+@media (pointer: coarse) {
     .spiral-controls {
         max-height: 60vh;
     }
@@ -1332,7 +1332,7 @@ screen and (max-width: 100vw) and (pointer: coarse) and (min-resolution: 192dpi)
 }
 
 /* Main responsive layout for mobile */
-@media (max-width: 100vw) and (pointer: coarse) {
+@media (pointer: coarse) {
     #app {
         flex-direction: column;
     }
@@ -1398,7 +1398,7 @@ screen and (max-width: 100vw) and (pointer: coarse) and (min-resolution: 192dpi)
 }
 
 /* Mobile toggle button adjustments */
-@media (max-width: 100vw) and (pointer: coarse) {
+@media (pointer: coarse) {
     .chat-toggle-btn {
         width: 5vmin;
         height: 10vmin;
