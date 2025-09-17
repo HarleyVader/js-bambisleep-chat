@@ -3,17 +3,24 @@
  * AI Dropdown Component for BambiSleep Chat
  * Handles AI mode and model selection dropdown functionality
  *
- * Integration with buttons.css:
- * - Uses .dropdown-btn class for base cyber-electric styling
- * - Uses data-mode="ai" to trigger #toggle-ai[data-mode="ai"] special AIGF styling
- * - Uses data-state="on/off" for toggle state styling (red/green pulses)
+ * Integration with buttons.css red/green on/off system:
+ * - Uses .dropdown-btn class for main toggle button cyber-electric styling
+ * - Uses .ai-button class for dropdown content buttons with proper styling
+ * - CHAT mode: data-mode="chat", data-state="off" -> Red pulse (inactive/default state)
+ * - AIGF mode: data-mode="ai", data-state="on" -> Special pink AIGF styling overrides green
+ * - Dropdown buttons use standard button system with active states and hover effects
+ * - Consistent with TTS and Spiral dropdown button patterns
  * - Removes all inline styles to let buttons.css handle button appearance
- * - AI mode triggers aigfPulse animation with deep pink gradient
- * - Chat mode uses standard dropdown button styling with red pulse
  *
  * Button States:
- * - CHAT mode: data-mode="chat", data-state="off" -> Red pulse, standard styling
- * - AIGF mode: data-mode="ai", data-state="on" -> Pink gradient, aigfPulse animation
+ * - Main Toggle: #toggle-ai[data-mode="chat"][data-state="off"] -> Red pulse, standard off styling
+ * - Main Toggle: #toggle-ai[data-mode="ai"] -> Pink gradient, aigfPulse animation (overrides on state)
+ * - Dropdown Buttons: .ai-button with .active class for selected options
+ *
+ * CSS Integration:
+ * - Main button: Uses red/green on/off styling for CHAT mode, special AIGF pink styling for AI mode
+ * - Dropdown buttons: Use .ai-button styling with active/hover states
+ * - Consistent with other dropdown components' button behavior
  */
 
 import { StorageUtils } from '../storage-utils.js';
@@ -125,21 +132,24 @@ export class AIDropdown {
 
         this.currentMode = mode;
 
-        // Set proper data attributes for buttons.css styling
-        // buttons.css handles: .dropdown-btn, [data-state="on/off"], #toggle-ai[data-mode="ai"]
+        // Set proper data attributes for buttons.css red/green on/off styling system
+        // CHAT mode: uses standard red (off) / green (on) button styling via data-state
+        // AIGF mode: uses special pink AIGF styling, overrides data-state
         btn.setAttribute('data-mode', mode);
-        btn.setAttribute('data-state', mode === 'ai' ? 'on' : 'off');
+
+        if (mode === 'ai') {
+            // AIGF mode: always "on" state, but AIGF styling overrides red/green
+            btn.setAttribute('data-state', 'on');
+            btn.textContent = 'AIGF';
+        } else {
+            // CHAT mode: use red "off" state to show inactive/default chat mode
+            btn.setAttribute('data-state', 'off');
+            btn.textContent = 'CHAT';
+        }
 
         // Ensure button has proper CSS classes from buttons.css
         btn.classList.add('dropdown-btn');
         btn.classList.remove('active');
-
-        // Update button text - buttons.css handles all styling via data attributes
-        if (mode === 'ai') {
-            btn.textContent = 'AIGF';
-        } else {
-            btn.textContent = 'CHAT';
-        }
 
         // Clear any inline styles to let buttons.css handle all button styling
         // This ensures proper integration with the centralized button styling system
@@ -189,6 +199,37 @@ export class AIDropdown {
         document.dispatchEvent(event);
 
         this.showFeedback('AI MODEL: ' + model.toUpperCase());
+    }
+
+    handleAIClick(button, action) {
+        // For single-selection categories, remove active from siblings first
+        const category = this.getAICategory(action);
+        if (this.isSingleSelectionCategory(category)) {
+            const siblings = button.parentElement.querySelectorAll('.ai-button');
+            siblings.forEach(sibling => {
+                sibling.classList.remove('active');
+            });
+        }
+
+        // Add active state to clicked button
+        button.classList.add('active');
+
+        // Execute the AI action
+        this.handleAction(action, {
+            selectedText: button.textContent,
+            element: button
+        });
+    }
+
+    getAICategory(action) {
+        if (action.includes('mode')) return 'mode';
+        if (action.includes('model')) return 'model';
+        return 'other';
+    }
+
+    isSingleSelectionCategory(category) {
+        // These categories should only have one active selection at a time
+        return ['mode', 'model'].includes(category);
     }
 
     getModelDescription(model) {
@@ -294,17 +335,26 @@ export class AIDropdown {
     getDropdownContent() {
         return `
             <div class="ai-config">
-                <p class="config-label">🤖 AI Mode Selection:</p>
-                <a href="#" data-action="ai-mode-chat" class="${this.currentMode === 'chat' ? 'active' : ''}">💬 Chat Mode</a>
-                <a href="#" data-action="ai-mode-brainwash" class="${this.currentMode === 'ai' ? 'active' : ''}">🧠 Brainwash Mode</a>
-
+                <!-- AI Mode Selection -->
                 <div class="control-section">
-                    <p class="config-label">🎭 Model Selection:</p>
-                    <a href="#" data-action="ai-model-creative" class="${this.currentModel === 'creative' ? 'active' : ''}">🎨 Creative Model</a>
-                    <a href="#" data-action="ai-model-balanced" class="${this.currentModel === 'balanced' ? 'active' : ''}">⚖️ Balanced Model</a>
-                    <a href="#" data-action="ai-model-precise" class="${this.currentModel === 'precise' ? 'active' : ''}">🎯 Precise Model</a>
+                    <p class="config-label">🤖 AI Mode Selection:</p>
+                    <div class="ai-buttons">
+                        <button class="ai-button ${this.currentMode === 'chat' ? 'active' : ''}" data-action="ai-mode-chat" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-mode-chat')">💬 Chat Mode</button>
+                        <button class="ai-button ${this.currentMode === 'ai' ? 'active' : ''}" data-action="ai-mode-brainwash" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-mode-brainwash')">🧠 Brainwash Mode</button>
+                    </div>
                 </div>
 
+                <!-- Model Selection -->
+                <div class="control-section">
+                    <p class="config-label">🎭 Model Selection:</p>
+                    <div class="ai-buttons">
+                        <button class="ai-button ${this.currentModel === 'creative' ? 'active' : ''}" data-action="ai-model-creative" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-model-creative')">🎨 Creative Model</button>
+                        <button class="ai-button ${this.currentModel === 'balanced' ? 'active' : ''}" data-action="ai-model-balanced" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-model-balanced')">⚖️ Balanced Model</button>
+                        <button class="ai-button ${this.currentModel === 'precise' ? 'active' : ''}" data-action="ai-model-precise" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-model-precise')">🎯 Precise Model</button>
+                    </div>
+                </div>
+
+                <!-- Model Information -->
                 <div class="control-section">
                     <p class="config-label">ℹ️ Model Info:</p>
                     <div class="model-description">
