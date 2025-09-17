@@ -2,6 +2,18 @@
 /**
  * AI Dropdown Component for BambiSleep Chat
  * Handles AI mode and model selection dropdown functionality
+ *
+ * Integration with buttons.css:
+ * - Uses .dropdown-btn class for base cyber-electric styling
+ * - Uses data-mode="ai" to trigger #toggle-ai[data-mode="ai"] special AIGF styling
+ * - Uses data-state="on/off" for toggle state styling (red/green pulses)
+ * - Removes all inline styles to let buttons.css handle button appearance
+ * - AI mode triggers aigfPulse animation with deep pink gradient
+ * - Chat mode uses standard dropdown button styling with red pulse
+ *
+ * Button States:
+ * - CHAT mode: data-mode="chat", data-state="off" -> Red pulse, standard styling
+ * - AIGF mode: data-mode="ai", data-state="on" -> Pink gradient, aigfPulse animation
  */
 
 import { StorageUtils } from '../storage-utils.js';
@@ -19,7 +31,26 @@ export class AIDropdown {
         console.log('🤖 Initializing AI Dropdown...');
         this.setupEventListeners();
         this.setupToggleHandling();
+        this.ensureButtonStyling();
         this.loadSavedState();
+    }
+
+    ensureButtonStyling() {
+        // Ensure the AI button has proper CSS classes from buttons.css
+        const btn = document.getElementById(this.buttonId);
+        if (btn) {
+            btn.classList.add('dropdown-btn');
+            // Remove any conflicting classes
+            btn.classList.remove('active');
+
+            // Ensure proper data attributes are set
+            if (!btn.getAttribute('data-mode')) {
+                btn.setAttribute('data-mode', 'chat');
+            }
+            if (!btn.getAttribute('data-state')) {
+                btn.setAttribute('data-state', 'off');
+            }
+        }
     }
 
     setupEventListeners() {
@@ -94,24 +125,30 @@ export class AIDropdown {
 
         this.currentMode = mode;
 
+        // Set proper data attributes for buttons.css styling
+        // buttons.css handles: .dropdown-btn, [data-state="on/off"], #toggle-ai[data-mode="ai"]
         btn.setAttribute('data-mode', mode);
         btn.setAttribute('data-state', mode === 'ai' ? 'on' : 'off');
 
-        // Ensure button doesn't have unwanted classes
+        // Ensure button has proper CSS classes from buttons.css
+        btn.classList.add('dropdown-btn');
         btn.classList.remove('active');
 
-        // Update button text following standard format: "AI: STATE"
+        // Update button text - buttons.css handles all styling via data attributes
         if (mode === 'ai') {
             btn.textContent = 'AIGF';
-            btn.style.background = '';
-            btn.style.animation = '';
-            btn.style.minWidth = '80px'; // Fixed width to prevent button movement
         } else {
             btn.textContent = 'CHAT';
-            btn.style.background = '';
-            btn.style.animation = '';
-            btn.style.minWidth = '80px'; // Fixed width to prevent button movement
         }
+
+        // Clear any inline styles to let buttons.css handle all button styling
+        // This ensures proper integration with the centralized button styling system
+        btn.style.background = '';
+        btn.style.animation = '';
+        btn.style.minWidth = '';
+        btn.style.boxShadow = '';
+        btn.style.textShadow = '';
+        btn.style.border = '';
 
         // Save state to localStorage
         this.saveState();
