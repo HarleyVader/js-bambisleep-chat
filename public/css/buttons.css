@@ -1,0 +1,734 @@
+/* BambiSleep Chat - Buttons CSS */
+/* Dedicated CSS file for all button styles */
+/* Note: CSS variables are defined in style.css and inherited here */
+
+/* ============================================================================
+   CORE BUTTON ANIMATIONS
+   ============================================================================ */
+
+/* Red Pulse Animation for OFF state buttons */
+@keyframes redPulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 0 20px rgba(220, 53, 69, 0.4),
+            0 0 40px rgba(220, 53, 69, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+        text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
+    }
+
+    50% {
+        box-shadow:
+            0 0 30px rgba(220, 53, 69, 0.6),
+            0 0 60px rgba(220, 53, 69, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+        text-shadow: 0 0 12px rgba(220, 53, 69, 1);
+    }
+}
+
+/* Green Pulse Animation for ON state buttons */
+@keyframes greenPulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 0 25px rgba(40, 167, 69, 0.6),
+            0 0 50px rgba(40, 167, 69, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+        text-shadow: 0 0 10px rgba(40, 167, 69, 1);
+    }
+
+    50% {
+        box-shadow:
+            0 0 35px rgba(40, 167, 69, 0.8),
+            0 0 70px rgba(40, 167, 69, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.25),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+        text-shadow: 0 0 15px rgba(40, 167, 69, 1.2);
+    }
+}
+
+/* AIGF Pulse Animation for AI mode */
+@keyframes aigfPulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 0 30px rgba(255, 20, 147, 0.8),
+            0 0 60px rgba(255, 20, 147, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+        text-shadow: 0 0 15px rgba(255, 20, 147, 1);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow:
+            0 0 40px rgba(255, 20, 147, 1),
+            0 0 80px rgba(255, 20, 147, 0.6),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+        text-shadow: 0 0 20px rgba(255, 20, 147, 1.3);
+        transform: scale(1.02);
+    }
+}
+
+/* Brainwash Mode Animations */
+@keyframes brainwashPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px var(--button-color);
+    }
+
+    50% {
+        box-shadow: 0 0 20px var(--button-color), 0 0 30px var(--button-color);
+    }
+}
+
+@keyframes textGlow {
+    0% {
+        text-shadow: 0 0 8px var(--button-color);
+    }
+
+    100% {
+        text-shadow: 0 0 15px var(--button-color), 0 0 25px var(--button-color);
+    }
+}
+
+@keyframes brainwashGlow {
+    0% {
+        box-shadow: 0 0 10px #ff0080;
+    }
+
+    100% {
+        box-shadow: 0 0 20px #ff0080, 0 0 30px #ff4080;
+    }
+}
+
+/* Collar Button Animations */
+@keyframes collarPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+@keyframes collarActivation {
+    0% {
+        transform: scale(1) rotate(0deg);
+        box-shadow: 0 0 25px var(--button-color);
+    }
+}
+
+/* ============================================================================
+   DROPDOWN BUTTONS
+   ============================================================================ */
+
+/* Base Dropdown Button Style - Enhanced Cyber Electric */
+.dropdown-btn {
+    padding: 5.6px 11.2px;
+    /* Reduced by 30% from 8px 16px */
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2), rgba(139, 0, 0, 0.8));
+    border: 2px solid #dc3545;
+    border-radius: 20px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.675rem;
+    /* Reduced by 25% from 0.9rem */
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow:
+        0 0 20px rgba(220, 53, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
+    min-width: 80px;
+}
+
+/* Glass reflection effect for dropdown buttons */
+.dropdown-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent);
+    transition: left 0.6s ease;
+}
+
+.dropdown-btn:hover::before {
+    left: 100%;
+}
+
+.dropdown-btn:hover {
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.4), rgba(139, 0, 0, 1));
+    border-color: #ff4757;
+    box-shadow:
+        0 0 30px rgba(220, 53, 69, 0.6),
+        0 0 60px rgba(220, 53, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 12px rgba(220, 53, 69, 1);
+    transform: translateY(-1px);
+}
+
+/* OFF State - Red Cyber Glow */
+.dropdown-btn[data-state="off"] {
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2), rgba(139, 0, 0, 0.8));
+    border: 2px solid #dc3545;
+    color: #fff;
+    box-shadow:
+        0 0 20px rgba(220, 53, 69, 0.4),
+        0 0 40px rgba(220, 53, 69, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
+    animation: redPulse 3s ease-in-out infinite;
+}
+
+/* ON State - Green Cyber Glow */
+.dropdown-btn[data-state="on"] {
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.3), rgba(25, 135, 84, 0.9));
+    border: 2px solid #28a745;
+    color: #fff;
+    box-shadow:
+        0 0 25px rgba(40, 167, 69, 0.6),
+        0 0 50px rgba(40, 167, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 10px rgba(40, 167, 69, 1);
+    animation: greenPulse 2s ease-in-out infinite;
+}
+
+/* Hover effects for ON state */
+.dropdown-btn[data-state="on"]:hover {
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.5), rgba(25, 135, 84, 1));
+    border-color: #34ce57;
+    box-shadow:
+        0 0 35px rgba(40, 167, 69, 0.8),
+        0 0 70px rgba(40, 167, 69, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+    text-shadow: 0 0 15px rgba(40, 167, 69, 1);
+}
+
+/* ============================================================================
+   TOGGLE BUTTONS
+   ============================================================================ */
+
+/* Toggle button states - Updated for cyber electric style */
+.toggle-button[data-state="on"] {
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.3), rgba(25, 135, 84, 0.9)) !important;
+    border: 2px solid #28a745 !important;
+    box-shadow:
+        0 0 25px rgba(40, 167, 69, 0.6),
+        0 0 50px rgba(40, 167, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3) !important;
+    text-shadow: 0 0 10px rgba(40, 167, 69, 1) !important;
+    animation: greenPulse 2s ease-in-out infinite !important;
+}
+
+.toggle-button[data-state="off"] {
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2), rgba(139, 0, 0, 0.8)) !important;
+    border: 2px solid #dc3545 !important;
+    box-shadow:
+        0 0 20px rgba(220, 53, 69, 0.4),
+        0 0 40px rgba(220, 53, 69, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.8) !important;
+    animation: redPulse 3s ease-in-out infinite !important;
+}
+
+/* ============================================================================
+   COLLAR BUTTONS
+   ============================================================================ */
+
+/* Enhanced Collar Button Styling - Updated for cyber electric style */
+#toggle-collar {
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2), rgba(139, 0, 0, 0.8));
+    border: 2px solid #dc3545;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
+    position: relative;
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+#toggle-collar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+#toggle-collar:hover::before {
+    left: 100%;
+}
+
+#toggle-collar:hover {
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.4), rgba(139, 0, 0, 1));
+    border-color: #ff4757;
+    box-shadow:
+        0 0 30px rgba(220, 53, 69, 0.6),
+        0 0 60px rgba(220, 53, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 12px rgba(220, 53, 69, 1);
+}
+
+#toggle-collar[data-state="on"] {
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.3), rgba(25, 135, 84, 0.9)) !important;
+    border: 2px solid #28a745 !important;
+    box-shadow:
+        0 0 25px rgba(40, 167, 69, 0.6),
+        0 0 50px rgba(40, 167, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3) !important;
+    text-shadow: 0 0 10px rgba(40, 167, 69, 1) !important;
+    animation: greenPulse 2s ease-in-out infinite !important;
+}
+
+#toggle-collar.active {
+    background: linear-gradient(45deg, #8B0000, #DC143C);
+    animation: collarPulse 1.5s ease-in-out infinite;
+}
+
+/* Collar Configuration Buttons */
+.collar-btn {
+    padding: 6px 12px;
+    background: var(--button-alt);
+    border: 1px solid var(--button-color);
+    border-radius: 4px;
+    color: white;
+    font-size: 0.6rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "Audiowide", sans-serif;
+}
+
+.collar-btn:hover {
+    background: var(--button-color);
+}
+
+/* ============================================================================
+   BRAINWASH BUTTONS
+   ============================================================================ */
+
+.brainwash-btn {
+    background: linear-gradient(45deg, #ff0080, #ff4080) !important;
+    color: white !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    border: 2px solid #fff !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 0.6rem !important;
+    animation: brainwashGlow 1s infinite alternate;
+    text-shadow: 0 0 5px #fff;
+}
+
+.brainwash-btn:hover {
+    background: linear-gradient(45deg, #ff4080, #ff0080) !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 0 15px var(--button-color) !important;
+}
+
+/* ============================================================================
+   AI/AIGF BUTTONS
+   ============================================================================ */
+
+/* Special AI AIGF Mode Styling */
+#toggle-ai[data-mode="ai"] {
+    background: linear-gradient(145deg, rgba(255, 20, 147, 0.3), rgba(255, 105, 180, 0.9)) !important;
+    border: 2px solid #ff1493 !important;
+    box-shadow:
+        0 0 30px rgba(255, 20, 147, 0.8),
+        0 0 60px rgba(255, 20, 147, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.4) !important;
+    text-shadow: 0 0 15px rgba(255, 20, 147, 1) !important;
+    animation: aigfPulse 1.5s ease-in-out infinite !important;
+}
+
+/* ============================================================================
+   LEGACY CONTROL BUTTONS
+   ============================================================================ */
+
+/* Legacy button support - Updated for cyber electric style */
+#controls button:not(.dropdown-btn) {
+    padding: 5.6px 11.2px;
+    /* Reduced by 30% from 8px 16px */
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2), rgba(139, 0, 0, 0.8));
+    border: 2px solid #dc3545;
+    border-radius: 20px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.675rem;
+    /* Reduced by 25% from 0.9rem */
+    position: relative;
+    overflow: hidden;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow:
+        0 0 20px rgba(220, 53, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
+}
+
+#controls button:not(.dropdown-btn):hover {
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.4), rgba(139, 0, 0, 1));
+    border-color: #ff4757;
+    box-shadow:
+        0 0 30px rgba(220, 53, 69, 0.6),
+        0 0 60px rgba(220, 53, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 12px rgba(220, 53, 69, 1);
+    transform: translateY(-1px);
+}
+
+#controls button:not(.dropdown-btn).active {
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.3), rgba(25, 135, 84, 0.9));
+    border: 2px solid #28a745;
+    box-shadow:
+        0 0 25px rgba(40, 167, 69, 0.6),
+        0 0 50px rgba(40, 167, 69, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 10px rgba(40, 167, 69, 1);
+    animation: greenPulse 2s ease-in-out infinite;
+}
+
+/* ============================================================================
+   SEND BUTTON
+   ============================================================================ */
+
+#send-button {
+    padding: 8.4px 16.8px;
+    /* Reduced by 30% from 12px 24px */
+    background: linear-gradient(45deg, var(--button-color), var(--tertiary-alt));
+    border: none;
+    border-radius: 25px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.75rem;
+    /* Reduced by 25% from 1rem */
+}
+
+#send-button:hover {
+    box-shadow: 0 5px 15px var(--button-color);
+}
+
+/* ============================================================================
+   TRIGGER BUTTONS
+   ============================================================================ */
+
+.trigger-button {
+    background: var(--primary-color);
+    border: 1px solid var(--primary-alt);
+    border-radius: 6px;
+    color: #fff;
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.525rem;
+    /* Reduced by 25% from 0.7rem */
+    padding: 4.2px 8.4px;
+    /* Reduced by 30% from 6px 12px */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.trigger-button:hover {
+    background: var(--secondary-color);
+    border-color: var(--secondary-alt);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.trigger-button.active {
+    background: var(--tertiary-color);
+    border-color: var(--tertiary-alt);
+    color: #000;
+    font-weight: bold;
+    box-shadow: 0 0 10px var(--tertiary-color);
+}
+
+.trigger-button.active:hover {
+    background: #ff69b4;
+    transform: translateY(-1px);
+}
+
+/* Category-specific button colors */
+.trigger-button[data-category="primary"] {
+    border-left: 3px solid #ff1493;
+}
+
+.trigger-button[data-category="mental"] {
+    border-left: 3px solid #9370db;
+}
+
+.trigger-button[data-category="physical"] {
+    border-left: 3px solid #ff4500;
+}
+
+/* Safety level indicators */
+.trigger-button[data-safety="safe"]:after {
+    content: "🟢";
+    margin-left: 4px;
+    font-size: 0.6rem;
+}
+
+.trigger-button[data-safety="moderate"]:after {
+    content: "🟡";
+    margin-left: 4px;
+    font-size: 0.6rem;
+}
+
+.trigger-button[data-safety="advanced"]:after {
+    content: "🔴";
+    margin-left: 4px;
+    font-size: 0.6rem;
+}
+
+/* ============================================================================
+   VOICE BUTTONS (TTS)
+   ============================================================================ */
+
+.voice-button {
+    background: var(--primary-color);
+    color: var(--nav-alt);
+    border: 1px solid var(--primary-alt);
+    border-radius: 15px;
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    font-family: "Audiowide", sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.voice-button:hover {
+    background: var(--secondary-color);
+    border-color: var(--secondary-alt);
+    transform: translateY(-1px);
+}
+
+.voice-button.active {
+    background: var(--tertiary-color);
+    border-color: var(--tertiary-alt);
+    color: white;
+    box-shadow: 0 0 10px var(--tertiary-color);
+}
+
+.voice-button.active:hover {
+    background: var(--secondary-alt);
+    border-color: var(--tertiary-alt);
+}
+
+/* ============================================================================
+   SPIRAL BUTTONS
+   ============================================================================ */
+
+.spiral-button {
+    background: var(--primary-color);
+    border: 1px solid var(--primary-alt);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+}
+
+.spiral-button:hover {
+    background: var(--secondary-color);
+    border-color: var(--secondary-alt);
+    transform: translateY(-1px);
+}
+
+.spiral-button.active {
+    background: var(--tertiary-color);
+    border-color: var(--tertiary-alt);
+    color: white;
+    box-shadow: 0 0 10px var(--tertiary-color);
+}
+
+.spiral-button.active:hover {
+    background: var(--tertiary-alt);
+    transform: translateY(-1px);
+}
+
+/* Special styling for brainwash button */
+.spiral-button.brainwash-button {
+    background: linear-gradient(45deg, var(--button-color), var(--tertiary-color));
+    border-color: var(--button-color);
+    color: white;
+    font-weight: bold;
+    min-width: 200px;
+    padding: 12px 20px;
+    font-size: 0.75rem;
+}
+
+.spiral-button.brainwash-button.active {
+    background: linear-gradient(45deg, var(--tertiary-color), var(--button-color));
+    box-shadow: 0 0 15px var(--button-color);
+}
+
+/* ============================================================================
+   CHAT TOGGLE BUTTON
+   ============================================================================ */
+
+.chat-toggle-btn {
+    position: fixed;
+    left: 30vw;
+    /* Position at the edge of chat container */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 60px;
+    background: var(--button-color);
+    border: var(--border) var(--primary-alt);
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    color: #fff;
+    font-family: "Audiowide", monospace;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 15;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+.chat-toggle-btn:hover {
+    background: var(--button-alt);
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.chat-toggle-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Toggle Button Position Adjustment When Chat is Hidden */
+.chat-toggle-btn {
+    transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#chat-container.chat-hidden+.chat-toggle-btn {
+    left: 0 !important;
+}
+
+/* Chat Toggle Button Transparent State When Dropdowns Are Active */
+.chat-toggle-btn.dropdown-active {
+    opacity: 0.1 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease-in-out, left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================================
+   CONTROL BUTTONS
+   ============================================================================ */
+
+.control-button.active {
+    background: linear-gradient(45deg, var(--tertiary-color), var(--secondary-alt));
+    box-shadow: 0 0 15px var(--tertiary-color);
+    color: #000;
+}
+
+/* ============================================================================
+   BUTTON CONTAINERS AND LAYOUTS
+   ============================================================================ */
+
+/* Voice Buttons Container */
+.voice-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+/* Spiral Buttons Container */
+.spiral-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+/* Trigger Buttons Container */
+.trigger-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3.5px;
+    /* Reduced by 30% from 5px */
+}
+
+/* Collar Buttons Container */
+.collar-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    background: var(--nav-color);
+    padding-top: 8px;
+}
+
+/* Center the brainwash mode section */
+.spiral-controls .control-section:last-child .spiral-buttons {
+    justify-content: center;
+}
+
+/* Special styling for brainwash section */
+.spiral-controls .control-section:last-child {
+    border-top: 1px solid var(--button-color);
+    margin-top: 10px;
+    padding-top: 10px;
+    background: rgba(255, 20, 147, 0.05);
+    border-radius: var(--border-radius);
+    text-align: center;
+}

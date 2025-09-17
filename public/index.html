@@ -45,6 +45,12 @@
             baseCSS.href = '/css/style.css';
             head.appendChild(baseCSS);
 
+            // Always load the buttons.css
+            const buttonsCSS = document.createElement('link');
+            buttonsCSS.rel = 'stylesheet';
+            buttonsCSS.href = '/css/buttons.css';
+            head.appendChild(buttonsCSS);
+
             // Only load mobile.css if it's actually a mobile device
             if (isMobileDevice()) {
                 const mobileCSS = document.createElement('link');
