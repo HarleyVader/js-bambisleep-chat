@@ -522,6 +522,9 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Serve docs folder for markdown documentation
+app.use('/docs', express.static(path.join(__dirname, 'public', 'docs')));
+
 // Chat history
 app.get('/api/history', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BambiSleep Chat - Documentation</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
+    <style>
+        #docs-container {
+            display: grid;
+            grid-template-columns: 20% 80%;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color), var(--tertiary-color));
+            color: #fff;
+            font-family: "Audiowide", sans-serif;
+        }
+
+        #sidebar {
+            background: var(--transparent);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-right: var(--border) var(--primary-alt);
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        #sidebar h2 {
+            color: var(--tertiary-alt);
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px var(--tertiary-alt);
+        }
+
+        .doc-link {
+            display: block;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: var(--button-color);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .doc-link:hover {
+            background: var(--button-alt);
+            box-shadow: 0 0 15px var(--tertiary-alt);
+        }
+
+        .doc-link.active {
+            background: var(--tertiary-alt);
+            box-shadow: 0 0 20px var(--tertiary-alt);
+        }
+
+        #content {
+            padding: 2rem;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+        }
+
+        #content h1, #content h2, #content h3 {
+            color: var(--tertiary-alt);
+            text-shadow: 0 0 10px var(--tertiary-alt);
+        }
+
+        #content code {
+            background: var(--primary-color);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            border: 1px solid var(--primary-alt);
+        }
+
+        #content pre {
+            background: var(--primary-color);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            border: var(--border) var(--primary-alt);
+            overflow-x: auto;
+        }
+
+        #content blockquote {
+            border-left: 4px solid var(--tertiary-alt);
+            padding-left: 1rem;
+            margin: 1rem 0;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .back-link {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: var(--button-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">← Back to Chat</a>
+
+    <div id="docs-container">
+        <div id="sidebar">
+            <h2>📚 Documentation</h2>
+            <div id="doc-list"></div>
+        </div>
+
+        <div id="content">
+            <h1>Welcome to BambiSleep Chat Documentation</h1>
+            <p>Select a document from the sidebar to view its contents.</p>
+        </div>
+    </div>
+
+    <script>
+        class DocsSystem {
+            constructor() {
+                this.md = window.markdownit();
+                this.currentDoc = null;
+                this.init();
+            }
+
+            async init() {
+                await this.loadDocsList();
+                this.bindEvents();
+            }
+
+            async loadDocsList() {
+                try {
+                    // Try to get list of markdown files from docs folder
+                    const response = await fetch('/docs/');
+                    if (response.ok) {
+                        const html = await response.text();
+                        // Parse directory listing (basic approach)
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const links = Array.from(doc.querySelectorAll('a'))
+                            .map(link => link.href)
+                            .filter(href => href.endsWith('.md'))
+                            .map(href => href.split('/').pop());
+
+                        this.renderDocsList(links);
+                    } else {
+                        // Fallback to known docs
+                        this.renderDocsList(['README.md', 'API.md', 'SETUP.md']);
+                    }
+                } catch (error) {
+                    console.warn('Could not load docs list, using fallback');
+                    this.renderDocsList(['README.md']);
+                }
+            }
+
+            renderDocsList(docs) {
+                const docList = document.getElementById('doc-list');
+                docList.innerHTML = '';
+
+                docs.forEach(doc => {
+                    const link = document.createElement('a');
+                    link.className = 'doc-link';
+                    link.textContent = doc.replace('.md', '').replace(/[-_]/g, ' ');
+                    link.dataset.file = doc;
+                    docList.appendChild(link);
+                });
+            }
+
+            bindEvents() {
+                document.getElementById('doc-list').addEventListener('click', (e) => {
+                    if (e.target.classList.contains('doc-link')) {
+                        e.preventDefault();
+                        this.loadDocument(e.target.dataset.file);
+
+                        // Update active state
+                        document.querySelectorAll('.doc-link').forEach(link =>
+                            link.classList.remove('active')
+                        );
+                        e.target.classList.add('active');
+                    }
+                });
+            }
+
+            async loadDocument(filename) {
+                try {
+                    const response = await fetch(`/docs/${filename}`);
+                    if (response.ok) {
+                        const markdown = await response.text();
+                        const html = this.md.render(markdown);
+                        document.getElementById('content').innerHTML = html;
+                        this.currentDoc = filename;
+                    } else {
+                        // Fallback to README from root if docs file not found
+                        if (filename === 'README.md') {
+                            const fallbackResponse = await fetch('/README.md');
+                            if (fallbackResponse.ok) {
+                                const markdown = await fallbackResponse.text();
+                                const html = this.md.render(markdown);
+                                document.getElementById('content').innerHTML = html;
+                                return;
+                            }
+                        }
+
+                        document.getElementById('content').innerHTML = `
+                            <h1>Document Not Found</h1>
+                            <p>Could not load <code>${filename}</code></p>
+                            <p>Make sure the file exists in the <code>/docs</code> folder.</p>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error loading document:', error);
+                    document.getElementById('content').innerHTML = `
+                        <h1>Error Loading Document</h1>
+                        <p>Failed to load <code>${filename}</code></p>
+                        <p>Error: ${error.message}</p>
+                    `;
+                }
+            }
+        }
+
+        // Initialize docs system
+        new DocsSystem();
+    </script>
+</body>
+</html>
