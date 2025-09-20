@@ -1404,4 +1404,318 @@
         height: 10vmin;
         font-size: 3vmin;
     }
+
+    /* ===== MOBILE DOCUMENTATION SYSTEM ===== */
+
+    /* Mobile Documentation Container */
+    #chat-container.docs-container {
+        width: 100vw;
+        max-width: 100vw;
+        display: flex;
+        flex-direction: column;
+        grid-template-columns: none;
+        grid-template-rows: none;
+        grid-template-areas: none;
+    }
+
+    /* Mobile Documentation Header */
+    .docs-container #chat-header {
+        flex-shrink: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--mobile-padding);
+        min-height: var(--mobile-header-height);
+    }
+
+    .docs-container #chat-header h1 {
+        font-size: var(--mobile-font-size-large);
+        margin: 0;
+    }
+
+    .docs-navigation {
+        display: flex;
+        align-items: center;
+    }
+
+    .docs-navigation .docs-link-btn {
+        padding: 2vmin 4vmin;
+        font-size: var(--mobile-font-size-small);
+        min-height: var(--mobile-touch-target);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Mobile Documentation Sidebar - Full Screen Overlay */
+    .docs-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--mobile-glass);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        padding: var(--mobile-padding);
+        display: none;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .docs-sidebar.active {
+        display: flex;
+        animation: mobileSlideIn 0.3s ease-out;
+    }
+
+    .docs-sidebar h2 {
+        color: var(--mobile-tertiary-alt);
+        margin-bottom: var(--mobile-margin);
+        text-shadow: 0 0 2vmin var(--mobile-tertiary-alt);
+        font-size: var(--mobile-font-size-xl);
+        text-align: center;
+    }
+
+    .docs-sidebar #doc-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--mobile-margin);
+    }
+
+    /* Mobile Documentation Content Area */
+    .docs-content {
+        flex: 1;
+        padding: var(--mobile-padding);
+        overflow-y: auto;
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    /* Mobile Documentation Content Styling */
+    .docs-content h1,
+    .docs-content h2,
+    .docs-content h3,
+    .docs-content h4,
+    .docs-content h5,
+    .docs-content h6 {
+        color: var(--mobile-tertiary-alt);
+        text-shadow: 0 0 1vmin var(--mobile-tertiary-alt);
+        margin: var(--mobile-margin) 0;
+    }
+
+    .docs-content h1 {
+        font-size: var(--mobile-font-size-xl);
+        border-bottom: 0.5vmin solid var(--mobile-tertiary-alt);
+        padding-bottom: var(--mobile-margin);
+    }
+
+    .docs-content h2 {
+        font-size: var(--mobile-font-size-large);
+    }
+
+    .docs-content h3 {
+        font-size: var(--mobile-font-size-base);
+    }
+
+    .docs-content p {
+        margin: var(--mobile-margin) 0;
+        line-height: 1.6;
+        font-size: var(--mobile-font-size-base);
+    }
+
+    .docs-content ul,
+    .docs-content ol {
+        margin: var(--mobile-margin) 0;
+        padding-left: 4vw;
+    }
+
+    .docs-content li {
+        margin: 1vmin 0;
+        line-height: 1.4;
+        font-size: var(--mobile-font-size-base);
+    }
+
+    .docs-content code {
+        background: var(--mobile-primary);
+        padding: 1vmin 2vmin;
+        border-radius: var(--mobile-border-radius);
+        border: 0.25vmin solid var(--mobile-primary-alt);
+        font-family: 'Courier New', monospace;
+        font-size: var(--mobile-font-size-small);
+        word-break: break-all;
+    }
+
+    .docs-content pre {
+        background: var(--mobile-primary);
+        padding: var(--mobile-padding);
+        border-radius: var(--mobile-border-radius);
+        border: 0.5vmin solid var(--mobile-primary-alt);
+        overflow-x: auto;
+        margin: var(--mobile-margin) 0;
+    }
+
+    .docs-content pre code {
+        background: none;
+        border: none;
+        padding: 0;
+        word-break: normal;
+    }
+
+    .docs-content blockquote {
+        border-left: 1vmin solid var(--mobile-tertiary-alt);
+        padding-left: var(--mobile-padding);
+        margin: var(--mobile-margin) 0;
+        background: rgba(255, 255, 255, 0.1);
+        font-style: italic;
+    }
+
+    .docs-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: var(--mobile-margin) 0;
+        border: 0.25vmin solid var(--mobile-primary-alt);
+        font-size: var(--mobile-font-size-small);
+    }
+
+    .docs-content th,
+    .docs-content td {
+        padding: 2vmin;
+        border: 0.25vmin solid var(--mobile-primary-alt);
+        text-align: left;
+    }
+
+    .docs-content th {
+        background: var(--mobile-primary);
+        color: var(--mobile-tertiary-alt);
+        font-weight: bold;
+    }
+
+    /* Mobile Documentation Links */
+    .docs-content a {
+        color: var(--mobile-tertiary-alt);
+        text-decoration: none;
+        border-bottom: 0.25vmin dotted var(--mobile-tertiary-alt);
+        word-break: break-word;
+    }
+
+    .docs-content a:hover,
+    .docs-content a:active {
+        color: var(--mobile-accent);
+        border-bottom-color: var(--mobile-accent);
+        text-shadow: 0 0 1vmin var(--mobile-accent);
+    }
+
+    /* Mobile Documentation Navigation Toggle */
+    .mobile-docs-menu-toggle {
+        position: fixed;
+        top: var(--mobile-padding);
+        right: var(--mobile-padding);
+        width: var(--mobile-touch-target);
+        height: var(--mobile-touch-target);
+        background: var(--mobile-accent);
+        border: 0.5vmin solid var(--mobile-tertiary-alt);
+        border-radius: 50%;
+        color: white;
+        font-size: var(--mobile-font-size-large);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1001;
+        cursor: pointer;
+        transition: var(--mobile-transition-medium);
+    }
+
+    .mobile-docs-menu-toggle:active {
+        transform: scale(0.95);
+        background: var(--mobile-secondary-alt);
+    }
+
+    /* Mobile Documentation Scrollbar */
+    .docs-sidebar::-webkit-scrollbar,
+    .docs-content::-webkit-scrollbar {
+        width: 1vmin;
+    }
+
+    .docs-sidebar::-webkit-scrollbar-track,
+    .docs-content::-webkit-scrollbar-track {
+        background: var(--mobile-primary);
+        border-radius: var(--mobile-border-radius);
+    }
+
+    .docs-sidebar::-webkit-scrollbar-thumb,
+    .docs-content::-webkit-scrollbar-thumb {
+        background: var(--mobile-primary-alt);
+        border-radius: var(--mobile-border-radius);
+    }
+
+    .docs-sidebar::-webkit-scrollbar-thumb:hover,
+    .docs-content::-webkit-scrollbar-thumb:hover {
+        background: var(--mobile-secondary-alt);
+    }
+
+    /* Mobile Documentation Animation */
+    @keyframes mobileSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-100%);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Mobile Documentation Button Override */
+    .docs-sidebar .doc-link.dropdown-btn {
+        width: 100%;
+        padding: 3vmin 4vmin;
+        margin: 1vmin 0;
+        font-size: var(--mobile-font-size-base);
+        min-height: var(--mobile-touch-target);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        border-radius: var(--mobile-border-radius);
+    }
+
+    .docs-sidebar .doc-link.dropdown-btn:active {
+        transform: scale(0.98);
+    }
+
+    .docs-sidebar .doc-link.dropdown-btn[data-state="on"] {
+        background: var(--mobile-tertiary-alt);
+        color: var(--mobile-dark);
+        box-shadow: var(--mobile-glow);
+    }
+}
+
+/* Very Small Mobile Devices - Documentation */
+@media (pointer: coarse) and (max-height: 75vh) {
+
+    .docs-container #chat-header h1 {
+        font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+    }
+
+    .docs-content {
+        padding: 2vw;
+    }
+
+    .docs-content h1 {
+        font-size: clamp(1.1rem, 3vw, 1.3rem);
+    }
+
+    .docs-content h2 {
+        font-size: clamp(1rem, 2.8vw, 1.2rem);
+    }
+
+    .docs-content p,
+    .docs-content li {
+        font-size: clamp(0.8rem, 2.2vw, 1rem);
+    }
+
+    .docs-content code {
+        font-size: clamp(0.7rem, 2vw, 0.9rem);
+    }
 }

@@ -63,11 +63,13 @@ TTS_TIMEOUT=30000
 ### 4. Start the Application
 
 #### Development Mode
+
 ```bash
 npm run dev
 ```
 
 #### Production Mode
+
 ```bash
 npm start
 ```
@@ -75,7 +77,8 @@ npm start
 ### 5. Access the Application
 
 Open your browser and navigate to:
-```
+
+```text
 http://localhost:6969
 ```
 
@@ -90,6 +93,7 @@ http://localhost:6969
    - Start LM Studio server on port 1234
 
 3. **Configure Environment**
+
    ```env
    LMS_HOST=localhost
    LMS_PORT=1234
@@ -99,12 +103,14 @@ http://localhost:6969
 ### Kokoro TTS Setup
 
 1. **Install Kokoro TTS Server**
+
    ```bash
    # Follow Kokoro installation instructions
    # Start server on port 8880
    ```
 
 2. **Configure Environment**
+
    ```env
    KOKORO_HOST_DEVELOPMENT=localhost
    KOKORO_PORT=8880
@@ -119,16 +125,17 @@ For production deployment with HTTPS:
    - Use Let's Encrypt or your certificate provider
 
 2. **Configure HTTPS**
+
    ```javascript
    // In server.js
    const https = require('https');
    const fs = require('fs');
-   
+
    const options = {
      key: fs.readFileSync('path/to/private-key.pem'),
      cert: fs.readFileSync('path/to/certificate.pem')
    };
-   
+
    https.createServer(options, app).listen(443);
    ```
 
@@ -145,16 +152,19 @@ This starts both the backend server and frontend development server with hot rel
 ### Production Deployment
 
 1. **Build Frontend**
+
    ```bash
    npm run build
    ```
 
 2. **Start Production Server**
+
    ```bash
    npm start
    ```
 
 3. **Process Management** (Optional)
+
    ```bash
    # Using PM2
    npm install -g pm2
@@ -190,6 +200,7 @@ docker run -p 6969:6969 bambisleep-chat
 ### Common Issues
 
 #### Port Already in Use
+
 ```bash
 # Find process using port 6969
 lsof -i :6969
@@ -199,16 +210,19 @@ kill -9 <PID>
 ```
 
 #### TTS Not Working
+
 - Ensure browser supports Web Speech API
 - Check microphone permissions
 - Verify HTTPS or localhost usage
 
 #### AI Chat Not Responding
+
 - Verify LM Studio is running
 - Check network connectivity
 - Review LM Studio model loading
 
 #### Animations Not Displaying
+
 - Check browser WebGL support
 - Verify p5.js library loading
 - Check browser console for errors
@@ -291,5 +305,3 @@ For additional help:
 4. Ensure environment variables are set correctly
 
 ---
-
-*Happy chatting! 🌀💖*

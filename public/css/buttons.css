@@ -236,12 +236,18 @@
    ============================================================================ */
 
 .docs-link-container {
-    display: inline-block;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 14px;
+    border-top: 1px solid var(--nav-alt);
+    background: var(--nav-color);
+    margin: 0;
 }
 
 .docs-link-btn {
     display: inline-block;
-    padding: 5.6px 11.2px;
+    padding: 8px 16px;
     background: linear-gradient(145deg, rgba(0, 123, 255, 0.2), rgba(0, 86, 179, 0.8));
     border: 2px solid #007bff;
     border-radius: 20px;
@@ -250,7 +256,7 @@
     cursor: pointer;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: "Audiowide", sans-serif;
-    font-size: 0.675rem;
+    font-size: 0.75rem;
     white-space: nowrap;
     position: relative;
     overflow: hidden;
