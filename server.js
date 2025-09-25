@@ -43,12 +43,16 @@ function validateConfiguration() {
     }
 
     // Validate LM Studio configuration
-    if (!process.env.LMS_HOST) {
-        warnings.push('LM Studio host not configured, using default localhost');
+    const lmsHost = process.env.NODE_ENV === 'production'
+        ? process.env.LMS_HOST_PRODUCTION
+        : process.env.LMS_HOST_DEVELOPMENT;
+
+    if (!lmsHost) {
+        warnings.push('LM Studio host not configured for current environment, using default localhost');
     }
 
     if (!process.env.LMS_PORT) {
-        warnings.push('LM Studio port not configured, using default 1234');
+        warnings.push('LM Studio port not configured, using default 7777');
     }
 
     // Log warnings
@@ -67,7 +71,7 @@ function validateConfiguration() {
         warnings: warnings.length,
         errors: errors.length,
         ttsAvailable: !!kokoroHost,
-        lmStudioConfigured: !!(process.env.LMS_HOST || process.env.LMS_PORT)
+        lmStudioConfigured: !!(lmsHost || process.env.LMS_PORT)
     };
 }
 
@@ -92,6 +96,7 @@ let chatHistory = [];
 let triggerWords = []; // Will be loaded from official triggers.json
 let triggerData = {}; // Full trigger data for API endpoints
 let connectedUsers = 0;
+let uniqueUsers = new Set(); // Track unique users by IP/session
 
 // Load OFFICIAL BambiSleep triggers from JSON file with enhanced data
 function loadOfficialTriggers() {
@@ -200,7 +205,20 @@ function initializeKokoroWorker() {
 function handleLMWorkerMessage(msg) {
     switch (msg.type) {
         case 'response':
-            // Send AI response to specific socket
+            // Check if this is an API request
+            if (global.pendingAPIRequests && global.pendingAPIRequests[msg.socketId]) {
+                const { res, timeout } = global.pendingAPIRequests[msg.socketId];
+                clearTimeout(timeout);
+                res.json({
+                    response: msg.response,
+                    wordCount: msg.wordCount || 0,
+                    timestamp: new Date().toISOString()
+                });
+                delete global.pendingAPIRequests[msg.socketId];
+                return;
+            }
+
+            // Send AI response to specific socket for regular chat
             if (msg.socketId) {
                 io.to(msg.socketId).emit('ai-response', {
                     message: msg.response,
@@ -226,6 +244,17 @@ function handleLMWorkerMessage(msg) {
 
         case 'error':
             console.error('Worker error:', msg.error);
+
+            // Check if this is an API request
+            if (global.pendingAPIRequests && global.pendingAPIRequests[msg.socketId]) {
+                const { res, timeout } = global.pendingAPIRequests[msg.socketId];
+                clearTimeout(timeout);
+                res.status(500).json({ error: msg.error || 'AI processing error' });
+                delete global.pendingAPIRequests[msg.socketId];
+                return;
+            }
+
+            // Handle regular socket error
             if (msg.socketId) {
                 io.to(msg.socketId).emit('ai-error', {
                     error: msg.error,
@@ -298,13 +327,25 @@ setupTTSRoutes(app, configStatus);
 // Socket.io connection handling
 io.on('connection', (socket) => {
     connectedUsers++;
-    console.log(`User connected. Total users: ${connectedUsers}`);
+
+    // Track unique users by IP address for more accurate counting
+    const clientIP = socket.handshake.address || socket.request.connection.remoteAddress;
+    const userAgent = socket.handshake.headers['user-agent'] || 'unknown';
+    const userKey = `${clientIP}-${userAgent.substring(0, 50)}`;
+
+    uniqueUsers.add(userKey);
+
+    console.log(`User connected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`);
+    console.log(`🔍 New connection ID: ${socket.id}`);
+    console.log(`🔍 Client IP: ${clientIP}`);
+    console.log(`🔍 User Agent: ${userAgent?.substring(0, 100)}`);
+    console.log(`🔍 Connection origin:`, socket.handshake.headers.origin);
 
     // Send recent chat history to new user
     socket.emit('chat-history', chatHistory.slice(-20));
 
-    // Broadcast user count
-    io.emit('user-count', connectedUsers);
+    // Broadcast connection count (use unique users for display)
+    io.emit('user-count', uniqueUsers.size);
 
     // Handle regular chat messages
     socket.on('message', (data) => {
@@ -500,8 +541,30 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         connectedUsers--;
         workerUsers.delete(socket.id);
-        console.log(`User disconnected. Total users: ${connectedUsers}`);
-        io.emit('user-count', connectedUsers);
+
+        // Clean up unique user tracking on disconnect
+        const clientIP = socket.handshake.address || socket.request.connection.remoteAddress;
+        const userAgent = socket.handshake.headers['user-agent'] || 'unknown';
+        const userKey = `${clientIP}-${userAgent.substring(0, 50)}`;
+
+        // Only remove unique user if no other connections from same user exist
+        const hasOtherConnections = Array.from(io.sockets.sockets.values()).some(s => {
+            if (s.id === socket.id) return false;
+            const otherIP = s.handshake.address || s.request.connection.remoteAddress;
+            const otherAgent = s.handshake.headers['user-agent'] || 'unknown';
+            const otherKey = `${otherIP}-${otherAgent.substring(0, 50)}`;
+            return otherKey === userKey;
+        });
+
+        if (!hasOtherConnections) {
+            uniqueUsers.delete(userKey);
+        }
+
+        console.log(`User disconnected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`);
+        console.log(`🔍 Disconnected ID: ${socket.id}`);
+
+        // Broadcast unique user count
+        io.emit('user-count', uniqueUsers.size);
     });
 });
 
@@ -617,29 +680,21 @@ app.post('/api/chat', (req, res) => {
         type: 'chat',
         prompt: message,
         socketId: tempSocketId,
-        username: username || 'Anonymous'
+        username: username || 'Anonymous',
+        triggers: triggers || [] // Pass triggers to worker
     });
 
     // Set a timeout to respond
     const timeout = setTimeout(() => {
         res.status(504).json({ error: 'AI response timeout' });
-    }, 30000);
+        delete pendingAPIRequests[tempSocketId];
+    }, 60000); // 1 minute timeout
 
-    // Listen for worker response (simplified for API)
-    const originalHandler = handleWorkerMessage;
-    handleWorkerMessage = (msg) => {
-        if (msg.type === 'response' && msg.socketId === tempSocketId) {
-            clearTimeout(timeout);
-            res.json({
-                response: msg.response,
-                wordCount: msg.wordCount || 0,
-                timestamp: new Date().toISOString()
-            });
-            handleWorkerMessage = originalHandler;
-        } else {
-            originalHandler(msg);
-        }
-    };
+    // Store the response object for this request
+    if (!global.pendingAPIRequests) {
+        global.pendingAPIRequests = {};
+    }
+    global.pendingAPIRequests[tempSocketId] = { res, timeout };
 });
 
 // Collar management

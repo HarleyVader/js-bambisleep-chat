@@ -24,6 +24,9 @@ class MobileInterface {
 
         console.log('🤖 Initializing Mobile Interface...');
 
+        // Create mobile interface HTML structure if it doesn't exist
+        this.createMobileStructure();
+
         this.setupMobileNavigation();
         this.setupMobilePanels();
         this.setupMobileDropdowns();
@@ -37,6 +40,96 @@ class MobileInterface {
 
         this.isInitialized = true;
         console.log('✅ Mobile Interface initialized');
+    }
+
+    createMobileStructure() {
+        // Check if mobile structure already exists
+        if (document.querySelector('.mobile-nav')) return;
+
+        console.log('📱 Creating mobile interface structure...');
+
+        // Create mobile navigation HTML
+        const mobileNavHTML = `
+            <nav class="mobile-nav">
+                <button id="mobile-chat-btn" class="mobile-nav-btn">
+                    <div class="mobile-nav-btn-icon">💬</div>
+                    Chat
+                </button>
+                <button id="mobile-spiral-btn" class="mobile-nav-btn">
+                    <div class="mobile-nav-btn-icon">🌀</div>
+                    Spiral
+                </button>
+                <button id="mobile-triggers-btn" class="mobile-nav-btn">
+                    <div class="mobile-nav-btn-icon">⚡</div>
+                    Triggers
+                </button>
+                <button id="mobile-tts-btn" class="mobile-nav-btn">
+                    <div class="mobile-nav-btn-icon">🔊</div>
+                    TTS
+                </button>
+                <button id="mobile-ai-btn" class="mobile-nav-btn">
+                    <div class="mobile-nav-btn-icon">🤖</div>
+                    AI
+                </button>
+            </nav>
+        `;
+
+        // Create mobile panels HTML
+        const mobilePanelsHTML = `
+            <div id="mobile-spiral-panel" class="mobile-panel">
+                <div class="mobile-panel-header">
+                    <h3 class="mobile-panel-title">Spiral Controls</h3>
+                    <button class="mobile-panel-close" data-target="mobile-spiral-panel">✕</button>
+                </div>
+                <div class="mobile-spiral-controls">
+                    <!-- Spiral controls will be populated by setupMobileControls -->
+                </div>
+            </div>
+
+            <div id="mobile-triggers-panel" class="mobile-panel">
+                <div class="mobile-panel-header">
+                    <h3 class="mobile-panel-title">Triggers</h3>
+                    <button class="mobile-panel-close" data-target="mobile-triggers-panel">✕</button>
+                </div>
+                <div class="mobile-trigger-categories">
+                    <!-- Trigger categories will be populated by populateTriggerCategories -->
+                </div>
+            </div>
+
+            <div id="mobile-tts-panel" class="mobile-panel">
+                <div class="mobile-panel-header">
+                    <h3 class="mobile-panel-title">Text-to-Speech</h3>
+                    <button class="mobile-panel-close" data-target="mobile-tts-panel">✕</button>
+                </div>
+                <div class="mobile-voice-selector">
+                    <!-- Voice options will be populated by populateVoiceOptions -->
+                </div>
+            </div>
+
+            <div id="mobile-ai-panel" class="mobile-panel">
+                <div class="mobile-panel-header">
+                    <h3 class="mobile-panel-title">AI Girlfriend (AIGF)</h3>
+                    <button class="mobile-panel-close" data-target="mobile-ai-panel">✕</button>
+                </div>
+                <div class="mobile-collar-section">
+                    <h4 class="mobile-collar-title">Collar Control</h4>
+                    <textarea class="mobile-collar-textarea" placeholder="Enter your collar instructions..."></textarea>
+                    <div class="mobile-collar-buttons">
+                        <button class="mobile-collar-btn activate" data-action="activate">Activate</button>
+                        <button class="mobile-collar-btn deactivate" data-action="deactivate">Deactivate</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mobile-dropdown-overlay">
+                <div class="mobile-dropdown-content"></div>
+            </div>
+        `;
+
+        // Inject mobile structure into DOM
+        document.body.insertAdjacentHTML('beforeend', mobileNavHTML + mobilePanelsHTML);
+
+        console.log('✅ Mobile interface structure created');
     }
 
     setupMobileNavigation() {
@@ -112,8 +205,8 @@ class MobileInterface {
                 currentY = e.touches[0].clientY;
                 const deltaY = currentY - startY;
 
-                // Allow swipe down to close
-                if (deltaY > 50) {
+                // Allow swipe up to close (since panels slide down from top)
+                if (deltaY < -50) {
                     panel.style.transform = `translateY(${deltaY}px)`;
                 }
             });
@@ -123,8 +216,8 @@ class MobileInterface {
 
                 const deltaY = currentY - startY;
 
-                if (deltaY > 100) {
-                    // Close panel
+                if (deltaY < -100) {
+                    // Close panel (swipe up)
                     this.closePanel(panel.id);
                     this.setActiveNavItem('mobile-chat-btn');
                 } else {

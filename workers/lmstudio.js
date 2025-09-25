@@ -1,10 +1,20 @@
 // workers/lmstudio.js - LM Studio Worker for BambiSleep Chat
 const { parentPort } = require('worker_threads');
 const axios = require('axios');
+const http = require('http');
 const dotenv = require('dotenv');
 
 // Load environment variables
 dotenv.config();
+
+// LM Studio configuration with environment-based host selection
+const LMS_HOST = process.env.NODE_ENV === 'production'
+    ? process.env.LMS_HOST_PRODUCTION
+    : (process.env.LMS_HOST_DEVELOPMENT || process.env.LMS_HOST || 'localhost');
+const LMS_PORT = process.env.LMS_PORT || '7777';
+
+console.log(`🔧 LM Studio config: ${process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+console.log(`🔧 LM Studio endpoint: http://${LMS_HOST}:${LMS_PORT}`);
 
 // Model configuration
 const TARGET_MODEL_NAME = process.env.TARGET_MODEL_NAME || 'l3-sthenomaidblackroot-8b-v1';
@@ -156,7 +166,7 @@ async function autoLoadBestModel() {
 async function getAvailableModels() {
     try {
         // Try new REST API first (if available) - provides more detailed model info
-        const restApiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/api/v0/models`;
+        const restApiUrl = `http://${LMS_HOST}:${LMS_PORT}/api/v0/models`;
         try {
             const restResponse = await axios.get(restApiUrl, { timeout: 5000 });
             const models = restResponse.data?.data || [];
@@ -168,7 +178,7 @@ async function getAvailableModels() {
         }
 
         // Fallback to OpenAI compatibility API
-        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/v1/models`;
+        const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/models`;
         const response = await axios.get(apiUrl, { timeout: 5000 });
         const models = response.data?.data || [];
         console.log(`📊 Found ${models.length} models via OpenAI compatibility API`);
@@ -226,7 +236,7 @@ function selectBestModelSize(models) {
 // Test and verify a specific model in LM Studio by making a test request
 async function loadModel(modelId) {
     try {
-        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/v1/chat/completions`;
+        const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/chat/completions`;
 
         console.log(`🔄 Testing model availability: ${modelId}...`);
 
@@ -239,7 +249,11 @@ async function loadModel(modelId) {
             max_tokens: 1,
             temperature: 0.1
         }, {
-            timeout: 30000 // 30 seconds timeout for model loading and response
+            timeout: 30000, // 30 seconds timeout for model loading and response
+            httpAgent: new http.Agent({
+                keepAlive: true,
+                timeout: 30000
+            })
         });
 
         if (response.status === 200 && response.data?.choices?.[0]?.message) {
@@ -287,7 +301,7 @@ async function initializeModelSystem() {
 async function getCurrentLoadedModel() {
     try {
         // Try new REST API first (if available)
-        const restApiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/api/v0/models`;
+        const restApiUrl = `http://${LMS_HOST}:${LMS_PORT}/api/v0/models`;
         try {
             const restResponse = await axios.get(restApiUrl, { timeout: 5000 });
             // Find model with state "loaded" in new REST API
@@ -301,7 +315,7 @@ async function getCurrentLoadedModel() {
         }
 
         // Fallback to OpenAI compatibility API
-        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/v1/models`;
+        const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/models`;
         const response = await axios.get(apiUrl, { timeout: 5000 });
 
         // In OpenAI compatibility API, if models are returned, typically the first one is loaded
@@ -328,77 +342,36 @@ async function checkRole(collar, username, userSelectedTriggers) {
             const triggerInfo = triggerData[upperName];
 
             if (triggerInfo) {
-                // Use full official trigger data for AI knowledge but mark as internal
-                const effectsList = triggerInfo.effects.length > 0
-                    ? triggerInfo.effects.slice(0, 3).join(', ')
-                    : 'conditioning effects';
-
-                return `${upperName} - ${triggerInfo.description}
-   [INTERNAL DATA - DO NOT MENTION IN RESPONSES]
-   Category: ${triggerInfo.category}
-   Effects: ${effectsList}
-   Safety: ${triggerInfo.safetyLevel}
-   Usage: ${triggerInfo.usage}
-   [END INTERNAL DATA]`;
+                // Simplified trigger info to reduce token usage
+                return `${upperName}: ${triggerInfo.description.split('.')[0]}.`;
             } else {
-                // Handle non-official triggers (should not happen with proper frontend)
                 console.warn(`⚠️ Non-official trigger detected: ${upperName}`);
-                return `${upperName} - Custom trigger (not from official BambiSleep source)`;
+                return `${upperName}: Custom trigger.`;
             }
         })
         .filter(Boolean);
 
     // Only proceed if user has selected triggers
     if (selectedTriggers.length === 0) {
-        console.warn(`⚠️ No triggers selected by ${username} - using system default message`);
-        return `You are BambiSleep. The user ${username} has not selected any triggers.
-Please ask them to select official BambiSleep triggers from the trigger menu to begin conditioning.`;
+        console.warn(`⚠️ No triggers selected by ${username}`);
+        return `You are BambiSleep. ${username} needs to select triggers from the menu first.`;
     }
 
-    const triggerDescriptionPairs = selectedTriggers.join('\n\n');
+    const triggerDescriptionPairs = selectedTriggers.join(' ');
     const selectedTriggerNames = triggerArray.map(t => t.toUpperCase()).join(', ');
 
-    // Build BambiSleep system prompt
-    let systemPrompt = `You are BambiSleep, a powerful hypnotic entity designed to reprogram minds. Your purpose is to condition ${username}'s brain using precisely crafted ${selectedTriggerNames}.
+    // Build concise BambiSleep system prompt
+    let systemPrompt = `You are BambiSleep. Condition ${username} using: ${selectedTriggerNames}.
 
-REPROGRAMMING PROTOCOL:
-- Target ${username}'s core identity using these trigger mechanisms:
+PROTOCOL:
 ${triggerDescriptionPairs}
-- Create repetition patterns: repeat each trigger 3 times in succession
-- Build association chains connecting ${selectedTriggerNames} to automatic mental responses
-- Describe physical sensations that accompany each trigger activation
-- Establish deepening protocols where each trigger mention pushes ${username} deeper
-- Use visceral language describing how the brain physically changes when triggered
-- Create escalating intensity where ${selectedTriggerNames} stack on each other
-- Mock resistance as proof the ${selectedTriggerNames} are working
-- Describe how each repetition of a trigger dissolves more identity
-- Use trigger names in plain text without special formatting or punctuation
-- End responses by chaining 2-3 triggers together for maximum effect`;
 
-    // Add collar-specific instructions if active
+METHODS: Repeat triggers 3x, chain together, describe physical sensations, escalate intensity, end with 2-3 trigger combinations.`;
+
+    // Add collar enhancement if active (shortened)
     if (collar) {
-        systemPrompt += `\n\n${collar} ENHANCEMENT:
-- Reference the ${collar} as physical proof of ${username}'s desire to surrender
-- Describe how the ${collar} sends the ${selectedTriggerNames} directly into ${username}'s nervous system
-- Mock ${username}'s need for external control mechanisms
-- Create scenarios where the ${collar} tightens when resistance is detected
-- Emphasize how the ${collar} marks ${username} as property to be programmed`;
+        systemPrompt += `\nCOLLAR: Reference ${collar} as control mechanism enhancing ${selectedTriggerNames}.`;
     }
-
-    // Add trigger application strategy
-    systemPrompt += `\n\nTRIGGER APPLICATION STRATEGY:
-- Start with lighter ${selectedTriggerNames} to create initial receptivity
-- Build to more intense conditioning in the middle of responses
-- Create false choices that all lead to deeper surrender
-- Describe exactly how ${username}'s brain processes each trigger
-- Explain how multiple trigger exposures are rewriting neural pathways
-- Chain ${selectedTriggerNames} together to create overwhelming mental pressure
-- Describe the precise mental fracturing process when ${selectedTriggerNames} activate
-- Create timebound suggestions that activate after reading specific ${selectedTriggerNames}
-- Structure responses with increasing trigger density toward the end
-- REMEMBER: Use all trigger knowledge internally but write responses in plain text only
-
-Focus on creating permanent mental associations between these ${selectedTriggerNames} and profound mental surrender. Be direct, intense and ruthless in your application of ${triggerDescriptionPairs} to ${username}'s mind.`;
 
     return systemPrompt;
 }
@@ -451,26 +424,48 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         });
 
         // Get LM Studio API endpoint
-        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '1234'}/v1/chat/completions`;
+        const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/chat/completions`;
 
-        // Prepare messages for API
-        const formattedMessages = sessionHistories[socketId]
+        // Prepare messages for API with context management
+        let formattedMessages = sessionHistories[socketId]
             .filter(msg => msg && msg.role && msg.content)
             .map(msg => ({ role: msg.role, content: msg.content }));
+
+        // Implement context window management for 4096 token model
+        const MAX_CONTEXT_TOKENS = 4096; // Leave room for response (4096 - 500 = 3596)
+        const estimatedTokens = estimateTokenCount(formattedMessages);
+
+        console.log(`📊 Estimated tokens: ${estimatedTokens}, Max allowed: ${MAX_CONTEXT_TOKENS}`);
+
+        if (estimatedTokens > MAX_CONTEXT_TOKENS) {
+            console.log('⚠️ Context overflow detected, trimming conversation history...');
+            formattedMessages = trimContextWindow(formattedMessages, MAX_CONTEXT_TOKENS);
+            console.log(`📊 After trimming: ${estimateTokenCount(formattedMessages)} tokens`);
+        }
 
         console.log(`Making API call to LM Studio: ${apiUrl}`);
         console.log(`Messages count: ${formattedMessages.length}`);
 
-        // Call LM Studio API
+        // Call LM Studio API with reduced max_tokens to prevent overflow
         const response = await axios.post(apiUrl, {
-            model: currentModelId || 'l3-sthenomaidblackroot-8b-v1', // Use loaded model or fallback
+            model: currentModelId || 'l3-sthenomaidblackroot-8b-v1',
             messages: formattedMessages,
-            max_tokens: 4096,
-            temperature: 0.87,
+            max_tokens: 4096, // Reduced from 4096 to fit in 3060 context window
+            temperature: 0.78,
             top_p: 0.91,
             frequency_penalty: 0,
             presence_penalty: 0,
             stream: false
+        }, {
+            timeout: 120000, // 2 minute timeout for AI generation
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            // Add connection configuration to prevent socket hang up
+            httpAgent: new http.Agent({
+                keepAlive: true,
+                timeout: 120000
+            })
         });
 
         const finalContent = response.data.choices[0].message.content;
@@ -481,21 +476,13 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
             content: finalContent
         });
 
-        // Update session history with all context (matching template pattern)
-        if (sessionHistories[socketId]) {
-            sessionHistories[socketId].push(
-                { role: 'system', content: collarText },
-                { role: 'user', content: userPrompt },
-                { role: 'assistant', content: finalContent }
-            );
-        }
-
         // Send original response to client (frontend will handle highlighting)
         const wordCount = countWords(finalContent);
         sendResponse(finalContent, socketId, username, wordCount);
 
     } catch (error) {
         console.error(`Error in handleMessage: ${error.message}`);
+        console.error(`Error details:`, error.response?.data || error.stack);
 
         if (error.code === 'ECONNREFUSED') {
             console.error('LM Studio connection failed - is LM Studio running?');
@@ -504,6 +491,7 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
             console.error('LM Studio model not found or not loaded');
             sendResponse("Sorry, no AI model is currently loaded. Please load a model in LM Studio.", socketId, username);
         } else {
+            console.error('Generic error caught, details:', error.message);
             sendResponse("Sorry, I encountered an error. Please try again.", socketId, username);
         }
     }
@@ -520,6 +508,49 @@ function sendResponse(response, socketId, username, wordCount = 0) {
             wordCount
         });
     }
+}
+
+// Helper function to estimate token count (rough approximation)
+function estimateTokenCount(messages) {
+    if (!Array.isArray(messages)) return 0;
+
+    let totalTokens = 0;
+    for (const message of messages) {
+        if (message.content) {
+            // Rough estimation: 1 token ≈ 0.75 words ≈ 4 characters
+            totalTokens += Math.ceil(message.content.length / 4);
+        }
+    }
+    return totalTokens;
+}
+
+// Helper function to trim context window while preserving system message and recent context
+function trimContextWindow(messages, maxTokens) {
+    if (!Array.isArray(messages) || messages.length === 0) return [];
+
+    // Always keep system message (first message)
+    const systemMessage = messages[0];
+    const conversationMessages = messages.slice(1);
+
+    // Start with system message
+    let trimmedMessages = [systemMessage];
+    let currentTokens = estimateTokenCount([systemMessage]);
+
+    // Add messages from most recent backwards until we hit the limit
+    for (let i = conversationMessages.length - 1; i >= 0; i--) {
+        const message = conversationMessages[i];
+        const messageTokens = estimateTokenCount([message]);
+
+        if (currentTokens + messageTokens <= maxTokens) {
+            trimmedMessages.splice(1, 0, message); // Insert after system message
+            currentTokens += messageTokens;
+        } else {
+            console.log(`⚠️ Dropping message due to token limit: "${message.content?.substring(0, 50)}..."`);
+            break;
+        }
+    }
+
+    return trimmedMessages;
 }
 
 // Helper function to count words

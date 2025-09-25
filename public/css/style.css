@@ -24,6 +24,65 @@
     padding: 0;
 }
 
+/* Make all backgrounds transparent */
+body,
+#chat-interface,
+#chat-header,
+#chat-messages,
+#chat-input-container,
+#message-input,
+.message,
+.system-message,
+.dropdown-content,
+.dropdown-menu,
+.modal-content,
+.trigger-card,
+.category-header,
+.trigger-list,
+.control-button,
+.toggle-button,
+.preset-button,
+button,
+input,
+textarea,
+select {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Specific transparent overrides for themed elements */
+#chat-header {
+    background: linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(255, 130, 255, 0.2)) !important;
+}
+
+.dropdown-content {
+    background: rgba(38, 20, 38, 0.85) !important;
+}
+
+.user-message {
+    background: linear-gradient(135deg, rgba(255, 0, 255, 0.15), rgba(255, 192, 255, 0.15)) !important;
+}
+
+.system-message {
+    background: linear-gradient(135deg, rgba(255, 130, 255, 0.1), rgba(255, 200, 255, 0.1)) !important;
+}
+
+.trigger-highlighted {
+    background-color: rgba(255, 0, 128, 0.2) !important;
+}
+
+.modal-content {
+    background: rgba(30, 15, 30, 0.9) !important;
+}
+
+input[type="range"]::-webkit-slider-track {
+    background: linear-gradient(to right, rgba(255, 0, 255, 0.2), rgba(255, 130, 255, 0.4)) !important;
+}
+
+/* Ensure text remains readable */
+* {
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
 body {
     font-family: "Audiowide", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color), var(--tertiary-color));
@@ -52,8 +111,6 @@ body {
     flex-direction: column;
     height: 100vh;
     background: var(--transparent);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
     border: var(--border) var(--primary-alt);
     border-radius: var(--border-radius);
     /* Rounded borders */

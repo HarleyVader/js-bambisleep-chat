@@ -41,6 +41,17 @@ export class TriggersDropdown {
         document.addEventListener('triggerSelection', (e) => {
             this.handleTriggerSelection(e.detail);
         });
+
+        // Event delegation for trigger buttons to avoid inline onclick issues
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('trigger-button') && e.target.dataset.triggerName) {
+                e.preventDefault();
+                this.handleTriggerClick(e.target, e.target.dataset.triggerName);
+            } else if (e.target.classList.contains('retry-button') && e.target.dataset.action === 'retry-triggers') {
+                e.preventDefault();
+                this.loadTriggerCategories();
+            }
+        });
     }
 
     setupToggleHandling() {
@@ -106,6 +117,10 @@ export class TriggersDropdown {
                         }
                     }
                 });
+                break;
+            case 'retry-triggers':
+                this.loadTriggerCategories();
+                this.dropdownManager.showActionFeedback('TRIGGERS', 'RELOADING...');
                 break;
             default:
                 console.warn(`Unknown triggers action: ${action}`);
@@ -243,7 +258,7 @@ export class TriggersDropdown {
                 <div id="trigger-categories-dropdown" class="trigger-categories">
                     <div class="category-error">
                         <p>❌ Failed to load triggers: ${this.loadError}</p>
-                        <button onclick="window.dropdownManager.getComponent('triggers').loadTriggerCategories()">🔄 Retry</button>
+                        <button class="retry-button" data-action="retry-triggers">🔄 Retry</button>
                     </div>
                 </div>
                 <div class="control-section">
@@ -300,7 +315,7 @@ export class TriggersDropdown {
                     <button class="trigger-button"
                             data-category="${trigger.category || 'default'}"
                             data-safety="${trigger.safetyLevel || 'safe'}"
-                            onclick="window.dropdownManager.getComponent('triggers').handleTriggerClick(this, '${trigger.name}')">
+                            data-trigger-name="${trigger.name}">
                         ${trigger.name}
                     </button>
                 `;

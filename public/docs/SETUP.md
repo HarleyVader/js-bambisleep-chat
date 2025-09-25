@@ -44,8 +44,9 @@ PORT=6969
 NODE_ENV=development
 
 # LM Studio Configuration (Optional)
-LMS_HOST=localhost
-LMS_PORT=1234
+LMS_HOST_PRODUCTION=192.168.0.118
+LMS_HOST_DEVELOPMENT=localhost
+LMS_PORT=7777
 LMS_MODEL=your-model-name
 
 # Kokoro TTS Configuration (Optional)
@@ -95,8 +96,9 @@ http://localhost:6969
 3. **Configure Environment**
 
    ```env
-   LMS_HOST=localhost
-   LMS_PORT=1234
+   LMS_HOST_PRODUCTION=192.168.0.118
+   LMS_HOST_DEVELOPMENT=localhost
+   LMS_PORT=7777
    LMS_MODEL=your-model-name
    ```
 
