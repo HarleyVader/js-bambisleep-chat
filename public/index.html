@@ -1,145 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BambiSleepChat</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BambiSleepChat</title>
 
-    <!-- Favicon and Icon Links for All Devices -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <!-- Favicon and Icon Links for All Devices -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
 
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/site.webmanifest">
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/site.webmanifest">
 
-    <!-- Mobile Web App Meta Tags -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="BambiSleep.Chat">
-    <meta name="application-name" content="BambiSleep.Chat">
+  <!-- Mobile Web App Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BambiSleep.Chat">
+  <meta name="application-name" content="BambiSleep.Chat">
 
-    <!-- Dynamic CSS Loading - Mobile vs Desktop Detection -->
-    <script>
-        // Detect if device is mobile/tablet vs desktop
-        function isMobileDevice() {
-            const userAgent = navigator.userAgent.toLowerCase();
-            const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  <!-- Dynamic CSS Loading - Mobile vs Desktop Detection -->
+  <script>
+    // Detect if device is mobile/tablet vs desktop
+    function isMobileDevice() {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-            // Consider it mobile if it matches mobile user agent OR has touch capability
-            return isMobileUA || isTouchDevice;
-        }
+      // Consider it mobile if it matches mobile user agent OR has touch capability
+      return isMobileUA || isTouchDevice;
+    }
 
-        // Load appropriate CSS based on device type
-        function loadDeviceCSS() {
-            const head = document.head;
+    // Load appropriate CSS based on device type
+    function loadDeviceCSS() {
+      const head = document.head;
 
-            // Always load the base style.css
-            const baseCSS = document.createElement('link');
-            baseCSS.rel = 'stylesheet';
-            baseCSS.href = '/css/style.css';
-            head.appendChild(baseCSS);
+      // Always load the base style.css
+      const baseCSS = document.createElement('link');
+      baseCSS.rel = 'stylesheet';
+      baseCSS.href = '/css/style.css';
+      head.appendChild(baseCSS);
 
-            // Always load the buttons.css
-            const buttonsCSS = document.createElement('link');
-            buttonsCSS.rel = 'stylesheet';
-            buttonsCSS.href = '/css/buttons.css';
-            head.appendChild(buttonsCSS);
+      // Always load the buttons.css
+      const buttonsCSS = document.createElement('link');
+      buttonsCSS.rel = 'stylesheet';
+      buttonsCSS.href = '/css/buttons.css';
+      head.appendChild(buttonsCSS);
 
-            // Only load mobile.css if it's actually a mobile device
-            if (isMobileDevice()) {
-                const mobileCSS = document.createElement('link');
-                mobileCSS.rel = 'stylesheet';
-                mobileCSS.href = '/css/mobile.css';
-                head.appendChild(mobileCSS);
+      // Only load mobile.css if it's actually a mobile device
+      if (isMobileDevice()) {
+        const mobileCSS = document.createElement('link');
+        mobileCSS.rel = 'stylesheet';
+        mobileCSS.href = '/css/mobile.css';
+        head.appendChild(mobileCSS);
 
-                // Add mobile class to body for additional targeting
-                document.addEventListener('DOMContentLoaded', function() {
-                    document.body.classList.add('mobile-device');
-                });
-            } else {
-                // Add desktop class to body for additional targeting
-                document.addEventListener('DOMContentLoaded', function() {
-                    document.body.classList.add('desktop-device');
-                });
-            }
-        }
+        // Add mobile class to body for additional targeting
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.classList.add('mobile-device');
+        });
+      } else {
+        // Add desktop class to body for additional targeting
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.classList.add('desktop-device');
+        });
+      }
+    }
 
-        // Load CSS immediately
-        loadDeviceCSS();
-    </script>
+    // Load CSS immediately
+    loadDeviceCSS();
+  </script>
 
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
+
 <body>
-    <div id="app">
-        <!-- Spiral Animation Canvas -->
-        <div id="spiral-container">
-            <div id="eye" class="spiral-text-center"></div>
-        </div>
-
-        <!-- Chat Container -->
-        <div id="chat-container">
-            <div id="chat-header">
-                <h1>🧠BambiSleep.Chat🌀</h1>
-                <div id="controls" class="controls">
-                    <div class="dropdown">
-                        <button id="toggle-spiral" class="dropdown-btn toggle-button" data-state="off">Spiral: OFF</button>
-                        <div class="dropdown-content">
-                            <!-- Content will be populated by spiral-dropdown.js -->
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <button id="toggle-tts" class="dropdown-btn toggle-button" data-state="off">TTS: OFF</button>
-                        <div class="dropdown-content">
-                            <!-- Content will be populated by tts-dropdown.js -->
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <button id="toggle-triggers" class="dropdown-btn toggle-button" data-state="off">Triggers: OFF</button>
-                        <div class="dropdown-content">
-                            <!-- Content will be populated by triggers-dropdown.js -->
-                        </div>
-                    </div>
-                    <div class="dropdown">
-                        <button id="toggle-ai" class="dropdown-btn toggle-button" data-state="off" data-mode="chat">CHAT</button>
-                        <div class="dropdown-content">
-                            <!-- Content will be populated by ai-dropdown.js -->
-                        </div>
-                    </div>
-                    <div class="dropdown collar-dropdown">
-                        <button id="toggle-collar" class="dropdown-btn toggle-button" data-state="off">Collar: OFF</button>
-                        <div class="dropdown-content">
-                            <!-- Content will be populated by collar-dropdown.js -->
-                        </div>
-                    </div>
-                    <div class="docs-link-container">
-                        <a href="/docs.html" class="docs-link-btn" target="_blank">📚 Docs</a>
-                    </div>
-                </div>
-            </div>
-
-            <div id="chat-messages"></div>
-
-            <div id="chat-input-container">
-                <input type="text" id="chat-input" placeholder="Type your message..." maxlength="500">
-                <button id="send-button">Send</button>
-            </div>
-        </div>
+  <div id="app">
+    <!-- Spiral Animation Canvas -->
+    <div id="spiral-container">
+      <div id="eye" class="spiral-text-center"></div>
     </div>
 
-    <!-- Load scripts in order -->
-    <script src="/js/effects.js"></script>
-    <script src="/js/triggers.js"></script>
-    <script src="/js/text2speech.js"></script>
-    <script src="/js/psychodelic-trigger-mania.js"></script>
-    <script type="module" src="/js/dropdowns.js"></script>
-    <script src="/js/aigf-core.js"></script>
-    <script src="/js/mobile-interface.js"></script>
+    <!-- Chat Container -->
+    <div id="chat-container">
+      <div id="chat-header">
+        <h1>🧠BambiSleep.Chat🌀</h1>
+        <div id="controls" class="controls">
+          <div class="dropdown">
+            <button id="toggle-spiral" class="dropdown-btn toggle-button" data-state="off">Spiral: OFF</button>
+            <div class="dropdown-content">
+              <!-- Content will be populated by spiral-dropdown.js -->
+            </div>
+          </div>
+          <div class="dropdown">
+            <button id="toggle-tts" class="dropdown-btn toggle-button" data-state="off">TTS: OFF</button>
+            <div class="dropdown-content">
+              <!-- Content will be populated by tts-dropdown.js -->
+            </div>
+          </div>
+          <div class="dropdown">
+            <button id="toggle-triggers" class="dropdown-btn toggle-button" data-state="off">Triggers: OFF</button>
+            <div class="dropdown-content">
+              <!-- Content will be populated by triggers-dropdown.js -->
+            </div>
+          </div>
+          <div class="dropdown">
+            <button id="toggle-ai" class="dropdown-btn toggle-button" data-state="off" data-mode="chat">CHAT</button>
+            <div class="dropdown-content">
+              <!-- Content will be populated by ai-dropdown.js -->
+            </div>
+          </div>
+          <div class="dropdown collar-dropdown">
+            <button id="toggle-collar" class="dropdown-btn toggle-button" data-state="off">Collar: OFF</button>
+            <div class="dropdown-content">
+              <!-- Content will be populated by collar-dropdown.js -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="chat-messages"></div>
+
+      <div class="docs-link-container">
+        <a href="/docs.html" class="docs-link-btn" target="_blank">📚 Docs</a>
+      </div>
+
+      <div id="chat-input-container">
+        <input type="text" id="chat-input" placeholder="Type your message..." maxlength="500">
+        <button id="send-button">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load scripts in order -->
+  <script src="/js/effects.js"></script>
+  <script src="/js/triggers.js"></script>
+  <script src="/js/text2speech.js"></script>
+  <script src="/js/psychodelic-trigger-mania.js"></script>
+  <script type="module" src="/js/dropdowns.js"></script>
+  <script src="/js/aigf-core.js"></script>
+  <script src="/js/mobile-interface.js"></script>
 </body>
+
 </html>

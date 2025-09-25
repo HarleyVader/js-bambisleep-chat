@@ -155,9 +155,24 @@ async function autoLoadBestModel() {
 // Get available models from LM Studio
 async function getAvailableModels() {
     try {
+        // Try new REST API first (if available) - provides more detailed model info
+        const restApiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/api/v0/models`;
+        try {
+            const restResponse = await axios.get(restApiUrl, { timeout: 5000 });
+            const models = restResponse.data?.data || [];
+            console.log(`📊 Found ${models.length} models via REST API`);
+            return models;
+        } catch (restError) {
+            // Fall back to OpenAI compatibility API if REST API not available
+            console.log('REST API not available, using OpenAI compatibility API...');
+        }
+
+        // Fallback to OpenAI compatibility API
         const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/v1/models`;
         const response = await axios.get(apiUrl, { timeout: 5000 });
-        return response.data.data || [];
+        const models = response.data?.data || [];
+        console.log(`📊 Found ${models.length} models via OpenAI compatibility API`);
+        return models;
     } catch (error) {
         console.error('Error fetching models:', error.message);
         return [];
@@ -208,22 +223,34 @@ function selectBestModelSize(models) {
     return sortedModels[0];
 }
 
-// Load a specific model in LM Studio
+// Test and verify a specific model in LM Studio by making a test request
 async function loadModel(modelId) {
     try {
-        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/v1/models/load`;
+        const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/v1/chat/completions`;
 
-        console.log(`🔄 Loading model: ${modelId}...`);
+        console.log(`🔄 Testing model availability: ${modelId}...`);
 
+        // Make a small test request to verify the model loads and works
         const response = await axios.post(apiUrl, {
-            model: modelId
+            model: modelId,
+            messages: [
+                { role: "user", content: "Test" }
+            ],
+            max_tokens: 1,
+            temperature: 0.1
         }, {
-            timeout: 30000 // 30 seconds timeout for model loading
+            timeout: 30000 // 30 seconds timeout for model loading and response
         });
 
-        return response.status === 200;
+        if (response.status === 200 && response.data?.choices?.[0]?.message) {
+            console.log(`✅ Model ${modelId} is working and loaded`);
+            return true;
+        } else {
+            console.error(`❌ Model ${modelId} test failed - invalid response format`);
+            return false;
+        }
     } catch (error) {
-        console.error(`Failed to load model ${modelId}:`, error.message);
+        console.error(`Failed to test model ${modelId}:`, error.message);
         return false;
     }
 }
@@ -259,12 +286,27 @@ async function initializeModelSystem() {
 // Get currently loaded model
 async function getCurrentLoadedModel() {
     try {
+        // Try new REST API first (if available)
+        const restApiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/api/v0/models`;
+        try {
+            const restResponse = await axios.get(restApiUrl, { timeout: 5000 });
+            // Find model with state "loaded" in new REST API
+            const loadedModel = restResponse.data.data?.find(model => model.state === 'loaded');
+            if (loadedModel) {
+                return loadedModel.id;
+            }
+        } catch (restError) {
+            // Fall back to OpenAI compatibility API if REST API not available
+            console.log('REST API not available, trying OpenAI compatibility API...');
+        }
+
+        // Fallback to OpenAI compatibility API
         const apiUrl = `http://${process.env.LMS_HOST || 'localhost'}:${process.env.LMS_PORT || '7777'}/v1/models`;
         const response = await axios.get(apiUrl, { timeout: 5000 });
 
-        // Find the currently loaded model (usually marked with a specific flag)
-        const loadedModel = response.data.data.find(model => model.loaded || model.active);
-        return loadedModel ? loadedModel.id : null;
+        // In OpenAI compatibility API, if models are returned, typically the first one is loaded
+        const models = response.data?.data || [];
+        return models.length > 0 ? models[0].id : null;
     } catch (error) {
         console.error('Error checking loaded model:', error.message);
         return null;

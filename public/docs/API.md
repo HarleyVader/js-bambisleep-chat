@@ -7,7 +7,8 @@ BambiSleep Chat provides several API endpoints for managing chat functionality, 
 ## Base URL
 
 All API endpoints are relative to your server base URL:
-```
+
+```url
 http://localhost:6969/api/
 ```
 
@@ -20,6 +21,7 @@ http://localhost:6969/api/
 Returns server health status and configuration.
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -41,6 +43,7 @@ Returns server health status and configuration.
 Retrieve recent chat message history.
 
 **Response:**
+
 ```json
 {
   "messages": [
@@ -61,6 +64,7 @@ Retrieve recent chat message history.
 Get trigger metadata and statistics.
 
 **Response:**
+
 ```json
 {
   "totalTriggers": 50,
@@ -78,6 +82,7 @@ Get complete triggers data.
 Get triggers by specific category.
 
 **Parameters:**
+
 - `category` - The trigger category name
 
 #### `GET /api/triggers/details/:triggerName`
@@ -85,6 +90,7 @@ Get triggers by specific category.
 Get detailed information about a specific trigger.
 
 **Parameters:**
+
 - `triggerName` - The name of the trigger
 
 ### AI Chat
@@ -94,6 +100,7 @@ Get detailed information about a specific trigger.
 Send a message to the AI system.
 
 **Request Body:**
+
 ```json
 {
   "message": "Hello AI",
@@ -103,6 +110,7 @@ Send a message to the AI system.
 ```
 
 **Response:**
+
 ```json
 {
   "response": "Hello! How can I help you today?",
@@ -118,6 +126,7 @@ Send a message to the AI system.
 Generate speech audio from text.
 
 **Request Body:**
+
 ```json
 {
   "text": "Hello world",
@@ -127,6 +136,7 @@ Generate speech audio from text.
 ```
 
 **Response:**
+
 - Audio file (MP3/WAV format)
 
 #### `GET /api/tts/health`
@@ -154,29 +164,37 @@ The application uses Socket.io for real-time communication.
 ### Client Events
 
 #### `join-room`
+
 Join the chat room.
 
 #### `send-message`
+
 Send a chat message.
 
 #### `ai-message`
+
 Send a message to AI.
 
 ### Server Events
 
 #### `user-joined`
+
 Notification when a user joins.
 
 #### `user-left`
+
 Notification when a user leaves.
 
 #### `new-message`
+
 New chat message received.
 
 #### `ai-response`
+
 AI response received.
 
 #### `trigger-detected`
+
 Trigger word detected in message.
 
 ## Error Handling
@@ -189,6 +207,7 @@ All API endpoints return appropriate HTTP status codes:
 - `500` - Internal Server Error
 
 Error responses include:
+
 ```json
 {
   "error": "Error description",
@@ -200,6 +219,7 @@ Error responses include:
 ## Rate Limiting
 
 Some endpoints may have rate limiting applied:
+
 - Chat messages: 10 per minute
 - AI requests: 5 per minute
 - TTS requests: 20 per minute

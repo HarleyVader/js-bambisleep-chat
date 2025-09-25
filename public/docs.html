@@ -1,224 +1,276 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BambiSleep Chat - Documentation</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
-    <style>
-        #docs-container {
-            display: grid;
-            grid-template-columns: 20% 80%;
-            height: 100vh;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color), var(--tertiary-color));
-            color: #fff;
-            font-family: "Audiowide", sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BambiSleep Chat - Documentation</title>
 
-        #sidebar {
-            background: var(--transparent);
-            -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
-            border-right: var(--border) var(--primary-alt);
-            padding: 1rem;
-            overflow-y: auto;
-        }
+  <!-- Favicon and Icon Links for All Devices -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
 
-        #sidebar h2 {
-            color: var(--tertiary-alt);
-            margin-bottom: 1rem;
-            text-shadow: 0 0 10px var(--tertiary-alt);
-        }
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/site.webmanifest">
 
-        .doc-link {
-            display: block;
-            padding: 0.5rem;
-            margin: 0.25rem 0;
-            background: var(--button-color);
-            color: white;
-            text-decoration: none;
-            border-radius: var(--border-radius);
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
+  <!-- Mobile Web App Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BambiSleep.Chat">
+  <meta name="application-name" content="BambiSleep.Chat">
 
-        .doc-link:hover {
-            background: var(--button-alt);
-            box-shadow: 0 0 15px var(--tertiary-alt);
-        }
+  <!-- Dynamic CSS Loading - Mobile vs Desktop Detection -->
+  <script>
+    // Detect if device is mobile/tablet vs desktop
+    function isMobileDevice() {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-        .doc-link.active {
-            background: var(--tertiary-alt);
-            box-shadow: 0 0 20px var(--tertiary-alt);
-        }
+      // Consider it mobile if it matches mobile user agent OR has touch capability
+      return isMobileUA || isTouchDevice;
+    }
 
-        #content {
-            padding: 2rem;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.2);
-        }
+    // Load appropriate CSS based on device type
+    function loadDeviceCSS() {
+      const head = document.head;
 
-        #content h1, #content h2, #content h3 {
-            color: var(--tertiary-alt);
-            text-shadow: 0 0 10px var(--tertiary-alt);
-        }
+      // Always load the base style.css
+      const baseCSS = document.createElement('link');
+      baseCSS.rel = 'stylesheet';
+      baseCSS.href = '/css/style.css';
+      head.appendChild(baseCSS);
 
-        #content code {
-            background: var(--primary-color);
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
-            border: 1px solid var(--primary-alt);
-        }
+      // Always load the buttons.css
+      const buttonsCSS = document.createElement('link');
+      buttonsCSS.rel = 'stylesheet';
+      buttonsCSS.href = '/css/buttons.css';
+      head.appendChild(buttonsCSS);
 
-        #content pre {
-            background: var(--primary-color);
-            padding: 1rem;
-            border-radius: var(--border-radius);
-            border: var(--border) var(--primary-alt);
-            overflow-x: auto;
-        }
+      // Only load mobile.css if it's actually a mobile device
+      if (isMobileDevice()) {
+        const mobileCSS = document.createElement('link');
+        mobileCSS.rel = 'stylesheet';
+        mobileCSS.href = '/css/mobile.css';
+        head.appendChild(mobileCSS);
 
-        #content blockquote {
-            border-left: 4px solid var(--tertiary-alt);
-            padding-left: 1rem;
-            margin: 1rem 0;
-            background: rgba(255,255,255,0.1);
-        }
+        // Add mobile class to body for additional targeting
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.classList.add('mobile-device');
+        });
+      } else {
+        // Add desktop class to body for additional targeting
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.classList.add('desktop-device');
+        });
+      }
+    }
 
-        .back-link {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            background: var(--button-color);
-            color: white;
-            padding: 0.5rem 1rem;
-            text-decoration: none;
-            border-radius: var(--border-radius);
-            z-index: 1000;
-        }
-    </style>
+    // Load CSS immediately
+    loadDeviceCSS();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
 </head>
+
 <body>
-    <a href="/" class="back-link">← Back to Chat</a>
-
-    <div id="docs-container">
-        <div id="sidebar">
-            <h2>📚 Documentation</h2>
-            <div id="doc-list"></div>
-        </div>
-
-        <div id="content">
-            <h1>Welcome to BambiSleep Chat Documentation</h1>
-            <p>Select a document from the sidebar to view its contents.</p>
-        </div>
+  <div id="app">
+    <!-- Spiral Animation Canvas -->
+    <div id="spiral-container">
+      <div id="eye" class="spiral-text-center"></div>
     </div>
 
-    <script>
-        class DocsSystem {
-            constructor() {
-                this.md = window.markdownit();
-                this.currentDoc = null;
-                this.init();
+    <!-- Documentation Container -->
+    <div id="chat-container" class="docs-container">
+      <div id="chat-header">
+        <h1>📚 BambiSleep.Chat Docs 🌀</h1>
+        <div id="controls" class="controls">
+          <div class="docs-navigation">
+            <a href="/" class="docs-link-btn">← Back to Chat</a>
+          </div>
+        </div>
+      </div>
+
+      <div id="docs-sidebar" class="docs-sidebar">
+        <h2>📚 Documentation</h2>
+        <div id="doc-list"></div>
+      </div>
+
+      <div id="chat-messages" class="docs-content">
+        <h1>Welcome to BambiSleep Chat Documentation</h1>
+        <p>Select a document from the sidebar to view its contents.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class DocsSystem {
+      constructor() {
+        this.md = window.markdownit();
+        this.currentDoc = null;
+        this.isMobile = this.detectMobile();
+        this.init();
+      }
+
+      detectMobile() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        return isMobileUA || isTouchDevice;
+      }
+
+      async init() {
+        await this.loadDocsList();
+        this.bindEvents();
+        this.setupMobileMenu();
+      }
+
+      setupMobileMenu() {
+        if (this.isMobile) {
+          // Create mobile menu toggle button
+          const menuToggle = document.createElement('button');
+          menuToggle.className = 'mobile-docs-menu-toggle';
+          menuToggle.innerHTML = '📚';
+          menuToggle.setAttribute('aria-label', 'Toggle Documentation Menu');
+          document.body.appendChild(menuToggle);
+
+          // Toggle sidebar on mobile
+          menuToggle.addEventListener('click', () => {
+            const sidebar = document.getElementById('docs-sidebar');
+            sidebar.classList.toggle('active');
+          });
+
+          // Close sidebar when clicking outside on mobile
+          document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('docs-sidebar');
+            const menuToggle = document.querySelector('.mobile-docs-menu-toggle');
+
+            if (sidebar.classList.contains('active') &&
+              !sidebar.contains(e.target) &&
+              !menuToggle.contains(e.target)) {
+              sidebar.classList.remove('active');
             }
+          });
 
-            async init() {
-                await this.loadDocsList();
-                this.bindEvents();
+          // Close sidebar when selecting a document on mobile
+          document.getElementById('doc-list').addEventListener('click', (e) => {
+            if (e.target.classList.contains('doc-link')) {
+              const sidebar = document.getElementById('docs-sidebar');
+              sidebar.classList.remove('active');
             }
-
-            async loadDocsList() {
-                try {
-                    // Try to get list of markdown files from docs folder
-                    const response = await fetch('/docs/');
-                    if (response.ok) {
-                        const html = await response.text();
-                        // Parse directory listing (basic approach)
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        const links = Array.from(doc.querySelectorAll('a'))
-                            .map(link => link.href)
-                            .filter(href => href.endsWith('.md'))
-                            .map(href => href.split('/').pop());
-
-                        this.renderDocsList(links);
-                    } else {
-                        // Fallback to known docs
-                        this.renderDocsList(['README.md', 'API.md', 'SETUP.md']);
-                    }
-                } catch (error) {
-                    console.warn('Could not load docs list, using fallback');
-                    this.renderDocsList(['README.md']);
-                }
-            }
-
-            renderDocsList(docs) {
-                const docList = document.getElementById('doc-list');
-                docList.innerHTML = '';
-
-                docs.forEach(doc => {
-                    const link = document.createElement('a');
-                    link.className = 'doc-link';
-                    link.textContent = doc.replace('.md', '').replace(/[-_]/g, ' ');
-                    link.dataset.file = doc;
-                    docList.appendChild(link);
-                });
-            }
-
-            bindEvents() {
-                document.getElementById('doc-list').addEventListener('click', (e) => {
-                    if (e.target.classList.contains('doc-link')) {
-                        e.preventDefault();
-                        this.loadDocument(e.target.dataset.file);
-
-                        // Update active state
-                        document.querySelectorAll('.doc-link').forEach(link =>
-                            link.classList.remove('active')
-                        );
-                        e.target.classList.add('active');
-                    }
-                });
-            }
-
-            async loadDocument(filename) {
-                try {
-                    const response = await fetch(`/docs/${filename}`);
-                    if (response.ok) {
-                        const markdown = await response.text();
-                        const html = this.md.render(markdown);
-                        document.getElementById('content').innerHTML = html;
-                        this.currentDoc = filename;
-                    } else {
-                        // Fallback to README from root if docs file not found
-                        if (filename === 'README.md') {
-                            const fallbackResponse = await fetch('/README.md');
-                            if (fallbackResponse.ok) {
-                                const markdown = await fallbackResponse.text();
-                                const html = this.md.render(markdown);
-                                document.getElementById('content').innerHTML = html;
-                                return;
-                            }
-                        }
-
-                        document.getElementById('content').innerHTML = `
-                            <h1>Document Not Found</h1>
-                            <p>Could not load <code>${filename}</code></p>
-                            <p>Make sure the file exists in the <code>/docs</code> folder.</p>
-                        `;
-                    }
-                } catch (error) {
-                    console.error('Error loading document:', error);
-                    document.getElementById('content').innerHTML = `
-                        <h1>Error Loading Document</h1>
-                        <p>Failed to load <code>${filename}</code></p>
-                        <p>Error: ${error.message}</p>
-                    `;
-                }
-            }
+          });
         }
+      }
 
-        // Initialize docs system
-        new DocsSystem();
-    </script>
+      async loadDocsList() {
+        try {
+          // Try to get list of markdown files from docs folder
+          const response = await fetch('/docs/');
+          if (response.ok) {
+            const html = await response.text();
+            // Parse directory listing (basic approach)
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const links = Array.from(doc.querySelectorAll('a'))
+              .map(link => link.href)
+              .filter(href => href.endsWith('.md'))
+              .map(href => href.split('/').pop());
+
+            this.renderDocsList(links);
+          } else {
+            // Fallback to known docs
+            this.renderDocsList(['README.md', 'API.md', 'SETUP.md']);
+          }
+        } catch (error) {
+          console.warn('Could not load docs list, using fallback');
+          this.renderDocsList(['README.md', 'API.md', 'SETUP.md']);
+        }
+      }
+
+      renderDocsList(docs) {
+        const docList = document.getElementById('doc-list');
+        docList.innerHTML = '';
+
+        docs.forEach(doc => {
+          const link = document.createElement('a');
+          link.className = 'doc-link dropdown-btn';
+          link.textContent = doc.replace('.md', '').replace(/[-_]/g, ' ');
+          link.dataset.file = doc;
+          link.setAttribute('data-state', 'off');
+          docList.appendChild(link);
+        });
+      }
+
+      bindEvents() {
+        document.getElementById('doc-list').addEventListener('click', (e) => {
+          if (e.target.classList.contains('doc-link')) {
+            e.preventDefault();
+            this.loadDocument(e.target.dataset.file);
+
+            // Update active state
+            document.querySelectorAll('.doc-link').forEach(link => {
+              link.classList.remove('active');
+              link.setAttribute('data-state', 'off');
+            });
+            e.target.classList.add('active');
+            e.target.setAttribute('data-state', 'on');
+          }
+        });
+      }
+
+      async loadDocument(filename) {
+        try {
+          const response = await fetch(`/docs/${filename}`);
+          if (response.ok) {
+            const markdown = await response.text();
+            const html = this.md.render(markdown);
+            document.getElementById('chat-messages').innerHTML = html;
+            this.currentDoc = filename;
+          } else {
+            // Fallback to README from root if docs file not found
+            if (filename === 'README.md') {
+              const fallbackResponse = await fetch('/README.md');
+              if (fallbackResponse.ok) {
+                const markdown = await fallbackResponse.text();
+                const html = this.md.render(markdown);
+                document.getElementById('chat-messages').innerHTML = html;
+                return;
+              }
+            }
+
+            document.getElementById('chat-messages').innerHTML = `
+              <div class="message system">
+                <div class="message-text">
+                  <h1>Document Not Found</h1>
+                  <p>Could not load <code>${filename}</code></p>
+                  <p>Make sure the file exists in the <code>/docs</code> folder.</p>
+                </div>
+              </div>
+            `;
+          }
+        } catch (error) {
+          console.error('Error loading document:', error);
+          document.getElementById('chat-messages').innerHTML = `
+            <div class="message system">
+              <div class="message-text">
+                <h1>Error Loading Document</h1>
+                <p>Failed to load <code>${filename}</code></p>
+                <p>Error: ${error.message}</p>
+              </div>
+            </div>
+          `;
+        }
+      }
+    }
+
+    // Initialize docs system
+    new DocsSystem();
+  </script>
 </body>
+
 </html>
