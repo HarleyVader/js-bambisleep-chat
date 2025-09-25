@@ -17,7 +17,7 @@ console.log(`🔧 LM Studio config: ${process.env.NODE_ENV === 'production' ? 'P
 console.log(`🔧 LM Studio endpoint: http://${LMS_HOST}:${LMS_PORT}`);
 
 // Model configuration
-const TARGET_MODEL_NAME = process.env.TARGET_MODEL_NAME || 'l3-sthenomaidblackroot-8b-v1';
+const TARGET_MODEL_NAME = process.env.TARGET_MODEL_NAME || 'l3-sthenomaidblackroot-8b-v1q4_1';
 let currentModelId = null;
 let modelSearchAttempts = 0;
 const MAX_SEARCH_ATTEMPTS = 3;
@@ -216,7 +216,7 @@ function selectBestModelSize(models) {
     const sortedModels = models.sort((a, b) => (a.size_bytes || 0) - (b.size_bytes || 0));
 
     // Prefer models with certain quantization patterns (Q3_K_S, Q4_K_M, Q5_K_M, Q6_K, Q8_0)
-    const preferredQuantizations = ['q3_k_s', 'q4_k_m', 'q5_k_m', 'q6_k', 'q8_0', 'q4_0'];
+    const preferredQuantizations = ['q4_1'];
 
     for (const quant of preferredQuantizations) {
         const quantModel = sortedModels.find(model =>
