@@ -7,27 +7,43 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
-// LM Studio configuration with environment-based host selection
+// LM Studio configuration with environment-based host selection - MUST be set in .env file
+if (!process.env.LMS_HOST_PRODUCTION) throw new Error('❌ FATAL: LMS_HOST_PRODUCTION not set in .env file');
+if (!process.env.LMS_HOST_DEVELOPMENT) throw new Error('❌ FATAL: LMS_HOST_DEVELOPMENT not set in .env file');
+if (!process.env.LMS_PORT) throw new Error('❌ FATAL: LMS_PORT not set in .env file');
+
 const LMS_HOST = process.env.NODE_ENV === 'production'
     ? process.env.LMS_HOST_PRODUCTION
-    : (process.env.LMS_HOST_DEVELOPMENT || process.env.LMS_HOST || 'localhost');
-const LMS_PORT = process.env.LMS_PORT || '7777';
+    : process.env.LMS_HOST_DEVELOPMENT;
+const LMS_PORT = process.env.LMS_PORT;
 
-// Model configuration
-const TARGET_MODEL_NAME = process.env.TARGET_MODEL_NAME || 'l3-sthenomaidblackroot-8b-v1@q4_k_m';
+// Model configuration - MUST be set in .env file
+if (!process.env.TARGET_MODEL_NAME) {
+    throw new Error('❌ FATAL: TARGET_MODEL_NAME not set in .env file');
+}
+const TARGET_MODEL_NAME = process.env.TARGET_MODEL_NAME;
 let currentModelId = null;
 let modelSearchAttempts = 0;
-const MAX_SEARCH_ATTEMPTS = parseInt(process.env.MAX_SEARCH_ATTEMPTS) || 3;
+if (!process.env.MAX_SEARCH_ATTEMPTS) throw new Error('❌ FATAL: MAX_SEARCH_ATTEMPTS not set in .env file');
+const MAX_SEARCH_ATTEMPTS = parseInt(process.env.MAX_SEARCH_ATTEMPTS);
 
-// Timeout configuration from environment
-const LMS_MODEL_LOAD_TIMEOUT = parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT) || 30000;
-const LMS_API_CALL_TIMEOUT = parseInt(process.env.LMS_API_CALL_TIMEOUT) || 120000;
-const LMS_REST_API_TIMEOUT = parseInt(process.env.LMS_REST_API_TIMEOUT) || 5000;
-const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT_MINUTES) * 60 * 1000 || 15 * 60 * 1000;
+// Timeout configuration from environment - MUST be set in .env file
+if (!process.env.LMS_MODEL_LOAD_TIMEOUT) throw new Error('❌ FATAL: LMS_MODEL_LOAD_TIMEOUT not set in .env file');
+if (!process.env.LMS_API_CALL_TIMEOUT) throw new Error('❌ FATAL: LMS_API_CALL_TIMEOUT not set in .env file');
+if (!process.env.LMS_REST_API_TIMEOUT) throw new Error('❌ FATAL: LMS_REST_API_TIMEOUT not set in .env file');
+if (!process.env.SESSION_TIMEOUT_MINUTES) throw new Error('❌ FATAL: SESSION_TIMEOUT_MINUTES not set in .env file');
 
-// Context window configuration from environment
-const MAX_CONTEXT_TOKENS = parseInt(process.env.MAX_CONTEXT_TOKENS) || 6144;
-const MAX_COMPLETION_TOKENS = parseInt(process.env.MAX_COMPLETION_TOKENS) || 2048;
+const LMS_MODEL_LOAD_TIMEOUT = parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT);
+const LMS_API_CALL_TIMEOUT = parseInt(process.env.LMS_API_CALL_TIMEOUT);
+const LMS_REST_API_TIMEOUT = parseInt(process.env.LMS_REST_API_TIMEOUT);
+const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT_MINUTES) * 60 * 1000;
+
+// Context window configuration from environment - MUST be set in .env file
+if (!process.env.MAX_CONTEXT_TOKENS) throw new Error('❌ FATAL: MAX_CONTEXT_TOKENS not set in .env file');
+if (!process.env.MAX_COMPLETION_TOKENS) throw new Error('❌ FATAL: MAX_COMPLETION_TOKENS not set in .env file');
+
+const MAX_CONTEXT_TOKENS = parseInt(process.env.MAX_CONTEXT_TOKENS);
+const MAX_COMPLETION_TOKENS = parseInt(process.env.MAX_COMPLETION_TOKENS);
 
 // Log configuration after all constants are defined
 console.log(`🔧 LM Studio config: ${process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);

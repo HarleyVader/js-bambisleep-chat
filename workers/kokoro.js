@@ -8,14 +8,25 @@ class KokoroTTSWorker {
         // Load environment variables
         require('dotenv').config();
 
-        // Determine Kokoro URL based on environment
-        const kokoroHost =
-            process.env.NODE_ENV === 'production'
-                ? (process.env.KOKORO_HOST_PRODUCTION || '192.168.0.69')
-                : (process.env.KOKORO_HOST_DEVELOPMENT || 'localhost');
-        const kokoroPort = process.env.KOKORO_PORT || 8880;
+        // Determine Kokoro URL based on environment - NO HARDCODED DEFAULTS
+        const kokoroHost = process.env.NODE_ENV === 'production'
+            ? process.env.KOKORO_HOST_PRODUCTION
+            : process.env.KOKORO_HOST_DEVELOPMENT;
+        
+        if (!kokoroHost) {
+            throw new Error(`Missing required environment variable: ${process.env.NODE_ENV === 'production' ? 'KOKORO_HOST_PRODUCTION' : 'KOKORO_HOST_DEVELOPMENT'}`);
+        }
+        
+        const kokoroPort = process.env.KOKORO_PORT;
+        if (!kokoroPort) {
+            throw new Error('Missing required environment variable: KOKORO_PORT');
+        }
+        
         this.kokoroUrl = `http://${kokoroHost}:${kokoroPort}`;
-        this.defaultVoice = 'af_sky+af_bella'; // Voice combination as per Kokoro docs
+        this.defaultVoice = process.env.KOKORO_DEFAULT_VOICE;
+        if (!this.defaultVoice) {
+            throw new Error('Missing required environment variable: KOKORO_DEFAULT_VOICE');
+        }
         this.outputFormat = 'mp3';
         this.isHealthy = false;
         this.lastHealthCheck = null;
