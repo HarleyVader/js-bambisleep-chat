@@ -194,29 +194,29 @@ async function autoLoadBestModel() {
     }
 }
 
-// Get available models from LM Studio
+// Get available models from LM Studio using official OpenAI-compatible API
 async function getAvailableModels() {
     try {
-        // Try new REST API first (if available) - provides more detailed model info
-        const restApiUrl = `http://${LMS_HOST}:${LMS_PORT}/api/v0/models`;
-        try {
-            const restResponse = await axios.get(restApiUrl, { timeout: LMS_REST_API_TIMEOUT });
-            const models = restResponse.data?.data || [];
-            console.log(`📊 Found ${models.length} models via REST API`);
-            return models;
-        } catch (restError) {
-            // Fall back to OpenAI compatibility API if REST API not available
-            console.log('REST API not available, using OpenAI compatibility API...');
-        }
-
-        // Fallback to OpenAI compatibility API
         const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/models`;
-        const response = await axios.get(apiUrl, { timeout: LMS_REST_API_TIMEOUT });
+        console.log(`🔍 Fetching models from: ${apiUrl}`);
+        
+        const response = await axios.get(apiUrl, { 
+            timeout: LMS_REST_API_TIMEOUT,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
         const models = response.data?.data || [];
-        console.log(`📊 Found ${models.length} models via OpenAI compatibility API`);
+        console.log(`📊 Found ${models.length} models via OpenAI API`);
+        console.log(`📋 Available models:`, models.map(m => m.id));
         return models;
     } catch (error) {
-        console.error('Error fetching models:', error.message);
+        console.error('❌ Error fetching models:', error.message);
+        if (error.response) {
+            console.error('❌ Response status:', error.response.status);
+            console.error('❌ Response data:', error.response.data);
+        }
         return [];
     }
 }
@@ -280,11 +280,10 @@ function selectBestModelSize(models) {
     return sortedModels[0];
 }
 
-// Test and verify a specific model in LM Studio by making a test request
+// Test and verify a specific model in LM Studio using official OpenAI-compatible API
 async function loadModel(modelId) {
     try {
         const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/chat/completions`;
-
         console.log(`🔄 Testing model availability: ${modelId}...`);
 
         // Make a small test request to verify the model loads and works
@@ -296,7 +295,10 @@ async function loadModel(modelId) {
             max_tokens: 1,
             temperature: 0.1
         }, {
-            timeout: LMS_MODEL_LOAD_TIMEOUT, // Configurable timeout for model loading and response
+            timeout: LMS_MODEL_LOAD_TIMEOUT,
+            headers: {
+                'Content-Type': 'application/json'
+            },
             httpAgent: new http.Agent({
                 keepAlive: true,
                 timeout: LMS_MODEL_LOAD_TIMEOUT
@@ -308,10 +310,15 @@ async function loadModel(modelId) {
             return true;
         } else {
             console.error(`❌ Model ${modelId} test failed - invalid response format`);
+            console.error('Response:', response.data);
             return false;
         }
     } catch (error) {
-        console.error(`Failed to test model ${modelId}:`, error.message);
+        console.error(`❌ Failed to test model ${modelId}:`, error.message);
+        if (error.response) {
+            console.error(`❌ Status: ${error.response.status}`);
+            console.error(`❌ Response:`, error.response.data);
+        }
         return false;
     }
 }
@@ -356,32 +363,29 @@ async function initializeModelSystem() {
     }
 }
 
-// Get currently loaded model
+// Get currently loaded model using official OpenAI-compatible API
+// Note: OpenAI API doesn't distinguish loaded vs available, so we assume first model is loaded
 async function getCurrentLoadedModel() {
     try {
-        // Try new REST API first (if available)
-        const restApiUrl = `http://${LMS_HOST}:${LMS_PORT}/api/v0/models`;
-        try {
-            const restResponse = await axios.get(restApiUrl, { timeout: LMS_REST_API_TIMEOUT });
-            // Find model with state "loaded" in new REST API
-            const loadedModel = restResponse.data.data?.find(model => model.state === 'loaded');
-            if (loadedModel) {
-                return loadedModel.id;
-            }
-        } catch (restError) {
-            // Fall back to OpenAI compatibility API if REST API not available
-            console.log('REST API not available, trying OpenAI compatibility API...');
-        }
-
-        // Fallback to OpenAI compatibility API
         const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/models`;
-        const response = await axios.get(apiUrl, { timeout: LMS_REST_API_TIMEOUT });
+        console.log(`🔍 Checking loaded model from: ${apiUrl}`);
+        
+        const response = await axios.get(apiUrl, { 
+            timeout: LMS_REST_API_TIMEOUT,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
 
-        // In OpenAI compatibility API, if models are returned, typically the first one is loaded
         const models = response.data?.data || [];
-        return models.length > 0 ? models[0].id : null;
+        const currentModel = models.length > 0 ? models[0].id : null;
+        console.log(`📊 Currently loaded model: ${currentModel || 'NONE'}`);
+        return currentModel;
     } catch (error) {
-        console.error('Error checking loaded model:', error.message);
+        console.error('❌ Error checking loaded model:', error.message);
+        if (error.response) {
+            console.error('❌ Response status:', error.response.status);
+        }
         return null;
     }
 }
@@ -548,64 +552,35 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         console.log(`Making API call to LM Studio: ${apiUrl}`);
         console.log(`Messages count: ${formattedMessages.length}`);
 
-        // Try REST API first for accurate token counting, fallback to OpenAI compatibility
-        let response;
+        // Use official OpenAI-compatible API for chat completions
+        console.log(`🤖 Making chat completion request to: ${apiUrl}`);
+        console.log(`🎯 Using model: ${currentModelId}`);
+        
+        const response = await axios.post(apiUrl, {
+            model: currentModelId,
+            messages: formattedMessages,
+            max_tokens: MAX_COMPLETION_TOKENS,
+            temperature: 0.78,
+            top_p: 0.91,
+            frequency_penalty: 0,
+            presence_penalty: 0,
+            stream: false
+        }, {
+            timeout: LMS_API_CALL_TIMEOUT,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            httpAgent: new http.Agent({
+                keepAlive: true,
+                timeout: LMS_API_CALL_TIMEOUT
+            })
+        });
+
+        // Extract token usage from OpenAI-compatible response
         let actualTokenUsage = null;
-
-        try {
-            // Use LM Studio REST API for accurate token counting
-            const restApiUrl = `http://${LMS_HOST}:${LMS_PORT}/api/v0/chat/completions`;
-            response = await axios.post(restApiUrl, {
-                model: currentModelId || 'l3-sthenomaidblackroot-8b-v1',
-                messages: formattedMessages,
-                max_tokens: MAX_COMPLETION_TOKENS, // Configurable max tokens for responses
-                temperature: 0.78,
-                top_p: 0.91,
-                frequency_penalty: 0,
-                presence_penalty: 0,
-                stream: false
-            }, {
-                timeout: LMS_API_CALL_TIMEOUT, // Configurable timeout for AI generation
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                // Add connection configuration to prevent socket hang up
-                httpAgent: new http.Agent({
-                    keepAlive: true,
-                    timeout: LMS_API_CALL_TIMEOUT
-                })
-            });
-
-            // Extract actual token usage from REST API response
-            if (response.data.usage) {
-                actualTokenUsage = response.data.usage;
-                console.log(`📊 ACTUAL token usage: ${actualTokenUsage.prompt_tokens} prompt + ${actualTokenUsage.completion_tokens} completion = ${actualTokenUsage.total_tokens} total`);
-            }
-
-        } catch (restError) {
-            console.log('REST API failed, falling back to OpenAI compatibility API...');
-
-            // Fallback to OpenAI compatibility API
-            response = await axios.post(apiUrl, {
-                model: currentModelId || 'l3-sthenomaidblackroot-8b-v1',
-                messages: formattedMessages,
-                max_tokens: MAX_COMPLETION_TOKENS, // Configurable max tokens for responses
-                temperature: 0.78,
-                top_p: 0.91,
-                frequency_penalty: 0,
-                presence_penalty: 0,
-                stream: false
-            }, {
-                timeout: LMS_API_CALL_TIMEOUT, // Configurable timeout for AI generation
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                // Add connection configuration to prevent socket hang up
-                httpAgent: new http.Agent({
-                    keepAlive: true,
-                    timeout: LMS_API_CALL_TIMEOUT
-                })
-            });
+        if (response.data.usage) {
+            actualTokenUsage = response.data.usage;
+            console.log(`📊 Token usage: ${actualTokenUsage.prompt_tokens} prompt + ${actualTokenUsage.completion_tokens} completion = ${actualTokenUsage.total_tokens} total`);
         }
 
         const finalContent = response.data.choices[0].message.content;
