@@ -328,19 +328,31 @@ function formatFileSize(bytes) {
 // Auto-detect and load model on startup
 async function initializeModelSystem() {
     try {
+        console.log(`🔍 Initializing model system with target: ${TARGET_MODEL_NAME}`);
+        console.log(`🌐 LM Studio endpoint: http://${LMS_HOST}:${LMS_PORT}`);
+        
         // Check if a model is already loaded
         const currentModel = await getCurrentLoadedModel();
+        console.log(`📊 Currently loaded model: ${currentModel || 'NONE'}`);
+        
         if (currentModel && currentModel.includes(TARGET_MODEL_NAME.toLowerCase())) {
             console.log(`✅ Target model already loaded: ${currentModel}`);
             currentModelId = currentModel;
+            console.log(`🎯 Set currentModelId to: ${currentModelId}`);
             return;
         }
 
         // Auto-load the best available model
         console.log('🚀 Initializing auto-model loading system...');
-        await autoLoadBestModel();
+        const loaded = await autoLoadBestModel();
+        console.log(`📋 Auto-load result: ${loaded ? 'SUCCESS' : 'FAILED'}`);
+        if (!loaded) {
+            console.error('❌ CRITICAL: Failed to auto-load any model during initialization');
+        }
     } catch (error) {
-        console.error('Model initialization error:', error.message);
+        console.error('❌ Model initialization error:', error.message);
+        console.error('❌ Stack trace:', error.stack);
+        // Don't throw - let the worker continue and try to load on first message
     }
 }
 
@@ -465,11 +477,19 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         // Auto-load model if none is currently loaded
         if (!currentModelId) {
             console.log('🔄 No model loaded, attempting auto-load...');
+            console.log(`🔍 Current modelId status: ${currentModelId || 'NULL/UNDEFINED'}`);
+            console.log(`🎯 Target model name: ${TARGET_MODEL_NAME}`);
+            console.log(`🌐 LM Studio endpoint: http://${LMS_HOST}:${LMS_PORT}`);
+            
             const loaded = await autoLoadBestModel();
+            console.log(`📋 Auto-load attempt result: ${loaded ? 'SUCCESS' : 'FAILED'}`);
+            
             if (!loaded) {
+                console.error('❌ CRITICAL: Auto-load failed during chat request');
                 sendResponse("Sorry, I'm having trouble loading the AI model. Please ensure LM Studio is running and has models available.", socketId, username);
                 return;
             }
+            console.log(`✅ Auto-load successful, currentModelId now: ${currentModelId}`);
         }
 
         // Initialize session if needed
