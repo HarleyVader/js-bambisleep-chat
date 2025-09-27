@@ -198,7 +198,6 @@ async function autoLoadBestModel() {
 async function getAvailableModels() {
     try {
         const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/models`;
-        console.log(`🔍 Fetching models from: ${apiUrl}`);
         
         const response = await axios.get(apiUrl, { 
             timeout: LMS_REST_API_TIMEOUT,
@@ -208,15 +207,9 @@ async function getAvailableModels() {
         });
         
         const models = response.data?.data || [];
-        console.log(`📊 Found ${models.length} models via OpenAI API`);
-        console.log(`📋 Available models:`, models.map(m => m.id));
         return models;
     } catch (error) {
         console.error('❌ Error fetching models:', error.message);
-        if (error.response) {
-            console.error('❌ Response status:', error.response.status);
-            console.error('❌ Response data:', error.response.data);
-        }
         return [];
     }
 }
@@ -249,9 +242,6 @@ function findTargetModelVariants(models) {
             modelName.includes('stheno') && modelName.includes('maid') && modelName.includes('blackroot');
     });
 
-    console.log(`Found ${targetModels.length} potential model variants:`,
-        targetModels.map(m => `${m.id} (${formatFileSize(m.size_bytes)})`));
-
     return targetModels;
 }
 
@@ -270,13 +260,11 @@ function selectBestModelSize(models) {
             model.id.toLowerCase().includes(quant.toLowerCase())
         );
         if (quantModel) {
-            console.log(`🎯 Selected preferred quantization: ${quant.toUpperCase()}`);
             return quantModel;
         }
     }
 
     // If no preferred quantization found, use the smallest available
-    console.log('📊 Using smallest available model');
     return sortedModels[0];
 }
 
@@ -284,7 +272,6 @@ function selectBestModelSize(models) {
 async function loadModel(modelId) {
     try {
         const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/chat/completions`;
-        console.log(`🔄 Testing model availability: ${modelId}...`);
 
         // Make a small test request to verify the model loads and works
         const response = await axios.post(apiUrl, {
@@ -310,15 +297,10 @@ async function loadModel(modelId) {
             return true;
         } else {
             console.error(`❌ Model ${modelId} test failed - invalid response format`);
-            console.error('Response:', response.data);
             return false;
         }
     } catch (error) {
         console.error(`❌ Failed to test model ${modelId}:`, error.message);
-        if (error.response) {
-            console.error(`❌ Status: ${error.response.status}`);
-            console.error(`❌ Response:`, error.response.data);
-        }
         return false;
     }
 }
@@ -335,30 +317,22 @@ function formatFileSize(bytes) {
 // Auto-detect and load model on startup
 async function initializeModelSystem() {
     try {
-        console.log(`🔍 Initializing model system with target: ${TARGET_MODEL_NAME}`);
-        console.log(`🌐 LM Studio endpoint: http://${LMS_HOST}:${LMS_PORT}`);
-        
         // Check if a model is already loaded
         const currentModel = await getCurrentLoadedModel();
-        console.log(`📊 Currently loaded model: ${currentModel || 'NONE'}`);
         
         if (currentModel && currentModel.includes(TARGET_MODEL_NAME.toLowerCase())) {
             console.log(`✅ Target model already loaded: ${currentModel}`);
             currentModelId = currentModel;
-            console.log(`🎯 Set currentModelId to: ${currentModelId}`);
             return;
         }
 
         // Auto-load the best available model
-        console.log('🚀 Initializing auto-model loading system...');
         const loaded = await autoLoadBestModel();
-        console.log(`📋 Auto-load result: ${loaded ? 'SUCCESS' : 'FAILED'}`);
         if (!loaded) {
             console.error('❌ CRITICAL: Failed to auto-load any model during initialization');
         }
     } catch (error) {
         console.error('❌ Model initialization error:', error.message);
-        console.error('❌ Stack trace:', error.stack);
         // Don't throw - let the worker continue and try to load on first message
     }
 }
@@ -368,7 +342,6 @@ async function initializeModelSystem() {
 async function getCurrentLoadedModel() {
     try {
         const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/models`;
-        console.log(`🔍 Checking loaded model from: ${apiUrl}`);
         
         const response = await axios.get(apiUrl, { 
             timeout: LMS_REST_API_TIMEOUT,
@@ -379,13 +352,9 @@ async function getCurrentLoadedModel() {
 
         const models = response.data?.data || [];
         const currentModel = models.length > 0 ? models[0].id : null;
-        console.log(`📊 Currently loaded model: ${currentModel || 'NONE'}`);
         return currentModel;
     } catch (error) {
         console.error('❌ Error checking loaded model:', error.message);
-        if (error.response) {
-            console.error('❌ Response status:', error.response.status);
-        }
         return null;
     }
 }
@@ -481,19 +450,14 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         // Auto-load model if none is currently loaded
         if (!currentModelId) {
             console.log('🔄 No model loaded, attempting auto-load...');
-            console.log(`🔍 Current modelId status: ${currentModelId || 'NULL/UNDEFINED'}`);
-            console.log(`🎯 Target model name: ${TARGET_MODEL_NAME}`);
-            console.log(`🌐 LM Studio endpoint: http://${LMS_HOST}:${LMS_PORT}`);
             
             const loaded = await autoLoadBestModel();
-            console.log(`📋 Auto-load attempt result: ${loaded ? 'SUCCESS' : 'FAILED'}`);
             
             if (!loaded) {
                 console.error('❌ CRITICAL: Auto-load failed during chat request');
                 sendResponse("Sorry, I'm having trouble loading the AI model. Please ensure LM Studio is running and has models available.", socketId, username);
                 return;
             }
-            console.log(`✅ Auto-load successful, currentModelId now: ${currentModelId}`);
         }
 
         // Initialize session if needed
@@ -553,9 +517,6 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         console.log(`Messages count: ${formattedMessages.length}`);
 
         // Use official OpenAI-compatible API for chat completions
-        console.log(`🤖 Making chat completion request to: ${apiUrl}`);
-        console.log(`🎯 Using model: ${currentModelId}`);
-        
         const response = await axios.post(apiUrl, {
             model: currentModelId,
             messages: formattedMessages,
@@ -580,7 +541,6 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         let actualTokenUsage = null;
         if (response.data.usage) {
             actualTokenUsage = response.data.usage;
-            console.log(`📊 Token usage: ${actualTokenUsage.prompt_tokens} prompt + ${actualTokenUsage.completion_tokens} completion = ${actualTokenUsage.total_tokens} total`);
         }
 
         const finalContent = response.data.choices[0].message.content;
