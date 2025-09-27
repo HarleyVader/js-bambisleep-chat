@@ -12,16 +12,16 @@ class KokoroTTSWorker {
         const kokoroHost = process.env.NODE_ENV === 'production'
             ? process.env.KOKORO_HOST_PRODUCTION
             : process.env.KOKORO_HOST_DEVELOPMENT;
-        
+
         if (!kokoroHost) {
             throw new Error(`Missing required environment variable: ${process.env.NODE_ENV === 'production' ? 'KOKORO_HOST_PRODUCTION' : 'KOKORO_HOST_DEVELOPMENT'}`);
         }
-        
+
         const kokoroPort = process.env.KOKORO_PORT;
         if (!kokoroPort) {
             throw new Error('Missing required environment variable: KOKORO_PORT');
         }
-        
+
         this.kokoroUrl = `http://${kokoroHost}:${kokoroPort}`;
         this.defaultVoice = process.env.KOKORO_DEFAULT_VOICE;
         if (!this.defaultVoice) {
