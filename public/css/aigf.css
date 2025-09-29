@@ -12,7 +12,8 @@
     scroll-behavior: smooth;
     border: var(--border) var(--button-color);
     background: linear-gradient(145deg, rgba(255, 20, 147, 0.05), rgba(139, 0, 139, 0.05));
-    display: none; /* Hidden by default */
+    display: none;
+    /* Hidden by default */
     position: relative;
 }
 
@@ -57,6 +58,7 @@
         transform: translateY(20px) scale(0.95);
         box-shadow: 0 0 20px rgba(255, 20, 147, 0.8);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -90,17 +92,24 @@
 }
 
 @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes aiGlow {
     0% {
         box-shadow: 0 4px 15px rgba(255, 20, 147, 0.4);
     }
+
     50% {
         box-shadow: 0 6px 25px rgba(255, 20, 147, 0.7);
     }
+
     100% {
         box-shadow: 0 4px 15px rgba(255, 20, 147, 0.4);
     }
@@ -189,9 +198,12 @@
 }
 
 @keyframes triggerPulse {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 10px rgba(255, 20, 147, 0.6);
     }
+
     50% {
         box-shadow: 0 0 20px rgba(255, 20, 147, 1);
     }

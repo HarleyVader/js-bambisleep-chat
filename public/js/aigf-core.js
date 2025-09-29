@@ -615,10 +615,10 @@ class ChatCore {
         document.addEventListener('aiModeChange', (event) => {
             this.aiMode = event.detail.enabled || event.detail.mode === 'ai';
             this.aiModeButton.classList.toggle('active', this.aiMode);
-            
+
             // Update chat container visibility
             this.updateChatContainers();
-            
+
             if (this.aiMode) {
                 this.updateTriggers();
             }

@@ -12,7 +12,8 @@
     scroll-behavior: smooth;
     border: var(--border) var(--primary-alt);
     background: transparent;
-    display: block; /* Default visible */
+    display: block;
+    /* Default visible */
 }
 
 /* Global Chat Messages */
@@ -39,6 +40,7 @@
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
