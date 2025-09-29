@@ -5,8 +5,7 @@
  *
  * Integration with buttons.css red/green on/off system:
  * - Uses .dropdown-btn class for main toggle button cyber-electric styling
- * - Uses .ai-button class for dropdown content buttons with proper styling
- * - CHAT mode: data-mode="chat", data-state="off" -> Red pulse (inactive/default state)
+ * - Uses .ai-button class for dropdown content buttons with proper styl                <!-- Model Selection -->CHAT mode: data-mode="chat", data-state="off" -> Red pulse (inactive/default state)
  * - AIGF mode: data-mode="ai", data-state="on" -> Special pink AIGF styling overrides green
  * - Dropdown buttons use standard button system with active states and hover effects
  * - Consistent with TTS and Spiral dropdown button patterns
@@ -125,9 +124,6 @@ export class AIDropdown {
         this.isEnabled = !this.isEnabled;
         this.updateButtonState();
         this.saveState();
-
-        // Add system message to chat
-        this.addSystemMessage(this.isEnabled ? '🌀 AIGF MODE ENABLED 🌀' : '🗫 AIGF MODE DISABLED 🗫');
 
         // Dispatch custom event
         const event = new CustomEvent('aiModeChange', {

@@ -293,10 +293,10 @@ class ChatCore {
         this.socket.on('disconnect', () => {
             this.isConnected = false;
             this.addSystemMessage('Disconnected from server');
-            
+
             // Dispatch disconnection event for global chat
             document.dispatchEvent(new CustomEvent('socketDisconnected'));
-            
+
             console.log('Disconnected from server');
         });
 
@@ -868,10 +868,7 @@ class ChatCore {
         this.aiModeButton.classList.toggle('active', this.aiMode);
 
         if (this.aiMode) {
-            this.addSystemMessage('🌀 AIGF BRAINWASH MODE 🌀');
             this.updateTriggers();
-        } else {
-            this.addSystemMessage('� GLOBAL CHAT MODE 🗫');
         }
     }
 

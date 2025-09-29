@@ -11,7 +11,7 @@ class GlobalChatManager {
         this.isConnected = false;
         this.messageHistory = [];
         this.maxMessages = 100;
-        
+
         this.init();
     }
 
@@ -49,7 +49,7 @@ class GlobalChatManager {
         this.socket.on('global-chat-history', (messages) => {
             console.log('💬 Received global chat history:', messages.length, 'messages');
             this.clearGlobalChatHistory();
-            
+
             messages.forEach(msg => {
                 this.addGlobalMessage(msg.message, msg.timestamp, false, msg.username || msg.user);
             });
@@ -141,7 +141,7 @@ class GlobalChatManager {
         // Limit history size
         if (this.messageHistory.length > this.maxMessages) {
             this.messageHistory.shift();
-            
+
             // Remove oldest message from DOM
             const firstMessage = this.globalChatContainer.querySelector('.message');
             if (firstMessage) {
@@ -229,8 +229,8 @@ class GlobalChatManager {
 
     // Check if global chat is active
     isGlobalChatActive() {
-        return this.globalChatContainer && 
-               !this.globalChatContainer.classList.contains('hidden');
+        return this.globalChatContainer &&
+            !this.globalChatContainer.classList.contains('hidden');
     }
 
     // Public API methods

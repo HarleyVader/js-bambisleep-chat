@@ -242,7 +242,7 @@ function handleLMWorkerMessage(msg) {
                 if (aigfChatHistory.length > 100) {
                     aigfChatHistory.shift();
                 }
-                
+
                 // Also add to legacy history for backward compatibility
                 chatHistory.push(messageData);
                 if (chatHistory.length > 200) { // Keep more for legacy
@@ -352,7 +352,7 @@ io.on('connection', (socket) => {
 
     // Send recent global chat history to new user
     socket.emit('global-chat-history', globalChatHistory.slice(-20));
-    
+
     // Send legacy chat history for backward compatibility
     socket.emit('chat-history', chatHistory.slice(-20));
 
@@ -680,19 +680,19 @@ app.get('/api/global/stats', (req, res) => {
 app.post('/api/global/clear', (req, res) => {
     const originalCount = globalChatHistory.length;
     globalChatHistory = [];
-    
+
     // Broadcast to all connected clients
     io.emit('global-chat-cleared', {
         timestamp: new Date().toISOString(),
         clearedCount: originalCount
     });
-    
+
     res.json({
         success: true,
         clearedMessages: originalCount,
         timestamp: new Date().toISOString()
     });
-    
+
     console.log(`🌍 Global chat history cleared: ${originalCount} messages`);
 });
 
