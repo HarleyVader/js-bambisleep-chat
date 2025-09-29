@@ -9,6 +9,7 @@ class ChatCore {
         this.aiMode = false;
         this.collarActive = false;
         this.activeTriggers = []; // Will be loaded from official triggers.json
+        this.globalChatManager = null; // Will be initialized after socket connection
 
         this.loadOfficialTriggers(); // Load official triggers
         this.init();
@@ -274,8 +275,17 @@ class ChatCore {
             this.isConnected = true;
             this.addSystemMessage('Connected to server');
 
+            // Initialize global chat manager after socket connection
+            if (typeof GlobalChatManager !== 'undefined') {
+                this.globalChatManager = new GlobalChatManager(this.socket, this);
+                console.log('💬 Global chat manager initialized');
+            }
+
             // Send initial triggers to worker
             this.updateTriggers();
+
+            // Dispatch connection event for global chat
+            document.dispatchEvent(new CustomEvent('socketConnected'));
 
             console.log('Connected to server');
         });
@@ -283,6 +293,10 @@ class ChatCore {
         this.socket.on('disconnect', () => {
             this.isConnected = false;
             this.addSystemMessage('Disconnected from server');
+            
+            // Dispatch disconnection event for global chat
+            document.dispatchEvent(new CustomEvent('socketDisconnected'));
+            
             console.log('Disconnected from server');
         });
 
@@ -710,11 +724,11 @@ class ChatCore {
             return;
         }
 
-        // Add message to UI immediately
-        this.addMessage(message, new Date(), true, this.username);
-
         // Send to appropriate handler based on AI mode
         if (this.aiMode) {
+            // Add message to AIGF UI immediately
+            this.addMessage(message, new Date(), true, this.username);
+
             // Send to AI with selected triggers
             this.socket.emit('ai-chat', {
                 message: message,
@@ -725,12 +739,12 @@ class ChatCore {
 
             this.addSystemMessage(`🤖 Sending to BambiSleep AI with triggers: ${this.activeTriggers.join(', ')}`);
         } else {
-            // Send to regular chat
-            this.socket.emit('message', {
-                message: message,
-                username: this.username,
-                timestamp: new Date().toISOString()
-            });
+            // Send to global chat via GlobalChatManager
+            if (this.globalChatManager) {
+                this.globalChatManager.sendMessage(message, this.username);
+            } else {
+                this.addSystemMessage('⚠️ Global chat not available');
+            }
         }
 
         // Clear input
