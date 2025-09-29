@@ -798,6 +798,40 @@ body {
     }
 }
 
+/* Docs Link Container - Chat Toggle Area */
+.docs-link-container {
+    padding: 10px 14px;
+    border-top: 1px solid var(--nav-alt);
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--nav-color);
+    border: var(--border) var(--primary-alt);
+}
+
+.docs-link-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    background: var(--primary-color);
+    color: var(--tertiary-color);
+    text-decoration: none;
+    border-radius: var(--border-radius);
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.7rem;
+    font-weight: bold;
+    border: 1px solid var(--primary-alt);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.docs-link-btn:hover {
+    background: var(--button-color);
+    color: white;
+    text-shadow: 0 0 5px white;
+    box-shadow: 0 0 10px var(--button-color);
+}
+
 /* Chat Input */
 #chat-input-container {
     padding: 14px;

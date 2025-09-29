@@ -29,7 +29,7 @@ export class AIDropdown {
     constructor(dropdownManager) {
         this.dropdownManager = dropdownManager;
         this.buttonId = 'toggle-ai';
-        this.currentMode = 'chat'; // 'chat' or 'ai'
+        this.isEnabled = false; // AIGF on/off state
         this.currentModel = 'balanced'; // 'creative', 'balanced', 'precise'
         this.init();
     }
@@ -46,17 +46,13 @@ export class AIDropdown {
         // Ensure the AI button has proper CSS classes from buttons.css
         const btn = document.getElementById(this.buttonId);
         if (btn) {
-            btn.classList.add('dropdown-btn');
+            btn.classList.add('dropdown-btn', 'toggle-button');
             // Remove any conflicting classes
             btn.classList.remove('active');
 
-            // Ensure proper data attributes are set
-            if (!btn.getAttribute('data-mode')) {
-                btn.setAttribute('data-mode', 'chat');
-            }
-            if (!btn.getAttribute('data-state')) {
-                btn.setAttribute('data-state', 'off');
-            }
+            // Set AIGF state
+            btn.setAttribute('data-state', this.isEnabled ? 'on' : 'off');
+            btn.textContent = `🧠 AIGF: ${this.isEnabled ? 'ON' : 'OFF'}`;
         }
     }
 
@@ -71,11 +67,15 @@ export class AIDropdown {
     }
 
     setupToggleHandling() {
-        // Handle AI button click to toggle dropdown
+        // Handle AI button click to toggle AIGF state and dropdown
         const aiButton = document.getElementById(this.buttonId);
         if (aiButton) {
             aiButton.addEventListener('click', (e) => {
                 e.stopPropagation();
+                
+                // Toggle AIGF on/off
+                this.toggleAIGF();
+                
                 const dropdown = aiButton.closest('.dropdown');
 
                 // Handle dropdown open/close
@@ -100,18 +100,13 @@ export class AIDropdown {
                 console.warn('⚠️ Failed to load AI state:', e);
             }
         }
+        this.updateButtonState();
     }
 
     handleAction(action, detail) {
         console.log(`🤖 AI action: ${action}`);
 
         switch (action) {
-            case 'ai-mode-chat':
-                this.setMode('chat');
-                break;
-            case 'ai-mode-brainwash':
-                this.setMode('ai');
-                break;
             case 'ai-model-creative':
                 this.setModel('creative');
                 break;
@@ -126,56 +121,45 @@ export class AIDropdown {
         }
     }
 
-    setMode(mode) {
+    toggleAIGF() {
+        this.isEnabled = !this.isEnabled;
+        this.updateButtonState();
+        this.saveState();
+
+        // Add system message to chat
+        this.addSystemMessage(this.isEnabled ? '🌀 AIGF BRAINWASH MODE ENABLED 🌀' : '🗫 AIGF BRAINWASH MODE DISABLED 🗫');
+
+        // Dispatch custom event
+        const event = new CustomEvent('aiModeChange', {
+            detail: {
+                enabled: this.isEnabled,
+                mode: 'aigf'
+            }
+        });
+        document.dispatchEvent(event);
+
+        this.showFeedback('AIGF: ' + (this.isEnabled ? 'ENABLED' : 'DISABLED'));
+    }
+
+    updateButtonState() {
         const btn = document.getElementById(this.buttonId);
         if (!btn) return;
 
-        this.currentMode = mode;
-
         // Set proper data attributes for buttons.css red/green on/off styling system
-        // CHAT mode: uses standard red (off) / green (on) button styling via data-state
-        // AIGF mode: uses special pink AIGF styling, overrides data-state
-        btn.setAttribute('data-mode', mode);
-
-        if (mode === 'ai') {
-            // AIGF mode: always "on" state, but AIGF styling overrides red/green
-            btn.setAttribute('data-state', 'on');
-            btn.textContent = 'AIGF';
-        } else {
-            // CHAT mode: use red "off" state to show inactive/default chat mode
-            btn.setAttribute('data-state', 'off');
-            btn.textContent = 'CHAT';
-        }
+        btn.setAttribute('data-state', this.isEnabled ? 'on' : 'off');
+        btn.textContent = `🧠 AIGF: ${this.isEnabled ? 'ON' : 'OFF'}`;
 
         // Ensure button has proper CSS classes from buttons.css
-        btn.classList.add('dropdown-btn');
+        btn.classList.add('dropdown-btn', 'toggle-button');
         btn.classList.remove('active');
 
         // Clear any inline styles to let buttons.css handle all button styling
-        // This ensures proper integration with the centralized button styling system
         btn.style.background = '';
         btn.style.animation = '';
         btn.style.minWidth = '';
         btn.style.boxShadow = '';
         btn.style.textShadow = '';
         btn.style.border = '';
-
-        // Save state to localStorage
-        this.saveState();
-
-        // Add system message to chat
-        this.addSystemMessage(mode === 'ai' ? '🌀 AIGF BRAINWASH MODE 🌀' : '🗫 GLOBAL CHAT MODE 🗫');
-
-        // Dispatch custom event
-        const event = new CustomEvent('aiModeChange', {
-            detail: {
-                mode: mode,
-                fullMode: mode === 'ai' ? 'AI BRAINWASH' : 'CHAT GLOBALLY'
-            }
-        });
-        document.dispatchEvent(event);
-
-        this.showFeedback('AI MODE: ' + (mode === 'ai' ? 'AI BRAINWASH' : 'GLOBAL CHAT'));
     }
 
     setModel(model) {
@@ -279,12 +263,7 @@ export class AIDropdown {
         console.log('💾 AI state saved to localStorage');
     }
 
-    toggleState(btn) {
-        // Toggle between chat and AI mode when button is clicked
-        const currentMode = btn.getAttribute('data-mode') || 'chat';
-        const newMode = currentMode === 'ai' ? 'chat' : 'ai';
-        this.setMode(newMode);
-    }
+
 
     addSystemMessage(message) {
         // Use chatCore's system message if available, otherwise create own
@@ -316,15 +295,19 @@ export class AIDropdown {
     // Get current state for persistence
     getState() {
         return {
-            mode: this.currentMode,
+            enabled: this.isEnabled,
             model: this.currentModel
         };
     }
 
     // Restore state from persistence
     setState(state) {
-        if (state.mode) {
-            this.setMode(state.mode);
+        if (state.hasOwnProperty('enabled')) {
+            this.isEnabled = state.enabled;
+        }
+        // Support legacy mode for backward compatibility
+        if (state.mode === 'ai') {
+            this.isEnabled = true;
         }
         if (state.model) {
             this.setModel(state.model);
@@ -335,12 +318,11 @@ export class AIDropdown {
     getDropdownContent() {
         return `
             <div class="ai-config">
-                <!-- AI Mode Selection -->
+                <!-- AIGF Status -->
                 <div class="control-section">
-                    <p class="config-label">🤖 AI Mode Selection:</p>
-                    <div class="ai-buttons">
-                        <button class="ai-button ${this.currentMode === 'chat' ? 'active' : ''}" data-action="ai-mode-chat" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-mode-chat')">💬 Chat Mode</button>
-                        <button class="ai-button ${this.currentMode === 'ai' ? 'active' : ''}" data-action="ai-mode-brainwash" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-mode-brainwash')">🧠 Brainwash Mode</button>
+                    <p class="config-label">� AIGF Status:</p>
+                    <div class="aigf-status">
+                        ${this.isEnabled ? '✅ BRAINWASH MODE ACTIVE' : '❌ BRAINWASH MODE DISABLED'}
                     </div>
                 </div>
 

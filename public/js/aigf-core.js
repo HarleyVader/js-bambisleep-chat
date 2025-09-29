@@ -540,6 +540,36 @@ class ChatCore {
         this.updateTriggers();
     }
 
+    // Toggle chat functionality
+    toggleChat() {
+        this.chatEnabled = !this.chatEnabled;
+        const chatButton = document.getElementById('toggle-chat');
+        
+        if (chatButton) {
+            chatButton.setAttribute('data-state', this.chatEnabled ? 'on' : 'off');
+            chatButton.textContent = `💬 Chat: ${this.chatEnabled ? 'ON' : 'OFF'}`;
+        }
+
+        // Update input container visibility/functionality
+        const inputContainer = document.getElementById('chat-input-container');
+        const chatInput = document.getElementById('chat-input');
+        
+        if (inputContainer && chatInput) {
+            if (this.chatEnabled) {
+                inputContainer.style.opacity = '1';
+                chatInput.disabled = false;
+                chatInput.placeholder = 'Type your message...';
+            } else {
+                inputContainer.style.opacity = '0.5';
+                chatInput.disabled = true;
+                chatInput.placeholder = 'Chat disabled';
+            }
+        }
+
+        this.addSystemMessage(this.chatEnabled ? '💬 Chat functionality ENABLED' : '💬 Chat functionality DISABLED');
+        console.log('💬 Chat toggled:', this.chatEnabled ? 'ON' : 'OFF');
+    }
+
     bindEvents() {
         // Send message on button click
         this.sendButton.addEventListener('click', () => this.sendMessage());
@@ -558,12 +588,21 @@ class ChatCore {
 
         // Listen for AI mode changes from dropdown
         document.addEventListener('aiModeChange', (event) => {
-            this.aiMode = event.detail.mode === 'ai';
+            this.aiMode = event.detail.enabled || event.detail.mode === 'ai';
             this.aiModeButton.classList.toggle('active', this.aiMode);
             if (this.aiMode) {
                 this.updateTriggers();
             }
         });
+
+        // Handle chat toggle button
+        const chatToggleButton = document.getElementById('toggle-chat');
+        if (chatToggleButton) {
+            this.chatEnabled = true; // Default chat enabled
+            chatToggleButton.addEventListener('click', () => {
+                this.toggleChat();
+            });
+        }
 
         // Listen for collar events from dropdown.js
         document.addEventListener('collarActivated', (event) => {
@@ -629,9 +668,18 @@ class ChatCore {
                 });
             }
         });
-    } sendMessage() {
+    }
+
+    sendMessage() {
         const message = this.chatInput.value.trim();
         if (!message || !this.isConnected) return;
+
+        // Check if chat is enabled
+        if (!this.chatEnabled) {
+            this.addSystemMessage('💬 Chat is disabled. Enable chat to send messages.');
+            this.chatInput.value = '';
+            return;
+        }
 
         // Add message to UI immediately
         this.addMessage(message, new Date(), true, this.username);
