@@ -449,6 +449,20 @@
     transform: translateY(-1px);
 }
 
+/* AIGF Status Display */
+.aigf-status {
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.7rem;
+    font-weight: bold;
+    margin: 4px 0;
+    background: var(--primary-color);
+    border: 1px solid var(--primary-alt);
+    color: var(--nav-alt);
+}
+
 /* Special AI Mode Buttons */
 .ai-button[data-action*="ai-mode"] {
     border-left: 3px solid #ff1493;
