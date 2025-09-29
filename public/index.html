@@ -75,8 +75,13 @@
     loadDeviceCSS();
   </script>
 
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <!-- Always load spirals.css -->
   <link rel="stylesheet" href="/css/spirals.css">
+
+  <!-- Always load brainwave.css -->
+  <link rel="stylesheet" href="/css/brainwave.css">
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 
 <body>
@@ -92,34 +97,37 @@
         <h1>🧠BambiSleep.Chat🌀</h1>
         <div id="controls" class="controls">
           <div class="dropdown">
-            <button id="toggle-spiral" class="dropdown-btn toggle-button" data-state="off">Spiral: OFF</button>
+            <button id="toggle-spiral" class="dropdown-btn toggle-button" data-state="off">🌀 Spiral: OFF</button>
             <div class="dropdown-content">
               <!-- Content will be populated by spiral-dropdown.js -->
             </div>
           </div>
           <div class="dropdown">
-            <button id="toggle-tts" class="dropdown-btn toggle-button" data-state="off">TTS: OFF</button>
+            <button id="toggle-tts" class="dropdown-btn toggle-button" data-state="off">🎤 TTS: OFF</button>
             <div class="dropdown-content">
               <!-- Content will be populated by tts-dropdown.js -->
             </div>
           </div>
           <div class="dropdown">
-            <button id="toggle-triggers" class="dropdown-btn toggle-button" data-state="off">Triggers: OFF</button>
+            <button id="toggle-triggers" class="dropdown-btn toggle-button" data-state="off">🎯 Triggers: OFF</button>
             <div class="dropdown-content">
               <!-- Content will be populated by triggers-dropdown.js -->
             </div>
           </div>
           <div class="dropdown">
-            <button id="toggle-ai" class="dropdown-btn toggle-button" data-state="off" data-mode="chat">CHAT</button>
+            <button id="toggle-ai" class="dropdown-btn toggle-button" data-state="off" data-mode="chat">🤖 CHAT</button>
             <div class="dropdown-content">
               <!-- Content will be populated by ai-dropdown.js -->
             </div>
           </div>
           <div class="dropdown collar-dropdown">
-            <button id="toggle-collar" class="dropdown-btn toggle-button" data-state="off">Collar: OFF</button>
+            <button id="toggle-collar" class="dropdown-btn toggle-button" data-state="off">⛓️ Collar: OFF</button>
             <div class="dropdown-content">
               <!-- Content will be populated by collar-dropdown.js -->
             </div>
+          </div>
+          <div id="brainwave-dropdown-container">
+            <!-- Brainwave dropdown will be populated by brainwave-dropdown.js -->
           </div>
         </div>
       </div>
@@ -141,6 +149,7 @@
   <script src="/js/effects.js"></script>
   <script src="/js/triggers.js"></script>
   <script src="/js/text2speech.js"></script>
+  <script src="/js/brainwave.js"></script>
   <script src="/js/psychodelic-trigger-mania.js"></script>
   <script type="module" src="/js/dropdowns.js"></script>
   <script src="/js/aigf-core.js"></script>

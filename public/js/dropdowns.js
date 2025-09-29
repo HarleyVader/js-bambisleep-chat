@@ -8,7 +8,8 @@ import {
     TTSDropdown,
     TriggersDropdown,
     AIDropdown,
-    CollarDropdown
+    CollarDropdown,
+    createBrainwaveDropdown
 } from './dropdowns/index.js';
 
 import { StorageUtils } from './storage-utils.js';
@@ -71,9 +72,25 @@ class DropdownManager {
             this.components.ai = new AIDropdown(this);
             this.components.collar = new CollarDropdown(this);
 
+            // Initialize brainwave dropdown (functional component)
+            this.initializeBrainwaveDropdown();
+
             console.log('✅ All dropdown components initialized');
         } catch (error) {
             console.error('❌ Error initializing dropdown components:', error);
+        }
+    }
+
+    initializeBrainwaveDropdown() {
+        try {
+            const container = document.getElementById('brainwave-dropdown-container');
+            if (container) {
+                const brainwaveDropdown = createBrainwaveDropdown();
+                container.appendChild(brainwaveDropdown);
+                console.log('🧠 Brainwave dropdown initialized');
+            }
+        } catch (error) {
+            console.error('❌ Error initializing brainwave dropdown:', error);
         }
     }
 
