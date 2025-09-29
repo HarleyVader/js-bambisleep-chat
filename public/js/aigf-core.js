@@ -368,7 +368,9 @@ class ChatCore {
     }
 
     initUI() {
-        this.chatMessages = document.getElementById('chat-messages');
+        // Separate chat containers for different modes
+        this.globalChatMessages = document.getElementById('global-chat-messages');
+        this.aigfChatMessages = document.getElementById('aigf-chat-messages');
         this.chatInput = document.getElementById('chat-input');
         this.sendButton = document.getElementById('send-button');
         this.toggleSpiral = document.getElementById('toggle-spiral');
@@ -383,6 +385,29 @@ class ChatCore {
         // Initialize trigger buttons after loading triggers
         if (this.triggerContainer) {
             this.populateTriggerButtons();
+        }
+
+        // Initialize chat container visibility
+        this.updateChatContainers();
+    }
+
+    // Get the currently active chat container based on mode
+    getActiveChatContainer() {
+        return this.aiMode ? this.aigfChatMessages : this.globalChatMessages;
+    }
+
+    // Update chat container visibility based on current mode
+    updateChatContainers() {
+        if (this.globalChatMessages && this.aigfChatMessages) {
+            if (this.aiMode) {
+                this.globalChatMessages.classList.add('hidden');
+                this.aigfChatMessages.classList.add('visible');
+                this.aigfChatMessages.classList.remove('hidden');
+            } else {
+                this.aigfChatMessages.classList.remove('visible');
+                this.aigfChatMessages.classList.add('hidden');
+                this.globalChatMessages.classList.remove('hidden');
+            }
         }
     }
 
@@ -544,7 +569,7 @@ class ChatCore {
     toggleChat() {
         this.chatEnabled = !this.chatEnabled;
         const chatButton = document.getElementById('toggle-chat');
-        
+
         if (chatButton) {
             chatButton.setAttribute('data-state', this.chatEnabled ? 'on' : 'off');
             chatButton.textContent = `💬 Chat: ${this.chatEnabled ? 'ON' : 'OFF'}`;
@@ -553,7 +578,7 @@ class ChatCore {
         // Update input container visibility/functionality
         const inputContainer = document.getElementById('chat-input-container');
         const chatInput = document.getElementById('chat-input');
-        
+
         if (inputContainer && chatInput) {
             if (this.chatEnabled) {
                 inputContainer.style.opacity = '1';
@@ -590,6 +615,10 @@ class ChatCore {
         document.addEventListener('aiModeChange', (event) => {
             this.aiMode = event.detail.enabled || event.detail.mode === 'ai';
             this.aiModeButton.classList.toggle('active', this.aiMode);
+            
+            // Update chat container visibility
+            this.updateChatContainers();
+            
             if (this.aiMode) {
                 this.updateTriggers();
             }
@@ -763,8 +792,12 @@ class ChatCore {
             messageDiv.appendChild(textDiv);
         }
 
-        this.chatMessages.appendChild(messageDiv);
-        this.scrollToBottom();
+        // Add to appropriate chat container based on message type
+        const targetContainer = isAI ? this.aigfChatMessages : this.getActiveChatContainer();
+        if (targetContainer) {
+            targetContainer.appendChild(messageDiv);
+            this.scrollToBottom(targetContainer);
+        }
 
         // Store in history
         this.messageHistory.push({ text, timestamp, isOwn, username, isAI });
@@ -789,8 +822,12 @@ class ChatCore {
         messageDiv.appendChild(timeDiv);
         messageDiv.appendChild(textDiv);
 
-        this.chatMessages.appendChild(messageDiv);
-        this.scrollToBottom();
+        // Add to current active chat container
+        const activeContainer = this.getActiveChatContainer();
+        if (activeContainer) {
+            activeContainer.appendChild(messageDiv);
+            this.scrollToBottom(activeContainer);
+        }
     }
 
     formatTime(timestamp) {
@@ -803,8 +840,11 @@ class ChatCore {
         });
     }
 
-    scrollToBottom() {
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    scrollToBottom(container = null) {
+        const targetContainer = container || this.getActiveChatContainer();
+        if (targetContainer) {
+            targetContainer.scrollTop = targetContainer.scrollHeight;
+        }
     }
 
     // AI-specific methods

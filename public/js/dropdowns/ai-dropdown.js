@@ -72,10 +72,10 @@ export class AIDropdown {
         if (aiButton) {
             aiButton.addEventListener('click', (e) => {
                 e.stopPropagation();
-                
+
                 // Toggle AIGF on/off
                 this.toggleAIGF();
-                
+
                 const dropdown = aiButton.closest('.dropdown');
 
                 // Handle dropdown open/close
@@ -127,7 +127,7 @@ export class AIDropdown {
         this.saveState();
 
         // Add system message to chat
-        this.addSystemMessage(this.isEnabled ? '🌀 AIGF BRAINWASH MODE ENABLED 🌀' : '🗫 AIGF BRAINWASH MODE DISABLED 🗫');
+        this.addSystemMessage(this.isEnabled ? '🌀 AIGF MODE ENABLED 🌀' : '🗫 AIGF MODE DISABLED 🗫');
 
         // Dispatch custom event
         const event = new CustomEvent('aiModeChange', {

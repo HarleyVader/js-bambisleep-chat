@@ -540,17 +540,7 @@ body {
 
 
 
-/* Chat Messages */
-#chat-messages {
-    flex: 1;
-    padding: 14px;
-    /* Reduced by 30% from 20px */
-    overflow-y: auto;
-    scroll-behavior: smooth;
-    border: var(--border) var(--primary-alt);
-    background: transparent;
-    /* Make transparent */
-}
+/* Chat Messages - Now handled by chat.css and aigf.css */
 
 .message {
     margin-bottom: 5.6px;
@@ -872,24 +862,7 @@ body {
 
 
 
-/* Scrollbar Styling */
-#chat-messages::-webkit-scrollbar {
-    width: 8px;
-}
-
-#chat-messages::-webkit-scrollbar-track {
-    background: var(--primary-color);
-    border-radius: 4px;
-}
-
-#chat-messages::-webkit-scrollbar-thumb {
-    background: var(--tertiary-color);
-    border-radius: 4px;
-}
-
-#chat-messages::-webkit-scrollbar-thumb:hover {
-    background: var(--secondary-alt);
-}
+/* Scrollbar Styling - Now handled by chat.css and aigf.css */
 
 /* AI Features Styling */
 .message.ai {

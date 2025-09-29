@@ -52,6 +52,18 @@
       buttonsCSS.href = '/css/buttons.css';
       head.appendChild(buttonsCSS);
 
+      // Always load chat.css for global chat styling
+      const chatCSS = document.createElement('link');
+      chatCSS.rel = 'stylesheet';
+      chatCSS.href = '/css/chat.css';
+      head.appendChild(chatCSS);
+
+      // Always load aigf.css for AI brainwash mode styling
+      const aigfCSS = document.createElement('link');
+      aigfCSS.rel = 'stylesheet';
+      aigfCSS.href = '/css/aigf.css';
+      head.appendChild(aigfCSS);
+
       // Only load mobile.css if it's actually a mobile device
       if (isMobileDevice()) {
         const mobileCSS = document.createElement('link');
@@ -132,10 +144,19 @@
         </div>
       </div>
 
-      <div id="chat-messages"></div>
+      <!-- Global Chat Messages Container -->
+      <div id="global-chat-messages">
+        <!-- Global community chat messages appear here -->
+      </div>
+
+      <!-- AIGF Chat Messages Container -->
+      <div id="aigf-chat-messages">
+        <div class="mode-indicator">🌀 AIGF BRAINWASH MODE ACTIVE 🌀</div>
+        <!-- AI brainwash mode messages appear here -->
+      </div>
 
       <div class="docs-link-container">
-        <button id="toggle-chat" class="dropdown-btn toggle-button" data-state="on">💬 Chat: ON</button>
+        <button id="toggle-chat" class="dropdown-btn toggle-button" data-state="on">💬Chat: ON</button>
         <a href="/docs.html" class="docs-link-btn" target="_blank">📚 Docs</a>
       </div>
 
