@@ -269,11 +269,20 @@ class ChatCore {
     }
 
     initSocket() {
+        // Prevent multiple socket connections
+        if (window.globalSocket) {
+            this.socket = window.globalSocket;
+            this.isConnected = this.socket.connected;
+            return;
+        }
+
         this.socket = io();
+        window.globalSocket = this.socket; // Store globally to prevent duplicates
 
         this.socket.on('connect', () => {
             this.isConnected = true;
             this.addSystemMessage('Connected to server');
+            console.log('🌸 AIGF Socket connected with ID:', this.socket.id);
 
             // Send initial triggers to worker
             this.updateTriggers();
@@ -290,11 +299,28 @@ class ChatCore {
         this.socket.on('disconnect', () => {
             this.isConnected = false;
             this.addSystemMessage('Disconnected from server');
+            console.log('🌸 AIGF Socket disconnected');
+
+            // Clean up global reference
+            if (window.globalSocket === this.socket) {
+                window.globalSocket = null;
+            }
 
             // Dispatch disconnection event for global chat
             document.dispatchEvent(new CustomEvent('socketDisconnected'));
 
             console.log('Disconnected from server');
+        });
+
+        // Handle connection errors
+        this.socket.on('connect_error', (error) => {
+            console.warn('🌸 AIGF Socket connection error:', error);
+            this.addSystemMessage('Connection error - retrying...');
+        });
+
+        this.socket.on('reconnect', (attemptNumber) => {
+            console.log('🌸 AIGF Socket reconnected after', attemptNumber, 'attempts');
+            this.addSystemMessage('Reconnected to server');
         });
 
         this.socket.on('message', (data) => {
@@ -797,8 +823,8 @@ class ChatCore {
             messageDiv.appendChild(textDiv);
         }
 
-        // Add to appropriate chat container based on message type
-        const targetContainer = isAI ? this.aigfChatMessages : this.getActiveChatContainer();
+        // Add to appropriate chat container - AIGF core only uses aigfChatMessages
+        const targetContainer = this.aigfChatMessages;
         if (targetContainer) {
             targetContainer.appendChild(messageDiv);
             this.scrollToBottom(targetContainer);

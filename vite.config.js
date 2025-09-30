@@ -4,11 +4,19 @@ export default defineConfig({
     root: 'public',
     server: {
         port: 5173,
+        host: true,
         proxy: {
-            '/api': 'http://localhost:6969',
+            '/api': {
+                target: 'http://localhost:6969',
+                changeOrigin: true
+            },
             '/socket.io': {
                 target: 'http://localhost:6969',
-                ws: true
+                ws: true,
+                changeOrigin: true,
+                secure: false,
+                timeout: 60000,
+                proxyTimeout: 60000
             }
         }
     },
