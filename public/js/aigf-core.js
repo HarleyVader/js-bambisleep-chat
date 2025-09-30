@@ -627,7 +627,7 @@ class ChatCore {
 
         // Listen for AI mode changes from dropdown
         document.addEventListener('aiModeChange', (event) => {
-            this.aiMode = event.detail.enabled || event.detail.mode === 'ai';
+            this.aiMode = event.detail.enabled || event.detail.mode === 'aigf';
             this.aiModeButton.classList.toggle('active', this.aiMode);
 
             // Update chat container visibility
