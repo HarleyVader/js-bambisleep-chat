@@ -4,13 +4,17 @@
  */
 
 class GlobalChatManager {
-    constructor(socket, chatCore) {
+    constructor(socket) {
         this.socket = socket;
-        this.chatCore = chatCore;
         this.globalChatContainer = document.getElementById('global-chat-messages');
+        this.globalChatInput = document.getElementById('global-chat-input');
+        this.globalSendButton = document.getElementById('global-send-button');
+        this.globalInputContainer = document.getElementById('global-chat-input-container');
         this.isConnected = false;
+        this.isEnabled = true;
         this.messageHistory = [];
         this.maxMessages = 100;
+        this.username = this.generateUsername();
 
         this.init();
     }
@@ -19,6 +23,40 @@ class GlobalChatManager {
         console.log('💬 Initializing Global Chat Manager...');
         this.setupEventListeners();
         this.setupSocketHandlers();
+        this.bindInputEvents();
+        this.addGlobalSystemMessage(`Welcome to Global Chat ${this.username}`);
+    }
+
+    generateUsername() {
+        const adjectives = ['Cool', 'Happy', 'Smart', 'Kind', 'Bright', 'Swift', 'Bold'];
+        const nouns = ['User', 'Chatter', 'Friend', 'Guest', 'Member', 'Visitor', 'Person'];
+        const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        return `${adj}${noun}${Math.floor(Math.random() * 1000)}`;
+    }
+
+    bindInputEvents() {
+        if (this.globalSendButton && this.globalChatInput) {
+            // Send on button click
+            this.globalSendButton.addEventListener('click', () => this.handleSendMessage());
+
+            // Send on Enter key
+            this.globalChatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.handleSendMessage();
+                }
+            });
+        }
+    }
+
+    handleSendMessage() {
+        const message = this.globalChatInput.value.trim();
+        if (!message) return;
+
+        if (this.sendGlobalMessage(message, this.username)) {
+            this.globalChatInput.value = '';
+            this.globalChatInput.focus();
+        }
     }
 
     setupEventListeners() {

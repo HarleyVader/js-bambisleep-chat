@@ -822,31 +822,82 @@ body {
     box-shadow: 0 0 10px var(--button-color);
 }
 
-/* Chat Input */
-#chat-input-container {
+/* Chat Input Containers */
+#global-chat-input-container,
+#aigf-chat-input-container {
     padding: 14px;
-    /* Reduced by 30% from 20px */
     border-top: 1px solid var(--nav-alt);
     display: flex;
     gap: 7px;
-    /* Reduced by 30% from 10px */
     background: var(--nav-color);
     border: var(--border) var(--button-color);
     border-radius: 0 0 var(--border-radius) var(--border-radius);
-    /* Rounded bottom corners */
 }
 
+/* Global chat input - blue theme */
+#global-chat-input-container {
+    border-color: var(--primary-alt);
+    background: var(--primary-color);
+}
+
+/* AIGF chat input - pink theme */
+#aigf-chat-input-container {
+    border-color: var(--button-color);
+    background: var(--nav-color);
+}
+
+/* Container visibility control */
+#global-chat-messages.hidden,
+#aigf-chat-messages.hidden,
+#global-chat-input-container.hidden,
+#aigf-chat-input-container.hidden {
+    display: none !important;
+}
+
+#global-chat-messages.visible,
+#aigf-chat-messages.visible {
+    display: block !important;
+}
+
+/* Legacy support */
+#chat-input-container {
+    padding: 14px;
+    border-top: 1px solid var(--nav-alt);
+    display: flex;
+    gap: 7px;
+    background: var(--nav-color);
+    border: var(--border) var(--button-color);
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+/* Chat Input Fields */
+#global-chat-input,
+#aigf-chat-input,
 #chat-input {
     flex: 1;
     padding: 8.4px 11.2px;
-    /* Reduced by 30% from 12px 16px */
-    background: var(--primary-color);
-    border: 1px solid var(--primary-alt);
     border-radius: 25px;
     color: #fff;
     font-size: 0.75rem;
-    /* Reduced by 25% from 1rem */
     outline: none;
+}
+
+/* Global chat input styling */
+#global-chat-input {
+    background: var(--primary-color);
+    border: 1px solid var(--primary-alt);
+}
+
+/* AIGF chat input styling */
+#aigf-chat-input {
+    background: var(--secondary-color);
+    border: 1px solid var(--button-color);
+}
+
+/* Legacy support */
+#chat-input {
+    background: var(--primary-color);
+    border: 1px solid var(--primary-alt);
     transition: all 0.3s ease;
     font-family: "Audiowide", sans-serif;
 }

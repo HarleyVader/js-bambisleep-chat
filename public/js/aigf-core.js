@@ -9,7 +9,7 @@ class ChatCore {
         this.aiMode = false;
         this.collarActive = false;
         this.activeTriggers = []; // Will be loaded from official triggers.json
-        this.globalChatManager = null; // Will be initialized after socket connection
+        this.chatEnabled = true; // AIGF chat enabled by default
 
         this.loadOfficialTriggers(); // Load official triggers
         this.init();
@@ -275,17 +275,14 @@ class ChatCore {
             this.isConnected = true;
             this.addSystemMessage('Connected to server');
 
-            // Initialize global chat manager after socket connection
-            if (typeof GlobalChatManager !== 'undefined') {
-                this.globalChatManager = new GlobalChatManager(this.socket, this);
-                console.log('💬 Global chat manager initialized');
-            }
-
             // Send initial triggers to worker
             this.updateTriggers();
 
-            // Dispatch connection event for global chat
-            document.dispatchEvent(new CustomEvent('socketConnected'));
+            // Initialize global chat manager separately (independent system)
+            if (typeof GlobalChatManager !== 'undefined' && !window.globalChatManager) {
+                window.globalChatManager = new GlobalChatManager(this.socket);
+                console.log('💬 Global chat manager initialized independently');
+            }
 
             console.log('Connected to server');
         });
@@ -382,11 +379,11 @@ class ChatCore {
     }
 
     initUI() {
-        // Separate chat containers for different modes
-        this.globalChatMessages = document.getElementById('global-chat-messages');
+        // AIGF-specific chat elements
         this.aigfChatMessages = document.getElementById('aigf-chat-messages');
-        this.chatInput = document.getElementById('chat-input');
-        this.sendButton = document.getElementById('send-button');
+        this.aigfChatInput = document.getElementById('aigf-chat-input');
+        this.aigfSendButton = document.getElementById('aigf-send-button');
+        this.aigfInputContainer = document.getElementById('aigf-chat-input-container');
         this.toggleSpiral = document.getElementById('toggle-spiral');
         this.toggleTTS = document.getElementById('toggle-tts');
         this.toggleTriggers = document.getElementById('toggle-triggers');
@@ -401,26 +398,21 @@ class ChatCore {
             this.populateTriggerButtons();
         }
 
-        // Initialize chat container visibility
-        this.updateChatContainers();
+        // Initialize AIGF container visibility
+        this.updateAIGFContainers();
     }
 
-    // Get the currently active chat container based on mode
-    getActiveChatContainer() {
-        return this.aiMode ? this.aigfChatMessages : this.globalChatMessages;
-    }
-
-    // Update chat container visibility based on current mode
-    updateChatContainers() {
-        if (this.globalChatMessages && this.aigfChatMessages) {
+    // Update AIGF container visibility based on mode
+    updateAIGFContainers() {
+        if (this.aigfChatMessages && this.aigfInputContainer) {
             if (this.aiMode) {
-                this.globalChatMessages.classList.add('hidden');
                 this.aigfChatMessages.classList.add('visible');
                 this.aigfChatMessages.classList.remove('hidden');
+                this.aigfInputContainer.classList.remove('hidden');
             } else {
                 this.aigfChatMessages.classList.remove('visible');
                 this.aigfChatMessages.classList.add('hidden');
-                this.globalChatMessages.classList.remove('hidden');
+                this.aigfInputContainer.classList.add('hidden');
             }
         }
     }
@@ -610,15 +602,15 @@ class ChatCore {
     }
 
     bindEvents() {
-        // Send message on button click
-        this.sendButton.addEventListener('click', () => this.sendMessage());
-
-        // Send message on Enter key
-        this.chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.sendMessage();
-            }
-        });
+        // AIGF message sending
+        if (this.aigfSendButton && this.aigfChatInput) {
+            this.aigfSendButton.addEventListener('click', () => this.sendAIGFMessage());
+            this.aigfChatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.sendAIGFMessage();
+                }
+            });
+        }
 
         // Toggle controls - now handled by dropdown.js
         // this.toggleSpiral.addEventListener('click', () => this.toggleSpiralAnimation());
@@ -630,11 +622,14 @@ class ChatCore {
             this.aiMode = event.detail.enabled || event.detail.mode === 'aigf';
             this.aiModeButton.classList.toggle('active', this.aiMode);
 
-            // Update chat container visibility
-            this.updateChatContainers();
+            // Update AIGF container visibility
+            this.updateAIGFContainers();
 
             if (this.aiMode) {
                 this.updateTriggers();
+                this.addSystemMessage('🌀 AIGF Mode Activated');
+            } else {
+                this.addSystemMessage('🌀 AIGF Mode Deactivated');
             }
         });
 
@@ -713,43 +708,40 @@ class ChatCore {
         });
     }
 
-    sendMessage() {
-        const message = this.chatInput.value.trim();
+    sendAIGFMessage() {
+        const message = this.aigfChatInput.value.trim();
         if (!message || !this.isConnected) return;
 
-        // Check if chat is enabled
+        // Check if AIGF chat is enabled
         if (!this.chatEnabled) {
-            this.addSystemMessage('💬 Chat is disabled. Enable chat to send messages.');
-            this.chatInput.value = '';
+            this.addSystemMessage('💬 AIGF Chat is disabled.');
+            this.aigfChatInput.value = '';
             return;
         }
 
-        // Send to appropriate handler based on AI mode
-        if (this.aiMode) {
-            // Add message to AIGF UI immediately
-            this.addMessage(message, new Date(), true, this.username);
-
-            // Send to AI with selected triggers
-            this.socket.emit('ai-chat', {
-                message: message,
-                username: this.username,
-                triggers: this.activeTriggers, // Include user-selected triggers
-                timestamp: new Date().toISOString()
-            });
-
-            this.addSystemMessage(`🤖 Sending to BambiSleep AI with triggers: ${this.activeTriggers.join(', ')}`);
-        } else {
-            // Send to global chat via GlobalChatManager
-            if (this.globalChatManager) {
-                this.globalChatManager.sendMessage(message, this.username);
-            } else {
-                this.addSystemMessage('⚠️ Global chat not available');
-            }
+        // Only send if AIGF mode is active
+        if (!this.aiMode) {
+            this.addSystemMessage('🌀 Activate AIGF mode to send AI messages');
+            this.aigfChatInput.value = '';
+            return;
         }
 
+        // Add message to AIGF UI immediately
+        this.addMessage(message, new Date(), true, this.username);
+
+        // Send to AI with selected triggers
+        this.socket.emit('ai-chat', {
+            message: message,
+            username: this.username,
+            triggers: this.activeTriggers,
+            timestamp: new Date().toISOString()
+        });
+
+        this.addSystemMessage(`🤖 Sending to BambiSleep AI with triggers: ${this.activeTriggers.join(', ')}`);
+
         // Clear input
-        this.chatInput.value = '';
-        this.chatInput.focus();
+        this.aigfChatInput.value = '';
+        this.aigfChatInput.focus();
     }
 
     addMessage(text, timestamp, isOwn = false, username = 'Unknown', isAI = false) {
@@ -836,11 +828,10 @@ class ChatCore {
         messageDiv.appendChild(timeDiv);
         messageDiv.appendChild(textDiv);
 
-        // Add to current active chat container
-        const activeContainer = this.getActiveChatContainer();
-        if (activeContainer) {
-            activeContainer.appendChild(messageDiv);
-            this.scrollToBottom(activeContainer);
+        // Add to AIGF chat container only
+        if (this.aigfChatMessages) {
+            this.aigfChatMessages.appendChild(messageDiv);
+            this.scrollToBottom();
         }
     }
 
@@ -854,10 +845,9 @@ class ChatCore {
         });
     }
 
-    scrollToBottom(container = null) {
-        const targetContainer = container || this.getActiveChatContainer();
-        if (targetContainer) {
-            targetContainer.scrollTop = targetContainer.scrollHeight;
+    scrollToBottom() {
+        if (this.aigfChatMessages) {
+            this.aigfChatMessages.scrollTop = this.aigfChatMessages.scrollHeight;
         }
     }
 
