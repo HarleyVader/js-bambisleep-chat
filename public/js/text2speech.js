@@ -346,8 +346,8 @@ class TextToSpeechSystem {
                 this.currentTTSText = textItem.tts;
             }
             
-            this.arrayPush(this.audioArray, this.currentTTSText);
-            this.do_tts(this.audioArray); // CRITICAL: Use do_tts() like original, not requestTTS()
+            // Use socket-based TTS for reliable communication
+            this.requestTTS(this.currentTTSText);
         } else if (this.textArray.length === 0) {
             this.state = true;
             this.isPlaying = false;
@@ -389,8 +389,8 @@ class TextToSpeechSystem {
                 this.currentTTSText = textItem.tts;
             }
             
-            this.arrayPush(this.audioArray, this.currentTTSText);
-            this.do_tts(this.audioArray);
+            // Use socket-based TTS for reliable communication
+            this.requestTTS(this.currentTTSText);
         } else {
             this.isPlaying = false;
             this.state = true;
@@ -1377,8 +1377,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Export legacy functions for compatibility with existing code - UPGRADED
     window.do_tts = function (array) {
         if (window.ttsSystem && array && array.length > 0) {
-            // Use the enhanced do_tts method
-            window.ttsSystem.do_tts(array);
+            // Convert array-based calls to socket-based TTS
+            array.forEach(url => {
+                // Extract text from URL parameters
+                const urlParams = new URLSearchParams(url.split('?')[1]);
+                const text = urlParams.get('text');
+                if (text) {
+                    window.ttsSystem.requestTTS(decodeURIComponent(text));
+                }
+            });
         }
     };
 
@@ -1445,7 +1452,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // UPGRADED: Enhanced API methods (backward compatibility)
         fetchAvailableVoices: () => window.ttsSystem.fetchAvailableVoices(),
-        do_tts: (array) => window.ttsSystem.do_tts(array),
+        do_tts: (array) => {
+            // Convert array-based calls to socket-based TTS
+            if (array && array.length > 0) {
+                array.forEach(url => {
+                    const urlParams = new URLSearchParams(url.split('?')[1]);
+                    const text = urlParams.get('text');
+                    if (text) {
+                        window.ttsSystem.requestTTS(decodeURIComponent(text));
+                    }
+                });
+            }
+        },
         arrayPush: (array, text) => window.ttsSystem.arrayPush(array, text),
         arrayShift: (array) => window.ttsSystem.arrayShift(array),
 
