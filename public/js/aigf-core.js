@@ -581,19 +581,16 @@ class ChatCore {
             chatButton.textContent = `💬 Chat: ${this.chatEnabled ? 'ON' : 'OFF'}`;
         }
 
-        // Update input container visibility/functionality
-        const inputContainer = document.getElementById('chat-input-container');
-        const chatInput = document.getElementById('chat-input');
-
-        if (inputContainer && chatInput) {
+        // Update AIGF input container visibility/functionality
+        if (this.aigfInputContainer && this.aigfChatInput) {
             if (this.chatEnabled) {
-                inputContainer.style.opacity = '1';
-                chatInput.disabled = false;
-                chatInput.placeholder = 'Type your message...';
+                this.aigfInputContainer.style.opacity = '1';
+                this.aigfChatInput.disabled = false;
+                this.aigfChatInput.placeholder = 'Type AIGF message...';
             } else {
-                inputContainer.style.opacity = '0.5';
-                chatInput.disabled = true;
-                chatInput.placeholder = 'Chat disabled';
+                this.aigfInputContainer.style.opacity = '0.5';
+                this.aigfChatInput.disabled = true;
+                this.aigfChatInput.placeholder = 'AIGF Chat disabled';
             }
         }
 
@@ -677,9 +674,11 @@ class ChatCore {
         // Click outside handler for dropdowns
         this.setupClickOutsideHandling();
 
-        // Focus on input when page loads
+        // Focus on AIGF input when page loads
         window.addEventListener('load', () => {
-            this.chatInput.focus();
+            if (this.aigfChatInput) {
+                this.aigfChatInput.focus();
+            }
         });
     }
 

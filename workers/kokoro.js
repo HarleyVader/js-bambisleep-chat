@@ -28,15 +28,14 @@ class KokoroTTSWorker {
             throw new Error('Missing required environment variable: KOKORO_DEFAULT_VOICE');
         }
         this.outputFormat = 'mp3';
-        this.isHealthy = false;
-        this.lastHealthCheck = null;
+        this.isHealthy = true; // Assume healthy, no health check endpoint available
 
         this.init();
     }
 
     async init() {
         console.log('🎤 Kokoro TTS Worker initializing...');
-        await this.checkHealth();
+        console.log(`🎤 Kokoro TTS service URL: ${this.kokoroUrl}`);
 
         if (parentPort) {
             parentPort.on('message', this.handleMessage.bind(this));
@@ -51,11 +50,10 @@ class KokoroTTSWorker {
                     break;
 
                 case 'health':
-                    await this.checkHealth();
                     this.sendResponse('health_response', {
-                        healthy: this.isHealthy,
+                        healthy: true,
                         url: this.kokoroUrl,
-                        lastCheck: this.lastHealthCheck
+                        lastCheck: new Date().toISOString()
                     }, msg.socketId);
                     break;
 
@@ -75,27 +73,7 @@ class KokoroTTSWorker {
         }
     }
 
-    async checkHealth() {
-        try {
-            const response = await fetch(`${this.kokoroUrl}/health`, {
-                method: 'GET',
-                timeout: 5000
-            });
 
-            this.isHealthy = response.ok;
-            this.lastHealthCheck = new Date().toISOString();
-
-            if (this.isHealthy) {
-                console.log('✅ Kokoro TTS service is healthy');
-            } else {
-                console.log('❌ Kokoro TTS service is unhealthy');
-            }
-        } catch (error) {
-            console.error('❌ Kokoro TTS health check failed:', error.message);
-            this.isHealthy = false;
-            this.lastHealthCheck = new Date().toISOString();
-        }
-    }
 
     async generateSpeech(msg) {
         const { text, voice, format, socketId, streaming = false } = msg;
@@ -104,12 +82,7 @@ class KokoroTTSWorker {
             throw new Error('Invalid text input for TTS');
         }
 
-        if (!this.isHealthy) {
-            await this.checkHealth();
-            if (!this.isHealthy) {
-                throw new Error('Kokoro TTS service is not available');
-            }
-        }
+        // Kokoro TTS service assumed to be available
 
         const selectedVoice = voice || this.defaultVoice;
         const selectedFormat = format || this.outputFormat;

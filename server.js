@@ -1067,21 +1067,8 @@ function handleTTSError(error, res) {
     }
 }
 
-// TTS Health check endpoint (enhanced)
+// TTS Health check endpoint (enhanced) - No actual health check, just service info
 app.get('/api/tts/health', async (req, res) => {
-    if (!kokoroWorker) {
-        return res.status(503).json({
-            healthy: false,
-            error: 'Kokoro TTS worker not available',
-            timestamp: new Date().toISOString()
-        });
-    }
-
-    // Request health check from worker
-    kokoroWorker.postMessage({
-        type: 'health'
-    });
-
     // Determine correct Kokoro host based on NODE_ENV
     let kokoroHost;
     if (process.env.NODE_ENV === 'production') {
@@ -1092,12 +1079,13 @@ app.get('/api/tts/health', async (req, res) => {
     const kokoroPort = process.env.KOKORO_PORT || 8880;
 
     res.json({
-        healthy: true,
+        healthy: kokoroWorker ? true : false,
         service: 'Kokoro TTS',
         url: `http://${kokoroHost}:${kokoroPort}`,
         config: config.KOKORO_API_URL,
         defaultVoice: config.KOKORO_DEFAULT_VOICE,
         timeout: config.TTS_TIMEOUT,
+        workerAvailable: kokoroWorker ? true : false,
         timestamp: new Date().toISOString()
     });
 });
