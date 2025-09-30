@@ -319,9 +319,8 @@ class TextToSpeechSystem {
 
         console.log('🎤 Processing text:', this.currentText);
 
-        // Add to audio queue using TTS text and use do_tts like original working version
-        this.arrayPush(this.audioArray, this.currentTTSText);
-        this.do_tts(this.audioArray); // CRITICAL: Use do_tts() not requestTTS()
+        // Use socket-based TTS for reliable communication
+        this.requestTTS(this.currentTTSText);
     }
 
     // Core synchronization function - RESTORED TO ORIGINAL WORKING PATTERN
@@ -428,18 +427,30 @@ class TextToSpeechSystem {
             // Convert base64 audio data to blob URL
             const audioBlob = this.base64ToBlob(data.audioData, 'audio/mpeg');
             const audioUrl = URL.createObjectURL(audioBlob);
+            this.currentAudioUrl = audioUrl; // Track for cleanup
 
             // Set audio source and play
             if (this.currentAudio) {
                 this.currentAudio.src = audioUrl;
                 this.currentAudio.load();
 
+                // Set up event listeners for audio lifecycle
                 this.currentAudio.onloadedmetadata = () => {
                     console.log('🎤 Audio metadata loaded, duration:', this.currentAudio.duration);
                     this.currentAudio.play().catch(e => {
                         console.error('🎤 Error playing audio:', e);
                         this.handleAudioError(e);
                     });
+                };
+
+                this.currentAudio.onended = () => {
+                    console.log('🎤 Socket-based audio ended');
+                    this.handleAudioEnded();
+                };
+
+                this.currentAudio.onerror = (e) => {
+                    console.error('🎤 Audio playback error:', e);
+                    this.handleAudioError(e);
                 };
             }
         } catch (error) {
@@ -465,6 +476,25 @@ class TextToSpeechSystem {
         }
 
         return new Blob(byteArrays, { type: contentType });
+    }
+
+    handleAudioError(error) {
+        console.error('🎤 Audio error occurred:', error);
+        
+        // Cleanup current audio
+        if (this.currentAudioUrl) {
+            URL.revokeObjectURL(this.currentAudioUrl);
+            this.currentAudioUrl = null;
+        }
+
+        // Try to continue with next item in queue
+        this.isPlaying = false;
+        if (this.textArray.length > 0) {
+            console.log('🎤 Attempting to continue with next text after error');
+            setTimeout(() => this.processTextQueue(), 500);
+        } else {
+            this.state = false;
+        }
     }
 
     fallbackToWebSpeech() {
