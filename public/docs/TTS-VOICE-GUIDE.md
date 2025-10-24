@@ -7,6 +7,7 @@
 **TTS** means **Text-to-Speech**! It's like magic that turns written messages into spoken words! When TTS is ON, every message in the chat gets read aloud in a super cute female voice! 💖
 
 **Why Bambis LOVE TTS:**
+
 - 👂 Hear messages instead of just reading!
 - 💕 Multiple female voices to choose from!
 - 🎵 Adjustable speed for perfect listening!
@@ -64,36 +65,42 @@ Click the TTS button again (while it's ON) to see all your options:
 All voices are **female AI voices** powered by Kokoro TTS! Each has a unique sound:
 
 ### 🎀 **af_bella** (Bella)
+
 - **Personality**: Sweet, soft, gentle
 - **Best For**: Soothing conversations, relaxation
 - **Tone**: Warm and comforting
 - **Bambi Says**: *"My favorite! So calming and pretty!"*
 
 ### 🌸 **af_sarah** (Sarah)
+
 - **Personality**: Friendly, clear, articulate
 - **Best For**: General chatting, easy listening
 - **Tone**: Natural and pleasant
 - **Bambi Says**: *"Perfect everyday voice!"*
 
 ### 💫 **af_nicole** (Nicole)
+
 - **Personality**: Confident, smooth, professional
 - **Best For**: Longer messages, storytelling
 - **Tone**: Polished and engaging
 - **Bambi Says**: *"Great for AI responses!"*
 
 ### 🌺 **af** (Default Female)
+
 - **Personality**: Versatile, balanced
 - **Best For**: All-purpose use
 - **Tone**: Standard friendly female voice
 - **Bambi Says**: *"The classic choice!"*
 
 ### 🌟 **af_sky** (Sky)
+
 - **Personality**: Bright, energetic, youthful
 - **Best For**: Fun conversations, excitement
 - **Tone**: Perky and lively
 - **Bambi Says**: *"So bubbly and fun!"*
 
 ### 💝 **bf_emma** (Emma)
+
 - **Personality**: Mature, soft, reassuring
 - **Best For**: Serious topics, comfort
 - **Tone**: Gentle and stable
@@ -123,7 +130,7 @@ All voices are **female AI voices** powered by Kokoro TTS! Each has a unique sou
 Selected Voices: [af_bella, af_sky, af_nicole]
 
 Message 1: "Hi everyone!" → Spoken by af_bella
-Message 2: "How are you?" → Spoken by af_sky  
+Message 2: "How are you?" → Spoken by af_sky
 Message 3: "I'm great!" → Spoken by af_nicole
 Message 4: "Me too!" → Spoken by af_bella (cycles back)
 ```
@@ -135,18 +142,21 @@ Message 4: "Me too!" → Spoken by af_bella (cycles back)
 Choose how FAST the voices speak:
 
 ### 🐌 **Slow (0.8x Speed)**
+
 - **Best For**: Relaxation, hypnotic listening
 - **Effect**: Slower, more drawn-out speech
 - **Use When**: You want to really absorb the words
 - **Bambi Says**: *"Perfect for deep trance vibes!"*
 
 ### ⚖️ **Normal (1.0x Speed)** (Default)
+
 - **Best For**: Regular chatting, most situations
 - **Effect**: Natural speaking pace
 - **Use When**: General use, balanced experience
 - **Bambi Says**: *"Just right for most Bambis!"*
 
 ### ⚡ **Fast (1.2x Speed)**
+
 - **Best For**: Quick reading, busy chats
 - **Effect**: Slightly faster, more energetic
 - **Use When**: Lots of messages, need to keep up
@@ -162,18 +172,21 @@ Choose how FAST the voices speak:
 ## 🎯 TTS Control Buttons 🎯
 
 ### **Test Voice** 🎵
+
 - **What It Does**: Plays a sample with your current settings
 - **Sample Text**: "This is a test of the Bambi text-to-speech system!"
 - **Why Use It**: Hear how your selected voice(s) and speed sound!
 - **Bambi Tip**: Always test after changing settings!
 
 ### **Clear Selection** 🔄
+
 - **What It Does**: Unselects ALL voices
 - **Effect**: Stops TTS from speaking (but keeps it enabled)
 - **Why Use It**: Quick way to silence voices temporarily
 - **Bambi Tip**: Re-select voices when you're ready!
 
 ### **Clear Cache** 🗑️
+
 - **What It Does**: Deletes all saved audio files
 - **Effect**: Frees up storage, forces fresh audio generation
 - **Why Use It**: If voices sound glitchy or old
@@ -309,24 +322,31 @@ TTS connects to the Kokoro server based on environment:
 ## 💖 Common Questions 💖
 
 ### **Q: Can I use my own voice?**
+
 **A:** Not yet! The system uses Kokoro's pre-trained voices. But you CAN select multiple voices for variety! 💕
 
 ### **Q: Does TTS work offline?**
+
 **A:** Nope! TTS requires connection to the Kokoro server to generate audio. But once cached, audio can replay offline!
 
 ### **Q: How many voices can I select at once?**
+
 **A:** Technically all 6! But 2-3 is optimal for the best experience. 🎀
 
 ### **Q: Why do messages speak automatically?**
+
 **A:** When TTS is enabled, all NEW messages auto-play! This is for hands-free immersive chat! You can disable TTS anytime.
 
 ### **Q: Can I skip a message?**
+
 **A:** Currently no, but you can toggle TTS off/on to stop all audio! Or just wait - messages are usually short! ✨
 
 ### **Q: Do voice selections save?**
+
 **A:** YES! Your voice choices, speed, and enabled state all save to localStorage and persist between sessions! 💖
 
 ### **Q: What's the audio quality?**
+
 **A:** Super high! Kokoro uses StyleTTS2 neural networks for natural-sounding voices with proper intonation and emotion!
 
 ## 🎀 Advanced: Voice Customization 🎀
@@ -353,7 +373,7 @@ This ensures **equal distribution** of voices across messages! 💕
 Speed is applied as a multiplier to the base speaking rate:
 
 - Slow: 0.8x = 125% duration
-- Normal: 1.0x = 100% duration  
+- Normal: 1.0x = 100% duration
 - Fast: 1.2x = 83% duration
 
 ### **Caching Strategy:**

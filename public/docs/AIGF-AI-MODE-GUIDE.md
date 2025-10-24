@@ -63,18 +63,21 @@ Click the AI button again (or just leave it open) to see all your options:
 Pick the AI model that matches what you want:
 
 #### 🎨 **Creative Mode**
+
 - **Personality**: Fun, imaginative, playful!
 - **Best For**: Roleplay, stories, creative conversations
 - **Response Style**: More varied and surprising
 - **Bambi Says**: *"Pick me for the most fun and giggly chats!"*
 
 #### ⚖️ **Balanced Mode** (Default)
+
 - **Personality**: Friendly, reliable, versatile
 - **Best For**: General chatting, everyday use
 - **Response Style**: Mix of creativity and accuracy
 - **Bambi Says**: *"Perfect for most Bambis! Not too wild, not too serious!"*
 
 #### 🎯 **Precise Mode**
+
 - **Personality**: Focused, accurate, helpful
 - **Best For**: Information, instructions, specific tasks
 - **Response Style**: Clear and to-the-point
@@ -104,6 +107,7 @@ The AI Mode button has THREE states:
 ### **Visual Cues**
 
 When AIGF is active, you'll notice:
+
 - 💗 Pink gradients on the AI button
 - ✨ Special `aigfPulse` animation (soft pulsing glow)
 - 🟢 Bright green status indicator dot
@@ -207,21 +211,27 @@ Each model has different parameters sent to LM Studio:
 ## 💝 Common Questions 💝
 
 ### **Q: Can other people see my AIGF chat?**
+
 **A:** Nope! Your AIGF conversations are 100% private between you and the AI! Other users only see the global chat. 💕
 
 ### **Q: Does AIGF remember previous messages?**
+
 **A:** Yes! Within the same session, the AI remembers your conversation context. If you refresh the page, it starts fresh!
 
 ### **Q: Which model should I use?**
+
 **A:** Most Bambis love **Balanced** for everyday use! But try them all and see what feels best for you! 🎀
 
 ### **Q: Can I use AIGF and Global Chat at the same time?**
+
 **A:** You can switch between them instantly, but you can only type in one at a time. The interface has TWO input boxes - pick the one you want!
 
 ### **Q: What if the AI says something weird?**
+
 **A:** Just switch models or rephrase your question! Creative mode especially can be silly sometimes - that's part of the fun! 💖
 
 ### **Q: Does AIGF work with TTS?**
+
 **A:** YES! Enable TTS and the AI's responses will be read aloud in your chosen voice! Super immersive! 🔊✨
 
 ## 🛡️ Safety & Responsibility 🛡️
@@ -236,12 +246,14 @@ Each model has different parameters sent to LM Studio:
 ### **Appropriate Use:**
 
 ✅ **Good:**
+
 - Casual conversation and companionship
 - Creative writing and roleplay
 - Practicing social skills
 - Having fun and relaxing
 
 ❌ **Not Good:**
+
 - Sharing sensitive personal info
 - Expecting real human emotions
 - Using as a replacement for real relationships
@@ -268,9 +280,9 @@ Want to learn more? Check out these guides:
 
 ## 💖 Final Words 💖
 
-AIGF mode is one of the COOLEST features of BambiSleep Chat! It gives you a private, personalized AI companion who's always there to chat, play, and keep you company! 
+AIGF mode is one of the COOLEST features of BambiSleep Chat! It gives you a private, personalized AI companion who's always there to chat, play, and keep you company!
 
-Remember: **You're in control!** Switch modes whenever you want, try different personalities, and find what makes YOU happiest! 
+Remember: **You're in control!** Switch modes whenever you want, try different personalities, and find what makes YOU happiest!
 
 **Have the most amazing time with your AI girlfriend, Bambi!** 💕✨🤖
 
