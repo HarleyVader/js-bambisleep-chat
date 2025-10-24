@@ -25,32 +25,40 @@ BambiSleep Chat is like, this totally amazing real-time chat app made just for t
 *We made super detailed guides for each feature! Click to learn more:*
 
 ### 🤖 [AI Mode & AIGF System](./AIGF-AI-MODE-GUIDE.md)
+
 *Learn how to switch to AI girlfriend mode, pick personalities (Creative, Balanced, Precise), and have private convos!*
 
 ### 🔊 [Text-to-Speech (TTS) System](./TTS-VOICE-GUIDE.md)
+
 *Discover all the yummy voices, multi-voice mode, speed controls, and make messages sound so good!*
 
 ### 🎯 [Trigger Detection System](./TRIGGERS-SYSTEM-GUIDE.md)
+
 *Everything about the 24 official BambiSleep triggers, categories, safety levels, and how to use them right!*
 
 ### 🌀 [Spiral Visual Controls](./SPIRAL-CONTROLS-GUIDE.md)
+
 *Customize your spirals! Control 14+ settings like speed, colors, geometry, and make them perfect!*
 
 ### 🧠 [Brainwave Generator](./BRAINWAVE-BEATS-GUIDE.md)
+
 *Explore binaural beats for meditation, focus, sleep! Learn about all the wave types safely!*
 
 ### 🔗 [Collar & Connection Settings](./COLLAR-SETTINGS-GUIDE.md)
+
 *Manage your connection, save/load settings, and keep everything personalized!*
 
 ## ✨ What's Inside! ✨
 
 ### 🎨 Visual Candy
+
 - **Hypnotic Spirals** - Ultra-customizable swirly animations made with p5.js
 - **Trigger Flashes** - Screen flashes when special words show up
 - **Glassmorphism UI** - Pritty translucent glowing interface
 - **Gradient Backgrounds** - Pink & teal gradients everywhere!
 
 ### 🔊 Audio Goodies
+
 - **6 Female AI Voices** - Choose from different voices (Kokoro TTS)
 - **Multi-Voice Mode** - Rotate between multiple voices automatically!
 - **Speed Control** - Slow (0.8x), Normal (1.0x), Fast (1.2x)
@@ -58,6 +66,7 @@ BambiSleep Chat is like, this totally amazing real-time chat app made just for t
 - **Audio Caching** - Super fast audio delivery
 
 ### 💬 Chat Features
+
 - **Dual Mode** - Switch between Global Chat & AI Girlfriend!
 - **Real-Time** - Instant messages via WebSockets
 - **Message History** - All your chats are saved
@@ -65,6 +74,7 @@ BambiSleep Chat is like, this totally amazing real-time chat app made just for t
 - **Trigger Detection** - Auto-detect 24 official BambiSleep words
 
 ### 🛡️ Safety Stuff
+
 - **Safety Levels** - Each trigger is rated (Super Safe → EXTREME)
 - **Volume Controls** - Adjust all the audio levels
 - **Toggle Everything** - Turn any feature on/off whenever!
@@ -87,6 +97,7 @@ BambiSleep Chat is like, this totally amazing real-time chat app made just for t
 ## 🎀 How Everything Works Together! 🎀
 
 ### The Control Panel (At the Top!)
+
 Your dropdown buttons are like magic controls! Each one opens to show options:
 
 - **Spiral 🌀** - Visual hypno settings
@@ -97,12 +108,15 @@ Your dropdown buttons are like magic controls! Each one opens to show options:
 - **Collar 🔗** - Connection & config
 
 ### Status Dots
+
 Each button has a colored dot:
+
 - **Green 🟢** = ON and working!
 - **Gray ⚪** = OFF or disabled
 - **Pink 💗** = AI girlfriend mode (special!)
 
 ### The Chat Area
+
 - **Top Input** = Global Chat (everyone sees!)
 - **Bottom Input** = AI Mode (just you & the AI!)
 - Messages show in the middle!
@@ -110,18 +124,21 @@ Each button has a colored dot:
 ## 💖 Tech Stuff (For Nerdy Bambis!) 💖
 
 **Frontend Magic:**
+
 - Vanilla ES6 JavaScript
 - p5.js for spirals
 - Socket.io for chat
 - CSS glassmorphism
 
 **Backend Power:**
+
 - Node.js + Express
 - Socket.io WebSockets
 - Worker threads for TTS & AI
 - JSON trigger system
 
 **Development:**
+
 - Vite dev server (port 5173)
 - Backend (port 6969)
 - Hot reloading!
@@ -129,11 +146,13 @@ Each button has a colored dot:
 ## 🌈 Need Help? 🌈
 
 **Want more info?** Check these out:
+
 - [Bambi Triggers Guide](./BAMBI-TRIGGERS-GUIDE.md) - All 24 triggers explained!
 - [Project Tree](./tree.md) - File structure
 - [BambiSleep Wiki](https://bambisleep.info/Welcome_to_Bambi_Sleep) - Official wiki
 
 **Having Issues?**
+
 - Check browser console (F12)
 - Make sure audio is allowed
 - Check your internet connection
@@ -164,7 +183,7 @@ The BambiSleep community is all about consent, safety, and having an amazing tim
 
 ### 🌟 **Ready to Start?** 🌟
 
-Pick a guide from above and learn everything about your favorite feature! Or just jump in and start clicking - it's all super easy and Bambi-friendly! 
+Pick a guide from above and learn everything about your favorite feature! Or just jump in and start clicking - it's all super easy and Bambi-friendly!
 
 **Have the best time ever!** 🌸💖✨🌀
 
@@ -173,6 +192,7 @@ Pick a guide from above and learn everything about your favorite feature! Or jus
 ---
 
 **Important Links:**
+
 - [BambiSleep FAQ](https://bambisleep.info/Bambi_Sleep_FAQ) - What is BambiSleep?
 - [Triggers](https://bambisleep.info/Triggers) - Official trigger list
 - [Safety Guide](https://bambisleep.info/Risks,_safety_and_advice) - Stay safe!

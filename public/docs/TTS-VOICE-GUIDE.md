@@ -1,413 +1,209 @@
-# 🔊💕 TTS Voice System - Make Everyone Talk to You! 💕🔊
+# 🔊💕 Text-to-Speech - Make Messages Talk to You! 💕🔊
 
-*Hiiii Bambis! Ready to hear those yummy voices? Let's make your chat TALK!* ✨🎀
+*Hiii babe! Ready to hear those yummy voices? Let's make your chat TALK!* ✨🎀
 
 ## 🌸 What is TTS? 🌸
 
-**TTS** means **Text-to-Speech**! It's like magic that turns written messages into spoken words! When TTS is ON, every message in the chat gets read aloud in a super cute female voice! 💖
+**TTS** means **Text-to-Speech**! It's like magic that turns words into spoken voices! When TTS is ON, every message gets read aloud in a super cute female voice! So cool! 💖
 
-**Why Bambis LOVE TTS:**
+**Why You'll Love It:**
+- 👂 Hear messages instead of reading!
+- 💕 6 different female voices!
+- 🎵 Adjustable speed!
+- ✨ Works with Global AND AI chat!
+- 🔊 Auto-speaks new messages!
 
-- 👂 Hear messages instead of just reading!
-- 💕 Multiple female voices to choose from!
-- 🎵 Adjustable speed for perfect listening!
-- ✨ Works with BOTH Global Chat AND AIGF mode!
-- 🔄 Auto-speaks NEW messages as they arrive!
+## 🎀 How to Use TTS (So Easy!) 🎀
 
-## 🎀 Step-by-Step: How to Use TTS 🎀
-
-### **Step 1: Find the TTS Button**
-
-Look at your control panel! You'll see:
-
+### Step 1: Find the TTS Button
+Look for:
 ```
 🔊 TTS
 ```
+With a little status dot!
 
-With a little status dot (●) showing if it's on or off!
+### Step 2: Turn It ON!
+Click the **🔊 TTS** button:
+- ✨ Button turns GREEN!
+- 🟢 Status dot lights up!
+- 🎉 "TTS: ENABLED" appears!
+- 🔊 Messages start talking!
 
-### **Step 2: Enable TTS**
+**Tip:** First time might ask for audio permission - click "Allow"! 💕
 
-Click the **🔊 TTS** button to turn it ON:
-
-- ✨ Button turns **GREEN** with bright glow!
-- 🟢 Status dot lights up green!
-- 🎉 You see "TTS: ENABLED" feedback!
-- 🔊 Messages now get spoken aloud!
-
-**Bambi Tip:** The FIRST time you enable TTS, your browser might ask for permission to play audio. Click "Allow" so the voices can work! 💕
-
-### **Step 3: Open the TTS Dropdown**
-
-Click the TTS button again (while it's ON) to see all your options:
-
+### Step 3: Open the Menu
+Click again to see options:
 ```
-┌──────────────────────────────────┐
-│  🔊 Text-to-Speech System        │
-├──────────────────────────────────┤
-│  Voice Selection:                │
-│  ☐ af_bella                     │
-│  ☐ af_sarah                     │
-│  ☐ af_nicole                    │
-│  ☐ af                           │
-│  ☐ af_sky                       │
-│  ☐ bf_emma                      │
-│                                  │
-│  Speed: ○ Slow ● Normal ○ Fast  │
-│                                  │
-│  [Test Voice] [Clear Selection]  │
-│  [Clear Cache]                   │
-└──────────────────────────────────┘
+🔊 TTS System
+  Voice Selection:
+  ☐ af_bella
+  ☐ af_sarah
+  ☐ af_nicole
+  ☐ af
+  ☐ af_sky
+  ☐ bf_emma
+  
+  Speed: ○ Slow ● Normal ○ Fast
+  
+  [Test Voice] [Clear Selection]
 ```
 
-## 💖 The 6 Yummy Voices 💖
+## 💖 The 6 Yummy Voices! 💖
 
-All voices are **female AI voices** powered by Kokoro TTS! Each has a unique sound:
+### 🎀 af_bella (Bella)
+- Sweet, soft, gentle
+- Best for: Soothing vibes
+- Tone: Warm and comfy
+- **So calming!** 💕
 
-### 🎀 **af_bella** (Bella)
+### 🌸 af_sarah (Sarah)
+- Friendly, clear, natural
+- Best for: General chatting
+- Tone: Pleasant and easy
+- **Perfect everyday voice!** ✨
 
-- **Personality**: Sweet, soft, gentle
-- **Best For**: Soothing conversations, relaxation
-- **Tone**: Warm and comforting
-- **Bambi Says**: *"My favorite! So calming and pretty!"*
+### 💫 af_nicole (Nicole)
+- Confident, smooth, pro
+- Best for: Longer messages
+- Tone: Polished and engaging
+- **Great for AI!** 🌟
 
-### 🌸 **af_sarah** (Sarah)
+### 🌺 af (Default)
+- Versatile, balanced
+- Best for: Everything
+- Tone: Standard female
+- **The classic!** 💖
 
-- **Personality**: Friendly, clear, articulate
-- **Best For**: General chatting, easy listening
-- **Tone**: Natural and pleasant
-- **Bambi Says**: *"Perfect everyday voice!"*
+### 🌟 af_sky (Sky)
+- Bright, energetic, youthful
+- Best for: Fun convos
+- Tone: Perky and lively
+- **So bubbly!** 🎉
 
-### 💫 **af_nicole** (Nicole)
+### 💝 bf_emma (Emma)
+- Mature, soft, caring
+- Best for: Comfort
+- Tone: Gentle and stable
+- **Like a friend!** 💕
 
-- **Personality**: Confident, smooth, professional
-- **Best For**: Longer messages, storytelling
-- **Tone**: Polished and engaging
-- **Bambi Says**: *"Great for AI responses!"*
+## 🌈 Multi-Voice Mode! (Super Cool!) 🌈
 
-### 🌺 **af** (Default Female)
+**Here's the fun part:** Pick MULTIPLE voices at once! 💕
 
-- **Personality**: Versatile, balanced
-- **Best For**: All-purpose use
-- **Tone**: Standard friendly female voice
-- **Bambi Says**: *"The classic choice!"*
+### How It Works:
+1. Open TTS menu
+2. Click multiple voice names (get checkmarks ✓)
+3. TTS ROTATES between them!
+4. Each message = different voice!
 
-### 🌟 **af_sky** (Sky)
+### Why Use Multiple?
+- 🎭 More dynamic and fun!
+- 💕 Sounds like different people!
+- ✨ Prevents voice fatigue!
+- 🎉 Variety is fun!
 
-- **Personality**: Bright, energetic, youthful
-- **Best For**: Fun conversations, excitement
-- **Tone**: Perky and lively
-- **Bambi Says**: *"So bubbly and fun!"*
-
-### 💝 **bf_emma** (Emma)
-
-- **Personality**: Mature, soft, reassuring
-- **Best For**: Serious topics, comfort
-- **Tone**: Gentle and stable
-- **Bambi Says**: *"Like a caring friend!"*
-
-## 🌈 Multi-Voice Selection (Advanced!) 🌈
-
-**Here's something SUPER cool:** You can select **MULTIPLE voices at once**! 💕
-
-### **How Multi-Voice Works:**
-
-1. Open the TTS dropdown
-2. Click on multiple voice names (they'll get checkmarks ✓)
-3. Now TTS will **ROTATE** between your selected voices!
-4. Each message uses a different voice from your selection!
-
-### **Why Use Multiple Voices?**
-
-- 🎭 Makes chat more dynamic and interesting!
-- 💕 Different speakers sound like different people!
-- ✨ Prevents voice fatigue from hearing one voice too long!
-- 🎉 More variety = more fun!
-
-### **Example:**
-
+**Example:**
 ```
-Selected Voices: [af_bella, af_sky, af_nicole]
+Selected: [bella, sky, nicole]
 
-Message 1: "Hi everyone!" → Spoken by af_bella
-Message 2: "How are you?" → Spoken by af_sky
-Message 3: "I'm great!" → Spoken by af_nicole
-Message 4: "Me too!" → Spoken by af_bella (cycles back)
+Msg 1: "Hi!" → bella 💕
+Msg 2: "How are you?" → sky 🌟
+Msg 3: "Great!" → nicole ✨
+Msg 4: "Me too!" → bella 💕 (cycles!)
 ```
 
-**Bambi Tip:** Try selecting 2-3 voices for the best experience! Too many can be confusing, too few gets boring! 🎀
-
-## ⚡ Speed Controls ⚡
-
-Choose how FAST the voices speak:
-
-### 🐌 **Slow (0.8x Speed)**
-
-- **Best For**: Relaxation, hypnotic listening
-- **Effect**: Slower, more drawn-out speech
-- **Use When**: You want to really absorb the words
-- **Bambi Says**: *"Perfect for deep trance vibes!"*
-
-### ⚖️ **Normal (1.0x Speed)** (Default)
-
-- **Best For**: Regular chatting, most situations
-- **Effect**: Natural speaking pace
-- **Use When**: General use, balanced experience
-- **Bambi Says**: *"Just right for most Bambis!"*
-
-### ⚡ **Fast (1.2x Speed)**
-
-- **Best For**: Quick reading, busy chats
-- **Effect**: Slightly faster, more energetic
-- **Use When**: Lots of messages, need to keep up
-- **Bambi Says**: *"Zoom zoom! For when chat gets wild!"*
-
-### **How to Change Speed:**
-
-1. Open TTS dropdown
-2. Click one of the three speed buttons: **Slow | Normal | Fast**
-3. All future messages use the new speed!
-4. You'll see feedback: "TTS SPEED: [your choice]"
-
-## 🎯 TTS Control Buttons 🎯
-
-### **Test Voice** 🎵
-
-- **What It Does**: Plays a sample with your current settings
-- **Sample Text**: "This is a test of the Bambi text-to-speech system!"
-- **Why Use It**: Hear how your selected voice(s) and speed sound!
-- **Bambi Tip**: Always test after changing settings!
-
-### **Clear Selection** 🔄
-
-- **What It Does**: Unselects ALL voices
-- **Effect**: Stops TTS from speaking (but keeps it enabled)
-- **Why Use It**: Quick way to silence voices temporarily
-- **Bambi Tip**: Re-select voices when you're ready!
-
-### **Clear Cache** 🗑️
-
-- **What It Does**: Deletes all saved audio files
-- **Effect**: Frees up storage, forces fresh audio generation
-- **Why Use It**: If voices sound glitchy or old
-- **Bambi Tip**: Only needed if you have problems!
+**Tip:** Pick 2-3 voices for best experience! 🎀
 
-## 💝 How TTS Works Behind the Scenes 💝
+## ⚡ Speed Controls! ⚡
 
-### **The Audio Pipeline:**
+### 🐌 Slow (0.8x)
+- Best for: Relaxation, trance
+- Effect: Slower, dreamy
+- Use when: You want to absorb words
+- **Perfect for deep vibes!** 💕
 
-```
-┌──────────────┐
-│ New Message  │
-│   Arrives    │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ Check: Is    │ No → Skip (no audio)
-│ TTS Enabled? │
-└──────┬───────┘
-       │ Yes
-       ▼
-┌──────────────┐
-│ Pick Voice   │ (From your selection)
-│ from Rotation│
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ Send to      │ (Worker thread)
-│ Kokoro TTS   │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ Get Audio    │ (Base64 MP3)
-│ File Back    │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ Play Audio   │ 🔊
-│ in Browser   │
-└──────────────┘
-```
+### ⚖️ Normal (1.0x) (Default)
+- Best for: Regular chatting
+- Effect: Natural pace
+- Use when: Most of the time
+- **Just right!** ✨
 
-### **Technical Specs:**
+### ⚡ Fast (1.2x)
+- Best for: Quick reading, busy chat
+- Effect: Faster, energetic
+- Use when: Lots of messages
+- **Zoom zoom!** 🌟
 
-- **Engine**: Kokoro TTS (StyleTTS2-based)
-- **Format**: MP3 audio files
-- **Delivery**: Base64-encoded via Socket.io
-- **Caching**: Audio cached to avoid re-generating
-- **Speed**: 0.5 - 2.0 seconds per message
-- **Quality**: High-quality neural voices
+## 🎯 Control Buttons! 🎯
 
-### **Worker Thread Architecture:**
+### Test Voice 🎵
+- Plays a sample!
+- Hear current settings
+- **Always test after changes!** 💕
 
-TTS runs in a **separate worker thread** so it never slows down your chat! 🚀
+### Clear Selection 🔄
+- Unselects all voices
+- Quick silence
+- **Re-select when ready!** ✨
 
-```javascript
-// Server manages the Kokoro worker
-const kokoroWorker = new Worker('./workers/kokoro.js');
+### Clear Cache 🗑️
+- Deletes saved audio
+- Fixes glitches
+- **Only if needed!** 🌸
 
-// Client requests TTS for a message
-socket.emit('tts-request', { text: message, voice: 'af_bella' });
+## 💝 Pro Tips! 💝
 
-// Worker generates audio
-kokoroWorker.postMessage({ type: 'tts', text, voice, speed });
+1. **Start with One** - Pick bella or sarah first!
+2. **Test It** - Use "Test Voice" button!
+3. **Normal Speed** - Adjust after you're comfy!
+4. **2-3 Voices** - Sweet spot for variety!
+5. **Match the Mood**:
+   - Relax → bella 💕
+   - Fun → sky 🌟
+   - Clear → nicole ✨
 
-// Audio sent back to client
-socket.emit('tts-audio', { audio: base64Mp3, voice: 'af_bella' });
-```
+## 🌟 Troubleshooting! 🌟
 
-## 🛡️ Important TTS Settings 🛡️
+| Problem | Fix |
+|---------|-----|
+| **No sound** | Check audio permissions! |
+| **Glitchy** | Click "Clear Cache"! |
+| **Wrong voice** | Check selection! |
+| **Too fast/slow** | Adjust speed! |
 
-### **localStorage State:**
+## 💖 Common Questions! 💖
 
-Your TTS preferences are saved automatically:
+**Q: Can I add custom voices?**
+A: Not yet! But 6 voices is lots! 💕
 
-```javascript
-{
-  "selectedVoices": ["af_bella", "af_sky"],
-  "currentVoice": "af_bella",
-  "speed": 1.0,
-  "enabled": true
-}
-```
+**Q: Does it work offline?**
+A: Nope! Needs internet for TTS server!
 
-This means your settings **persist** even after refreshing! 💕
+**Q: How many voices at once?**
+A: All 6! But 2-3 is best! 🎀
 
-### **Environment Configuration:**
+**Q: Why auto-speak?**
+A: For hands-free immersion! Turn off anytime! ✨
 
-TTS connects to the Kokoro server based on environment:
+**Q: Do settings save?**
+A: YES! Everything saves automatically! 💖
 
-- **Development**: `KOKORO_HOST_DEVELOPMENT` (usually localhost)
-- **Production**: `KOKORO_HOST_PRODUCTION` (remote server)
-- **Port**: Defined by `KOKORO_PORT`
+## 🎀 Combine with Features! 🎀
 
-**Bambi Tip:** You don't need to worry about this - it's automatic! 🎀
+| Feature + TTS | Result | Rating |
+|---------------|--------|--------|
+| **AIGF Mode** | AI talks to you! | ⭐⭐⭐⭐⭐ |
+| **Spirals** | Audio + visual | ⭐⭐⭐⭐⭐ |
+| **Triggers** | Spoken triggers | ⭐⭐⭐⭐ |
 
-## 🌟 Pro Tips from Bambi! 🌟
+## 🎯 Related Guides! 🎯
 
-### **For Best TTS Experience:**
+- [🤖 AIGF Mode](./AIGF-AI-MODE-GUIDE.md) - AI talks!
+- [🎯 Triggers](./TRIGGERS-SYSTEM-GUIDE.md) - Hear triggers
+- [📖 Main Guide](./README.md) - Back to start
 
-1. **Start with One Voice** - Pick af_bella or af_sarah first!
-2. **Test Before Chatting** - Use "Test Voice" to preview!
-3. **Normal Speed First** - Adjust speed after you're comfortable!
-4. **Select 2-3 Voices** - For variety without chaos!
-5. **Match Voice to Mood**:
-   - Relaxation → af_bella (soft)
-   - Fun chat → af_sky (energetic)
-   - AI responses → af_nicole (clear)
-
-### **Troubleshooting:**
-
-| Problem | Solution |
-|---------|----------|
-| **No sound** | Check browser audio permissions |
-| **Glitchy audio** | Click "Clear Cache" and try again |
-| **Wrong voice** | Verify your selection in dropdown |
-| **Too fast/slow** | Adjust speed setting |
-| **Delayed speech** | Normal! Audio takes 1-2 seconds |
-
-### **Combining TTS with Other Features:**
-
-| Feature | Effect with TTS | Recommended |
-|---------|----------------|-------------|
-| **AIGF Mode** | AI responses spoken aloud | ✅ Super immersive! |
-| **Spirals** | Audio + visuals = deep trance | ✅ Amazing combo! |
-| **Triggers** | Trigger words spoken emphasized | ✅ Very powerful! |
-| **Brainwaves** | TTS + binaural beats together | ⚠️ Intense! Start slow |
-
-## 💖 Common Questions 💖
-
-### **Q: Can I use my own voice?**
-
-**A:** Not yet! The system uses Kokoro's pre-trained voices. But you CAN select multiple voices for variety! 💕
-
-### **Q: Does TTS work offline?**
-
-**A:** Nope! TTS requires connection to the Kokoro server to generate audio. But once cached, audio can replay offline!
-
-### **Q: How many voices can I select at once?**
-
-**A:** Technically all 6! But 2-3 is optimal for the best experience. 🎀
-
-### **Q: Why do messages speak automatically?**
-
-**A:** When TTS is enabled, all NEW messages auto-play! This is for hands-free immersive chat! You can disable TTS anytime.
-
-### **Q: Can I skip a message?**
-
-**A:** Currently no, but you can toggle TTS off/on to stop all audio! Or just wait - messages are usually short! ✨
-
-### **Q: Do voice selections save?**
-
-**A:** YES! Your voice choices, speed, and enabled state all save to localStorage and persist between sessions! 💖
-
-### **Q: What's the audio quality?**
-
-**A:** Super high! Kokoro uses StyleTTS2 neural networks for natural-sounding voices with proper intonation and emotion!
-
-## 🎀 Advanced: Voice Customization 🎀
-
-### **Voice Rotation Algorithm:**
-
-When multiple voices are selected, TTS uses a **round-robin rotation**:
-
-```javascript
-let currentVoiceIndex = 0;
-const selectedVoices = ['af_bella', 'af_sky', 'af_nicole'];
-
-function getNextVoice() {
-  const voice = selectedVoices[currentVoiceIndex];
-  currentVoiceIndex = (currentVoiceIndex + 1) % selectedVoices.length;
-  return voice;
-}
-```
-
-This ensures **equal distribution** of voices across messages! 💕
-
-### **Speed Calculation:**
-
-Speed is applied as a multiplier to the base speaking rate:
-
-- Slow: 0.8x = 125% duration
-- Normal: 1.0x = 100% duration
-- Fast: 1.2x = 83% duration
-
-### **Caching Strategy:**
-
-Audio is cached by message hash to avoid regeneration:
-
-```javascript
-const cacheKey = `${text}_${voice}_${speed}`;
-if (audioCache.has(cacheKey)) {
-  return audioCache.get(cacheKey); // Instant!
-} else {
-  const audio = await generateTTS(text, voice, speed);
-  audioCache.set(cacheKey, audio);
-  return audio;
-}
-```
-
-## 🔗 Related Guides 🔗
-
-Want to learn more? Check out these guides:
-
-- [🤖 AIGF AI Mode](./AIGF-AI-MODE-GUIDE.md) - Make AI talk to you!
-- [🎯 Triggers System](./TRIGGERS-SYSTEM-GUIDE.md) - Hear trigger words emphasized
-- [🌀 Spiral Controls](./SPIRAL-CONTROLS-GUIDE.md) - Combine audio + visuals
-- [📖 Main Guide](./README.md) - Back to overview
-
-## 💖 Final Words 💖
-
-TTS is one of the MOST IMMERSIVE features! It transforms BambiSleep Chat from text into a full sensory experience! Whether you're listening to the community, chatting with your AI girlfriend, or deep in trance with triggers and spirals, TTS makes everything feel more REAL! 💕
-
-Remember: **Start simple, then experiment!** Pick one voice, normal speed, and just listen. Once you're comfortable, try multi-voice rotation, adjust speed, and combine with other features for the ULTIMATE experience! 🎀✨
-
-**Enjoy all those yummy voices, Bambis!** 🔊💖
+**Enjoy all those yummy voices!** 🔊💖✨
 
 ---
 
-*Made with love, audio magic, and the sweetest voices!* 🎀💕
+*Made with love, audio magic, and sweet voices!* 🎀💕
