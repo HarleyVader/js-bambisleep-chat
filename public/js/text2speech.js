@@ -118,6 +118,15 @@ class TextToSpeechSystem {
 
         this.socket.on('tts-error', (data) => {
             console.error('🎤 Kokoro TTS error from server:', data.error);
+
+            // Report error through error management system if available
+            if (window.chatCore && window.chatCore.errorManager) {
+                window.chatCore.errorManager.reportError('tts', 'service_unavailable', {
+                    message: data.error,
+                    retryCallback: () => this.retryCurrentText()
+                });
+            }
+
             // Fallback to Web Speech API
             this.fallbackToWebSpeech();
         });
@@ -292,6 +301,24 @@ class TextToSpeechSystem {
         }
     }
 
+    // Retry current text (for error recovery)
+    retryCurrentText() {
+        if (this.currentTTSText && this.currentTTSText.trim().length > 0) {
+            console.log('🎤 Retrying TTS for:', this.currentTTSText.substring(0, 50) + '...');
+
+            // Add back to the front of the queue
+            this.textArray.unshift({
+                display: this.currentText || this.currentTTSText,
+                tts: this.currentTTSText
+            });
+
+            // Reset state and restart processing
+            this.isPlaying = false;
+            this.state = true;
+            this.processTextQueue();
+        }
+    }
+
     splitTextIntoSentences(text) {
         // Split on sentence boundaries including asterisks, but preserve triggers as single units
         // Handle asterisks as sentence separators (common in AI responses)
@@ -369,6 +396,15 @@ class TextToSpeechSystem {
 
     handleAudioError(e) {
         console.error('🎤 Audio error:', e);
+
+        // Report error through error management system if available
+        if (window.chatCore && window.chatCore.errorManager) {
+            window.chatCore.errorManager.reportError('tts', 'audio_playback_failed', {
+                message: 'Failed to play generated audio',
+                error: e.message,
+                retryCallback: () => this.retryCurrentText()
+            });
+        }
 
         // Cleanup current audio URL
         if (this.currentAudioUrl) {
@@ -582,6 +618,11 @@ class TextToSpeechSystem {
 
     // UPGRADED: Enhanced TTS processing with better error handling and blob management
     async do_tts(array) {
+        // Environment check warning
+        if (window.location.hostname === 'bambisleep.chat' && window.location.port !== '5173') {
+            console.warn('🎤 WARNING: TTS may not work on production site during development. Use http://localhost:5173 for local development.');
+        }
+
         const messageEl = document.querySelector("#message");
         if (messageEl) messageEl.textContent = "Synthesizing...";
 
@@ -593,6 +634,11 @@ class TextToSpeechSystem {
 
         while (retries >= 0) {
             try {
+                // Enhanced logging for debugging
+                console.log(`🎤 TTS Request: ${currentURL}`);
+                console.log(`🎤 Current hostname: ${window.location.hostname}`);
+                console.log(`🎤 Current port: ${window.location.port}`);
+
                 // Fetch the audio from the server
                 const response = await fetch(currentURL, {
                     method: 'GET',
@@ -602,13 +648,17 @@ class TextToSpeechSystem {
                 });
 
                 if (!response.ok) {
+                    console.error(`🎤 TTS API Error: ${response.status} ${response.statusText}`);
+                    console.error(`🎤 Request URL: ${currentURL}`);
+                    console.error(`🎤 Response headers:`, [...response.headers.entries()]);
+
                     if (retries > 0) {
                         console.log(`🎤 Retrying TTS request (${retries} attempts left)...`);
                         retries--;
                         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
                         continue;
                     }
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                    throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
                 }
 
                 // Get audio data as blob

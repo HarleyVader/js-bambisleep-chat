@@ -18,61 +18,301 @@ const config = {
     TTS_TIMEOUT: parseInt(process.env.TTS_TIMEOUT) || 30000
 };
 
-// Configuration validation and setup
+// Comprehensive Environment Variable Validation System
+class EnvironmentValidator {
+    constructor() {
+        this.warnings = [];
+        this.errors = [];
+        this.envVars = {
+            // Required variables (application will fail without these)
+            required: [],
+
+            // Optional but recommended variables
+            optional: [
+                { name: 'PORT', default: 6969, type: 'port' },
+                { name: 'NODE_ENV', default: 'development', type: 'string' }
+            ],
+
+            // Service-specific configurations
+            lmStudio: [
+                { name: 'LMS_HOST_PRODUCTION', required: false, type: 'host' },
+                { name: 'LMS_HOST_DEVELOPMENT', required: false, type: 'host' },
+                { name: 'LMS_PORT', default: 7777, type: 'port' },
+                { name: 'TARGET_MODEL_NAME', required: false, type: 'string' },
+                { name: 'MAX_SEARCH_ATTEMPTS', default: 3, type: 'number' },
+                { name: 'LMS_MODEL_LOAD_TIMEOUT', default: 30000, type: 'number' },
+                { name: 'LMS_API_CALL_TIMEOUT', default: 120000, type: 'number' },
+                { name: 'LMS_REST_API_TIMEOUT', default: 5000, type: 'number' },
+                { name: 'SESSION_TIMEOUT_MINUTES', default: 15, type: 'number' }
+            ],
+
+            // TTS (Kokoro) configurations
+            kokoro: [
+                { name: 'KOKORO_HOST_PRODUCTION', required: false, type: 'host' },
+                { name: 'KOKORO_HOST_DEVELOPMENT', required: false, type: 'host' },
+                { name: 'KOKORO_PORT', default: 8880, type: 'port' },
+                { name: 'KOKORO_DEFAULT_VOICE', default: 'af_sky+af_bella', type: 'string' },
+                { name: 'TTS_TIMEOUT', default: 300000, type: 'number' }
+            ],
+
+            // Application configurations
+            application: [
+                { name: 'MAX_CONTEXT_TOKENS', default: 6144, type: 'number' },
+                { name: 'MAX_COMPLETION_TOKENS', default: 2048, type: 'number' },
+                { name: 'MAX_MESSAGE_LENGTH', default: 500, type: 'number' },
+                { name: 'CHAT_HISTORY_LIMIT', default: 100, type: 'number' },
+                { name: 'DEBUG_MODE', default: 'true', type: 'boolean' },
+                { name: 'LOG_LEVEL', default: 'info', type: 'string' }
+            ]
+        };
+    }
+
+    validate() {
+        console.log('🔧 Comprehensive Environment Validation Starting...');
+
+        // Validate each category
+        this.validateCategory('optional', 'Basic Configuration');
+        this.validateCategory('lmStudio', 'LM Studio AI Configuration');
+        this.validateCategory('kokoro', 'Kokoro TTS Configuration');
+        this.validateCategory('application', 'Application Configuration');
+
+        // Service-specific validation
+        this.validateServiceConfigurations();
+
+        // Report results
+        this.reportResults();
+
+        return this.getValidationSummary();
+    }
+
+    validateCategory(category, displayName) {
+        console.log(`📋 Validating ${displayName}...`);
+
+        const variables = this.envVars[category];
+        if (!variables) return;
+
+        variables.forEach(varConfig => {
+            this.validateVariable(varConfig, category);
+        });
+    }
+
+    validateVariable(config, category) {
+        const { name, required, default: defaultValue, type } = config;
+        const value = process.env[name];
+
+        // Check if variable exists
+        if (!value) {
+            if (required) {
+                this.errors.push({
+                    category,
+                    variable: name,
+                    message: `Missing required environment variable: ${name}`,
+                    suggestion: `Add ${name}=<value> to your .env file`
+                });
+            } else if (defaultValue !== undefined) {
+                this.warnings.push({
+                    category,
+                    variable: name,
+                    message: `${name} not set, using default: ${defaultValue}`,
+                    suggestion: `Consider setting ${name}=${defaultValue} in .env file`
+                });
+                // Set default value
+                process.env[name] = String(defaultValue);
+            } else {
+                this.warnings.push({
+                    category,
+                    variable: name,
+                    message: `${name} not configured - related features may be limited`,
+                    suggestion: `Add ${name}=<value> to enable full functionality`
+                });
+            }
+            return;
+        }
+
+        // Type validation
+        if (!this.validateType(value, type, name)) {
+            this.warnings.push({
+                category,
+                variable: name,
+                message: `${name} has unexpected format for type ${type}: ${value}`,
+                suggestion: `Check ${name} format in .env file`
+            });
+        }
+    }
+
+    validateType(value, type, varName) {
+        switch (type) {
+            case 'port':
+                const port = parseInt(value);
+                return !isNaN(port) && port > 0 && port <= 65535;
+
+            case 'number':
+                return !isNaN(parseFloat(value));
+
+            case 'boolean':
+                return ['true', 'false', '1', '0'].includes(value.toLowerCase());
+
+            case 'host':
+                // Basic host validation (IP or hostname)
+                return /^[a-zA-Z0-9.-]+$/.test(value) || value === 'localhost';
+
+            case 'string':
+            default:
+                return typeof value === 'string' && value.length > 0;
+        }
+    }
+
+    validateServiceConfigurations() {
+        // LM Studio service validation
+        this.validateLMStudioConfig();
+
+        // Kokoro TTS service validation
+        this.validateKokoroConfig();
+    }
+
+    validateLMStudioConfig() {
+        const isProduction = process.env.NODE_ENV === 'production';
+        const hostVar = isProduction ? 'LMS_HOST_PRODUCTION' : 'LMS_HOST_DEVELOPMENT';
+        const host = process.env[hostVar];
+
+        if (!host) {
+            this.warnings.push({
+                category: 'lmStudio',
+                variable: hostVar,
+                message: `LM Studio host not configured for ${process.env.NODE_ENV} environment`,
+                suggestion: `Set ${hostVar} in .env file to enable AI chat features`
+            });
+        }
+
+        // Check if model configuration is complete
+        if (!process.env.TARGET_MODEL_NAME) {
+            this.warnings.push({
+                category: 'lmStudio',
+                variable: 'TARGET_MODEL_NAME',
+                message: 'AI model name not specified - auto-loading may fail',
+                suggestion: 'Set TARGET_MODEL_NAME to specify preferred AI model'
+            });
+        }
+    }
+
+    validateKokoroConfig() {
+        const isProduction = process.env.NODE_ENV === 'production';
+        const hostVar = isProduction ? 'KOKORO_HOST_PRODUCTION' : 'KOKORO_HOST_DEVELOPMENT';
+        const host = process.env[hostVar];
+
+        if (!host) {
+            this.warnings.push({
+                category: 'kokoro',
+                variable: hostVar,
+                message: `Kokoro TTS host not configured for ${process.env.NODE_ENV} environment`,
+                suggestion: `Set ${hostVar} in .env file to enable advanced TTS features`
+            });
+        }
+
+        // Validate voice configuration
+        const voice = process.env.KOKORO_DEFAULT_VOICE;
+        if (voice && !this.isValidKokoroVoice(voice)) {
+            this.warnings.push({
+                category: 'kokoro',
+                variable: 'KOKORO_DEFAULT_VOICE',
+                message: `Unrecognized voice format: ${voice}`,
+                suggestion: 'Use format like "af_bella" or "af_sky+af_bella" for voice mixing'
+            });
+        }
+    }
+
+    isValidKokoroVoice(voice) {
+        // Basic voice validation for Kokoro format
+        const validVoicePattern = /^[a-z]{2}_[a-z]+(\+[a-z]{2}_[a-z]+)*$/;
+        return validVoicePattern.test(voice);
+    }
+
+    reportResults() {
+        // Report errors first
+        if (this.errors.length > 0) {
+            console.error('❌ Configuration Errors:');
+            this.errors.forEach(error => {
+                console.error(`   • ${error.message}`);
+                console.error(`     💡 ${error.suggestion}`);
+            });
+        }
+
+        // Report warnings
+        if (this.warnings.length > 0) {
+            console.warn('⚠️  Configuration Warnings:');
+            this.warnings.forEach(warning => {
+                console.warn(`   • ${warning.message}`);
+                console.warn(`     💡 ${warning.suggestion}`);
+            });
+        }
+
+        // Success message if no errors
+        if (this.errors.length === 0) {
+            console.log('✅ Environment validation completed successfully');
+            if (this.warnings.length === 0) {
+                console.log('🎉 Perfect configuration - all variables properly set!');
+            }
+        }
+    }
+
+    getValidationSummary() {
+        const summary = {
+            success: this.errors.length === 0,
+            errorCount: this.errors.length,
+            warningCount: this.warnings.length,
+            errors: this.errors,
+            warnings: this.warnings,
+            servicesAvailable: {
+                lmStudio: this.isServiceConfigured('lmStudio'),
+                kokoro: this.isServiceConfigured('kokoro')
+            }
+        };
+
+        // Exit if critical errors exist
+        if (this.errors.length > 0) {
+            console.error('💥 Configuration validation failed. Please fix the errors above.');
+            console.error('📖 Refer to .env.example for proper configuration format.');
+            process.exit(1);
+        }
+
+        return summary;
+    }
+
+    isServiceConfigured(service) {
+        const isProduction = process.env.NODE_ENV === 'production';
+
+        switch (service) {
+            case 'lmStudio':
+                const lmsHost = isProduction ?
+                    process.env.LMS_HOST_PRODUCTION :
+                    process.env.LMS_HOST_DEVELOPMENT;
+                return !!(lmsHost && process.env.LMS_PORT);
+
+            case 'kokoro':
+                const kokoroHost = isProduction ?
+                    process.env.KOKORO_HOST_PRODUCTION :
+                    process.env.KOKORO_HOST_DEVELOPMENT;
+                return !!(kokoroHost && process.env.KOKORO_PORT);
+
+            default:
+                return false;
+        }
+    }
+}
+
+// Configuration validation function (maintaining compatibility)
 function validateConfiguration() {
-    console.log('🔧 Validating configuration...');
+    const validator = new EnvironmentValidator();
+    const result = validator.validate();
 
-    const warnings = [];
-    const errors = [];
+    // Log final summary
+    console.log('\n📊 Configuration Summary:');
+    console.log(`   🔧 Services Available:`);
+    console.log(`      • LM Studio AI: ${result.servicesAvailable.lmStudio ? '✅' : '❌'}`);
+    console.log(`      • Kokoro TTS: ${result.servicesAvailable.kokoro ? '✅' : '❌'}`);
+    console.log(`   📈 Status: ${result.errorCount} errors, ${result.warningCount} warnings\n`);
 
-    // Check required environment variables
-    if (!process.env.PORT && !process.env.port) {
-        warnings.push('PORT not set, using default 6969');
-    }
-
-    // Validate Kokoro TTS configuration
-    const kokoroHost = process.env.KOKORO_HOST_DEVELOPMENT || process.env.KOKORO_HOST_PRODUCTION;
-    const kokoroPort = process.env.KOKORO_PORT;
-
-    if (!kokoroHost) {
-        warnings.push('Kokoro TTS host not configured - TTS will be limited to Web Speech API');
-    }
-
-    if (!kokoroPort) {
-        warnings.push('Kokoro TTS port not set, using default 8880');
-    }
-
-    // Validate LM Studio configuration
-    const lmsHost = process.env.NODE_ENV === 'production'
-        ? process.env.LMS_HOST_PRODUCTION
-        : process.env.LMS_HOST_DEVELOPMENT;
-
-    if (!lmsHost) {
-        warnings.push('LM Studio host not configured for current environment, using default localhost');
-    }
-
-    if (!process.env.LMS_PORT) {
-        warnings.push('LM Studio port not configured, using default 7777');
-    }
-
-    // Log warnings
-    warnings.forEach(warning => console.warn('⚠️ ', warning));
-
-    // Log errors and exit if critical
-    if (errors.length > 0) {
-        errors.forEach(error => console.error('❌', error));
-        console.error('💥 Configuration validation failed. Please check your .env file.');
-        process.exit(1);
-    }
-
-    console.log('✅ Configuration validation completed');
-
-    return {
-        warnings: warnings.length,
-        errors: errors.length,
-        ttsAvailable: !!kokoroHost,
-        lmStudioConfigured: !!(lmsHost || process.env.LMS_PORT)
-    };
+    return result;
 }
 
 const app = express();
@@ -91,10 +331,135 @@ const configStatus = validateConfiguration();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory storage (replace with database in production)
-let globalChatHistory = []; // Global community chat history
-let aigfChatHistory = []; // AIGF AI chat history
-let chatHistory = []; // Legacy - maintain for backward compatibility
+// Unified Chat History Management System
+class ChatHistoryManager {
+    constructor() {
+        this.messages = new Map(); // Store messages by type
+        this.maxLimits = {
+            'global': 100,      // Global community chat
+            'aigf': 100,        // AI chat responses
+            'legacy': 200,      // Legacy compatibility
+            'all': 500          // Overall message limit
+        };
+
+        // Initialize message arrays by type
+        this.messages.set('global', []);
+        this.messages.set('aigf', []);
+        this.messages.set('legacy', []);
+    }
+
+    // Add message to specific history type(s)
+    addMessage(messageData, types = ['legacy']) {
+        const timestamp = new Date().toISOString();
+        const enhancedMessage = {
+            ...messageData,
+            id: this.generateMessageId(),
+            serverTimestamp: timestamp,
+            types: types // Track which histories this message belongs to
+        };
+
+        // Add to specified types
+        types.forEach(type => {
+            if (this.messages.has(type)) {
+                const history = this.messages.get(type);
+                history.push(enhancedMessage);
+
+                // Maintain size limits
+                const limit = this.maxLimits[type] || this.maxLimits.legacy;
+                if (history.length > limit) {
+                    history.shift();
+                }
+            }
+        });
+
+        console.log(`📝 Added message to histories: [${types.join(', ')}] - "${messageData.message?.substring(0, 50) || 'N/A'}..."`);
+        return enhancedMessage;
+    }
+
+    // Get history for specific type
+    getHistory(type, limit = null) {
+        const history = this.messages.get(type) || [];
+        if (limit) {
+            return history.slice(-limit);
+        }
+        return [...history]; // Return copy
+    }
+
+    // Get combined history (all types)
+    getAllHistory(limit = null) {
+        const allMessages = [];
+
+        // Collect all messages from all types
+        this.messages.forEach((history, type) => {
+            allMessages.push(...history);
+        });
+
+        // Remove duplicates based on message ID and sort by timestamp
+        const uniqueMessages = [...new Map(
+            allMessages.map(msg => [msg.id, msg])
+        ).values()];
+
+        uniqueMessages.sort((a, b) =>
+            new Date(a.serverTimestamp) - new Date(b.serverTimestamp)
+        );
+
+        return limit ? uniqueMessages.slice(-limit) : uniqueMessages;
+    }
+
+    // Legacy compatibility methods
+    getGlobalHistory(limit = 20) {
+        return this.getHistory('global', limit);
+    }
+
+    getAIGFHistory(limit = 20) {
+        return this.getHistory('aigf', limit);
+    }
+
+    getLegacyHistory(limit = 20) {
+        return this.getHistory('legacy', limit);
+    }
+
+    // Statistics and management
+    getStats() {
+        const stats = {
+            totalMessages: 0,
+            byType: {}
+        };
+
+        this.messages.forEach((history, type) => {
+            stats.byType[type] = history.length;
+            stats.totalMessages += history.length;
+        });
+
+        return stats;
+    }
+
+    // Generate unique message ID
+    generateMessageId() {
+        return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    // Clear specific history type
+    clearHistory(type) {
+        if (this.messages.has(type)) {
+            this.messages.get(type).length = 0;
+            console.log(`🗑️ Cleared ${type} chat history`);
+        }
+    }
+
+    // Clear all histories
+    clearAllHistory() {
+        this.messages.forEach((history, type) => {
+            history.length = 0;
+        });
+        console.log('🗑️ Cleared all chat histories');
+    }
+}
+
+// Initialize unified chat history system
+const chatHistoryManager = new ChatHistoryManager();
+
+// Legacy compatibility - maintain existing variable names for backward compatibility
 let triggerWords = []; // Will be loaded from official triggers.json
 let triggerData = {}; // Full trigger data for API endpoints
 let connectedUsers = 0;
@@ -153,27 +518,32 @@ function initializeLMWorker() {
         });
 
         lmWorker.on('error', (error) => {
-            console.error('LM Studio worker error:', error);
+            console.error('❌ LM Studio worker error:', error);
+            lmWorker = null; // Mark as unavailable
         });
 
         lmWorker.on('exit', (code) => {
-            console.log(`LM Studio worker exited with code ${code}`);
+            console.log(`❌ LM Studio worker exited with code ${code}`);
+            lmWorker = null; // Mark as unavailable
             if (code !== 0) {
-                console.log('Restarting LM Studio worker...');
+                console.log('🔄 Restarting LM Studio worker in 5 seconds...');
                 setTimeout(initializeLMWorker, 5000);
             }
         });
 
-        // Send initial triggers and full trigger data to worker
-        lmWorker.postMessage({
-            type: 'triggers',
-            triggers: triggerWords,
-            triggerData: triggerData // Send full trigger data to worker
-        });
+        // Send initial triggers and full trigger data to worker (safely)
+        if (lmWorker) {
+            lmWorker.postMessage({
+                type: 'triggers',
+                triggers: triggerWords,
+                triggerData: triggerData // Send full trigger data to worker
+            });
+        }
 
-        console.log('LM Studio worker initialized');
+        console.log('✅ LM Studio worker initialized');
     } catch (error) {
-        console.error('Failed to initialize LM Studio worker:', error);
+        console.error('❌ Failed to initialize LM Studio worker:', error);
+        lmWorker = null; // Ensure it's marked as unavailable
     }
 }
 
@@ -186,21 +556,63 @@ function initializeKokoroWorker() {
         });
 
         kokoroWorker.on('error', (error) => {
-            console.error('Kokoro TTS worker error:', error);
+            console.error('❌ Kokoro TTS worker error:', error);
+            kokoroWorker = null; // Mark as unavailable
         });
 
         kokoroWorker.on('exit', (code) => {
-            console.log(`Kokoro TTS worker exited with code ${code}`);
+            console.log(`❌ Kokoro TTS worker exited with code ${code}`);
+            kokoroWorker = null; // Mark as unavailable
             if (code !== 0) {
-                console.log('Restarting Kokoro TTS worker...');
+                console.log('🔄 Restarting Kokoro TTS worker in 5 seconds...');
                 setTimeout(initializeKokoroWorker, 5000);
             }
         });
 
-        console.log('🎤 Kokoro TTS worker initialized');
+        console.log('✅ Kokoro TTS worker initialized');
     } catch (error) {
-        console.error('Failed to initialize Kokoro TTS worker:', error);
+        console.error('❌ Failed to initialize Kokoro TTS worker:', error);
+        kokoroWorker = null; // Ensure it's marked as unavailable
     }
+}
+
+// Helper functions to safely interact with workers
+function sendToLMWorker(message, fallbackCallback = null) {
+    if (lmWorker) {
+        try {
+            lmWorker.postMessage(message);
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to send message to LM worker:', error);
+            lmWorker = null;
+        }
+    }
+
+    // Worker unavailable - handle gracefully
+    console.warn('⚠️ LM Studio worker unavailable, using fallback');
+    if (fallbackCallback) {
+        fallbackCallback();
+    }
+    return false;
+}
+
+function sendToKokoroWorker(message, fallbackCallback = null) {
+    if (kokoroWorker) {
+        try {
+            kokoroWorker.postMessage(message);
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to send message to Kokoro worker:', error);
+            kokoroWorker = null;
+        }
+    }
+
+    // Worker unavailable - handle gracefully
+    console.warn('⚠️ Kokoro TTS worker unavailable, using fallback');
+    if (fallbackCallback) {
+        fallbackCallback();
+    }
+    return false;
 }
 
 // Handle messages from LM Studio worker
@@ -238,16 +650,8 @@ function handleLMWorkerMessage(msg) {
                     type: 'aigf'
                 };
 
-                aigfChatHistory.push(messageData);
-                if (aigfChatHistory.length > 100) {
-                    aigfChatHistory.shift();
-                }
-
-                // Also add to legacy history for backward compatibility
-                chatHistory.push(messageData);
-                if (chatHistory.length > 200) { // Keep more for legacy
-                    chatHistory.shift();
-                }
+                // Add to unified chat history system
+                chatHistoryManager.addMessage(messageData, ['aigf', 'legacy']);
             }
             break;
 
@@ -350,11 +754,9 @@ io.on('connection', (socket) => {
     console.log(`🔍 User Agent: ${userAgent?.substring(0, 100)}`);
     console.log(`🔍 Connection origin:`, socket.handshake.headers.origin);
 
-    // Send recent global chat history to new user
-    socket.emit('global-chat-history', globalChatHistory.slice(-20));
-
-    // Send legacy chat history for backward compatibility
-    socket.emit('chat-history', chatHistory.slice(-20));
+    // Send recent chat histories to new user using unified system
+    socket.emit('global-chat-history', chatHistoryManager.getGlobalHistory(20));
+    socket.emit('chat-history', chatHistoryManager.getLegacyHistory(20));
 
     // Broadcast connection count (use unique users for display)
     io.emit('user-count', uniqueUsers.size);
@@ -371,17 +773,8 @@ io.on('connection', (socket) => {
             type: 'global'
         };
 
-        // Store in both global and legacy histories
-        globalChatHistory.push(messageData);
-        chatHistory.push(messageData);
-
-        // Keep only last 100 messages in each
-        if (globalChatHistory.length > 100) {
-            globalChatHistory.shift();
-        }
-        if (chatHistory.length > 200) {
-            chatHistory.shift();
-        }
+        // Store in unified chat history system
+        chatHistoryManager.addMessage(messageData, ['global', 'legacy']);
 
         // Broadcast to all clients with both events
         socket.broadcast.emit('message', messageData); // Legacy
@@ -401,13 +794,8 @@ io.on('connection', (socket) => {
             type: 'global'
         };
 
-        // Store in global chat history only
-        globalChatHistory.push(messageData);
-
-        // Keep only last 100 messages
-        if (globalChatHistory.length > 100) {
-            globalChatHistory.shift();
-        }
+        // Store in unified chat history system (global only)
+        chatHistoryManager.addMessage(messageData, ['global']);
 
         // Broadcast to all clients as global message
         socket.broadcast.emit('global-message', messageData);
@@ -435,12 +823,19 @@ io.on('connection', (socket) => {
         workerUsers.set(socket.id, username);
 
         // Send message to worker with user-selected triggers
-        lmWorker.postMessage({
+        const success = sendToLMWorker({
             type: 'chat',
             prompt: data.message,
             socketId: socket.id,
             username: username,
             triggers: userTriggers // Pass user-selected triggers to worker
+        }, () => {
+            // Fallback: Send error response to client
+            socket.emit('ai-response', {
+                content: 'AI chat is currently unavailable. Please check your LM Studio configuration.',
+                triggers: [],
+                isError: true
+            });
         });
     });
 
@@ -448,13 +843,11 @@ io.on('connection', (socket) => {
     socket.on('update-triggers', (data) => {
         if (data.triggers && Array.isArray(data.triggers)) {
             // Update triggers for this socket
-            if (lmWorker) {
-                lmWorker.postMessage({
-                    type: 'triggers',
-                    triggers: data.triggers,
-                    socketId: socket.id
-                });
-            }
+            sendToLMWorker({
+                type: 'triggers',
+                triggers: data.triggers,
+                socketId: socket.id
+            });
             console.log(`Updated triggers for ${socket.id}: ${data.triggers.join(', ')}`);
         }
     });
@@ -485,12 +878,17 @@ io.on('connection', (socket) => {
         console.log(`🎤 TTS request from ${socket.id}: "${text.substring(0, 50)}..." -> cleaned: "${cleanedText.substring(0, 50)}..."`);
 
         // Send to Kokoro worker
-        kokoroWorker.postMessage({
+        sendToKokoroWorker({
             type: 'tts',
             text: cleanedText, // Send cleaned lowercase text
             voice: voice,
             format: format,
             socketId: socket.id
+        }, () => {
+            socket.emit('tts-error', {
+                error: 'Kokoro TTS service unavailable. Please check your configuration.',
+                timestamp: new Date().toISOString()
+            });
         });
     });
 
@@ -516,7 +914,7 @@ io.on('connection', (socket) => {
 
         console.log(`🎤 Voice update from ${socket.id}: ${voice}`);
 
-        kokoroWorker.postMessage({
+        sendToKokoroWorker({
             type: 'set_voice',
             voice: voice,
             socketId: socket.id
@@ -528,13 +926,11 @@ io.on('connection', (socket) => {
         collarActive = true;
         collarText = data.text || 'Collar activated for deeper submission and control.';
 
-        if (lmWorker) {
-            lmWorker.postMessage({
-                type: 'collar',
-                data: collarText,
-                socketId: socket.id
-            });
-        }
+        sendToLMWorker({
+            type: 'collar',
+            data: collarText,
+            socketId: socket.id
+        });
 
         console.log(`Collar activated for ${socket.id}: "${collarText.substring(0, 30)}..."`);
 
@@ -563,20 +959,20 @@ io.on('connection', (socket) => {
     // Manual model loading trigger
     socket.on('load-model', () => {
         console.log(`Manual model load requested by ${socket.id}`);
-        if (lmWorker) {
-            lmWorker.postMessage({
-                type: 'auto_load_model'
-            });
-
-            socket.emit('model-status', {
-                loading: true,
-                message: 'Searching for best l3-sthenomaidblackroot-8b-v1 model...',
-                timestamp: new Date().toISOString()
-            });
-        } else {
+        const success = sendToLMWorker({
+            type: 'auto_load_model'
+        }, () => {
             socket.emit('model-status', {
                 error: true,
                 message: 'LM Studio worker not available',
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        if (success) {
+            socket.emit('model-status', {
+                loading: true,
+                message: 'Searching for best l3-sthenomaidblackroot-8b-v1 model...',
                 timestamp: new Date().toISOString()
             });
         }
@@ -636,18 +1032,20 @@ app.use('/docs', express.static(path.join(__dirname, 'public', 'docs')));
 // Chat history (legacy - combined)
 app.get('/api/history', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
+    const messages = chatHistoryManager.getLegacyHistory(limit);
     res.json({
-        messages: chatHistory.slice(-limit),
-        total: chatHistory.length
+        messages: messages,
+        total: chatHistoryManager.getHistory('legacy').length
     });
 });
 
 // Global chat history
 app.get('/api/global/history', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
+    const messages = chatHistoryManager.getGlobalHistory(limit);
     res.json({
-        messages: globalChatHistory.slice(-limit),
-        total: globalChatHistory.length,
+        messages: messages,
+        total: chatHistoryManager.getHistory('global').length,
         type: 'global'
     });
 });
@@ -655,31 +1053,36 @@ app.get('/api/global/history', (req, res) => {
 // AIGF chat history
 app.get('/api/aigf/history', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
+    const messages = chatHistoryManager.getAIGFHistory(limit);
     res.json({
-        messages: aigfChatHistory.slice(-limit),
-        total: aigfChatHistory.length,
+        messages: messages,
+        total: chatHistoryManager.getHistory('aigf').length,
         type: 'aigf'
     });
 });
 
 // Global chat statistics
 app.get('/api/global/stats', (req, res) => {
+    const stats = chatHistoryManager.getStats();
+    const recentGlobal = chatHistoryManager.getGlobalHistory(5);
+
     res.json({
-        totalMessages: globalChatHistory.length,
+        totalMessages: stats.byType.global || 0,
         connectedUsers: connectedUsers,
         uniqueUsers: uniqueUsers.size,
-        recentActivity: globalChatHistory.slice(-5).map(msg => ({
+        recentActivity: recentGlobal.map(msg => ({
             timestamp: msg.timestamp,
             user: msg.username || msg.user
         })),
+        historyStats: stats,
         timestamp: new Date().toISOString()
     });
 });
 
 // Clear global chat history (admin endpoint)
 app.post('/api/global/clear', (req, res) => {
-    const originalCount = globalChatHistory.length;
-    globalChatHistory = [];
+    const originalCount = chatHistoryManager.getHistory('global').length;
+    chatHistoryManager.clearHistory('global');
 
     // Broadcast to all connected clients
     io.emit('global-chat-cleared', {
@@ -694,6 +1097,67 @@ app.post('/api/global/clear', (req, res) => {
     });
 
     console.log(`🌍 Global chat history cleared: ${originalCount} messages`);
+});
+
+// Unified chat history management endpoints
+app.get('/api/chat/stats', (req, res) => {
+    const stats = chatHistoryManager.getStats();
+    res.json({
+        success: true,
+        statistics: stats,
+        limits: chatHistoryManager.maxLimits,
+        timestamp: new Date().toISOString()
+    });
+});
+
+app.get('/api/chat/all', (req, res) => {
+    const limit = parseInt(req.query.limit) || 50;
+    const messages = chatHistoryManager.getAllHistory(limit);
+    res.json({
+        success: true,
+        messages: messages,
+        total: messages.length,
+        timestamp: new Date().toISOString()
+    });
+});
+
+app.post('/api/chat/clear/:type', (req, res) => {
+    const { type } = req.params;
+    const validTypes = ['global', 'aigf', 'legacy', 'all'];
+
+    if (!validTypes.includes(type)) {
+        return res.status(400).json({
+            success: false,
+            error: `Invalid chat type. Valid types: ${validTypes.join(', ')}`
+        });
+    }
+
+    const originalCount = type === 'all'
+        ? chatHistoryManager.getStats().totalMessages
+        : chatHistoryManager.getHistory(type).length;
+
+    if (type === 'all') {
+        chatHistoryManager.clearAllHistory();
+    } else {
+        chatHistoryManager.clearHistory(type);
+    }
+
+    // Broadcast appropriate clear events
+    if (type === 'global' || type === 'all') {
+        io.emit('global-chat-cleared', {
+            timestamp: new Date().toISOString(),
+            clearedCount: originalCount
+        });
+    }
+
+    res.json({
+        success: true,
+        clearedType: type,
+        clearedMessages: originalCount,
+        timestamp: new Date().toISOString()
+    });
+
+    console.log(`🗑️ Chat history cleared - Type: ${type}, Messages: ${originalCount}`);
 });
 
 // Enhanced trigger management with full official data
@@ -775,13 +1239,26 @@ app.post('/api/chat', (req, res) => {
     const tempSocketId = `api_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Send to worker
-    lmWorker.postMessage({
+    const success = sendToLMWorker({
         type: 'chat',
         prompt: message,
         socketId: tempSocketId,
         username: username || 'Anonymous',
         triggers: triggers || [] // Pass triggers to worker
+    }, () => {
+        res.status(503).json({
+            error: 'LM Studio worker not available. Please check your configuration.',
+            configurable: true
+        });
+        if (global.pendingAPIRequests && global.pendingAPIRequests[tempSocketId]) {
+            clearTimeout(global.pendingAPIRequests[tempSocketId].timeout);
+            delete global.pendingAPIRequests[tempSocketId];
+        }
     });
+
+    if (!success) {
+        return; // Fallback already handled the response
+    }
 
     // Set a timeout to respond
     const timeout = setTimeout(() => {
@@ -803,8 +1280,8 @@ app.post('/api/collar', (req, res) => {
     collarActive = Boolean(active);
     collarText = active ? (text || 'Collar activated for deeper submission and control.') : '';
 
-    if (lmWorker && active) {
-        lmWorker.postMessage({
+    if (active) {
+        sendToLMWorker({
             type: 'collar',
             data: collarText
         });
@@ -1008,13 +1485,19 @@ async function generateTTSAudio(text, voice, res, format = 'mp3') {
         console.log(`🎤 API TTS request: "${text.substring(0, 50)}..." -> cleaned: "${cleanedText.substring(0, 50)}..." with voice: ${voice}`);
 
         // Send to Kokoro worker
-        kokoroWorker.postMessage({
+        const success = sendToKokoroWorker({
             type: 'tts',
             text: cleanedText, // Send cleaned lowercase text
             voice: voice,
             format: format,
             socketId: tempSocketId
+        }, () => {
+            reject(new Error('Kokoro TTS worker unavailable. Please check your configuration.'));
         });
+
+        if (!success) {
+            return; // Fallback already handled the error
+        }
 
         // Set a timeout to respond
         const timeout = setTimeout(() => {
@@ -1117,16 +1600,18 @@ app.post('/api/tts/voice', (req, res) => {
         });
     }
 
-    if (!kokoroWorker) {
+    const success = sendToKokoroWorker({
+        type: 'set_voice',
+        voice: voice
+    }, () => {
         return res.status(503).json({
             error: 'Kokoro TTS worker not available'
         });
-    }
-
-    kokoroWorker.postMessage({
-        type: 'set_voice',
-        voice: voice
     });
+
+    if (!success) {
+        return; // Fallback already handled the response
+    }
 
     res.json({
         success: true,

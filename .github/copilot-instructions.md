@@ -1,148 +1,125 @@
-# GitHub Copilot Instructions ## Enhanced 3-State Work Loop
+# GitHub Copilot Instructions
 
-### 1. IMAGINE (Plan & Simplify) – **DO 3 TIMES**
-- **First Round:**
-	- What's the simplest possible solution?
-	- What's the minimal viable approach?
-	- What can I avoid doing entirely?
-- **Second Round:**
-	- Are there even simpler alternatives?
-	- Can I reuse existing code or solutions?
-	- Can I solve this with zero or minimal code changes?
-- **Third Round:**
-	- Is this the laziest, most efficient solution?
-	- Can configuration solve this instead of code?
-	- What's the absolute minimum I need to change?
+**BambiSleep Chat**: Real-time chat app with TTS, psychedelic visuals, and BambiSleep trigger detection.
 
-### 2. CREATION (Implement) – **LOOP UNTIL 100% COMPLETE**
-- Implement only the solution from the 3x IMAGINE phase.
-- Write the minimum code required.
-- No extra improvements or refactoring.
-- One function, one purpose, then stop.
-- After each step, check if the task is 100% complete.
-- If not, return to the Third IMAGINE Round.
+## Architecture Overview
 
-### 3. DEPLOY (Test & Stop)
-- Test the minimum viable solution.
-- Fix only what's broken.
-- Confirm it works.
-- If it works, **STOP** – do not add or improve anything further.
-- If it doesn't work, return to the Third IMAGINE Round.
+### Core Stack
+- **Backend**: Express + Socket.io + Worker threads (`server.js`)
+- **Frontend**: Vanilla JavaScript ES6 modules (NO React/frameworks)
+- **Build**: Vite for development, serves from `/public` with proxy to port 6969
+- **Data Flow**: Socket.io ↔ Server ↔ Worker threads (Kokoro TTS, LM Studio AI)
 
----
-
-## Project-Specific Rules
-
-### Development Commands
-```bash
-npm run dev          # Both server + Vite (port 5173)
-npm run dev:server   # Server only (port 6969)
-npm run dev:client   # Vite only (port 5173)
+### Key Files & Responsibilities
+```
+server.js              # Main server: Express, Socket.io, worker management
+public/js/aigf-core.js  # Chat client: socket handling, UI, trigger processing
+public/js/dropdowns/    # Modular UI components (ES6 exports)
+workers/kokoro.js       # TTS worker (female voices only)
+workers/lmstudio.js     # AI chat worker
+workers/triggers.json   # Official BambiSleep triggers (never hardcode)
+vite.config.js          # Dev proxy: 5173 → 6969 for Socket.io/API
 ```
 
-### Architecture Constraints
-- **NO React/JSX** - Pure vanilla JS with ES6 modules
-- **Worker threads** - All external API calls (TTS/AI) run in workers
-- **Official triggers only** - Use `workers/triggers.json`, never hardcode
-- **Environment config** - All settings via `.env`, respect development/production hosts
-- **Socket.io** - Real-time chat, TTS audio delivery, trigger events
+## Development Commands
+```bash
+npm run dev          # Full stack (Vite dev server + backend)
+npm run dev:server   # Backend only (port 6969)
+npm run dev:client   # Frontend only (port 5173)
+```
 
-### Key Patterns
-- **Modular dropdowns**: `public/js/dropdowns/index.js` exports all components
-- **Worker communication**: Server mediates between Socket.io and worker threads
-- **Trigger system**: Official BambiSleep triggers loaded from API, not hardcoded
-- **Audio delivery**: MP3 files streamed as base64 via Socket.io
+## Critical Patterns
 
----
-## **IMPORTANT: DO NOT CHANGE THIS FILE**
+### Environment-Driven Configuration
+```javascript
+// ALWAYS respect development vs production hosts
+const host = process.env.NODE_ENV === 'production' 
+  ? process.env.KOKORO_HOST_PRODUCTION 
+  : process.env.KOKORO_HOST_DEVELOPMENT;
+```
 
-### Core Principle: KEEP IT SIMPLE
+### Official Triggers Only
+- **Source**: `workers/triggers.json` (loaded from `/api/triggers/json`)
+- **Categories**: `primary`, `physical`, `mental` with safety levels
+- **Never hardcode**: Always load from API/JSON, respect official BambiSleep data
 
-**Prioritize working code over perfect code. Less is more.**
+### Worker Thread Communication
+```javascript
+// Server mediates between Socket.io and workers
+const worker = new Worker('./workers/kokoro.js');
+worker.postMessage({ type: 'tts', text: message, voice: 'af_bella' });
+```
 
----
+### Modular Dropdown System
+```javascript
+// public/js/dropdowns/index.js exports all components
+import { TTSDropdown, TriggersDropdown } from './dropdowns/index.js';
+```
 
-## BambiSleep Chat Architecture
+### Audio Delivery Pattern
+```javascript
+// TTS: Server → Kokoro worker → Base64 MP3 → Socket.io → Client
+socket.emit('tts-audio', { audio: base64Mp3, voice: 'af_bella' });
+```
 
-**Real-time chat app** with psychedelic visuals, TTS, and official BambiSleep trigger detection.
+## Development Workflow
 
-### Key Components:
-- **Backend**: `server.js` (Express + Socket.io) + worker threads (`workers/`)
-- **Frontend**: Modular vanilla JS in `public/js/` (NO React, NO `src/` dir)
-- **Config**: Environment-driven via `.env` (see `.env.example`)
-- **Data**: Official triggers from `workers/triggers.json`
+### 3-State Work Loop
+1. **IMAGINE** (3x): Simplest solution? Reuse existing? Configuration over code?
+2. **CREATE**: Minimal code, one function per purpose, test each step
+3. **DEPLOY**: Fix only what's broken, STOP when working
 
-### Critical Files:
-- `server.js` - Main server with Socket.io, worker management, API routes
-- `public/js/aigf-core.js` - Chat core logic, socket handling, trigger processing
-- `public/js/dropdowns/` - Modular UI components (ES6 exports)
-- `workers/lmstudio.js` - AI chat worker (official triggers only)
-- `workers/kokoro.js` - TTS worker (female voices only)
-- `vite.config.js` - Frontend build config with proxy setup
+### Common Tasks
 
----
+**Adding New Trigger**:
+- Update `workers/triggers.json` with official data
+- Test via `/api/triggers/json` endpoint
+- Client auto-loads via `loadOfficialTriggers()`
 
-## Methodology: Enhanced 3-State Work Loop
+**TTS Voice**:
+- Kokoro supports combined voices: `af_sky+af_bella`
+- All TTS in workers, never block main thread
+- Environment hosts: `KOKORO_HOST_DEVELOPMENT` vs `KOKORO_HOST_PRODUCTION`
 
-### 1. IMAGINE (Plan & Simplify) – **DO 3 TIMES**
-- **First Round:**
-	- What’s the simplest possible solution?
-	- What’s the minimal viable approach?
-	- What can I avoid doing entirely?
-- **Second Round:**
-	- Are there even simpler alternatives?
-	- Can I reuse existing code or solutions?
-	- Can I solve this with zero or minimal code changes?
-- **Third Round:**
-	- Is this the laziest, most efficient solution?
-	- Can configuration solve this instead of code?
-	- What’s the absolute minimum I need to change?
+**UI Component**:
+- Create in `public/js/dropdowns/[component].js`
+- Export from `public/js/dropdowns/index.js`
+- Import in main files as needed
 
-### 2. CREATION (Implement) – **LOOP UNTIL 100% COMPLETE**
-- Implement only the solution from the 3x IMAGINE phase.
-- Write the minimum code required.
-- No extra improvements or refactoring.
-- One function, one purpose, then stop.
-- After each step, check if the task is 100% complete.
-- If not, return to the Third IMAGINE Round.
+## Environment & Deployment
 
-### 3. DEPLOY (Test & Stop)
-- Test the minimum viable solution.
-- Fix only what’s broken.
-- Confirm it works.
-- If it works, **STOP** – do not add or improve anything further.
-- If it doesn’t work, return to the Third IMAGINE Round.
+### Local Development
+```bash
+# Use http://localhost:5173 for full functionality
+npm run dev  # Vite proxy handles Socket.io + API routes
+```
 
-### 4. FINALIZE (Review & Confirm)
-- Review the solution for requirements and intent.
-- Ensure it works as intended.
-- Clean up any temporary code or files.
+### Production
+- Domain: `https://bambisleep.chat`
+- SSH: `ssh brandynette@192.168.0.72`
+- Deploy: `git pull` only (auto-builds)
 
----
+### Environment Variables
+```bash
+# Required for TTS functionality
+KOKORO_HOST_DEVELOPMENT=192.168.0.170
+KOKORO_HOST_PRODUCTION=192.168.0.170
+KOKORO_PORT=8880
+KOKORO_DEFAULT_VOICE=af_sky+af_bella
+
+# LM Studio AI
+LMS_HOST_DEVELOPMENT=localhost
+LMS_HOST_PRODUCTION=192.168.0.118
+LMS_PORT=7777
+```
 
 ## Critical Rules
-
-- **ALWAYS FOLLOW `.github/build-instructions.md` AS THE CORE GUIDE.**
-- **Official triggers only** - Never hardcode trigger words, always use `workers/triggers.json`
-- **Environment awareness** - Respect `KOKORO_HOST_DEVELOPMENT` vs `KOKORO_HOST_PRODUCTION`
-- **Worker isolation** - External APIs (Kokoro TTS, LM Studio) only via worker threads
-- **When task complete, STOP** - No extra features, improvements, or optimizations
-
----
-
-## Deployment Workflow
-
-**Only when finished:**
-- Run: `git add .`
-- Run: `git commit -m "copilot: [description of changes]"`
-- Run: `git push`
-- [CURL] Check deployment at: https://bambisleep.chat
-- [SSH] Connect: `ssh brandynette@192.168.0.72`
-  - `cd /home/brandynette/web/bambisleep.chat/js-bambisleep-chat`
-  - Only allowed: `git pull`
+- **Official triggers only**: Never hardcode, always use `workers/triggers.json`
+- **Worker isolation**: External APIs (TTS/AI) never in main thread
+- **Environment awareness**: Respect development/production host configs
+- **Vanilla JS**: No React/frameworks, ES6 modules only
+- **Stop when working**: No extra features or optimizations
 
 ---
 
-**REMEMBER:**
-Think more, code less.
-Work with the modular architecture, not against it.
+**Remember**: Work with the modular architecture, not against it. Think more, code less.

@@ -1,6 +1,6 @@
 # BambiSleep Chat
 
-A modern real-time chat application with psychedelic visual effects, text-to-speech, and trigger word detection. Built with Node.js, Express, Socket.io, and p5.js.
+A modern real-time chat application with psychedelic visual effects, text-to-speech, and trigger word detection. Built with Node.js, Express, Socket.io, and Vanilla JavaScript.
 
 ## Features
 

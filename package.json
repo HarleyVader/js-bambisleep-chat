@@ -1,7 +1,7 @@
 {
     "name": "js-bambisleep-chat",
     "version": "0.1.0",
-    "description": "Modern Node.js/Express/Socket.io/React/Vite chat app with TTS, triggers, spiral animations.",
+    "description": "Modern Node.js/Express/Socket.io/Vanilla JS chat app with TTS, triggers, spiral animations.",
     "main": "server.js",
     "scripts": {
         "dev": "concurrently \"nodemon server.js\" \"vite\"",
@@ -16,7 +16,6 @@
         "dotenv": "^17.2.2",
         "express": "^4.18.2",
         "node-fetch": "^2.7.0",
-        "react": "^19.1.1",
         "socket.io": "^4.7.5",
         "worker-thread": "^1.1.0"
     },

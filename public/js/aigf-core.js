@@ -1,4 +1,6 @@
 // aigf-core.js - Main chat logic, socket, and UI management
+import { ErrorManager } from './error-manager.js';
+
 class ChatCore {
     constructor() {
         this.socket = null;
@@ -10,6 +12,15 @@ class ChatCore {
         this.collarActive = false;
         this.activeTriggers = []; // Will be loaded from official triggers.json
         this.chatEnabled = true; // AIGF chat enabled by default
+
+        // Initialize error management
+        this.errorManager = new ErrorManager();
+
+        // Environment detection and user guidance
+        if (window.location.hostname === 'bambisleep.chat' && window.location.port !== '5173') {
+            console.warn('🔧 DEVELOPMENT NOTE: For local development with TTS functionality, please use http://localhost:5173');
+            console.warn('🔧 Production TTS requires proper Kokoro server configuration');
+        }
 
         this.loadOfficialTriggers(); // Load official triggers
         this.init();
@@ -58,7 +69,13 @@ class ChatCore {
             console.log('⚡ Total triggers available:', this.allTriggers.length);
 
         } catch (error) {
-            console.error('CRITICAL: Failed to load official triggers for active list:', error);
+            this.errorManager.reportError('api', 'triggers_load_failed', {
+                message: 'Failed to load official BambiSleep triggers',
+                endpoint: '/api/triggers/json',
+                error: error.message,
+                retryCallback: () => this.loadOfficialTriggers()
+            });
+
             // NO FALLBACK - Only use official triggers
             this.activeTriggers = [];
             this.allTriggers = [];
@@ -314,7 +331,10 @@ class ChatCore {
 
         // Handle connection errors
         this.socket.on('connect_error', (error) => {
-            console.warn('🌸 AIGF Socket connection error:', error);
+            this.errorManager.reportError('socket', 'connection_failed', {
+                message: error.message || 'Failed to connect to server',
+                error: error
+            });
             this.addSystemMessage('Connection error - retrying...');
         });
 
@@ -339,6 +359,21 @@ class ChatCore {
 
         // AI-specific events
         this.socket.on('ai-response', (data) => {
+            // Handle error responses from our graceful fallbacks
+            if (data.isError) {
+                this.errorManager.reportError('ai-chat', 'worker_unavailable', {
+                    message: data.content || 'AI service unavailable',
+                    retryCallback: () => {
+                        const lastMessage = this.messageHistory[this.messageHistory.length - 1];
+                        if (lastMessage && lastMessage.role === 'user') {
+                            this.sendAIMessage(lastMessage.content);
+                        }
+                    }
+                });
+                this.addSystemMessage(`❌ ${data.content}`);
+                return;
+            }
+
             this.addMessage(data.message, data.timestamp, false, 'BambiSleep', true);
             this.addSystemMessage(`AI generated ${data.wordCount} words`);
 
@@ -368,6 +403,16 @@ class ChatCore {
         });
 
         this.socket.on('ai-error', (data) => {
+            this.errorManager.reportError('ai-chat', 'worker_unavailable', {
+                message: data.error,
+                retryCallback: () => {
+                    // Retry last AI message if available
+                    const lastMessage = this.messageHistory[this.messageHistory.length - 1];
+                    if (lastMessage && lastMessage.role === 'user') {
+                        this.sendAIMessage(lastMessage.content);
+                    }
+                }
+            });
             this.addSystemMessage(`AI Error: ${data.error}`);
         });
 

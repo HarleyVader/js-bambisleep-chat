@@ -8,34 +8,47 @@ class KokoroTTSWorker {
         // Load environment variables
         require('dotenv').config();
 
-        // Determine Kokoro URL based on environment - NO HARDCODED DEFAULTS
+        this.isHealthy = false;
+        this.fallbackMode = false;
+        this.outputFormat = 'mp3';
+
+        try {
+            this.initializeKokoroConfig();
+        } catch (error) {
+            console.warn('⚠️ Kokoro TTS configuration incomplete:', error.message);
+            console.warn('🔄 Running in fallback mode - TTS will use Web Speech API only');
+            this.fallbackMode = true;
+            this.isHealthy = false;
+        }
+
+        this.init();
+    }
+
+    initializeKokoroConfig() {
         const kokoroHost = process.env.NODE_ENV === 'production'
             ? process.env.KOKORO_HOST_PRODUCTION
             : process.env.KOKORO_HOST_DEVELOPMENT;
 
         if (!kokoroHost) {
-            throw new Error(`Missing required environment variable: ${process.env.NODE_ENV === 'production' ? 'KOKORO_HOST_PRODUCTION' : 'KOKORO_HOST_DEVELOPMENT'}`);
+            throw new Error(`Missing Kokoro host config for ${process.env.NODE_ENV} environment`);
         }
 
-        const kokoroPort = process.env.KOKORO_PORT;
-        if (!kokoroPort) {
-            throw new Error('Missing required environment variable: KOKORO_PORT');
-        }
+        const kokoroPort = process.env.KOKORO_PORT || '8880';
+        this.defaultVoice = process.env.KOKORO_DEFAULT_VOICE || 'af_bella';
 
         this.kokoroUrl = `http://${kokoroHost}:${kokoroPort}`;
-        this.defaultVoice = process.env.KOKORO_DEFAULT_VOICE;
-        if (!this.defaultVoice) {
-            throw new Error('Missing required environment variable: KOKORO_DEFAULT_VOICE');
-        }
-        this.outputFormat = 'mp3';
-        this.isHealthy = true; // Assume healthy, no health check endpoint available
+        this.isHealthy = true;
 
-        this.init();
+        console.log('✅ Kokoro TTS configured:', this.kokoroUrl);
     }
 
     async init() {
         console.log('🎤 Kokoro TTS Worker initializing...');
-        console.log(`🎤 Kokoro TTS service URL: ${this.kokoroUrl}`);
+        if (this.fallbackMode) {
+            console.log('🎤 Kokoro TTS running in fallback mode');
+        } else {
+            console.log(`🎤 Kokoro TTS service URL: ${this.kokoroUrl}`);
+        }
 
         if (parentPort) {
             parentPort.on('message', this.handleMessage.bind(this));
@@ -44,6 +57,11 @@ class KokoroTTSWorker {
 
     async handleMessage(msg) {
         try {
+            if (this.fallbackMode && msg.type === 'tts') {
+                this.sendError('Kokoro TTS not available - using Web Speech API fallback', msg.socketId);
+                return;
+            }
+
             switch (msg.type) {
                 case 'tts':
                     await this.generateSpeech(msg);
@@ -51,13 +69,18 @@ class KokoroTTSWorker {
 
                 case 'health':
                     this.sendResponse('health_response', {
-                        healthy: true,
-                        url: this.kokoroUrl,
+                        healthy: this.isHealthy,
+                        fallbackMode: this.fallbackMode,
+                        url: this.kokoroUrl || 'not-configured',
                         lastCheck: new Date().toISOString()
                     }, msg.socketId);
                     break;
 
                 case 'set_voice':
+                    if (this.fallbackMode) {
+                        this.sendError('Voice setting not available in fallback mode', msg.socketId);
+                        return;
+                    }
                     this.defaultVoice = msg.voice || this.defaultVoice;
                     this.sendResponse('voice_updated', {
                         voice: this.defaultVoice

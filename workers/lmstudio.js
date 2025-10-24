@@ -7,52 +7,117 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
-// LM Studio configuration with environment-based host selection - MUST be set in .env file
-if (!process.env.LMS_HOST_PRODUCTION) throw new Error('❌ FATAL: LMS_HOST_PRODUCTION not set in .env file');
-if (!process.env.LMS_HOST_DEVELOPMENT) throw new Error('❌ FATAL: LMS_HOST_DEVELOPMENT not set in .env file');
-if (!process.env.LMS_PORT) throw new Error('❌ FATAL: LMS_PORT not set in .env file');
+// LM Studio Configuration Class with Graceful Degradation
+class LMStudioConfig {
+    constructor() {
+        this.isConfigured = false;
+        this.errors = [];
+        this.warnings = [];
 
-const LMS_HOST = process.env.NODE_ENV === 'production'
-    ? process.env.LMS_HOST_PRODUCTION
-    : process.env.LMS_HOST_DEVELOPMENT;
-const LMS_PORT = process.env.LMS_PORT;
+        try {
+            this.loadConfiguration();
+        } catch (error) {
+            console.warn('⚠️ LM Studio configuration incomplete:', error.message);
+            this.errors.push(error.message);
+        }
+    }
 
-// Model configuration - MUST be set in .env file
-if (!process.env.TARGET_MODEL_NAME) {
-    throw new Error('❌ FATAL: TARGET_MODEL_NAME not set in .env file');
+    loadConfiguration() {
+        const requiredEnvVars = [
+            'LMS_HOST_PRODUCTION', 'LMS_HOST_DEVELOPMENT', 'LMS_PORT',
+            'TARGET_MODEL_NAME', 'MAX_SEARCH_ATTEMPTS',
+            'LMS_MODEL_LOAD_TIMEOUT', 'LMS_API_CALL_TIMEOUT', 'LMS_REST_API_TIMEOUT',
+            'SESSION_TIMEOUT_MINUTES', 'MAX_CONTEXT_TOKENS', 'MAX_COMPLETION_TOKENS'
+        ];
+
+        const missing = requiredEnvVars.filter(varName => !process.env[varName]);
+
+        if (missing.length > 0) {
+            throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+        }
+
+        // Set configuration with validation
+        this.LMS_HOST = process.env.NODE_ENV === 'production'
+            ? process.env.LMS_HOST_PRODUCTION
+            : process.env.LMS_HOST_DEVELOPMENT;
+        this.LMS_PORT = process.env.LMS_PORT;
+        this.TARGET_MODEL_NAME = process.env.TARGET_MODEL_NAME;
+        this.MAX_SEARCH_ATTEMPTS = parseInt(process.env.MAX_SEARCH_ATTEMPTS);
+        this.LMS_MODEL_LOAD_TIMEOUT = parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT);
+        this.LMS_API_CALL_TIMEOUT = parseInt(process.env.LMS_API_CALL_TIMEOUT);
+        this.LMS_REST_API_TIMEOUT = parseInt(process.env.LMS_REST_API_TIMEOUT);
+        this.SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT_MINUTES) * 60 * 1000;
+        this.MAX_CONTEXT_TOKENS = parseInt(process.env.MAX_CONTEXT_TOKENS);
+        this.MAX_COMPLETION_TOKENS = parseInt(process.env.MAX_COMPLETION_TOKENS);
+
+        // Validate numeric values
+        const numericValues = [
+            { name: 'MAX_SEARCH_ATTEMPTS', value: this.MAX_SEARCH_ATTEMPTS },
+            { name: 'LMS_MODEL_LOAD_TIMEOUT', value: this.LMS_MODEL_LOAD_TIMEOUT },
+            { name: 'LMS_API_CALL_TIMEOUT', value: this.LMS_API_CALL_TIMEOUT },
+            { name: 'LMS_REST_API_TIMEOUT', value: this.LMS_REST_API_TIMEOUT },
+            { name: 'MAX_CONTEXT_TOKENS', value: this.MAX_CONTEXT_TOKENS },
+            { name: 'MAX_COMPLETION_TOKENS', value: this.MAX_COMPLETION_TOKENS }
+        ];
+
+        for (const { name, value } of numericValues) {
+            if (isNaN(value) || value <= 0) {
+                this.warnings.push(`Invalid numeric value for ${name}: ${value}`);
+            }
+        }
+
+        this.isConfigured = true;
+        console.log('✅ LM Studio configured for', process.env.NODE_ENV, 'environment');
+    }
+
+    getStatus() {
+        return {
+            configured: this.isConfigured,
+            errors: this.errors,
+            warnings: this.warnings,
+            host: this.isConfigured ? this.LMS_HOST : 'not-configured',
+            port: this.isConfigured ? this.LMS_PORT : 'not-configured'
+        };
+    }
 }
-const TARGET_MODEL_NAME = process.env.TARGET_MODEL_NAME;
+
+// Initialize configuration
+const config = new LMStudioConfig();
+
+// Set legacy variables for backward compatibility if configured
+let LMS_HOST, LMS_PORT, TARGET_MODEL_NAME, MAX_SEARCH_ATTEMPTS;
+let LMS_MODEL_LOAD_TIMEOUT, LMS_API_CALL_TIMEOUT, LMS_REST_API_TIMEOUT, SESSION_TIMEOUT;
+let MAX_CONTEXT_TOKENS, MAX_COMPLETION_TOKENS;
+
+if (config.isConfigured) {
+    LMS_HOST = config.LMS_HOST;
+    LMS_PORT = config.LMS_PORT;
+    TARGET_MODEL_NAME = config.TARGET_MODEL_NAME;
+    MAX_SEARCH_ATTEMPTS = config.MAX_SEARCH_ATTEMPTS;
+    LMS_MODEL_LOAD_TIMEOUT = config.LMS_MODEL_LOAD_TIMEOUT;
+    LMS_API_CALL_TIMEOUT = config.LMS_API_CALL_TIMEOUT;
+    LMS_REST_API_TIMEOUT = config.LMS_REST_API_TIMEOUT;
+    SESSION_TIMEOUT = config.SESSION_TIMEOUT;
+    MAX_CONTEXT_TOKENS = config.MAX_CONTEXT_TOKENS;
+    MAX_COMPLETION_TOKENS = config.MAX_COMPLETION_TOKENS;
+}
+
 let currentModelId = null;
 let modelSearchAttempts = 0;
-if (!process.env.MAX_SEARCH_ATTEMPTS) throw new Error('❌ FATAL: MAX_SEARCH_ATTEMPTS not set in .env file');
-const MAX_SEARCH_ATTEMPTS = parseInt(process.env.MAX_SEARCH_ATTEMPTS);
 
-// Timeout configuration from environment - MUST be set in .env file
-if (!process.env.LMS_MODEL_LOAD_TIMEOUT) throw new Error('❌ FATAL: LMS_MODEL_LOAD_TIMEOUT not set in .env file');
-if (!process.env.LMS_API_CALL_TIMEOUT) throw new Error('❌ FATAL: LMS_API_CALL_TIMEOUT not set in .env file');
-if (!process.env.LMS_REST_API_TIMEOUT) throw new Error('❌ FATAL: LMS_REST_API_TIMEOUT not set in .env file');
-if (!process.env.SESSION_TIMEOUT_MINUTES) throw new Error('❌ FATAL: SESSION_TIMEOUT_MINUTES not set in .env file');
-
-const LMS_MODEL_LOAD_TIMEOUT = parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT);
-const LMS_API_CALL_TIMEOUT = parseInt(process.env.LMS_API_CALL_TIMEOUT);
-const LMS_REST_API_TIMEOUT = parseInt(process.env.LMS_REST_API_TIMEOUT);
-const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT_MINUTES) * 60 * 1000;
-
-// Context window configuration from environment - MUST be set in .env file
-if (!process.env.MAX_CONTEXT_TOKENS) throw new Error('❌ FATAL: MAX_CONTEXT_TOKENS not set in .env file');
-if (!process.env.MAX_COMPLETION_TOKENS) throw new Error('❌ FATAL: MAX_COMPLETION_TOKENS not set in .env file');
-
-const MAX_CONTEXT_TOKENS = parseInt(process.env.MAX_CONTEXT_TOKENS);
-const MAX_COMPLETION_TOKENS = parseInt(process.env.MAX_COMPLETION_TOKENS);
-
-// Log configuration after all constants are defined
-console.log(`🔧 LM Studio config: ${process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-console.log(`🔧 LM Studio endpoint: http://${LMS_HOST}:${LMS_PORT}`);
-console.log(`🎯 Target model: ${TARGET_MODEL_NAME}`);
-console.log(`⏱️  Timeouts - API: ${LMS_API_CALL_TIMEOUT}ms, Model Load: ${LMS_MODEL_LOAD_TIMEOUT}ms, REST API: ${LMS_REST_API_TIMEOUT}ms`);
-console.log(`💾 Context Limits - Max Context: ${MAX_CONTEXT_TOKENS}, Max Completion: ${MAX_COMPLETION_TOKENS}`);
-console.log(`🔍 Max search attempts: ${MAX_SEARCH_ATTEMPTS}`);
-console.log(`⏲️  Session timeout: ${SESSION_TIMEOUT / 60000} minutes`);
+// Log configuration status
+if (config.isConfigured) {
+    console.log(`🔧 LM Studio config: ${process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+    console.log(`🔧 LM Studio endpoint: http://${LMS_HOST}:${LMS_PORT}`);
+    console.log(`🎯 Target model: ${TARGET_MODEL_NAME}`);
+    console.log(`⏱️  Timeouts - API: ${LMS_API_CALL_TIMEOUT}ms, Model Load: ${LMS_MODEL_LOAD_TIMEOUT}ms, REST API: ${LMS_REST_API_TIMEOUT}ms`);
+    console.log(`💾 Context Limits - Max Context: ${MAX_CONTEXT_TOKENS}, Max Completion: ${MAX_COMPLETION_TOKENS}`);
+    console.log(`🔍 Max search attempts: ${MAX_SEARCH_ATTEMPTS}`);
+    console.log(`⏲️  Session timeout: ${SESSION_TIMEOUT / 60000} minutes`);
+} else {
+    console.warn('⚠️ LM Studio configuration incomplete - AI features disabled');
+    console.warn('🔧 Configuration errors:', config.errors.join(', '));
+}
 
 // Session management
 const sessionHistories = {};
@@ -105,6 +170,17 @@ function initializeTriggerData(serverTriggerData) {
 if (parentPort) {
     parentPort.on('message', async (msg) => {
         try {
+            // Check configuration before handling AI-related messages
+            if (['chat', 'auto_load_model'].includes(msg.type) && !config.isConfigured) {
+                parentPort.postMessage({
+                    type: 'error',
+                    error: 'LM Studio not configured - check environment variables',
+                    configStatus: config.getStatus(),
+                    socketId: msg.socketId
+                });
+                return;
+            }
+
             switch (msg.type) {
                 case 'chat':
                     await handleMessage(msg.prompt, msg.socketId, msg.username, msg.triggers || []);
@@ -131,8 +207,9 @@ if (parentPort) {
                 case 'health':
                     parentPort.postMessage({
                         type: 'health_response',
-                        healthy: true,
-                        sessionCount: Object.keys(sessionHistories).length
+                        healthy: config.isConfigured,
+                        sessionCount: Object.keys(sessionHistories).length,
+                        configStatus: config.getStatus()
                     });
                     break;
 
@@ -198,14 +275,14 @@ async function autoLoadBestModel() {
 async function getAvailableModels() {
     try {
         const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/models`;
-        
-        const response = await axios.get(apiUrl, { 
+
+        const response = await axios.get(apiUrl, {
             timeout: LMS_REST_API_TIMEOUT,
             headers: {
                 'Content-Type': 'application/json'
             }
         });
-        
+
         const models = response.data?.data || [];
         return models;
     } catch (error) {
@@ -319,7 +396,7 @@ async function initializeModelSystem() {
     try {
         // Check if a model is already loaded
         const currentModel = await getCurrentLoadedModel();
-        
+
         if (currentModel && currentModel.includes(TARGET_MODEL_NAME.toLowerCase())) {
             console.log(`✅ Target model already loaded: ${currentModel}`);
             currentModelId = currentModel;
@@ -342,8 +419,8 @@ async function initializeModelSystem() {
 async function getCurrentLoadedModel() {
     try {
         const apiUrl = `http://${LMS_HOST}:${LMS_PORT}/v1/models`;
-        
-        const response = await axios.get(apiUrl, { 
+
+        const response = await axios.get(apiUrl, {
             timeout: LMS_REST_API_TIMEOUT,
             headers: {
                 'Content-Type': 'application/json'
@@ -450,9 +527,9 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         // Auto-load model if none is currently loaded
         if (!currentModelId) {
             console.log('🔄 No model loaded, attempting auto-load...');
-            
+
             const loaded = await autoLoadBestModel();
-            
+
             if (!loaded) {
                 console.error('❌ CRITICAL: Auto-load failed during chat request');
                 sendResponse("Sorry, I'm having trouble loading the AI model. Please ensure LM Studio is running and has models available.", socketId, username);
