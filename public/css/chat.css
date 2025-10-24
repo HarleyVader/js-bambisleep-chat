@@ -16,6 +16,8 @@
     backdrop-filter: blur(8px);
     display: block;
     /* Default visible */
+    position: relative;
+    z-index: 1;
 }
 
 /* Global Chat Messages */
