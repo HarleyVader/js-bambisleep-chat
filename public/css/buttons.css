@@ -626,10 +626,13 @@
 }
 
 /* ============================================================================
-   SEND BUTTON
+   SEND BUTTONS
    ============================================================================ */
 
-#send-button {
+/* Standard send button styling */
+#send-button,
+#global-send-button,
+#aigf-send-button {
     padding: 8.4px 16.8px;
     /* Reduced by 30% from 12px 24px */
     background: linear-gradient(45deg, var(--button-color), var(--tertiary-alt));
@@ -642,10 +645,72 @@
     font-family: "Audiowide", sans-serif;
     font-size: 0.75rem;
     /* Reduced by 25% from 1rem */
+    box-shadow:
+        0 0 20px rgba(223, 4, 113, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 8px rgba(223, 4, 113, 0.8);
 }
 
-#send-button:hover {
-    box-shadow: 0 5px 15px var(--button-color);
+#send-button:hover,
+#global-send-button:hover,
+#aigf-send-button:hover {
+    box-shadow: 
+        0 5px 15px rgba(223, 4, 113, 0.6),
+        0 0 30px rgba(223, 4, 113, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+    text-shadow: 0 0 12px rgba(223, 4, 113, 1);
+    transform: translateY(-1px);
+}
+
+#send-button:active,
+#global-send-button:active,
+#aigf-send-button:active {
+    transform: translateY(1px);
+    box-shadow:
+        0 2px 8px rgba(223, 4, 113, 0.5),
+        0 0 15px rgba(223, 4, 113, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* Global chat send button - teal theme */
+#global-send-button {
+    background: linear-gradient(45deg, var(--tertiary-alt), var(--primary-alt));
+    box-shadow:
+        0 0 20px rgba(2, 184, 147, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 8px rgba(2, 184, 147, 0.8);
+}
+
+#global-send-button:hover {
+    box-shadow: 
+        0 5px 15px rgba(2, 184, 147, 0.6),
+        0 0 30px rgba(2, 184, 147, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+    text-shadow: 0 0 12px rgba(2, 184, 147, 1);
+}
+
+/* AIGF send button - pink theme */
+#aigf-send-button {
+    background: linear-gradient(45deg, #ff1493, #ff69b4);
+    box-shadow:
+        0 0 20px rgba(255, 20, 147, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 8px rgba(255, 20, 147, 0.8);
+}
+
+#aigf-send-button:hover {
+    box-shadow: 
+        0 5px 15px rgba(255, 20, 147, 0.6),
+        0 0 30px rgba(255, 20, 147, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+    text-shadow: 0 0 12px rgba(255, 20, 147, 1);
 }
 
 /* ============================================================================
