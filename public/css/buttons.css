@@ -655,7 +655,7 @@
 #send-button:hover,
 #global-send-button:hover,
 #aigf-send-button:hover {
-    box-shadow: 
+    box-shadow:
         0 5px 15px rgba(223, 4, 113, 0.6),
         0 0 30px rgba(223, 4, 113, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.25),
@@ -686,7 +686,7 @@
 }
 
 #global-send-button:hover {
-    box-shadow: 
+    box-shadow:
         0 5px 15px rgba(2, 184, 147, 0.6),
         0 0 30px rgba(2, 184, 147, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.25),
@@ -705,17 +705,13 @@
 }
 
 #aigf-send-button:hover {
-    box-shadow: 
+    box-shadow:
         0 5px 15px rgba(255, 20, 147, 0.6),
         0 0 30px rgba(255, 20, 147, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.25),
         inset 0 -1px 0 rgba(0, 0, 0, 0.35);
     text-shadow: 0 0 12px rgba(255, 20, 147, 1);
 }
-
-/* ============================================================================
-   TRIGGER BUTTONS
-   ============================================================================ */
 
 .trigger-button {
     background: var(--primary-color);
