@@ -28,7 +28,7 @@
         "dev:server": "nodemon server.js",
         "dev:client": "vite",
         "prod:server": "NODE_ENV=production node server.js",
-        "clean": "rimraf public/dist",
+        "clean": "rimraf node_modules public/dist package-lock.json",
         "lint": "echo \"No linting configured\" && exit 0",
         "test": "node tests/master.test.js",
         "test:env": "node tests/environment.test.js",
