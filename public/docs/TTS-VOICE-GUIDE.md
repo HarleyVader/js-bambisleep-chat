@@ -7,6 +7,7 @@
 **TTS** means **Text-to-Speech**! It's like magic that turns words into spoken voices! When TTS is ON, every message gets read aloud in a super cute female voice! So cool! 💖
 
 **Why You'll Love It:**
+
 - 👂 Hear messages instead of reading!
 - 💕 6 different female voices!
 - 🎵 Adjustable speed!
@@ -16,14 +17,19 @@
 ## 🎀 How to Use TTS (So Easy!) 🎀
 
 ### Step 1: Find the TTS Button
+
 Look for:
+
 ```
 🔊 TTS
 ```
+
 With a little status dot!
 
-### Step 2: Turn It ON!
+### Step 2: Turn It ON
+
 Click the **🔊 TTS** button:
+
 - ✨ Button turns GREEN!
 - 🟢 Status dot lights up!
 - 🎉 "TTS: ENABLED" appears!
@@ -32,7 +38,9 @@ Click the **🔊 TTS** button:
 **Tip:** First time might ask for audio permission - click "Allow"! 💕
 
 ### Step 3: Open the Menu
+
 Click again to see options:
+
 ```
 🔊 TTS System
   Voice Selection:
@@ -42,45 +50,51 @@ Click again to see options:
   ☐ af
   ☐ af_sky
   ☐ bf_emma
-  
+
   Speed: ○ Slow ● Normal ○ Fast
-  
+
   [Test Voice] [Clear Selection]
 ```
 
 ## 💖 The 6 Yummy Voices! 💖
 
 ### 🎀 af_bella (Bella)
+
 - Sweet, soft, gentle
 - Best for: Soothing vibes
 - Tone: Warm and comfy
 - **So calming!** 💕
 
 ### 🌸 af_sarah (Sarah)
+
 - Friendly, clear, natural
 - Best for: General chatting
 - Tone: Pleasant and easy
 - **Perfect everyday voice!** ✨
 
 ### 💫 af_nicole (Nicole)
+
 - Confident, smooth, pro
 - Best for: Longer messages
 - Tone: Polished and engaging
 - **Great for AI!** 🌟
 
 ### 🌺 af (Default)
+
 - Versatile, balanced
 - Best for: Everything
 - Tone: Standard female
 - **The classic!** 💖
 
 ### 🌟 af_sky (Sky)
+
 - Bright, energetic, youthful
 - Best for: Fun convos
 - Tone: Perky and lively
 - **So bubbly!** 🎉
 
 ### 💝 bf_emma (Emma)
+
 - Mature, soft, caring
 - Best for: Comfort
 - Tone: Gentle and stable
@@ -90,19 +104,22 @@ Click again to see options:
 
 **Here's the fun part:** Pick MULTIPLE voices at once! 💕
 
-### How It Works:
+### How It Works
+
 1. Open TTS menu
 2. Click multiple voice names (get checkmarks ✓)
 3. TTS ROTATES between them!
 4. Each message = different voice!
 
 ### Why Use Multiple?
+
 - 🎭 More dynamic and fun!
 - 💕 Sounds like different people!
 - ✨ Prevents voice fatigue!
 - 🎉 Variety is fun!
 
 **Example:**
+
 ```
 Selected: [bella, sky, nicole]
 
@@ -117,18 +134,21 @@ Msg 4: "Me too!" → bella 💕 (cycles!)
 ## ⚡ Speed Controls! ⚡
 
 ### 🐌 Slow (0.8x)
+
 - Best for: Relaxation, trance
 - Effect: Slower, dreamy
 - Use when: You want to absorb words
 - **Perfect for deep vibes!** 💕
 
 ### ⚖️ Normal (1.0x) (Default)
+
 - Best for: Regular chatting
 - Effect: Natural pace
 - Use when: Most of the time
 - **Just right!** ✨
 
 ### ⚡ Fast (1.2x)
+
 - Best for: Quick reading, busy chat
 - Effect: Faster, energetic
 - Use when: Lots of messages
@@ -137,16 +157,19 @@ Msg 4: "Me too!" → bella 💕 (cycles!)
 ## 🎯 Control Buttons! 🎯
 
 ### Test Voice 🎵
+
 - Plays a sample!
 - Hear current settings
 - **Always test after changes!** 💕
 
 ### Clear Selection 🔄
+
 - Unselects all voices
 - Quick silence
 - **Re-select when ready!** ✨
 
 ### Clear Cache 🗑️
+
 - Deletes saved audio
 - Fixes glitches
 - **Only if needed!** 🌸

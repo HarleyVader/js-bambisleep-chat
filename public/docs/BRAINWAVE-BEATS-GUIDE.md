@@ -18,30 +18,35 @@
 ## 💖 The 5 Brain Wave Types! 💖
 
 ### Delta Waves (0.5-4 Hz) 😴
+
 - **State:** Deep sleep, unconscious
 - **Best For:** Sleep, healing, pain relief
 - **Presets:** Deep Sleep, Healing
 - **Vibe:** Bedtime bliss! 💕
 
 ### Theta Waves (4-8 Hz) 🧘
+
 - **State:** Meditation, trance, creativity
 - **Best For:** Hypnosis, deep relax, visualization
 - **Presets:** Meditation, Lucid Dreaming
 - **Vibe:** Perfect for trance! ✨
 
 ### Alpha Waves (8-14 Hz) 😌
+
 - **State:** Relaxed, calm, focused
 - **Best For:** Light meditation, learning, stress relief
 - **Presets:** Relaxation, Study
 - **Vibe:** Calm & peaceful! 🌸
 
 ### Beta Waves (14-30 Hz) 💼
+
 - **State:** Alert, focused, active thinking
 - **Best For:** Concentration, productivity, energy
 - **Presets:** Focus, Energy Boost
 - **Vibe:** Get stuff done! 💪
 
 ### Gamma Waves (30-100 Hz) ⚡
+
 - **State:** Peak performance, insight
 - **Best For:** Problem solving, peak awareness
 - **Presets:** Peak Performance
@@ -61,7 +66,7 @@ Each preset is scientifically tuned! Just pick what you need:
 
 ## 🛡️ Safety Guidelines! 🛡️
 
-### ⚠️ MUST READ:
+### ⚠️ MUST READ
 
 1. **Start LOW volume** - Should be subtle!
 2. **USE HEADPHONES** - Won't work through speakers!
@@ -69,7 +74,7 @@ Each preset is scientifically tuned! Just pick what you need:
 4. **Limit time** - Start with 15-30 minutes max!
 5. **Stop if weird** - Headache or dizzy = stop now!
 
-### ❌ DO NOT Use If:
+### ❌ DO NOT Use If
 
 - You have epilepsy or seizures ⚠️
 - You have a pacemaker
@@ -79,7 +84,7 @@ Each preset is scientifically tuned! Just pick what you need:
 
 ## 💝 How to Use Effectively! 💝
 
-### The Perfect Session:
+### The Perfect Session
 
 1. **Pick Your Goal** - What state do you want? 🎯
 2. **Find Quiet Space** - Minimize distractions 🤫
@@ -90,7 +95,7 @@ Each preset is scientifically tuned! Just pick what you need:
 7. **Let It Work** - Don't force it! ✨
 8. **Session Length** - 15-45 minutes ideal ⏰
 
-### Volume Tips:
+### Volume Tips
 
 - **Too Loud:** Distracting, uncomfortable
 - **Just Right:** Subtle, background
@@ -110,30 +115,35 @@ Each preset is scientifically tuned! Just pick what you need:
 ## 🌈 Use Cases! 🌈
 
 ### For Sleep 😴
+
 - **Preset:** Deep Sleep
 - **Time:** 30-60 mins
 - **Position:** Lying down
 - **Combo:** Alone or with calm music
 
 ### For Study 📚
+
 - **Preset:** Focus or Study
 - **Time:** 45 mins
 - **Position:** Sitting up
 - **Combo:** Background while working!
 
 ### For Meditation 🧘
+
 - **Preset:** Meditation or Relaxation
 - **Time:** 20-30 mins
 - **Position:** Comfortable seat
 - **Combo:** With spirals for visual!
 
 ### For Trance 🌀
+
 - **Preset:** Meditation (Theta)
 - **Time:** 30-45 mins
 - **Position:** Comfy position
 - **Combo:** Spirals + Triggers + TTS = WOW!
 
 ### For Energy ⚡
+
 - **Preset:** Energy Boost
 - **Time:** 15-20 mins
 - **Position:** Sitting up

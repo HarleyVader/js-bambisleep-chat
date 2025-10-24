@@ -6,7 +6,7 @@
 
 **AIGF** stands for **AI Girlfriend**! It's like having your very own smart, super sweet AI bestie who talks just to YOU! When AIGF is on, you're having a private convo with an AI instead of chatting in the global room! So fun! 💖
 
-### Two Chat Modes:
+### Two Chat Modes
 
 1. **🌍 Global Chat** (Default)
    - Talk to everyone online!
@@ -23,14 +23,19 @@
 ## 🎀 How to Use AIGF (Super Easy!) 🎀
 
 ### Step 1: Find the AI Button
+
 Look for this button at the top:
+
 ```
 🤖 AI Mode
 ```
+
 It has a little dot (●) that shows if it's on!
 
-### Step 2: Click to Turn On!
+### Step 2: Click to Turn On
+
 Just click the **🤖 AI Mode** button! Watch:
+
 - ✨ Button turns PINK with a pritty gradient!
 - 💗 Status dot turns bright green!
 - 🎉 Special pink pulse animation!
@@ -39,7 +44,9 @@ Just click the **🤖 AI Mode** button! Watch:
 **Tip:** The AI button is special! When AIGF is on, it's beautiful deep pink (#ff1493) to show you're in girlfriend mode! So cute! 💕
 
 ### Step 3: Open the Menu
+
 Click again to see your options:
+
 ```
 🤖 AI Mode Config
   ○ Creative  🎨
@@ -47,29 +54,33 @@ Click again to see your options:
   ○ Precise   🎯
 ```
 
-### Step 4: Pick Your AI Personality!
+### Step 4: Pick Your AI Personality
 
 #### 🎨 Creative Mode
+
 - **Personality**: Fun, imaginative, playful!
 - **Best For**: Roleplay, stories, creative chats
 - **Response Style**: Varied and surprising
 - **Use When**: You want fun and giggly convos! 💕
 
 #### ⚖️ Balanced Mode (Default)
+
 - **Personality**: Friendly, reliable, sweet
 - **Best For**: General chatting, everyday use
 - **Response Style**: Mix of fun and helpful
 - **Use When**: Most of the time! Perfect balance! ✨
 
 #### 🎯 Precise Mode
+
 - **Personality**: Focused, accurate, helpful
 - **Best For**: Information, instructions, questions
 - **Response Style**: Clear and direct
 - **Use When**: You need real answers! 🌸
 
-### Step 5: Start Chatting!
+### Step 5: Start Chatting
 
 Look at your chat:
+
 - **Top Input** = Global Chat (still works!)
 - **Bottom Input** = AIGF Chat (your private AI!)
 

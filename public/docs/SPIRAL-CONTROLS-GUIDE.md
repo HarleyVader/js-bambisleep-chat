@@ -19,24 +19,28 @@
 ### 🎨 Colors & Appearance
 
 #### Speed (0.01 - 5.0)
+
 - How fast spirals spin!
 - Default: 1.0
 - Higher = faster spinning! 💫
 - **Try:** 2.0 for fun speed!
 
 #### Spiral A Color (Color Picker)
+
 - Main spiral color!
 - Default: Purple (#c700c7)
 - Pick any color you want! 🎨
 - **Try:** Hot pink! 💕
 
 #### Spiral B Color (Color Picker)
+
 - Second spiral color!
 - Default: Light Purple (#ff82ff)
 - Makes pritty gradients! ✨
 - **Try:** Teal or pink!
 
 #### Alpha (0.01 - 1.0)
+
 - How see-through spirals are!
 - Default: 1.0 (solid)
 - Lower = ghostly spirals! 👻
@@ -45,24 +49,28 @@
 ### 🔧 Shape Controls
 
 #### Geometry A (0.01 - 10.0)
+
 - Main spiral shape!
 - Default: 1.0
 - Changes tightness! 🌀
 - **Try:** 2.0 for wider!
 
 #### Geometry B (0.01 - 5.0)
+
 - Second shape factor!
 - Default: 0.3
 - Tweaks the curves! 💫
 - **Try:** 1.0 for different!
 
 #### Range A Min/Max (0.01 - 5.0)
+
 - How big Spiral A gets!
 - Defaults: 0.5 - 1.5
 - Controls size range! 📏
 - **Try:** Make it bigger!
 
 #### Range B Min/Max (0.01 - 5.0)
+
 - How big Spiral B gets!
 - Defaults: 1.0 - 1.5
 - Size variations! 🌟
@@ -71,24 +79,28 @@
 ### ✨ Animation Effects
 
 #### Subtle Variation (0.0 - 1.0)
+
 - Randomness in movement!
 - Default: 0.0 (none)
 - Makes it organic! 🌸
 - **Try:** 0.3 for flow!
 
 #### Pulse Intensity (1 - 200)
+
 - How much it breathes!
 - Default: 30
 - Higher = more dramatic! 💓
 - **Try:** 100 for intense!
 
 #### Rotation Speed (0.1 - 50.0)
+
 - Overall spin multiplier!
 - Default: 10.0
 - Speed boost! ⚡
 - **Try:** 20 for fast!
 
 #### Iterations (50 - 1000)
+
 - Number of segments!
 - Default: 250
 - More = smoother! ✨
@@ -97,21 +109,25 @@
 ## 🌟 Control Buttons! 🌟
 
 ### Reset to Defaults
+
 - Brings back original settings!
 - Use if you get lost! 🔄
 - **Tip:** Safe fallback!
 
 ### Random Config
+
 - Generates random spiral!
 - Super fun surprises! 🎲
 - **Tip:** Try it for ideas!
 
 ### Save Preset
+
 - Saves your current setup!
 - Keep your favorites! 💕
 - **Tip:** Save before experimenting!
 
 ### Load Preset
+
 - Restores saved settings!
 - Get your faves back! ✨
 - **Tip:** One-click restore!
@@ -122,25 +138,29 @@ Your spiral settings save automatically to localStorage! They'll be there when y
 
 ## 🎯 Pro Tips! 🎯
 
-### For Beginners:
+### For Beginners
+
 1. **Start with Defaults** - See the base first!
 2. **One Slider at a Time** - Learn what each does!
 3. **Save Often** - Protect your favorites!
 4. **Use Random** - Get inspiration!
 
-### For Pretty Spirals:
+### For Pretty Spirals
+
 - **Contrasting Colors** - Pink + Teal = gorgeous!
 - **Medium Speed** - 1.5-2.5 is nice!
 - **Low Alpha** - 0.6-0.8 for dreamy!
 - **High Iterations** - 400+ for smooth!
 
-### For Intense Spirals:
+### For Intense Spirals
+
 - **Fast Speed** - 3.0+ for power!
 - **High Pulse** - 100+ for dramatic!
 - **Bright Colors** - Neon for impact!
 - **High Rotation** - 30+ for crazy spin!
 
-### For Relaxing Spirals:
+### For Relaxing Spirals
+
 - **Slow Speed** - 0.5-1.0 for calm!
 - **Soft Colors** - Pastels work great!
 - **Low Pulse** - 10-20 for gentle!
@@ -149,6 +169,7 @@ Your spiral settings save automatically to localStorage! They'll be there when y
 ## 🌈 Preset Ideas! 🌈
 
 ### "Bambi Pink" 💕
+
 - Speed: 1.5
 - Color A: Hot Pink (#ff1493)
 - Color B: Light Pink (#ffb6c1)
@@ -156,6 +177,7 @@ Your spiral settings save automatically to localStorage! They'll be there when y
 - **Vibe:** Sweet & fun!
 
 ### "Trance Deep" 🌀
+
 - Speed: 0.7
 - Color A: Deep Purple (#8b00ff)
 - Color B: Dark Blue (#000080)
@@ -163,6 +185,7 @@ Your spiral settings save automatically to localStorage! They'll be there when y
 - **Vibe:** Deep & intense!
 
 ### "Dreamy Clouds" ☁️
+
 - Speed: 1.0
 - Color A: Sky Blue (#87ceeb)
 - Color B: White (#ffffff)
@@ -170,6 +193,7 @@ Your spiral settings save automatically to localStorage! They'll be there when y
 - **Vibe:** Soft & floaty!
 
 ### "Energetic Fun" ⚡
+
 - Speed: 3.0
 - Color A: Neon Green (#39ff14)
 - Color B: Neon Yellow (#ffff00)
@@ -199,16 +223,19 @@ Your spiral settings save automatically to localStorage! They'll be there when y
 ## 🌟 Technical Stuff! 🌟
 
 **What's p5.js?**
+
 - JavaScript graphics library!
 - Makes the spirals!
 - Super powerful! ✨
 
 **How fast should my PC be?**
+
 - Mid-range is fine!
 - Lower Iterations if laggy!
 - Most PCs handle 250 easy! 💕
 
 **Do settings sync between devices?**
+
 - Nope! Saved locally only!
 - But you can export/import! 🌸
 

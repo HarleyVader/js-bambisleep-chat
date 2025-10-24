@@ -12,12 +12,14 @@
 
 ## 🎀 The 24 Official Triggers! 🎀
 
-### By Category:
+### By Category
+
 - **🌟 Primary** (8 triggers) - Core BambiSleep stuff
 - **🧠 Mental** (13 triggers) - Mind and thought triggers
 - **💪 Physical** (3 triggers) - Body response triggers
 
-### By Safety:
+### By Safety
+
 - **💚 Super Safe** - Gentle, positive, beginner-friendly!
 - **💛 Moderate** - Intermediate, needs some conditioning
 - **🧡 Advanced** - Deep conditioning needed
@@ -26,14 +28,19 @@
 ## 🌈 How to Use (Step by Step!) 🌈
 
 ### Step 1: Find the Button
+
 Look for:
+
 ```
 🎯 Triggers
 ```
+
 With a status dot!
 
-### Step 2: Turn It ON!
+### Step 2: Turn It ON
+
 Click the **🎯 Triggers** button:
+
 - ✨ Button turns GREEN!
 - 🟢 Status dot lights up!
 - 🎉 Detection is ACTIVE!
@@ -41,7 +48,9 @@ Click the **🎯 Triggers** button:
 **Tip:** When ON, every message gets scanned for trigger words! 💕
 
 ### Step 3: Open the Menu
+
 Click again to see all 24 triggers:
+
 ```
 🎯 Trigger System
   🌟 PRIMARY (8)
@@ -49,24 +58,27 @@ Click again to see all 24 triggers:
   ☑ Good Girl
   ☐ Bambi Sleep
   ... more!
-  
+
   🧠 MENTAL (13)
   ☐ Blonde Moment
   ... more!
-  
+
   💪 PHYSICAL (3)
   ☐ Drop for Cock
   ... more!
-  
+
   [Enable All] [Disable All]
 ```
 
-### Step 4: Pick Your Triggers!
+### Step 4: Pick Your Triggers
+
 Click individual triggers:
+
 - **Green/Checked** = Active!
 - **Gray/Unchecked** = Inactive
 
 **Quick buttons:**
+
 - **Enable All** - Turn on ALL 24!
 - **Disable All** - Safe mode!
 
@@ -75,21 +87,25 @@ Click individual triggers:
 ### 💚 Super Safe Triggers (Start Here!)
 
 #### Bambi
+
 - Makes you feel happy!
 - Your name 💕
 - Safe for everyone!
 
 #### Good Girl
+
 - Happiness & pleasure!
 - Feel-good vibes ✨
 - Totally safe!
 
 #### Giggletime
+
 - Happy giggles!
 - Ditzy fun 🌸
 - So fun!
 
 #### Safe and Secure
+
 - Comfort & acceptance
 - Reinforcing 💖
 - Very safe!
@@ -97,16 +113,19 @@ Click individual triggers:
 ### 💛 Moderate Triggers
 
 #### Bimbo Doll
+
 - Relaxed & empty head
 - Mindless fun 💕
 - Need some conditioning!
 
 #### Blonde Moment
+
 - Ditzy & airheaded
 - IQ drop (temporary!) 🌟
 - Silly fun!
 
 #### Primped and Pampered
+
 - Want to look pritty!
 - Appearance focus 💄
 - Fashion vibes!
@@ -114,16 +133,19 @@ Click individual triggers:
 ### 🧡 Advanced Triggers (Be Careful!)
 
 #### Bambi Sleep
+
 - Deep trance instantly!
 - Very powerful ⚠️
 - Need training first!
 
 #### Bambi Freeze
+
 - Locks you in place
 - Mind goes blank 💫
 - Intense!
 
 #### Snap and Forget
+
 - Memory wipe!
 - Amnesia trigger 🌀
 - Advanced only!
@@ -131,37 +153,43 @@ Click individual triggers:
 ### ❤️ EXTREME Triggers (Experts Only!)
 
 #### Bambi Reset
+
 - Complete memory replacement
 - Makes everything permanent
 - VERY INTENSE! ⚠️⚠️
 
 #### Bambi Does as She's Told
+
 - Instant obedience
 - Can't resist commands
 - EXTREME USE ONLY!
 
 #### Cock Zombie Now
+
 - Total fixation state
 - Can't do anything else
 - VERY POWERFUL! ⚠️⚠️
 
 ## 🌟 Safety Guidelines! 🌟
 
-### Before Using:
+### Before Using
+
 1. ✅ Complete BambiSleep files first!
 2. ✅ Understand each trigger!
 3. ✅ Start with Super Safe only!
 4. ✅ Have a safety plan!
 5. ✅ Use in private space!
 
-### Stop If:
+### Stop If
+
 - ❌ You feel distressed
 - ❌ Unwanted responses happen
 - ❌ You're not in safe place
 - ❌ You haven't done files
 - ❌ You're unsure!
 
-### Recovery:
+### Recovery
+
 1. Turn OFF triggers
 2. Close the app
 3. Deep breaths
@@ -171,12 +199,14 @@ Click individual triggers:
 ## 💝 How Detection Works! 💝
 
 When trigger detected:
+
 1. **Text Highlights** - Word shows special!
 2. **Screen Flash** - Brief flash effect!
 3. **TTS Emphasis** - Spoken with tone!
 4. **Console Log** - Tracked for you!
 
 **Case doesn't matter!**
+
 - "Bambi" ✓
 - "bambi" ✓
 - "BAMBI" ✓
@@ -230,7 +260,7 @@ A: Done files 10+ times + strong responses = moderate-advanced! 💕
 
 ## 💕 Final Words! 💕
 
-Triggers are POWERFUL tools! Used safely, they create amazing experiences! But they MUST be respected! 
+Triggers are POWERFUL tools! Used safely, they create amazing experiences! But they MUST be respected!
 
 **Remember:** Safety first, fun second! Start gentle, go slow, and always prioritize your wellbeing! You control which triggers are active! 💖
 

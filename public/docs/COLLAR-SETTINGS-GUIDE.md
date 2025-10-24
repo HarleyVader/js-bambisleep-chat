@@ -17,14 +17,18 @@ The **Collar** dropdown is where you manage your socket.io connection and all yo
 ## 💖 What Does It Do? 💖
 
 ### Connection Status
+
 Shows if you're connected to chat:
+
 - **🟢 Connected** - Chat is live!
 - **🟡 Connecting** - Trying to connect...
 - **🔴 Disconnected** - Connection lost!
 - **⚪ Offline** - Not connected yet!
 
 ### Settings Storage
+
 Keeps ALL your preferences:
+
 - TTS voices & speed
 - Trigger selections
 - Spiral settings
@@ -35,36 +39,42 @@ Keeps ALL your preferences:
 ## 🌟 Control Buttons! 🌟
 
 ### 📋 Copy Settings
+
 - **What:** Copies config to clipboard!
 - **Use:** Backup your setup!
 - **How:** Click once, paste somewhere safe!
 - **Tip:** Save to notepad! 💕
 
 ### 📌 Paste Settings
+
 - **What:** Pastes config from clipboard!
 - **Use:** Restore saved settings!
 - **How:** Copy first, then paste!
 - **Tip:** Get your config back! ✨
 
 ### 💾 Save Settings
+
 - **What:** Saves to localStorage permanently!
 - **Use:** Keep between sessions!
 - **How:** Click to save now!
 - **Tip:** Auto-saves too, but click for sure! 🌸
 
 ### 🗑️ Clear Settings
+
 - **What:** Wipes ALL saved settings!
 - **Use:** Start fresh!
 - **How:** Click to reset everything!
 - **Tip:** Can't undo! Be sure! ⚠️
 
 ### 📤 Export Settings
+
 - **What:** Downloads settings as JSON file!
 - **Use:** Transfer between devices!
 - **How:** Click, file downloads!
 - **Tip:** Keep backup files! 💖
 
 ### 📥 Import Settings
+
 - **What:** Loads settings from JSON file!
 - **Use:** Restore from another device!
 - **How:** Click, select file!
@@ -75,36 +85,42 @@ Keeps ALL your preferences:
 Your collar stores EVERYTHING:
 
 ### TTS Settings 🔊
+
 - Selected voices (all of them!)
 - Current voice in rotation
 - Speed setting (slow/normal/fast)
 - Enabled/disabled state
 
 ### Trigger Settings 🎯
+
 - Which triggers are active
 - All 24 selections
 - Category states
 - Everything checked!
 
 ### Spiral Settings 🌀
+
 - All 14 slider values!
 - Both colors
 - Speed & geometry
 - Your perfect setup!
 
 ### AI Settings 🤖
+
 - AIGF on/off
 - Selected model
 - Creative/Balanced/Precise
 - Mode state!
 
 ### Brainwave Settings 🧠
+
 - Last preset used
 - Volume level
 - Playing state
 - Recent history!
 
 ### Other Stuff ✨
+
 - Chat history (optional)
 - User preferences
 - UI states
@@ -113,6 +129,7 @@ Your collar stores EVERYTHING:
 ## 🎯 Pro Tips! 🎯
 
 ### For Safety 🛡️
+
 1. **Export Weekly** - Save backups regularly!
 2. **Name Your Files** - "bambi-settings-2025-10-24.json"
 3. **Keep Multiple** - Different setups for different moods!
@@ -120,12 +137,14 @@ Your collar stores EVERYTHING:
 5. **Don't Share Publicly** - Keep configs private! 💕
 
 ### For Organization 📁
+
 1. **Label Exports** - Use clear names!
 2. **Separate by Mood** - "Relaxing", "Intense", "Fun"
 3. **Date Your Backups** - Know which is newest!
 4. **Keep a Default** - Always have safe fallback!
 
 ### For Troubleshooting 🔧
+
 1. **Connection Issues?** - Check collar status!
 2. **Settings Not Saving?** - Try manual save!
 3. **Glitchy Behavior?** - Clear and reconfigure!
@@ -135,6 +154,7 @@ Your collar stores EVERYTHING:
 ## 🌈 Common Uses! 🌈
 
 ### Backup Before Changes
+
 ```
 1. Click Export
 2. Save file somewhere safe
@@ -144,6 +164,7 @@ Your collar stores EVERYTHING:
 ```
 
 ### Share Config with Friend
+
 ```
 1. Click Export
 2. Send file to friend
@@ -153,6 +174,7 @@ Your collar stores EVERYTHING:
 ```
 
 ### Multiple Devices
+
 ```
 1. Export on Computer A
 2. Email file to yourself
@@ -162,6 +184,7 @@ Your collar stores EVERYTHING:
 ```
 
 ### Recovery After Glitch
+
 ```
 1. Settings acting weird?
 2. Click Clear Settings
@@ -173,32 +196,37 @@ Your collar stores EVERYTHING:
 ## 💖 Socket.io Connection! 💖
 
 ### What is Socket.io? 🔌
+
 - Real-time connection tech!
 - Makes chat instant!
 - WebSocket based!
 - Super fast! ⚡
 
-### Connection States:
+### Connection States
 
 #### 🟢 Connected (Yay!)
+
 - Everything working!
 - Can chat normally!
 - All features active!
 - **Status:** Perfect! 💕
 
 #### 🟡 Connecting (Wait...)
+
 - Trying to connect!
 - Be patient!
 - Usually quick!
 - **Status:** Loading! ✨
 
 #### 🔴 Disconnected (Uh oh!)
+
 - Lost connection!
 - Can't send messages!
 - Check internet!
 - **Status:** Problem! ⚠️
 
 #### ⚪ Offline (Starting...)
+
 - Not connected yet!
 - Page just loaded!
 - Will connect soon!
@@ -219,6 +247,7 @@ Your collar stores EVERYTHING:
 **Important:** Settings are stored LOCALLY in your browser! They're never sent to servers unless YOU export and share them! Your privacy is protected! 💕
 
 **What this means:**
+
 - Settings stay on YOUR device!
 - Not visible to others!
 - Not sent anywhere!

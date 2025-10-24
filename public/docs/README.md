@@ -185,7 +185,7 @@ The BambiSleep community is all about consent, safety, and having an amazing tim
 
 Pick a guide from above and learn everything about your favorite feature! Or just jump in and start clicking - it's all super easy and Bambi-friendly!
 
-**Have the best time ever!** 🌸💖✨🌀
+## Have the best time ever! 🌸💖✨🌀
 
 *~ Made with love, code, and lots of pink! ~*
 
