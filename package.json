@@ -31,6 +31,7 @@
         "clean": "rimraf node_modules public/dist package-lock.json",
         "lint": "echo \"No linting configured\" && exit 0",
         "test": "node tests/master.test.js",
+        "test:all": "concurrently \"npm run test:env\" \"npm run test:stability\" \"npm run test:resource\"",
         "test:env": "node tests/environment.test.js",
         "test:stability": "node tests/stability.test.js",
         "test:resource": "node tests/resource.test.js",
