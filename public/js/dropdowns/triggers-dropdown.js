@@ -138,9 +138,20 @@ export class TriggersDropdown {
     toggleState(btn) {
         const currentState = btn.getAttribute('data-state');
         const newState = currentState === 'off' ? 'on' : 'off';
+        const statusIndicator = document.getElementById('triggers-status');
 
         btn.setAttribute('data-state', newState);
-        btn.textContent = `Triggers: ${newState.toUpperCase()}`;
+
+        // Update status indicator like brainwave
+        if (statusIndicator) {
+            if (newState === 'on') {
+                statusIndicator.style.color = '#00ff00';
+                statusIndicator.textContent = '●';
+            } else {
+                statusIndicator.style.color = '#666';
+                statusIndicator.textContent = '●';
+            }
+        }
 
         // Enable/disable trigger system
         const triggerSystem = this.getTriggerSystem();

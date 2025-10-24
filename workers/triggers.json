@@ -1,307 +1,172 @@
 {
-    "version": "3.0.0",
-    "updated": "2025-09-11T00:00:00.000Z",
-    "source": "https://bambisleep.info/Triggers",
-    "description": "Complete BambiSleep trigger definitions extracted from official knowledge base https://bambisleep.info/Triggers",
-    "categories": {
-        "primary": "Main personality triggers for Bambi activation",
-        "physical": "Physical body and movement triggers",
-        "mental": "Mental state and cognitive triggers"
-    },
     "triggers": [
         {
             "id": "bambi",
             "name": "Bambi",
-            "category": "primary",
             "description": "Your name; Causes feelings of happiness",
-            "effects": [
-                "Feelings of happiness",
-                "Personality activation",
-                "Identity reinforcement",
-                "Emotional positivity"
-            ],
-            "usage": "Primary identity trigger",
-            "safetyLevel": "safe"
+            "effect": "Causes feelings of happiness",
+            "category": "Primary"
         },
         {
             "id": "bambi_sleep",
             "name": "Bambi Sleep",
-            "category": "primary",
-            "description": "A powerful trigger that drops the listener instantly into a deep, obedient trance state",
-            "effects": [
-                "Deep trance state",
-                "Instant obedience",
-                "Enhanced conditioning receptivity",
-                "Subconscious programming"
-            ],
-            "usage": "Deep conditioning session trigger",
-            "safetyLevel": "advanced"
+            "description": "A powerful trigger that drops the listener instantly into a deep, obedient trance state.",
+            "effect": "Instant deep trance trigger",
+            "category": "Primary"
         },
         {
             "id": "bambi_reset",
             "name": "Bambi Reset",
-            "category": "primary",
-            "description": "A hypnotic reset that wipes past memories and reinforces the belief that Bambi's conditioning has always been her reality, promoting deep self-acceptance and seamless transformation",
-            "effects": [
-                "Memory restructuring",
-                "Reality reinforcement",
-                "Deep self-acceptance",
-                "Seamless transformation"
-            ],
-            "usage": "Memory reset and reality reinforcement",
-            "safetyLevel": "advanced"
+            "description": "A hypnotic reset that wipes past memories and reinforces the belief that Bambi’s conditioning has always been her reality, promoting deep self-acceptance and seamless transformation.",
+            "effect": "Memory wipe and replacement. Self-acceptance and belief that everything conditioned has always been that way.",
+            "category": "Primary"
         },
         {
             "id": "good_girl",
             "name": "Good Girl",
-            "category": "primary",
-            "description": "A trigger that creates a feeling of happiness, euphoria and pleasure",
-            "effects": [
-                "Happiness feelings",
-                "Euphoria response",
-                "Pleasure sensations",
-                "Positive reinforcement"
-            ],
-            "usage": "Positive reinforcement trigger",
-            "safetyLevel": "safe"
+            "description": "A trigger that creates a feeling of happiness, euphoria and pleasure.",
+            "effect": "Causes feelings of happiness, euphoria and pleasure.",
+            "category": "Primary"
         },
         {
             "id": "bambi_wake_and_obey",
             "name": "Bambi Wake and Obey",
-            "category": "primary",
             "description": "Brings Bambi out of trance, alert and obedient, standing with perfect posture; ready for her next command",
-            "effects": [
-                "Trance emergence",
-                "Alert obedience",
-                "Perfect posture",
-                "Command readiness"
-            ],
-            "usage": "Awakening with obedience trigger",
-            "safetyLevel": "moderate"
+            "effect": "Brings Bambi out of trance, alert and obedient",
+            "category": "Primary"
         },
         {
             "id": "bambi_freeze",
             "name": "Bambi Freeze",
-            "category": "primary",
-            "description": "Locks Bambi in place, deepening trance and ensures full acceptance and amnesia of any following suggestions while silencing all thought",
-            "effects": [
-                "Physical immobilization",
-                "Trance deepening",
-                "Suggestion acceptance",
-                "Thought silencing"
-            ],
-            "usage": "Immobilization and receptivity trigger",
-            "safetyLevel": "advanced"
+            "description": "Locks Bambi in place, deepening trance and ensures full acceptance and amnesia of any following suggestions while silencing all thought.",
+            "effect": "Deepens trance, blanks mind, and erases all thought. Ensures acceptance and amnesia of further suggestions.",
+            "category": "Primary"
         },
         {
-            "id": "bambi_does_as_shes_told",
+            "id": "bambi_does_as_she's_told",
             "name": "Bambi Does as She's Told",
-            "category": "primary",
-            "description": "Triggers instant, mindless obedience - compelling Bambi to automatically follow the last command until its completion",
-            "effects": [
-                "Instant obedience",
-                "Mindless compliance",
-                "Automatic command following",
-                "Task completion focus"
-            ],
-            "usage": "Instant obedience trigger",
-            "safetyLevel": "advanced"
+            "description": "Triggers instant, mindless obedience - compelling Bambi to automatically follow the last command until its completion.",
+            "effect": "Instant obedience override. Causes automatic mindless compliance with the last command given until fully carried-out.",
+            "category": "Primary"
         },
         {
             "id": "bimbo_doll",
             "name": "Bimbo Doll",
-            "category": "primary",
-            "description": "A trigger that creates a feeling of relaxation and empty headedness",
-            "effects": [
-                "Deep relaxation",
-                "Mental emptiness",
-                "Bimbo personality",
-                "Reduced thinking"
-            ],
-            "usage": "Bimbo state activation",
-            "safetyLevel": "moderate"
+            "description": "A trigger that creates a feeling of relaxation and empty headedness.",
+            "effect": "Causes feelings of relaxation and emptiness.",
+            "category": "Primary"
         },
         {
             "id": "blonde_moment",
             "name": "Blonde Moment",
-            "category": "primary",
-            "description": "A ditzy, airheaded confused state; marked by a sharp IQ drop and loss of all thought",
-            "effects": [
-                "Ditzy behavior",
-                "Confused state",
-                "Intelligence reduction",
-                "Thought loss"
-            ],
-            "usage": "Airhead state trigger",
-            "safetyLevel": "moderate"
+            "description": "A ditzy, airheaded confused state; marked by a sharp IQ drop and loss of all thought.",
+            "effect": "Dumb-down trigger causing IQ drop and loss of thought, replaced with ditzy airhead confusion.",
+            "category": "Mental"
         },
         {
             "id": "snap_and_forget",
             "name": "Snap and Forget",
-            "category": "primary",
-            "description": "A trigger that erases all memory of whatever is instructed to be forgotten",
-            "effects": [
-                "Memory erasure",
-                "Selective amnesia",
-                "Information deletion",
-                "Mental clearing"
-            ],
-            "usage": "Memory manipulation trigger",
-            "safetyLevel": "advanced"
+            "description": "A trigger that erases all memory of whatever is instructed to be forgotten.",
+            "effect": "Amnesia trigger. Erases all memory of whatever is instructed to be forgotten.",
+            "category": "Mental"
         },
         {
             "id": "bambi_cum_and_collapse",
             "name": "Bambi Cum and Collapse",
-            "category": "physical",
-            "description": "A powerful trigger that drops the listener instantly into a deep, obedient trance state",
-            "effects": [
-                "Physical collapse",
-                "Instant trance drop",
-                "Body submission",
-                "Deep obedience"
-            ],
-            "usage": "Physical submission trigger",
-            "safetyLevel": "advanced"
+            "description": "A powerful trigger that drops the listener instantly into a deep, obedient trance state.",
+            "effect": "Cum-on-command trigger for instant orgasm and reinforcement of conditioning.",
+            "category": "Physical"
         },
         {
             "id": "drop_for_cock",
             "name": "Drop for Cock",
-            "category": "physical",
-            "description": "Instantly drops Bambi to her knees; blanks her mind and opens her mouth - submission on command",
-            "effects": [
-                "Physical positioning",
-                "Mind blanking",
-                "Oral submission",
-                "Instant compliance"
-            ],
-            "usage": "Physical submission positioning",
-            "safetyLevel": "advanced"
+            "description": "Instantly drops Bambi to her knees; blanks her mind and opens her mouth - submission on command.",
+            "effect": "Legs buckle, body drops to its knees, mind goes blank and mouth opens.",
+            "category": "Physical"
         },
         {
             "id": "bambi_limp",
             "name": "Bambi Limp",
-            "category": "physical",
-            "description": "Causes Bambi's body to fall completely limp",
-            "effects": [
-                "Complete limpness",
-                "Muscle relaxation",
-                "Physical surrender",
-                "Body control loss"
-            ],
-            "usage": "Physical relaxation trigger",
-            "safetyLevel": "moderate"
+            "description": "Causes Bambi's body to fall completely limp.",
+            "effect": "Causes Bambi's body to fall completely limp.",
+            "category": "Physical"
         },
         {
             "id": "airhead_barbie",
             "name": "Airhead Barbie",
-            "category": "mental",
-            "description": "Dumb-down 1st Gear; renders Bambi easily confused, restricts Bambi's intelligence and thoughts to small, simple bimbo-voiced thoughts fixates Bambi's thoughts on cock and her appearance",
-            "effects": [
-                "Intelligence restriction",
-                "Easy confusion",
-                "Simple thinking",
-                "Appearance fixation"
-            ],
-            "usage": "1st level intelligence reduction",
-            "safetyLevel": "moderate"
+            "description": "Dumb-down 1st Gear; renders Bambi easily confused, restricts Bambi's intelligence and thoughts to small, simple bimbo-voiced thoughts fixates Bambi's thoughts on cock and her appearance.",
+            "effect": "Activates bimbo mental dumbdown level #1: obedient, intelligence restricted, easily confused, small and simple bimbo-voiced thoughts only, fixation on cock and appearance.",
+            "category": "Mental"
         },
         {
             "id": "braindead_bobblehead",
             "name": "Braindead Bobblehead",
-            "category": "mental",
-            "description": "Dumb-down 2nd Gear; instills a sense of relaxation paired with thoughtless confusion; any attempts by Bambi to think gets wiped away by mental windshield wipers",
-            "effects": [
-                "Thoughtless confusion",
-                "Mental wiping",
-                "Relaxed emptiness",
-                "Thinking prevention"
-            ],
-            "usage": "2nd level intelligence reduction",
-            "safetyLevel": "advanced"
+            "description": "Dumb-down 2nd Gear; instills a sense of relaxation paired with thoughtless confusion; any attempts by Bambi to think gets wiped away by mental windshield wipers.",
+            "effect": "Activates bimbo mental dumbdown level #2: relaxation, completely and permanent thoughtless confusion, any attempt to think immediately shut down by mental windshield wipers, instinctively bobs blankly on cock.",
+            "category": "Mental"
         },
         {
             "id": "cockblank_lovedoll",
             "name": "Cockblank Lovedoll",
-            "category": "mental",
-            "description": "Dumb-down 3rd Gear; effectively turns Bambi into a pliable sex doll - awareness is shut down, body is rendered completely immobile, feelings are restricted to her breasts and all available orifices (mouth, asshole, vagina)",
-            "effects": [
-                "Awareness shutdown",
-                "Complete immobilization",
-                "Doll transformation",
-                "Restricted sensation"
-            ],
-            "usage": "3rd level complete shutdown - use with extreme caution",
-            "safetyLevel": "extreme"
+            "description": "Dumb-down 3rd Gear; effectively turns Bambi into a pliable sex doll - awareness is shut down, body is rendered completely immobile, feelings are restricted to her breasts and all available orifices (mouth, asshole, vagina).",
+            "effect": "Activates bimbo mental dumbdown level #3: shuts off all awareness, becoming a silicon sexdoll, feeling only tits and holes, rendered immobile, passive and compliant with limbs positioned to allow easy access and use.",
+            "category": "Mental"
         },
         {
             "id": "cock_zombie_now",
             "name": "Cock Zombie Now",
-            "category": "mental",
-            "description": "Triggers a blank and mindless cock sucking trance state. Removes ability to do anything but suck and self-pleasure until hearing the words 'Bambi reset'",
-            "effects": [
-                "Mindless trance",
-                "Single-focus behavior",
-                "Action restriction",
-                "Reset dependency"
-            ],
-            "usage": "Focused behavior trigger - requires reset",
-            "safetyLevel": "advanced"
+            "description": "Triggers a blank and mindless cock sucking trance state. Removes ability to do anything but suck and self-pleasure until hearing the words 'Bambi reset'.",
+            "effect": "Triggers a blank and mindless cocksucking trance state. Removes ability to do anything but suck and self-pleasure until hearing the words Bambi reset.",
+            "category": "Mental"
         },
         {
             "id": "giggletime",
             "name": "Giggletime",
-            "category": "mental",
-            "description": "Instills immediate fits of happy bimbo giggles and ditziness, followed by a relaxed state of acceptance",
-            "effects": [
-                "Happy giggles",
-                "Bimbo ditziness",
-                "Relaxed acceptance",
-                "Emotional elevation"
-            ],
-            "usage": "Mood elevation and acceptance",
-            "safetyLevel": "safe"
+            "description": "Instills immediate fits of happy bimbo giggles and ditziness, followed by a relaxed state of acceptance.",
+            "effect": "Causes immediate fits of happy bimbo giggles and ditziness followed by relaxation and acceptance.",
+            "category": "Mental"
         },
         {
             "id": "primped_and_pampered",
             "name": "Primped and Pampered",
-            "category": "mental",
-            "description": "Instills a deep need to be dolled up and pretty",
-            "effects": [
-                "Appearance obsession",
-                "Beauty focus",
-                "Grooming compulsion",
-                "Prettiness need"
-            ],
-            "usage": "Appearance conditioning trigger",
-            "safetyLevel": "safe"
+            "description": "Instills a deep need to be dolled up and pretty.",
+            "effect": "Causes deep cravings to be dolled up and pretty. Rewards with pleasure if already the case, and overwhelms with anxiety otherwise.",
+            "category": "Mental"
         },
         {
             "id": "safe_and_secure",
             "name": "Safe and Secure",
-            "category": "mental",
-            "description": "Reinforcement of comfort and acceptance for all conditioning",
-            "effects": [
-                "Comfort reinforcement",
-                "Conditioning acceptance",
-                "Security feelings",
-                "Mental safety"
-            ],
-            "usage": "Comfort and acceptance reinforcement",
-            "safetyLevel": "safe"
+            "description": "Reinforcement of comfort and acceptance for all conditioning.",
+            "effect": "Reinforces feelings of comfort and acceptance for all conditioning.",
+            "category": "Mental"
         },
         {
             "id": "zap_cock_drain_obey",
             "name": "Zap Cock Drain Obey",
-            "category": "mental",
-            "description": "Silences all thought in Bambi's head; replacing and overwhelming Bambi with feelings of sucking cock",
-            "effects": [
-                "Thought silencing",
-                "Mind replacement",
-                "Overwhelming focus",
-                "Singular obsession"
-            ],
-            "usage": "Complete mental focus trigger",
-            "safetyLevel": "advanced"
+            "description": "Silences all thought in Bambi's head; replacing and overwhelming Bambi with feelings of sucking cock.",
+            "effect": "Silences the mental monologue by plugging it with cock. Overwhelms with feelings of sucking cock inside the mind.",
+            "category": "Mental"
+        },
+        {
+            "id": "bambi_uniform_lock",
+            "name": "Bambi uniform lock",
+            "description": "Strengthens all conditioning when in uniform and reinforces the inability to undress.",
+            "effect": "Strengthens all conditioning when in uniform and reinforces the inability to undress.",
+            "category": "Physical"
+        },
+        {
+            "id": "bambi_tits_lips_face_waist_hips_butt_cunt_limbs_throat_lock",
+            "name": "Bambi tits/lips/face/waist/hips/butt/cunt/limbs/throat lock",
+            "description": "Various triggers for strengthening the perception of an augmented bimbo body.",
+            "effect": "Strengthens the perception of an augmented bimbo body.",
+            "category": "Physical"
+        },
+        {
+            "id": "bambi_posture_lock",
+            "name": "Bambi posture lock",
+            "description": "Enforces submissive feminine posture.",
+            "effect": "Enforces submissive feminine posture.",
+            "category": "Physical"
         }
     ]
 }

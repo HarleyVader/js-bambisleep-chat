@@ -11,8 +11,8 @@ export class SpiralDropdown {
         // FINE-GRAIN Slider settings with ultra-responsive ranges and micro-steps
         this.sliderSettings = {
             speed: { min: 0.01, max: 5.0, default: 1.0, step: 0.01 },
-            spiralA_color: { type: 'color', default: '#df0471' },  // Hot pink default
-            spiralB_color: { type: 'color', default: '#00ffff' },  // Cyan default
+            spiralA_color: { type: 'color', default: '#c700c7' },  // Original p5.js purple: [199, 0, 199]
+            spiralB_color: { type: 'color', default: '#ff82ff' },  // Original p5.js light purple: [255, 130, 255]
             geometryA: { min: 0.01, max: 10.0, default: 1.0, step: 0.01 },
             geometryB: { min: 0.01, max: 5.0, default: 0.3, step: 0.01 },
             subtleVariation: { min: 0.0, max: 1.0, default: 0.0, step: 0.001 },
@@ -274,24 +274,20 @@ export class SpiralDropdown {
 
             case 'spiralA_color':
                 const rgbA = this.hexToRgb(value);
-                animation.controls.spiralA_color[0] = rgbA.r;
-                animation.controls.spiralA_color[1] = rgbA.g;
-                animation.controls.spiralA_color[2] = rgbA.b;
+                spiralControls.setSpiralAColor(rgbA.r, rgbA.g, rgbA.b);
                 break;
 
             case 'spiralB_color':
                 const rgbB = this.hexToRgb(value);
-                animation.controls.spiralB_color[0] = rgbB.r;
-                animation.controls.spiralB_color[1] = rgbB.g;
-                animation.controls.spiralB_color[2] = rgbB.b;
+                spiralControls.setSpiralBColor(rgbB.r, rgbB.g, rgbB.b);
                 break;
 
             case 'geometryA':
-                animation.controls.spiralA_geometry = value;
+                spiralControls.setGeometryA(value);
                 break;
 
             case 'geometryB':
-                animation.controls.spiralB_geometry = value;
+                spiralControls.setGeometryB(value);
                 break;
 
             case 'subtleVariation':
@@ -303,37 +299,40 @@ export class SpiralDropdown {
                 break;
 
             case 'alpha':
-                animation.controls.spiralA_color[3] = value;
-                animation.controls.spiralB_color[3] = value;
+                spiralControls.setAlpha(value);
                 break;
 
             case 'pulseIntensity':
-                animation.controls.pulseIntensity = value;
+                spiralControls.setPulseIntensity(value);
                 break;
 
-            // NEW fine-grain controls
+            // Enhanced fine-grain controls using new API
             case 'rotationSpeed':
-                animation.controls.rotationSpeed = value;
+                spiralControls.setRotationSpeed(value);
                 break;
 
             case 'iterations':
-                animation.controls.iterations = Math.floor(value);
+                spiralControls.setIterations(Math.floor(value));
                 break;
 
             case 'rangeA_min':
-                animation.controls.spiralA_range_min = value;
+                const currentRangeA_max = animation.controls.rangeA_max;
+                spiralControls.setRangeA(value, currentRangeA_max);
                 break;
 
             case 'rangeA_max':
-                animation.controls.spiralA_range_max = value;
+                const currentRangeA_min = animation.controls.rangeA_min;
+                spiralControls.setRangeA(currentRangeA_min, value);
                 break;
 
             case 'rangeB_min':
-                animation.controls.spiralB_range_min = value;
+                const currentRangeB_max = animation.controls.rangeB_max;
+                spiralControls.setRangeB(value, currentRangeB_max);
                 break;
 
             case 'rangeB_max':
-                animation.controls.spiralB_range_max = value;
+                const currentRangeB_min = animation.controls.rangeB_min;
+                spiralControls.setRangeB(currentRangeB_min, value);
                 break;
         }
 
@@ -469,9 +468,20 @@ export class SpiralDropdown {
     toggleState(btn) {
         const currentState = btn.getAttribute('data-state');
         const newState = currentState === 'off' ? 'on' : 'off';
+        const statusIndicator = document.getElementById('spiral-status');
 
         btn.setAttribute('data-state', newState);
-        btn.textContent = `Spiral: ${newState.toUpperCase()}`;
+
+        // Update status indicator like brainwave
+        if (statusIndicator) {
+            if (newState === 'on') {
+                statusIndicator.style.color = '#00ff00';
+                statusIndicator.textContent = '●';
+            } else {
+                statusIndicator.style.color = '#666';
+                statusIndicator.textContent = '●';
+            }
+        }
 
         // Enable/disable spiral animation
         if (window.spiralAnimation) {
@@ -479,7 +489,17 @@ export class SpiralDropdown {
             // Update button state to match actual spiral state
             const actualState = isEnabled ? 'on' : 'off';
             btn.setAttribute('data-state', actualState);
-            btn.textContent = `Spiral: ${actualState.toUpperCase()}`;
+
+            // Update status indicator to match actual state
+            if (statusIndicator) {
+                if (actualState === 'on') {
+                    statusIndicator.style.color = '#00ff00';
+                    statusIndicator.textContent = '●';
+                } else {
+                    statusIndicator.style.color = '#666';
+                    statusIndicator.textContent = '●';
+                }
+            }
 
             // Load settings if turning on
             if (isEnabled) {

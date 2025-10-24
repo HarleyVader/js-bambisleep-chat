@@ -67,7 +67,7 @@ class TriggerSystem {
         }
 
         // Check if this is already processed HTML (contains our highlight classes)
-        const isAlreadyProcessed = text.includes('ai-generated-highlight') || text.includes('enhanced-trigger');
+        const isAlreadyProcessed = text.includes('ai-generated-highlight');
 
         let processedText;
 
@@ -77,8 +77,6 @@ class TriggerSystem {
         } else {
             // Regular text that needs full processing
             processedText = this.escapeHtml(text);
-            // First process **TRIGGER** format (enhanced triggers in caps between asterisks)
-            processedText = this.processEnhancedTriggers(processedText);
         }
 
         // Process all triggers with overlapping support
@@ -112,8 +110,7 @@ class TriggerSystem {
 
                 // Check if this exact text is already highlighted
                 const alreadyHighlighted =
-                    string.includes(`<span class="trigger-text" data-trigger="${trigger}">${match}</span>`) ||
-                    string.includes(`<span class="enhanced-trigger">${match.toUpperCase()}</span>`);
+                    string.includes(`<span class="trigger-text" data-trigger="${trigger}">${match}</span>`);
 
                 if (alreadyHighlighted) {
                     return match;
@@ -125,82 +122,6 @@ class TriggerSystem {
         });
 
         return processedText;
-    } processEnhancedTriggers(text) {
-        // Use string.replace() to find **TRIGGER** patterns and convert them
-        // Matches **[CAPS WORDS]** format - handles single words or multiple words
-        const enhancedTriggerRegex = /\*\*([A-Z]+(?:\s+[A-Z]+)*)\*\*/g;
-
-        return text.replace(enhancedTriggerRegex, (match, triggerText) => {
-            // Play enhanced trigger effect
-            this.playEnhancedTriggerEffect();
-
-            // Return the trigger without asterisks but with hot pink styling
-            return `<span class="enhanced-trigger">${triggerText}</span>`;
-        });
-    }
-
-    playEnhancedTriggerEffect() {
-        // Enhanced effect for **TRIGGER** format
-        if (this.audioEnabled) {
-            this.playEnhancedTriggerSound();
-        }
-
-        // Enhanced visual flash effect
-        this.flashEnhancedScreen();
-    }
-
-    playEnhancedTriggerSound() {
-        // Create a more intense sound for enhanced triggers
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
-        // Higher frequency and longer duration for enhanced triggers
-        oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.2);
-    }
-
-    flashEnhancedScreen() {
-        const flashOverlay = document.createElement('div');
-        flashOverlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(223, 4, 113, 0.6);
-            z-index: 9999;
-            pointer-events: none;
-            animation: enhancedTriggerFlash 0.5s ease-out;
-        `;
-
-        // Add enhanced flash animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes enhancedTriggerFlash {
-                0% { opacity: 0; }
-                50% { opacity: 1; }
-                100% { opacity: 0; }
-            }
-        `;
-
-        if (!document.querySelector('#enhanced-trigger-flash-style')) {
-            style.id = 'enhanced-trigger-flash-style';
-            document.head.appendChild(style);
-        }
-
-        document.body.appendChild(flashOverlay);
-
-        setTimeout(() => {
-            document.body.removeChild(flashOverlay);
-        }, 500);
     }
 
     playTriggerEffect() {

@@ -44,6 +44,8 @@ export class AIDropdown {
     ensureButtonStyling() {
         // Ensure the AI button has proper CSS classes from buttons.css
         const btn = document.getElementById(this.buttonId);
+        const statusIndicator = document.getElementById('ai-status');
+
         if (btn) {
             btn.classList.add('dropdown-btn', 'toggle-button');
             // Remove any conflicting classes
@@ -51,7 +53,17 @@ export class AIDropdown {
 
             // Set AIGF state
             btn.setAttribute('data-state', this.isEnabled ? 'on' : 'off');
-            btn.textContent = `🧠 AIGF: ${this.isEnabled ? 'ON' : 'OFF'}`;
+        }
+
+        // Update status indicator like brainwave
+        if (statusIndicator) {
+            if (this.isEnabled) {
+                statusIndicator.style.color = '#00ff00';
+                statusIndicator.textContent = '●';
+            } else {
+                statusIndicator.style.color = '#666';
+                statusIndicator.textContent = '●';
+            }
         }
     }
 
@@ -139,11 +151,23 @@ export class AIDropdown {
 
     updateButtonState() {
         const btn = document.getElementById(this.buttonId);
+        const statusIndicator = document.getElementById('ai-status');
+
         if (!btn) return;
 
         // Set proper data attributes for buttons.css red/green on/off styling system
         btn.setAttribute('data-state', this.isEnabled ? 'on' : 'off');
-        btn.textContent = `🧠 AIGF: ${this.isEnabled ? 'ON' : 'OFF'}`;
+
+        // Update status indicator like brainwave
+        if (statusIndicator) {
+            if (this.isEnabled) {
+                statusIndicator.style.color = '#00ff00';
+                statusIndicator.textContent = '●';
+            } else {
+                statusIndicator.style.color = '#666';
+                statusIndicator.textContent = '●';
+            }
+        }
 
         // Ensure button has proper CSS classes from buttons.css
         btn.classList.add('dropdown-btn', 'toggle-button');

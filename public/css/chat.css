@@ -10,8 +10,10 @@
     padding: 14px;
     overflow-y: auto;
     scroll-behavior: smooth;
-    border: var(--border) var(--primary-alt);
-    background: transparent;
+    border: 1px solid rgba(21, 170, 181, 0.3);
+    background: rgba(12, 42, 42, 0.3);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     display: block;
     /* Default visible */
 }
@@ -20,11 +22,13 @@
 #global-chat-messages .message {
     margin-bottom: 5.6px;
     padding: 5.6px 8.4px;
-    background: var(--primary-color);
-    border-radius: 15px;
-    border-left: 3px solid var(--tertiary-color);
+    background: rgba(12, 42, 42, 0.6);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    border: 1px solid rgba(114, 2, 65, 0.4);
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.2);
     animation: messageSlide 0.3s ease-out;
-    border: 1px solid var(--primary-alt);
     display: flex;
     align-items: flex-start;
     gap: 5.6px;
@@ -33,6 +37,13 @@
     min-height: 28px;
     max-width: 100%;
     flex-wrap: wrap;
+    transition: all 0.2s ease;
+}
+
+#global-chat-messages .message:hover {
+    background: rgba(12, 42, 42, 0.75);
+    border-color: rgba(114, 2, 65, 0.6);
+    transform: translateX(2px);
 }
 
 @keyframes messageSlide {
@@ -49,10 +60,12 @@
 
 #global-chat-messages .message.system {
     border-left-color: var(--tertiary-alt);
-    background: var(--nav-color);
-    border-color: var(--tertiary-alt);
+    background: rgba(10, 38, 38, 0.6);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(2, 184, 147, 0.4);
     font-style: italic;
-    opacity: 0.8;
+    opacity: 0.9;
     display: flex;
     align-items: flex-start;
     gap: 5.6px;

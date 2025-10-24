@@ -1,5 +1,6 @@
 /* BambiSleep Chat Styles */
 @import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
+@import url("glassmorphism.css");
 
 :root {
     --primary-color: #0c2a2aE6;
@@ -110,10 +111,12 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background: var(--transparent);
-    border: var(--border) var(--primary-alt);
-    border-radius: var(--border-radius);
-    /* Rounded borders */
+    background: rgba(12, 42, 42, 0.6);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     flex-shrink: 0;
     /* Prevent shrinking */
     order: 1;
@@ -132,9 +135,12 @@ body {
     opacity: 0.6;
     order: 2;
     /* Ensure it comes second */
-    border: var(--border) var(--primary-alt);
-    border-radius: var(--border-radius);
-    /* Rounded borders */
+    background: rgba(10, 38, 38, 0.3);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.25);
     box-sizing: border-box;
     /* Include padding in dimensions */
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
@@ -249,13 +255,16 @@ body {
 #chat-header {
     padding: 14px;
     /* Reduced by 30% from 20px */
-    border-bottom: 1px solid var(--nav-alt);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: var(--nav-color);
-    border: var(--border) var(--button-color);
-    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    background: rgba(10, 38, 38, 0.75);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(223, 4, 113, 0.4);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     /* Rounded top corners */
 }
 
@@ -302,14 +311,16 @@ body {
     position: absolute;
     top: 100%;
     left: 0;
-    background: var(--nav-color);
+    background: rgba(38, 20, 38, 0.85);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
     min-width: 300px;
     max-width: 90vw;
     width: auto;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
     z-index: 1000;
-    border: var(--border) var(--primary-alt);
-    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
     margin-top: 2px;
     max-height: 80vh;
     overflow: auto;
@@ -617,19 +628,6 @@ body {
     display: inline;
 }
 
-/* Enhanced **TRIGGER** formatting with hot pink */
-.enhanced-trigger {
-    color: var(--button-color);
-    font-weight: bold;
-    text-shadow: 0 0 10px var(--button-color);
-    animation: triggerPulse 2s ease-in-out infinite;
-    font-size: 1.1em;
-    letter-spacing: 1px;
-    position: relative;
-    z-index: 2;
-    display: inline;
-}
-
 /* AI-generated highlighted text from LMStudio structured output */
 .ai-generated-highlight {
     color: var(--button-color);
@@ -642,108 +640,6 @@ body {
     padding: 2px 4px;
     border-radius: 3px;
     border: 1px solid rgba(223, 4, 113, 0.3);
-}
-
-/* Enhanced trigger styling with category-based colors */
-.caps-text {
-    font-weight: bold;
-    transition: all 0.3s ease;
-    text-shadow: 0 0 5px currentColor;
-    cursor: help;
-}
-
-/* Category-specific trigger styles */
-.trigger-primary {
-    color: #ff1493 !important;
-    /* Deep pink for primary triggers */
-    text-shadow: 0 0 8px #ff1493;
-}
-
-.trigger-mental {
-    color: #9932cc !important;
-    /* Purple for mental triggers */
-    text-shadow: 0 0 8px #9932cc;
-}
-
-.trigger-physical {
-    color: #ff4500 !important;
-    /* Orange-red for physical triggers */
-    text-shadow: 0 0 8px #ff4500;
-}
-
-.trigger-default {
-    color: #df0471 !important;
-    /* Hot pink for uncategorized */
-    text-shadow: 0 0 8px #df0471;
-}
-
-/* Enhanced glitch effect for all trigger categories */
-.caps-text.glitch-active {
-    animation: enhancedTriggerGlitch 0.8s linear;
-}
-
-/* Safety level indicators */
-.caps-text[data-safety="safe"] {
-    border-bottom: 2px solid #00ff00;
-}
-
-.caps-text[data-safety="moderate"] {
-    border-bottom: 2px solid #ffff00;
-}
-
-.caps-text[data-safety="advanced"] {
-    border-bottom: 2px solid #ff0000;
-}
-
-@keyframes enhancedTriggerGlitch {
-    0% {
-        transform: translateX(0);
-        filter: hue-rotate(0deg);
-    }
-
-    10% {
-        transform: translateX(-2px) skew(-2deg);
-        filter: hue-rotate(90deg);
-    }
-
-    20% {
-        transform: translateX(2px) skew(2deg);
-        filter: hue-rotate(180deg);
-    }
-
-    30% {
-        transform: translateX(-1px) skew(-1deg);
-        filter: hue-rotate(270deg);
-    }
-
-    40% {
-        transform: translateX(1px) skew(1deg);
-        filter: hue-rotate(360deg);
-    }
-
-    50% {
-        transform: translateX(-3px) skew(-3deg);
-    }
-
-    60% {
-        transform: translateX(3px) skew(3deg);
-    }
-
-    70% {
-        transform: translateX(-1px) skew(-1deg);
-    }
-
-    80% {
-        transform: translateX(1px) skew(1deg);
-    }
-
-    90% {
-        transform: translateX(-2px) skew(-2deg);
-    }
-
-    100% {
-        transform: translateX(0) skew(0deg);
-    }
 }
 
 @keyframes aiHighlightPulse {
@@ -862,12 +758,15 @@ body {
 /* Legacy support */
 #chat-input-container {
     padding: 14px;
-    border-top: 1px solid var(--nav-alt);
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
     display: flex;
     gap: 7px;
-    background: var(--nav-color);
-    border: var(--border) var(--button-color);
-    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    background: rgba(10, 38, 38, 0.75);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(223, 4, 113, 0.4);
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 -4px 16px 0 rgba(0, 0, 0, 0.2);
 }
 
 /* Chat Input Fields */
@@ -880,35 +779,45 @@ body {
     color: #fff;
     font-size: 0.75rem;
     outline: none;
-}
-
-/* Global chat input styling */
-#global-chat-input {
-    background: var(--primary-color);
-    border: 1px solid var(--primary-alt);
-}
-
-/* AIGF chat input styling */
-#aigf-chat-input {
-    background: var(--secondary-color);
-    border: 1px solid var(--button-color);
-}
-
-/* Legacy support */
-#chat-input {
-    background: var(--primary-color);
-    border: 1px solid var(--primary-alt);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
     transition: all 0.3s ease;
     font-family: "Audiowide", sans-serif;
 }
 
-#chat-input:focus {
-    border-color: var(--tertiary-color);
-    box-shadow: 0 0 10px var(--tertiary-color);
+/* Global chat input styling */
+#global-chat-input {
+    background: rgba(12, 42, 42, 0.5);
+    border: 1px solid rgba(21, 170, 181, 0.4);
 }
 
-#chat-input::placeholder {
-    color: var(--primary-alt);
+/* AIGF chat input styling */
+#aigf-chat-input {
+    background: rgba(64, 0, 47, 0.5);
+    border: 1px solid rgba(223, 4, 113, 0.4);
+}
+
+/* Legacy support */
+#chat-input {
+    background: rgba(12, 42, 42, 0.5);
+    border: 1px solid rgba(21, 170, 181, 0.4);
+}
+
+#chat-input:focus,
+#global-chat-input:focus,
+#aigf-chat-input:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+#chat-input::placeholder,
+#global-chat-input::placeholder,
+#aigf-chat-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
 
 

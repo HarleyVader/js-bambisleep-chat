@@ -1160,7 +1160,7 @@ app.post('/api/chat/clear/:type', (req, res) => {
     console.log(`🗑️ Chat history cleared - Type: ${type}, Messages: ${originalCount}`);
 });
 
-// Enhanced trigger management with full official data
+// Trigger management with full official data
 app.get('/api/triggers', (req, res) => {
     res.json({
         triggers: triggerWords,

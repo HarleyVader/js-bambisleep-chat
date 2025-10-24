@@ -22,7 +22,8 @@
         -webkit-tap-highlight-color: transparent;
     }
 
-    html, body {
+    html,
+    body {
         margin: 0;
         padding: 0;
         width: 100vw;
@@ -121,9 +122,8 @@
         margin-top: 4px;
     }
 
-    /* Enhanced Triggers */
+    /* Triggers */
     .trigger-text,
-    .enhanced-trigger,
     .caps-text {
         color: var(--mobile-accent) !important;
         font-weight: bold;
@@ -493,8 +493,13 @@
     }
 
     /* Utility Classes */
-    .mobile-hidden { display: none !important; }
-    .mobile-visible { display: block !important; }
+    .mobile-hidden {
+        display: none !important;
+    }
+
+    .mobile-visible {
+        display: block !important;
+    }
 
     /* Scrollbar Styling */
     ::-webkit-scrollbar {
@@ -512,26 +517,44 @@
 
     /* Layout Adjustments for Chat + Navigation */
     #chat-container {
-        bottom: 60px; /* Account for navigation bar */
+        bottom: 60px;
+        /* Account for navigation bar */
         height: calc(100vh - 60px);
         height: calc(100dvh - 60px);
     }
 
     /* Responsive Font Scaling */
     @media (max-width: 360px) {
-        html, body { font-size: 13px; }
-        #chat-header h1 { font-size: 14px; }
-        .message-text { font-size: 13px; }
+
+        html,
+        body {
+            font-size: 13px;
+        }
+
+        #chat-header h1 {
+            font-size: 14px;
+        }
+
+        .message-text {
+            font-size: 13px;
+        }
     }
 
     @media (max-height: 600px) {
-        #chat-header { height: 40px; }
-        .mobile-nav { height: 50px; }
+        #chat-header {
+            height: 40px;
+        }
+
+        .mobile-nav {
+            height: 50px;
+        }
+
         #chat-container {
             bottom: 50px;
             height: calc(100vh - 90px);
             height: calc(100dvh - 90px);
         }
+
         .mobile-panel {
             top: 40px;
             bottom: 50px;
@@ -575,6 +598,7 @@
 
 /* Ensure mobile rules only apply to touch devices */
 @media (pointer: fine) {
+
     /* Hide mobile-specific elements on desktop */
     .mobile-nav,
     .mobile-panel,

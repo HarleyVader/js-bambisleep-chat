@@ -225,19 +225,30 @@ export class CollarDropdown {
 
     updateCollarButton(isActive) {
         const collarButton = document.getElementById(this.buttonId);
+        const statusIndicator = document.getElementById('collar-status');
+
         if (collarButton) {
             if (isActive) {
-                collarButton.textContent = 'Collar: ON';
                 collarButton.setAttribute('data-state', 'on');
                 // Remove inline styles to let CSS handle the cyber electric styling
                 collarButton.style.removeProperty('background');
                 collarButton.style.removeProperty('boxShadow');
             } else {
-                collarButton.textContent = 'Collar: OFF';
                 collarButton.setAttribute('data-state', 'off');
                 // Remove inline styles to let CSS handle the cyber electric styling
                 collarButton.style.removeProperty('background');
                 collarButton.style.removeProperty('boxShadow');
+            }
+        }
+
+        // Update status indicator like brainwave
+        if (statusIndicator) {
+            if (isActive) {
+                statusIndicator.style.color = '#00ff00';
+                statusIndicator.textContent = '●';
+            } else {
+                statusIndicator.style.color = '#666';
+                statusIndicator.textContent = '●';
             }
         }
     }
@@ -285,9 +296,20 @@ export class CollarDropdown {
     toggleState(btn) {
         const currentState = btn.getAttribute('data-state');
         const newState = currentState === 'off' ? 'on' : 'off';
+        const statusIndicator = document.getElementById('collar-status');
 
         btn.setAttribute('data-state', newState);
-        btn.textContent = `Collar: ${newState.toUpperCase()}`;
+
+        // Update status indicator like brainwave
+        if (statusIndicator) {
+            if (newState === 'on') {
+                statusIndicator.style.color = '#00ff00';
+                statusIndicator.textContent = '●';
+            } else {
+                statusIndicator.style.color = '#666';
+                statusIndicator.textContent = '●';
+            }
+        }
 
         // Handle collar logic based on state
         if (newState === 'on') {

@@ -85,3 +85,5 @@ Built with modern web technologies:
 For technical issues or questions, please check the main repository or contact support.
 
 ---
+
+**Enjoy the hypnotic chat experience! 🌀💖**

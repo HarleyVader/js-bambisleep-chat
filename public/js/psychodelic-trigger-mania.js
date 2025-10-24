@@ -1,5 +1,5 @@
-// ORIGINAL Psychedelic Spiral Implementation - Restored with Controlled Variability
-// Based on the original p5.js template with minimal, subtle variations
+// Enhanced Psychedelic Spiral Implementation - WebGL-based with Authentic p5.js Recreation
+// Integrated from js-psychodelic-trigger-mania repository with WebGL optimization
 
 class SpiralAnimation {
     constructor() {
@@ -11,14 +11,24 @@ class SpiralAnimation {
         this.frameCount = 0;
         this.isEnabled = false;
         this.animationId = null;
+
+        // Eye tracking and calibration from original
+        this.clicks = [false, false, false, false];
+        this.centerCalibrate = [];
         this.trancePoint = [0, 0];
+        this.avgPoints = [];
+        this.first = true;
+        this.xdPred = 0;
+        this.ydPred = 0;
+        this.tranceCalibrateLoop = null;
+        this.tranceAmt = 0;
 
         // WebGL specific
         this.shaderProgram = null;
         this.vertexBuffer = null;
         this.locations = {};
 
-        // ORIGINAL SPIRAL PARAMETERS - Exact replication of template behavior
+        // AUTHENTIC p5.js SPIRAL PARAMETERS - Direct from original source
         this.controls = {
             // ORIGINAL: frameCount/200 for both a and b, frameCount/10 for rotation
             frameSpeed1: 200,    // sin(frameCount/200) for spiral A
@@ -26,12 +36,12 @@ class SpiralAnimation {
             rotationSpeed: 10,   // frameCount/10 for rotation
 
             // ORIGINAL: Fixed geometry values from template
-            spiralA_geometry: 1.0,   // ORIGINAL: 1
-            spiralB_geometry: 0.3,   // ORIGINAL: 0.3
+            spiralA_geometry: 1.0,   // ORIGINAL: ang = 1
+            spiralB_geometry: 0.3,   // ORIGINAL: ang = 0.3
 
-            // ORIGINAL: Exact colors from template - Updated to match dropdown defaults
-            spiralA_color: [223, 4, 113, 1.0],    // #df0471 - Hot pink (dropdown default)
-            spiralB_color: [0, 255, 255, 1.0],    // #00ffff - Cyan (dropdown default)
+            // ORIGINAL: Exact colors from p5.js source - [199, 0, 199] and [255, 130, 255]
+            spiralA_color: [199, 0, 199, 1.0],    // Original purple from source
+            spiralB_color: [0, 128, 128, 1.0],    // Teal color
 
             // ORIGINAL: Exact range mappings from template
             spiralA_range_min: 0.5,  // ORIGINAL: map(sin(), -1, 1, 0.5, 1.5)
@@ -42,7 +52,7 @@ class SpiralAnimation {
             // ORIGINAL: 250 iterations from template
             iterations: 250,
 
-            // Subtle variation system - DISABLED by default for pure original behavior
+            // Enhanced variation system for fine control
             subtleVariation: {
                 enabled: false,           // Pure original by default
                 colorShift: 0,           // ±RGB shift amount
@@ -54,12 +64,17 @@ class SpiralAnimation {
             // Trigger pulse effect
             pulseIntensity: 30,
 
-            // Randomizer DISABLED - keeping original behavior
-            randomizer: {
-                enabled: false,
-                interval: 300000,
-                lastChange: 0
-            }
+            // Advanced controls for dropdown integration
+            alpha: 1.0,
+            rotationSpeedMultiplier: 1.0,
+            rangeA_min: 0.5,
+            rangeA_max: 1.5,
+            rangeB_min: 1.0,
+            rangeB_max: 1.5,
+
+            // Spiral rendering parameters
+            spiralWidth: 1.0,
+            spiralWidthDecrement: 1.0 / 350  // dw = spiralwidth/350 from original
         };
 
         this.init();
@@ -197,7 +212,7 @@ class SpiralAnimation {
 
         const gl = this.gl;
 
-        // Clear background to black - ORIGINAL behavior
+        // Clear background to black - ORIGINAL: background(0,0,0);
         gl.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -207,24 +222,24 @@ class SpiralAnimation {
         // Set resolution
         gl.uniform2f(this.locations.resolution, this.width, this.height);
 
-        // ORIGINAL CALCULATION - Exact replication of template:
+        // ORIGINAL CALCULATION - Direct from p5.js source:
         // a=map(sin(frameCount/200),-1,1,0.5,1.5);
         // b=map(cos(frameCount/200),-1,1,1,1.5);
         const a = this.map(
             Math.sin(this.frameCount / this.controls.frameSpeed1),
             -1, 1,
-            this.controls.spiralA_range_min + this.getVariation('rangeVariance'),
-            this.controls.spiralA_range_max + this.getVariation('rangeVariance')
+            this.controls.rangeA_min,
+            this.controls.rangeA_max
         );
         const b = this.map(
             Math.cos(this.frameCount / this.controls.frameSpeed2),
             -1, 1,
-            this.controls.spiralB_range_min + this.getVariation('rangeVariance'),
-            this.controls.spiralB_range_max + this.getVariation('rangeVariance')
+            this.controls.rangeB_min,
+            this.controls.rangeB_max
         );
 
-        // ORIGINAL ROTATION: rotate(frameCount/10);
-        const rotation = this.frameCount / (this.controls.rotationSpeed + this.getVariation('speedVariance'));
+        // ORIGINAL: translate(width/2,height/2); rotate(frameCount/10);
+        const rotation = (this.frameCount / this.controls.rotationSpeed) * this.controls.rotationSpeedMultiplier;
         const cos_r = Math.cos(rotation);
         const sin_r = Math.sin(rotation);
         const tx = this.width / 2;
@@ -241,7 +256,7 @@ class SpiralAnimation {
         // Apply subtle variations if enabled
         this.updateSubtleVariation();
 
-        // Draw spirals - ORIGINAL approach with exact geometry and colors
+        // Draw spirals - ORIGINAL: spiral(a,1,[199, 0, 199]); spiral(b,0.3,[255, 130, 255]);
         this.spiral(
             a,
             this.controls.spiralA_geometry + this.getVariation('geometryVariance'),
@@ -253,8 +268,11 @@ class SpiralAnimation {
             this.getColorWithVariation(this.controls.spiralB_color)
         );
 
-        // Draw center circle - ORIGINAL: circle(trancePoint[0],trancePoint[1],40);
-        this.drawCircle(0, 0, 20, [255, 255, 255]);
+        // Eye tracking and calibration system from original
+        this.calibrationComplete();
+
+        // Draw center trance point - ORIGINAL: circle(trancePoint[0],trancePoint[1],40);
+        this.drawCircle(this.trancePoint[0], this.trancePoint[1], 40, [255, 255, 255, this.controls.alpha]);
 
         this.frameCount++;
         this.animationId = requestAnimationFrame(() => this.draw());
@@ -266,19 +284,33 @@ class SpiralAnimation {
         // Calculate scale to match original behavior
         const scale = Math.min(this.width, this.height) / 400;
 
-        // Generate spiral vertices using ORIGINAL template logic
+        // Generate spiral vertices using AUTHENTIC p5.js source logic:
+        // fill(d[0],d[1],d[2]); stroke(d[0],d[1],d[2]);
+        // var r1 = 0,r2 = 1, step=a,spiralwidth=1.0,dw=spiralwidth/350;
+        // beginShape(TRIANGLE_STRIP);
         const vertices = [];
         let r1 = 0;
+        let r2 = 1;
+        let spiralwidth = this.controls.spiralWidth;
+        const dw = this.controls.spiralWidthDecrement;
 
         // ORIGINAL: for ( var i = 0 ; i < 250 ; i++ )
         for (let i = 0; i < this.controls.iterations; i++) {
             r1 += step; // ORIGINAL: r1 += step;
+            spiralwidth -= dw; // ORIGINAL: spiralwidth -= dw;
+            r2 = r1 + spiralwidth; // ORIGINAL: r2 = r1 + spiralwidth;
 
-            // ORIGINAL calculation: r1*sin(ang*i), r1*cos(ang*i)
+            // ORIGINAL calculation from p5.js:
+            // var r1x = r1*sin(ang*i); var r1y = r1*cos(ang*i);
+            // var r2x = r2*sin(ang*i); var r2y = r2*cos(ang*i);
             const r1x = (r1 * Math.sin(ang * i)) * scale;
             const r1y = (r1 * Math.cos(ang * i)) * scale;
+            const r2x = (r2 * Math.sin(ang * i)) * scale;
+            const r2y = (r2 * Math.cos(ang * i)) * scale;
 
-            vertices.push(r1x, r1y);
+            // ORIGINAL: vertex(r1x,r1y); vertex(r2x,r2y);
+            // Building triangle strip for authentic p5.js TRIANGLE_STRIP rendering
+            vertices.push(r1x, r1y, r2x, r2y);
         }
 
         // Upload vertices to buffer
@@ -289,15 +321,15 @@ class SpiralAnimation {
         gl.enableVertexAttribArray(this.locations.position);
         gl.vertexAttribPointer(this.locations.position, 2, gl.FLOAT, false, 0, 0);
 
-        // Set color
+        // Set color with alpha support
         const r = colorArray[0] / 255;
         const g = colorArray[1] / 255;
         const b = colorArray[2] / 255;
-        const alpha = colorArray[3] || 1.0;
+        const alpha = (colorArray[3] || 1.0) * this.controls.alpha;
         gl.uniform4f(this.locations.color, r, g, b, alpha);
 
-        // Draw as line strip
-        gl.drawArrays(gl.LINE_STRIP, 0, vertices.length / 2);
+        // Draw as triangle strip to match p5.js TRIANGLE_STRIP behavior
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertices.length / 2);
     }
 
     drawCircle(x, y, radius, color) {
@@ -420,22 +452,53 @@ class SpiralAnimation {
         this.controls.subtleVariation.enabled = false;
     }
 
-    // Return to pure original settings
+    // Eye tracking and calibration methods from original p5.js source
+    calibrated() {
+        this.tranceCalibrateLoop = setInterval(() => {
+            this.centerCalibrate.push([this.xdPred, this.ydPred]);
+        }, 10);
+
+        let pX = 0;
+        for (let i = 0; i < this.centerCalibrate.length; i++) {
+            pX += this.centerCalibrate[i][0];
+        }
+
+        let pY = 0;
+        for (let j = 0; j < this.centerCalibrate.length; j++) {
+            pY += this.centerCalibrate[j][1];
+        }
+
+        this.trancePoint[0] = (pX / this.centerCalibrate.length);
+        this.trancePoint[1] = (pY / this.centerCalibrate.length);
+    }
+
+    calibrationComplete() {
+        // ORIGINAL: tranceAmt = dist(xdPred,ydPred,trancePoint[0],trancePoint[1]);
+        this.tranceAmt = Math.sqrt(
+            Math.pow(this.xdPred - this.trancePoint[0], 2) +
+            Math.pow(this.ydPred - this.trancePoint[1], 2)
+        );
+    }
+
+    // Return to authentic p5.js original settings
     resetToOriginal() {
         this.controls.frameSpeed1 = 200;
         this.controls.frameSpeed2 = 200;
         this.controls.rotationSpeed = 10;
-        this.controls.spiralA_geometry = 1.0;
-        this.controls.spiralB_geometry = 0.3;
-        this.controls.spiralA_color = [223, 4, 113, 1.0];  // #df0471 - Hot pink
-        this.controls.spiralB_color = [0, 255, 255, 1.0];  // #00ffff - Cyan
-        this.controls.spiralA_range_min = 0.5;
-        this.controls.spiralA_range_max = 1.5;
-        this.controls.spiralB_range_min = 1.0;
-        this.controls.spiralB_range_max = 1.5;
+        this.controls.spiralA_geometry = 1.0;      // ORIGINAL: ang = 1
+        this.controls.spiralB_geometry = 0.3;      // ORIGINAL: ang = 0.3
+        this.controls.spiralA_color = [199, 0, 199, 1.0];    // ORIGINAL: [199, 0, 199]
+        this.controls.spiralB_color = [0, 128, 128, 1.0];    // Teal color
+        this.controls.rangeA_min = 0.5;
+        this.controls.rangeA_max = 1.5;
+        this.controls.rangeB_min = 1.0;
+        this.controls.rangeB_max = 1.5;
         this.controls.iterations = 250;
+        this.controls.alpha = 1.0;
+        this.controls.rotationSpeedMultiplier = 1.0;
+        this.controls.spiralWidth = 1.0;
+        this.controls.spiralWidthDecrement = 1.0 / 350;
         this.disableSubtleVariation();
-        this.controls.randomizer.enabled = false;
     }
 
     // Get current state
@@ -484,16 +547,68 @@ document.addEventListener('DOMContentLoaded', () => {
             window.spiralAnimation.controls.rotationSpeed = 10 / multiplier;
         },
 
-        // Simple color intensity (maintains original hue)
+        // Simple color intensity (maintains original authentic colors)
         setColorIntensity: (intensity) => {
-            const baseA = [223, 4, 113];    // #df0471 - Hot pink
-            const baseB = [0, 255, 255];    // #00ffff - Cyan
+            const baseA = [199, 0, 199];    // ORIGINAL: [199, 0, 199] from p5.js source
+            const baseB = [0, 128, 128];    // Teal color
             window.spiralAnimation.controls.spiralA_color = [
-                baseA[0] * intensity, baseA[1] * intensity, baseA[2] * intensity, 1.0
+                Math.min(255, baseA[0] * intensity),
+                Math.min(255, baseA[1] * intensity),
+                Math.min(255, baseA[2] * intensity),
+                1.0
             ];
             window.spiralAnimation.controls.spiralB_color = [
-                baseB[0] * intensity, baseB[1] * intensity, baseB[2] * intensity, 1.0
+                Math.min(255, baseB[0] * intensity),
+                Math.min(255, baseB[1] * intensity),
+                Math.min(255, baseB[2] * intensity),
+                1.0
             ];
+        },
+
+        // Enhanced controls for dropdown integration
+        setAlpha: (alpha) => {
+            window.spiralAnimation.controls.alpha = Math.max(0, Math.min(1, alpha));
+        },
+
+        setRotationSpeed: (speed) => {
+            window.spiralAnimation.controls.rotationSpeedMultiplier = Math.max(0.1, speed);
+        },
+
+        setIterations: (iterations) => {
+            window.spiralAnimation.controls.iterations = Math.max(50, Math.min(1000, iterations));
+        },
+
+        setPulseIntensity: (intensity) => {
+            window.spiralAnimation.controls.pulseIntensity = Math.max(1, Math.min(200, intensity));
+        },
+
+        // Color setters for dropdown
+        setSpiralAColor: (r, g, b) => {
+            window.spiralAnimation.controls.spiralA_color = [r, g, b, 1.0];
+        },
+
+        setSpiralBColor: (r, g, b) => {
+            window.spiralAnimation.controls.spiralB_color = [r, g, b, 1.0];
+        },
+
+        // Geometry controls
+        setGeometryA: (value) => {
+            window.spiralAnimation.controls.spiralA_geometry = Math.max(0.01, Math.min(10, value));
+        },
+
+        setGeometryB: (value) => {
+            window.spiralAnimation.controls.spiralB_geometry = Math.max(0.01, Math.min(5, value));
+        },
+
+        // Range controls
+        setRangeA: (min, max) => {
+            window.spiralAnimation.controls.rangeA_min = Math.max(0.01, Math.min(2, min));
+            window.spiralAnimation.controls.rangeA_max = Math.max(0.5, Math.min(5, max));
+        },
+
+        setRangeB: (min, max) => {
+            window.spiralAnimation.controls.rangeB_min = Math.max(0.01, Math.min(2, min));
+            window.spiralAnimation.controls.rangeB_max = Math.max(0.5, Math.min(5, max));
         },
 
         // Get current state
