@@ -386,13 +386,7 @@
     }
 
     /* Enhanced dropdown content styling */
-    .dropdown-content {
-        /* Modern browsers (Firefox 64+, Chrome 121+) */
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255, 105, 180, 0.5) transparent;
-    }
-
-    /* Webkit browsers (Chrome, Safari, Edge) */
+    /* Webkit browsers (Chrome, Safari, Edge) - Priority for wider support */
     .dropdown-content::-webkit-scrollbar {
         width: 6px;
     }
@@ -410,8 +404,16 @@
         background: rgba(255, 105, 180, 0.7);
     }
 
+    /* Modern browsers (Firefox 64+, Chrome 121+) - Progressive enhancement */
+    @supports (scrollbar-width: thin) {
+        .dropdown-content {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 105, 180, 0.5) transparent;
+        }
+    }
+
     /* Fallback for older browsers - add subtle border to indicate scrollability */
-    @supports not (scrollbar-width: thin) {
+    @supports not selector(::-webkit-scrollbar) {
         .dropdown-content {
             border-right: 2px solid rgba(255, 105, 180, 0.2);
         }
