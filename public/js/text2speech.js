@@ -26,6 +26,12 @@ class TextToSpeechSystem {
             'af_kore', 'af_nicole', 'af_nova', 'af_river', 'af_sarah', 'af_sky'
         ];
 
+        // MEMORY MANAGEMENT - Enhanced cleanup system
+        this.blobUrls = new Set(); // Track all created blob URLs
+        this.maxQueueSize = 50; // Limit queue growth
+        this.maxAudioCache = 25; // Limit audio URL cache
+        this.cleanupInterval = null; // Regular cleanup timer
+
         this.init();
     }
 
@@ -167,7 +173,193 @@ class TextToSpeechSystem {
         this.currentAudio.addEventListener('ended', () => this.handleAudioEnded());
         this.currentAudio.addEventListener('play', () => this.handleAudioPlay());
         this.currentAudio.addEventListener('error', (e) => this.handleAudioError(e));
+
+        // Start regular memory cleanup
+        this.startMemoryCleanup();
     }
+
+    // ==================== MEMORY MANAGEMENT SYSTEM ====================
+    // 🛡️ DATA PROTECTION: Only cleans device cache & temporary memory
+    // ✅ CLEANS: Blob URLs, audio cache, oversized queues
+    // ❌ PRESERVES: User voice settings, localStorage, preferences
+
+    /**
+     * Start regular memory cleanup interval
+     */
+    startMemoryCleanup() {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+        }
+
+        // Run cleanup every 30 seconds
+        this.cleanupInterval = setInterval(() => {
+            this.performMemoryCleanup();
+        }, 30000);
+
+        console.log('🧹 TTS memory cleanup system started (30s intervals)');
+    }
+
+    /**
+     * LIGHTWEIGHT memory cleanup - DEVICE CACHE ONLY
+     * ✅ Cleans: Blob URLs, temporary audio cache, oversized queues
+     * ❌ NEVER touches: User settings, chat data, localStorage
+     */
+    performMemoryCleanup() {
+        let cleaned = 0;
+
+        // ONLY clean up temporary blob URLs (device cache)
+        cleaned += this.cleanupBlobUrls();
+
+        // ONLY limit oversized technical queues (prevent runaway memory)
+        cleaned += this.limitQueueSizes();
+
+        // ONLY clean temporary audio cache (not user data)
+        cleaned += this.cleanupAudioCache();
+
+        if (cleaned > 0) {
+            console.log(`🧹 TTS cache cleanup: freed ${cleaned} temporary resources`);
+        }
+    }    /**
+     * Clean up all tracked blob URLs
+     */
+    cleanupBlobUrls() {
+        let cleaned = 0;
+
+        this.blobUrls.forEach(url => {
+            try {
+                URL.revokeObjectURL(url);
+                cleaned++;
+            } catch (error) {
+                console.warn('Failed to revoke blob URL:', error);
+            }
+        });
+
+        this.blobUrls.clear();
+        return cleaned;
+    }
+
+    /**
+     * Limit queue sizes to prevent unbounded growth
+     */
+    limitQueueSizes() {
+        let cleaned = 0;
+
+        // Limit text array
+        if (this.textArray.length > this.maxQueueSize) {
+            const removed = this.textArray.length - this.maxQueueSize;
+            this.textArray = this.textArray.slice(-this.maxQueueSize);
+            cleaned += removed;
+        }
+
+        // Limit main queue
+        if (this.queue.length > this.maxQueueSize) {
+            const removed = this.queue.length - this.maxQueueSize;
+            this.queue = this.queue.slice(-this.maxQueueSize);
+            cleaned += removed;
+        }
+
+        return cleaned;
+    }
+
+    /**
+     * Clean up audio URL cache
+     */
+    cleanupAudioCache() {
+        let cleaned = 0;
+
+        if (this.audioArray.length > this.maxAudioCache) {
+            const toRemove = this.audioArray.slice(0, this.audioArray.length - this.maxAudioCache);
+
+            toRemove.forEach(url => {
+                if (typeof url === 'string' && url.startsWith('blob:')) {
+                    try {
+                        URL.revokeObjectURL(url);
+                        this.blobUrls.delete(url);
+                        cleaned++;
+                    } catch (error) {
+                        console.warn('Failed to clean audio URL:', error);
+                    }
+                }
+            });
+
+            this.audioArray = this.audioArray.slice(-this.maxAudioCache);
+        }
+
+        return cleaned;
+    }
+
+    /**
+     * Enhanced clear queue with memory cleanup
+     */
+    clearQueue() {
+        // Clean up existing blob URLs before clearing
+        this.cleanupBlobUrls();
+
+        this.queue = [];
+        this.textArray = [];
+        this.audioArray = [];
+        this.isPlaying = false;
+        this.state = true;
+
+        console.log('🧹 TTS queue cleared with memory cleanup');
+    }
+
+    /**
+     * Enhanced stop with cleanup
+     */
+    stop() {
+        // Cleanup current audio URL
+        if (this.currentAudioUrl) {
+            try {
+                URL.revokeObjectURL(this.currentAudioUrl);
+                this.blobUrls.delete(this.currentAudioUrl);
+            } catch (error) {
+                console.warn('Failed to cleanup current audio URL:', error);
+            }
+            this.currentAudioUrl = null;
+        }
+
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio.src = '';
+        }
+
+        this.isPlaying = false;
+        this.state = true;
+        this.currentText = '';
+        this.currentTTSText = '';
+
+        console.log('🛑 TTS stopped with memory cleanup');
+    }
+
+    /**
+     * Cleanup on system shutdown
+     */
+    cleanup() {
+        console.log('🧹 TTS system cleanup starting...');
+
+        // Clear cleanup interval
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
+        }
+
+        // Stop everything
+        this.stop();
+        this.clearQueue();
+
+        // Final blob URL cleanup
+        this.cleanupBlobUrls();
+
+        // Close audio context
+        if (this.audioContext && this.audioContext.state !== 'closed') {
+            this.audioContext.close();
+        }
+
+        console.log('✅ TTS system cleanup completed');
+    }
+
+    // ==================== END MEMORY MANAGEMENT ====================
 
     // ENHANCED: Toggle with state persistence
     toggle() {
@@ -465,6 +657,10 @@ class TextToSpeechSystem {
             const audioBlob = this.base64ToBlob(data.audioData, 'audio/mpeg');
             const audioUrl = URL.createObjectURL(audioBlob);
 
+            // Track blob URL for cleanup
+            this.blobUrls.add(audioUrl);
+            this.currentAudioUrl = audioUrl;
+
             // Set audio source and play
             if (this.currentAudio) {
                 this.currentAudio.src = audioUrl;
@@ -666,6 +862,10 @@ class TextToSpeechSystem {
 
                 // Create object URL from blob
                 audioUrl = URL.createObjectURL(audioBlob);
+
+                // Track blob URL for cleanup
+                this.blobUrls.add(audioUrl);
+                this.currentAudioUrl = audioUrl;
 
                 // Set audio source to blob URL
                 if (this.currentAudio) {
@@ -1200,7 +1400,9 @@ class TextToSpeechSystem {
                 reject(new Error('Audio playback failed'));
             };
 
-            audio.src = URL.createObjectURL(blob);
+            const audioUrl = URL.createObjectURL(blob);
+            this.blobUrls.add(audioUrl);
+            audio.src = audioUrl;
             this.currentAudio = audio;
             audio.play().catch(reject);
         });
@@ -1500,4 +1702,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return true;
         }
     };
+});
+
+// ==================== GLOBAL INITIALIZATION ====================
+
+// Initialize TTS system when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    if (!window.tts) {
+        console.log('🎤 Initializing global TTS system...');
+        window.tts = new TextToSpeechSystem();
+        window.ttsSystem = window.tts; // Backward compatibility
+        console.log('✅ Global TTS system initialized');
+    }
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (window.tts && window.tts.cleanup) {
+        window.tts.cleanup();
+    }
 });

@@ -1406,3 +1406,113 @@ body {
 .docs-content::-webkit-scrollbar-thumb:hover {
     background: var(--secondary-alt);
 }
+
+/* ==================== RESOURCE MONITOR STYLES ==================== */
+
+.resource-monitor {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: rgba(12, 42, 42, 0.95);
+    border: 2px solid var(--primary-alt);
+    border-radius: var(--border-radius);
+    padding: 12px;
+    min-width: 180px;
+    font-family: 'Audiowide', monospace;
+    font-size: 11px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.resource-monitor:hover {
+    background: rgba(12, 42, 42, 1);
+    border-color: var(--secondary-alt);
+    box-shadow: 0 6px 16px rgba(223, 4, 113, 0.3);
+}
+
+.resource-title {
+    color: var(--primary-alt);
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-align: center;
+    font-size: 12px;
+    text-shadow: 0 0 3px var(--primary-alt);
+}
+
+.resource-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 0;
+}
+
+.stat-label {
+    color: var(--nav-alt);
+    font-size: 10px;
+    font-weight: normal;
+}
+
+.stat-value {
+    color: var(--button-color);
+    font-weight: bold;
+    font-size: 10px;
+    text-shadow: 0 0 2px var(--button-color);
+    min-width: 45px;
+    text-align: right;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+    .resource-monitor {
+        bottom: 10px;
+        right: 10px;
+        padding: 8px;
+        min-width: 140px;
+        font-size: 10px;
+    }
+
+    .resource-title {
+        font-size: 11px;
+        margin-bottom: 6px;
+    }
+
+    .stat-label,
+    .stat-value {
+        font-size: 9px;
+    }
+}
+
+/* Animation for values that change */
+.stat-value {
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.stat-value.updated {
+    color: var(--tertiary-alt);
+    text-shadow: 0 0 4px var(--tertiary-alt);
+}
+
+/* Status-specific colors */
+.stat-value.connected {
+    color: var(--tertiary-alt);
+    text-shadow: 0 0 3px var(--tertiary-alt);
+}
+
+.stat-value.disconnected {
+    color: var(--error);
+    text-shadow: 0 0 3px var(--error);
+}
+
+.stat-value.warning {
+    color: #ffaa00;
+    text-shadow: 0 0 3px #ffaa00;
+}

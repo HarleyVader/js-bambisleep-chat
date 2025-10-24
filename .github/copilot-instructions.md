@@ -33,8 +33,8 @@ npm run dev:client   # Frontend only (port 5173)
 ### Environment-Driven Configuration
 ```javascript
 // ALWAYS respect development vs production hosts
-const host = process.env.NODE_ENV === 'production' 
-  ? process.env.KOKORO_HOST_PRODUCTION 
+const host = process.env.NODE_ENV === 'production'
+  ? process.env.KOKORO_HOST_PRODUCTION
   : process.env.KOKORO_HOST_DEVELOPMENT;
 ```
 
@@ -70,56 +70,38 @@ socket.emit('tts-audio', { audio: base64Mp3, voice: 'af_bella' });
 3. **DEPLOY**: Fix only what's broken, STOP when working
 
 ### Common Tasks
+## Copilot instructions — BambiSleep Chat (concise)
 
-**Adding New Trigger**:
-- Update `workers/triggers.json` with official data
-- Test via `/api/triggers/json` endpoint
-- Client auto-loads via `loadOfficialTriggers()`
+This project is a small, vanilla-ES6, real-time chat app with TTS and trigger detection.
+Be productive quickly by following the conventions below — these are the discoverable, enforced patterns.
 
-**TTS Voice**:
-- Kokoro supports combined voices: `af_sky+af_bella`
-- All TTS in workers, never block main thread
-- Environment hosts: `KOKORO_HOST_DEVELOPMENT` vs `KOKORO_HOST_PRODUCTION`
+- Architecture: `server.js` (Express + Socket.io) mediates between clients and worker threads in `workers/`.
+- Frontend: plain ES6 modules under `public/js/` (no framework). Key entry: `public/js/aigf-core.js`.
+- Workers: `workers/kokoro.js` (TTS) and `workers/lmstudio.js` (AI). Triggers are authoritative in `workers/triggers.json`.
 
-**UI Component**:
-- Create in `public/js/dropdowns/[component].js`
-- Export from `public/js/dropdowns/index.js`
-- Import in main files as needed
+- Common dev commands (use PowerShell on Windows):
+  - `npm run dev` — full stack (Vite dev server + backend proxy)
+  - `npm run dev:server` — backend only (port 6969)
+  - `npm run dev:client` — frontend only (port 5173)
 
-## Environment & Deployment
+- Communication patterns to reuse (copy-paste safe):
+  - Worker messaging (server → worker):
+    const worker = new Worker('./workers/kokoro.js');
+    worker.postMessage({ type: 'tts', text: message, voice: 'af_bella' });
+  - TTS audio delivery (worker → client via socket):
+    socket.emit('tts-audio', { audio: base64Mp3, voice: 'af_bella' });
 
-### Local Development
-```bash
-# Use http://localhost:5173 for full functionality
-npm run dev  # Vite proxy handles Socket.io + API routes
-```
+- Important project rules (enforce these):
+  - Never hardcode triggers — read from `/api/triggers/json` or `workers/triggers.json`.
+  - Keep external API calls inside worker threads (Kokoro/LMS) — main thread must stay lightweight.
+  - Use ES6 module exports for dropdown components: add files in `public/js/dropdowns/` and export them from `public/js/dropdowns/index.js`.
 
-### Production
-- Domain: `https://bambisleep.chat`
-- SSH: `ssh brandynette@192.168.0.72`
-- Deploy: `git pull` only (auto-builds)
+- Environment variables used at runtime (TTS and LMS hosts/ports):
+  - KOKORO_HOST_DEVELOPMENT / KOKORO_HOST_PRODUCTION, KOKORO_PORT, KOKORO_DEFAULT_VOICE
+  - LMS_HOST_DEVELOPMENT / LMS_HOST_PRODUCTION, LMS_PORT
 
-### Environment Variables
-```bash
-# Required for TTS functionality
-KOKORO_HOST_DEVELOPMENT=192.168.0.170
-KOKORO_HOST_PRODUCTION=192.168.0.170
-KOKORO_PORT=8880
-KOKORO_DEFAULT_VOICE=af_sky+af_bella
+- Quick examples of where to change behavior:
+  - To add UI options, create `public/js/dropdowns/my-dropdown.js` and export from `public/js/dropdowns/index.js`.
+  - To add/modify triggers, edit `workers/triggers.json` and verify at `/api/triggers/json`.
 
-# LM Studio AI
-LMS_HOST_DEVELOPMENT=localhost
-LMS_HOST_PRODUCTION=192.168.0.118
-LMS_PORT=7777
-```
-
-## Critical Rules
-- **Official triggers only**: Never hardcode, always use `workers/triggers.json`
-- **Worker isolation**: External APIs (TTS/AI) never in main thread
-- **Environment awareness**: Respect development/production host configs
-- **Vanilla JS**: No React/frameworks, ES6 modules only
-- **Stop when working**: No extra features or optimizations
-
----
-
-**Remember**: Work with the modular architecture, not against it. Think more, code less.
+If anything in this short guide is unclear or you want more detail (examples, quick tests, or hooks for CI), tell me which area to expand and I will iterate.

@@ -192,6 +192,111 @@
     console.log('📖 Wiki button using static emoji due to CORS restrictions on bambisleep.info');
   </script>
 
+  <!-- Resource Monitor Button -->
+  <div id="resource-monitor" class="resource-monitor">
+    <div class="resource-content">
+      <div class="resource-title">💾 Resources</div>
+      <div class="resource-stats">
+        <div class="stat-item">
+          <span class="stat-label">Memory:</span>
+          <span id="memory-usage" class="stat-value">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">TTS Queue:</span>
+          <span id="tts-queue-size" class="stat-value">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Blob URLs:</span>
+          <span id="blob-count" class="stat-value">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Socket:</span>
+          <span id="socket-status" class="stat-value">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resource Monitor Script -->
+  <script>
+    class ResourceMonitor {
+      constructor() {
+        this.updateInterval = null;
+        this.init();
+      }
+
+      init() {
+        console.log('💾 Resource Monitor initialized');
+        this.startMonitoring();
+      }
+
+      startMonitoring() {
+        // Update every 1.5 seconds
+        this.updateInterval = setInterval(() => {
+          this.updateStats();
+        }, 1500);
+
+        // Initial update
+        this.updateStats();
+      }
+
+      updateStats() {
+        // Memory usage
+        if (performance.memory) {
+          const memoryMB = (performance.memory.usedJSHeapSize / 1048576).toFixed(1);
+          document.getElementById('memory-usage').textContent = `${memoryMB}MB`;
+        } else {
+          document.getElementById('memory-usage').textContent = 'N/A';
+        }
+
+        // TTS queue size
+        if (window.tts) {
+          const queueSize = (window.tts.textArray?.length || 0) + (window.tts.audioArray?.length || 0);
+          document.getElementById('tts-queue-size').textContent = queueSize;
+        } else {
+          document.getElementById('tts-queue-size').textContent = '--';
+        }
+
+        // Blob URLs count
+        if (window.tts && window.tts.blobUrls) {
+          document.getElementById('blob-count').textContent = window.tts.blobUrls.size;
+        } else {
+          document.getElementById('blob-count').textContent = '--';
+        }
+
+        // Socket status
+        const socketStatus = this.getSocketStatus();
+        document.getElementById('socket-status').textContent = socketStatus;
+      }
+
+      getSocketStatus() {
+        if (window.chatCore && window.chatCore.socket) {
+          return window.chatCore.socket.connected ? 'Connected' : 'Disconnected';
+        }
+        return 'No Socket';
+      }
+
+      cleanup() {
+        if (this.updateInterval) {
+          clearInterval(this.updateInterval);
+          this.updateInterval = null;
+        }
+      }
+    }
+
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      window.resourceMonitor = new ResourceMonitor();
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (window.resourceMonitor) {
+        window.resourceMonitor.cleanup();
+      }
+    });
+  </script>
+
   <!-- Cleanup socket connections on page unload -->
   <script>
     window.addEventListener('beforeunload', () => {
@@ -199,6 +304,11 @@
         console.log('🔌 Cleaning up socket connection before page unload');
         window.globalSocket.disconnect();
         window.globalSocket = null;
+      }
+
+      // Cleanup TTS system
+      if (window.tts && window.tts.cleanup) {
+        window.tts.cleanup();
       }
     });
   </script>

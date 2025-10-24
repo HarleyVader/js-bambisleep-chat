@@ -1636,10 +1636,176 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Something went wrong!' });
 });
 
+// ==================== SERVER MEMORY MANAGEMENT ====================
+// 🛡️ DATA PROTECTION POLICY:
+// ✅ CLEANS: Device cache, blob URLs, stale requests, technical memory
+// ❌ NEVER TOUCHES: User messages, settings, localStorage, chat history
+// 🎯 GOAL: Lightweight system that preserves ALL user data
+
+class ServerMemoryManager {
+    constructor() {
+        this.cleanupInterval = null;
+        this.memoryStats = {
+            lastCleanup: new Date(),
+            cleanupCount: 0,
+            freedResources: 0
+        };
+        this.init();
+    }
+
+    init() {
+        console.log('🧹 Server memory management initialized');
+        this.startCleanupCycle();
+    }
+
+    startCleanupCycle() {
+        // Run cleanup every 2 minutes
+        this.cleanupInterval = setInterval(() => {
+            this.performCleanup();
+        }, 120000);
+
+        console.log('🧹 Server memory cleanup cycle started (2min intervals)');
+    }
+
+    performCleanup() {
+        let freedResources = 0;
+
+        try {
+            // ✅ CLEAN: Stale technical requests (device cache)
+            freedResources += this.cleanupPendingRequests();
+
+            // ❌ DISABLED: Chat history cleanup (preserves user data)
+            freedResources += this.cleanupChatHistory();
+
+            // ✅ CLEAN: Disconnected socket references (technical cleanup)
+            freedResources += this.cleanupUserTracking();
+
+            // ✅ CLEAN: Force garbage collection (device memory only)
+            if (global.gc) {
+                global.gc();
+                freedResources += 1;
+            }
+
+            this.memoryStats.lastCleanup = new Date();
+            this.memoryStats.cleanupCount++;
+            this.memoryStats.freedResources += freedResources;
+
+            if (freedResources > 0) {
+                console.log(`🧹 Server cache cleanup: freed ${freedResources} technical resources (user data preserved)`);
+            }
+
+        } catch (error) {
+            console.error('❌ Server cleanup error:', error);
+        }
+    } cleanupPendingRequests() {
+        if (!global.pendingAPIRequests) return 0;
+
+        let cleaned = 0;
+        const now = Date.now();
+        const timeout = 60000; // 1 minute
+
+        Object.keys(global.pendingAPIRequests).forEach(key => {
+            const request = global.pendingAPIRequests[key];
+            if (now - request.timestamp > timeout) {
+                clearTimeout(request.timeout);
+                delete global.pendingAPIRequests[key];
+                cleaned++;
+            }
+        });
+
+        return cleaned;
+    }
+
+    cleanupChatHistory() {
+        // ❌ DISABLED: NEVER DELETE USER CHAT DATA
+        // This method intentionally does nothing to preserve user messages
+        // Only technical cache/memory cleanup is allowed
+        console.log('🛡️ Chat history preserved - no user data deleted');
+        return 0;
+    }
+
+    cleanupUserTracking() {
+        let cleaned = 0;
+
+        // Clean up disconnected socket references
+        const connectedSockets = new Set();
+        io.sockets.sockets.forEach((socket, id) => {
+            connectedSockets.add(id);
+        });
+
+        // Clean worker users map
+        workerUsers.forEach((username, socketId) => {
+            if (!connectedSockets.has(socketId)) {
+                workerUsers.delete(socketId);
+                cleaned++;
+            }
+        });
+
+        return cleaned;
+    }
+
+    getStats() {
+        return {
+            ...this.memoryStats,
+            pendingRequests: Object.keys(global.pendingAPIRequests || {}).length,
+            connectedUsers: connectedUsers,
+            uniqueUsers: uniqueUsers.size,
+            chatMessages: chatHistoryManager ? chatHistoryManager.getStats().totalMessages : 0,
+            workerUsers: workerUsers.size
+        };
+    }
+
+    cleanup() {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
+        }
+        console.log('✅ Server memory manager cleaned up');
+    }
+}
+
+// Initialize server memory management
+const serverMemoryManager = new ServerMemoryManager();
+
+// Add memory stats endpoint
+app.get('/api/memory/stats', (req, res) => {
+    const stats = serverMemoryManager.getStats();
+
+    // Add process memory info if available
+    if (process.memoryUsage) {
+        const memUsage = process.memoryUsage();
+        stats.process = {
+            heapUsed: (memUsage.heapUsed / 1048576).toFixed(1) + 'MB',
+            heapTotal: (memUsage.heapTotal / 1048576).toFixed(1) + 'MB',
+            rss: (memUsage.rss / 1048576).toFixed(1) + 'MB'
+        };
+    }
+
+    res.json({
+        success: true,
+        memoryStats: stats,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Cleanup on server shutdown
+process.on('SIGTERM', () => {
+    console.log('🛑 Server shutting down...');
+    serverMemoryManager.cleanup();
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    console.log('🛑 Server shutting down...');
+    serverMemoryManager.cleanup();
+    process.exit(0);
+});
+
 // Start server
 const PORT = process.env.PORT || 6969;
 server.listen(PORT, () => {
     console.log(`🚀 BambiSleep Chat server running on http://localhost:${PORT}`);
     console.log(`📁 Serving static files from: ${path.join(__dirname, 'public')}`);
     console.log(`🎯 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🧹 Memory management: Active`);
 });
