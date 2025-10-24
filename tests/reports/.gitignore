@@ -1,0 +1,5 @@
+# Ignore generated reports except README
+*.html
+*.json
+*.txt
+!README.md

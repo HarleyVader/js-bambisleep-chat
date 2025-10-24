@@ -1,0 +1,521 @@
+/**
+ * Modern CSS Layers Solution for BambiSleep Chat
+ * Replaces z-index numbers with semantic CSS layers
+ */
+
+/* Define CSS layers in proper stacking order */
+@layer base, background, interface, dropdowns, modals, overlays, debug;
+
+/* Base layer - foundational elements */
+@layer base {
+
+    body,
+    #app {
+        position: relative;
+    }
+}
+
+/* Background layer - visual effects that should be behind everything */
+@layer background {
+
+    #spiral-container,
+    .spiral-canvas,
+    .brainwave-canvas,
+    .psychedelic-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    /* TTS text display should be above background but below interface */
+    .tts-text-display,
+    #eye,
+    .spiral-text-center {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        max-width: 95%;
+        width: 95%;
+        text-align: center;
+        font-family: 'Audiowide', sans-serif;
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--tertiary-alt);
+        text-shadow:
+            0 0 10px var(--tertiary-alt),
+            0 0 20px var(--tertiary-alt),
+            0 0 30px var(--tertiary-alt);
+        white-space: normal;
+        line-height: 1.4;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        animation: pulse 0.5s ease-in-out infinite alternate;
+        display: block;
+        box-sizing: border-box;
+        padding: 0 10px;
+    }
+}
+
+/* Interface layer - main UI elements */
+@layer interface {
+
+    #chat-container,
+    #chat-header,
+    #controls,
+    .controls,
+    #global-chat-messages,
+    #aigf-chat-messages,
+    #global-chat-input-container,
+    #aigf-chat-input-container,
+    .docs-link-container {
+        position: relative;
+    }
+
+    /* Ensure buttons are interactive */
+    .dropdown-btn,
+    .toggle-button,
+    .control-button,
+    button {
+        position: relative;
+        cursor: pointer;
+        pointer-events: auto;
+    }
+}
+
+/* Dropdowns layer - dropdown menus should be above interface */
+@layer dropdowns {
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-content {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: rgba(38, 20, 38, 0.95);
+        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(20px);
+        min-width: 300px;
+        max-width: 90vw;
+        width: auto;
+        box-shadow:
+            0 8px 32px 0 rgba(0, 0, 0, 0.6),
+            0 0 0 1px rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 12px;
+        margin-top: 4px;
+        max-height: 80vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        pointer-events: auto;
+        transform: translateY(-10px);
+        opacity: 0;
+        visibility: hidden;
+        transition:
+            transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+            visibility 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Show dropdown with smooth animation */
+    .dropdown.active .dropdown-content,
+    .dropdown-content.show {
+        display: block;
+        transform: translateY(0);
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Ensure dropdown content is above everything in interface layer */
+    .dropdown-content>* {
+        position: relative;
+        pointer-events: auto;
+    }
+
+    /* Right-aligned dropdowns for better mobile experience */
+    .dropdown:last-child .dropdown-content,
+    .collar-dropdown .dropdown-content {
+        right: 0;
+        left: auto;
+    }
+
+    /* Responsive dropdown positioning */
+    @media (max-width: 768px) {
+        .dropdown-content {
+            position: fixed;
+            top: auto;
+            bottom: 60px;
+            left: 10px;
+            right: 10px;
+            width: calc(100% - 20px);
+            min-width: unset;
+            max-width: unset;
+        }
+    }
+}
+
+/* Modals layer - modal dialogs */
+@layer modals {
+
+    .modal,
+    .modal-overlay,
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+    }
+
+    .modal-content {
+        position: relative;
+        background: rgba(38, 20, 38, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 16px;
+        padding: 24px;
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    }
+}
+
+/* Overlays layer - highest priority overlays */
+@layer overlays {
+
+    .loading-overlay,
+    .error-overlay,
+    .notification-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: auto;
+    }
+
+    .toast,
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        pointer-events: auto;
+    }
+}
+
+/* Debug layer - development tools */
+@layer debug {
+
+    .debug-overlay,
+    .dev-tools {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        pointer-events: auto;
+        background: rgba(255, 0, 0, 0.1);
+        border: 1px solid red;
+    }
+}
+
+/* Utility classes for manual layer control when needed */
+.layer-background {
+    isolation: isolate;
+}
+
+.layer-interface {
+    isolation: isolate;
+}
+
+.layer-dropdown {
+    isolation: isolate;
+}
+
+.layer-modal {
+    isolation: isolate;
+}
+
+.layer-overlay {
+    isolation: isolate;
+}
+
+/* Remove all z-index values that conflict with the layer system */
+.no-z-index {
+    z-index: unset !important;
+}
+
+/* Additional visibility and interaction improvements */
+@layer dropdowns {
+
+    /* Enhanced dropdown visibility */
+    .dropdown.active .dropdown-content {
+        display: block !important;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: all;
+        transform: translateY(0);
+    }
+
+    /* Ensure dropdowns are above everything else when active */
+    .dropdown.active {
+        position: relative;
+    }
+
+    /* Dropdown hover effects */
+    .dropdown-hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+    }
+
+    .dropdown-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-radius: 3px;
+        margin: 1px 0;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    .dropdown-item:hover {
+        background-color: rgba(255, 105, 180, 0.3);
+        color: #fff;
+        transform: translateX(2px);
+    }
+
+    .dropdown-item:active {
+        background-color: rgba(255, 105, 180, 0.5);
+        transform: translateX(0);
+    }
+
+    /* Interactive feedback for dropdown buttons */
+    .dropdown-button,
+    .dropdown-btn {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    .dropdown-button:hover,
+    .dropdown-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
+    }
+
+    .dropdown-button:active,
+    .dropdown-btn:active {
+        transform: translateY(0);
+    }
+
+    /* Ripple effect for better interaction feedback */
+    .dropdown-button::before,
+    .dropdown-btn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transition: width 0.3s, height 0.3s;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    .dropdown-button:active::before,
+    .dropdown-btn:active::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    /* Focus states for accessibility */
+    .dropdown-button:focus,
+    .dropdown-btn:focus,
+    .dropdown-item:focus {
+        outline: 2px solid rgba(255, 105, 180, 0.6);
+        outline-offset: 2px;
+    }
+
+    /* Loading states */
+    .dropdown-loading {
+        opacity: 0.6;
+        pointer-events: none;
+        position: relative;
+    }
+
+    .dropdown-loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        transform: translate(-50%, -50%);
+    }
+
+    @keyframes spin {
+        to {
+            transform: translate(-50%, -50%) rotate(360deg);
+        }
+    }
+
+    /* Enhanced dropdown content styling */
+    .dropdown-content {
+        /* Modern browsers (Firefox 64+, Chrome 121+) */
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 105, 180, 0.5) transparent;
+    }
+
+    /* Webkit browsers (Chrome, Safari, Edge) */
+    .dropdown-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .dropdown-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .dropdown-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 105, 180, 0.5);
+        border-radius: 3px;
+    }
+
+    .dropdown-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 105, 180, 0.7);
+    }
+
+    /* Fallback for older browsers - add subtle border to indicate scrollability */
+    @supports not (scrollbar-width: thin) {
+        .dropdown-content {
+            border-right: 2px solid rgba(255, 105, 180, 0.2);
+        }
+    }
+
+    /* Dropdown section headers */
+    .dropdown-section-header {
+        padding: 12px 12px 6px 12px;
+        font-weight: bold;
+        font-size: 0.9em;
+        color: rgba(255, 255, 255, 0.7);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Dropdown dividers */
+    .dropdown-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 4px 8px;
+    }
+
+    /* Dropdown animation states */
+    .dropdown-entering {
+        animation: dropdownSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dropdown-leaving {
+        animation: dropdownSlideOut 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes dropdownSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px) scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes dropdownSlideOut {
+        from {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        to {
+            opacity: 0;
+            transform: translateY(-10px) scale(0.95);
+        }
+    }
+
+    /* Dropdown item states for JavaScript interaction */
+    .dropdown-item.selected {
+        background-color: rgba(255, 105, 180, 0.4);
+        color: #fff;
+    }
+
+    .dropdown-item.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .dropdown-item.highlighted {
+        background-color: rgba(255, 105, 180, 0.2);
+        color: #fff;
+    }
+}
+
+/* Utility classes for enhanced interaction */
+@layer interface {
+
+    /* Smooth transitions for all interactive elements */
+    .smooth-transition {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Enhanced focus visibility */
+    .enhanced-focus:focus {
+        box-shadow:
+            0 0 0 2px rgba(255, 105, 180, 0.6),
+            0 4px 12px rgba(255, 105, 180, 0.3);
+        outline: none;
+    }
+
+    /* Click feedback */
+    .click-feedback:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+
+    /* Glow effect for important elements */
+    .glow-effect {
+        box-shadow: 0 0 20px rgba(255, 105, 180, 0.3);
+        transition: box-shadow 0.3s ease;
+    }
+
+    .glow-effect:hover {
+        box-shadow: 0 0 30px rgba(255, 105, 180, 0.5);
+    }
+}

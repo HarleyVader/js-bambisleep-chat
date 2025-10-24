@@ -1,6 +1,7 @@
 /* BambiSleep Chat Styles */
 @import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
 @import url("glassmorphism.css");
+@import url("layers.css");
 
 :root {
     --primary-color: #0c2a2aE6;
@@ -103,7 +104,6 @@ body {
 /* Chat Container - Left Side */
 #chat-container {
     position: relative;
-    z-index: 10;
     width: 30vw;
     /* Use viewport width, max 30% */
     max-width: 30vw;
@@ -131,7 +131,6 @@ body {
     width: 70vw;
     /* Take remaining viewport width */
     height: 100vh;
-    z-index: 0;
     opacity: 0.6;
     order: 2;
     /* Ensure it comes second */
@@ -154,7 +153,6 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 1001;
     pointer-events: none;
     max-width: 95%;
     width: 95%;
@@ -191,7 +189,6 @@ body {
         0 0 10px var(--tertiary-alt),
         0 0 20px var(--tertiary-alt),
         0 0 30px var(--tertiary-alt) !important;
-    z-index: 1002 !important;
     pointer-events: none !important;
     max-width: 95% !important;
     width: 95% !important;
@@ -299,33 +296,15 @@ body {
 .dropdown {
     position: relative;
     display: inline-block;
-    z-index: 9999;
 }
 
 
 
 
 
-/* Dropdown Content */
+/* Dropdown Content - Now handled by layers.css */
 .dropdown-content {
     display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: rgba(38, 20, 38, 0.85);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-    min-width: 300px;
-    max-width: 90vw;
-    width: auto;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-    z-index: 10000;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 10px;
-    margin-top: 2px;
-    max-height: 80vh;
-    overflow: auto;
-    resize: none;
 }
 
 /* Themed scrollbars for dropdown content */
@@ -625,7 +604,6 @@ body {
     font-weight: bold;
     text-shadow: 0 0 8px var(--secondary-alt);
     position: relative;
-    z-index: 1;
     display: inline;
 }
 
@@ -1323,7 +1301,6 @@ body {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 9999;
     background: rgba(12, 42, 42, 0.95);
     border: 2px solid var(--primary-alt);
     border-radius: var(--border-radius);
