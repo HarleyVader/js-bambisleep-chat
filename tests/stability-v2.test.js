@@ -9,6 +9,7 @@ const WebSocket = require('ws');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs').promises;
+const ENV = require('../config/env');
 
 class StabilityTestSuite {
     constructor() {
@@ -285,6 +286,20 @@ class StabilityTestSuite {
     }
 
     async testWebSocketConnection() {
+        // Skip WebSocket test if LM Studio is disabled
+        if (!ENV.LMS.ENABLED || !ENV.LMS.isConfigured) {
+            return {
+                passed: true,
+                message: 'WebSocket test skipped (LM Studio disabled - feature works without AI chat)',
+                details: { 
+                    skipped: true, 
+                    reason: 'LM Studio disabled or not configured',
+                    lmsEnabled: ENV.LMS.ENABLED,
+                    lmsConfigured: ENV.LMS.isConfigured
+                }
+            };
+        }
+
         try {
             const ws = new WebSocket('ws://localhost:7878');
 

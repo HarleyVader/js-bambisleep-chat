@@ -20,6 +20,11 @@ class LMStudioConfig {
     }
 
     loadConfiguration() {
+        // Check if LM Studio is enabled
+        if (!ENV.LMS.ENABLED) {
+            throw new Error('LM Studio is disabled (LMS_ENABLED=false)');
+        }
+
         // Use centralized ENV configuration
         if (!ENV.LMS.isConfigured) {
             throw new Error(`LM Studio not configured for ${ENV.NODE_ENV} environment`);
@@ -205,7 +210,7 @@ async function autoLoadBestModel() {
 
         const availableModels = await getAvailableModels();
         if (!availableModels.length) {
-            console.warn('⚠️ No models found in LM Studio');
+            console.warn('⚠️ No models found in LM Studio (AI chat feature disabled)');
             return false;
         }
 
@@ -257,7 +262,7 @@ async function getAvailableModels() {
         const models = response.data?.data || [];
         return models;
     } catch (error) {
-        console.error('❌ Error fetching models:', error.message);
+        console.warn('⚠️ LM Studio not available:', error.message, '(AI chat feature disabled)');
         return [];
     }
 }
@@ -377,7 +382,7 @@ async function initializeModelSystem() {
         // Auto-load the best available model
         const loaded = await autoLoadBestModel();
         if (!loaded) {
-            console.error('❌ CRITICAL: Failed to auto-load any model during initialization');
+            console.warn('⚠️ LM Studio: No model auto-loaded (AI chat feature disabled until LM Studio available)');
         }
     } catch (error) {
         console.error('❌ Model initialization error:', error.message);
@@ -402,7 +407,7 @@ async function getCurrentLoadedModel() {
         const currentModel = models.length > 0 ? models[0].id : null;
         return currentModel;
     } catch (error) {
-        console.error('❌ Error checking loaded model:', error.message);
+        console.warn('⚠️ LM Studio not available:', error.message, '(AI chat feature disabled)');
         return null;
     }
 }

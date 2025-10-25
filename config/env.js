@@ -44,6 +44,7 @@ const SERVER = {
  * Automatically selects host based on environment
  */
 const LMS = {
+    ENABLED: process.env.LMS_ENABLED !== 'false', // Default enabled, set LMS_ENABLED=false to disable
     HOST: isProduction
         ? process.env.LMS_HOST_PRODUCTION
         : process.env.LMS_HOST_DEVELOPMENT,
@@ -69,7 +70,7 @@ const LMS = {
     },
 
     get isConfigured() {
-        return !!(this.HOST && this.PORT);
+        return !!(this.ENABLED && this.HOST && this.PORT);
     }
 };
 

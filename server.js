@@ -579,6 +579,12 @@ let collarText = '';
 
 // Initialize Workers
 function initializeLMWorker() {
+    // Skip LM Studio worker if disabled
+    if (!ENV.LMS.ENABLED || !ENV.LMS.isConfigured) {
+        console.log('🔧 LM Studio worker disabled (AI chat feature unavailable)');
+        return;
+    }
+
     try {
         lmWorker = new Worker(path.join(__dirname, 'workers', 'lmstudio.js'));
 
@@ -658,7 +664,7 @@ function sendToLMWorker(message, fallbackCallback = null) {
     }
 
     // Worker unavailable - handle gracefully
-    console.warn('⚠️ LM Studio worker unavailable, using fallback');
+    console.log('ℹ️ LM Studio unavailable (AI chat disabled - core features work normally)');
     if (fallbackCallback) {
         fallbackCallback();
     }
