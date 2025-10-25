@@ -11,6 +11,7 @@ class SpiralAnimation {
         this.frameCount = 0;
         this.isEnabled = false;
         this.animationId = null;
+        this.isVisible = true; // Track visibility for performance optimization
 
         // Eye tracking and calibration from original
         this.clicks = [false, false, false, false];
@@ -22,6 +23,9 @@ class SpiralAnimation {
         this.ydPred = 0;
         this.tranceCalibrateLoop = null;
         this.tranceAmt = 0;
+
+        // Intersection Observer for performance optimization
+        this.observer = null;
 
         // WebGL specific
         this.shaderProgram = null;
@@ -112,8 +116,51 @@ class SpiralAnimation {
         this.initWebGL();
         window.addEventListener("resize", () => this.onWindowResize());
 
+        // Setup Intersection Observer for performance optimization
+        this.setupIntersectionObserver();
+
         // Start the render loop
         this.draw();
+    }
+
+    setupIntersectionObserver() {
+        // Check for Intersection Observer support
+        if (!('IntersectionObserver' in window)) {
+            console.log('Intersection Observer not supported, animations will always run');
+            return;
+        }
+
+        // Create observer with threshold for visibility detection
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const wasVisible = this.isVisible;
+                this.isVisible = entry.isIntersecting;
+
+                // Log visibility changes for debugging
+                if (wasVisible !== this.isVisible) {
+                    console.log(`🌀 Spiral visibility: ${this.isVisible ? 'VISIBLE' : 'HIDDEN'}`);
+
+                    // Pause/resume animation based on visibility
+                    if (!this.isVisible && this.animationId) {
+                        console.log('⏸️ Pausing spiral animation (not visible)');
+                        cancelAnimationFrame(this.animationId);
+                        this.animationId = null;
+                    } else if (this.isVisible && this.isEnabled && !this.animationId) {
+                        console.log('▶️ Resuming spiral animation (now visible)');
+                        this.draw();
+                    }
+                }
+            });
+        }, {
+            threshold: 0.1, // Trigger when at least 10% visible
+            rootMargin: '50px' // Start/stop slightly before entering/leaving viewport
+        });
+
+        // Observe the spiral canvas
+        if (this.canvas) {
+            this.observer.observe(this.canvas);
+            console.log('✅ Intersection Observer initialized for spiral performance');
+        }
     }
 
     initWebGL() {
@@ -205,7 +252,12 @@ class SpiralAnimation {
             return;
         }
 
-        if (!this.isEnabled) {
+        // Skip rendering if not visible (Intersection Observer optimization)
+        if (!this.isVisible || !this.isEnabled) {
+            // Still increment frame count for smooth resume
+            if (this.isEnabled) {
+                this.frameCount++;
+            }
             this.animationId = requestAnimationFrame(() => this.draw());
             return;
         }
@@ -507,10 +559,21 @@ class SpiralAnimation {
     }
 
     cleanup() {
+        // Disconnect Intersection Observer
+        if (this.observer) {
+            this.observer.disconnect();
+            this.observer = null;
+            console.log('✅ Intersection Observer disconnected');
+        }
+
+        // Cancel animation frame
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
+            this.animationId = null;
         }
-        if (this.canvas && this.canvas.parentNode) {
+
+        // Remove canvas
+        if (this.canvas?.parentNode) {
             this.canvas.parentNode.removeChild(this.canvas);
         }
     }

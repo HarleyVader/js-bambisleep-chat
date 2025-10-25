@@ -1,4 +1,4 @@
-// error-manager.js - Centralized error handling and user feedback system
+// error-manager.js - Centralized error handling and user feedback system with modern Error cause chaining
 class ErrorManager {
     constructor() {
         this.errorLog = [];
@@ -8,6 +8,73 @@ class ErrorManager {
         this.maxRetries = 3;
 
         this.init();
+    }
+
+    /**
+     * Modern Enhanced Error class with cause chaining
+     * Provides better context for debugging and error tracking
+     */
+    static createError(message, options = {}) {
+        const { cause, context, code, retryable = false } = options;
+
+        const error = new Error(message, { cause });
+        error.timestamp = new Date().toISOString();
+        error.context = context;
+        error.code = code;
+        error.retryable = retryable;
+
+        return error;
+    }
+
+    /**
+     * Enhanced error logging with cause chain tracking
+     */
+    logError(error, context = {}) {
+        const errorEntry = {
+            message: error.message,
+            timestamp: error.timestamp ?? new Date().toISOString(),
+            context: error.context ?? context,
+            code: error.code,
+            retryable: error.retryable ?? false,
+            stack: error.stack,
+            causeChain: this.extractCauseChain(error)
+        };
+
+        this.errorLog.push(errorEntry);
+
+        // Maintain log size limit
+        if (this.errorLog.length > this.maxLogSize) {
+            this.errorLog.shift();
+        }
+
+        // Enhanced console logging with cause chain
+        console.error('🔴 Error logged:', {
+            message: errorEntry.message,
+            code: errorEntry.code,
+            context: errorEntry.context,
+            causes: errorEntry.causeChain
+        });
+
+        return errorEntry;
+    }
+
+    /**
+     * Extract complete error cause chain for debugging
+     */
+    extractCauseChain(error) {
+        const chain = [];
+        let currentError = error;
+
+        while (currentError) {
+            chain.push({
+                message: currentError.message,
+                name: currentError.name,
+                code: currentError.code
+            });
+            currentError = currentError.cause;
+        }
+
+        return chain;
     }
 
     init() {
@@ -323,7 +390,20 @@ class ErrorManager {
         const retryBtn = notification.querySelector('.error-retry');
 
         titleEl.textContent = title;
-        messageEl.textContent = message;
+        
+        // Build message with cause chain if error has causes
+        let fullMessage = message;
+        if (context.error) {
+            const causeChain = this.extractCauseChain(context.error);
+            if (causeChain.length > 1) {
+                fullMessage += '\n' + causeChain.slice(1).map((cause, idx) => 
+                    `  ${'→'.repeat(idx + 1)} ${cause.message}`
+                ).join('\n');
+            }
+        }
+        
+        messageEl.textContent = fullMessage;
+        messageEl.style.whiteSpace = 'pre-line'; // Preserve line breaks for cause chain
 
         // Set notification style based on level
         notification.className = `error-notification ${level}`;
@@ -351,7 +431,12 @@ class ErrorManager {
             this.hideError();
         }, autoHideDelay);
 
-        console.warn(`🚨 ${level.toUpperCase()}: ${title} - ${message}`);
+        // Enhanced console logging with cause chain
+        if (context.error) {
+            console.error(`🚨 ${level.toUpperCase()}: ${title} - ${message}`, context.error);
+        } else {
+            console.warn(`🚨 ${level.toUpperCase()}: ${title} - ${message}`);
+        }
     }
 
     hideError() {

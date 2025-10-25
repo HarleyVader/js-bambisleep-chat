@@ -232,7 +232,17 @@ class TextToSpeechSystem {
                 URL.revokeObjectURL(url);
                 cleaned++;
             } catch (error) {
-                console.warn('Failed to revoke blob URL:', error);
+                // Enhanced error with cause chain
+                const cleanupError = ErrorManager.createError(
+                    'Failed to revoke blob URL during cleanup',
+                    { 
+                        cause: error, 
+                        context: { url, totalUrls: this.blobUrls.size },
+                        code: 'BLOB_CLEANUP_FAILED',
+                        retryable: false
+                    }
+                );
+                console.warn('Blob URL cleanup error:', cleanupError);
             }
         });
 
@@ -316,7 +326,17 @@ class TextToSpeechSystem {
                 URL.revokeObjectURL(this.currentAudioUrl);
                 this.blobUrls.delete(this.currentAudioUrl);
             } catch (error) {
-                console.warn('Failed to cleanup current audio URL:', error);
+                // Enhanced error with cause chain
+                const stopError = ErrorManager.createError(
+                    'Failed to cleanup audio URL during stop',
+                    {
+                        cause: error,
+                        context: { url: this.currentAudioUrl },
+                        code: 'AUDIO_STOP_CLEANUP_FAILED',
+                        retryable: false
+                    }
+                );
+                console.warn('Audio stop cleanup error:', stopError);
             }
             this.currentAudioUrl = null;
         }
@@ -519,30 +539,48 @@ class TextToSpeechSystem {
         return text.split(/(?<=[:;,.!?\*]["']?)\s+|(?<=\*\*)\s+|\*\s+/g).filter(s => s.trim().length > 0);
     }
 
-    processTextQueue() {
+    async processTextQueue() {
         if (this.textArray.length === 0) {
             this.isPlaying = false;
             this.state = false;
             return;
         }
 
-        this.isPlaying = true;
-        const textItem = this.textArray.shift();
+        // Use Web Locks API to prevent concurrent processing (progressive enhancement)
+        const processLogic = () => {
+            this.isPlaying = true;
+            const textItem = this.textArray.shift();
 
-        // Handle both old string format and new object format for compatibility
-        if (typeof textItem === 'string') {
-            this.currentText = textItem; // Old format - display and TTS are the same
-            this.currentTTSText = textItem;
+            // Handle both old string format and new object format for compatibility
+            if (typeof textItem === 'string') {
+                this.currentText = textItem; // Old format - display and TTS are the same
+                this.currentTTSText = textItem;
+            } else {
+                this.currentText = textItem.display; // New format - separate display and TTS text
+                this.currentTTSText = textItem.tts;
+            }
+
+            console.log('🎤 Processing text:', this.currentText);
+
+            // Add to audio queue using TTS text and use do_tts like original working version
+            this.arrayPush(this.audioArray, this.currentTTSText);
+            this.do_tts(this.audioArray); // CRITICAL: Use do_tts() not requestTTS()
+        };
+
+        // Check for Web Locks API support
+        if ('locks' in navigator) {
+            try {
+                await navigator.locks.request('tts-processing', { mode: 'exclusive' }, async () => {
+                    processLogic();
+                    // Lock will be released when this function completes
+                });
+            } catch (error) {
+                console.warn('Web Locks API failed, using fallback:', error);
+                processLogic();
+            }
         } else {
-            this.currentText = textItem.display; // New format - separate display and TTS text
-            this.currentTTSText = textItem.tts;
+            processLogic();
         }
-
-        console.log('🎤 Processing text:', this.currentText);
-
-        // Add to audio queue using TTS text and use do_tts like original working version
-        this.arrayPush(this.audioArray, this.currentTTSText);
-        this.do_tts(this.audioArray); // CRITICAL: Use do_tts() not requestTTS()
     }
 
     // Core synchronization function - RESTORED TO ORIGINAL WORKING PATTERN

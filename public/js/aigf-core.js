@@ -106,7 +106,20 @@ class ChatCore {
                 return this.manualProcessHighlights(aiResponse);
             }
         } catch (error) {
-            console.error('Error processing AI response with effects system:', error);
+            // Enhanced error with cause chain
+            const effectsError = ErrorManager.createError(
+                'Error processing AI response with effects system',
+                {
+                    cause: error,
+                    context: { 
+                        messageLength: aiResponse?.length,
+                        effectsAvailable: !!window.textEffects 
+                    },
+                    code: 'AI_EFFECTS_PROCESSING_FAILED',
+                    retryable: false
+                }
+            );
+            console.error('AI effects processing error:', effectsError);
             // Fallback: manual processing if effects system fails
             return this.manualProcessHighlights(aiResponse);
         }

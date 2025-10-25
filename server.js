@@ -353,10 +353,10 @@ app.use((req, res, next) => {
     const kokoroPort = ENV.KOKORO.PORT || 8880;
     const lmsHost = ENV.LMS.HOST || 'localhost';
     const lmsPort = ENV.LMS.PORT || 7777;
-    
+
     // Content Security Policy for enhanced security (environment-aware)
     const isDevelopment = process.env.NODE_ENV !== 'production';
-    
+
     const baseCspDirectives = [
         "default-src 'self'",
         "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
@@ -368,7 +368,7 @@ app.use((req, res, next) => {
         "frame-ancestors 'none'",
         "base-uri 'self'"
     ];
-    
+
     // Development CSP (more permissive for hot reload)
     if (isDevelopment) {
         baseCspDirectives.push(
@@ -381,18 +381,18 @@ app.use((req, res, next) => {
             "script-src 'self' 'unsafe-inline' cdn.socket.io cdn.jsdelivr.net"
         );
     }
-    
+
     const cspDirectives = baseCspDirectives.join('; ');
 
     res.setHeader('Content-Security-Policy', cspDirectives);
-    
+
     // Additional security headers
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'microphone=(), camera=(), geolocation=(), payment=()');
-    
+
     next();
 });
 

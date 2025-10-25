@@ -99,7 +99,7 @@ export class DropdownUtils {
         if (content && button) {
             // Set view transition name for smoother animations
             content.style.viewTransitionName = `dropdown-${dropdown.id || 'content'}`;
-            
+
             // Activate dropdown FIRST to make content visible for measurement
             dropdown.classList.add('active');
 
