@@ -129,6 +129,27 @@ Msg 3: "Great!" → nicole ✨
 Msg 4: "Me too!" → bella 💕 (cycles!)
 ```
 
+### 🎵 Advanced Voice Mixing (Developer Feature) 🎵
+
+**Super Cool Feature:** Kokoro TTS supports voice blending with the `+` operator!
+
+**Voice Mixing Syntax:**
+- `af_bella+af_sky` - Blend bella and sky characteristics
+- `af_sarah+af_nicole+af` - Mix three voices together
+- `af+bf_emma` - Blend female and mature voices
+
+**How It Works:**
+1. The TTS engine blends voice characteristics
+2. Creates unique hybrid voices with mixed qualities
+3. Experimental feature from Kokoro TTS system
+
+**Popular Combinations:**
+- `af_bella+af_sky` → Sweet + Energetic = Playful voice
+- `af_sarah+af_nicole` → Sultry + Smooth = Rich voice
+- `af+bf_emma` → Standard + Mature = Balanced warmth
+
+**Note:** This is an advanced feature that works directly with the Kokoro API. Voice mixing results may vary and some combinations work better than others! 🎨✨
+
 **Tip:** Pick 2-3 voices for best experience! 🎀
 
 ## ⚡ Speed Controls! ⚡

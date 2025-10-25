@@ -122,12 +122,15 @@
             margin-top: 4px;
         }
 
-        /* Triggers */
-        .trigger-text,
-        .caps-text {
-            color: var(--mobile-accent) !important;
-            font-weight: bold;
-            text-shadow: 0 0 10px var(--mobile-accent);
+        @layer mobile {
+
+            /* Triggers - Mobile Override */
+            .trigger-text,
+            .caps-text {
+                color: var(--mobile-accent);
+                font-weight: bold;
+                text-shadow: 0 0 10px var(--mobile-accent);
+            }
         }
 
         /* Chat Input Area - Fixed Bottom */
@@ -191,20 +194,23 @@
             height: 100%;
         }
 
-        /* TTS Display - Centered */
-        #eye,
-        .spiral-text-center,
-        .tts-text-display {
-            position: absolute !important;
-            top: 50% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important;
-            font-size: clamp(18px, 4vw, 28px) !important;
-            text-align: center !important;
-            max-width: 90% !important;
-            color: var(--mobile-accent) !important;
-            text-shadow: 0 0 20px var(--mobile-accent) !important;
-            font-weight: bold !important;
+        @layer mobile {
+
+            /* TTS Display - Centered - Mobile Override */
+            #eye,
+            .spiral-text-center,
+            .tts-text-display {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: clamp(18px, 4vw, 28px);
+                text-align: center;
+                max-width: 90%;
+                color: var(--mobile-accent);
+                text-shadow: 0 0 20px var(--mobile-accent);
+                font-weight: bold;
+            }
         }
 
         /* Mobile Navigation - Bottom Bar */
@@ -488,13 +494,16 @@
             border-color: var(--mobile-border);
         }
 
-        /* Utility Classes */
-        .mobile-hidden {
-            display: none !important;
-        }
+        @layer mobile {
 
-        .mobile-visible {
-            display: block !important;
+            /* Utility Classes - Mobile Override */
+            .mobile-hidden {
+                display: none;
+            }
+
+            .mobile-visible {
+                display: block;
+            }
         }
 
         /* Scrollbar Styling */
@@ -619,12 +628,14 @@
 
     /* Ensure mobile rules only apply to touch devices */
     @media (pointer: fine) {
+        @layer mobile {
 
-        /* Hide mobile-specific elements on desktop */
-        .mobile-nav,
-        .mobile-panel,
-        .landscape-indicator {
-            display: none !important;
+            /* Hide mobile-specific elements on desktop */
+            .mobile-nav,
+            .mobile-panel,
+            .landscape-indicator {
+                display: none;
+            }
         }
     }
 
