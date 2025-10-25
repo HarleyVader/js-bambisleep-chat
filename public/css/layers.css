@@ -71,9 +71,10 @@
         isolation: auto;
     }
 
-    #chat-header,
-    #controls,
-    .controls,
+    #chat-header {
+        position: relative;
+    }
+
     #global-chat-messages,
     #aigf-chat-messages,
     #global-chat-input-container,
@@ -83,9 +84,7 @@
     }
 
     /* Ensure buttons are interactive */
-    .dropdown-btn,
     .toggle-button,
-    .control-button,
     button {
         position: relative;
         cursor: pointer;
@@ -93,11 +92,27 @@
     }
 }
 
-/* Dropdowns layer - dropdown menus should be above interface */
+/* Dropdowns layer - dropdown menus and their buttons should be above interface */
 @layer dropdowns {
+    /* Controls container and dropdown buttons in dropdowns layer */
+    #controls,
+    .controls {
+        position: relative;
+        isolation: isolate;
+    }
+
     .dropdown {
         position: relative;
         display: inline-block;
+        isolation: isolate;
+    }
+
+    .dropdown-btn,
+    .control-button {
+        position: relative;
+        cursor: pointer;
+        pointer-events: auto;
+        isolation: isolate;
     }
 
     .dropdown-content {
