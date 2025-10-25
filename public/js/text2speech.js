@@ -829,11 +829,6 @@ class TextToSpeechSystem {
 
     // UPGRADED: Enhanced TTS processing with better error handling and blob management
     async do_tts(array) {
-        // Environment check warning
-        if (window.location.hostname === 'bambisleep.chat' && window.location.port !== '5173') {
-            console.warn('🎤 WARNING: TTS may not work on production site during development. Use http://localhost:5173 for local development.');
-        }
-
         const messageEl = document.querySelector("#message");
         if (messageEl) messageEl.textContent = "Synthesizing...";
 

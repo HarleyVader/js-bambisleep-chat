@@ -390,18 +390,18 @@ class ErrorManager {
         const retryBtn = notification.querySelector('.error-retry');
 
         titleEl.textContent = title;
-        
+
         // Build message with cause chain if error has causes
         let fullMessage = message;
         if (context.error) {
             const causeChain = this.extractCauseChain(context.error);
             if (causeChain.length > 1) {
-                fullMessage += '\n' + causeChain.slice(1).map((cause, idx) => 
+                fullMessage += '\n' + causeChain.slice(1).map((cause, idx) =>
                     `  ${'→'.repeat(idx + 1)} ${cause.message}`
                 ).join('\n');
             }
         }
-        
+
         messageEl.textContent = fullMessage;
         messageEl.style.whiteSpace = 'pre-line'; // Preserve line breaks for cause chain
 

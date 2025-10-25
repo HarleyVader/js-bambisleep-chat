@@ -17,12 +17,6 @@ class ChatCore {
         // Initialize error management
         this.errorManager = new ErrorManager();
 
-        // Environment detection and user guidance
-        if (window.location.hostname === 'bambisleep.chat' && window.location.port !== '5173') {
-            console.warn('🔧 DEVELOPMENT NOTE: For local development with TTS functionality, please use http://localhost:5173');
-            console.warn('🔧 Production TTS requires proper Kokoro server configuration');
-        }
-
         this.loadOfficialTriggers(); // Load official triggers
         this.init();
     }
@@ -111,9 +105,9 @@ class ChatCore {
                 'Error processing AI response with effects system',
                 {
                     cause: error,
-                    context: { 
+                    context: {
                         messageLength: aiResponse?.length,
-                        effectsAvailable: !!window.textEffects 
+                        effectsAvailable: !!window.textEffects
                     },
                     code: 'AI_EFFECTS_PROCESSING_FAILED',
                     retryable: false
