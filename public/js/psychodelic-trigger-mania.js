@@ -159,7 +159,6 @@ class SpiralAnimation {
         // Observe the spiral canvas
         if (this.canvas) {
             this.observer.observe(this.canvas);
-            console.log('✅ Intersection Observer initialized for spiral performance');
         }
     }
 

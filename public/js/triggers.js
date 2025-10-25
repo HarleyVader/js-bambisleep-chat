@@ -32,9 +32,6 @@ class TriggerSystem {
                     this.triggers.push(trigger.name.toLowerCase());
                 });
             }
-
-            console.log('🎯 TriggerSystem loaded', this.triggers.length, 'official triggers');
-
         } catch (error) {
             console.error('CRITICAL: TriggerSystem failed to load official triggers:', error);
             // NO FALLBACK - Only use official triggers

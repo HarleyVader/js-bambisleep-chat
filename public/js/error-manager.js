@@ -80,7 +80,6 @@ class ErrorManager {
     init() {
         this.createErrorUI();
         this.setupGlobalErrorHandler();
-        console.log('✅ Error Management System initialized');
     }
 
     // Create error notification UI

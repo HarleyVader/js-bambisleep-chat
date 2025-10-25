@@ -36,9 +36,6 @@ class TextEffects {
                     };
                 });
             }
-
-            console.log('🎯 Loaded', this.triggers.length, 'official BambiSleep trigger variations');
-
         } catch (error) {
             console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
             // NO FALLBACK - Only use official triggers

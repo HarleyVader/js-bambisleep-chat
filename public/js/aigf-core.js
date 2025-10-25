@@ -57,9 +57,6 @@ class ChatCore {
                     });
                 }
             }
-
-            console.log('🎯 Loaded', this.activeTriggers.length, 'active triggers and', this.allTriggers.length, 'total triggers');
-
         } catch (error) {
             this.errorManager.reportError('api', 'triggers_load_failed', {
                 message: 'Failed to load official BambiSleep triggers',
