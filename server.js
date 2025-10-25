@@ -303,10 +303,10 @@ class EnvironmentValidator {
 function validateConfiguration() {
     // Use centralized environment validation
     const validationResults = ENV.validation.validateAll();
-    
+
     // Print configuration summary
     ENV.printSummary();
-    
+
     const result = {
         ttsAvailable: validationResults.kokoro.configured,
         lmStudioConfigured: validationResults.lms.configured,
@@ -319,18 +319,18 @@ function validateConfiguration() {
         errorCount: 0,
         warningCount: 0
     };
-    
+
     // Add warnings for missing services
     if (!validationResults.lms.configured) {
         result.warnings.push('LM Studio not configured - AI chat will be unavailable');
         result.warningCount++;
     }
-    
+
     if (!validationResults.kokoro.configured) {
         result.warnings.push('Kokoro TTS not configured - voice features will be unavailable');
         result.warningCount++;
     }
-    
+
     return result;
 }
 

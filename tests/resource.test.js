@@ -8,6 +8,15 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { performance } = require('perf_hooks');
+const dotenv = require('dotenv');
+
+// Load environment configuration
+dotenv.config();
+
+// Server configuration from environment
+const SERVER_PORT = parseInt(process.env.PORT) || 6969;
+const SERVER_HOST = process.env.SERVER_HOST || 'localhost';
+const BASE_URL = `http://${SERVER_HOST}:${SERVER_PORT}`;
 
 class ResourceTester {
     constructor() {
@@ -27,6 +36,9 @@ class ResourceTester {
         this.testStartTime = Date.now();
         this.serverProcess = null;
         this.monitoringInterval = null;
+        this.serverPort = SERVER_PORT;
+        this.serverHost = SERVER_HOST;
+        this.baseUrl = BASE_URL;
     }
 
     log(message, type = 'info') {
@@ -301,7 +313,7 @@ class ResourceTester {
                 for (let i = 0; i < requestCount; i++) {
                     try {
                         await new Promise((resolve, reject) => {
-                            const req = http.get('http://localhost:6969', (res) => {
+                            const req = http.get(this.baseUrl, (res) => {
                                 successCount++;
                                 resolve();
                             });

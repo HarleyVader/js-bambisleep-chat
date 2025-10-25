@@ -8,6 +8,15 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
+const dotenv = require('dotenv');
+
+// Load environment configuration
+dotenv.config();
+
+// Server configuration from environment
+const SERVER_PORT = parseInt(process.env.PORT) || 6969;
+const SERVER_HOST = process.env.SERVER_HOST || 'localhost';
+const BASE_URL = `http://${SERVER_HOST}:${SERVER_PORT}`;
 
 class StabilityTester {
     constructor() {
@@ -21,10 +30,15 @@ class StabilityTester {
         this.serverProcess = null;
         this.testStartTime = Date.now();
         this.ciMode = process.env.CI === 'true' || process.env.CI === true;
+        this.serverPort = SERVER_PORT;
+        this.serverHost = SERVER_HOST;
+        this.baseUrl = BASE_URL;
 
         if (this.ciMode) {
             this.log('Running in CI mode - external services will be skipped', 'info');
         }
+
+        this.log(`Test configuration: ${this.baseUrl}`, 'info');
     }
 
     log(message, type = 'info') {
@@ -126,9 +140,9 @@ class StabilityTester {
         this.log('Testing basic HTTP connectivity...', 'info');
 
         const testUrls = [
-            'http://localhost:6969',
-            'http://localhost:6969/api/triggers/json',
-            'http://localhost:6969/socket.io/'
+            this.baseUrl,
+            `${this.baseUrl}/api/triggers/json`,
+            `${this.baseUrl}/socket.io/`
         ];
 
         let successCount = 0;
@@ -164,7 +178,8 @@ class StabilityTester {
         // Create multiple WebSocket connections
         for (let i = 0; i < connectionCount; i++) {
             try {
-                const ws = new WebSocket('ws://localhost:6969/socket.io/?EIO=4&transport=websocket');
+                const wsUrl = `ws://${this.serverHost}:${this.serverPort}/socket.io/?EIO=4&transport=websocket`;
+                const ws = new WebSocket(wsUrl);
 
                 ws.on('open', () => {
                     results.connected++;
@@ -236,7 +251,7 @@ class StabilityTester {
         const loadInterval = setInterval(async () => {
             try {
                 // Make some HTTP requests
-                await this.makeHttpRequest('http://localhost:6969', 1000);
+                await this.makeHttpRequest(this.baseUrl, 1000);
                 // Create some temporary data
                 const tempData = new Array(1000).fill(0).map(() => Math.random());
                 // Let it be garbage collected
@@ -293,7 +308,7 @@ class StabilityTester {
             const startTime = Date.now();
 
             try {
-                await this.makeHttpRequest('http://localhost:6969', 5000);
+                await this.makeHttpRequest(this.baseUrl, 5000);
                 const responseTime = Date.now() - startTime;
                 responseTimes.push(responseTime);
             } catch (error) {

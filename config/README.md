@@ -145,8 +145,8 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const port = process.env.PORT || 6969;
-const kokoroHost = process.env.NODE_ENV === 'production' 
-    ? process.env.KOKORO_HOST_PRODUCTION 
+const kokoroHost = process.env.NODE_ENV === 'production'
+    ? process.env.KOKORO_HOST_PRODUCTION
     : process.env.KOKORO_HOST_DEVELOPMENT;
 const kokoroPort = process.env.KOKORO_PORT || 8880;
 const kokoroUrl = `http://${kokoroHost}:${kokoroPort}`;
@@ -181,7 +181,7 @@ class KokoroTTSWorker {
         if (!ENV.KOKORO.isConfigured) {
             throw new Error('Kokoro not configured');
         }
-        
+
         this.kokoroUrl = ENV.KOKORO.URL;
         this.defaultVoice = ENV.KOKORO.DEFAULT_VOICE;
         console.log('✅ Kokoro configured:', this.kokoroUrl);

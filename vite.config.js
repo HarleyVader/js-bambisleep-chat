@@ -4,7 +4,7 @@ import path from 'path'
 export default defineConfig(({ mode }) => {
     // Load env file based on `mode` in the current working directory.
     const env = loadEnv(mode, process.cwd(), '')
-    
+
     const serverPort = parseInt(env.PORT) || 6969
     const vitePort = parseInt(env.VITE_PORT) || 5173
 
