@@ -3,8 +3,8 @@
  * Replaces z-index numbers with semantic CSS layers
  */
 
-/* Define CSS layers in proper stacking order (INVERTED: highest priority first) */
-@layer debug, overlays, modals, dropdowns, interface, background, base;
+/* Define CSS layers in proper stacking order (DROPDOWNS ON TOP) */
+@layer base, background, interface, modals, overlays, debug, dropdowns;
 
 /* Base layer - foundational elements */
 @layer base {
@@ -15,9 +15,10 @@
     }
 }
 
-/* Background layer - visual effects that should be behind everything */
+/* Background layer - visual effects AND CHAT (behind everything) */
 @layer background {
 
+    /* Visual effects behind everything */
     #spiral-container,
     .spiral-canvas,
     .brainwave-canvas,
@@ -30,7 +31,7 @@
         pointer-events: none;
     }
 
-    /* TTS text display should be above background but below interface */
+    /* TTS text display above background but below interface */
     .tts-text-display,
     #eye,
     .spiral-text-center {
@@ -60,12 +61,8 @@
         box-sizing: border-box;
         padding: 0 10px;
     }
-}
 
-/* Interface layer - main UI elements */
-@layer interface {
-
-    /* Chat container should not create stacking context that blocks dropdowns */
+    /* Chat elements moved to background to appear behind dropdowns */
     #chat-container {
         position: relative;
         isolation: auto;
@@ -82,8 +79,12 @@
     .docs-link-container {
         position: relative;
     }
+}
 
-    /* Ensure buttons are interactive */
+/* Interface layer - main UI elements */
+@layer interface {
+
+    /* Basic buttons and inputs stay in interface */
     .toggle-button,
     button {
         position: relative;
@@ -100,12 +101,14 @@
     .controls {
         position: relative;
         isolation: isolate;
+        z-index: 99999 !important;
     }
 
     .dropdown {
         position: relative;
         display: inline-block;
         isolation: isolate;
+        z-index: 99999 !important;
     }
 
     .dropdown-btn,
@@ -114,6 +117,7 @@
         cursor: pointer;
         pointer-events: auto;
         isolation: isolate;
+        z-index: 99999 !important;
     }
 
     .dropdown-content {
@@ -141,6 +145,8 @@
             transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
             opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
             visibility 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        /* FORCE dropdowns on top of everything */
+        z-index: 999999 !important;
     }
 
     /* Show dropdown with smooth animation */

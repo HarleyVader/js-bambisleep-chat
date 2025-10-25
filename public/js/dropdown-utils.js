@@ -84,16 +84,16 @@ export class DropdownUtils {
         if (content && button) {
             // Activate dropdown FIRST to make content visible for measurement
             dropdown.classList.add('active');
-            
+
             // Force reflow to ensure content is rendered
             content.offsetHeight;
-            
+
             // Now position dropdown relative to button (since dropdown-content is now position: fixed)
             const buttonRect = button.getBoundingClientRect();
             const contentRect = content.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
-            
+
             // Calculate initial position
             let top = buttonRect.bottom + 4;
             let left = buttonRect.left;
@@ -107,7 +107,7 @@ export class DropdownUtils {
             if (top + contentRect.height > viewportHeight) {
                 top = Math.max(10, buttonRect.top - contentRect.height - 4);
             }
-            
+
             // Apply final position
             content.style.top = `${top}px`;
             content.style.left = `${left}px`;
