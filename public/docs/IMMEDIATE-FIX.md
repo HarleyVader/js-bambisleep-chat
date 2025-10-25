@@ -1,6 +1,18 @@
 # 🔧 IMMEDIATE FIX for BambiSleep Chat SystemD Permission Issue
 
-## Quick Fix Commands (Run on your Linux server)
+## 🚨 EMERGENCY FIX (Recommended - Run this first)
+
+```bash
+# Navigate to your BambiSleep Chat directory
+cd ~/web/bambisleep.chat/js-bambisleep-chat
+
+# Download and run emergency fix script
+curl -fsSL https://raw.githubusercontent.com/HarleyVader/js-bambisleep-chat/production/emergency-fix.sh -o emergency-fix.sh
+chmod +x emergency-fix.sh
+sudo ./emergency-fix.sh
+```
+
+## Quick Fix Commands (Alternative method)
 
 ```bash
 # 1. Navigate to your BambiSleep Chat directory
