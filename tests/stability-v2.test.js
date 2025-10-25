@@ -291,8 +291,8 @@ class StabilityTestSuite {
             return {
                 passed: true,
                 message: 'WebSocket test skipped (LM Studio disabled - feature works without AI chat)',
-                details: { 
-                    skipped: true, 
+                details: {
+                    skipped: true,
                     reason: 'LM Studio disabled or not configured',
                     lmsEnabled: ENV.LMS.ENABLED,
                     lmsConfigured: ENV.LMS.isConfigured
