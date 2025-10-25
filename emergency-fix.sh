@@ -86,7 +86,7 @@ ExecStart=$NODE_PATH server.js
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
-Environment=PORT=6969
+Environment=PORT=7878
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=bambisleep-chat
@@ -118,11 +118,11 @@ sleep 5
 # Check status
 if sudo systemctl is-active --quiet bambisleepchat; then
     print_status "🎉 SUCCESS! Service is now running properly!"
-    
+
     echo ""
     echo "📊 Service Status:"
     sudo systemctl status bambisleepchat --no-pager -l
-    
+
     echo ""
     print_info "Testing application..."
     if curl -f http://localhost:6969/api/health >/dev/null 2>&1; then
@@ -130,7 +130,7 @@ if sudo systemctl is-active --quiet bambisleepchat; then
     else
         print_warning "Application may still be starting up"
     fi
-    
+
 else
     print_error "Service failed to start. Checking logs..."
     echo ""
