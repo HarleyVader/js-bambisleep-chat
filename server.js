@@ -1048,6 +1048,28 @@ app.get('/api/health', (req, res) => {
 // Serve docs folder for markdown documentation
 app.use('/docs', express.static(path.join(__dirname, 'public', 'docs')));
 
+// List all markdown documentation files
+app.get('/api/docs/list', (req, res) => {
+    const fs = require('fs');
+    const docsPath = path.join(__dirname, 'public', 'docs');
+    
+    try {
+        const files = fs.readdirSync(docsPath)
+            .filter(file => file.endsWith('.md'))
+            .sort((a, b) => {
+                // Sort README first, then alphabetically
+                if (a === 'README.md') return -1;
+                if (b === 'README.md') return 1;
+                return a.localeCompare(b);
+            });
+        
+        res.json({ files });
+    } catch (error) {
+        console.error('Error reading docs directory:', error);
+        res.status(500).json({ error: 'Failed to list documentation files' });
+    }
+});
+
 // Chat history (legacy - combined)
 app.get('/api/history', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
