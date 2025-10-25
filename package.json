@@ -24,8 +24,8 @@
         "npm": ">=9.0.0"
     },
     "scripts": {
-        "dev": "concurrently \"nodemon server.js\" \"vite\"",
         "start": "node server.js",
+        "dev": "concurrently \"nodemon server.js\" \"vite\"",
         "build": "vite build",
         "test": "node tests/master.test.js",
         "clean": "node scripts/clean.js"
