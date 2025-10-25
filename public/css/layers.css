@@ -3,8 +3,8 @@
  * Replaces z-index numbers with semantic CSS layers
  */
 
-/* Define CSS layers in proper stacking order */
-@layer base, background, interface, dropdowns, modals, overlays, debug;
+/* Define CSS layers in proper stacking order (INVERTED: highest priority first) */
+@layer debug, overlays, modals, dropdowns, interface, background, base;
 
 /* Base layer - foundational elements */
 @layer base {
@@ -94,6 +94,7 @@
 
 /* Dropdowns layer - dropdown menus and their buttons should be above interface */
 @layer dropdowns {
+
     /* Controls container and dropdown buttons in dropdowns layer */
     #controls,
     .controls {
