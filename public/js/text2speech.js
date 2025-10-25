@@ -135,8 +135,7 @@ class TextToSpeechSystem {
                 });
             }
 
-            // Fallback to Web Speech API
-            this.fallbackToWebSpeech();
+            console.error('🎤 Kokoro TTS unavailable - no fallback configured');
         });
 
         // Add connection monitoring
@@ -145,7 +144,7 @@ class TextToSpeechSystem {
         });
 
         this.socket.on('disconnect', () => {
-            console.warn('🎤 TTS socket disconnected - will use Web Speech API');
+            console.warn('🎤 TTS socket disconnected');
         });
 
         this.socket.on('connect_error', (error) => {
@@ -235,8 +234,8 @@ class TextToSpeechSystem {
                 // Enhanced error with cause chain
                 const cleanupError = ErrorManager.createError(
                     'Failed to revoke blob URL during cleanup',
-                    { 
-                        cause: error, 
+                    {
+                        cause: error,
                         context: { url, totalUrls: this.blobUrls.size },
                         code: 'BLOB_CLEANUP_FAILED',
                         retryable: false
@@ -551,14 +550,9 @@ class TextToSpeechSystem {
             this.isPlaying = true;
             const textItem = this.textArray.shift();
 
-            // Handle both old string format and new object format for compatibility
-            if (typeof textItem === 'string') {
-                this.currentText = textItem; // Old format - display and TTS are the same
-                this.currentTTSText = textItem;
-            } else {
-                this.currentText = textItem.display; // New format - separate display and TTS text
-                this.currentTTSText = textItem.tts;
-            }
+            // Use new object format with separate display and TTS text
+            this.currentText = textItem.display;
+            this.currentTTSText = textItem.tts;
 
             console.log('🎤 Processing text:', this.currentText);
 
@@ -597,14 +591,9 @@ class TextToSpeechSystem {
             this.state = false;
             const textItem = this.textArray.shift();
 
-            // Handle both old string format and new object format for compatibility
-            if (typeof textItem === 'string') {
-                this.currentText = textItem; // Old format
-                this.currentTTSText = textItem;
-            } else {
-                this.currentText = textItem.display; // New format
-                this.currentTTSText = textItem.tts;
-            }
+            // Use new object format
+            this.currentText = textItem.display;
+            this.currentTTSText = textItem.tts;
 
             this.arrayPush(this.audioArray, this.currentTTSText);
             this.do_tts(this.audioArray); // CRITICAL: Use do_tts() like original, not requestTTS()
@@ -649,14 +638,9 @@ class TextToSpeechSystem {
             this.state = false;
             const textItem = this.textArray.shift();
 
-            // Handle both old string format and new object format for compatibility
-            if (typeof textItem === 'string') {
-                this.currentText = textItem; // Old format
-                this.currentTTSText = textItem;
-            } else {
-                this.currentText = textItem.display; // New format
-                this.currentTTSText = textItem.tts;
-            }
+            // Use new object format
+            this.currentText = textItem.display;
+            this.currentTTSText = textItem.tts;
 
             this.arrayPush(this.audioArray, this.currentTTSText);
             this.do_tts(this.audioArray);
@@ -666,27 +650,22 @@ class TextToSpeechSystem {
         }
     }
 
-    // Request TTS from Kokoro or fallback to Web Speech API
+    // Request TTS from Kokoro
     requestTTS(text) {
         console.log('🎤 Requesting TTS for:', text.substring(0, 50) + '...');
 
-        if (this.useKokoro && this.socket && this.socket.connected) {
-            console.log('🎤 Using Kokoro TTS via socket');
-            // Use Kokoro TTS via socket
-            this.socket.emit('tts-request', {
-                text: text,
-                voice: this.currentVoice,
-                format: 'mp3'
-            });
-        } else {
-            console.log('🎤 Using Web Speech API fallback');
-            console.log('  - useKokoro:', this.useKokoro);
-            console.log('  - socket available:', !!this.socket);
-            console.log('  - socket connected:', this.socket?.connected);
-
-            // Fallback to Web Speech API
-            this.speakWithWebAPI(text);
+        if (!this.socket || !this.socket.connected) {
+            console.error('🎤 Kokoro TTS socket not connected');
+            return;
         }
+
+        console.log('🎤 Using Kokoro TTS via socket');
+        // Use Kokoro TTS via socket
+        this.socket.emit('tts-request', {
+            text: text,
+            voice: this.currentVoice,
+            format: 'mp3'
+        });
     }
 
     handleKokoroResponse(data) {
@@ -716,7 +695,8 @@ class TextToSpeechSystem {
             }
         } catch (error) {
             console.error('🎤 Error processing Kokoro response:', error);
-            this.fallbackToWebSpeech();
+            // Try next item in queue
+            this.processTextQueue();
         }
     }
 
@@ -737,11 +717,6 @@ class TextToSpeechSystem {
         }
 
         return new Blob(byteArrays, { type: contentType });
-    }
-
-    fallbackToWebSpeech() {
-        console.log('🎤 Falling back to Web Speech API');
-        this.speakWithWebAPI(this.currentText);
     }
 
     // Flash text in spiral center (from tts.js)
@@ -985,13 +960,6 @@ class TextToSpeechSystem {
     // Voice management with strict female-only validation and ENHANCED SELECTION
     setVoice(voice) {
         if (voice && typeof voice === 'string') {
-            // Validate that it's not a male voice pattern for Web Speech API
-            if (!this.useKokoro && this.isMaleVoice(voice)) {
-                console.error('❌ REJECTED male voice for BambiSleep:', voice);
-                console.log('🎤 BambiSleep is a GIRL - keeping current female voice');
-                return;
-            }
-
             // Enhanced voice setting - handle combinations and individual voices
             this.currentVoice = voice;
 
@@ -1175,41 +1143,20 @@ class TextToSpeechSystem {
         }
     }
 
-    // Validate voice is not male (for Web Speech API)
-    isMaleVoice(voiceName) {
-        const malePatterns = [
-            'male', 'man', 'boy', 'david', 'mark', 'george', 'microsoft david',
-            'alex', 'daniel', 'fred', 'tom', 'adam', 'andrew', 'brian',
-            'christopher', 'diego', 'jorge', 'microsoft mark', 'ricky', 'viktor'
-        ];
-
-        const name = voiceName.toLowerCase();
-        return malePatterns.some(pattern => name.includes(pattern));
-    }
-
-    // Get only verified female voices with combination support
+    // Get only verified female voices with combination support (Kokoro only)
     getFemaleVoices() {
-        if (this.useKokoro) {
-            // Base female voices
-            const baseVoices = ['af_sky', 'af_bella', 'af_sarah', 'af_nicole'];
-            const combinedVoices = [];
+        // Base female voices
+        const baseVoices = ['af_sky', 'af_bella', 'af_sarah', 'af_nicole'];
+        const combinedVoices = [];
 
-            // Generate all valid combinations of 2 voices
-            for (let i = 0; i < baseVoices.length; i++) {
-                for (let j = i + 1; j < baseVoices.length; j++) {
-                    combinedVoices.push(`${baseVoices[i]}+${baseVoices[j]}`);
-                }
+        // Generate all valid combinations of 2 voices
+        for (let i = 0; i < baseVoices.length; i++) {
+            for (let j = i + 1; j < baseVoices.length; j++) {
+                combinedVoices.push(`${baseVoices[i]}+${baseVoices[j]}`);
             }
-
-            return [...baseVoices, ...combinedVoices];
-        } else {
-            // Filter Web Speech API voices to only females
-            const voices = speechSynthesis.getVoices();
-            return voices.filter(voice =>
-                (voice.lang.startsWith('en') || voice.lang === '') &&
-                !this.isMaleVoice(voice.name)
-            );
         }
+
+        return [...baseVoices, ...combinedVoices];
     }
 
     // Validate voice combination (max 2 voices, female only)
@@ -1236,14 +1183,9 @@ class TextToSpeechSystem {
         return true;
     }
 
-    // Get available voice combinations for dropdown
+    // Get available voice combinations for dropdown (Kokoro only)
     getVoiceCombinations() {
-        if (this.useKokoro) {
-            return this.getFemaleVoices();
-        } else {
-            // For Web Speech API, just return individual female voices
-            return this.getFemaleVoices().map(voice => voice.name);
-        }
+        return this.getFemaleVoices();
     }
 
     // Cleanup function
@@ -1255,141 +1197,6 @@ class TextToSpeechSystem {
             }
             this.currentAudio.src = '';
         }
-    }
-
-    speakWithWebAPI(text) {
-        return new Promise((resolve, reject) => {
-            if (!('speechSynthesis' in window)) {
-                reject(new Error('Speech synthesis not supported'));
-                return;
-            }
-
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.volume = this.volume;
-            utterance.rate = this.speed || 0.6; // Use speed setting, default to slower for better comprehension
-            utterance.pitch = 1.3; // Higher pitch for feminine sound
-
-            // Get all available voices
-            const voices = speechSynthesis.getVoices();
-
-            // BAMBISLEEP IS A GIRL - ONLY FEMALE VOICES!
-            // Priority order for female voices - STRICTLY FEMALE ONLY
-            const femaleVoicePatterns = [
-                'zira', 'hazel', 'susan', 'samantha', 'karen', 'helena', 'catherine',
-                'female', 'woman', 'girl', 'salli', 'joanna', 'kendra', 'kimberly',
-                'amy', 'emma', 'neural', 'enhanced', 'jenny', 'aria', 'nova',
-                'alloy', 'shimmer', 'microsoft eva', 'microsoft zira'
-            ];
-
-            // Male voice patterns to ABSOLUTELY AVOID
-            const maleVoicePatterns = [
-                'male', 'man', 'boy', 'david', 'mark', 'george', 'microsoft david',
-                'alex', 'daniel', 'fred', 'tom', 'adam', 'andrew', 'brian',
-                'christopher', 'diego', 'jorge', 'microsoft mark', 'ricky', 'viktor'
-            ];
-
-            let selectedVoice = null;
-
-            // Step 1: Find best female voice by priority
-            for (const pattern of femaleVoicePatterns) {
-                selectedVoice = voices.find(voice =>
-                    voice.name.toLowerCase().includes(pattern) &&
-                    (voice.lang.startsWith('en') || voice.lang === '') &&
-                    !maleVoicePatterns.some(male => voice.name.toLowerCase().includes(male))
-                );
-                if (selectedVoice) {
-                    console.log('🎤 Found priority female voice:', selectedVoice.name);
-                    break;
-                }
-            }
-
-            // Step 2: If no priority match, find ANY female voice that's not male
-            if (!selectedVoice) {
-                selectedVoice = voices.find(voice =>
-                    (voice.lang.startsWith('en') || voice.lang === '') &&
-                    !maleVoicePatterns.some(male => voice.name.toLowerCase().includes(male)) &&
-                    (voice.name.toLowerCase().includes('female') ||
-                        voice.name.toLowerCase().includes('woman') ||
-                        !voice.name.toLowerCase().includes('microsoft'))
-                );
-
-                if (selectedVoice) {
-                    console.log('🎤 Found alternative female voice:', selectedVoice.name);
-                }
-            }
-
-            // Step 3: EMERGENCY - Force feminine settings even if no clear female voice
-            if (!selectedVoice) {
-                // Find any voice that's not explicitly male and force feminine settings
-                selectedVoice = voices.find(voice =>
-                    (voice.lang.startsWith('en') || voice.lang === '') &&
-                    !maleVoicePatterns.some(male => voice.name.toLowerCase().includes(male))
-                );
-
-                if (selectedVoice) {
-                    console.warn('🎤 Using fallback voice with forced feminine settings:', selectedVoice.name);
-                    // Force very high pitch and slower rate for feminine sound
-                    utterance.pitch = 1.5;
-                    utterance.rate = 0.5;
-                } else {
-                    // LAST RESORT: Reject if only male voices available
-                    console.error('❌ CRITICAL: Only male voices available! BambiSleep requires female voices!');
-                    reject(new Error('No female voices available - BambiSleep is a GIRL and requires female TTS!'));
-                    return;
-                }
-            }
-
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-                console.log('✅ Selected FEMALE voice for BambiSleep:', selectedVoice.name, '- Rate:', utterance.rate, '- Pitch:', utterance.pitch);
-            }
-
-            // Add debugging and proper event handling
-            utterance.onstart = () => {
-                console.log('🔊 Web Speech TTS started:', text.substring(0, 50) + '...');
-                // Display text in spiral for Web Speech API
-                const duration = text.length * 100; // Estimate duration based on text length
-                this.flashTrigger(text, duration);
-            };
-
-            utterance.onend = () => {
-                console.log('✅ Web Speech TTS completed');
-                // Add pause between sentences for better comprehension
-                const pauseDuration = 500; // 500ms pause between sentences
-                setTimeout(() => {
-                    this.processTextQueue();
-                }, pauseDuration);
-                resolve();
-            };
-
-            utterance.onerror = (event) => {
-                console.error('❌ Web Speech TTS error:', event.error, event);
-                // Still continue with next sentence on error
-                setTimeout(() => {
-                    this.processTextQueue();
-                }, 200);
-                // Don't reject completely, just log the error
-                resolve(); // Continue processing even if one sentence fails
-            };
-
-            // Handle pause/resume events
-            utterance.onpause = () => {
-                console.log('⏸️ Web Speech TTS paused');
-            };
-
-            utterance.onresume = () => {
-                console.log('▶️ Web Speech TTS resumed');
-            };
-
-            // Sometimes speechSynthesis needs a moment to load voices
-            if (voices.length === 0) {
-                speechSynthesis.addEventListener('voiceschanged', () => {
-                    speechSynthesis.speak(utterance);
-                }, { once: true });
-            } else {
-                speechSynthesis.speak(utterance);
-            }
-        });
     }
 
     async speakWithServerAPI(text) {
@@ -1636,44 +1443,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.head.appendChild(style);
     }
 
-    // Export legacy functions for compatibility with existing code - UPGRADED
-    window.do_tts = function (array) {
-        if (window.ttsSystem && array && array.length > 0) {
-            // Use the enhanced do_tts method
-            window.ttsSystem.do_tts(array);
-        }
-    };
-
-    window.arrayPush = function (array, text) {
-        if (window.ttsSystem) {
-            window.ttsSystem.arrayPush(array, text);
-        }
-    };
-
-    window.arrayShift = function (array) {
-        if (window.ttsSystem) {
-            return window.ttsSystem.arrayShift(array);
-        }
-        return undefined;
-    };
-
-    window.setVoice = function (voice) {
-        if (window.ttsSystem) {
-            window.ttsSystem.setVoice(voice);
-        }
-    };
-
-    window.fetchAvailableVoices = function () {
-        if (window.ttsSystem) {
-            return window.ttsSystem.fetchAvailableVoices();
-        }
-        return Promise.resolve([]);
-    };
-
-    // Export currentVoice like original working implementation
-    window.currentVoice = window.ttsSystem ? window.ttsSystem.currentVoice : 'af_bella';
-
-    // Make the enhanced TTS API available globally
+    // Make the modern TTS API available globally
     // ⚠️ IMPORTANT: BambiSleep is a GIRL - ONLY FEMALE VOICES ALLOWED! ⚠️
     window.tts = {
         // Core TTS functions
@@ -1704,8 +1474,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Core processing
         processAIResponse: (message) => window.ttsSystem.processAIResponse(message),
-
-        // UPGRADED: Enhanced API methods (backward compatibility)
         fetchAvailableVoices: () => window.ttsSystem.fetchAvailableVoices(),
         do_tts: (array) => window.ttsSystem.do_tts(array),
         arrayPush: (array, text) => window.ttsSystem.arrayPush(array, text),
@@ -1751,7 +1519,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!window.tts) {
         console.log('🎤 Initializing global TTS system...');
         window.tts = new TextToSpeechSystem();
-        window.ttsSystem = window.tts; // Backward compatibility
+        window.ttsSystem = window.tts;
         console.log('✅ Global TTS system initialized');
     }
 });
