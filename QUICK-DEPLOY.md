@@ -4,7 +4,12 @@
 
 ### Linux/macOS
 ```bash
+# Full Installation
 curl -fsSL https://raw.githubusercontent.com/HarleyVader/js-bambisleep-chat/production/install.sh | bash
+
+# Fix Existing Installation
+cd /path/to/js-bambisleep-chat
+curl -fsSL https://raw.githubusercontent.com/HarleyVader/js-bambisleep-chat/production/install.sh | bash -s fix
 ```
 
 ### Windows PowerShell

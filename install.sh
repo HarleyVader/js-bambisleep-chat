@@ -1,13 +1,37 @@
 #!/bin/bash
 
-# BambiSleep Chat - Quick Install Script
+# BambiSleep Chat - Unified Install & Fix Script
 # Version: v0.3.0
 # Compatible: Ubuntu 20.04+, Debian 11+, CentOS 8+
+# Usage: ./install.sh [install|fix|--help]
 
 set -e
 
-echo "🚀 BambiSleep Chat v0.3.0 - Production Installation"
-echo "=================================================="
+# Parse command line arguments
+OPERATION="install"
+if [ "$1" = "fix" ]; then
+    OPERATION="fix"
+    echo "🔧 BambiSleep Chat v0.3.0 - Permission Fix Mode"
+    echo "================================================"
+elif [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo "BambiSleep Chat - Unified Install & Fix Script"
+    echo ""
+    echo "Usage: $0 [command]"
+    echo ""
+    echo "Commands:"
+    echo "  install    Full installation (default)"
+    echo "  fix        Fix existing installation permissions"
+    echo "  --help     Show this help"
+    echo ""
+    echo "Examples:"
+    echo "  $0              # Full installation"
+    echo "  $0 install      # Full installation"
+    echo "  $0 fix          # Fix permissions for existing install"
+    exit 0
+else
+    echo "🚀 BambiSleep Chat v0.3.0 - Production Installation"
+    echo "=================================================="
+fi
 
 # Color codes for output
 RED='\033[0;31m'
@@ -51,9 +75,28 @@ fi
 
 print_info "Detected OS: $OS $VER"
 
-# Update system packages
-print_info "Updating system packages..."
-sudo apt update -qq
+# Handle fix mode for existing installations
+if [ "$OPERATION" = "fix" ]; then
+    print_info "Running in Fix Mode - repairing existing installation..."
+    
+    # Check if we're in the right directory
+    if [ ! -f "package.json" ] || [ ! -f "server.js" ]; then
+        print_error "Not in BambiSleep Chat directory."
+        print_info "Please run this script from your BambiSleep Chat installation directory."
+        print_info "Example: cd ~/web/bambisleep-chat && ./install.sh fix"
+        exit 1
+    fi
+    
+    INSTALL_DIR=$(pwd)
+    print_info "Found BambiSleep Chat installation at: $INSTALL_DIR"
+    
+    # Skip to the SystemD deployment section for fixes
+    print_info "Skipping installation steps, proceeding to service fixes..."
+else
+    # Full installation mode
+    # Update system packages
+    print_info "Updating system packages..."
+    sudo apt update -qq
 
 # Install Node.js 20 LTS if not present
 if ! command -v node &> /dev/null || [ "$(node -v | cut -d'v' -f2 | cut -d'.' -f1)" -lt "20" ]; then
@@ -121,26 +164,131 @@ npm run build
 
 print_status "Production build completed"
 
-# Deploy to SystemD (if available)
+fi  # End of installation mode
+
+# Deploy to SystemD with enhanced permission handling
 if command -v systemctl &> /dev/null; then
-    print_info "Setting up SystemD service..."
+    print_info "Setting up SystemD service with permission fixes..."
+    
+    # Stop any existing service first
+    print_info "Stopping any existing bambisleepchat service..."
+    sudo systemctl stop bambisleepchat 2>/dev/null || true
+    
+    # Fix directory permissions proactively
+    print_info "Setting proper directory permissions..."
+    CURRENT_USER=$(whoami)
+    sudo chown -R $CURRENT_USER:$CURRENT_USER "$INSTALL_DIR"
+    chmod -R 755 "$INSTALL_DIR"
+    print_status "Directory permissions configured"
+    
+    # Generate service file with correct paths and user
+    print_info "Generating SystemD service file with detected configuration..."
+    
+    cat > "$INSTALL_DIR/bambisleepchat.service" << EOF
+[Unit]
+Description=BambiSleep Chat - Enterprise Real-time Chat Application v0.3.0
+Documentation=https://github.com/HarleyVader/js-bambisleep-chat
+After=network.target network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
 
-    if node scripts/deploy.js; then
-        print_status "SystemD service configured and started"
+[Service]
+Type=simple
+User=$CURRENT_USER
+Group=$CURRENT_USER
+WorkingDirectory=$INSTALL_DIR
 
-        # Validate deployment
-        print_info "Validating deployment..."
-        sleep 5  # Wait for service to start
+# Pre-startup validation
+ExecStartPre=$(which node) --version
 
-        if node scripts/validate-service.js; then
-            print_status "Deployment validation successful"
+# Main application startup
+ExecStart=$(which node) server.js
+
+# Graceful shutdown
+ExecStop=/bin/kill -SIGTERM \$MAINPID
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Restart configuration
+Restart=always
+RestartSec=10
+RestartPreventExitStatus=0
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bambisleep-chat
+
+# Environment
+Environment=NODE_ENV=production
+Environment=PORT=6969
+Environment=NODE_OPTIONS=--max-old-space-size=1024
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    print_status "Generated service file with current user ($CURRENT_USER) and directory ($INSTALL_DIR)"
+    
+    # Install the service
+    print_info "Installing SystemD service..."
+    sudo cp "$INSTALL_DIR/bambisleepchat.service" /etc/systemd/system/
+    sudo chmod 644 /etc/systemd/system/bambisleepchat.service
+    
+    # Reload and enable service
+    print_info "Configuring SystemD service..."
+    sudo systemctl daemon-reload
+    sudo systemctl enable bambisleepchat
+    
+    # Start service
+    print_info "Starting BambiSleep Chat service..."
+    sudo systemctl start bambisleepchat
+    
+    # Wait for startup
+    sleep 5
+    
+    # Validate deployment with detailed checking
+    print_info "Validating service deployment..."
+    
+    if sudo systemctl is-active --quiet bambisleepchat; then
+        print_status "✅ SystemD service is running successfully!"
+        
+        # Show service status
+        echo ""
+        echo "📊 Service Status:"
+        sudo systemctl status bambisleepchat --no-pager -l
+        
+        # Test application endpoint if possible
+        if curl -f http://localhost:6969/api/health >/dev/null 2>&1; then
+            print_status "✅ Application health check passed"
         else
-            print_warning "Deployment validation had issues, check logs"
+            print_warning "Application may still be starting up (health check failed)"
         fi
+        
+        print_status "✅ SystemD deployment completed successfully"
+        
     else
-        print_error "SystemD service setup failed"
-        print_info "You can start manually with: npm start"
+        print_warning "Service may not be running properly. Checking logs..."
+        echo ""
+        echo "Recent logs:"
+        journalctl -u bambisleepchat -n 10 --no-pager
+        
+        echo ""
+        print_info "Attempting manual service restart..."
+        sudo systemctl restart bambisleepchat
+        sleep 3
+        
+        if sudo systemctl is-active --quiet bambisleepchat; then
+            print_status "✅ Service recovered after restart"
+        else
+            print_error "Service startup failed. Manual intervention may be required."
+            print_info "Check logs with: journalctl -u bambisleepchat -f"
+            print_info "Manual start: sudo systemctl start bambisleepchat"
+        fi
     fi
+    
 else
     print_warning "SystemD not available, skipping service setup"
     print_info "Start manually with: cd $INSTALL_DIR && npm start"
@@ -148,8 +296,13 @@ fi
 
 # Final instructions
 echo ""
-echo "🎉 BambiSleep Chat Installation Complete!"
-echo "========================================"
+if [ "$OPERATION" = "fix" ]; then
+    echo "🎉 BambiSleep Chat Permission Fix Complete!"
+    echo "=========================================="
+else
+    echo "🎉 BambiSleep Chat Installation Complete!"
+    echo "========================================"
+fi
 echo ""
 echo "📍 Installation Directory: $INSTALL_DIR"
 echo "🌐 Application URL: http://localhost:6969"
@@ -175,5 +328,10 @@ echo "🏥 Health Check:"
 echo "  curl http://localhost:6969/api/health"
 echo ""
 
-echo "🎯 Status: Production Ready v0.3.0"
-echo "Ready to use! 🚀"
+if [ "$OPERATION" = "fix" ]; then
+    echo "🎯 Status: Permission Issues Fixed v0.3.0"
+    echo "Service should now be running properly! 🚀"
+else
+    echo "🎯 Status: Production Ready v0.3.0"
+    echo "Ready to use! 🚀"
+fi

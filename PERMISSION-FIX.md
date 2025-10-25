@@ -25,13 +25,15 @@ sudo systemctl start bambisleepchat
 sudo systemctl status bambisleepchat
 ```
 
-## Alternative: Use the automated fix script
+## Alternative: Use the integrated fix mode
 
 ```bash
-# Download and run the fix script
-curl -fsSL https://raw.githubusercontent.com/HarleyVader/js-bambisleep-chat/production/fix-permissions.sh -o fix-permissions.sh
-chmod +x fix-permissions.sh
-./fix-permissions.sh
+# Download and run the unified install/fix script in fix mode
+cd ~/web/bambisleep.chat/js-bambisleep-chat
+curl -fsSL https://raw.githubusercontent.com/HarleyVader/js-bambisleep-chat/production/install.sh | bash -s fix
+
+# Or if you already have the script
+./install.sh fix
 ```
 
 ## Quick Status Check
