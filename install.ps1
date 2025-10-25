@@ -200,7 +200,7 @@ Write-Header "🎉 BambiSleep Chat Installation Complete!"
 
 Write-Host ""
 Write-Info "📍 Installation Directory: $InstallPath"
-Write-Info "🌐 Application URL: http://localhost:6969"
+Write-Info "🌐 Application URL: http://localhost:7878"
 Write-Host ""
 
 Write-Host "🔧 Manual Controls:" -ForegroundColor Cyan
@@ -217,7 +217,7 @@ Write-Host "  Docs:        $InstallPath\public\docs\"
 Write-Host ""
 
 Write-Host "🏥 Health Check:" -ForegroundColor Cyan
-Write-Host "  Invoke-RestMethod http://localhost:6969/api/health"
+Write-Host "  Invoke-RestMethod http://localhost:7878/api/health"
 Write-Host ""
 
 Write-Host "🎯 Status: Production Ready v0.3.0" -ForegroundColor Green
@@ -228,7 +228,7 @@ $startNow = Read-Host "`nStart BambiSleep Chat now? (y/N)"
 if ($startNow -eq 'y' -or $startNow -eq 'Y') {
     Write-Info "Starting BambiSleep Chat..."
     Write-Info "Press Ctrl+C to stop"
-    Write-Info "Access at: http://localhost:6969"
+    Write-Info "Access at: http://localhost:7878"
     Start-Sleep -Seconds 2
     npm start
 }

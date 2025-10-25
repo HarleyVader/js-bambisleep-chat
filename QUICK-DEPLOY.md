@@ -36,7 +36,7 @@ node scripts/deploy.js
 
 # 4. Verify
 node scripts/validate-service.js
-curl http://localhost:6969/api/health
+curl http://localhost:7878/api/health
 ```
 
 ---
@@ -65,23 +65,23 @@ npm run dev                             # Development
 
 ```bash
 # Basic Health
-curl http://localhost:6969/api/health
+curl http://localhost:7878/api/health
 
 # Performance Metrics
-curl http://localhost:6969/api/metrics
+curl http://localhost:7878/api/metrics
 
 # WebSocket Test
-curl http://localhost:6969/api/stats
+curl http://localhost:7878/api/stats
 ```
 
 ---
 
 ## 🔗 Key URLs
 
-- **Application**: <http://localhost:6969>
-- **Health Check**: <http://localhost:6969/api/health>
-- **API Documentation**: <http://localhost:6969/docs.html>
-- **Triggers API**: <http://localhost:6969/api/triggers>
+- **Application**: <http://localhost:7878>
+- **Health Check**: <http://localhost:7878/api/health>
+- **API Documentation**: <http://localhost:7878/docs.html>
+- **Triggers API**: <http://localhost:7878/api/triggers>
 
 ---
 
@@ -103,7 +103,7 @@ cp config/env.js.example config/env.js
 ```
 
 ### Key Settings
-- **Port**: Default 6969
+- **Port**: Default 7878
 - **Kokoro TTS**: <http://localhost:8880>
 - **LM Studio**: <http://localhost:1234>
 
@@ -118,7 +118,7 @@ cp config/env.js.example config/env.js
 - [ ] Production build (`npm run build`)
 - [ ] Service deployed (`node scripts/deploy.js`)
 - [ ] Health check passing
-- [ ] Firewall configured (port 6969)
+- [ ] Firewall configured (port 7878)
 
 ---
 
@@ -133,7 +133,7 @@ sudo systemctl restart bambisleepchat  # Restart
 
 ### Port Issues
 ```bash
-sudo netstat -tulpn | grep 6969        # Find process
+sudo netstat -tulpn | grep 7878        # Find process
 sudo kill -9 <PID>                     # Kill process
 ```
 

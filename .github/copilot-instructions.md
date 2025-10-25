@@ -7,7 +7,7 @@
 ### Core Stack - UPDATED v0.3.0
 - **Backend**: Express + Socket.io + Worker threads (`server.js`) + Git deployment detection
 - **Frontend**: Vanilla JavaScript ES6 modules (NO React/frameworks) + Modern CSS @layer architecture
-- **Build**: Vite for development, serves from `/public` with proxy to port 6969
+- **Build**: Vite for development, serves from `/public` with proxy to port 7878
 - **Data Flow**: Socket.io ↔ Server ↔ Worker threads (Kokoro TTS, LM Studio AI)
 - **Configuration**: Centralized `config/env.js` with validation and environment detection
 - **CSS Architecture**: Modern CSS @layer system replacing z-index chaos
@@ -25,14 +25,14 @@ public/css/buttons.css         # Unified animation system + status classes
 workers/kokoro.js              # TTS worker (female voices only, enhanced error handling)
 workers/lmstudio.js            # AI chat worker (enhanced reliability)
 workers/triggers.json          # Official BambiSleep triggers (never hardcode)
-vite.config.js                 # Dev proxy: 5173 → 6969 for Socket.io/API + error handling
+vite.config.js                 # Dev proxy: 5173 → 7878 for Socket.io/API + error handling
 tests/                         # Comprehensive testing suite (environment, stability, resources)
 ```
 
 ## Development Commands - ENHANCED
 ```bash
 npm run dev          # Full stack (Vite dev server + backend + auto-restart)
-npm run dev:server   # Backend only (port 6969) + git deployment detection
+npm run dev:server   # Backend only (port 7878) + git deployment detection
 npm run dev:client   # Frontend only (port 5173) + hot reload
 npm run test         # Comprehensive test suite (environment + stability + resources)
 npm run build        # Production build with optimization

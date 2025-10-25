@@ -28,7 +28,7 @@ class EnvironmentValidator {
 
             // Optional but recommended variables
             optional: [
-                { name: 'PORT', default: 6969, type: 'port' },
+                { name: 'PORT', default: 7878, type: 'port' },
                 { name: 'NODE_ENV', default: 'development', type: 'string' }
             ],
 

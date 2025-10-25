@@ -21,7 +21,7 @@ const isTest = NODE_ENV === 'test';
  * Server Configuration
  */
 const SERVER = {
-    PORT: parseInt(process.env.PORT) || 6969,
+    PORT: parseInt(process.env.PORT) || 7878,
     VITE_PORT: parseInt(process.env.VITE_PORT) || 5173,
     HOST: process.env.SERVER_HOST || 'localhost',
     NODE_ENV,

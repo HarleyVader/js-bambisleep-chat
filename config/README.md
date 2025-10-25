@@ -18,7 +18,7 @@ const ENV = require('./config/env');
 
 ```javascript
 // Server configuration
-const port = ENV.SERVER.PORT;              // 6969
+const port = ENV.SERVER.PORT;              // 7878
 const vitePort = ENV.SERVER.VITE_PORT;     // 5173
 const isProduction = ENV.isProduction;     // true/false
 const isDevelopment = ENV.isDevelopment;   // true/false
@@ -47,7 +47,7 @@ const logLevel = ENV.DEBUG.LOG_LEVEL;      // 'info'
 ## Configuration Objects
 
 ### SERVER
-- `PORT` - Main server port (default: 6969)
+- `PORT` - Main server port (default: 7878)
 - `VITE_PORT` - Vite dev server port (default: 5173)
 - `NODE_ENV` - Environment mode ('development'|'production'|'test')
 - `isProduction` - Boolean flag for production mode
@@ -144,7 +144,7 @@ The module automatically selects the correct host based on `NODE_ENV`:
 const dotenv = require('dotenv');
 dotenv.config();
 
-const port = process.env.PORT || 6969;
+const port = process.env.PORT || 7878;
 const kokoroHost = process.env.NODE_ENV === 'production'
     ? process.env.KOKORO_HOST_PRODUCTION
     : process.env.KOKORO_HOST_DEVELOPMENT;
@@ -212,7 +212,7 @@ See `.env.example` for the complete list of environment variables.
 
 ### Minimal Configuration
 - `NODE_ENV` (defaults to 'development')
-- `PORT` (defaults to 6969)
+- `PORT` (defaults to 7878)
 
 ### Full Configuration
 All variables in `.env.example` for complete functionality.

@@ -29,7 +29,7 @@ Tests generate comprehensive reports in `tests/reports/`.
 - Node.js version (>=18)
 - System resources (memory, CPU)
 - File permissions
-- Port availability (5173, 6969, 8880, 7777)
+- Port availability (5173, 7878, 8880, 7777)
 - Dependencies installation
 
 **Duration:** ~2 seconds
@@ -59,7 +59,7 @@ Tests generate comprehensive reports in `tests/reports/`.
 
 ### 🏋️ Stability Tests (`test:stability`)
 **What it tests:**
-- Starts real server process on port 6969
+- Starts real server process on port 7878
 - HTTP endpoint connectivity
 - WebSocket connection handling (10 concurrent connections)
 - Response time consistency (20 requests)
@@ -67,7 +67,7 @@ Tests generate comprehensive reports in `tests/reports/`.
 - Server startup/shutdown procedures
 
 **Duration:** ~60 seconds
-**Requirements:** Port 6969 must be available
+**Requirements:** Port 7878 must be available
 
 ## Test Results Interpretation
 
@@ -155,10 +155,10 @@ Add to your pipeline:
 
 ### Common Issues
 
-**Port Already in Use (6969)**
+**Port Already in Use (7878)**
 ```bash
 # Find what's using the port
-netstat -ano | findstr :6969
+netstat -ano | findstr :7878
 
 # Kill the process (Windows)
 taskkill /PID <process_id> /F

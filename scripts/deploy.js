@@ -15,7 +15,7 @@ const SERVICE_PATH = `/etc/systemd/system/${SERVICE_FILE}`;
 function getDeploymentConfig() {
     const currentDir = process.cwd();
     const currentUser = process.env.USER || process.env.USERNAME || 'bambisleep';
-    
+
     return {
         serviceName: 'bambisleepchat',
         user: currentUser,
@@ -116,12 +116,12 @@ function validateEnvironment() {
 
 function generateServiceFile() {
     const config = DEPLOYMENT_CONFIG;
-    
+
     console.log('📄 Generating SystemD service file...');
     console.log(`   Working Directory: ${config.workingDirectory}`);
     console.log(`   User: ${config.user}`);
     console.log(`   Port: ${config.port}`);
-    
+
     const serviceContent = `[Unit]
 Description=BambiSleep Chat - Enterprise Real-time Chat Application v0.3.0
 Documentation=https://github.com/HarleyVader/js-bambisleep-chat
@@ -175,7 +175,7 @@ function installService() {
     console.log('🚀 Installing BambiSleep Chat service...');
 
     validateEnvironment();
-    
+
     // Generate service file with current configuration
     generateServiceFile();
 
@@ -210,7 +210,7 @@ function updateService() {
     console.log('🔄 Updating BambiSleep Chat service...');
 
     validateEnvironment();
-    
+
     // Generate updated service file
     generateServiceFile();
 

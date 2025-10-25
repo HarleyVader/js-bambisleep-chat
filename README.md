@@ -62,7 +62,7 @@ npm install
 npm start
 ```
 
-**Access:** Navigate to `http://localhost:6969`
+**Access:** Navigate to `http://localhost:7878`
 
 ### Development Mode
 
@@ -72,7 +72,7 @@ Run with hot reload:
 npm run dev
 ```
 
-Starts both backend server (port 6969) and frontend dev server (port 5173).
+Starts both backend server (port 7878) and frontend dev server (port 5173).
 
 ## Project Structure
 
@@ -101,7 +101,7 @@ js-bambisleep-chat/
 Copy `.env.example` to `.env` and customize:
 
 ```bash
-PORT=6969                    # Server port
+PORT=7878                    # Server port
 NODE_ENV=development         # Environment mode
 TTS_PROVIDER=               # TTS service (optional)
 TTS_API_KEY=                # TTS API key (optional)
@@ -243,7 +243,7 @@ journalctl -u bambisleepchat -f
 #### Production Configuration
 
 Automatic environment optimization:
-- **Port Configuration**: Production port management (default: 6969)
+- **Port Configuration**: Production port management (default: 7878)
 - **Process Monitoring**: CPU and memory usage tracking
 - **Error Handling**: Comprehensive error logging and recovery
 - **Security Hardening**: Production-ready security configurations

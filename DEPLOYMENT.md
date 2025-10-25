@@ -102,7 +102,7 @@ nano config/env.js
 ```javascript
 // config/env.js
 export const SERVER = {
-  PORT: process.env.PORT || 6969,
+  PORT: process.env.PORT || 7878,
   HOST: process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost'
 };
 
@@ -211,7 +211,7 @@ journalctl -u bambisleepchat -n 100
 
 ```bash
 # Check application health
-curl http://localhost:6969/api/health
+curl http://localhost:7878/api/health
 
 # Expected response:
 {
@@ -226,10 +226,10 @@ curl http://localhost:6969/api/health
 
 ```bash
 # Check system resources
-curl http://localhost:6969/api/metrics
+curl http://localhost:7878/api/metrics
 
 # Monitor WebSocket connections
-curl http://localhost:6969/api/stats
+curl http://localhost:7878/api/stats
 ```
 
 ---
@@ -240,7 +240,7 @@ curl http://localhost:6969/api/stats
 
 ```bash
 # Open required ports (Ubuntu/Debian)
-sudo ufw allow 6969/tcp
+sudo ufw allow 7878/tcp
 
 # For production with reverse proxy:
 sudo ufw allow 80/tcp
@@ -257,7 +257,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://localhost:6969;
+        proxy_pass http://localhost:7878;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -270,7 +270,7 @@ server {
 
     # WebSocket support for Socket.io
     location /socket.io/ {
-        proxy_pass http://localhost:6969;
+        proxy_pass http://localhost:7878;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -354,8 +354,8 @@ sudo systemctl restart bambisleepchat
 
 #### Port Already in Use
 ```bash
-# Find process using port 6969
-sudo netstat -tulpn | grep 6969
+# Find process using port 7878
+sudo netstat -tulpn | grep 7878
 
 # Kill existing process
 sudo kill -9 <PID>
@@ -374,7 +374,7 @@ chmod 755 -R .
 node scripts/deploy.js install
 ```
 
-#### Working Directory Permission Issues  
+#### Working Directory Permission Issues
 If you see "Failed at step CHDIR spawning /usr/bin/test: Permission denied":
 
 ```bash
@@ -398,7 +398,7 @@ sudo systemctl restart bambisleepchat
 ```bash
 # Enable production optimizations
 export NODE_ENV=production
-export PORT=6969
+export PORT=7878
 
 # For high-traffic deployments:
 npm run build
@@ -453,7 +453,7 @@ tar -czf "bambisleep-backup-$DATE.tar.gz" \
 crontab -e
 
 # Add line for every 5 minutes check:
-*/5 * * * * curl -f http://localhost:6969/api/health || systemctl restart bambisleepchat
+*/5 * * * * curl -f http://localhost:7878/api/health || systemctl restart bambisleepchat
 ```
 
 ---
@@ -465,7 +465,7 @@ crontab -e
 - [ ] Dependencies installed (`npm install`)
 - [ ] Tests passing (`npm test` - 90.9% success rate)
 - [ ] Configuration reviewed (`config/env.js`)
-- [ ] Firewall ports opened (6969, 80, 443)
+- [ ] Firewall ports opened (7878, 80, 443)
 
 ### Deployment
 - [ ] Production build created (`npm run build`)

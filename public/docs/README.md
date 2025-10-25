@@ -140,7 +140,7 @@ Each button has a colored dot:
 **Development:**
 
 - Vite dev server (port 5173)
-- Backend (port 6969)
+- Backend (port 7878)
 - Hot reloading!
 
 ## 🌈 Need Help? 🌈

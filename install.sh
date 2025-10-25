@@ -78,7 +78,7 @@ print_info "Detected OS: $OS $VER"
 # Handle fix mode for existing installations
 if [ "$OPERATION" = "fix" ]; then
     print_info "Running in Fix Mode - repairing existing installation..."
-    
+
     # Check if we're in the right directory
     if [ ! -f "package.json" ] || [ ! -f "server.js" ]; then
         print_error "Not in BambiSleep Chat directory."
@@ -86,10 +86,10 @@ if [ "$OPERATION" = "fix" ]; then
         print_info "Example: cd ~/web/bambisleep-chat && ./install.sh fix"
         exit 1
     fi
-    
+
     INSTALL_DIR=$(pwd)
     print_info "Found BambiSleep Chat installation at: $INSTALL_DIR"
-    
+
     # Skip to the SystemD deployment section for fixes
     print_info "Skipping installation steps, proceeding to service fixes..."
 else
@@ -169,21 +169,21 @@ fi  # End of installation mode
 # Deploy to SystemD with enhanced permission handling
 if command -v systemctl &> /dev/null; then
     print_info "Setting up SystemD service with permission fixes..."
-    
+
     # Stop any existing service first
     print_info "Stopping any existing bambisleepchat service..."
     sudo systemctl stop bambisleepchat 2>/dev/null || true
-    
+
     # Fix directory permissions proactively
     print_info "Setting proper directory permissions..."
     CURRENT_USER=$(whoami)
     sudo chown -R $CURRENT_USER:$CURRENT_USER "$INSTALL_DIR"
     chmod -R 755 "$INSTALL_DIR"
     print_status "Directory permissions configured"
-    
+
     # Generate service file with correct paths and user
     print_info "Generating SystemD service file with detected configuration..."
-    
+
     cat > "$INSTALL_DIR/bambisleepchat.service" << EOF
 [Unit]
 Description=BambiSleep Chat - Enterprise Real-time Chat Application v0.3.0
@@ -223,7 +223,7 @@ SyslogIdentifier=bambisleep-chat
 
 # Environment
 Environment=NODE_ENV=production
-Environment=PORT=6969
+Environment=PORT=7878
 Environment=NODE_OPTIONS=--max-old-space-size=1024
 
 [Install]
@@ -231,55 +231,55 @@ WantedBy=multi-user.target
 EOF
 
     print_status "Generated service file with current user ($CURRENT_USER) and directory ($INSTALL_DIR)"
-    
+
     # Install the service
     print_info "Installing SystemD service..."
     sudo cp "$INSTALL_DIR/bambisleepchat.service" /etc/systemd/system/
     sudo chmod 644 /etc/systemd/system/bambisleepchat.service
-    
+
     # Reload and enable service
     print_info "Configuring SystemD service..."
     sudo systemctl daemon-reload
     sudo systemctl enable bambisleepchat
-    
+
     # Start service
     print_info "Starting BambiSleep Chat service..."
     sudo systemctl start bambisleepchat
-    
+
     # Wait for startup
     sleep 5
-    
+
     # Validate deployment with detailed checking
     print_info "Validating service deployment..."
-    
+
     if sudo systemctl is-active --quiet bambisleepchat; then
         print_status "✅ SystemD service is running successfully!"
-        
+
         # Show service status
         echo ""
         echo "📊 Service Status:"
         sudo systemctl status bambisleepchat --no-pager -l
-        
+
         # Test application endpoint if possible
-        if curl -f http://localhost:6969/api/health >/dev/null 2>&1; then
+        if curl -f http://localhost:7878/api/health >/dev/null 2>&1; then
             print_status "✅ Application health check passed"
         else
             print_warning "Application may still be starting up (health check failed)"
         fi
-        
+
         print_status "✅ SystemD deployment completed successfully"
-        
+
     else
         print_warning "Service may not be running properly. Checking logs..."
         echo ""
         echo "Recent logs:"
         journalctl -u bambisleepchat -n 10 --no-pager
-        
+
         echo ""
         print_info "Attempting manual service restart..."
         sudo systemctl restart bambisleepchat
         sleep 3
-        
+
         if sudo systemctl is-active --quiet bambisleepchat; then
             print_status "✅ Service recovered after restart"
         else
@@ -288,7 +288,7 @@ EOF
             print_info "Manual start: sudo systemctl start bambisleepchat"
         fi
     fi
-    
+
 else
     print_warning "SystemD not available, skipping service setup"
     print_info "Start manually with: cd $INSTALL_DIR && npm start"
@@ -305,7 +305,7 @@ else
 fi
 echo ""
 echo "📍 Installation Directory: $INSTALL_DIR"
-echo "🌐 Application URL: http://localhost:6969"
+echo "🌐 Application URL: http://localhost:7878"
 echo ""
 
 if command -v systemctl &> /dev/null; then
@@ -325,7 +325,7 @@ echo "  Docs:        $INSTALL_DIR/public/docs/"
 echo ""
 
 echo "🏥 Health Check:"
-echo "  curl http://localhost:6969/api/health"
+echo "  curl http://localhost:7878/api/health"
 echo ""
 
 if [ "$OPERATION" = "fix" ]; then

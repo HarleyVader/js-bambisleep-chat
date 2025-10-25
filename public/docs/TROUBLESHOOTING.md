@@ -54,16 +54,16 @@ npm install
 
 ### ❌ Port already in use
 
-**Error:** `Port 6969 (Backend Server) already in use`
+**Error:** `Port 7878 (Backend Server) already in use`
 
 **Solution:**
 ```bash
 # Windows - find and kill process using port
-netstat -ano | findstr :6969
+netstat -ano | findstr :7878
 taskkill /PID <process_id> /F
 
 # Linux/macOS
-lsof -ti:6969 | xargs kill -9
+lsof -ti:7878 | xargs kill -9
 
 # Or use a different port in .env
 PORT=6970
@@ -149,12 +149,12 @@ const io = new Server(server, {
 npm install -g wscat
 
 # Test connection
-wscat -c ws://localhost:6969/socket.io/?EIO=4&transport=websocket
+wscat -c ws://localhost:7878/socket.io/?EIO=4&transport=websocket
 ```
 
 ### ❌ HTTP connectivity failures
 
-**Error:** `✗ http://localhost:6969 failed: ECONNREFUSED`
+**Error:** `✗ http://localhost:7878 failed: ECONNREFUSED`
 
 **Causes:**
 - Server not running
@@ -166,8 +166,8 @@ wscat -c ws://localhost:6969/socket.io/?EIO=4&transport=websocket
 1. **Verify server is running:**
 ```bash
 # Check if port is listening
-netstat -an | findstr :6969  # Windows
-lsof -i :6969                # Linux/macOS
+netstat -an | findstr :7878  # Windows
+lsof -i :7878                # Linux/macOS
 ```
 
 2. **Check firewall:**
@@ -176,7 +176,7 @@ lsof -i :6969                # Linux/macOS
 # Control Panel → Windows Defender Firewall → Allow an app
 
 # Linux
-sudo ufw allow 6969
+sudo ufw allow 7878
 ```
 
 ### ⚠️ Memory growth warnings
@@ -423,8 +423,8 @@ npm list --depth=0
 npm run test:env
 
 # 4. Check for port conflicts
-netstat -an | findstr :6969  # Windows
-lsof -i :6969                # Linux/macOS
+netstat -an | findstr :7878  # Windows
+lsof -i :7878                # Linux/macOS
 
 # 5. Try CI mode
 npm run test:ci

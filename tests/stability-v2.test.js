@@ -110,7 +110,7 @@ class StabilityTestSuite {
             this.serverProcess = spawn('node', ['server.js'], {
                 cwd: process.cwd(),
                 stdio: ['pipe', 'pipe', 'pipe'],
-                env: { ...process.env, NODE_ENV: 'test', PORT: '6969' }
+                env: { ...process.env, NODE_ENV: 'test', PORT: '7878' }
             });
 
             // Capture server output
@@ -130,7 +130,7 @@ class StabilityTestSuite {
 
             while (Date.now() - startTime < timeout) {
                 try {
-                    await this.makeRequest('http://localhost:6969', { method: 'HEAD', timeout: 1000 });
+                    await this.makeRequest('http://localhost:7878', { method: 'HEAD', timeout: 1000 });
                     console.log('✅ Test server started successfully');
                     return true;
                 } catch {
@@ -177,7 +177,7 @@ class StabilityTestSuite {
     }
 
     async testHTTPConnectivity() {
-        const baseUrl = 'http://localhost:6969';
+        const baseUrl = 'http://localhost:7878';
         const endpoints = [
             { path: '/', expectedStatus: 200, name: 'Root' },
             { path: '/health', expectedStatus: [200, 404], name: 'Health Check' }, // 404 is OK if not implemented
@@ -230,7 +230,7 @@ class StabilityTestSuite {
     }
 
     async testAPIEndpoints() {
-        const baseUrl = 'http://localhost:6969';
+        const baseUrl = 'http://localhost:7878';
         const apiEndpoints = [
             { path: '/api/triggers/json', method: 'GET', expectedStatus: 200 },
             { path: '/socket.io/', method: 'GET', expectedStatus: [400, 200] } // Socket.io endpoint
@@ -286,7 +286,7 @@ class StabilityTestSuite {
 
     async testWebSocketConnection() {
         try {
-            const ws = new WebSocket('ws://localhost:6969');
+            const ws = new WebSocket('ws://localhost:7878');
 
             const connectionResult = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
@@ -347,7 +347,7 @@ class StabilityTestSuite {
         // Create concurrent HTTP requests
         for (let i = 0; i < concurrentCount; i++) {
             connectionPromises.push(
-                this.makeRequest('http://localhost:6969', { timeout: 10000 })
+                this.makeRequest('http://localhost:7878', { timeout: 10000 })
                     .then(response => ({ success: true, status: response.status, index: i }))
                     .catch(error => ({ success: false, error: error.message, index: i }))
             );
@@ -382,7 +382,7 @@ class StabilityTestSuite {
         for (let i = 0; i < requestCount; i++) {
             try {
                 const startTime = Date.now();
-                await this.makeRequest('http://localhost:6969', { timeout: 10000 });
+                await this.makeRequest('http://localhost:7878', { timeout: 10000 });
                 const responseTime = Date.now() - startTime;
                 responseTimes.push(responseTime);
             } catch (error) {
@@ -432,7 +432,7 @@ class StabilityTestSuite {
         while (Date.now() - startTime < monitoringDuration) {
             // Make some requests to generate load
             try {
-                await this.makeRequest('http://localhost:6969', { timeout: 2000 });
+                await this.makeRequest('http://localhost:7878', { timeout: 2000 });
             } catch {
                 // Ignore failures during memory test
             }
@@ -488,7 +488,7 @@ class StabilityTestSuite {
             const requestStart = Date.now();
 
             try {
-                await this.makeRequest('http://localhost:6969', { timeout: 5000 });
+                await this.makeRequest('http://localhost:7878', { timeout: 5000 });
                 const responseTime = Date.now() - requestStart;
                 results.successful++;
                 results.responseTimes.push(responseTime);
@@ -545,10 +545,10 @@ class StabilityTestSuite {
         for (const test of errorTests) {
             try {
                 // Make error-inducing request
-                const errorResponse = await this.makeRequest(`http://localhost:6969${test.path}`, { timeout: 5000 });
+                const errorResponse = await this.makeRequest(`http://localhost:7878${test.path}`, { timeout: 5000 });
 
                 // Make normal request to check recovery
-                const recoveryResponse = await this.makeRequest('http://localhost:6969', { timeout: 5000 });
+                const recoveryResponse = await this.makeRequest('http://localhost:7878', { timeout: 5000 });
 
                 const recovered = recoveryResponse.status === 200;
 
@@ -591,7 +591,7 @@ class StabilityTestSuite {
         try {
             // Create multiple connections
             for (let i = 0; i < 5; i++) {
-                const ws = new WebSocket('ws://localhost:6969');
+                const ws = new WebSocket('ws://localhost:7878');
                 connections.push(ws);
 
                 await new Promise((resolve) => {

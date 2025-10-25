@@ -260,7 +260,7 @@ class EnvironmentTestSuite {
     async testPortAvailability() {
         const ports = [
             { port: 5173, name: 'Vite Dev Server' },
-            { port: 6969, name: 'Backend Server' },
+            { port: 7878, name: 'Backend Server' },
             { port: 8880, name: 'Kokoro TTS' },
             { port: 7777, name: 'LM Studio' }
         ];
