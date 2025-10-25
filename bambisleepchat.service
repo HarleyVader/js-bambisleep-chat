@@ -1,0 +1,24 @@
+[Unit]
+Description=Bambisleep.chat Node.js File Host
+Documentation=https://bambisleep.chat
+After=network.target
+
+[Service]
+Type=simple
+User=brandynette
+Group=brandynette
+WorkingDirectory=/home/brandynette/web/bambisleep.chat/js-bambisleep-chat
+ExecStartPre=/usr/bin/npm run build
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bambisleep-chat
+Environment=NODE_ENV=production
+Environment=PORT=7878
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=HOME=/home/brandynette
+
+[Install]
+WantedBy=multi-user.target
