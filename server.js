@@ -1883,15 +1883,132 @@ app.get('/api/memory/stats', (req, res) => {
     });
 });
 
+// Git Pull Detection and Auto-Restart System
+class GitPullDetector {
+    constructor() {
+        this.lastCommitHash = null;
+        this.checkInterval = null;
+        this.gitDir = path.join(__dirname, '.git');
+    }
+
+    async getCurrentCommit() {
+        try {
+            const { execSync } = require('child_process');
+            const commitHash = execSync('git rev-parse HEAD', { 
+                cwd: __dirname,
+                encoding: 'utf8' 
+            }).trim();
+            return commitHash;
+        } catch (error) {
+            console.error('❌ Failed to get current git commit:', error.message);
+            return null;
+        }
+    }
+
+    async startMonitoring() {
+        // Get initial commit hash
+        this.lastCommitHash = await this.getCurrentCommit();
+        
+        if (!this.lastCommitHash) {
+            console.warn('⚠️ Git pull detection disabled - not a git repository or git unavailable');
+            return;
+        }
+
+        console.log(`🔍 Git pull detection active - monitoring commit: ${this.lastCommitHash.substring(0, 7)}`);
+
+        // Check every 30 seconds for changes
+        this.checkInterval = setInterval(async () => {
+            await this.checkForChanges();
+        }, 30000);
+    }
+
+    async checkForChanges() {
+        const currentCommit = await this.getCurrentCommit();
+        
+        if (!currentCommit) {
+            return; // Skip this check if git command failed
+        }
+
+        if (currentCommit !== this.lastCommitHash) {
+            console.log('');
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('🔄 GIT PULL DETECTED - Repository has been updated');
+            console.log(`📌 Previous commit: ${this.lastCommitHash.substring(0, 7)}`);
+            console.log(`📌 Current commit:  ${currentCommit.substring(0, 7)}`);
+            console.log('🛑 Initiating graceful shutdown for restart...');
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('');
+
+            // Trigger graceful shutdown
+            await this.gracefulShutdown();
+        }
+    }
+
+    async gracefulShutdown() {
+        // Stop monitoring
+        if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+            this.checkInterval = null;
+        }
+
+        // Notify all connected clients
+        io.emit('server-restart', {
+            reason: 'git-pull-detected',
+            message: 'Server is restarting due to code update. Please refresh your browser.',
+            timestamp: new Date().toISOString()
+        });
+
+        console.log('📢 Notified all connected clients of restart');
+
+        // Wait 2 seconds for messages to be delivered
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Close server
+        console.log('🔌 Closing server connections...');
+        server.close(() => {
+            console.log('✅ Server closed successfully');
+        });
+
+        // Cleanup workers
+        console.log('🧹 Cleaning up workers...');
+        if (lmWorker) {
+            lmWorker.terminate();
+        }
+        if (kokoroWorker) {
+            kokoroWorker.terminate();
+        }
+
+        // Cleanup memory manager
+        serverMemoryManager.cleanup();
+
+        console.log('✅ Graceful shutdown complete');
+        console.log('💡 Restart the server with: npm run dev:server');
+        
+        // Exit with code 0 for clean restart
+        process.exit(0);
+    }
+
+    cleanup() {
+        if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+        }
+    }
+}
+
+// Initialize git pull detector
+const gitPullDetector = new GitPullDetector();
+
 // Cleanup on server shutdown
 process.on('SIGTERM', () => {
-    console.log('🛑 Server shutting down...');
+    console.log('🛑 Server shutting down (SIGTERM)...');
+    gitPullDetector.cleanup();
     serverMemoryManager.cleanup();
     process.exit(0);
 });
 
 process.on('SIGINT', () => {
-    console.log('🛑 Server shutting down...');
+    console.log('🛑 Server shutting down (SIGINT)...');
+    gitPullDetector.cleanup();
     serverMemoryManager.cleanup();
     process.exit(0);
 });
@@ -1904,4 +2021,7 @@ server.listen(PORT, () => {
     console.log(`🎯 Environment: ${ENV.NODE_ENV}`);
     console.log(`⚡ Vite Dev: http://localhost:${ENV.SERVER.VITE_PORT}`);
     console.log(`🧹 Memory management: Active`);
+    
+    // Start git pull monitoring after server is ready
+    gitPullDetector.startMonitoring();
 });
