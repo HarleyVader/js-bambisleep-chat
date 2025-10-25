@@ -28,12 +28,12 @@ const SERVER = {
     isProduction,
     isDevelopment,
     isTest,
-    
+
     // Computed URLs
     get URL() {
         return `http://${this.HOST}:${this.PORT}`;
     },
-    
+
     get VITE_URL() {
         return `http://${this.HOST}:${this.VITE_PORT}`;
     }
@@ -258,23 +258,23 @@ module.exports = {
     TEST,
     SECURITY,
     EXTERNAL,
-    
+
     // Environment flags
     NODE_ENV,
     isProduction,
     isDevelopment,
     isTest,
-    
+
     // Utilities
     validation,
     getSummary,
     printSummary,
-    
+
     // Legacy compatibility - export individual values
     PORT: SERVER.PORT,
     VITE_PORT: SERVER.VITE_PORT,
     SERVER_HOST: SERVER.HOST,
-    
+
     // Kokoro legacy
     KOKORO_API_URL: KOKORO.URL,
     KOKORO_API_KEY: KOKORO.API_KEY,

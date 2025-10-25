@@ -172,7 +172,9 @@
           // Fetch the list of markdown files from the API
           const response = await fetch('/api/docs/list');
           if (response.ok) {
-            const { files } = await response.json();
+            const {
+              files
+            } = await response.json();
             this.renderDocsList(files);
           } else {
             console.error('Failed to load docs list from API');
@@ -191,7 +193,7 @@
         docs.forEach(doc => {
           const link = document.createElement('a');
           link.className = 'doc-link dropdown-btn';
-          
+
           // Format display name: remove .md, replace dashes/underscores with spaces, title case
           const displayName = doc
             .replace('.md', '')
@@ -199,7 +201,7 @@
             .split(' ')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ');
-          
+
           link.textContent = displayName;
           link.dataset.file = doc;
           link.setAttribute('data-state', 'off');

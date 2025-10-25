@@ -1052,7 +1052,7 @@ app.use('/docs', express.static(path.join(__dirname, 'public', 'docs')));
 app.get('/api/docs/list', (req, res) => {
     const fs = require('fs');
     const docsPath = path.join(__dirname, 'public', 'docs');
-    
+
     try {
         const files = fs.readdirSync(docsPath)
             .filter(file => file.endsWith('.md'))
@@ -1062,7 +1062,7 @@ app.get('/api/docs/list', (req, res) => {
                 if (b === 'README.md') return 1;
                 return a.localeCompare(b);
             });
-        
+
         res.json({ files });
     } catch (error) {
         console.error('Error reading docs directory:', error);
