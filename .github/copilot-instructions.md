@@ -1,41 +1,59 @@
 # GitHub Copilot Instructions
 
-**BambiSleep Chat**: Real-time chat app with TTS, psychedelic visuals, and BambiSleep trigger detection.
+**BambiSleep Chat**: Enterprise-grade real-time chat app with TTS, psychedelic visuals, and BambiSleep trigger detection.
 
 ## Architecture Overview
 
-### Core Stack
-- **Backend**: Express + Socket.io + Worker threads (`server.js`)
-- **Frontend**: Vanilla JavaScript ES6 modules (NO React/frameworks)
+### Core Stack - UPDATED v0.3.0
+- **Backend**: Express + Socket.io + Worker threads (`server.js`) + Git deployment detection
+- **Frontend**: Vanilla JavaScript ES6 modules (NO React/frameworks) + Modern CSS @layer architecture
 - **Build**: Vite for development, serves from `/public` with proxy to port 6969
 - **Data Flow**: Socket.io ↔ Server ↔ Worker threads (Kokoro TTS, LM Studio AI)
+- **Configuration**: Centralized `config/env.js` with validation and environment detection
+- **CSS Architecture**: Modern CSS @layer system replacing z-index chaos
+- **Testing**: Comprehensive validation suite (environment, stability, resources)
 
-### Key Files & Responsibilities
+### Key Files & Responsibilities - ENHANCED
 ```
-server.js              # Main server: Express, Socket.io, worker management
-public/js/aigf-core.js  # Chat client: socket handling, UI, trigger processing
-public/js/dropdowns/    # Modular UI components (ES6 exports)
-workers/kokoro.js       # TTS worker (female voices only)
-workers/lmstudio.js     # AI chat worker
-workers/triggers.json   # Official BambiSleep triggers (never hardcode)
-vite.config.js          # Dev proxy: 5173 → 6969 for Socket.io/API
+server.js                      # Main server: Express, Socket.io, worker mgmt + git deployment
+config/env.js                  # Centralized environment configuration with validation
+public/js/aigf-core.js         # Chat client: socket handling, UI, trigger processing
+public/js/dropdowns/           # Modular UI components (ES6 exports, unified system)
+public/js/dropdowns.js         # Unified dropdown manager (consolidated from dropdown-utils)
+public/css/layers.css          # Modern @layer architecture (replaces z-index chaos)
+public/css/buttons.css         # Unified animation system + status classes
+workers/kokoro.js              # TTS worker (female voices only, enhanced error handling)
+workers/lmstudio.js            # AI chat worker (enhanced reliability)
+workers/triggers.json          # Official BambiSleep triggers (never hardcode)
+vite.config.js                 # Dev proxy: 5173 → 6969 for Socket.io/API + error handling
+tests/                         # Comprehensive testing suite (environment, stability, resources)
 ```
 
-## Development Commands
+## Development Commands - ENHANCED
 ```bash
-npm run dev          # Full stack (Vite dev server + backend)
-npm run dev:server   # Backend only (port 6969)
-npm run dev:client   # Frontend only (port 5173)
+npm run dev          # Full stack (Vite dev server + backend + auto-restart)
+npm run dev:server   # Backend only (port 6969) + git deployment detection
+npm run dev:client   # Frontend only (port 5173) + hot reload
+npm run test         # Comprehensive test suite (environment + stability + resources)
+npm run build        # Production build with optimization
+npm run clean        # Clean build artifacts and test reports
 ```
 
-## Critical Patterns
+## Critical Patterns - MODERNIZED
 
-### Environment-Driven Configuration
+### Centralized Configuration (NEW)
 ```javascript
-// ALWAYS respect development vs production hosts
-const host = process.env.NODE_ENV === 'production'
-  ? process.env.KOKORO_HOST_PRODUCTION
-  : process.env.KOKORO_HOST_DEVELOPMENT;
+// ALWAYS use config/env.js for environment management
+import { KOKORO, LMS, SERVER } from '../config/env.js';
+
+// Automatic environment-driven host selection
+const kokoroUrl = KOKORO.URL;  // Auto-selects dev/prod host
+const lmsUrl = LMS.URL;        // Auto-selects dev/prod host
+
+// Configuration validation built-in
+if (!KOKORO.isConfigured) {
+  console.error('Kokoro TTS not configured');
+}
 ```
 
 ### Official Triggers Only
@@ -43,45 +61,84 @@ const host = process.env.NODE_ENV === 'production'
 - **Categories**: `primary`, `physical`, `mental` with safety levels
 - **Never hardcode**: Always load from API/JSON, respect official BambiSleep data
 
-### Worker Thread Communication
+### Worker Thread Communication (Enhanced)
 ```javascript
-// Server mediates between Socket.io and workers
+// Server mediates between Socket.io and workers with enhanced error handling
 const worker = new Worker('./workers/kokoro.js');
 worker.postMessage({ type: 'tts', text: message, voice: 'af_bella' });
+
+// Use config/env.js for worker configuration
+const { KOKORO } = require('./config/env.js');
+worker.postMessage({
+  type: 'tts',
+  text: message,
+  voice: KOKORO.DEFAULT_VOICE,
+  speed: 1.0
+});
 ```
 
-### Modular Dropdown System
+### Modern CSS Layer System (NEW)
+```css
+/* Use semantic layers instead of z-index numbers */
+@layer base, background, interface, modals, overlays, debug, dropdowns;
+
+/* Status indicators - use these classes instead of inline styles */
+.status-active { color: #00ff00 !important; }
+.status-inactive { color: #666 !important; }
+
+/* Dropdown positioning handled by layers.css automatically */
+.dropdown-btn[data-state="on"]  { /* Green styling */ }
+.dropdown-btn[data-state="off"] { /* Red styling */ }
+```
+
+### Unified Dropdown System (Enhanced)
 ```javascript
-// public/js/dropdowns/index.js exports all components
+// All dropdowns use unified DropdownManager
 import { TTSDropdown, TriggersDropdown } from './dropdowns/index.js';
+
+// Status indicators - USE CSS CLASSES, NO INLINE STYLES
+statusIndicator.className = 'status-active';   // ✅ Correct
+statusIndicator.style.color = '#00ff00';       // ❌ Avoid inline styles
 ```
 
-### Audio Delivery Pattern
+### Audio Delivery Pattern (Enhanced)
 ```javascript
 // TTS: Server → Kokoro worker → Base64 MP3 → Socket.io → Client
 // Per Kokoro-FastAPI official docs: https://github.com/remsky/Kokoro-FastAPI
+// Uses centralized configuration from config/env.js
 
 // Worker generates speech via OpenAI-compatible endpoint
-const response = await fetch(`${kokoroUrl}/v1/audio/speech`, {
+const { KOKORO } = require('../config/env.js');
+const response = await fetch(`${KOKORO.URL}/v1/audio/speech`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
         model: 'kokoro',
-        voice: 'af_bella',  // Female voices only: af_bella, af_sky, af_nicole, etc.
+        voice: 'af_bella+af_sky',  // Supports voice mixing with +
         input: text,
         response_format: 'mp3',
         speed: 1.0
     })
 });
 
-// Server sends Base64 audio via Socket.io
-socket.emit('tts-response', { audioData: base64Mp3, voice: 'af_bella' });
+// Enhanced error handling and Base64 delivery
+if (!response.ok) throw new Error(`TTS failed: ${response.status}`);
+const audioBuffer = await response.arrayBuffer();
+const base64Audio = Buffer.from(audioBuffer).toString('base64');
 
-// Client converts and plays
+// Server sends Base64 audio via Socket.io with metadata
+socket.emit('tts-response', {
+  audioData: base64Audio,
+  voice: 'af_bella',
+  duration: audioDuration,
+  timestamp: Date.now()
+});
+
+// Client converts and plays with enhanced audio management
 const blob = base64ToBlob(audioData, 'audio/mpeg');
 const url = URL.createObjectURL(blob);
 audio.src = url;
-audio.play();
+audio.play().catch(err => console.error('Audio playback failed:', err));
 ```
 
 ## Development Workflow
@@ -91,54 +148,92 @@ audio.play();
 2. **CREATE**: Minimal code, one function per purpose, test each step
 3. **DEPLOY**: Fix only what's broken, STOP when working
 
-### Common Tasks
-## Copilot instructions — BambiSleep Chat (concise)
+### CSS Architecture Rules (NEW)
+- **NEVER use inline styles** - All styling through CSS classes
+- **Use @layer system** - `@layer base, background, interface, modals, overlays, debug, dropdowns`
+- **Status indicators** - Use `.status-active` and `.status-inactive` classes
+- **Dropdown states** - Use `data-state="on/off"` attributes, not inline styling
+- **Z-index conflicts** - Use semantic CSS layers, avoid z-index numbers
 
-This project is a small, vanilla-ES6, real-time chat app with TTS and trigger detection.
-Be productive quickly by following the conventions below — these are the discoverable, enforced patterns.
+### Common Tasks & Patterns
 
-- Architecture: `server.js` (Express + Socket.io) mediates between clients and worker threads in `workers/`.
-- Frontend: plain ES6 modules under `public/js/` (no framework). Key entry: `public/js/aigf-core.js`.
-- Workers: `workers/kokoro.js` (TTS) and `workers/lmstudio.js` (AI). Triggers are authoritative in `workers/triggers.json`.
+#### CSS Layer Integration
+```css
+/* ✅ Correct - Use CSS layers and classes */
+@layer interface {
+  .status-active { color: var(--success-color); }
+  .status-inactive { color: var(--inactive-color); }
+}
 
-- Common dev commands (use PowerShell on Windows):
-  - `npm run dev` — full stack (Vite dev server + backend proxy)
-  - `npm run dev:server` — backend only (port 6969)
-  - `npm run dev:client` — frontend only (port 5173)
+/* ✅ Correct - Dropdown button states */
+.dropdown-btn[data-state="on"] { /* Green styling */ }
+.dropdown-btn[data-state="off"] { /* Red pulse animation */ }
+```
 
-- Communication patterns to reuse (copy-paste safe):
-  - Worker messaging (server → worker):
-    ```javascript
-    const worker = new Worker('./workers/kokoro.js');
-    worker.postMessage({ type: 'tts', text: message, voice: 'af_bella' });
-    ```
-  - TTS audio delivery (worker → client via socket):
-    ```javascript
-    // Kokoro-FastAPI OpenAI-compatible endpoint usage
-    const response = await fetch(`http://192.168.0.170:8880/v1/audio/speech`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model: 'kokoro',
-            voice: 'af_sky+af_bella',  // Supports voice mixing with +
-            input: text,
-            response_format: 'mp3'
-        })
-    });
-    socket.emit('tts-response', { audioData: base64Mp3, voice: 'af_bella' });
-    ```
+#### Dropdown Component Pattern
+```javascript
+// ✅ Correct - Use CSS classes, no inline styles
+statusIndicator.className = 'status-active';
+btn.setAttribute('data-state', 'on');
+btn.classList.add('dropdown-btn', 'toggle-button');
 
-- Important project rules (enforce these):
-  - Never hardcode triggers — read from `/api/triggers/json` or `workers/triggers.json`.
-  - Keep external API calls inside worker threads (Kokoro/LMS) — main thread must stay lightweight.
-  - Use ES6 module exports for dropdown components: add files in `public/js/dropdowns/` and export them from `public/js/dropdowns/index.js`.
+// ❌ Avoid - Inline styles bypass CSS layer system
+statusIndicator.style.color = '#00ff00';
+btn.style.background = 'green';
+```
 
-- Environment variables used at runtime (TTS and LMS hosts/ports):
-  - KOKORO_HOST_DEVELOPMENT / KOKORO_HOST_PRODUCTION, KOKORO_PORT, KOKORO_DEFAULT_VOICE
-  - LMS_HOST_DEVELOPMENT / LMS_HOST_PRODUCTION, LMS_PORT
+#### Environment Configuration
+```javascript
+// ✅ Use centralized config/env.js
+import { KOKORO, LMS, SERVER } from '../config/env.js';
+const kokoroUrl = KOKORO.URL;  // Auto-selects dev/prod
 
-- Quick examples of where to change behavior:
-  - To add UI options, create `public/js/dropdowns/my-dropdown.js` and export from `public/js/dropdowns/index.js`.
-  - To add/modify triggers, edit `workers/triggers.json` and verify at `/api/triggers/json`.
+// ❌ Avoid hardcoded environment logic
+const host = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+```
 
-If anything in this short guide is unclear or you want more detail (examples, quick tests, or hooks for CI), tell me which area to expand and I will iterate.
+#### Worker Communication
+```javascript
+// ✅ Enhanced worker messaging with config
+const { KOKORO } = require('./config/env.js');
+worker.postMessage({
+  type: 'tts',
+  text: message,
+  voice: KOKORO.DEFAULT_VOICE,
+  speed: 1.0
+});
+```
+
+### Testing & Validation
+```bash
+npm run test          # Run comprehensive validation
+npm run dev           # Full stack with auto-restart
+npm run clean         # Clean artifacts before commit
+```
+
+### Architecture Enforcement
+- **CSS Layers**: Use `@layer` system, avoid z-index numbers
+- **No Inline Styles**: All styling through CSS classes
+- **Centralized Config**: Use `config/env.js` for all environment logic
+- **Official Triggers**: Load from `/api/triggers/json`, never hardcode
+- **Worker Isolation**: Keep external API calls in worker threads
+- **ES6 Modules**: Clean module exports from `dropdowns/index.js`
+
+### Quick Reference
+
+**Add New Dropdown Component:**
+1. Create `public/js/dropdowns/my-dropdown.js`
+2. Export from `public/js/dropdowns/index.js`
+3. Use `.status-active/.status-inactive` classes
+4. Set `data-state="on/off"` attributes
+5. Import in main file: `import { MyDropdown } from './dropdowns/index.js';`
+
+**Modify Environment Config:**
+1. Edit `config/env.js` for new settings
+2. Use validation functions for safety
+3. Access via `import { CONFIG } from '../config/env.js';`
+
+**Update Triggers:**
+1. Edit `workers/triggers.json` (authoritative source)
+2. Verify at `/api/triggers/json` endpoint
+3. Never hardcode trigger data in components
