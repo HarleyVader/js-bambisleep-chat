@@ -24,26 +24,11 @@
         "npm": ">=9.0.0"
     },
     "scripts": {
-        "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-        "build": "vite build",
-        "preview": "vite preview",
+        "dev": "concurrently \"nodemon server.js\" \"vite\"",
         "start": "node server.js",
-        "start:dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-        "dev:server": "nodemon server.js",
-        "dev:client": "vite",
-        "prod:server": "NODE_ENV=production node server.js",
-        "clean": "node scripts/clean.js",
-        "clean:all": "rimraf node_modules public/dist package-lock.json tests/reports",
-        "lint": "echo \"No linting configured\" && exit 0",
+        "build": "vite build",
         "test": "node tests/master.test.js",
-        "test:all": "npm run test:env && npm run test:resource && npm run test:stability",
-        "test:env": "node tests/environment.test.js",
-        "test:stability": "node tests/stability.test.js",
-        "test:resource": "node tests/resource.test.js",
-        "test:quick": "node tests/environment.test.js",
-        "test:ci": "cross-env CI=true node tests/master.test.js",
-        "test:report": "node tests/open-report.js",
-        "test:view": "node tests/open-report.js"
+        "clean": "node scripts/clean.js"
     },
     "dependencies": {
         "@lmstudio/sdk": "^1.5.0",

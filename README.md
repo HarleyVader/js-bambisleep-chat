@@ -63,13 +63,13 @@ Navigate to `http://localhost:6969`
 
 ### Development Mode
 
-For development with hot reload:
+Run with hot reload:
 
 ```bash
 npm run dev
 ```
 
-This runs both the backend server and frontend build process concurrently.
+Starts both backend server (port 6969) and frontend dev server (port 5173).
 
 ## Project Structure
 
@@ -218,30 +218,21 @@ The project includes a comprehensive test suite covering environment validation,
 
 ### Quick Start Testing
 
+## Testing
+
 ```bash
 # Run all tests
 npm test
 
-# Quick environment check only
-npm run test:quick
-
-# Run tests in CI mode (skip external services)
-npm run test:ci
-
-# View latest test report
-npm run test:report
+# Clean build artifacts
+npm run clean
 ```
 
-### Test Reports
-
-Tests automatically generate detailed reports in `tests/reports/`:
-- **HTML reports**: Interactive dashboard with metrics
-- **JSON reports**: Machine-readable for CI/CD
-- **Summary**: Quick text overview
+Tests automatically generate reports in `tests/reports/`.
 
 ### CI/CD
 
-GitHub Actions automatically runs tests on every push and pull request. See `.github/workflows/test.yml` for configuration.
+GitHub Actions automatically runs tests on every push and pull request.
 
 ### Troubleshooting Tests
 

@@ -1,53 +1,48 @@
-# BambiSleep Chat - Real Testing System
+# BambiSleep Chat - Testing System
 
 ## Overview
 
-This project now includes a comprehensive **real testing system** (not synthetic) that validates:
-- ✅ **Environment Setup** - System requirements, dependencies, configuration
-- ✅ **Stability Testing** - Load testing, memory stability, concurrent connections
-- ✅ **Resource Monitoring** - CPU usage, memory consumption, disk I/O, network usage
+Comprehensive testing system that validates:
+- ✅ Environment setup & dependencies
+- ✅ Server stability & load handling
+- ✅ Resource usage (CPU, memory, network)
 
-## Test Commands
+## Quick Start
 
-### Quick Tests
 ```bash
-# Environment validation only (fastest)
-npm run test:quick
-npm run test:env
-
-# Resource usage monitoring
-npm run test:resource
-
-# Stability & load testing (starts real server)
-npm run test:stability
-```
-
-### Full Test Suite
-```bash
-# Run all tests (comprehensive analysis)
+# Run all tests
 npm test
 ```
 
+Tests generate detailed reports in `tests/reports/`.
+
 ## Test Details
 
-### 🔧 Environment Tests (`test:env`)
-**What it tests:**
-- Node.js version requirements (>=18)
-- System memory and CPU cores
-- Critical file existence (`server.js`, workers, CSS files)
-- Write permissions
-- Environment variables (.env configuration)
-- Network port availability (5173, 6969, 8880, 1234)
-- npm dependency installation
+### Environment Tests
+- Node.js version (>=18)
+- System resources (memory, CPU)
+- File permissions
+- Port availability (5173, 6969, 8880, 7777)
+- Dependencies installation
 
 **Duration:** ~2 seconds
-**Safe to run:** Always - no side effects
 
-### 📊 Resource Tests (`test:resource`)
-**What it tests:**
-- Memory usage patterns over time
-- CPU consumption monitoring
+### Stability Tests
+- HTTP connectivity
+- WebSocket connections
+- Concurrent user handling
+- Memory leak detection
+- Response time consistency
+
+**Duration:** ~15 seconds
+
+### Resource Tests
+- Memory usage patterns
+- CPU consumption
 - File handle management
+- Network performance
+
+**Duration:** ~10 seconds
 - Disk I/O performance (read/write speeds)
 - Network socket creation/cleanup
 - Memory leak detection
