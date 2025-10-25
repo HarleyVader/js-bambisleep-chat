@@ -62,7 +62,7 @@ npm run dev                             # Development
 # Basic Health
 curl http://localhost:6969/api/health
 
-# Performance Metrics  
+# Performance Metrics
 curl http://localhost:6969/api/metrics
 
 # WebSocket Test

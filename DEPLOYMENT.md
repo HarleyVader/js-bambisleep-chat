@@ -82,7 +82,7 @@ npm install
 
 # This will install:
 # - Express v4.19+ (Web framework)
-# - Socket.io v4.8+ (Real-time communication)  
+# - Socket.io v4.8+ (Real-time communication)
 # - Vite v5.4+ (Development server)
 # - p5.js v1.9+ (Visual effects)
 # - And all development dependencies
@@ -124,7 +124,7 @@ npm test
 
 # Expected output:
 # ✅ Environment Tests: 8/8 passing
-# ✅ Stability Tests: 8/8 passing  
+# ✅ Stability Tests: 8/8 passing
 # ✅ Resource Tests: 4/6 passing
 # 📊 Overall Success Rate: 90.9% (20/22 tests)
 ```
@@ -197,7 +197,7 @@ sudo systemctl status bambisleepchat
 
 # Start/Stop/Restart service
 sudo systemctl start bambisleepchat
-sudo systemctl stop bambisleepchat  
+sudo systemctl stop bambisleepchat
 sudo systemctl restart bambisleepchat
 
 # View real-time logs
@@ -310,17 +310,17 @@ curl http://localhost:8880/health
 ```javascript
 // Single voice
 fetch('/api/tts', {
-  body: JSON.stringify({ 
-    text: 'Hello there', 
-    voice: 'af_bella' 
+  body: JSON.stringify({
+    text: 'Hello there',
+    voice: 'af_bella'
   })
 });
 
 // Voice mixing (advanced)
 fetch('/api/tts', {
-  body: JSON.stringify({ 
-    text: 'Mixed voice example', 
-    voice: 'af_bella+af_sky' 
+  body: JSON.stringify({
+    text: 'Mixed voice example',
+    voice: 'af_bella+af_sky'
   })
 });
 ```
@@ -361,11 +361,29 @@ sudo netstat -tulpn | grep 6969
 sudo kill -9 <PID>
 ```
 
-#### Permission Denied
+#### Permission Denied (SystemD Service)
 ```bash
-# Fix file permissions
-sudo chown -R $USER:$USER /path/to/js-bambisleep-chat
-chmod +x scripts/*.js
+# Quick fix for permission issues
+chmod +x fix-permissions.sh
+./fix-permissions.sh
+
+# Manual fix:
+sudo systemctl stop bambisleepchat
+sudo chown -R $USER:$USER .
+chmod 755 -R .
+node scripts/deploy.js install
+```
+
+#### Working Directory Permission Issues  
+If you see "Failed at step CHDIR spawning /usr/bin/test: Permission denied":
+
+```bash
+# This indicates the service file has incorrect paths
+# Use the automated fix:
+./fix-permissions.sh
+
+# Or regenerate service with correct paths:
+node scripts/deploy.js update
 ```
 
 #### Memory Issues
@@ -444,7 +462,7 @@ crontab -e
 
 ### Pre-Deployment
 - [ ] Node.js v20+ LTS installed
-- [ ] Dependencies installed (`npm install`)  
+- [ ] Dependencies installed (`npm install`)
 - [ ] Tests passing (`npm test` - 90.9% success rate)
 - [ ] Configuration reviewed (`config/env.js`)
 - [ ] Firewall ports opened (6969, 80, 443)
@@ -455,7 +473,7 @@ crontab -e
 - [ ] Service validation passed (`node scripts/validate-service.js`)
 - [ ] SystemD service active (`systemctl status bambisleepchat`)
 
-### Post-Deployment  
+### Post-Deployment
 - [ ] Health endpoints responding (`/api/health`)
 - [ ] WebSocket connections working
 - [ ] TTS functionality tested (if Kokoro configured)

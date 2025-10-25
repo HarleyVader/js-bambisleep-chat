@@ -54,7 +54,7 @@ $nodeVersion = $null
 try {
     $nodeVersion = node --version 2>$null
     $nodeMajor = [int]($nodeVersion -replace "v(\d+)\..*", '$1')
-    
+
     if ($nodeMajor -ge 20) {
         Write-Success "Node.js $nodeVersion detected (compatible)"
     } else {
@@ -71,7 +71,7 @@ if (-not $SkipNodeJs -and ($null -eq $nodeVersion -or $nodeMajor -lt 20)) {
     Write-Info "Node.js 20 LTS installation required"
     Write-Info "Please install Node.js 20 LTS from: https://nodejs.org/"
     Write-Info "After installation, restart PowerShell and run this script again with -SkipNodeJs"
-    
+
     $openBrowser = Read-Host "Open Node.js download page in browser? (y/N)"
     if ($openBrowser -eq 'y' -or $openBrowser -eq 'Y') {
         Start-Process "https://nodejs.org/en/download/"
@@ -85,7 +85,7 @@ try {
     Write-Success "Git detected: $gitVersion"
 } catch {
     Write-Error "Git is required but not found. Please install Git from: https://git-scm.com/"
-    
+
     $openBrowser = Read-Host "Open Git download page in browser? (y/N)"
     if ($openBrowser -eq 'y' -or $openBrowser -eq 'Y') {
         Start-Process "https://git-scm.com/download/win"
@@ -174,11 +174,11 @@ if ($setupService -eq 'y' -or $setupService -eq 'Y') {
         try {
             node scripts\deploy.js
             Write-Success "Windows Service configured"
-            
+
             # Validate deployment
             Write-Info "Validating deployment..."
             Start-Sleep -Seconds 5
-            
+
             node scripts\validate-service.js
             if ($LASTEXITCODE -eq 0) {
                 Write-Success "Deployment validation successful"

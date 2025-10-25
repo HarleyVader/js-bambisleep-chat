@@ -11,15 +11,23 @@ const { execSync } = require('child_process');
 const SERVICE_FILE = 'bambisleepchat.service';
 const SERVICE_PATH = `/etc/systemd/system/${SERVICE_FILE}`;
 
-// Deployment configuration
-const DEPLOYMENT_CONFIG = {
-    serviceName: 'bambisleepchat',
-    user: 'brandynette',
-    group: 'brandynette',
-    workingDirectory: '/home/brandynette/web/bambisleep.chat/js-bambisleep-chat',
-    port: 7878,
-    environment: 'production'
-};
+// Dynamic deployment configuration
+function getDeploymentConfig() {
+    const currentDir = process.cwd();
+    const currentUser = process.env.USER || process.env.USERNAME || 'bambisleep';
+    
+    return {
+        serviceName: 'bambisleepchat',
+        user: currentUser,
+        group: currentUser,
+        workingDirectory: currentDir,
+        port: process.env.PORT || 7878,
+        environment: 'production',
+        nodeCommand: process.execPath // Use the same Node.js executable that's running this script
+    };
+}
+
+const DEPLOYMENT_CONFIG = getDeploymentConfig();
 
 function showHelp() {
     console.log(`
@@ -90,11 +98,6 @@ function validateEnvironment() {
 
     console.log('✅ Node.js version meets requirements');
 
-    // Check if service file exists
-    if (!fs.existsSync(SERVICE_FILE)) {
-        throw new Error(`Service file ${SERVICE_FILE} not found`);
-    }
-
     // Validate package.json
     if (!fs.existsSync('package.json')) {
         throw new Error('package.json not found');
@@ -111,10 +114,70 @@ function validateEnvironment() {
     console.log('✅ Environment validation passed');
 }
 
+function generateServiceFile() {
+    const config = DEPLOYMENT_CONFIG;
+    
+    console.log('📄 Generating SystemD service file...');
+    console.log(`   Working Directory: ${config.workingDirectory}`);
+    console.log(`   User: ${config.user}`);
+    console.log(`   Port: ${config.port}`);
+    
+    const serviceContent = `[Unit]
+Description=BambiSleep Chat - Enterprise Real-time Chat Application v0.3.0
+Documentation=https://github.com/HarleyVader/js-bambisleep-chat
+After=network.target network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=${config.user}
+Group=${config.group}
+WorkingDirectory=${config.workingDirectory}
+
+# Pre-startup validation
+ExecStartPre=${config.nodeCommand} --version
+
+# Main application startup
+ExecStart=${config.nodeCommand} server.js
+
+# Graceful shutdown
+ExecStop=/bin/kill -SIGTERM $MAINPID
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Restart configuration
+Restart=always
+RestartSec=10
+RestartPreventExitStatus=0
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bambisleep-chat
+
+# Environment
+Environment=NODE_ENV=${config.environment}
+Environment=PORT=${config.port}
+Environment=NODE_OPTIONS=--max-old-space-size=1024
+
+[Install]
+WantedBy=multi-user.target
+`;
+
+    fs.writeFileSync(SERVICE_FILE, serviceContent);
+    console.log(`✅ Generated service file: ${SERVICE_FILE}`);
+}
+
 function installService() {
     console.log('🚀 Installing BambiSleep Chat service...');
 
     validateEnvironment();
+    
+    // Generate service file with current configuration
+    generateServiceFile();
 
     // Copy service file to systemd directory
     runCommand(`sudo cp ${SERVICE_FILE} ${SERVICE_PATH}`, 'Copying service file');
@@ -147,6 +210,9 @@ function updateService() {
     console.log('🔄 Updating BambiSleep Chat service...');
 
     validateEnvironment();
+    
+    // Generate updated service file
+    generateServiceFile();
 
     // Stop service
     try {

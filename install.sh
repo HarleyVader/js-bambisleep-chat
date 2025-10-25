@@ -34,7 +34,7 @@ print_info() {
 }
 
 # Check if running as root
-if [ "$EUID" -eq 0 ]; then 
+if [ "$EUID" -eq 0 ]; then
     print_error "Please don't run this script as root"
     exit 1
 fi
@@ -82,7 +82,7 @@ if ! command -v curl &> /dev/null; then
 fi
 
 # Clone repository
-INSTALL_DIR="$HOME/bambisleep-chat"
+INSTALL_DIR="$HOME/web/bambisleep-chat"
 if [ -d "$INSTALL_DIR" ]; then
     print_warning "Directory $INSTALL_DIR already exists. Removing..."
     rm -rf "$INSTALL_DIR"
@@ -124,14 +124,14 @@ print_status "Production build completed"
 # Deploy to SystemD (if available)
 if command -v systemctl &> /dev/null; then
     print_info "Setting up SystemD service..."
-    
+
     if node scripts/deploy.js; then
         print_status "SystemD service configured and started"
-        
+
         # Validate deployment
         print_info "Validating deployment..."
         sleep 5  # Wait for service to start
-        
+
         if node scripts/validate-service.js; then
             print_status "Deployment validation successful"
         else

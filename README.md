@@ -49,7 +49,7 @@ A modern real-time chat application with psychedelic visual effects, text-to-spe
 # Linux/macOS
 curl -fsSL https://raw.githubusercontent.com/HarleyVader/js-bambisleep-chat/production/install.sh | bash
 
-# Windows PowerShell  
+# Windows PowerShell
 iwr https://raw.githubusercontent.com/HarleyVader/js-bambisleep-chat/production/install.ps1 | iex
 ```
 
