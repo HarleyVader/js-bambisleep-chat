@@ -13,616 +13,621 @@
     --mobile-secondary: #02b893;
 }
 
-/* Mobile-Only Styles */
-@media (pointer: coarse) {
+/* Mobile-Only Styles - Wrapped in CSS Layer */
+@layer mobile {
+    @media (pointer: coarse) {
 
-    /* Reset and Base */
-    * {
-        box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    html,
-    body {
-        margin: 0;
-        padding: 0;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        overflow-x: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-        background: var(--mobile-bg);
-        color: var(--mobile-text);
-        font-size: 14px;
-        line-height: 1.4;
-    }
-
-    /* App Container - Full Viewport */
-    #app {
-        display: flex;
-        flex-direction: column;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        position: fixed;
-        top: 0;
-        left: 0;
-        overflow: hidden;
-    }
-
-    /* Chat Container - Takes Available Space */
-    #chat-container {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        height: 100%;
-        background: var(--mobile-glass);
-        -webkit-backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
-        position: relative;
-    }
-
-    /* Chat Header - Compact */
-    #chat-header {
-        flex-shrink: 0;
-        height: 50px;
-        padding: 8px 16px;
-        background: var(--mobile-bg);
-        border-bottom: 2px solid var(--mobile-accent);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    #chat-header h1 {
-        margin: 0;
-        font-size: 16px;
-        color: var(--mobile-accent);
-        text-align: center;
-    }
-
-    /* Hide desktop controls */
-    #chat-header #controls {
-        display: none;
-    }
-
-    /* Chat Messages - Scrollable */
-    #chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 12px;
-        scroll-behavior: smooth;
-    }
-
-    /* Message Styling */
-    .message {
-        margin-bottom: 12px;
-        padding: 12px;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        word-break: break-word;
-    }
-
-    .message.ai {
-        background: rgba(223, 4, 113, 0.1);
-        border-color: var(--mobile-accent);
-    }
-
-    .message-text {
-        font-size: 14px;
-        line-height: 1.4;
-    }
-
-    .message-time {
-        font-size: 11px;
-        opacity: 0.7;
-        margin-top: 4px;
-    }
-
-    /* Triggers */
-    .trigger-text,
-    .caps-text {
-        color: var(--mobile-accent) !important;
-        font-weight: bold;
-        text-shadow: 0 0 10px var(--mobile-accent);
-    }
-
-    /* Chat Input Area - Fixed Bottom */
-    #chat-input-container {
-        flex-shrink: 0;
-        padding: 12px;
-        background: var(--mobile-bg);
-        border-top: 2px solid var(--mobile-accent);
-        display: flex;
-        gap: 8px;
-        align-items: stretch;
-    }
-
-    #chat-input {
-        flex: 1;
-        min-height: 44px;
-        padding: 12px;
-        border: 2px solid var(--mobile-border);
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--mobile-text);
-        font-size: 14px;
-        outline: none;
-    }
-
-    #chat-input:focus {
-        border-color: var(--mobile-accent);
-    }
-
-    #send-button {
-        min-width: 44px;
-        height: 44px;
-        border: none;
-        border-radius: 8px;
-        background: var(--mobile-accent);
-        color: white;
-        font-size: 18px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    #send-button:active {
-        opacity: 0.8;
-    }
-
-    /* Spiral Container - Background */
-    #spiral-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        opacity: 0.3;
-    }
-
-    #spiral-canvas {
-        width: 100%;
-        height: 100%;
-    }
-
-    /* TTS Display - Centered */
-    #eye,
-    .spiral-text-center,
-    .tts-text-display {
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        font-size: clamp(18px, 4vw, 28px) !important;
-        text-align: center !important;
-        max-width: 90% !important;
-        color: var(--mobile-accent) !important;
-        text-shadow: 0 0 20px var(--mobile-accent) !important;
-        font-weight: bold !important;
-    }
-
-    /* Mobile Navigation - Bottom Bar */
-    .mobile-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 60px;
-        background: var(--mobile-bg);
-        border-top: 2px solid var(--mobile-accent);
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        padding: 8px;
-    }
-
-    .mobile-nav-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-width: 50px;
-        min-height: 44px;
-        padding: 4px;
-        background: transparent;
-        border: 1px solid transparent;
-        border-radius: 6px;
-        color: var(--mobile-border);
-        text-decoration: none;
-        font-size: 10px;
-        cursor: pointer;
-    }
-
-    .mobile-nav-btn-icon {
-        font-size: 20px;
-        margin-bottom: 2px;
-    }
-
-    .mobile-nav-btn.active {
-        color: var(--mobile-accent);
-        border-color: var(--mobile-accent);
-        background: rgba(223, 4, 113, 0.1);
-    }
-
-    .mobile-nav-btn:active {
-        opacity: 0.7;
-    }
-
-    /* Mobile Panels - Slide Up */
-    .mobile-panel {
-        position: fixed;
-        top: 50px;
-        bottom: 60px;
-        left: 0;
-        background: var(--mobile-glass);
-        -webkit-backdrop-filter: blur(15px);
-        backdrop-filter: blur(15px);
-        transform: translateY(100%);
-        transform: translateY(100%);
-        transition: transform 0.3s ease;
-        overflow-y: auto;
-        padding: 16px;
-        border-top: 2px solid var(--mobile-accent);
-    }
-
-    .mobile-panel.active {
-        transform: translateY(0);
-    }
-
-    .mobile-panel-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 16px;
-    }
-
-    .mobile-panel-title {
-        font-size: 18px;
-        color: var(--mobile-accent);
-        font-weight: bold;
-        margin: 0;
-    }
-
-    .mobile-panel-close {
-        width: 32px;
-        height: 32px;
-        background: var(--mobile-accent);
-        border: none;
-        border-radius: 50%;
-        color: white;
-        font-size: 16px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* Control Buttons */
-    .mobile-control-btn {
-        width: 100%;
-        min-height: 44px;
-        margin-bottom: 8px;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--mobile-border);
-        border-radius: 6px;
-        color: var(--mobile-text);
-        font-size: 14px;
-        cursor: pointer;
-        text-align: center;
-    }
-
-    .mobile-control-btn:active {
-        opacity: 0.7;
-    }
-
-    .mobile-control-btn.active {
-        background: rgba(223, 4, 113, 0.2);
-        border-color: var(--mobile-accent);
-        color: var(--mobile-accent);
-    }
-
-    /* Voice Controls */
-    .mobile-voice-selector {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin: 16px 0;
-    }
-
-    .mobile-voice-btn {
-        min-height: 44px;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--mobile-border);
-        border-radius: 6px;
-        color: var(--mobile-text);
-        font-size: 14px;
-        cursor: pointer;
-        text-align: center;
-    }
-
-    .mobile-voice-btn.active {
-        background: rgba(2, 184, 147, 0.2);
-        border-color: var(--mobile-secondary);
-        color: var(--mobile-secondary);
-    }
-
-    /* Trigger Categories */
-    .mobile-trigger-categories {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .mobile-trigger-category {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 6px;
-        padding: 12px;
-    }
-
-    .mobile-category-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-        margin-bottom: 8px;
-    }
-
-    .mobile-category-title {
-        font-size: 16px;
-        color: var(--mobile-secondary);
-        font-weight: bold;
-        margin: 0;
-    }
-
-    .mobile-category-toggle {
-        font-size: 16px;
-        color: var(--mobile-border);
-        transition: transform 0.2s;
-    }
-
-    .mobile-trigger-category.expanded .mobile-category-toggle {
-        transform: rotate(180deg);
-    }
-
-    .mobile-trigger-buttons {
-        display: none;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 6px;
-        margin-top: 8px;
-    }
-
-    .mobile-trigger-category.expanded .mobile-trigger-buttons {
-        display: grid;
-    }
-
-    .mobile-trigger-btn {
-        min-height: 36px;
-        padding: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--mobile-border);
-        border-radius: 4px;
-        color: var(--mobile-text);
-        font-size: 12px;
-        cursor: pointer;
-        text-align: center;
-    }
-
-    .mobile-trigger-btn.active {
-        background: rgba(223, 4, 113, 0.2);
-        border-color: var(--mobile-accent);
-        color: var(--mobile-accent);
-    }
-
-    /* Collar Controls */
-    .mobile-collar-section {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--mobile-accent);
-        border-radius: 6px;
-        padding: 16px;
-        margin: 16px 0;
-    }
-
-    .mobile-collar-title {
-        font-size: 16px;
-        color: var(--mobile-accent);
-        margin: 0 0 12px 0;
-        text-align: center;
-        font-weight: bold;
-    }
-
-    .mobile-collar-textarea {
-        width: 100%;
-        min-height: 80px;
-        padding: 12px;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--mobile-border);
-        border-radius: 6px;
-        color: var(--mobile-text);
-        font-size: 14px;
-        resize: vertical;
-        font-family: inherit;
-        margin-bottom: 12px;
-        outline: none;
-    }
-
-    .mobile-collar-textarea:focus {
-        border-color: var(--mobile-accent);
-    }
-
-    .mobile-collar-buttons {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-    }
-
-    .mobile-collar-btn {
-        min-height: 44px;
-        padding: 12px;
-        border: 1px solid;
-        border-radius: 6px;
-        color: white;
-        font-size: 14px;
-        cursor: pointer;
-        text-align: center;
-        font-weight: 500;
-    }
-
-    .mobile-collar-btn.activate {
-        background: var(--mobile-accent);
-        border-color: var(--mobile-accent);
-    }
-
-    .mobile-collar-btn.deactivate {
-        background: var(--mobile-border);
-        border-color: var(--mobile-border);
-    }
-
-    /* Utility Classes */
-    .mobile-hidden {
-        display: none !important;
-    }
-
-    .mobile-visible {
-        display: block !important;
-    }
-
-    /* Scrollbar Styling */
-    ::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: var(--mobile-border);
-        border-radius: 2px;
-    }
-
-    /* Layout Adjustments for Chat + Navigation */
-    #chat-container {
-        bottom: 60px;
-        /* Account for navigation bar */
-        height: calc(100vh - 60px);
-        height: calc(100dvh - 60px);
-    }
-
-    /* Responsive Font Scaling */
-    @media (max-width: 360px) {
+        /* Reset and Base */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
         html,
         body {
-            font-size: 13px;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--mobile-bg);
+            color: var(--mobile-text);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        /* App Container - Full Viewport */
+        #app {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+        }
+
+        /* Chat Container - Takes Available Space */
+        #chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            background: var(--mobile-glass);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        /* Chat Header - Compact */
+        #chat-header {
+            flex-shrink: 0;
+            height: 50px;
+            padding: 8px 16px;
+            background: var(--mobile-bg);
+            border-bottom: 2px solid var(--mobile-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #chat-header h1 {
-            font-size: 14px;
+            margin: 0;
+            font-size: 16px;
+            color: var(--mobile-accent);
+            text-align: center;
+        }
+
+        /* Hide desktop controls */
+        #chat-header #controls {
+            display: none;
+        }
+
+        /* Chat Messages - Scrollable */
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            scroll-behavior: smooth;
+        }
+
+        /* Message Styling */
+        .message {
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            word-break: break-word;
+        }
+
+        .message.ai {
+            background: rgba(223, 4, 113, 0.1);
+            border-color: var(--mobile-accent);
         }
 
         .message-text {
-            font-size: 13px;
-        }
-    }
-
-    @media (max-height: 600px) {
-        #chat-header {
-            height: 40px;
+            font-size: 14px;
+            line-height: 1.4;
         }
 
-        .mobile-nav {
-            height: 50px;
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
         }
 
-        #chat-container {
-            bottom: 50px;
-            height: calc(100vh - 90px);
-            height: calc(100dvh - 90px);
+        /* Triggers */
+        .trigger-text,
+        .caps-text {
+            color: var(--mobile-accent) !important;
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--mobile-accent);
         }
 
-        .mobile-panel {
-            top: 40px;
-            bottom: 50px;
-        }
-    }
-
-    /* Portrait vs Landscape */
-    @media (orientation: portrait) {
-        .mobile-voice-selector {
-            grid-template-columns: 1fr;
-        }
-
-        .mobile-trigger-buttons {
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        }
-    }
-
-    @media (orientation: landscape) {
-        .mobile-voice-selector {
-            grid-template-columns: repeat(3, 1fr);
+        /* Chat Input Area - Fixed Bottom */
+        #chat-input-container {
+            flex-shrink: 0;
+            padding: 12px;
+            background: var(--mobile-bg);
+            border-top: 2px solid var(--mobile-accent);
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
         }
 
-        .mobile-trigger-buttons {
-            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+        #chat-input {
+            flex: 1;
+            min-height: 44px;
+            padding: 12px;
+            border: 2px solid var(--mobile-border);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--mobile-text);
+            font-size: 14px;
+            outline: none;
         }
 
-        /* Special landscape notification */
-        .landscape-indicator {
-            position: fixed;
-            top: 8px;
-            right: 8px;
+        #chat-input:focus {
+            border-color: var(--mobile-accent);
+        }
+
+        #send-button {
+            min-width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 8px;
             background: var(--mobile-accent);
             color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #send-button:active {
+            opacity: 0.8;
+        }
+
+        /* Spiral Container - Background */
+        #spiral-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            opacity: 0.3;
+        }
+
+        #spiral-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* TTS Display - Centered */
+        #eye,
+        .spiral-text-center,
+        .tts-text-display {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            font-size: clamp(18px, 4vw, 28px) !important;
+            text-align: center !important;
+            max-width: 90% !important;
+            color: var(--mobile-accent) !important;
+            text-shadow: 0 0 20px var(--mobile-accent) !important;
+            font-weight: bold !important;
+        }
+
+        /* Mobile Navigation - Bottom Bar */
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--mobile-bg);
+            border-top: 2px solid var(--mobile-accent);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 8px;
+        }
+
+        .mobile-nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 50px;
+            min-height: 44px;
+            padding: 4px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: var(--mobile-border);
+            text-decoration: none;
             font-size: 10px;
-        }
-    }
-
-    /* Mobile Notifications */
-    .mobile-notification {
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: var(--mobile-bg);
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        border: 2px solid var(--mobile-accent);
-        animation: mobileNotificationSlide 0.3s ease-out;
-    }
-
-    @keyframes mobileNotificationSlide {
-        from {
-            opacity: 0;
-            transform: translate(-50%, -20px);
+            cursor: pointer;
         }
 
-        to {
-            opacity: 1;
+        .mobile-nav-btn-icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .mobile-nav-btn.active {
+            color: var(--mobile-accent);
+            border-color: var(--mobile-accent);
+            background: rgba(223, 4, 113, 0.1);
+        }
+
+        .mobile-nav-btn:active {
+            opacity: 0.7;
+        }
+
+        /* Mobile Panels - Slide Up */
+        .mobile-panel {
+            position: fixed;
+            top: 50px;
+            bottom: 60px;
+            left: 0;
+            background: var(--mobile-glass);
+            -webkit-backdrop-filter: blur(15px);
+            backdrop-filter: blur(15px);
+            transform: translateY(100%);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            padding: 16px;
+            border-top: 2px solid var(--mobile-accent);
+        }
+
+        .mobile-panel.active {
+            transform: translateY(0);
+        }
+
+        .mobile-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 16px;
+        }
+
+        .mobile-panel-title {
+            font-size: 18px;
+            color: var(--mobile-accent);
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .mobile-panel-close {
+            width: 32px;
+            height: 32px;
+            background: var(--mobile-accent);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Control Buttons */
+        .mobile-control-btn {
+            width: 100%;
+            min-height: 44px;
+            margin-bottom: 8px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--mobile-border);
+            border-radius: 6px;
+            color: var(--mobile-text);
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .mobile-control-btn:active {
+            opacity: 0.7;
+        }
+
+        .mobile-control-btn.active {
+            background: rgba(223, 4, 113, 0.2);
+            border-color: var(--mobile-accent);
+            color: var(--mobile-accent);
+        }
+
+        /* Voice Controls */
+        .mobile-voice-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .mobile-voice-btn {
+            min-height: 44px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--mobile-border);
+            border-radius: 6px;
+            color: var(--mobile-text);
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .mobile-voice-btn.active {
+            background: rgba(2, 184, 147, 0.2);
+            border-color: var(--mobile-secondary);
+            color: var(--mobile-secondary);
+        }
+
+        /* Trigger Categories */
+        .mobile-trigger-categories {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mobile-trigger-category {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .mobile-category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+
+        .mobile-category-title {
+            font-size: 16px;
+            color: var(--mobile-secondary);
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .mobile-category-toggle {
+            font-size: 16px;
+            color: var(--mobile-border);
+            transition: transform 0.2s;
+        }
+
+        .mobile-trigger-category.expanded .mobile-category-toggle {
+            transform: rotate(180deg);
+        }
+
+        .mobile-trigger-buttons {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .mobile-trigger-category.expanded .mobile-trigger-buttons {
+            display: grid;
+        }
+
+        .mobile-trigger-btn {
+            min-height: 36px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--mobile-border);
+            border-radius: 4px;
+            color: var(--mobile-text);
+            font-size: 12px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .mobile-trigger-btn.active {
+            background: rgba(223, 4, 113, 0.2);
+            border-color: var(--mobile-accent);
+            color: var(--mobile-accent);
+        }
+
+        /* Collar Controls */
+        .mobile-collar-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--mobile-accent);
+            border-radius: 6px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .mobile-collar-title {
+            font-size: 16px;
+            color: var(--mobile-accent);
+            margin: 0 0 12px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .mobile-collar-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--mobile-border);
+            border-radius: 6px;
+            color: var(--mobile-text);
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+            margin-bottom: 12px;
+            outline: none;
+        }
+
+        .mobile-collar-textarea:focus {
+            border-color: var(--mobile-accent);
+        }
+
+        .mobile-collar-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .mobile-collar-btn {
+            min-height: 44px;
+            padding: 12px;
+            border: 1px solid;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .mobile-collar-btn.activate {
+            background: var(--mobile-accent);
+            border-color: var(--mobile-accent);
+        }
+
+        .mobile-collar-btn.deactivate {
+            background: var(--mobile-border);
+            border-color: var(--mobile-border);
+        }
+
+        /* Utility Classes */
+        .mobile-hidden {
+            display: none !important;
+        }
+
+        .mobile-visible {
+            display: block !important;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--mobile-border);
+            border-radius: 2px;
+        }
+
+        /* Layout Adjustments for Chat + Navigation */
+        #chat-container {
+            bottom: 60px;
+            /* Account for navigation bar */
+            height: calc(100vh - 60px);
+            height: calc(100dvh - 60px);
+        }
+
+        /* Responsive Font Scaling */
+        @media (max-width: 360px) {
+
+            html,
+            body {
+                font-size: 13px;
+            }
+
+            #chat-header h1 {
+                font-size: 14px;
+            }
+
+            .message-text {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            #chat-header {
+                height: 40px;
+            }
+
+            .mobile-nav {
+                height: 50px;
+            }
+
+            #chat-container {
+                bottom: 50px;
+                height: calc(100vh - 90px);
+                height: calc(100dvh - 90px);
+            }
+
+            .mobile-panel {
+                top: 40px;
+                bottom: 50px;
+            }
+        }
+
+        /* Portrait vs Landscape */
+        @media (orientation: portrait) {
+            .mobile-voice-selector {
+                grid-template-columns: 1fr;
+            }
+
+            .mobile-trigger-buttons {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+        }
+
+        @media (orientation: landscape) {
+            .mobile-voice-selector {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .mobile-trigger-buttons {
+                grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            }
+
+            /* Special landscape notification */
+            .landscape-indicator {
+                position: fixed;
+                top: 8px;
+                right: 8px;
+                background: var(--mobile-accent);
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 10px;
+            }
+        }
+
+        /* Mobile Notifications */
+        .mobile-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
             transform: translateX(-50%);
+            background: var(--mobile-bg);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 2px solid var(--mobile-accent);
+            animation: mobileNotificationSlide 0.3s ease-out;
+        }
+
+        @keyframes mobileNotificationSlide {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(-50%);
+            }
         }
     }
-}
 
-/* Ensure mobile rules only apply to touch devices */
-@media (pointer: fine) {
+    /* Ensure mobile rules only apply to touch devices */
+    @media (pointer: fine) {
 
-    /* Hide mobile-specific elements on desktop */
-    .mobile-nav,
-    .mobile-panel,
-    .landscape-indicator {
-        display: none !important;
+        /* Hide mobile-specific elements on desktop */
+        .mobile-nav,
+        .mobile-panel,
+        .landscape-indicator {
+            display: none !important;
+        }
     }
+
 }
+
+/* End @layer mobile */

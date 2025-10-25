@@ -9,9 +9,7 @@ export class TTSDropdown {
     constructor(dropdownManager) {
         this.dropdownManager = dropdownManager;
         this.buttonId = 'toggle-tts';
-        this.currentVoice = 'af_bella'; // Default voice
-        this.currentSpeed = 1.0; // Default speed
-        this.selectedVoices = []; // Track multiple selected voices
+        this.componentName = 'tts'; // For centralized state access
         this.init();
     }
 
@@ -27,6 +25,39 @@ export class TTSDropdown {
                 this.syncButtonStateWithTTSSystem(ttsSystem);
             }
         }, 1000);
+    }
+
+    // ENHANCED: Centralized State Helper Methods
+    get currentVoice() {
+        return this.dropdownManager.getComponentState(this.componentName, 'currentVoice');
+    }
+
+    set currentVoice(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'currentVoice', value);
+    }
+
+    get currentSpeed() {
+        return this.dropdownManager.getComponentState(this.componentName, 'currentSpeed');
+    }
+
+    set currentSpeed(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'currentSpeed', value);
+    }
+
+    get selectedVoices() {
+        return this.dropdownManager.getComponentState(this.componentName, 'selectedVoices');
+    }
+
+    set selectedVoices(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'selectedVoices', value);
+    }
+
+    get isEnabled() {
+        return this.dropdownManager.getComponentState(this.componentName, 'isEnabled');
+    }
+
+    set isEnabled(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'isEnabled', value);
     }
 
     loadSavedState() {

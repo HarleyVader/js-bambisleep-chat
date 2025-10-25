@@ -28,8 +28,7 @@ export class AIDropdown {
     constructor(dropdownManager) {
         this.dropdownManager = dropdownManager;
         this.buttonId = 'toggle-ai';
-        this.isEnabled = false; // AIGF on/off state
-        this.currentModel = 'balanced'; // 'creative', 'balanced', 'precise'
+        this.componentName = 'ai'; // For centralized state access
         this.init();
     }
 
@@ -38,6 +37,23 @@ export class AIDropdown {
         this.setupToggleHandling();
         this.ensureButtonStyling();
         this.loadSavedState();
+    }
+
+    // ENHANCED: Centralized State Access Helper Methods
+    get isEnabled() {
+        return this.dropdownManager.getComponentState(this.componentName, 'isEnabled') || false;
+    }
+
+    set isEnabled(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'isEnabled', value);
+    }
+
+    get currentModel() {
+        return this.dropdownManager.getComponentState(this.componentName, 'currentModel') || 'balanced';
+    }
+
+    set currentModel(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'currentModel', value);
     }
 
     ensureButtonStyling() {

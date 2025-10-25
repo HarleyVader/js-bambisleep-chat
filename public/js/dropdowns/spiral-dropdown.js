@@ -29,6 +29,31 @@ export class SpiralDropdown {
         this.init();
     }
 
+    // ENHANCED: Centralized State Helper Methods
+    get isEnabled() {
+        return this.dropdownManager.getComponentState('spiral', 'isEnabled') || false;
+    }
+
+    set isEnabled(value) {
+        this.dropdownManager.setComponentState('spiral', 'isEnabled', value);
+    }
+
+    get currentPreset() {
+        return this.dropdownManager.getComponentState('spiral', 'currentPreset');
+    }
+
+    set currentPreset(value) {
+        this.dropdownManager.setComponentState('spiral', 'currentPreset', value);
+    }
+
+    get settings() {
+        return this.dropdownManager.getComponentState('spiral', 'settings') || {};
+    }
+
+    set settings(value) {
+        this.dropdownManager.setComponentState('spiral', 'settings', value);
+    }
+
     // Helper function to safely access spiral controls
     getSpiralControls() {
         if (window.spiralControls && window.spiralAnimation) {

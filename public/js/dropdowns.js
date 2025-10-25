@@ -14,6 +14,7 @@ import {
 } from './dropdowns/index.js';
 
 import { StorageUtils } from './storage-utils.js';
+import AnimationController from './animation-controller.js';
 
 /**
  * DropdownUtils - Enhanced interaction features
@@ -124,6 +125,33 @@ class DropdownManager {
             'toggle-collar': 'off'
         };
 
+        // ENHANCED: Centralized component state management
+        this.componentStates ??= {
+            tts: {
+                currentVoice: 'af_bella',
+                currentSpeed: 1.0,
+                selectedVoices: [],
+                isEnabled: false
+            },
+            ai: {
+                isEnabled: false,
+                currentModel: 'balanced' // 'creative', 'balanced', 'precise'
+            },
+            spiral: {
+                isEnabled: false,
+                currentPreset: null,
+                settings: {}
+            },
+            collar: {
+                collarSettings: '',
+                isActive: false
+            },
+            triggers: {
+                isEnabled: false,
+                selectedCategories: []
+            }
+        };
+
         // Initialize component dropdowns
         this.components ??= {};
         this.init();
@@ -158,6 +186,286 @@ class DropdownManager {
         // Initialize dropdowns and components
         this.initializeDropdowns();
         this.initializeComponents();
+
+        // Initialize centralized event delegation
+        this.initializeEventDelegation();
+    }
+
+    // ENHANCED: Centralized Event Delegation System
+    initializeEventDelegation() {
+        // Prevent duplicate event handlers by using a single delegated handler
+        this.eventRegistry = new Map(); // Track registered event handlers
+
+        // Central event delegation for dropdown actions
+        document.addEventListener('dropdownAction', (e) => {
+            this.handleCentralizedDropdownAction(e);
+        }, { once: false });
+
+        // Central event delegation for component state changes
+        document.addEventListener('componentStateChange', (e) => {
+            this.handleComponentStateChange(e);
+        }, { once: false });
+
+        // Central event delegation for trigger selections
+        document.addEventListener('triggerSelection', (e) => {
+            this.handleTriggerSelection(e);
+        }, { once: false });
+
+        // Prevent event conflicts by centralizing input handlers
+        document.addEventListener('input', (e) => {
+            this.handleCentralizedInput(e);
+        }, { once: false });
+
+        console.log('✅ Centralized event delegation initialized');
+    }
+
+    handleCentralizedDropdownAction(event) {
+        const { action, buttonId, selectedText, element, value } = event.detail;
+
+        // Route to appropriate component based on buttonId
+        const component = this.getComponentForButton(buttonId);
+        if (component && component.handleAction) {
+            try {
+                component.handleAction(action, event.detail);
+            } catch (error) {
+                console.error(`❌ Error handling dropdown action in ${buttonId}:`, error);
+            }
+        } else {
+            console.warn(`⚠️ No component found for button ${buttonId} or handleAction not implemented`);
+        }
+    }
+
+    handleComponentStateChange(event) {
+        const { component, key, value, fullState } = event.detail;
+        console.log(`🔄 Component state changed: ${component}.${key} = ${value}`);
+
+        // Trigger any necessary UI updates
+        this.updateComponentUI(component, key, value);
+    }
+
+    handleTriggerSelection(event) {
+        const { trigger, category, isSelected } = event.detail;
+        console.log(`🎯 Trigger selection: ${trigger} (${category}) - ${isSelected ? 'selected' : 'deselected'}`);
+
+        // Update trigger system state
+        const triggersComponent = this.components.triggers;
+        if (triggersComponent && triggersComponent.handleTriggerSelection) {
+            triggersComponent.handleTriggerSelection(event.detail);
+        }
+    }
+
+    handleCentralizedInput(event) {
+        const element = event.target;
+        const dropdown = element.closest('.dropdown');
+
+        if (!dropdown) return; // Only handle inputs within dropdowns
+
+        const buttonId = dropdown.querySelector('.dropdown-btn')?.id;
+        if (!buttonId) return;
+
+        // Route input events to appropriate component
+        const component = this.getComponentForButton(buttonId);
+        if (component && component.handleInput) {
+            component.handleInput(event);
+        }
+    }
+
+    updateComponentUI(componentName, key, value) {
+        // Update UI elements based on component state changes
+        switch (componentName) {
+            case 'tts':
+                this.updateTTSUI(key, value);
+                break;
+            case 'ai':
+                this.updateAIUI(key, value);
+                break;
+            case 'spiral':
+                this.updateSpiralUI(key, value);
+                break;
+            case 'collar':
+                this.updateCollarUI(key, value);
+                break;
+            case 'triggers':
+                this.updateTriggersUI(key, value);
+                break;
+        }
+    }
+
+    updateTTSUI(key, value) {
+        if (key === 'isEnabled') {
+            const btn = document.getElementById('toggle-tts');
+            const status = document.getElementById('tts-status');
+            if (btn) btn.setAttribute('data-state', value ? 'on' : 'off');
+            if (status) status.className = value ? 'status-active' : 'status-inactive';
+        }
+    }
+
+    updateAIUI(key, value) {
+        if (key === 'isEnabled') {
+            const btn = document.getElementById('toggle-ai');
+            const status = document.getElementById('ai-status');
+            if (btn) btn.setAttribute('data-state', value ? 'on' : 'off');
+            if (status) status.className = value ? 'status-active' : 'status-inactive';
+        }
+    }
+
+    updateSpiralUI(key, value) {
+        if (key === 'isEnabled') {
+            const btn = document.getElementById('toggle-spiral');
+            const status = document.getElementById('spiral-status');
+            if (btn) btn.setAttribute('data-state', value ? 'on' : 'off');
+            if (status) status.className = value ? 'status-active' : 'status-inactive';
+        }
+    }
+
+    updateCollarUI(key, value) {
+        if (key === 'isActive') {
+            const btn = document.getElementById('toggle-collar');
+            const status = document.getElementById('collar-status');
+            if (btn) btn.setAttribute('data-state', value ? 'on' : 'off');
+            if (status) status.className = value ? 'status-active' : 'status-inactive';
+        }
+    }
+
+    updateTriggersUI(key, value) {
+        if (key === 'isEnabled') {
+            const btn = document.getElementById('toggle-triggers');
+            const status = document.getElementById('triggers-status');
+            if (btn) btn.setAttribute('data-state', value ? 'on' : 'off');
+            if (status) status.className = value ? 'status-active' : 'status-inactive';
+        }
+    }
+
+    getComponentForButton(buttonId) {
+        // Map button IDs to their corresponding components
+        const buttonComponentMap = {
+            'toggle-tts': 'tts',
+            'toggle-ai': 'ai',
+            'toggle-spiral': 'spiral',
+            'toggle-collar': 'collar',
+            'toggle-triggers': 'triggers',
+            'toggle-brainwave': 'brainwave'
+        };
+
+        const componentName = buttonComponentMap[buttonId];
+        return componentName ? this.components[componentName] : null;
+    }
+
+    // Method to safely remove duplicate event listeners
+    removeDuplicateEventListeners() {
+        // This method can be called to clean up any duplicate listeners
+        // Components should use this when they detect multiple handlers
+        console.log('🧹 Cleaning up duplicate event listeners');
+
+        // Each component can register their cleanup function
+        Object.values(this.components).forEach(component => {
+            if (component.cleanup) {
+                component.cleanup();
+            }
+        });
+    }
+
+    // ENHANCED: Centralized State Management Methods
+    getComponentState(componentName, key = null) {
+        if (!this.componentStates[componentName]) {
+            console.warn(`⚠️ Component '${componentName}' not found in state`);
+            return null;
+        }
+
+        if (key) {
+            return this.componentStates[componentName][key];
+        }
+
+        return this.componentStates[componentName];
+    }
+
+    setComponentState(componentName, key, value) {
+        if (!this.componentStates[componentName]) {
+            console.warn(`⚠️ Component '${componentName}' not found in state`);
+            return false;
+        }
+
+        this.componentStates[componentName][key] = value;
+
+        // Trigger state change event for components to react
+        const event = new CustomEvent('componentStateChange', {
+            detail: {
+                component: componentName,
+                key: key,
+                value: value,
+                fullState: this.componentStates[componentName]
+            }
+        });
+        document.dispatchEvent(event);
+
+        return true;
+    }
+
+    updateComponentState(componentName, stateObject) {
+        if (!this.componentStates[componentName]) {
+            console.warn(`⚠️ Component '${componentName}' not found in state`);
+            return false;
+        }
+
+        Object.assign(this.componentStates[componentName], stateObject);
+
+        // Trigger state change event
+        const event = new CustomEvent('componentStateChange', {
+            detail: {
+                component: componentName,
+                fullUpdate: true,
+                fullState: this.componentStates[componentName]
+            }
+        });
+        document.dispatchEvent(event);
+
+        return true;
+    }
+
+    // Reset component state to defaults
+    resetComponentState(componentName) {
+        const defaults = {
+            tts: {
+                currentVoice: 'af_bella',
+                currentSpeed: 1.0,
+                selectedVoices: [],
+                isEnabled: false
+            },
+            ai: {
+                isEnabled: false,
+                currentModel: 'balanced'
+            },
+            spiral: {
+                isEnabled: false,
+                currentPreset: null,
+                settings: {}
+            },
+            collar: {
+                collarSettings: '',
+                isActive: false
+            },
+            triggers: {
+                isEnabled: false,
+                selectedCategories: []
+            }
+        };
+
+        if (defaults[componentName]) {
+            this.componentStates[componentName] = { ...defaults[componentName] };
+
+            const event = new CustomEvent('componentStateChange', {
+                detail: {
+                    component: componentName,
+                    reset: true,
+                    fullState: this.componentStates[componentName]
+                }
+            });
+            document.dispatchEvent(event);
+
+            return true;
+        }
+
+        return false;
     }
 
     initializeComponents() {
@@ -327,10 +635,15 @@ class DropdownManager {
                 content.style.top = `${top}px`;
                 content.style.left = `${left}px`;
 
-                // Add entering animation
-                content.classList.add('dropdown-entering');
-                content.classList.remove('dropdown-leaving');
-                setTimeout(() => content.classList.remove('dropdown-entering'), 200);
+                // Use animation controller for smooth dropdown opening
+                if (window.animationController) {
+                    window.animationController.openDropdown(content);
+                } else {
+                    // Fallback to direct CSS classes
+                    content.classList.add('dropdown-entering');
+                    content.classList.remove('dropdown-leaving');
+                    setTimeout(() => content.classList.remove('dropdown-entering'), 200);
+                }
 
                 // Focus first focusable element
                 const firstFocusable = content.querySelector('button, input, select, [tabindex]:not([tabindex="-1"])');
@@ -356,14 +669,23 @@ class DropdownManager {
         const content = dropdown.querySelector('.dropdown-content');
 
         if (content) {
-            content.classList.add('dropdown-leaving');
-            content.classList.remove('dropdown-entering');
-
-            setTimeout(() => {
-                dropdown.classList.remove('active');
-                content.classList.remove('dropdown-leaving');
-                content.style.viewTransitionName = '';
-            }, 200);
+            // Use animation controller for smooth dropdown closing
+            if (window.animationController) {
+                window.animationController.closeDropdown(content);
+                setTimeout(() => {
+                    dropdown.classList.remove('active');
+                    content.style.viewTransitionName = '';
+                }, 200);
+            } else {
+                // Fallback to direct CSS classes
+                content.classList.add('dropdown-leaving');
+                content.classList.remove('dropdown-entering');
+                setTimeout(() => {
+                    dropdown.classList.remove('active');
+                    content.classList.remove('dropdown-leaving');
+                    content.style.viewTransitionName = '';
+                }, 200);
+            }
         } else {
             dropdown.classList.remove('active');
         }

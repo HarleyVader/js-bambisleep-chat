@@ -9,7 +9,7 @@ export class CollarDropdown {
     constructor(dropdownManager) {
         this.dropdownManager = dropdownManager;
         this.buttonId = 'toggle-collar';
-        this.collarSettings = '';
+        this.componentName = 'collar'; // For centralized state access
         this.isResizing = false;
         this.init();
     }
@@ -18,6 +18,23 @@ export class CollarDropdown {
         this.setupEventListeners();
         this.setupResizeHandling();
         this.loadSavedSettings();
+    }
+
+    // ENHANCED: Centralized State Access Helper Methods
+    get collarSettings() {
+        return this.dropdownManager.getComponentState(this.componentName, 'collarSettings') || '';
+    }
+
+    set collarSettings(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'collarSettings', value);
+    }
+
+    get isActive() {
+        return this.dropdownManager.getComponentState(this.componentName, 'isActive') || false;
+    }
+
+    set isActive(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'isActive', value);
     }
 
     setupEventListeners() {

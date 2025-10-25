@@ -7,8 +7,26 @@ export class TriggersDropdown {
     constructor(dropdownManager) {
         this.dropdownManager = dropdownManager;
         this.buttonId = 'toggle-triggers';
+        this.componentName = 'triggers'; // For centralized state access
         this.triggersData = null;
         this.init();
+    }
+
+    // ENHANCED: Centralized State Helper Methods
+    get isEnabled() {
+        return this.dropdownManager.getComponentState(this.componentName, 'isEnabled') || false;
+    }
+
+    set isEnabled(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'isEnabled', value);
+    }
+
+    get selectedCategories() {
+        return this.dropdownManager.getComponentState(this.componentName, 'selectedCategories') || [];
+    }
+
+    set selectedCategories(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'selectedCategories', value);
     }
 
     // Helper function to safely access trigger system

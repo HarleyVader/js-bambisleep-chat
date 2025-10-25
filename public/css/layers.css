@@ -4,7 +4,7 @@
  */
 
 /* Define CSS layers in proper stacking order (DROPDOWNS ON TOP) */
-@layer base, background, interface, modals, overlays, debug, dropdowns;
+@layer base, background, interface, mobile, modals, overlays, debug, dropdowns;
 
 /* Base layer - foundational elements */
 @layer base {
@@ -94,11 +94,11 @@
 
     /* Status indicator classes for consistent styling */
     .status-active {
-        color: #00ff00 !important;
+        color: #00ff00;
     }
 
     .status-inactive {
-        color: #666 !important;
+        color: #666;
     }
 }
 
@@ -110,14 +110,12 @@
     .controls {
         position: relative;
         isolation: isolate;
-        z-index: 99999 !important;
     }
 
     .dropdown {
         position: relative;
         display: inline-block;
         isolation: isolate;
-        z-index: 99999 !important;
     }
 
     .dropdown-btn,
@@ -126,7 +124,6 @@
         cursor: pointer;
         pointer-events: auto;
         isolation: isolate;
-        z-index: 99999 !important;
     }
 
     .dropdown-content {
@@ -154,8 +151,7 @@
             transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
             opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
             visibility 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        /* FORCE dropdowns on top of everything */
-        z-index: 999999 !important;
+        /* CSS layers handle stacking automatically */
         /* Enable container queries for responsive behavior */
         container-type: inline-size;
     }
@@ -218,8 +214,14 @@
         }
     }
 
-    /* Responsive dropdown positioning (fallback for older browsers) */
-    @media (max-width: 768px) {
+
+}
+
+/* Mobile layer - mobile-specific responsive overrides */
+@layer mobile {
+
+    /* Mobile dropdown positioning for touch devices */
+    @media (max-width: 768px) and (pointer: coarse) {
         .dropdown-content {
             position: fixed;
             top: auto;
@@ -229,6 +231,19 @@
             width: calc(100% - 20px);
             min-width: unset;
             max-width: unset;
+            max-height: 50vh;
+            overflow-y: auto;
+            border-radius: 8px;
+        }
+    }
+
+    /* Prevent mobile styles from affecting desktop */
+    @media (pointer: fine) {
+
+        .mobile-nav,
+        .mobile-panel,
+        .landscape-indicator {
+            display: none !important;
         }
     }
 }
@@ -333,7 +348,7 @@
 
 /* Remove all z-index values that conflict with the layer system */
 .no-z-index {
-    z-index: unset !important;
+    z-index: unset;
 }
 
 /* Additional visibility and interaction improvements */
@@ -341,7 +356,7 @@
 
     /* Enhanced dropdown visibility */
     .dropdown.active .dropdown-content {
-        display: block !important;
+        display: block;
         opacity: 1;
         visibility: visible;
         pointer-events: all;
@@ -360,9 +375,7 @@
             transform: translateY(-1px);
         }
 
-        .dropdown:has(.dropdown-content.show) {
-            z-index: 1000000 !important;
-        }
+
 
         .dropdown:has(.dropdown-item:focus) .dropdown-content {
             box-shadow: 0 12px 40px rgba(255, 105, 180, 0.3);
@@ -597,7 +610,7 @@
 
     /* Additional utility classes for enhanced dropdown interactions */
     .collar-feedback {
-        animation: slideInRight 0.3s ease-out, slideOutRight 0.3s ease-in 2.7s !important;
+        animation: slideInRight 0.3s ease-out, slideOutRight 0.3s ease-in 2.7s;
     }
 
     .smooth-transition {
