@@ -147,6 +147,8 @@
             visibility 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         /* FORCE dropdowns on top of everything */
         z-index: 999999 !important;
+        /* Enable container queries for responsive behavior */
+        container-type: inline-size;
     }
 
     /* Show dropdown with smooth animation */
@@ -171,7 +173,43 @@
         left: auto;
     }
 
-    /* Responsive dropdown positioning */
+    /* Modern Container Queries for responsive dropdown behavior */
+    @container (max-width: 400px) {
+        .dropdown-item {
+            padding: 6px 8px;
+            font-size: 0.85rem;
+        }
+
+        .dropdown-section-header {
+            padding: 8px 8px 4px 8px;
+            font-size: 0.8rem;
+        }
+    }
+
+    @container (max-width: 300px) {
+        .dropdown-item {
+            padding: 4px 6px;
+            font-size: 0.8rem;
+            line-height: 1.3;
+        }
+
+        .dropdown-content {
+            border-radius: 8px;
+            padding: 8px 0;
+        }
+    }
+
+    @container (min-width: 500px) {
+        .dropdown-content {
+            min-width: 350px;
+        }
+
+        .dropdown-item {
+            padding: 10px 16px;
+        }
+    }
+
+    /* Responsive dropdown positioning (fallback for older browsers) */
     @media (max-width: 768px) {
         .dropdown-content {
             position: fixed;
@@ -306,7 +344,23 @@
         position: relative;
     }
 
-    /* Dropdown hover effects */
+    /* Modern CSS :has() selector for enhanced interactions */
+    @supports selector(:has(*)) {
+        .dropdown:has(.dropdown-content:hover) .dropdown-btn {
+            background-color: rgba(255, 105, 180, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .dropdown:has(.dropdown-content.show) {
+            z-index: 1000000 !important;
+        }
+
+        .dropdown:has(.dropdown-item:focus) .dropdown-content {
+            box-shadow: 0 12px 40px rgba(255, 105, 180, 0.3);
+        }
+    }
+
+    /* Dropdown hover effects (fallback) */
     .dropdown-hover {
         background-color: rgba(255, 255, 255, 0.1);
         border-radius: 4px;
@@ -417,7 +471,19 @@
         }
     }
 
-    /* Enhanced dropdown content styling */
+    /* Enhanced dropdown content styling with container queries */
+    @container (max-width: 350px) {
+        .dropdown-content::-webkit-scrollbar {
+            width: 4px;
+        }
+    }
+
+    @container (min-width: 450px) {
+        .dropdown-content::-webkit-scrollbar {
+            width: 8px;
+        }
+    }
+
     /* Webkit browsers (Chrome, Safari, Edge) - Priority for wider support */
     .dropdown-content::-webkit-scrollbar {
         width: 6px;
@@ -521,8 +587,43 @@
     }
 }
 
-/* Utility classes for enhanced interaction */
+/* View Transitions API support */
 @layer interface {
+    /* View transition definitions for smooth dropdown animations */
+    @supports (view-transition-name: dropdown-content) {
+        .dropdown-content {
+            view-transition-name: var(--dropdown-transition-name, none);
+        }
+        
+        /* Customize transition behavior for dropdowns */
+        ::view-transition-old(dropdown-content),
+        ::view-transition-new(dropdown-content) {
+            animation-duration: 0.25s;
+            animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        ::view-transition-old(dropdown-content) {
+            animation-name: slideOutUp;
+        }
+        
+        ::view-transition-new(dropdown-content) {
+            animation-name: slideInDown;
+        }
+    }
+    
+    @keyframes slideOutUp {
+        to {
+            transform: translateY(-10px);
+            opacity: 0;
+        }
+    }
+    
+    @keyframes slideInDown {
+        from {
+            transform: translateY(-10px);
+            opacity: 0;
+        }
+    }
 
     /* Smooth transitions for all interactive elements */
     .smooth-transition {

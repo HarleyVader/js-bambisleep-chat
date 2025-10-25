@@ -1,22 +1,22 @@
 // text2speech.js - Enhanced Text-to-speech with Kokoro integration and spiral synchronization
 class TextToSpeechSystem {
     constructor() {
-        this.isEnabled = false;
-        this.queue = [];
-        this.textArray = []; // Synchronized text queue for spiral display
-        this.audioArray = []; // Audio URL queue for playback
-        this.isPlaying = false;
-        this.state = true; // TTS state machine for synchronization (true = ready to start)
-        this.audioContext = null;
-        this.currentAudio = null;
-        this.currentText = ''; // Currently playing text (original for display)
-        this.currentTTSText = ''; // Currently playing text (cleaned for TTS)
-        this.currentAudioUrl = null; // Track current blob URL for cleanup
-        this.volume = 0.7;
-        this.speed = 1.0; // Default speed setting
-        this.socket = null;
-        this.useKokoro = true; // Prefer Kokoro over Web Speech API
-        this.currentVoice = 'af_bella'; // Default FEMALE Kokoro voice - BambiSleep is a GIRL!
+        this.isEnabled ??= false;
+        this.queue ??= [];
+        this.textArray ??= []; // Synchronized text queue for spiral display
+        this.audioArray ??= []; // Audio URL queue for playback
+        this.isPlaying ??= false;
+        this.state ??= true; // TTS state machine for synchronization (true = ready to start)
+        this.audioContext ??= null;
+        this.currentAudio ??= null;
+        this.currentText ??= ''; // Currently playing text (original for display)
+        this.currentTTSText ??= ''; // Currently playing text (cleaned for TTS)
+        this.currentAudioUrl ??= null; // Track current blob URL for cleanup
+        this.volume ??= 0.7;
+        this.speed ??= 1.0; // Default speed setting
+        this.socket ??= null;
+        this.useKokoro ??= true; // Prefer Kokoro over Web Speech API
+        this.currentVoice ??= 'af_bella'; // Default FEMALE Kokoro voice - BambiSleep is a GIRL!
 
         // ENHANCED VOICE SELECTION - Integrated from TTS Dropdown
         this.selectedVoices = []; // Track multiple selected voices (max 2)
@@ -62,7 +62,7 @@ class TextToSpeechSystem {
     initSocket() {
         // Multiple attempts to connect to socket
         const tryConnectSocket = () => {
-            if (window.chatCore && window.chatCore.socket) {
+            if (window.chatCore?.socket) {
                 this.socket = window.chatCore.socket;
                 this.setupSocketListeners();
                 console.log('🎤 TTS connected to socket via chatCore');
@@ -709,8 +709,8 @@ class TextToSpeechSystem {
     // Flash text in spiral center (from tts.js)
     flashTrigger(text, duration) {
         // Try to find spiral container or eye element
-        let container = document.getElementById("eye") ||
-            document.getElementById("spiral-container") ||
+        let container = document.getElementById("eye") ??
+            document.getElementById("spiral-container") ??
             document.querySelector("#spiral-container");
 
         if (!container) {

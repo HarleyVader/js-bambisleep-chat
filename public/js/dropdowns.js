@@ -17,8 +17,8 @@ import { StorageUtils } from './storage-utils.js';
 class DropdownManager {
     constructor() {
         console.log('🔧 DropdownManager constructor called');
-        this.activeDropdown = null;
-        this.buttonStates = {
+        this.activeDropdown ??= null;
+        this.buttonStates ??= {
             'toggle-spiral': 'off',
             'toggle-tts': 'off',
             'toggle-triggers': 'off',
@@ -27,7 +27,7 @@ class DropdownManager {
         };
 
         // Initialize component dropdowns
-        this.components = {};
+        this.components ??= {};
         this.init();
     }
 

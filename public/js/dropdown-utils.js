@@ -59,21 +59,36 @@ export class DropdownUtils {
         });
     }
 
-    static toggleDropdown(dropdown) {
+    static async toggleDropdown(dropdown) {
         const content = dropdown.querySelector('.dropdown-content');
         const isActive = dropdown.classList.contains('active');
 
-        // Close all other dropdowns first
-        document.querySelectorAll('.dropdown.active').forEach(activeDropdown => {
-            if (activeDropdown !== dropdown) {
-                this.closeDropdown(activeDropdown);
-            }
-        });
+        // Use View Transitions API for smooth animations (progressive enhancement)
+        const toggleAction = () => {
+            // Close all other dropdowns first
+            document.querySelectorAll('.dropdown.active').forEach(activeDropdown => {
+                if (activeDropdown !== dropdown) {
+                    this.closeDropdown(activeDropdown);
+                }
+            });
 
-        if (isActive) {
-            this.closeDropdown(dropdown);
+            if (isActive) {
+                this.closeDropdown(dropdown);
+            } else {
+                this.openDropdown(dropdown);
+            }
+        };
+
+        // Check for View Transitions API support
+        if ('startViewTransition' in document && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            try {
+                await document.startViewTransition(toggleAction).finished;
+            } catch (error) {
+                console.warn('View Transition failed, falling back to standard animation:', error);
+                toggleAction();
+            }
         } else {
-            this.openDropdown(dropdown);
+            toggleAction();
         }
     }
 
@@ -82,6 +97,9 @@ export class DropdownUtils {
         const button = dropdown.querySelector('.dropdown-btn, .dropdown-button');
 
         if (content && button) {
+            // Set view transition name for smoother animations
+            content.style.viewTransitionName = `dropdown-${dropdown.id || 'content'}`;
+            
             // Activate dropdown FIRST to make content visible for measurement
             dropdown.classList.add('active');
 
@@ -141,6 +159,8 @@ export class DropdownUtils {
             setTimeout(() => {
                 dropdown.classList.remove('active');
                 content.classList.remove('dropdown-leaving');
+                // Clear view transition name
+                content.style.viewTransitionName = '';
             }, 200);
         }
     }

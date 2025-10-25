@@ -11,8 +11,8 @@ class ChatCore {
         this.username = this.generateUsername();
         this.aiMode = false;
         this.collarActive = false;
-        this.activeTriggers = []; // Will be loaded from official triggers.json
-        this.chatEnabled = true; // AIGF chat enabled by default
+        this.activeTriggers ??= []; // Will be loaded from official triggers.json
+        this.chatEnabled ??= true; // AIGF chat enabled by default
 
         // Initialize error management
         this.errorManager = new ErrorManager();
@@ -35,8 +35,8 @@ class ChatCore {
 
             // Extract triggers with category prioritization
             this.activeTriggers = [];
-            this.triggerCategories = data.categories || {};
-            this.allTriggers = []; // Store all available triggers
+            this.triggerCategories = data.categories ?? {};
+            this.allTriggers ??= []; // Store all available triggers
 
             if (data.triggers && Array.isArray(data.triggers)) {
                 // Store all triggers for selector
@@ -87,7 +87,7 @@ class ChatCore {
     // Initialize text effects system
     initTextEffects() {
         // Ensure textEffects is available
-        if (typeof window.textEffects === 'undefined') {
+        if (window.textEffects == null) {
             console.warn('TextEffects not loaded yet, retrying...');
             setTimeout(() => this.initTextEffects(), 100);
             return;
@@ -98,7 +98,7 @@ class ChatCore {
     // Process AI response with custom effects system
     processAIResponse(aiResponse) {
         try {
-            if (typeof window.textEffects !== 'undefined') {
+            if (window.textEffects != null) {
                 // Use custom effects system for enhanced CAPS processing
                 return window.textEffects.processMessage(aiResponse, true);
             } else {
@@ -274,10 +274,10 @@ class ChatCore {
         this.initUI();
         this.initTextEffects();
         this.bindEvents();
-        
+
         // Initialize enhanced dropdown functionality
         DropdownUtils.init();
-        
+
         this.addSystemMessage('Welcome to BambiSleep Chat');
         this.addSystemMessage(`Your username: ${this.username}`);
     }

@@ -119,9 +119,7 @@ class BrainwaveGenerator {
 
     setVolume(level) {
         this.volume = Math.max(0, Math.min(1, level));
-        if (this.gainNode) {
-            this.gainNode.gain.setValueAtTime(this.volume, this.audioContext.currentTime);
-        }
+        this.gainNode?.gain?.setValueAtTime?.(this.volume, this.audioContext.currentTime);
     }
 
     startPreset(presetName) {

@@ -78,8 +78,7 @@ export class CollarDropdown {
     }
 
     async copySettings() {
-        const textarea = document.getElementById('collar-text');
-        const text = textarea ? textarea.value.trim() : '';
+        const text = document.getElementById('collar-text')?.value?.trim() ?? '';
 
         if (text) {
             try {
@@ -113,7 +112,7 @@ export class CollarDropdown {
 
     saveSettings() {
         const textarea = document.getElementById('collar-text');
-        const collarText = textarea ? textarea.value.trim() : '';
+        const collarText = textarea?.value?.trim() ?? '';
 
         if (collarText) {
             this.collarSettings = collarText;
@@ -165,8 +164,7 @@ export class CollarDropdown {
     }
 
     exportSettings() {
-        const textarea = document.getElementById('collar-text');
-        const text = textarea ? textarea.value.trim() : '';
+        const text = document.getElementById('collar-text')?.value?.trim() ?? '';
 
         if (text) {
             const blob = new Blob([text], { type: 'text/plain' });

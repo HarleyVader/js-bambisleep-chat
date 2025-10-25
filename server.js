@@ -346,6 +346,56 @@ const io = new Server(server, {
 // Validate configuration on startup
 const configStatus = validateConfiguration();
 
+// Security Middleware - Content Security Policy
+app.use((req, res, next) => {
+    // Dynamically include external service hosts
+    const kokoroHost = ENV.KOKORO.HOST || 'localhost';
+    const kokoroPort = ENV.KOKORO.PORT || 8880;
+    const lmsHost = ENV.LMS.HOST || 'localhost';
+    const lmsPort = ENV.LMS.PORT || 7777;
+    
+    // Content Security Policy for enhanced security (environment-aware)
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    
+    const baseCspDirectives = [
+        "default-src 'self'",
+        "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
+        "font-src 'self' fonts.gstatic.com",
+        "img-src 'self' data: blob:",
+        "media-src 'self' blob:",
+        `connect-src 'self' ws: wss: http://${kokoroHost}:${kokoroPort} http://${lmsHost}:${lmsPort}`,
+        "worker-src 'self' blob:",
+        "frame-ancestors 'none'",
+        "base-uri 'self'"
+    ];
+    
+    // Development CSP (more permissive for hot reload)
+    if (isDevelopment) {
+        baseCspDirectives.push(
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.socket.io cdn.jsdelivr.net localhost:* ws://localhost:*",
+            `connect-src 'self' ws: wss: http://${kokoroHost}:${kokoroPort} http://${lmsHost}:${lmsPort} ws://localhost:* http://localhost:*`
+        );
+    } else {
+        // Production CSP (stricter)
+        baseCspDirectives.push(
+            "script-src 'self' 'unsafe-inline' cdn.socket.io cdn.jsdelivr.net"
+        );
+    }
+    
+    const cspDirectives = baseCspDirectives.join('; ');
+
+    res.setHeader('Content-Security-Policy', cspDirectives);
+    
+    // Additional security headers
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'microphone=(), camera=(), geolocation=(), payment=()');
+    
+    next();
+});
+
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
