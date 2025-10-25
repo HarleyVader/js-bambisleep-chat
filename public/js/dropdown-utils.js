@@ -82,32 +82,39 @@ export class DropdownUtils {
         const button = dropdown.querySelector('.dropdown-btn, .dropdown-button');
 
         if (content && button) {
-            // Position dropdown relative to button (since dropdown-content is now position: fixed)
-            const buttonRect = button.getBoundingClientRect();
-            content.style.top = `${buttonRect.bottom + 4}px`;
-            content.style.left = `${buttonRect.left}px`;
+            // Activate dropdown FIRST to make content visible for measurement
+            dropdown.classList.add('active');
             
-            // Adjust if dropdown would go off-screen
+            // Force reflow to ensure content is rendered
+            content.offsetHeight;
+            
+            // Now position dropdown relative to button (since dropdown-content is now position: fixed)
+            const buttonRect = button.getBoundingClientRect();
             const contentRect = content.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
             
+            // Calculate initial position
+            let top = buttonRect.bottom + 4;
+            let left = buttonRect.left;
+
             // Adjust horizontal position if off-screen
-            if (contentRect.right > viewportWidth) {
-                content.style.left = `${viewportWidth - contentRect.width - 10}px`;
+            if (left + contentRect.width > viewportWidth) {
+                left = Math.max(10, viewportWidth - contentRect.width - 10);
+            }
+
+            // Adjust vertical position if off-screen (show above button instead)
+            if (top + contentRect.height > viewportHeight) {
+                top = Math.max(10, buttonRect.top - contentRect.height - 4);
             }
             
-            // Adjust vertical position if off-screen
-            if (contentRect.bottom > viewportHeight) {
-                content.style.top = `${buttonRect.top - contentRect.height - 4}px`;
-            }
+            // Apply final position
+            content.style.top = `${top}px`;
+            content.style.left = `${left}px`;
 
             // Add entering animation
             content.classList.add('dropdown-entering');
             content.classList.remove('dropdown-leaving');
-
-            // Activate dropdown
-            dropdown.classList.add('active');
 
             // Remove entering animation after completion
             setTimeout(() => {
@@ -207,37 +214,37 @@ export class DropdownUtils {
                 }
             });
         });
-        
+
         // Reposition dropdowns on scroll and resize
         window.addEventListener('scroll', () => {
             this.repositionActiveDropdowns();
         }, { passive: true });
-        
+
         window.addEventListener('resize', () => {
             this.repositionActiveDropdowns();
         });
     }
-    
+
     static repositionActiveDropdowns() {
         const activeDropdowns = document.querySelectorAll('.dropdown.active');
         activeDropdowns.forEach(dropdown => {
             const content = dropdown.querySelector('.dropdown-content');
             const button = dropdown.querySelector('.dropdown-btn, .dropdown-button');
-            
+
             if (content && button) {
                 const buttonRect = button.getBoundingClientRect();
                 content.style.top = `${buttonRect.bottom + 4}px`;
                 content.style.left = `${buttonRect.left}px`;
-                
+
                 // Adjust if dropdown would go off-screen
                 const contentRect = content.getBoundingClientRect();
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
-                
+
                 if (contentRect.right > viewportWidth) {
                     content.style.left = `${viewportWidth - contentRect.width - 10}px`;
                 }
-                
+
                 if (contentRect.bottom > viewportHeight) {
                     content.style.top = `${buttonRect.top - contentRect.height - 4}px`;
                 }
