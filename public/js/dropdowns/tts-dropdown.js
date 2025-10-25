@@ -544,6 +544,63 @@ export class TTSDropdown {
             ttsSystem.speak('TTS test successful');
         }
     }
+
+    /**
+     * Cleanup method for proper memory management
+     * Removes event listeners and clears references
+     */
+    cleanup() {
+        console.log('🧹 Cleaning up TTS dropdown...');
+
+        // Remove event listeners
+        const button = document.getElementById(this.buttonId);
+        if (button) {
+            // Clone and replace to remove all event listeners
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+        }
+
+        // Remove custom event listeners
+        document.removeEventListener('componentStateChange', this.handleStateChange);
+        document.removeEventListener('dropdownAction', this.handleAction);
+
+        // Clear TTS system references
+        if (window.text2speech) {
+            window.text2speech.removeEventListener?.('voiceChange', this.handleVoiceChange);
+            window.text2speech.removeEventListener?.('enabledChange', this.handleEnabledChange);
+        }
+
+        // Clear component state
+        this.dropdownManager.resetComponentState(this.componentName);
+
+        // Clear DOM references
+        this.button = null;
+        this.dropdown = null;
+        this.dropdownManager = null;
+
+        console.log('✅ TTS dropdown cleanup complete');
+    }
+
+    /**
+     * Remove specific event listeners
+     */
+    removeEventListeners() {
+        // Remove document-level listeners
+        document.removeEventListener('componentStateChange', this.handleStateChange);
+        document.removeEventListener('dropdownAction', this.handleAction);
+
+        // Remove TTS system listeners
+        if (window.text2speech) {
+            window.text2speech.removeEventListener?.('voiceChange', this.handleVoiceChange);
+            window.text2speech.removeEventListener?.('enabledChange', this.handleEnabledChange);
+        }
+
+        // Remove button listeners (if bound)
+        const button = document.getElementById(this.buttonId);
+        if (button && this.boundClickHandler) {
+            button.removeEventListener('click', this.boundClickHandler);
+        }
+    }
 }
 
 // Make diagnostic function available globally for easy access

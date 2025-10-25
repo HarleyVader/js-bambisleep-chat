@@ -1,20 +1,27 @@
-# BambiSleep Chat - Testing System
+# BambiSleep Chat - Unified Testing System v2.0
 
 ## Overview
 
-Comprehensive testing system that validates:
+Modern, centralized testing framework that validates:
 - ✅ Environment setup & dependencies
+- ✅ Architecture & code quality
 - ✅ Server stability & load handling
-- ✅ Resource usage (CPU, memory, network)
+- ✅ Performance benchmarks & regression detection
 
 ## Quick Start
 
 ```bash
-# Run all tests
+# Run all tests with unified framework
 npm test
+
+# Run specific test categories
+npm run test:critical       # Critical system tests
+npm run test:architecture   # Architecture validation
+npm run test:performance    # Performance benchmarks
+npm run test:stability      # Server stability tests
 ```
 
-Tests generate detailed reports in `tests/reports/`.
+Tests generate comprehensive reports in `tests/reports/`.
 
 ## Test Details
 

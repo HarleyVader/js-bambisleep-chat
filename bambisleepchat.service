@@ -1,24 +1,70 @@
 [Unit]
-Description=Bambisleep.chat Node.js File Host
+Description=BambiSleep Chat - Enterprise Real-time Chat Application v0.3.0 (Node.js 20+ LTS)
 Documentation=https://bambisleep.chat
-After=network.target
+After=network.target network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
 
 [Service]
 Type=simple
 User=brandynette
 Group=brandynette
 WorkingDirectory=/home/brandynette/web/bambisleep.chat/js-bambisleep-chat
-ExecStartPre=/usr/bin/npm run build
+
+# Pre-startup validation and preparation (Node.js >=20.0.0 required)
+# Validates package.json engines: node>=20.0.0, npm>=10.0.0, pnpm>=8.0.0
+# Uses package.json health-check script: test:critical + security audit
+ExecStartPre=/usr/bin/test -f package.json
+ExecStartPre=/usr/bin/test -f server.js
+ExecStartPre=/usr/bin/test -d config
+ExecStartPre=/usr/bin/node --version
+ExecStartPre=/usr/bin/npm --version
+ExecStartPre=/usr/bin/npm ci --production --audit=false
+ExecStartPre=/usr/bin/npm run health-check
+
+# Main application startup
 ExecStart=/usr/bin/node server.js
+
+# Graceful shutdown
+ExecStop=/bin/kill -SIGTERM $MAINPID
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Restart configuration
 Restart=always
-RestartSec=5
+RestartSec=10
+RestartPreventExitStatus=0
+
+# Logging and monitoring
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=bambisleep-chat
+
+# Production environment configuration (Node.js 20+ LTS)
 Environment=NODE_ENV=production
 Environment=PORT=7878
+Environment=NODE_OPTIONS=--max-old-space-size=1536
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 Environment=HOME=/home/brandynette
+
+# Security and performance settings
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/brandynette/web/bambisleep.chat/js-bambisleep-chat
+WorkingDirectory=/home/brandynette/web/bambisleep.chat/js-bambisleep-chat
+
+# Resource limits (adjust based on server capacity)
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryMax=2G
+CPUWeight=100
+
+# Health monitoring
+WatchdogSec=30
 
 [Install]
 WantedBy=multi-user.target

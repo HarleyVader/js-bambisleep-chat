@@ -10,6 +10,7 @@ import {
     TriggersDropdown,
     AIDropdown,
     CollarDropdown,
+    BrainwaveDropdown,
     createBrainwaveDropdown
 } from './dropdowns/index.js';
 
@@ -476,8 +477,9 @@ class DropdownManager {
             this.components.triggers = new TriggersDropdown(this);
             this.components.ai = new AIDropdown(this);
             this.components.collar = new CollarDropdown(this);
+            this.components.brainwave = new BrainwaveDropdown(this);
 
-            // Initialize brainwave dropdown (functional component)
+            // Legacy brainwave dropdown fallback if needed
             this.initializeBrainwaveDropdown();
         } catch (error) {
             console.error('❌ Error initializing dropdown components:', error);
@@ -486,13 +488,15 @@ class DropdownManager {
 
     initializeBrainwaveDropdown() {
         try {
+            // Legacy fallback - only create if container exists and no modern brainwave component
             const container = document.getElementById('brainwave-dropdown-container');
-            if (container) {
+            if (container && !this.components.brainwave) {
+                console.warn('⚠️ Using legacy brainwave dropdown - consider updating HTML to use modern component');
                 const brainwaveDropdown = createBrainwaveDropdown();
                 container.appendChild(brainwaveDropdown);
             }
         } catch (error) {
-            console.error('❌ Error initializing brainwave dropdown:', error);
+            console.error('❌ Error initializing legacy brainwave dropdown:', error);
         }
     }
 

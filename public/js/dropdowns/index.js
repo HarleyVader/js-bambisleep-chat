@@ -8,4 +8,4 @@ export { TTSDropdown } from './tts-dropdown.js';
 export { TriggersDropdown } from './triggers-dropdown.js';
 export { AIDropdown } from './ai-dropdown.js';
 export { CollarDropdown } from './collar-dropdown.js';
-export { createBrainwaveDropdown } from './brainwave-dropdown.js';
+export { BrainwaveDropdown, createBrainwaveDropdown } from './brainwave-dropdown.js';

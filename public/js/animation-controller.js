@@ -146,8 +146,15 @@ class AnimationController {
             }
         };
 
-        // Automatic cleanup after duration + buffer
-        setTimeout(cleanup, duration + 100);
+        // Automatic cleanup after duration + buffer - track timeout for cleanup
+        const timeoutId = setTimeout(cleanup, duration + 100);
+
+        // Store timeout ID for proper cleanup
+        if (this.activeAnimations.has(id)) {
+            const animation = this.activeAnimations.get(id);
+            animation.timeoutId = timeoutId;
+            this.activeAnimations.set(id, animation);
+        }
 
         console.log(`🎬 Animation ${id} started (priority: ${animationRequest.priority})`);
     }
@@ -390,6 +397,72 @@ class AnimationController {
         this.animationQueue.length = 0;
 
         console.log('🚨 All animations cleared');
+    }
+
+    /**
+     * Cleanup method for proper memory management
+     * Cancels all active animations and clears timers
+     */
+    cleanup() {
+        console.log('🧹 Cleaning up Animation Controller...');
+
+        // Cancel all active animations with proper cleanup
+        this.activeAnimations.forEach((animation, id) => {
+            const { element, timeoutId, animationFrameId } = animation;
+
+            // Clear any timeouts
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            // Cancel any animation frames
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            // Reset element styles
+            if (element) {
+                element.style.animation = '';
+                element.classList.remove('dropdown-entering', 'dropdown-leaving');
+            }
+        });
+
+        // Clear all data structures
+        this.activeAnimations.clear();
+        this.animationQueue.length = 0;
+
+        console.log('✅ Animation Controller cleanup complete');
+    }
+
+    /**
+     * Enhanced cancel animation with proper cleanup
+     */
+    cancelAnimationFrame(id) {
+        const animation = this.activeAnimations.get(id);
+        if (animation) {
+            // Clear timeout if exists
+            if (animation.timeoutId) {
+                clearTimeout(animation.timeoutId);
+            }
+
+            // Cancel animation frame if exists
+            if (animation.animationFrameId) {
+                cancelAnimationFrame(animation.animationFrameId);
+            }
+
+            // Reset element
+            if (animation.element) {
+                animation.element.style.animation = '';
+                animation.element.classList.remove('dropdown-entering', 'dropdown-leaving');
+            }
+
+            // Remove from active animations
+            this.activeAnimations.delete(id);
+
+            console.log(`🚫 Animation ${id} cancelled with cleanup`);
+            return true;
+        }
+        return false;
     }
 }
 
