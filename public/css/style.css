@@ -101,28 +101,30 @@ body {
     position: relative;
 }
 
-/* Chat Container - Left Side */
-#chat-container {
-    position: relative;
-    width: 30vw;
-    /* Use viewport width, max 30% */
-    max-width: 30vw;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    background: rgba(12, 42, 42, 0.6);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    flex-shrink: 0;
-    /* Prevent shrinking */
-    order: 1;
-    /* Ensure it comes first */
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-        opacity 0.4s ease;
+@layer background {
+    /* Chat Container - Left Side */
+    #chat-container {
+        position: relative;
+        width: 30vw;
+        /* Use viewport width, max 30% */
+        max-width: 30vw;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background: rgba(12, 42, 42, 0.6);
+        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        flex-shrink: 0;
+        /* Prevent shrinking */
+        order: 1;
+        /* Ensure it comes first */
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 0.4s ease;
+    }
 }
 
 /* Spiral Animation Container - Right Side */
@@ -1001,15 +1003,39 @@ body {
 
 
 
-/* Chat Container Animation States */
-#chat-container.chat-visible {
-    transform: translateX(0);
-    opacity: 1;
-}
+@layer background {
+    /* Chat Container Animation States */
+    #chat-container.chat-visible {
+        transform: translateX(0);
+        opacity: 1;
+    }
 
-#chat-container.chat-hidden {
-    transform: translateX(-100%);
-    opacity: 0;
+    #chat-container.chat-hidden {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+
+    /* Documentation Container - Reuses chat container layout */
+    #chat-container.docs-container {
+        width: 100vw;
+        max-width: 100vw;
+        display: grid;
+        grid-template-columns: 25% 75%;
+        grid-template-rows: auto 1fr;
+        grid-template-areas:
+            "header header"
+            "sidebar content";
+        gap: 0;
+        height: 100vh;
+        background: rgba(12, 42, 42, 0.6);
+        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        margin: 0;
+        padding: 0;
+    }
 }
 
 /* Spiral Container Animation States */
@@ -1105,18 +1131,6 @@ body {
 /* ============================================================================
    DOCUMENTATION SYSTEM STYLING
    ============================================================================ */
-
-/* Documentation Container - Reuses chat container layout */
-#chat-container.docs-container {
-    width: 100vw;
-    max-width: 100vw;
-    display: grid;
-    grid-template-columns: 25% 75%;
-    grid-template-rows: auto 1fr;
-    grid-template-areas:
-        "header header"
-        "sidebar content";
-}
 
 /* Documentation Header */
 .docs-container #chat-header {
