@@ -4,18 +4,17 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const { Worker } = require('worker_threads');
-const dotenv = require('dotenv');
 const path = require('path');
 
-// Load environment variables
-dotenv.config();
+// Centralized environment configuration
+const ENV = require('./config/env');
 
-// TTS Configuration
+// Legacy config object for backward compatibility
 const config = {
-    KOKORO_API_URL: process.env.KOKORO_API_URL || `http://${process.env.KOKORO_HOST_DEVELOPMENT || process.env.KOKORO_HOST_PRODUCTION || 'localhost'}:${process.env.KOKORO_PORT || 8880}`,
-    KOKORO_API_KEY: process.env.KOKORO_API_KEY,
-    KOKORO_DEFAULT_VOICE: process.env.KOKORO_DEFAULT_VOICE || 'af_sky+af_bella',
-    TTS_TIMEOUT: parseInt(process.env.TTS_TIMEOUT) || 30000
+    KOKORO_API_URL: ENV.KOKORO.URL,
+    KOKORO_API_KEY: ENV.KOKORO.API_KEY,
+    KOKORO_DEFAULT_VOICE: ENV.KOKORO.DEFAULT_VOICE,
+    TTS_TIMEOUT: ENV.KOKORO.TIMEOUT
 };
 
 // Comprehensive Environment Variable Validation System
@@ -302,16 +301,36 @@ class EnvironmentValidator {
 
 // Configuration validation function (maintaining compatibility)
 function validateConfiguration() {
-    const validator = new EnvironmentValidator();
-    const result = validator.validate();
-
-    // Log final summary
-    console.log('\n📊 Configuration Summary:');
-    console.log(`   🔧 Services Available:`);
-    console.log(`      • LM Studio AI: ${result.servicesAvailable.lmStudio ? '✅' : '❌'}`);
-    console.log(`      • Kokoro TTS: ${result.servicesAvailable.kokoro ? '✅' : '❌'}`);
-    console.log(`   📈 Status: ${result.errorCount} errors, ${result.warningCount} warnings\n`);
-
+    // Use centralized environment validation
+    const validationResults = ENV.validation.validateAll();
+    
+    // Print configuration summary
+    ENV.printSummary();
+    
+    const result = {
+        ttsAvailable: validationResults.kokoro.configured,
+        lmStudioConfigured: validationResults.lms.configured,
+        servicesAvailable: {
+            lmStudio: validationResults.lms.configured,
+            kokoro: validationResults.kokoro.configured
+        },
+        warnings: [],
+        errors: [],
+        errorCount: 0,
+        warningCount: 0
+    };
+    
+    // Add warnings for missing services
+    if (!validationResults.lms.configured) {
+        result.warnings.push('LM Studio not configured - AI chat will be unavailable');
+        result.warningCount++;
+    }
+    
+    if (!validationResults.kokoro.configured) {
+        result.warnings.push('Kokoro TTS not configured - voice features will be unavailable');
+        result.warningCount++;
+    }
+    
     return result;
 }
 
@@ -1806,10 +1825,11 @@ process.on('SIGINT', () => {
 });
 
 // Start server
-const PORT = process.env.PORT || 6969;
+const PORT = ENV.SERVER.PORT;
 server.listen(PORT, () => {
     console.log(`🚀 BambiSleep Chat server running on http://localhost:${PORT}`);
     console.log(`📁 Serving static files from: ${path.join(__dirname, 'public')}`);
-    console.log(`🎯 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🎯 Environment: ${ENV.NODE_ENV}`);
+    console.log(`⚡ Vite Dev: http://localhost:${ENV.SERVER.VITE_PORT}`);
     console.log(`🧹 Memory management: Active`);
 });

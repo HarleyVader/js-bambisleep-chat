@@ -2,10 +2,7 @@
 const { parentPort } = require('worker_threads');
 const axios = require('axios');
 const http = require('http');
-const dotenv = require('dotenv');
-
-// Load environment variables
-dotenv.config();
+const ENV = require('../config/env');
 
 // LM Studio Configuration Class with Graceful Degradation
 class LMStudioConfig {
@@ -23,51 +20,25 @@ class LMStudioConfig {
     }
 
     loadConfiguration() {
-        const requiredEnvVars = [
-            'LMS_HOST_PRODUCTION', 'LMS_HOST_DEVELOPMENT', 'LMS_PORT',
-            'TARGET_MODEL_NAME', 'MAX_SEARCH_ATTEMPTS',
-            'LMS_MODEL_LOAD_TIMEOUT', 'LMS_API_CALL_TIMEOUT', 'LMS_REST_API_TIMEOUT',
-            'SESSION_TIMEOUT_MINUTES', 'MAX_CONTEXT_TOKENS', 'MAX_COMPLETION_TOKENS'
-        ];
-
-        const missing = requiredEnvVars.filter(varName => !process.env[varName]);
-
-        if (missing.length > 0) {
-            throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+        // Use centralized ENV configuration
+        if (!ENV.LMS.isConfigured) {
+            throw new Error(`LM Studio not configured for ${ENV.NODE_ENV} environment`);
         }
 
-        // Set configuration with validation
-        this.LMS_HOST = process.env.NODE_ENV === 'production'
-            ? process.env.LMS_HOST_PRODUCTION
-            : process.env.LMS_HOST_DEVELOPMENT;
-        this.LMS_PORT = process.env.LMS_PORT;
-        this.TARGET_MODEL_NAME = process.env.TARGET_MODEL_NAME;
-        this.MAX_SEARCH_ATTEMPTS = parseInt(process.env.MAX_SEARCH_ATTEMPTS);
-        this.LMS_MODEL_LOAD_TIMEOUT = parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT);
-        this.LMS_API_CALL_TIMEOUT = parseInt(process.env.LMS_API_CALL_TIMEOUT);
-        this.LMS_REST_API_TIMEOUT = parseInt(process.env.LMS_REST_API_TIMEOUT);
-        this.SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT_MINUTES) * 60 * 1000;
-        this.MAX_CONTEXT_TOKENS = parseInt(process.env.MAX_CONTEXT_TOKENS);
-        this.MAX_COMPLETION_TOKENS = parseInt(process.env.MAX_COMPLETION_TOKENS);
-
-        // Validate numeric values
-        const numericValues = [
-            { name: 'MAX_SEARCH_ATTEMPTS', value: this.MAX_SEARCH_ATTEMPTS },
-            { name: 'LMS_MODEL_LOAD_TIMEOUT', value: this.LMS_MODEL_LOAD_TIMEOUT },
-            { name: 'LMS_API_CALL_TIMEOUT', value: this.LMS_API_CALL_TIMEOUT },
-            { name: 'LMS_REST_API_TIMEOUT', value: this.LMS_REST_API_TIMEOUT },
-            { name: 'MAX_CONTEXT_TOKENS', value: this.MAX_CONTEXT_TOKENS },
-            { name: 'MAX_COMPLETION_TOKENS', value: this.MAX_COMPLETION_TOKENS }
-        ];
-
-        for (const { name, value } of numericValues) {
-            if (isNaN(value) || value <= 0) {
-                this.warnings.push(`Invalid numeric value for ${name}: ${value}`);
-            }
-        }
+        // Set configuration from centralized ENV
+        this.LMS_HOST = ENV.LMS.HOST;
+        this.LMS_PORT = ENV.LMS.PORT;
+        this.TARGET_MODEL_NAME = ENV.LMS.TARGET_MODEL_NAME;
+        this.MAX_SEARCH_ATTEMPTS = ENV.LMS.MAX_SEARCH_ATTEMPTS;
+        this.LMS_MODEL_LOAD_TIMEOUT = ENV.LMS.MODEL_LOAD_TIMEOUT;
+        this.LMS_API_CALL_TIMEOUT = ENV.LMS.API_CALL_TIMEOUT;
+        this.LMS_REST_API_TIMEOUT = ENV.LMS.REST_API_TIMEOUT;
+        this.SESSION_TIMEOUT = ENV.LMS.SESSION_TIMEOUT_MINUTES * 60 * 1000;
+        this.MAX_CONTEXT_TOKENS = ENV.LMS.MAX_CONTEXT_TOKENS;
+        this.MAX_COMPLETION_TOKENS = ENV.LMS.MAX_COMPLETION_TOKENS;
 
         this.isConfigured = true;
-        console.log('✅ LM Studio configured for', process.env.NODE_ENV, 'environment');
+        console.log('✅ LM Studio configured for', ENV.NODE_ENV, 'environment');
     }
 
     getStatus() {

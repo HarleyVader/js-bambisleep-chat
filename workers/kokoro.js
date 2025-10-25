@@ -1,13 +1,11 @@
 // workers/kokoro.js
 // Kokoro TTS Worker - Handles text-to-speech via Kokoro-FastAPI
 const { parentPort } = require('worker_threads');
+const ENV = require('../config/env');
 // Note: Using Node's native fetch API (available in Node 18+)
 
 class KokoroTTSWorker {
     constructor() {
-        // Load environment variables
-        require('dotenv').config();
-
         this.isHealthy = false;
         this.fallbackMode = false;
         this.outputFormat = 'mp3';
@@ -25,18 +23,12 @@ class KokoroTTSWorker {
     }
 
     initializeKokoroConfig() {
-        const kokoroHost = process.env.NODE_ENV === 'production'
-            ? process.env.KOKORO_HOST_PRODUCTION
-            : process.env.KOKORO_HOST_DEVELOPMENT;
-
-        if (!kokoroHost) {
-            throw new Error(`Missing Kokoro host config for ${process.env.NODE_ENV} environment`);
+        if (!ENV.KOKORO.isConfigured) {
+            throw new Error(`Missing Kokoro host config for ${ENV.NODE_ENV} environment`);
         }
 
-        const kokoroPort = process.env.KOKORO_PORT || '8880';
-        this.defaultVoice = process.env.KOKORO_DEFAULT_VOICE || 'af_bella';
-
-        this.kokoroUrl = `http://${kokoroHost}:${kokoroPort}`;
+        this.kokoroUrl = ENV.KOKORO.URL;
+        this.defaultVoice = ENV.KOKORO.DEFAULT_VOICE;
         this.isHealthy = true;
 
         console.log('✅ Kokoro TTS configured:', this.kokoroUrl);
