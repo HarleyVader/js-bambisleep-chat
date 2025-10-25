@@ -29,7 +29,6 @@ class BrainwaveGenerator {
         try {
             // Initialize Web Audio API
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            console.log('🧠 BrainwaveGenerator initialized');
         } catch (error) {
             console.error('❌ Failed to initialize Web Audio API:', error);
         }

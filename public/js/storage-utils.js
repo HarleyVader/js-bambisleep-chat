@@ -13,8 +13,6 @@ class StorageUtils {
         this._originalSetItem = localStorage.setItem.bind(localStorage);
         this._originalGetItem = localStorage.getItem.bind(localStorage);
         this._originalRemoveItem = localStorage.removeItem.bind(localStorage);
-
-        console.log('🛡️ StorageUtils initialized with protection against external interference');
     }
     /**
      * Safely set an item in localStorage with proper JSON serialization

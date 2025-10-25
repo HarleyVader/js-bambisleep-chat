@@ -58,10 +58,7 @@ class ChatCore {
                 }
             }
 
-            console.log('🎯 Loaded OFFICIAL active triggers:', this.activeTriggers);
-            console.log('📋 Source:', data.source, '| Version:', data.version);
-            console.log('🏷️ Available categories:', Object.keys(this.triggerCategories));
-            console.log('⚡ Total triggers available:', this.allTriggers.length);
+            console.log('🎯 Loaded', this.activeTriggers.length, 'active triggers and', this.allTriggers.length, 'total triggers');
 
         } catch (error) {
             this.errorManager.reportError('api', 'triggers_load_failed', {
@@ -86,7 +83,6 @@ class ChatCore {
             setTimeout(() => this.initTextEffects(), 100);
             return;
         }
-        console.log('TextEffects system initialized');
     }
 
     // Process AI response with custom effects system
@@ -311,7 +307,6 @@ class ChatCore {
         this.socket.on('connect', () => {
             this.isConnected = true;
             this.addSystemMessage('Connected to server');
-            console.log('🌸 AIGF Socket connected with ID:', this.socket.id);
 
             // Send initial triggers to worker
             this.updateTriggers();
@@ -319,16 +314,12 @@ class ChatCore {
             // Initialize global chat manager separately (independent system)
             if (typeof GlobalChatManager !== 'undefined' && !window.globalChatManager) {
                 window.globalChatManager = new GlobalChatManager(this.socket);
-                console.log('💬 Global chat manager initialized independently');
             }
-
-            console.log('Connected to server');
         });
 
         this.socket.on('disconnect', () => {
             this.isConnected = false;
             this.addSystemMessage('Disconnected from server');
-            console.log('🌸 AIGF Socket disconnected');
 
             // Clean up global reference
             if (window.globalSocket === this.socket) {

@@ -16,7 +16,6 @@ import { StorageUtils } from './storage-utils.js';
 
 class DropdownManager {
     constructor() {
-        console.log('🔧 DropdownManager constructor called');
         this.activeDropdown ??= null;
         this.buttonStates ??= {
             'toggle-spiral': 'off',
@@ -32,12 +31,9 @@ class DropdownManager {
     }
 
     init() {
-        console.log('⚙️ DropdownManager init started');
-
         // Initialize StorageUtils protection
         try {
             StorageUtils.init();
-            console.log('🛡️ StorageUtils protection initialized');
         } catch (error) {
             console.error('❌ Error initializing StorageUtils protection:', error);
         }
@@ -45,7 +41,6 @@ class DropdownManager {
         // Clean up any invalid localStorage entries on startup
         try {
             StorageUtils.cleanupInvalidEntries();
-            console.log('🧹 localStorage cleanup completed');
         } catch (error) {
             console.error('❌ Error during localStorage cleanup:', error);
         }
@@ -57,13 +52,9 @@ class DropdownManager {
         // Initialize dropdowns and components
         this.initializeDropdowns();
         this.initializeComponents();
-
-        console.log('✅ DropdownManager init completed');
     }
 
     initializeComponents() {
-        console.log('🔧 Initializing dropdown components...');
-
         try {
             // Initialize each dropdown component
             this.components.spiral = new SpiralDropdown(this);
@@ -74,8 +65,6 @@ class DropdownManager {
 
             // Initialize brainwave dropdown (functional component)
             this.initializeBrainwaveDropdown();
-
-            console.log('✅ All dropdown components initialized');
         } catch (error) {
             console.error('❌ Error initializing dropdown components:', error);
         }
@@ -87,7 +76,6 @@ class DropdownManager {
             if (container) {
                 const brainwaveDropdown = createBrainwaveDropdown();
                 container.appendChild(brainwaveDropdown);
-                console.log('🧠 Brainwave dropdown initialized');
             }
         } catch (error) {
             console.error('❌ Error initializing brainwave dropdown:', error);
@@ -440,41 +428,9 @@ if (!existingStyle) {
 
 // Initialize dropdown manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 DOM loaded, initializing DropdownManager...');
-
     try {
         window.dropdownManager = new DropdownManager();
-
-        // Add a short delay to allow all scripts to fully initialize
-        setTimeout(() => {
-            console.log('🔍 Checking component availability...');
-
-            Object.keys(window.dropdownManager.components).forEach(componentName => {
-                const component = window.dropdownManager.components[componentName];
-                if (component) {
-                    console.log(`✅ ${componentName} component available`);
-
-                    // Test component method availability
-                    if (component.getDropdownContent) {
-                        console.log(`  ✓ ${componentName}.getDropdownContent() available`);
-                    } else {
-                        console.warn(`  ⚠️ ${componentName}.getDropdownContent() missing`);
-                    }
-                } else {
-                    console.warn(`⚠️ ${componentName} component not available`);
-                }
-            });
-
-            // Test dropdown content generation
-            console.log('🧪 Testing dropdown content generation...');
-            const testDropdown = document.querySelector('.dropdown');
-            if (testDropdown) {
-                window.dropdownManager.populateDropdownContent(testDropdown);
-                console.log('✓ Test dropdown content generation completed');
-            }
-        }, 1000);
-
-        console.log('✅ DropdownManager initialization complete');
+        console.log('✅ DropdownManager initialized');
     } catch (error) {
         console.error('❌ Failed to initialize DropdownManager:', error);
     }

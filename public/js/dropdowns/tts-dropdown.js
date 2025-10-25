@@ -16,40 +16,17 @@ export class TTSDropdown {
     }
 
     init() {
-        console.log('🔊 Initializing TTS Dropdown...');
         this.setupEventListeners();
         this.setupToggleHandling();
         this.loadSavedState();
 
-        // Schedule multiple retry syncs to ensure state is properly synchronized
-        // First retry after 500ms (quick)
+        // Schedule sync after TTS system is ready
         setTimeout(() => {
             const ttsSystem = this.getTTSSystem();
             if (ttsSystem) {
-                console.log('🔄 First TTS state sync attempt (500ms)');
-                this.syncButtonStateWithTTSSystem(ttsSystem);
-            }
-        }, 500);
-
-        // Second retry after 1 second (standard)
-        setTimeout(() => {
-            const ttsSystem = this.getTTSSystem();
-            if (ttsSystem) {
-                console.log('🔄 Second TTS state sync attempt (1000ms)');
                 this.syncButtonStateWithTTSSystem(ttsSystem);
             }
         }, 1000);
-
-        // Final retry after 2 seconds (backup)
-        setTimeout(() => {
-            const ttsSystem = this.getTTSSystem();
-            if (ttsSystem) {
-                console.log('🔄 Final TTS state sync attempt (2000ms)');
-                this.syncButtonStateWithTTSSystem(ttsSystem);
-            } else {
-                console.error('❌ TTS system still not available after 2 seconds');
-            }
-        }, 2000);
     }
 
     loadSavedState() {
@@ -63,7 +40,6 @@ export class TTSDropdown {
             try {
                 // savedState is already parsed by StorageUtils
                 this.setState(savedState);
-                console.log('📋 Loading saved TTS dropdown state:', savedState);
             } catch (e) {
                 console.warn('⚠️ Failed to load TTS state:', e);
             }
@@ -90,8 +66,6 @@ export class TTSDropdown {
 
             // CRITICAL: Sync button state with TTS system's actual enabled state
             this.syncButtonStateWithTTSSystem(ttsSystem);
-
-            console.log('🔗 Synced dropdown state with TTS system');
         }
     }
 
@@ -395,15 +369,7 @@ export class TTSDropdown {
         const targetState = actualTTSState ? 'on' : 'off';
         const currentButtonState = ttsButton.getAttribute('data-state');
 
-        // ALWAYS log the current states for debugging
-        console.log(`🔍 TTS State Check:`, {
-            'TTS System Enabled': actualTTSState,
-            'Button Current State': currentButtonState,
-            'Target State': targetState,
-            'Needs Update': currentButtonState !== targetState
-        });
-
-        // Update button state regardless of current state to ensure consistency
+        // Update button state to match TTS system
         ttsButton.setAttribute('data-state', targetState);
         ttsButton.textContent = `TTS: ${targetState.toUpperCase()}`;
 
@@ -415,8 +381,6 @@ export class TTSDropdown {
             ttsButton.classList.add('tts-disabled');
             ttsButton.classList.remove('tts-enabled');
         }
-
-        console.log(`✅ TTS button state synced with TTS system (enabled: ${actualTTSState})`);
     } getDropdownContent() {
         return '<div class="tts-config">' +
             '<div class="control-section">' +

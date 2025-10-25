@@ -39,12 +39,10 @@ export class SpiralDropdown {
     }
 
     init() {
-        console.log('🌀 Initializing Spiral Dropdown with Sliders...');
         const savedSettings = this.loadSettings();
 
         // If no saved settings or settings are incomplete, initialize with defaults
         if (Object.keys(savedSettings).length === 0) {
-            console.log('🔧 No saved settings found, initializing with defaults');
             this.initializeDefaults();
         }
 
@@ -95,7 +93,6 @@ export class SpiralDropdown {
         });
 
         localStorage.setItem('spiralSettings', JSON.stringify(settings));
-        console.log('💾 Spiral settings saved:', settings);
     }
 
     loadSettings() {
@@ -103,7 +100,6 @@ export class SpiralDropdown {
         if (saved) {
             try {
                 const settings = JSON.parse(saved);
-                console.log('📥 Loading spiral settings:', settings);
 
                 // Apply settings after DOM is ready
                 setTimeout(() => {

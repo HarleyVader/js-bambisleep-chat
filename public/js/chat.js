@@ -20,7 +20,6 @@ class GlobalChatManager {
     }
 
     init() {
-        console.log('💬 Initializing Global Chat Manager...');
         this.setupEventListeners();
         this.setupSocketHandlers();
         this.bindInputEvents();
@@ -68,12 +67,10 @@ class GlobalChatManager {
         // Listen for connection status changes
         document.addEventListener('socketConnected', () => {
             this.isConnected = true;
-            console.log('💬 Global chat connected to server');
         });
 
         document.addEventListener('socketDisconnected', () => {
             this.isConnected = false;
-            console.log('💬 Global chat disconnected from server');
         });
     }
 
@@ -85,7 +82,6 @@ class GlobalChatManager {
 
         // Handle global chat history
         this.socket.on('global-chat-history', (messages) => {
-            console.log('💬 Received global chat history:', messages.length, 'messages');
             this.clearGlobalChatHistory();
 
             messages.forEach(msg => {

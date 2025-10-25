@@ -74,7 +74,6 @@ class TextToSpeechSystem {
                 try {
                     this.socket = window.io();
                     this.setupSocketListeners();
-                    console.log('🎤 TTS connected to socket directly');
                     return true;
                 } catch (error) {
                     console.warn('🎤 Direct socket connection failed:', error);
@@ -116,11 +115,8 @@ class TextToSpeechSystem {
             return;
         }
 
-        console.log('🎤 Setting up TTS socket listeners');
-
         // Listen for TTS responses from Kokoro
         this.socket.on('tts-response', (data) => {
-            console.log('🎤 Received TTS response:', data?.size || 'unknown size');
             this.handleKokoroResponse(data);
         });
 
@@ -140,7 +136,7 @@ class TextToSpeechSystem {
 
         // Add connection monitoring
         this.socket.on('connect', () => {
-            console.log('🎤 TTS socket connected');
+            // Connected successfully
         });
 
         this.socket.on('disconnect', () => {
@@ -196,8 +192,6 @@ class TextToSpeechSystem {
         this.cleanupInterval = setInterval(() => {
             this.performMemoryCleanup();
         }, 30000);
-
-        console.log('🧹 TTS memory cleanup system started (30s intervals)');
     }
 
     /**
@@ -1095,7 +1089,6 @@ class TextToSpeechSystem {
 
         try {
             localStorage.setItem('bambi-tts-voice-state', JSON.stringify(state));
-            console.log('💾 TTS voice state saved');
         } catch (e) {
             console.warn('Failed to save TTS voice state:', e);
         }
@@ -1127,8 +1120,6 @@ class TextToSpeechSystem {
 
                 // Validate loaded state
                 this.validateAndCleanVoiceSelection();
-
-                console.log('📋 TTS voice state loaded:', state);
             }
         } catch (e) {
             console.warn('Failed to load TTS voice state:', e);

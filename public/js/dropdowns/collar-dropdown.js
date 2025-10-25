@@ -15,7 +15,6 @@ export class CollarDropdown {
     }
 
     init() {
-        console.log('🔗 Initializing Collar Dropdown...');
         this.setupEventListeners();
         this.setupResizeHandling();
         this.loadSavedSettings();

@@ -33,8 +33,7 @@ class TriggerSystem {
                 });
             }
 
-            console.log('🎯 TriggerSystem loaded OFFICIAL triggers:', this.triggers);
-            console.log('📋 Source:', data.source);
+            console.log('🎯 TriggerSystem loaded', this.triggers.length, 'official triggers');
 
         } catch (error) {
             console.error('CRITICAL: TriggerSystem failed to load official triggers:', error);

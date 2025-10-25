@@ -34,7 +34,6 @@ export class AIDropdown {
     }
 
     init() {
-        console.log('🤖 Initializing AI Dropdown...');
         this.setupEventListeners();
         this.setupToggleHandling();
         this.ensureButtonStyling();
@@ -106,7 +105,6 @@ export class AIDropdown {
             try {
                 // savedState is already parsed by StorageUtils
                 this.setState(savedState);
-                console.log('📋 Loading saved AI state:', savedState);
             } catch (e) {
                 console.warn('⚠️ Failed to load AI state:', e);
             }
@@ -280,7 +278,6 @@ export class AIDropdown {
         // Save current state to localStorage
         const state = this.getState();
         StorageUtils.setItem('bambi-ai-state', state);
-        console.log('💾 AI state saved to localStorage');
     }
 
 

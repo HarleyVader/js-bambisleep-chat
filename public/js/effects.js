@@ -37,10 +37,7 @@ class TextEffects {
                 });
             }
 
-            console.log('🎯 Loaded OFFICIAL BambiSleep triggers:', this.triggers.length, 'variations');
-            console.log('📋 Source:', data.source, '| Version:', data.version);
-            console.log('🏷️ Categories:', Object.keys(data.categories || {}));
-            console.log('⚡ Trigger data loaded for enhanced highlighting');
+            console.log('🎯 Loaded', this.triggers.length, 'official BambiSleep trigger variations');
 
         } catch (error) {
             console.error('CRITICAL: Failed to load official BambiSleep triggers:', error);
@@ -51,7 +48,7 @@ class TextEffects {
     }
 
     init() {
-        console.log('TextEffects initialized - TRIGGER PHRASES ONLY highlighting');
+        // Initialization complete - no logging needed
     }
 
     // Initialize chat container toggle functionality
@@ -59,7 +56,6 @@ class TextEffects {
         this.createToggleButton();
         this.setupToggleEvents();
         this.initializeStates();
-        console.log('Chat container toggle system initialized');
     }
 
     // Initialize default states
@@ -244,5 +240,3 @@ class TextEffects {
 
 // Initialize global text effects system for TRIGGER PHRASES ONLY
 window.textEffects = new TextEffects();
-
-console.log('TRIGGER PHRASES ONLY TextEffects system loaded');

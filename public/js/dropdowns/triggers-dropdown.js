@@ -21,7 +21,6 @@ export class TriggersDropdown {
     }
 
     init() {
-        console.log('🎯 Initializing Triggers Dropdown...');
         this.setupEventListeners();
         this.setupToggleHandling();
         // Load trigger data immediately during init
@@ -73,7 +72,6 @@ export class TriggersDropdown {
 
     async loadTriggerCategories() {
         try {
-            console.log('📥 Loading trigger categories...');
             const response = await fetch('/api/triggers/json');
 
             if (!response.ok) {
@@ -81,7 +79,6 @@ export class TriggersDropdown {
             }
 
             this.triggersData = await response.json();
-            console.log('✅ Trigger categories loaded:', this.triggersData);
 
         } catch (error) {
             console.error('❌ Failed to load trigger categories:', error);
@@ -90,8 +87,6 @@ export class TriggersDropdown {
     }
 
     handleAction(action, detail) {
-        console.log(`🎯 Triggers action: ${action}`);
-
         switch (action) {
             case 'triggers-enable-all':
                 this.enableAllTriggers();
