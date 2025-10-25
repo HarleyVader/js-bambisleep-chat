@@ -31,13 +31,14 @@
         "clean": "rimraf node_modules public/dist package-lock.json",
         "lint": "echo \"No linting configured\" && exit 0",
         "test": "node tests/master.test.js",
-        "test:all": "concurrently \"npm run test:env\" \"npm run test:stability\" \"npm run test:resource\"",
+        "test:all": "npm run test:env && npm run test:resource && npm run test:stability",
         "test:env": "node tests/environment.test.js",
         "test:stability": "node tests/stability.test.js",
         "test:resource": "node tests/resource.test.js",
         "test:quick": "node tests/environment.test.js",
-        "test:report": "node tests/master.test.js && echo 'Reports generated in tests/reports/'",
-        "test:view": "start tests/reports/latest-summary.txt"
+        "test:ci": "cross-env CI=true node tests/master.test.js",
+        "test:report": "node tests/open-report.js",
+        "test:view": "node tests/open-report.js"
     },
     "dependencies": {
         "@lmstudio/sdk": "^1.5.0",
@@ -50,6 +51,7 @@
     },
     "devDependencies": {
         "concurrently": "^9.1.0",
+        "cross-env": "^7.0.3",
         "nodemon": "^3.0.0",
         "rimraf": "^5.0.5",
         "vite": "^7.1.5",

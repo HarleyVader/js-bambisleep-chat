@@ -1,5 +1,9 @@
 # BambiSleep Chat
 
+[![Test Suite](https://github.com/HarleyVader/js-bambisleep-chat/actions/workflows/test.yml/badge.svg)](https://github.com/HarleyVader/js-bambisleep-chat/actions/workflows/test.yml)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A modern real-time chat application with psychedelic visual effects, text-to-speech, and trigger word detection. Built with Node.js, Express, Socket.io, and Vanilla JavaScript.
 
 ## Features
@@ -207,6 +211,45 @@ Modify `public/css/style.css` to customize:
 - Message history limited to prevent memory leaks
 - Efficient particle systems
 - Responsive canvas resizing
+
+## Testing
+
+The project includes a comprehensive test suite covering environment validation, stability, and resource usage.
+
+### Quick Start Testing
+
+```bash
+# Run all tests
+npm test
+
+# Quick environment check only
+npm run test:quick
+
+# Run tests in CI mode (skip external services)
+npm run test:ci
+
+# View latest test report
+npm run test:report
+```
+
+### Test Reports
+
+Tests automatically generate detailed reports in `tests/reports/`:
+- **HTML reports**: Interactive dashboard with metrics
+- **JSON reports**: Machine-readable for CI/CD
+- **Summary**: Quick text overview
+
+### CI/CD
+
+GitHub Actions automatically runs tests on every push and pull request. See `.github/workflows/test.yml` for configuration.
+
+### Troubleshooting Tests
+
+If tests fail, see `tests/TROUBLESHOOTING.md` for common solutions:
+- Environment setup issues
+- Port conflicts
+- External service configuration
+- Platform-specific problems
 
 ## Troubleshooting
 

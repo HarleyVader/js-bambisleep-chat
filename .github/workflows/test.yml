@@ -1,0 +1,187 @@
+name: Test Suite
+
+on:
+    push:
+        branches: ["production", "brainwave", "main"]
+    pull_request:
+        branches: ["production", "brainwave", "main"]
+    workflow_dispatch: # Manual trigger
+
+jobs:
+    test:
+        name: Run Comprehensive Tests
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+
+        strategy:
+            matrix:
+                node-version: [18.x, 20.x, 22.x]
+
+        steps:
+            - name: 📥 Checkout code
+              uses: actions/checkout@v4
+
+            - name: 🔧 Setup Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: "npm"
+
+            - name: 📦 Install dependencies
+              run: npm ci
+
+            - name: 🧪 Run environment tests
+              id: test-env
+              run: npm run test:env
+              continue-on-error: true
+
+            - name: 📊 Run resource tests
+              id: test-resource
+              run: npm run test:resource
+              continue-on-error: true
+
+            - name: 🏋️ Run stability tests (CI mode)
+              id: test-stability
+              run: npm run test:ci
+              continue-on-error: true
+              env:
+                  CI: true
+                  NODE_ENV: test
+
+            - name: 📋 Generate test reports
+              if: always()
+              run: |
+                  echo "Test execution completed"
+                  if [ -f "tests/reports/latest-summary.txt" ]; then
+                    echo "=== Test Summary ==="
+                    cat tests/reports/latest-summary.txt
+                  fi
+
+            - name: 📤 Upload test reports
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: test-reports-node-${{ matrix.node-version }}
+                  path: |
+                      tests/reports/*.html
+                      tests/reports/*.json
+                      tests/reports/*.txt
+                  retention-days: 30
+
+            - name: 📊 Create test summary
+              if: always()
+              run: |
+                  echo "## Test Results Summary 🧪" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "**Node Version:** ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+
+                  if [ -f "tests/reports/latest-summary.txt" ]; then
+                    echo '```' >> $GITHUB_STEP_SUMMARY
+                    cat tests/reports/latest-summary.txt >> $GITHUB_STEP_SUMMARY
+                    echo '```' >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo "⚠️ No test summary found" >> $GITHUB_STEP_SUMMARY
+                  fi
+
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "📥 [Download detailed test reports from artifacts](#)" >> $GITHUB_STEP_SUMMARY
+
+            - name: ✅ Evaluate test results
+              if: always()
+              run: |
+                  EXIT_CODE=0
+
+                  # Check if any critical tests failed
+                  if [ "${{ steps.test-env.outcome }}" == "failure" ]; then
+                    echo "❌ Environment tests failed - critical issue"
+                    EXIT_CODE=1
+                  fi
+
+                  if [ "${{ steps.test-resource.outcome }}" == "failure" ]; then
+                    echo "⚠️ Resource tests failed - review recommended"
+                    # Don't fail on resource issues in CI
+                  fi
+
+                  if [ "${{ steps.test-stability.outcome }}" == "failure" ]; then
+                    echo "⚠️ Stability tests failed - review recommended"
+                    # Don't fail on stability issues in CI (external services may be unavailable)
+                  fi
+
+                  if [ $EXIT_CODE -eq 0 ]; then
+                    echo "✅ All critical tests passed!"
+                  else
+                    echo "❌ Critical tests failed - blocking deployment"
+                    exit $EXIT_CODE
+                  fi
+
+    test-windows:
+        name: Test on Windows
+        runs-on: windows-latest
+        timeout-minutes: 15
+
+        steps:
+            - name: 📥 Checkout code
+              uses: actions/checkout@v4
+
+            - name: 🔧 Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "22.x"
+                  cache: "npm"
+
+            - name: 📦 Install dependencies
+              run: npm ci
+
+            - name: 🧪 Run environment tests
+              run: npm run test:env
+              continue-on-error: true
+
+            - name: 📤 Upload Windows test reports
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: test-reports-windows
+                  path: |
+                      tests/reports/*.html
+                      tests/reports/*.json
+                      tests/reports/*.txt
+                  retention-days: 30
+
+    badge-update:
+        name: Update Test Badge
+        runs-on: ubuntu-latest
+        needs: [test, test-windows]
+        if: always() && github.ref == 'refs/heads/production'
+
+        steps:
+            - name: 📥 Checkout code
+              uses: actions/checkout@v4
+
+            - name: 🏷️ Create status badge
+              run: |
+                  if [ "${{ needs.test.result }}" == "success" ]; then
+                    echo "BADGE_STATUS=passing" >> $GITHUB_ENV
+                    echo "BADGE_COLOR=brightgreen" >> $GITHUB_ENV
+                  else
+                    echo "BADGE_STATUS=failing" >> $GITHUB_ENV
+                    echo "BADGE_COLOR=red" >> $GITHUB_ENV
+                  fi
+
+            - name: 💬 Comment on PR (if applicable)
+              if: github.event_name == 'pull_request'
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const testStatus = '${{ needs.test.result }}';
+                      const emoji = testStatus === 'success' ? '✅' : '❌';
+
+                      github.rest.issues.createComment({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        body: `${emoji} **Test Results**\n\n` +
+                              `- Environment Tests: ${{ needs.test.result }}\n` +
+                              `- Windows Tests: ${{ needs.test-windows.result }}\n\n` +
+                              `📥 Download detailed reports from the Actions artifacts.`
+                      });
