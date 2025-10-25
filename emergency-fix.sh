@@ -125,8 +125,8 @@ if sudo systemctl is-active --quiet bambisleepchat; then
 
     echo ""
     print_info "Testing application..."
-    if curl -f http://localhost:6969/api/health >/dev/null 2>&1; then
-        print_status "✅ Application is responding on port 6969"
+    if curl -f http://localhost:7878/api/health >/dev/null 2>&1; then
+        print_status "✅ Application is responding on port 7878"
     else
         print_warning "Application may still be starting up"
     fi
@@ -148,7 +148,7 @@ echo "  Logs:    journalctl -u bambisleepchat -f"
 echo ""
 
 if sudo systemctl is-active --quiet bambisleepchat; then
-    print_status "🚀 BambiSleep Chat is now running at http://localhost:6969"
+    print_status "🚀 BambiSleep Chat is now running at http://localhost:7878"
 else
     print_error "Manual intervention may be required"
 fi

@@ -70,7 +70,7 @@ sudo systemctl is-active bambisleepchat
 journalctl -u bambisleepchat -f
 
 # Test application
-curl http://localhost:6969/api/health
+curl http://localhost:7878/api/health
 ```
 
 The updated deployment script now automatically detects your actual installation directory and user, which should resolve this permission issue permanently.
