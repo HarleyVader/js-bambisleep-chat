@@ -1,0 +1,3 @@
+# BambiSleep Trigger Names List
+
+Bambi, Bambi Sleep, Bambi Reset, Good Girl, Bambi Wake and Obey, Bambi Freeze, Bambi Does as She's Told, Bimbo Doll, Blonde Moment, Snap and Forget, Bambi Cum and Collapse, Drop for Cock, Bambi Limp, Airhead Barbie, Braindead Bobblehead, Cockblank Lovedoll, Cock Zombie Now, Giggletime, Primped and Pampered, Safe and Secure, Zap Cock Drain Obey, Bambi uniform lock, Bambi tits/lips/face/waist/hips/butt/cunt/limbs/throat lock, Bambi posture lock
