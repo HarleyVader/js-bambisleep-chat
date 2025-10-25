@@ -79,8 +79,29 @@ export class DropdownUtils {
 
     static openDropdown(dropdown) {
         const content = dropdown.querySelector('.dropdown-content');
+        const button = dropdown.querySelector('.dropdown-btn, .dropdown-button');
 
-        if (content) {
+        if (content && button) {
+            // Position dropdown relative to button (since dropdown-content is now position: fixed)
+            const buttonRect = button.getBoundingClientRect();
+            content.style.top = `${buttonRect.bottom + 4}px`;
+            content.style.left = `${buttonRect.left}px`;
+            
+            // Adjust if dropdown would go off-screen
+            const contentRect = content.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // Adjust horizontal position if off-screen
+            if (contentRect.right > viewportWidth) {
+                content.style.left = `${viewportWidth - contentRect.width - 10}px`;
+            }
+            
+            // Adjust vertical position if off-screen
+            if (contentRect.bottom > viewportHeight) {
+                content.style.top = `${buttonRect.top - contentRect.height - 4}px`;
+            }
+
             // Add entering animation
             content.classList.add('dropdown-entering');
             content.classList.remove('dropdown-leaving');
@@ -185,6 +206,42 @@ export class DropdownUtils {
                     this.closeDropdown(dropdown);
                 }
             });
+        });
+        
+        // Reposition dropdowns on scroll and resize
+        window.addEventListener('scroll', () => {
+            this.repositionActiveDropdowns();
+        }, { passive: true });
+        
+        window.addEventListener('resize', () => {
+            this.repositionActiveDropdowns();
+        });
+    }
+    
+    static repositionActiveDropdowns() {
+        const activeDropdowns = document.querySelectorAll('.dropdown.active');
+        activeDropdowns.forEach(dropdown => {
+            const content = dropdown.querySelector('.dropdown-content');
+            const button = dropdown.querySelector('.dropdown-btn, .dropdown-button');
+            
+            if (content && button) {
+                const buttonRect = button.getBoundingClientRect();
+                content.style.top = `${buttonRect.bottom + 4}px`;
+                content.style.left = `${buttonRect.left}px`;
+                
+                // Adjust if dropdown would go off-screen
+                const contentRect = content.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                if (contentRect.right > viewportWidth) {
+                    content.style.left = `${viewportWidth - contentRect.width - 10}px`;
+                }
+                
+                if (contentRect.bottom > viewportHeight) {
+                    content.style.top = `${buttonRect.top - contentRect.height - 4}px`;
+                }
+            }
         });
     }
 

@@ -98,13 +98,10 @@
     .dropdown {
         position: relative;
         display: inline-block;
-        isolation: isolate;
     }
 
     .dropdown-content {
-        position: absolute;
-        top: 100%;
-        left: 0;
+        position: fixed;
         background: rgba(38, 20, 38, 0.95);
         -webkit-backdrop-filter: blur(20px);
         backdrop-filter: blur(20px);
