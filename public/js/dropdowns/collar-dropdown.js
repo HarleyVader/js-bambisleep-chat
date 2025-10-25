@@ -241,10 +241,10 @@ export class CollarDropdown {
         // Update status indicator like brainwave
         if (statusIndicator) {
             if (isActive) {
-                statusIndicator.style.color = '#00ff00';
+                statusIndicator.className = 'status-active';
                 statusIndicator.textContent = '●';
             } else {
-                statusIndicator.style.color = '#666';
+                statusIndicator.className = 'status-inactive';
                 statusIndicator.textContent = '●';
             }
         }
@@ -255,22 +255,8 @@ export class CollarDropdown {
         const feedback = document.createElement('div');
         feedback.className = 'collar-feedback';
         feedback.textContent = message;
-        feedback.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--button-color);
-            color: var(--primary-color);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-family: "Audiowide", sans-serif;
-            font-size: 0.7rem;
-            font-weight: bold;
-            z-index: 10000;
-            box-shadow: 0 0 20px var(--button-color);
-            animation: slideInRight 0.3s ease-out, slideOutRight 0.3s ease-in 2.7s;
-            pointer-events: none;
-        `;
+        feedback.className = 'dropdown-notification z-notification';
+        feedback.textContent = message;
 
         document.body.appendChild(feedback);
 
@@ -300,10 +286,10 @@ export class CollarDropdown {
         // Update status indicator like brainwave
         if (statusIndicator) {
             if (newState === 'on') {
-                statusIndicator.style.color = '#00ff00';
+                statusIndicator.className = 'status-active';
                 statusIndicator.textContent = '●';
             } else {
-                statusIndicator.style.color = '#666';
+                statusIndicator.className = 'status-inactive';
                 statusIndicator.textContent = '●';
             }
         }
@@ -338,61 +324,11 @@ export class CollarDropdown {
         return `
             <div class="collar-config">
                 <p class="config-label">🔗 Collar Settings:</p>
-                <textarea id="collar-text" class="collar-textarea" placeholder="Enter collar settings..." style="
-                    width: 100%;
-                    min-height: 120px;
-                    resize: both;
-                    padding: 10px;
-                    border: 1px solid var(--button-color);
-                    border-radius: var(--border-radius);
-                    background: var(--chat-bg);
-                    color: var(--text-color);
-                    font-family: 'Courier New', monospace;
-                    font-size: 0.8rem;
-                "></textarea>
-                <div class="collar-buttons" style="
-                    display: flex;
-                    gap: 8px;
-                    margin-top: 10px;
-                    flex-wrap: wrap;
-                ">
-                    <button class="collar-btn" data-action="collar-copy" onclick="window.dropdownManager.getComponent('collar').copySettings()" style="
-                        flex: 1;
-                        min-width: 60px;
-                        padding: 6px 12px;
-                        background: var(--button-color);
-                        color: var(--primary-color);
-                        border: none;
-                        border-radius: var(--border-radius);
-                        font-family: 'Audiowide', sans-serif;
-                        font-size: 0.7rem;
-                        cursor: pointer;
-                    ">Copy</button>
-                    <button class="collar-btn" data-action="collar-paste" onclick="window.dropdownManager.getComponent('collar').pasteSettings()" style="
-                        flex: 1;
-                        min-width: 60px;
-                        padding: 6px 12px;
-                        background: var(--button-color);
-                        color: var(--primary-color);
-                        border: none;
-                        border-radius: var(--border-radius);
-                        font-family: 'Audiowide', sans-serif;
-                        font-size: 0.7rem;
-                        cursor: pointer;
-                    ">Paste</button>
-                    <button class="collar-btn" data-action="collar-save" onclick="window.dropdownManager.getComponent('collar').saveSettings()" style="
-                        flex: 1;
-                        min-width: 60px;
-                        padding: 6px 12px;
-                        background: linear-gradient(45deg, #ff1493, #ff69b4);
-                        color: white;
-                        border: none;
-                        border-radius: var(--border-radius);
-                        font-family: 'Audiowide', sans-serif;
-                        font-size: 0.7rem;
-                        font-weight: bold;
-                        cursor: pointer;
-                    ">Save</button>
+                <textarea id="collar-text" class="collar-textarea" placeholder="Enter collar settings..."></textarea>
+                <div class="collar-buttons">
+                    <button class="collar-btn" data-action="collar-copy" onclick="window.dropdownManager.getComponent('collar').copySettings()">Copy</button>
+                    <button class="collar-btn" data-action="collar-paste" onclick="window.dropdownManager.getComponent('collar').pasteSettings()">Paste</button>
+                    <button class="collar-btn collar-btn-save" data-action="collar-save" onclick="window.dropdownManager.getComponent('collar').saveSettings()">Save</button>
                 </div>
                 <div class="control-section">
                     <p class="config-label">🔧 Advanced:</p>

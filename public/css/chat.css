@@ -136,4 +136,27 @@
     #global-chat-messages.hidden {
         display: none;
     }
+
+    /* AI System Messages */
+    .ai-system-message {
+        text-align: center;
+        color: var(--button-color);
+        font-weight: bold;
+        margin: 10px 0;
+        padding: 10px;
+        background: rgba(255, 20, 147, 0.1);
+        border-radius: var(--border-radius);
+        font-family: "Audiowide", sans-serif;
+    }
+
+    /* TTS Speaking Status */
+    .tts-speaking {
+        color: #FF1493;
+        font-weight: bold;
+        margin: 0.5rem 0;
+        padding: 0.5rem;
+        background: rgba(255, 20, 147, 0.1);
+        border-left: 3px solid #FF1493;
+        border-radius: 4px;
+    }
 }

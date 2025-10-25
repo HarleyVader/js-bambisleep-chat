@@ -57,10 +57,10 @@ export class AIDropdown {
         // Update status indicator like brainwave
         if (statusIndicator) {
             if (this.isEnabled) {
-                statusIndicator.style.color = '#00ff00';
+                statusIndicator.className = 'status-active';
                 statusIndicator.textContent = '●';
             } else {
-                statusIndicator.style.color = '#666';
+                statusIndicator.className = 'status-inactive';
                 statusIndicator.textContent = '●';
             }
         }
@@ -152,10 +152,10 @@ export class AIDropdown {
         // Update status indicator like brainwave
         if (statusIndicator) {
             if (this.isEnabled) {
-                statusIndicator.style.color = '#00ff00';
+                statusIndicator.className = 'status-active';
                 statusIndicator.textContent = '●';
             } else {
-                statusIndicator.style.color = '#666';
+                statusIndicator.className = 'status-inactive';
                 statusIndicator.textContent = '●';
             }
         }
@@ -237,26 +237,10 @@ export class AIDropdown {
     }
 
     showFeedback(message) {
-        // Create floating feedback notification (like collar dropdown)
+        // Create floating feedback notification (unified with CSS classes)
         const feedback = document.createElement('div');
-        feedback.className = 'ai-feedback';
+        feedback.className = 'dropdown-notification z-notification';
         feedback.textContent = message;
-        feedback.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--button-color);
-            color: var(--primary-color);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-family: "Audiowide", sans-serif;
-            font-size: 0.7rem;
-            font-weight: bold;
-            z-index: 10000;
-            box-shadow: 0 0 20px var(--button-color);
-            animation: slideInRight 0.3s ease-out, slideOutRight 0.3s ease-in 2.7s;
-            pointer-events: none;
-        `;
 
         document.body.appendChild(feedback);
 
@@ -284,17 +268,7 @@ export class AIDropdown {
             const chatMessages = document.getElementById('chat-messages');
             if (chatMessages) {
                 const messageDiv = document.createElement('div');
-                messageDiv.className = 'system-message';
-                messageDiv.style.cssText = `
-                    text-align: center;
-                    color: var(--button-color);
-                    font-weight: bold;
-                    margin: 10px 0;
-                    padding: 10px;
-                    background: rgba(255, 20, 147, 0.1);
-                    border-radius: var(--border-radius);
-                    font-family: "Audiowide", sans-serif;
-                `;
+                messageDiv.className = 'system-message ai-system-message';
                 messageDiv.textContent = message;
                 chatMessages.appendChild(messageDiv);
                 chatMessages.scrollTop = chatMessages.scrollHeight;

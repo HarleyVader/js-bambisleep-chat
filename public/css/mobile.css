@@ -588,6 +588,32 @@
             font-size: 10px;
         }
     }
+
+    /* Mobile Notifications */
+    .mobile-notification {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--mobile-bg);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: 2px solid var(--mobile-accent);
+        animation: mobileNotificationSlide 0.3s ease-out;
+    }
+
+    @keyframes mobileNotificationSlide {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(-50%);
+        }
+    }
 }
 
 /* Ensure mobile rules only apply to touch devices */

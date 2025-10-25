@@ -730,26 +730,7 @@ class TextToSpeechSystem {
         if (!textDisplay) {
             textDisplay = document.createElement('div');
             textDisplay.className = 'tts-text-display';
-            textDisplay.style.cssText = `
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: var(--tertiary-alt);
-                font-size: 2rem;
-                font-weight: bold;
-                text-align: center;
-                text-shadow: 0 0 10px var(--tertiary-alt), 0 0 20px var(--tertiary-alt);
-                z-index: 1000;
-                pointer-events: none;
-                max-width: 90%;
-                word-wrap: break-word;
-                white-space: normal;
-                animation: pulse 0.5s ease-in-out infinite alternate;
-                overflow-wrap: break-word;
-                hyphens: auto;
-                line-height: 1.2;
-            `;
+            textDisplay.className = 'tts-text-display';
             container.appendChild(textDisplay);
         }
 
@@ -779,15 +760,6 @@ class TextToSpeechSystem {
             const messageElement = document.createElement('p');
             messageElement.className = 'tts-speaking';
             messageElement.textContent = text;
-            messageElement.style.cssText = `
-                color: #FF1493;
-                font-weight: bold;
-                margin: 0.5rem 0;
-                padding: 0.5rem;
-                background: rgba(255, 20, 147, 0.1);
-                border-left: 3px solid #FF1493;
-                border-radius: 4px;
-            `;
 
             // Append to bottom of message-text (not insert at top)
             response.appendChild(messageElement);
@@ -1399,35 +1371,7 @@ class TextToSpeechSystem {
 document.addEventListener('DOMContentLoaded', () => {
     window.ttsSystem = new TextToSpeechSystem();
 
-    // Add CSS animations for spiral text display
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes pulse {
-            0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.95); }
-            100% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-        }
-
-        .tts-text-display {
-            font-family: 'Audiowide', sans-serif;
-            user-select: none;
-            white-space: nowrap;
-            line-height: 1.2;
-        }
-
-        .tts-speaking {
-            animation: ttsSpeaking 0.5s ease-in-out infinite alternate;
-        }
-
-        @keyframes ttsSpeaking {
-            0% { opacity: 0.8; }
-            100% { opacity: 1; }
-        }
-    `;
-
-    if (!document.querySelector('#tts-animations')) {
-        style.id = 'tts-animations';
-        document.head.appendChild(style);
-    }
+    // TTS animations are now handled by CSS files - no inline injection needed
 
     // Make the modern TTS API available globally
     // ⚠️ IMPORTANT: BambiSleep is a GIRL - ONLY FEMALE VOICES ALLOWED! ⚠️

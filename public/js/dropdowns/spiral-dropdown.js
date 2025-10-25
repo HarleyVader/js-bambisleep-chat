@@ -459,10 +459,10 @@ export class SpiralDropdown {
         // Update status indicator like brainwave
         if (statusIndicator) {
             if (newState === 'on') {
-                statusIndicator.style.color = '#00ff00';
+                statusIndicator.className = 'status-active';
                 statusIndicator.textContent = '●';
             } else {
-                statusIndicator.style.color = '#666';
+                statusIndicator.className = 'status-inactive';
                 statusIndicator.textContent = '●';
             }
         }
@@ -477,10 +477,10 @@ export class SpiralDropdown {
             // Update status indicator to match actual state
             if (statusIndicator) {
                 if (actualState === 'on') {
-                    statusIndicator.style.color = '#00ff00';
+                    statusIndicator.className = 'status-active';
                     statusIndicator.textContent = '●';
                 } else {
-                    statusIndicator.style.color = '#666';
+                    statusIndicator.className = 'status-inactive';
                     statusIndicator.textContent = '●';
                 }
             }
@@ -649,7 +649,7 @@ export class SpiralDropdown {
 
                 <!-- Settings Info -->
                 <div class="control-section">
-                    <p class="config-label" style="font-size: 0.8em; opacity: 0.7;">💾 Settings auto-save to device storage</p>
+                    <p class="config-label config-label-small">💾 Settings auto-save to device storage</p>
                 </div>
             </div>
         `;

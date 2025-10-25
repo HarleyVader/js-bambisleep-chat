@@ -148,28 +148,9 @@ class TriggerSystem {
 
     flashScreen() {
         const flashOverlay = document.createElement('div');
-        flashOverlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(223, 4, 113, 0.4);
-            z-index: 9999;
-            pointer-events: none;
-            animation: triggerFlash 0.3s ease-out;
-        `;
+        flashOverlay.className = 'trigger-flash-overlay z-modal';
 
-        // Add flash animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes triggerFlash {
-                0% { opacity: 0; }
-                50% { opacity: 1; }
-                100% { opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
+        // Flash animation now handled by CSS
         document.body.appendChild(flashOverlay);
 
         setTimeout(() => {

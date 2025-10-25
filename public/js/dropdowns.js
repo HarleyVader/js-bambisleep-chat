@@ -104,21 +104,9 @@ class DropdownUtils {
 
     static addVisualFeedback(element, type = 'success') {
         const feedback = document.createElement('div');
-        feedback.className = `visual-feedback ${type}`;
-        feedback.style.cssText = `
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: ${type === 'success' ? '#00ff88' : '#ff4444'};
-            animation: feedbackPulse 0.6s ease-out;
-            pointer-events: none;
-            z-index: 1000;
-        `;
+        feedback.className = `visual-feedback visual-feedback-${type} z-tooltip`;
 
-        element.style.position = 'relative';
+        element.classList.add('feedback-container');
         element.appendChild(feedback);
 
         setTimeout(() => feedback.remove(), 600);
@@ -581,19 +569,6 @@ class DropdownManager {
         const notification = document.createElement('div');
         notification.className = 'dropdown-notification';
         notification.textContent = `${buttonName}: ${message}`;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--button-color);
-            color: white;
-            padding: 10px 15px;
-            border-radius: var(--border-radius);
-            font-family: "Audiowide", sans-serif;
-            font-size: 0.7rem;
-            z-index: 10000;
-            animation: slideInRight 0.3s ease-out;
-        `;
 
         document.body.appendChild(notification);
 
@@ -620,85 +595,8 @@ class DropdownManager {
     }
 }
 
-// Add enhanced animations and styles
-const existingStyle = document.querySelector('style[data-dropdown-animations]');
-if (!existingStyle) {
-    const style = document.createElement('style');
-    style.setAttribute('data-dropdown-animations', 'true');
-    style.textContent = `
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideOutRight {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
-
-        @keyframes feedbackPulse {
-            0% { transform: scale(0); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.8; }
-            100% { transform: scale(0); opacity: 0; }
-        }
-
-        .dropdown-entering {
-            animation: dropdownSlideIn 0.2s ease-out;
-        }
-
-        .dropdown-leaving {
-            animation: dropdownSlideOut 0.2s ease-in;
-        }
-
-        @keyframes dropdownSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes dropdownSlideOut {
-            from {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            to {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-        }
-
-        .collar-feedback {
-            animation: slideInRight 0.3s ease-out, slideOutRight 0.3s ease-in 2.7s !important;
-        }
-
-        .smooth-transition {
-            transition: all 0.2s ease;
-        }
-
-        .highlighted {
-            background: rgba(255, 255, 255, 0.1);
-            outline: 2px solid var(--button-color);
-        }
-    `;
-    document.head.appendChild(style);
-}
+// Dropdown animation classes are now handled by CSS files (layers.css, buttons.css)
+// This eliminates the need for inline style injection and reduces JavaScript complexity
 
 // Initialize dropdown manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

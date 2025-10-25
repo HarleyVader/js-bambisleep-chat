@@ -102,6 +102,7 @@ body {
 }
 
 @layer background {
+
     /* Chat Container - Left Side */
     #chat-container {
         position: relative;
@@ -172,7 +173,7 @@ body {
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
-    animation: pulse 0.5s ease-in-out infinite alternate;
+    animation: ttsPulse 0.5s ease-in-out infinite alternate;
     display: block;
     box-sizing: border-box;
     padding: 0 10px;
@@ -204,13 +205,13 @@ body {
     hyphens: auto !important;
     word-break: normal !important;
     display: block !important;
-    animation: pulse 0.5s ease-in-out infinite alternate !important;
+    animation: ttsPulse 0.5s ease-in-out infinite alternate !important;
     box-sizing: border-box !important;
     padding: 0 10px !important;
 }
 
 /* TTS Pulse Animation */
-@keyframes pulse {
+@keyframes ttsPulse {
     0% {
         opacity: 0.7;
         transform: translate(-50%, -50%) scale(0.95);
@@ -353,14 +354,14 @@ body {
 /* Show dropdown ONLY on active state - NO HOVER CLOSING */
 .dropdown.active .dropdown-content {
     display: block;
-    animation: dropdownSlide 0.3s ease-out;
+    animation: dropdownSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Collar dropdown only shows on active state - Same rule to ensure it works */
 .collar-dropdown.active .dropdown-content,
 .dropdown.collar-dropdown.active .dropdown-content {
     display: block !important;
-    animation: dropdownSlide 0.3s ease-out;
+    animation: dropdownSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Hidden dropdowns for future development */
@@ -519,17 +520,6 @@ body {
 
 
 
-@keyframes dropdownSlide {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 
 
@@ -557,17 +547,7 @@ body {
     flex-wrap: wrap;
 }
 
-@keyframes messageSlide {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 .message.system {
     border-left-color: var(--tertiary-alt);
@@ -639,19 +619,7 @@ body {
     }
 }
 
-@keyframes triggerPulse {
 
-    0%,
-    100% {
-        opacity: 1;
-        text-shadow: 0 0 10px var(--button-color);
-    }
-
-    50% {
-        opacity: 0.8;
-        text-shadow: 0 0 20px var(--button-color), 0 0 30px var(--button-color);
-    }
-}
 
 @keyframes flashTrigger {
 
@@ -1004,6 +972,7 @@ body {
 
 
 @layer background {
+
     /* Chat Container Animation States */
     #chat-container.chat-visible {
         transform: translateX(0);
@@ -1094,17 +1063,7 @@ body {
 
 
 
-@keyframes pulse {
 
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.7;
-    }
-}
 
 
 

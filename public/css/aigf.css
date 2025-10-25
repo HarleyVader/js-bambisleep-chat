@@ -192,10 +192,10 @@
     font-weight: bold;
     text-shadow: 0 0 5px rgba(255, 20, 147, 1);
     box-shadow: 0 0 10px rgba(255, 20, 147, 0.6);
-    animation: triggerPulse 1.5s ease-in-out infinite;
+    animation: aigfTriggerPulse 1.5s ease-in-out infinite;
 }
 
-@keyframes triggerPulse {
+@keyframes aigfTriggerPulse {
 
     0%,
     100% {

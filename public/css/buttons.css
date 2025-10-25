@@ -997,3 +997,132 @@
     border-radius: var(--border-radius);
     text-align: center;
 }
+
+/* ============================================================================
+   COLLAR DROPDOWN STYLES
+   ============================================================================ */
+
+/* Collar textarea */
+.collar-textarea {
+    width: 100%;
+    min-height: 120px;
+    resize: both;
+    padding: 10px;
+    border: 1px solid var(--button-color);
+    border-radius: var(--border-radius);
+    background: var(--chat-bg);
+    color: var(--text-color);
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+}
+
+/* Collar buttons container */
+.collar-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+/* Standard collar button */
+.collar-btn {
+    flex: 1;
+    min-width: 60px;
+    padding: 6px 12px;
+    background: var(--button-color);
+    color: var(--primary-color);
+    border: none;
+    border-radius: var(--border-radius);
+    font-family: 'Audiowide', sans-serif;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.collar-btn:hover {
+    background: var(--secondary-alt);
+    transform: translateY(-1px);
+}
+
+/* Special save button */
+.collar-btn-save {
+    background: linear-gradient(45deg, #ff1493, #ff69b4);
+    color: white;
+    font-weight: bold;
+}
+
+.collar-btn-save:hover {
+    background: linear-gradient(45deg, #ff69b4, #ff1493);
+}
+
+/* ============================================================================
+   DROPDOWN NOTIFICATION STYLES
+   ============================================================================ */
+
+.dropdown-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--button-color);
+    color: white;
+    padding: 10px 15px;
+    border-radius: var(--border-radius);
+    font-family: "Audiowide", sans-serif;
+    font-size: 0.7rem;
+    z-index: 10000;
+    animation: slideInRight 0.3s ease-out;
+}
+
+/* ============================================================================
+   CONFIG LABEL STYLES
+   ============================================================================ */
+
+.config-label-small {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+/* ============================================================================
+   DROPDOWN ANIMATION KEYFRAMES
+   ============================================================================ */
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes feedbackPulse {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(0);
+        opacity: 0;
+    }
+}

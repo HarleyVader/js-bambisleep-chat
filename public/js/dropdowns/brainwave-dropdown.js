@@ -82,7 +82,7 @@ export function createBrainwaveDropdown() {
         if (state.isPlaying) {
             // Use standard "on" state from buttons.css
             btn.setAttribute('data-state', 'on');
-            statusIndicator.style.color = '#00ff00';
+            statusIndicator.className = 'status-active';
             statusIndicator.textContent = '●';
             playBtn.disabled = true;
             stopBtn.disabled = false;
@@ -90,7 +90,7 @@ export function createBrainwaveDropdown() {
         } else {
             // Use standard "off" state from buttons.css
             btn.setAttribute('data-state', 'off');
-            statusIndicator.style.color = '#666';
+            statusIndicator.className = 'status-inactive';
             statusIndicator.textContent = '●';
             playBtn.disabled = false;
             stopBtn.disabled = true;

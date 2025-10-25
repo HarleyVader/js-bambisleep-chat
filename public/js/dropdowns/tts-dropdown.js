@@ -211,10 +211,10 @@ export class TTSDropdown {
         // Update status indicator like brainwave
         if (statusIndicator) {
             if (newState === 'on') {
-                statusIndicator.style.color = '#00ff00';
+                statusIndicator.className = 'status-active';
                 statusIndicator.textContent = '●';
             } else {
-                statusIndicator.style.color = '#666';
+                statusIndicator.className = 'status-inactive';
                 statusIndicator.textContent = '●';
             }
         }
@@ -277,24 +277,8 @@ export class TTSDropdown {
     showFeedback(message) {
         // Create floating feedback notification (standardized like other dropdowns)
         const feedback = document.createElement('div');
-        feedback.className = 'tts-feedback';
+        feedback.className = 'dropdown-notification z-notification';
         feedback.textContent = message;
-        feedback.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--button-color);
-            color: var(--primary-color);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-family: "Audiowide", sans-serif;
-            font-size: 0.7rem;
-            font-weight: bold;
-            z-index: 10000;
-            box-shadow: 0 0 20px var(--button-color);
-            animation: slideInRight 0.3s ease-out, slideOutRight 0.3s ease-in 2.7s;
-            pointer-events: none;
-        `;
 
         document.body.appendChild(feedback);
 

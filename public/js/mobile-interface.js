@@ -602,21 +602,8 @@ class MobileInterface {
     showNotification(message, type = 'info') {
         // Simple mobile notification system
         const notification = document.createElement('div');
-        notification.className = `mobile-notification mobile-notification-${type}`;
+        notification.className = `mobile-notification mobile-notification-${type} z-notification`;
         notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--mobile-dark);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: 2px solid var(--mobile-accent);
-            z-index: 10000;
-            animation: mobileNotificationSlide 0.3s ease-out;
-        `;
 
         document.body.appendChild(notification);
 
