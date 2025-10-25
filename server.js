@@ -1894,9 +1894,9 @@ class GitPullDetector {
     async getCurrentCommit() {
         try {
             const { execSync } = require('child_process');
-            const commitHash = execSync('git rev-parse HEAD', { 
+            const commitHash = execSync('git rev-parse HEAD', {
                 cwd: __dirname,
-                encoding: 'utf8' 
+                encoding: 'utf8'
             }).trim();
             return commitHash;
         } catch (error) {
@@ -1908,7 +1908,7 @@ class GitPullDetector {
     async startMonitoring() {
         // Get initial commit hash
         this.lastCommitHash = await this.getCurrentCommit();
-        
+
         if (!this.lastCommitHash) {
             console.warn('⚠️ Git pull detection disabled - not a git repository or git unavailable');
             return;
@@ -1924,7 +1924,7 @@ class GitPullDetector {
 
     async checkForChanges() {
         const currentCommit = await this.getCurrentCommit();
-        
+
         if (!currentCommit) {
             return; // Skip this check if git command failed
         }
@@ -1983,7 +1983,7 @@ class GitPullDetector {
 
         console.log('✅ Graceful shutdown complete');
         console.log('💡 Restart the server with: npm run dev:server');
-        
+
         // Exit with code 0 for clean restart
         process.exit(0);
     }
@@ -2021,7 +2021,7 @@ server.listen(PORT, () => {
     console.log(`🎯 Environment: ${ENV.NODE_ENV}`);
     console.log(`⚡ Vite Dev: http://localhost:${ENV.SERVER.VITE_PORT}`);
     console.log(`🧹 Memory management: Active`);
-    
+
     // Start git pull monitoring after server is ready
     gitPullDetector.startMonitoring();
 });
