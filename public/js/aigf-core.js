@@ -1,6 +1,5 @@
 // aigf-core.js - Main chat logic, socket, and UI management
 import { ErrorManager } from './error-manager.js';
-import { DropdownUtils } from './dropdown-utils.js';
 
 class ChatCore {
     constructor() {
@@ -274,9 +273,6 @@ class ChatCore {
         this.initUI();
         this.initTextEffects();
         this.bindEvents();
-
-        // Initialize enhanced dropdown functionality
-        DropdownUtils.init();
 
         this.addSystemMessage('Welcome to BambiSleep Chat');
         this.addSystemMessage(`Your username: ${this.username}`);

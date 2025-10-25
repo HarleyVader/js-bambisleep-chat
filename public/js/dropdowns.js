@@ -1,6 +1,7 @@
 /**
  * Universal Dropdown Manager for BambiSleep Chat
  * Handles universal dropdown menu interactions and coordinates with component dropdowns
+ * Includes enhanced interaction features and animations
  */
 
 import {
@@ -13,6 +14,116 @@ import {
 } from './dropdowns/index.js';
 
 import { StorageUtils } from './storage-utils.js';
+
+/**
+ * DropdownUtils - Enhanced interaction features
+ * Provides advanced animations, keyboard navigation, and positioning
+ */
+class DropdownUtils {
+    static enhanceDropdowns() {
+        const dropdowns = document.querySelectorAll('.dropdown');
+
+        dropdowns.forEach(dropdown => {
+            const button = dropdown.querySelector('.dropdown-btn, .dropdown-button');
+            const content = dropdown.querySelector('.dropdown-content');
+
+            if (button && content) {
+                // Add utility classes
+                button.classList.add('smooth-transition', 'enhanced-focus', 'click-feedback');
+                content.classList.add('smooth-transition');
+
+                // Add hover effects
+                button.addEventListener('mouseenter', () => {
+                    if (!button.classList.contains('glow-effect')) {
+                        button.classList.add('glow-effect');
+                    }
+                });
+
+                // Add items interaction
+                const items = content.querySelectorAll('.dropdown-item, [class*="item"], button, select, input');
+                items.forEach(item => {
+                    item.classList.add('smooth-transition');
+
+                    item.addEventListener('mouseenter', () => {
+                        items.forEach(sibling => sibling.classList.remove('highlighted'));
+                        item.classList.add('highlighted');
+                    });
+
+                    item.addEventListener('mouseleave', () => {
+                        item.classList.remove('highlighted');
+                    });
+                });
+            }
+        });
+    }
+
+    static navigateItems(items, currentItem, direction) {
+        if (items.length === 0) return;
+
+        let currentIndex = currentItem ? Array.from(items).indexOf(currentItem) : -1;
+        let nextIndex = currentIndex + direction;
+
+        // Wrap around
+        if (nextIndex >= items.length) nextIndex = 0;
+        if (nextIndex < 0) nextIndex = items.length - 1;
+
+        if (currentItem) currentItem.classList.remove('highlighted');
+
+        const nextItem = items[nextIndex];
+        if (nextItem) {
+            nextItem.classList.add('highlighted');
+            nextItem.focus();
+        }
+    }
+
+    static repositionActiveDropdowns() {
+        const activeDropdowns = document.querySelectorAll('.dropdown.active');
+        activeDropdowns.forEach(dropdown => {
+            const content = dropdown.querySelector('.dropdown-content');
+            const button = dropdown.querySelector('.dropdown-btn, .dropdown-button');
+
+            if (content && button) {
+                const buttonRect = button.getBoundingClientRect();
+                content.style.top = `${buttonRect.bottom + 4}px`;
+                content.style.left = `${buttonRect.left}px`;
+
+                const contentRect = content.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+
+                if (contentRect.right > viewportWidth) {
+                    content.style.left = `${viewportWidth - contentRect.width - 10}px`;
+                }
+
+                if (contentRect.bottom > viewportHeight) {
+                    content.style.top = `${buttonRect.top - contentRect.height - 4}px`;
+                }
+            }
+        });
+    }
+
+    static addVisualFeedback(element, type = 'success') {
+        const feedback = document.createElement('div');
+        feedback.className = `visual-feedback ${type}`;
+        feedback.style.cssText = `
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: ${type === 'success' ? '#00ff88' : '#ff4444'};
+            animation: feedbackPulse 0.6s ease-out;
+            pointer-events: none;
+            z-index: 1000;
+        `;
+
+        element.style.position = 'relative';
+        element.appendChild(feedback);
+
+        setTimeout(() => feedback.remove(), 600);
+    }
+}
 
 class DropdownManager {
     constructor() {
@@ -45,9 +156,16 @@ class DropdownManager {
             console.error('❌ Error during localStorage cleanup:', error);
         }
 
+        // Enhance dropdowns with utility features
+        DropdownUtils.enhanceDropdowns();
+
         // Add universal event listeners
         document.addEventListener('click', this.handleClick.bind(this));
         document.addEventListener('keydown', this.handleKeydown.bind(this));
+
+        // Reposition dropdowns on scroll and resize
+        window.addEventListener('scroll', () => DropdownUtils.repositionActiveDropdowns(), { passive: true });
+        window.addEventListener('resize', () => DropdownUtils.repositionActiveDropdowns());
 
         // Initialize dropdowns and components
         this.initializeDropdowns();
@@ -172,28 +290,96 @@ class DropdownManager {
     }
 
     // Universal dropdown management methods
-    openDropdown(dropdown) {
+    async openDropdown(dropdown) {
         // Close any other open dropdown
         if (this.activeDropdown && this.activeDropdown !== dropdown) {
             this.closeDropdown(this.activeDropdown);
         }
 
+        const content = dropdown.querySelector('.dropdown-content');
+        const button = dropdown.querySelector('.dropdown-btn');
+
         console.log('🔽 Dropdown opening:', dropdown);
-        dropdown.classList.add('active');
-        this.activeDropdown = dropdown;
 
-        // Make chat toggle button transparent and unclickable
-        const chatToggleBtn = document.getElementById('chat-toggle-button');
-        if (chatToggleBtn) {
-            chatToggleBtn.classList.add('dropdown-active');
+        // Use View Transitions API for smooth animations (progressive enhancement)
+        const openAction = () => {
+            dropdown.classList.add('active');
+            this.activeDropdown = dropdown;
+
+            // Make chat toggle button transparent and unclickable
+            const chatToggleBtn = document.getElementById('chat-toggle-button');
+            if (chatToggleBtn) {
+                chatToggleBtn.classList.add('dropdown-active');
+            }
+
+            // Populate dropdown content if needed
+            this.populateDropdownContent(dropdown);
+
+            // Enhanced positioning with content measurement
+            if (content && button) {
+                content.style.viewTransitionName = `dropdown-${dropdown.id || 'content'}`;
+                content.offsetHeight; // Force reflow
+
+                const buttonRect = button.getBoundingClientRect();
+                const contentRect = content.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+
+                let top = buttonRect.bottom + 4;
+                let left = buttonRect.left;
+
+                // Adjust if off-screen
+                if (left + contentRect.width > viewportWidth) {
+                    left = Math.max(10, viewportWidth - contentRect.width - 10);
+                }
+                if (top + contentRect.height > viewportHeight) {
+                    top = Math.max(10, buttonRect.top - contentRect.height - 4);
+                }
+
+                content.style.top = `${top}px`;
+                content.style.left = `${left}px`;
+
+                // Add entering animation
+                content.classList.add('dropdown-entering');
+                content.classList.remove('dropdown-leaving');
+                setTimeout(() => content.classList.remove('dropdown-entering'), 200);
+
+                // Focus first focusable element
+                const firstFocusable = content.querySelector('button, input, select, [tabindex]:not([tabindex="-1"])');
+                if (firstFocusable) {
+                    setTimeout(() => firstFocusable.focus(), 100);
+                }
+            }
+        };
+
+        // Check for View Transitions API support
+        if ('startViewTransition' in document && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            try {
+                await document.startViewTransition(openAction).finished;
+            } catch (error) {
+                openAction();
+            }
+        } else {
+            openAction();
         }
-
-        // Populate dropdown content if needed
-        this.populateDropdownContent(dropdown);
     }
 
     closeDropdown(dropdown) {
-        dropdown.classList.remove('active');
+        const content = dropdown.querySelector('.dropdown-content');
+
+        if (content) {
+            content.classList.add('dropdown-leaving');
+            content.classList.remove('dropdown-entering');
+
+            setTimeout(() => {
+                dropdown.classList.remove('active');
+                content.classList.remove('dropdown-leaving');
+                content.style.viewTransitionName = '';
+            }, 200);
+        } else {
+            dropdown.classList.remove('active');
+        }
+
         if (this.activeDropdown === dropdown) {
             this.activeDropdown = null;
 
@@ -291,9 +477,40 @@ class DropdownManager {
     }
 
     handleKeydown(e) {
-        // Close dropdowns on escape key
+        // Enhanced keyboard navigation
+        const activeDropdown = document.querySelector('.dropdown.active');
+
         if (e.key === 'Escape') {
             this.closeAllDropdowns();
+            // Return focus to dropdown button
+            if (activeDropdown) {
+                const button = activeDropdown.querySelector('.dropdown-btn, .dropdown-button');
+                if (button) button.focus();
+            }
+            return;
+        }
+
+        if (!activeDropdown) return;
+
+        const items = activeDropdown.querySelectorAll('.dropdown-item, button, input, select');
+        const highlightedItem = activeDropdown.querySelector('.highlighted');
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                DropdownUtils.navigateItems(items, highlightedItem, 1);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                DropdownUtils.navigateItems(items, highlightedItem, -1);
+                break;
+            case 'Enter':
+            case ' ':
+                if (highlightedItem && highlightedItem.classList.contains('dropdown-item')) {
+                    e.preventDefault();
+                    highlightedItem.click();
+                }
+                break;
         }
     }
 
@@ -396,9 +613,14 @@ class DropdownManager {
     triggerAction(buttonId, action) {
         this.executeAction(action, buttonId, '');
     }
+
+    // Enhanced utility method exposed to external scripts
+    addVisualFeedback(element, type = 'success') {
+        DropdownUtils.addVisualFeedback(element, type);
+    }
 }
 
-// Add notification animations if not already present
+// Add enhanced animations and styles
 const existingStyle = document.querySelector('style[data-dropdown-animations]');
 if (!existingStyle) {
     const style = document.createElement('style');
@@ -426,8 +648,53 @@ if (!existingStyle) {
             }
         }
 
+        @keyframes feedbackPulse {
+            0% { transform: scale(0); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .dropdown-entering {
+            animation: dropdownSlideIn 0.2s ease-out;
+        }
+
+        .dropdown-leaving {
+            animation: dropdownSlideOut 0.2s ease-in;
+        }
+
+        @keyframes dropdownSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes dropdownSlideOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
         .collar-feedback {
             animation: slideInRight 0.3s ease-out, slideOutRight 0.3s ease-in 2.7s !important;
+        }
+
+        .smooth-transition {
+            transition: all 0.2s ease;
+        }
+
+        .highlighted {
+            background: rgba(255, 255, 255, 0.1);
+            outline: 2px solid var(--button-color);
         }
     `;
     document.head.appendChild(style);
