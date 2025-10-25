@@ -80,21 +80,8 @@ export class TTSDropdown {
     }
 
     setupToggleHandling() {
-        // Handle TTS button click to toggle dropdown
-        const ttsButton = document.getElementById(this.buttonId);
-        if (ttsButton) {
-            ttsButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const dropdown = ttsButton.closest('.dropdown');
-
-                // Handle dropdown open/close
-                if (dropdown.classList.contains('active')) {
-                    this.dropdownManager.closeDropdown(dropdown);
-                } else {
-                    this.dropdownManager.openDropdown(dropdown);
-                }
-            });
-        }
+        // Dropdown open/close is handled by DropdownManager
+        // This method kept for potential future toggle-specific logic
     }
 
     handleAction(action, detail) {

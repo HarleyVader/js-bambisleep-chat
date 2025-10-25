@@ -275,11 +275,18 @@ class DropdownManager {
     handleClick(e) {
         // Enhanced click handling with resize protection and component considerations
         const isInsideDropdown = e.target.closest('.dropdown');
+        const isDropdownButton = e.target.closest('.dropdown-btn');
         const isResizing = e.target.classList.contains('collar-textarea') ||
             (this.components.collar && this.components.collar.isResizing);
 
+        // Don't close if clicking on dropdown button (button handler will manage open/close)
+        // Don't close if clicking inside dropdown
+        // Don't close if resizing collar textarea
         if (!isInsideDropdown && !isResizing) {
             this.closeAllDropdowns();
+        } else if (isInsideDropdown && !isDropdownButton) {
+            // Clicking inside dropdown but not on button - keep dropdown open
+            // This prevents accidental closes when interacting with dropdown content
         }
     }
 

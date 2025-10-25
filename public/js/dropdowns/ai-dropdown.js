@@ -77,23 +77,16 @@ export class AIDropdown {
     }
 
     setupToggleHandling() {
-        // Handle AI button click to toggle AIGF state and dropdown
+        // AI button has special dual behavior:
+        // 1. Toggle AIGF on/off state
+        // 2. Open/close dropdown
+        // DropdownManager handles dropdown, this handles AIGF toggle
         const aiButton = document.getElementById(this.buttonId);
         if (aiButton) {
             aiButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-
-                // Toggle AIGF on/off
+                // Don't stop propagation - let DropdownManager handle dropdown
+                // Just toggle AIGF state
                 this.toggleAIGF();
-
-                const dropdown = aiButton.closest('.dropdown');
-
-                // Handle dropdown open/close
-                if (dropdown.classList.contains('active')) {
-                    this.dropdownManager.closeDropdown(dropdown);
-                } else {
-                    this.dropdownManager.openDropdown(dropdown);
-                }
             });
         }
     }

@@ -176,20 +176,8 @@ export class SpiralDropdown {
     }
 
     setupToggleHandling() {
-        // Handle spiral button click to toggle dropdown
-        const spiralButton = document.getElementById(this.buttonId);
-        if (spiralButton) {
-            spiralButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const dropdown = spiralButton.closest('.dropdown');
-
-                if (dropdown.classList.contains('active')) {
-                    this.dropdownManager.closeDropdown(dropdown);
-                } else {
-                    this.dropdownManager.openDropdown(dropdown);
-                }
-            });
-        }
+        // Dropdown open/close is handled by DropdownManager
+        // This method kept for potential future toggle-specific logic
     }
 
     handleSliderChange(slider) {
