@@ -1340,20 +1340,24 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
     // Get voice list
     app.get('/api/tts/voices', async (req, res) => {
         try {
+            // All female voices from Kokoro-FastAPI
+            // Reference: https://github.com/remsky/Kokoro-FastAPI
             const femaleVoices = [
-                'af_sky',
+                'af_alloy',
+                'af_aoede',
                 'af_bella',
-                'af_sarah',
+                'af_heart',
+                'af_jadzia',
+                'af_jessica',
+                'af_kore',
                 'af_nicole',
-                'af_alloy'
+                'af_nova',
+                'af_river',
+                'af_sarah',
+                'af_sky'
             ];
 
-            const maleBanned = [
-                'am_adam',
-                'am_michael'
-            ];
-
-            // Generate all possible combinations (maximum 2 voices)
+            // Generate all possible combinations (maximum 2 voices per Kokoro docs)
             const voiceCombinations = [];
 
             // Add individual voices
@@ -1385,11 +1389,11 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
             res.json({
                 voices: voiceCombinations,
                 femaleOnly: femaleVoices,
-                bannedMaleVoices: maleBanned,
                 defaultVoice: config.KOKORO_DEFAULT_VOICE,
-                description: 'Available Kokoro TTS female voices. BambiSleep enforces female-only voices. Use + to combine up to 2 voices.',
+                description: 'Available Kokoro-FastAPI female voices. BambiSleep enforces female-only voices. Use + to combine up to 2 voices.',
                 maxCombination: 2,
                 language: 'en',
+                kokoro_server: config.KOKORO_API_URL,
                 timestamp: new Date().toISOString()
             });
         } catch (error) {

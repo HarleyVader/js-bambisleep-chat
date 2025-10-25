@@ -20,7 +20,9 @@ class TextToSpeechSystem {
 
         // ENHANCED VOICE SELECTION - Integrated from TTS Dropdown
         this.selectedVoices = []; // Track multiple selected voices (max 2)
-        this.maxVoices = 2; // Maximum number of voices that can be selected
+        this.maxVoices = 2; // Maximum number of voices that can be selected per Kokoro-FastAPI
+        // All female voices from Kokoro-FastAPI official docs
+        // Reference: https://github.com/remsky/Kokoro-FastAPI
         this.availableVoices = [
             'af_alloy', 'af_aoede', 'af_bella', 'af_heart', 'af_jadzia', 'af_jessica',
             'af_kore', 'af_nicole', 'af_nova', 'af_river', 'af_sarah', 'af_sky'

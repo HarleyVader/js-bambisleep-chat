@@ -105,20 +105,22 @@ class KokoroTTSWorker {
             throw new Error('Invalid text input for TTS');
         }
 
-        // Kokoro TTS service assumed to be available
-
         const selectedVoice = voice || this.defaultVoice;
         const selectedFormat = format || this.outputFormat;
 
         console.log(`🎤 Generating speech: "${text.substring(0, 50)}..." with voice: ${selectedVoice}`);
 
         try {
-            // Use OpenAI-compatible endpoint as per Kokoro docs
+            // Use OpenAI-compatible endpoint per Kokoro-FastAPI official docs
+            // https://github.com/remsky/Kokoro-FastAPI
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+
             const response = await fetch(`${this.kokoroUrl}/v1/audio/speech`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer not-needed' // Kokoro doesn't require real auth
+                    // NO Authorization header needed per Kokoro-FastAPI docs
                 },
                 body: JSON.stringify({
                     model: 'kokoro',
@@ -127,8 +129,10 @@ class KokoroTTSWorker {
                     response_format: selectedFormat,
                     speed: 1.0
                 }),
-                timeout: 30000
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorText = await response.text();

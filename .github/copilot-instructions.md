@@ -59,7 +59,29 @@ import { TTSDropdown, TriggersDropdown } from './dropdowns/index.js';
 ### Audio Delivery Pattern
 ```javascript
 // TTS: Server → Kokoro worker → Base64 MP3 → Socket.io → Client
-socket.emit('tts-audio', { audio: base64Mp3, voice: 'af_bella' });
+// Per Kokoro-FastAPI official docs: https://github.com/remsky/Kokoro-FastAPI
+
+// Worker generates speech via OpenAI-compatible endpoint
+const response = await fetch(`${kokoroUrl}/v1/audio/speech`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        model: 'kokoro',
+        voice: 'af_bella',  // Female voices only: af_bella, af_sky, af_nicole, etc.
+        input: text,
+        response_format: 'mp3',
+        speed: 1.0
+    })
+});
+
+// Server sends Base64 audio via Socket.io
+socket.emit('tts-response', { audioData: base64Mp3, voice: 'af_bella' });
+
+// Client converts and plays
+const blob = base64ToBlob(audioData, 'audio/mpeg');
+const url = URL.createObjectURL(blob);
+audio.src = url;
+audio.play();
 ```
 
 ## Development Workflow
@@ -86,10 +108,25 @@ Be productive quickly by following the conventions below — these are the disco
 
 - Communication patterns to reuse (copy-paste safe):
   - Worker messaging (server → worker):
+    ```javascript
     const worker = new Worker('./workers/kokoro.js');
     worker.postMessage({ type: 'tts', text: message, voice: 'af_bella' });
+    ```
   - TTS audio delivery (worker → client via socket):
-    socket.emit('tts-audio', { audio: base64Mp3, voice: 'af_bella' });
+    ```javascript
+    // Kokoro-FastAPI OpenAI-compatible endpoint usage
+    const response = await fetch(`http://192.168.0.170:8880/v1/audio/speech`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'kokoro',
+            voice: 'af_sky+af_bella',  // Supports voice mixing with +
+            input: text,
+            response_format: 'mp3'
+        })
+    });
+    socket.emit('tts-response', { audioData: base64Mp3, voice: 'af_bella' });
+    ```
 
 - Important project rules (enforce these):
   - Never hardcode triggers — read from `/api/triggers/json` or `workers/triggers.json`.
