@@ -41,25 +41,28 @@ A modern real-time chat application with psychedelic visual effects, text-to-spe
 - Node.js v18+
 - npm (comes with Node.js)
 
-### Installation
+### Quick Install
 
-1. **Clone and install dependencies:**
+**One-Line Install (Recommended):**
 
 ```bash
-git clone <repository-url>
-cd js-bambisleep-chat
-npm install
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/HarleyVader/js-bambisleep-chat/production/install.sh | bash
+
+# Windows PowerShell  
+iwr https://raw.githubusercontent.com/HarleyVader/js-bambisleep-chat/production/install.ps1 | iex
 ```
 
-2. **Start the application:**
+**Manual Installation:**
 
 ```bash
+git clone https://github.com/HarleyVader/js-bambisleep-chat.git
+cd js-bambisleep-chat
+npm install
 npm start
 ```
 
-3. **Open your browser:**
-
-Navigate to `http://localhost:6969`
+**Access:** Navigate to `http://localhost:6969`
 
 ### Development Mode
 
@@ -303,6 +306,23 @@ The project includes enterprise-grade validation:
 - **Environment Tests**: Node.js version, dependencies, configuration
 - **Stability Tests**: Memory leaks, connection handling, error recovery
 - **Resource Tests**: Performance monitoring, load testing, optimization
+
+## 📚 Deployment Documentation
+
+### Quick References
+- **[QUICK-DEPLOY.md](QUICK-DEPLOY.md)** - Quick reference card for rapid deployment
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete step-by-step production deployment guide
+- **[install.sh](install.sh)** - Automated Linux/macOS installation script
+- **[install.ps1](install.ps1)** - Windows PowerShell installation script
+
+### Automated Deployment
+```bash
+# Production deployment with full automation
+node scripts/deploy.js
+
+# Validate deployment health
+node scripts/validate-service.js
+```
 
 ## Security Notes
 
