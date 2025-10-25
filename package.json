@@ -1,6 +1,6 @@
 {
     "name": "js-bambisleep-chat",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Modern Node.js/Express/Socket.io/Vanilla JS chat app with TTS, triggers, spiral animations.",
     "main": "server.js",
     "type": "commonjs",
@@ -19,6 +19,10 @@
         "hypnosis",
         "spiral"
     ],
+    "engines": {
+        "node": ">=18.0.0",
+        "npm": ">=9.0.0"
+    },
     "scripts": {
         "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
         "build": "vite build",
@@ -28,7 +32,8 @@
         "dev:server": "nodemon server.js",
         "dev:client": "vite",
         "prod:server": "NODE_ENV=production node server.js",
-        "clean": "rimraf node_modules public/dist package-lock.json",
+        "clean": "node scripts/clean.js",
+        "clean:all": "rimraf node_modules public/dist package-lock.json tests/reports",
         "lint": "echo \"No linting configured\" && exit 0",
         "test": "node tests/master.test.js",
         "test:all": "npm run test:env && npm run test:resource && npm run test:stability",
@@ -42,22 +47,18 @@
     },
     "dependencies": {
         "@lmstudio/sdk": "^1.5.0",
-        "axios": "^1.11.0",
-        "dotenv": "^17.2.2",
-        "express": "^4.18.2",
-        "node-fetch": "^2.7.0",
-        "socket.io": "^4.7.5",
+        "axios": "^1.12.2",
+        "dotenv": "^17.2.3",
+        "express": "^5.1.0",
+        "socket.io": "^4.8.1",
         "worker-thread": "^1.1.0"
     },
     "devDependencies": {
-        "concurrently": "^9.1.0",
-        "cross-env": "^7.0.3",
-        "nodemon": "^3.0.0",
-        "rimraf": "^5.0.5",
-        "vite": "^7.1.5",
-        "ws": "^8.14.2"
-    },
-    "engines": {
-        "node": ">=18"
+        "concurrently": "^9.2.1",
+        "cross-env": "^10.1.0",
+        "nodemon": "^3.1.10",
+        "rimraf": "^6.0.1",
+        "vite": "^7.1.12",
+        "ws": "^8.18.3"
     }
 }

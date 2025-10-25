@@ -1,3 +1,58 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Environment
 .env
+.env.local
+.env.*.local
+
+# Lock files
 package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build output
+dist/
+public/dist/
+build/
+.vite/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Optional: Uncomment if you want to ignore all test reports
+# tests/reports/*.html
+# tests/reports/*.json
+# tests/reports/*.txt

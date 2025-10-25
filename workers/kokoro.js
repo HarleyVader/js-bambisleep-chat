@@ -1,7 +1,7 @@
 // workers/kokoro.js
 // Kokoro TTS Worker - Handles text-to-speech via Kokoro-FastAPI
 const { parentPort } = require('worker_threads');
-const fetch = require('node-fetch');
+// Note: Using Node's native fetch API (available in Node 18+)
 
 class KokoroTTSWorker {
     constructor() {
