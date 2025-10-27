@@ -70,7 +70,10 @@
         "type-check": "echo 'Type checking...' && echo 'TypeScript not configured'",
         "security": "npm audit --audit-level moderate",
         "update-deps": "npm update && npm audit fix",
-        "health-check": "npm run test:critical && npm run security"
+        "health-check": "npm run test:critical && npm run security",
+        "mcp:start": "node mcp-manager.js start",
+        "mcp:status": "node mcp-manager.js status",
+        "mcp:install": "npm install -g @modelcontextprotocol/server-filesystem && echo 'MCP filesystem server installed'"
     },
     "dependencies": {
         "@lmstudio/sdk": "^1.5.0",
