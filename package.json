@@ -47,6 +47,8 @@
         "test:stability": "node tests/unified-test-runner.js -- --tag=stability",
         "test:performance": "node tests/unified-test-runner.js -- --tag=performance",
         "test:critical": "node tests/unified-test-runner.js -- --tag=critical",
+        "test:mcp": "node tests/unified-test-runner.js -- --tag=mcp",
+        "test:mcp:standalone": "node tests/mcp-tools-simple.test.js",
         "test:dropdowns": "node tests/unified-test-runner.js -- --tag=dropdowns",
         "test:verbose": "cross-env TEST_VERBOSE=true node tests/unified-test-runner.js",
         "test:ci": "cross-env TEST_REPORTS=true TEST_EXIT_ON_FAILURE=true node tests/unified-test-runner.js",

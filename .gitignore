@@ -5,6 +5,8 @@ node_modules/
 .env
 .env.local
 .env.*.local
+.env.mcp
+!.env.mcp.template
 
 # Lock files
 package-lock.json

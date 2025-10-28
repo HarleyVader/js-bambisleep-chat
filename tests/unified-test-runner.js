@@ -108,6 +108,19 @@ class BambiSleepTestRunner {
                 dependencies: ['environment']
             });
 
+            // MCP Tools Integration tests - high priority
+            try {
+                const mcpSuite = require('./mcp-tools.test.js');
+                this.framework.registerSuite('mcp-tools', mcpSuite.run, {
+                    tags: ['critical', 'mcp', 'integration', 'api'],
+                    priority: 85,
+                    dependencies: ['environment'],
+                    timeout: 60000 // 1 minute for API calls
+                });
+            } catch (error) {
+                console.log('⚠️  MCP test suite not available (optional)');
+            }
+
             console.log('✅ Modern test suites registered');
 
         } catch (error) {
