@@ -27,8 +27,8 @@ class ProductionBuilder {
     exec(command, description) {
         try {
             console.log(`🔄 ${description}...`);
-            const result = execSync(command, { 
-                encoding: 'utf8', 
+            const result = execSync(command, {
+                encoding: 'utf8',
                 stdio: ['pipe', 'pipe', 'pipe'],
                 cwd: process.cwd()
             });
@@ -61,12 +61,12 @@ class ProductionBuilder {
      */
     async validateEnvironment() {
         console.log('🔍 Validating build environment...');
-        
+
         // Check Node.js version
         const nodeVersion = process.version;
         const requiredNode = '20.0.0';
         console.log(`📋 Node.js version: ${nodeVersion}`);
-        
+
         // Check if all required files exist
         const requiredFiles = [
             'package.json',
@@ -128,20 +128,20 @@ class ProductionBuilder {
      */
     async buildFrontend() {
         this.exec('npx vite build', 'Building frontend assets with Vite');
-        
+
         // Verify build output
         try {
             const buildFiles = await fs.readdir(this.buildDir);
             console.log(`📦 Built ${buildFiles.length} files/directories`);
-            
+
             // Check for essential files
             const hasIndex = buildFiles.some(file => file.includes('index'));
             const hasAssets = buildFiles.includes('assets');
-            
+
             if (!hasIndex) {
                 throw new Error('Missing index.html in build output');
             }
-            
+
             console.log('✅ Frontend build verification completed');
         } catch (error) {
             throw new Error(`Frontend build verification failed: ${error.message}`);
@@ -153,7 +153,7 @@ class ProductionBuilder {
      */
     async copyServerFiles() {
         console.log('📁 Copying server files...');
-        
+
         const serverFiles = [
             'server.js',
             'package.json',
@@ -169,7 +169,7 @@ class ProductionBuilder {
             try {
                 const sourcePath = path.join(process.cwd(), file);
                 const destPath = path.join(this.buildDir, file);
-                
+
                 // Check if source exists
                 try {
                     await fs.access(sourcePath);
@@ -177,23 +177,23 @@ class ProductionBuilder {
                     console.log(`ℹ️  Skipping ${file} (not found)`);
                     continue;
                 }
-                
+
                 // Get file stats to determine if it's a directory
                 const stats = await fs.stat(sourcePath);
-                
+
                 if (stats.isDirectory()) {
                     await this.copyDirectory(sourcePath, destPath);
                 } else {
                     await fs.mkdir(path.dirname(destPath), { recursive: true });
                     await fs.copyFile(sourcePath, destPath);
                 }
-                
+
                 console.log(`✅ Copied ${file}`);
             } catch (error) {
                 console.warn(`⚠️  Failed to copy ${file}: ${error.message}`);
             }
         }
-        
+
         console.log('✅ Server files copied');
     }
 
@@ -202,15 +202,15 @@ class ProductionBuilder {
      */
     async copyDirectory(source, destination) {
         await fs.mkdir(destination, { recursive: true });
-        
+
         const items = await fs.readdir(source);
-        
+
         for (const item of items) {
             const sourcePath = path.join(source, item);
             const destPath = path.join(destination, item);
-            
+
             const stats = await fs.stat(sourcePath);
-            
+
             if (stats.isDirectory()) {
                 await this.copyDirectory(sourcePath, destPath);
             } else {
@@ -224,10 +224,10 @@ class ProductionBuilder {
      */
     async generateProductionPackage() {
         console.log('📦 Generating production package.json...');
-        
+
         const packagePath = path.join(process.cwd(), 'package.json');
         const packageData = JSON.parse(await fs.readFile(packagePath, 'utf8'));
-        
+
         // Create production version
         const prodPackage = {
             ...packageData,
@@ -239,10 +239,10 @@ class ProductionBuilder {
             // Remove devDependencies for production
             devDependencies: undefined
         };
-        
+
         const prodPackagePath = path.join(this.buildDir, 'package.json');
         await fs.writeFile(prodPackagePath, JSON.stringify(prodPackage, null, 2));
-        
+
         console.log('✅ Production package.json generated');
     }
 
@@ -251,7 +251,7 @@ class ProductionBuilder {
      */
     async createBuildManifest() {
         console.log('📄 Creating build manifest...');
-        
+
         const manifest = {
             buildTime: new Date().toISOString(),
             version: require('../package.json').version,
@@ -260,10 +260,10 @@ class ProductionBuilder {
             environment: 'production',
             buildDuration: Date.now() - this.startTime
         };
-        
+
         const manifestPath = path.join(this.buildDir, 'build-manifest.json');
         await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-        
+
         console.log('✅ Build manifest created');
     }
 
@@ -272,7 +272,7 @@ class ProductionBuilder {
      */
     async optimizeBuild() {
         console.log('⚡ Optimizing build for production...');
-        
+
         // Create .env.production template if it doesn't exist
         const envProdPath = path.join(this.buildDir, '.env.production');
         try {
@@ -291,7 +291,7 @@ PORT=7878
             await fs.writeFile(envProdPath, prodEnvTemplate);
             console.log('✅ Created .env.production template');
         }
-        
+
         console.log('✅ Build optimization completed');
     }
 
@@ -300,7 +300,7 @@ PORT=7878
      */
     async validateBuild() {
         console.log('🔍 Validating final build...');
-        
+
         // Check if essential files exist in build
         const essentialFiles = [
             'index.html',
@@ -311,7 +311,7 @@ PORT=7878
             'workers/lmstudio.js',
             'workers/triggers.json'
         ];
-        
+
         for (const file of essentialFiles) {
             const filePath = path.join(this.buildDir, file);
             try {
@@ -321,11 +321,11 @@ PORT=7878
                 console.warn(`⚠️  Missing from build: ${file}`);
             }
         }
-        
+
         // Get build size
         const buildSize = await this.getBuildSize(this.buildDir);
         console.log(`📊 Build size: ${this.formatBytes(buildSize)}`);
-        
+
         console.log('✅ Build validation completed');
     }
 
@@ -334,14 +334,14 @@ PORT=7878
      */
     async getBuildSize(dir) {
         let size = 0;
-        
+
         try {
             const items = await fs.readdir(dir);
-            
+
             for (const item of items) {
                 const itemPath = path.join(dir, item);
                 const stats = await fs.stat(itemPath);
-                
+
                 if (stats.isDirectory()) {
                     size += await this.getBuildSize(itemPath);
                 } else {
@@ -351,7 +351,7 @@ PORT=7878
         } catch (error) {
             // Directory might not be accessible
         }
-        
+
         return size;
     }
 
@@ -374,7 +374,7 @@ PORT=7878
             console.log('🚀 Starting BambiSleep Chat production build...');
             if (this.options.skipTests) console.log('⚡ Fast build mode (skipping tests)');
             console.log('');
-            
+
             await this.validateEnvironment();
             await this.cleanBuild();
             await this.installDependencies();
@@ -386,10 +386,10 @@ PORT=7878
             await this.optimizeBuild();
             await this.createBuildManifest();
             await this.validateBuild();
-            
+
             const duration = Date.now() - this.startTime;
             const buildSizeMB = await this.getBuildSize(this.buildDir);
-            
+
             console.log(`\n🎉 Build completed successfully in ${Math.round(duration / 1000)}s!`);
             console.log(`📁 Build output: ${this.buildDir}`);
             console.log(`📊 Build size: ${this.formatBytes(buildSizeMB)}`);
@@ -399,12 +399,12 @@ PORT=7878
             console.log('  2. Run: npm ci --production (in dist/ folder)');
             console.log('  3. Configure .env.production with your settings');
             console.log('  4. Run: npm start');
-            
+
             return true;
         } catch (error) {
             console.error(`\n💥 Build failed: ${error.message}`);
             console.error('🔍 Check the error above and resolve issues before retrying');
-            
+
             if (this.options.verbose) {
                 console.error('\n📋 Build steps completed:');
                 this.buildSteps.forEach(step => {
@@ -412,7 +412,7 @@ PORT=7878
                     console.error(`  ${status} ${step.step}`);
                 });
             }
-            
+
             process.exit(1);
         }
     }

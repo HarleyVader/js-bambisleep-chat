@@ -32,6 +32,7 @@ tests/                         # Comprehensive testing suite (environment, stabi
 
 ## Development Commands
 ```bash
+npm run all          # ONE COMMAND: clean + test + build + dev (USE THIS!)
 npm run dev          # Full stack: Vite (5173) + Express (7878) + auto-restart
 npm run dev:server   # Backend only (port 7878) with nodemon
 npm run dev:client   # Vite dev server only (port 5173) 

@@ -78,7 +78,8 @@
         "health-check": "npm run test:critical && npm run security",
         "mcp:start": "node mcp-manager.js start",
         "mcp:status": "node mcp-manager.js status",
-        "mcp:install": "npm install -g @modelcontextprotocol/server-filesystem && echo 'MCP filesystem server installed'"
+        "mcp:install": "npm install -g @modelcontextprotocol/server-filesystem && echo 'MCP filesystem server installed'",
+        "all": "npm run clean && npm run test:critical && npm run build:fast && npm run dev"
     },
     "dependencies": {
         "@lmstudio/sdk": "^1.5.0",

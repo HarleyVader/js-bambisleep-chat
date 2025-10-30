@@ -219,7 +219,7 @@ class MCPToolsTest {
 
     async testMicrosoftClarityAuth() {
         console.log('🔄 Testing Microsoft Clarity Authentication...');
-        
+
         const apiKey = process.env.CLARITY_API_KEY;
         const projectId = process.env.CLARITY_PROJECT_ID;
 
@@ -248,7 +248,7 @@ class MCPToolsTest {
 
     async testMongoDBConnection() {
         console.log('🔄 Testing MongoDB Connection...');
-        
+
         const mongoUri = process.env.MONGODB_URI;
 
         if (!mongoUri || mongoUri.includes('your_')) {
@@ -276,7 +276,7 @@ class MCPToolsTest {
 
     async testGitHubAuth() {
         console.log('🔄 Testing GitHub Authentication...');
-        
+
         const token = process.env.GITHUB_TOKEN;
 
         if (!token || token.includes('your_')) {
@@ -304,7 +304,7 @@ class MCPToolsTest {
 
     async testMCPFunctionality() {
         console.log('🔄 Testing MCP Server Functionality...');
-        
+
         const functionalityTests = [
             { name: 'huggingface', test: () => this.testHuggingFaceFunctionality() },
             { name: 'stripe', test: () => this.testStripeFunctionality() },
