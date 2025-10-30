@@ -4,14 +4,15 @@
 
 ## Architecture Overview
 
-### Core Stack - UPDATED v0.3.0
-- **Backend**: Express + Socket.io + Worker threads (`server.js`) + Git deployment detection
-- **Frontend**: Vanilla JavaScript ES6 modules (NO React/frameworks) + Modern CSS @layer architecture
-- **Build**: Vite for development, serves from `/public` with proxy to port 7878
+### Core Stack - v0.3.0
+- **Backend**: Express + Socket.io + Worker threads (`server.js`) + Environment validation
+- **Frontend**: Vanilla JavaScript ES6 modules (NO frameworks) + Modern CSS @layer architecture  
+- **Build**: Vite dev server (port 5173) proxies to Express backend (port 7878)
 - **Data Flow**: Socket.io ↔ Server ↔ Worker threads (Kokoro TTS, LM Studio AI)
-- **Configuration**: Centralized `config/env.js` with validation and environment detection
-- **CSS Architecture**: Modern CSS @layer system replacing z-index chaos
-- **Testing**: Comprehensive validation suite (environment, stability, resources)
+- **Configuration**: Centralized `config/env.js` with validation and auto environment detection
+- **CSS Architecture**: Semantic CSS @layer system (no z-index numbers)
+- **Testing**: Unified test framework with parallel execution and HTML reports
+- **MCP Integration**: Active Hugging Face, Stripe, Clarity, MongoDB servers
 
 ### Key Files & Responsibilities - ENHANCED
 ```
@@ -29,14 +30,17 @@ vite.config.js                 # Dev proxy: 5173 → 7878 for Socket.io/API + er
 tests/                         # Comprehensive testing suite (environment, stability, resources)
 ```
 
-## Development Commands - ENHANCED
+## Development Commands
 ```bash
-npm run dev          # Full stack (Vite dev server + backend + auto-restart)
-npm run dev:server   # Backend only (port 7878) + git deployment detection
-npm run dev:client   # Frontend only (port 5173) + hot reload
-npm run test         # Comprehensive test suite (environment + stability + resources)
-npm run build        # Production build with optimization
-npm run clean        # Clean build artifacts and test reports
+npm run dev          # Full stack: Vite (5173) + Express (7878) + auto-restart
+npm run dev:server   # Backend only (port 7878) with nodemon
+npm run dev:client   # Vite dev server only (port 5173) 
+npm run test         # Unified test runner with HTML reports
+npm run test:critical # Pre-deployment critical tests only
+npm run build        # Production build validation
+npm run clean        # Clean artifacts (--light or --full flags)
+npm run deploy       # Production deployment scripts
+npm run mcp:status   # Check MCP server connections
 ```
 
 ## Critical Patterns - MODERNIZED
@@ -60,6 +64,19 @@ if (!KOKORO.isConfigured) {
 - **Source**: `workers/triggers.json` (loaded from `/api/triggers/json`)
 - **Categories**: `primary`, `physical`, `mental` with safety levels
 - **Never hardcode**: Always load from API/JSON, respect official BambiSleep data
+
+### MCP Server Integration (NEW)
+```javascript
+// Active MCP servers provide enhanced AI capabilities
+// Hugging Face: ML models, datasets, image generation
+// Stripe: Payment processing, subscriptions
+// Clarity: Web analytics, session recordings  
+// MongoDB: Database operations, aggregation
+
+// Check MCP status via npm scripts
+npm run mcp:status    // Verify all server connections
+npm run mcp:start     // Initialize MCP servers
+```
 
 ### Worker Thread Communication (Enhanced)
 ```javascript
@@ -231,9 +248,15 @@ npm run clean         # Clean artifacts before commit
 **Modify Environment Config:**
 1. Edit `config/env.js` for new settings
 2. Use validation functions for safety
-3. Access via `import { CONFIG } from '../config/env.js';`
+3. Access via `import { KOKORO, LMS, SERVER } from '../config/env.js';`
 
 **Update Triggers:**
 1. Edit `workers/triggers.json` (authoritative source)
 2. Verify at `/api/triggers/json` endpoint
 3. Never hardcode trigger data in components
+
+**Run Tests:**
+- `npm run test` - Full unified test suite with HTML reports
+- `npm run test:critical` - Pre-deployment essential tests only
+- `npm run test:env` - Environment configuration validation
+- `npm run test:mcp` - MCP server connectivity tests

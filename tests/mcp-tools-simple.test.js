@@ -27,11 +27,11 @@ class MCPToolsTest {
         const timestamp = new Date().toISOString().substr(11, 8);
         const emoji = {
             success: '✅',
-            error: '❌', 
+            error: '❌',
             warning: '⚠️',
             info: '📊'
         }[type] || '🔄';
-        
+
         console.log(`[${timestamp}] ${emoji} ${message}`);
     }
 
@@ -40,7 +40,7 @@ class MCPToolsTest {
             if (fs.existsSync(this.envPath)) {
                 const envData = fs.readFileSync(this.envPath, 'utf8');
                 const lines = envData.split('\n');
-                
+
                 for (const line of lines) {
                     if (line.trim() && !line.startsWith('#')) {
                         const [key, value] = line.split('=');
@@ -63,14 +63,14 @@ class MCPToolsTest {
 
     async testServerActivation() {
         this.log('Testing MCP Server Activation...', 'info');
-        
+
         try {
             const MCPManager = require('../mcp-manager');
             const mcpManager = new MCPManager();
-            
+
             await mcpManager.loadEnvironment();
             const configLoaded = await mcpManager.loadConfig();
-            
+
             if (!configLoaded) {
                 throw new Error('Failed to load MCP configuration');
             }
@@ -97,10 +97,10 @@ class MCPToolsTest {
 
             const success = activatedCount === 8;
             this.log(`Server Activation: ${activatedCount}/8 servers active`, success ? 'success' : 'warning');
-            
+
             if (success) this.results.passed++;
             else this.results.failed++;
-            
+
             return { success, activatedServers: activatedCount, totalServers: 8 };
         } catch (error) {
             this.log(`Server activation test failed: ${error.message}`, 'error');
@@ -111,7 +111,7 @@ class MCPToolsTest {
 
     async testAPIKeys() {
         this.log('Testing API Keys Validation...', 'info');
-        
+
         try {
             const requiredKeys = {
                 'github': ['GITHUB_TOKEN'],
@@ -131,12 +131,12 @@ class MCPToolsTest {
                     totalKeys++;
                     const value = process.env[key];
                     const isValid = value && value.trim() !== '' && !value.includes('your_') && !value.includes('_here');
-                    
+
                     if (!this.testResults.apiKeys[server]) {
                         this.testResults.apiKeys[server] = {};
                     }
                     this.testResults.apiKeys[server][key] = isValid;
-                    
+
                     if (isValid) {
                         validKeys++;
                         this.log(`${key}: Valid`, 'success');
@@ -148,10 +148,10 @@ class MCPToolsTest {
 
             const percentage = Math.round((validKeys / totalKeys) * 100);
             this.log(`API Keys: ${validKeys}/${totalKeys} configured (${percentage}%)`, 'info');
-            
+
             if (validKeys > totalKeys * 0.5) this.results.passed++;
             else this.results.warnings++;
-            
+
             return { success: validKeys > 0, validKeys, totalKeys, percentage };
         } catch (error) {
             this.log(`API keys validation failed: ${error.message}`, 'error');
@@ -162,7 +162,7 @@ class MCPToolsTest {
 
     async testAuthentication() {
         this.log('Testing Account Authentication...', 'info');
-        
+
         const authTests = [
             { name: 'Hugging Face', key: 'HUGGINGFACE_API_KEY', format: 'hf_', account: 'brandynette' },
             { name: 'Stripe', key: 'STRIPE_SECRET_KEY', format: 'sk_', account: 'bambisleep.church' },
@@ -178,7 +178,7 @@ class MCPToolsTest {
         for (const { name, key, format, account } of authTests) {
             const value = process.env[key];
             const isConfigured = value && !value.includes('your_') && !value.includes('_here');
-            
+
             let isAuthenticated = false;
             if (isConfigured && format) {
                 const formats = format.split('|');
@@ -201,16 +201,16 @@ class MCPToolsTest {
 
         const success = authenticatedServices >= 4;
         this.log(`Authentication: ${authenticatedServices}/${authTests.length} services authenticated`, success ? 'success' : 'warning');
-        
+
         if (success) this.results.passed++;
         else this.results.warnings++;
-        
+
         return { success, authenticatedServices, totalServices: authTests.length };
     }
 
     async testFunctionality() {
         this.log('Testing MCP Server Functionality...', 'info');
-        
+
         const functionalityTests = [
             { name: 'filesystem', test: () => this.testFilesystemFunctionality() },
             { name: 'github', test: () => this.testGitHubFunctionality() },
@@ -228,7 +228,7 @@ class MCPToolsTest {
             try {
                 const result = await test();
                 this.testResults.functionality[name] = result.success;
-                
+
                 if (result.success) {
                     functionalServices++;
                     this.log(`${name}: ${result.message || 'Functional'}`, 'success');
@@ -243,10 +243,10 @@ class MCPToolsTest {
 
         const success = functionalServices >= 6;
         this.log(`Functionality: ${functionalServices}/8 servers functional`, success ? 'success' : 'warning');
-        
+
         if (success) this.results.passed++;
         else this.results.warnings++;
-        
+
         return { success, functionalServices, totalServers: 8 };
     }
 
@@ -322,18 +322,18 @@ class MCPToolsTest {
         if (!fs.existsSync(reportDir)) {
             fs.mkdirSync(reportDir, { recursive: true });
         }
-        
+
         const reportPath = path.join(reportDir, `mcp-test-report-${Date.now()}.json`);
         fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-        
+
         this.log(`Report saved: ${reportPath}`, 'success');
         return report;
     }
 
     async runAllTests() {
         console.log('\n🤖 MCP Tools Integration Test Suite v1.0');
-        console.log('=' .repeat(50));
-        
+        console.log('='.repeat(50));
+
         // Load environment
         await this.loadMCPEnvironment();
 
@@ -348,7 +348,7 @@ class MCPToolsTest {
 
         // Final summary
         console.log('\n🎯 MCP Integration Test Results:');
-        console.log('=' .repeat(40));
+        console.log('='.repeat(40));
         this.log(`Active Servers: ${report.summary.activeServers}/8`, 'info');
         this.log(`Authenticated Services: ${report.summary.authenticatedServices}/7`, 'info');
         this.log(`Functional Services: ${report.summary.functionalServices}/8`, 'info');
@@ -356,7 +356,7 @@ class MCPToolsTest {
 
         // Overall status
         const overallScore = (report.summary.activeServers + report.summary.functionalServices) / 16 * 100;
-        
+
         if (overallScore >= 90) {
             this.log('🎉 MCP Integration: EXCELLENT - Production Ready!', 'success');
         } else if (overallScore >= 70) {

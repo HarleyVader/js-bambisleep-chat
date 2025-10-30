@@ -65,14 +65,14 @@ class MCPToolsTest {
 
     async testServerActivation() {
         console.log('🔄 Testing MCP Server Activation...');
-        
+
         try {
             const MCPManager = require('../mcp-manager');
             this.mcpManager = new MCPManager();
-            
+
             await this.mcpManager.loadEnvironment();
             const configLoaded = await this.mcpManager.loadConfig();
-            
+
             if (!configLoaded) {
                 throw new Error('Failed to load MCP configuration');
             }
@@ -103,9 +103,9 @@ class MCPToolsTest {
             console.log(`❌ MCP Server Activation failed: ${error.message}`);
             return { success: false, error: error.message };
         }
-    }    async testAPIKeys() {
+    } async testAPIKeys() {
         console.log('🔄 Testing API Keys Validation...');
-        
+
         try {
             const requiredKeys = {
                 'github_releases': ['GITHUB_TOKEN'],
@@ -151,7 +151,7 @@ class MCPToolsTest {
 
     async testHuggingFaceAuth() {
         console.log('🔄 Testing Hugging Face Authentication...');
-        
+
         try {
             const apiKey = process.env.HUGGINGFACE_API_KEY;
 
@@ -184,7 +184,7 @@ class MCPToolsTest {
 
     async testStripeAuth() {
         console.log('🔄 Testing Stripe Authentication...');
-        
+
         try {
             const secretKey = process.env.STRIPE_SECRET_KEY;
 
