@@ -1,18 +1,18 @@
 # GitHub Copilot Instructions
 
-**BambiSleep Chat**: Enterprise-grade real-time chat app with TTS, psychedelic visuals, and BambiSleep trigger detection.
+**BambiSleep Chat**: Real-time hypnosis chat app with AI, TTS, and visual effects engine.
 
 ## Architecture Overview
 
 ### Core Stack - v0.3.0
-- **Backend**: Express + Socket.io + Worker threads (`server.js`) + Environment validation
-- **Frontend**: Vanilla JavaScript ES6 modules (NO frameworks) + Modern CSS @layer architecture  
+- **Backend**: Express + Socket.io + Worker threads (`server.js`) + Environment validation  
+- **Frontend**: Vanilla JavaScript ES6 modules (NO frameworks) + Modern CSS @layer architecture
 - **Build**: Vite dev server (port 5173) proxies to Express backend (port 7878)
 - **Data Flow**: Socket.io ↔ Server ↔ Worker threads (Kokoro TTS, LM Studio AI)
 - **Configuration**: Centralized `config/env.js` with validation and auto environment detection
 - **CSS Architecture**: Semantic CSS @layer system (no z-index numbers)
 - **Testing**: Unified test framework with parallel execution and HTML reports
-- **MCP Integration**: Active Hugging Face, Stripe, Clarity, MongoDB servers
+- **MCP Integration**: GitHub, Hugging Face, Stripe, Clarity, MongoDB servers
 
 ### Key Files & Responsibilities - ENHANCED
 ```
@@ -33,15 +33,18 @@ tests/                         # Comprehensive testing suite (environment, stabi
 ## Development Commands
 ```bash
 npm run all          # ONE COMMAND: clean + test + build + dev (USE THIS!)
-npm run dev          # Full stack: Vite (5173) + Express (7878) + auto-restart
+npm run dev          # Full stack: Vite (5173) + Express (7878) + auto-restart  
 npm run dev:server   # Backend only (port 7878) with nodemon
-npm run dev:client   # Vite dev server only (port 5173) 
+npm run dev:client   # Vite dev server only (port 5173)
 npm run test         # Unified test runner with HTML reports
 npm run test:critical # Pre-deployment critical tests only
-npm run build        # Production build validation
+npm run test:env     # Environment configuration validation
+npm run test:mcp     # MCP server connectivity tests
+npm run build        # Production build validation  
 npm run clean        # Clean artifacts (--light or --full flags)
 npm run deploy       # Production deployment scripts
 npm run mcp:status   # Check MCP server connections
+npm run mcp:start    # Initialize MCP servers
 ```
 
 ## Critical Patterns - MODERNIZED
@@ -65,6 +68,18 @@ if (!KOKORO.isConfigured) {
 - **Source**: `workers/triggers.json` (loaded from `/api/triggers/json`)
 - **Categories**: `primary`, `physical`, `mental` with safety levels
 - **Never hardcode**: Always load from API/JSON, respect official BambiSleep data
+
+### SystemD Service Deployment (NEW)
+```bash
+# Production deployment uses SystemD service
+sudo ./install.sh                    # Auto-installs service
+npm run deploy:status                # Check service status
+npm run validate-service             # Validate service configuration
+
+# Service file: bambisleepchat.service
+# Runs as production user, auto-restart on failure
+# Logs via journalctl -u bambisleepchat -f
+```
 
 ### MCP Server Integration (NEW)
 ```javascript
@@ -119,6 +134,28 @@ statusIndicator.className = 'status-active';   // ✅ Correct
 statusIndicator.style.color = '#00ff00';       // ❌ Avoid inline styles
 ```
 
+### Socket.io Connection Architecture (CRITICAL)
+```javascript
+// SINGLE SOURCE OF TRUTH: aigf-core.js owns the Socket.io connection
+// OTHER MODULES: Use event delegation, never create their own socket
+
+// ✅ Correct - In aigf-core.js (connection owner)
+this.socket = io();
+
+// ✅ Correct - Other modules use DOM events to communicate
+document.dispatchEvent(new CustomEvent('globalChatMessage', { 
+  detail: { message, username, timestamp } 
+}));
+
+// ❌ WRONG - Never create multiple socket connections
+// this.socket = io(); // Don't do this in chat.js, text2speech.js, etc.
+
+// ✅ Debugging Socket Connection Issues
+console.log('Socket connected:', this.socket?.connected);
+console.log('Socket ID:', this.socket?.id);
+console.log('Socket transport:', this.socket?.io?.engine?.transport?.name);
+```
+
 ### Audio Delivery Pattern (Enhanced)
 ```javascript
 // TTS: Server → Kokoro worker → Base64 MP3 → Socket.io → Client
@@ -156,7 +193,7 @@ socket.emit('tts-response', {
 const blob = base64ToBlob(audioData, 'audio/mpeg');
 const url = URL.createObjectURL(blob);
 audio.src = url;
-audio.play().catch(err => console.error('Audio playback failed:', err));
+audio.play().catch(err => console.error('Audio playbook failed:', err));
 ```
 
 ## Development Workflow
@@ -174,6 +211,31 @@ audio.play().catch(err => console.error('Audio playback failed:', err));
 - **Z-index conflicts** - Use semantic CSS layers, avoid z-index numbers
 
 ### Common Tasks & Patterns
+
+#### Socket.io Connection Debugging
+```javascript
+// ✅ Check connection status in browser console
+console.log('Socket status:', {
+  connected: window.socket?.connected,
+  id: window.socket?.id,
+  transport: window.socket?.io?.engine?.transport?.name
+});
+
+// ✅ Fix "Cannot send global message - not connected" error
+// Problem: chat.js creates its own socket instead of using aigf-core.js socket
+// Solution: Use event delegation pattern instead
+
+// In chat.js (WRONG):
+// this.socket = io(); // Don't create multiple sockets!
+
+// In chat.js (CORRECT):
+sendGlobalMessage(message, username) {
+  // Delegate to main socket via DOM events
+  document.dispatchEvent(new CustomEvent('sendGlobalMessage', {
+    detail: { message, username }
+  }));
+}
+```
 
 #### CSS Layer Integration
 ```css
@@ -230,6 +292,7 @@ npm run clean         # Clean artifacts before commit
 ```
 
 ### Architecture Enforcement
+- **Single Socket Connection**: Only `aigf-core.js` creates Socket.io connection, others use DOM events
 - **CSS Layers**: Use `@layer` system, avoid z-index numbers
 - **No Inline Styles**: All styling through CSS classes
 - **Centralized Config**: Use `config/env.js` for all environment logic
@@ -261,3 +324,8 @@ npm run clean         # Clean artifacts before commit
 - `npm run test:critical` - Pre-deployment essential tests only
 - `npm run test:env` - Environment configuration validation
 - `npm run test:mcp` - MCP server connectivity tests
+- `npm run test:architecture` - Validate system architecture
+- `npm run test:stability` - Long-running stability tests
+- `npm run test:performance` - Performance benchmarking
+
+**Test Reports Location:** `tests/reports/` - HTML and JSON formats
