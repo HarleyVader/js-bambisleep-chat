@@ -39,7 +39,10 @@
     "packageManager": "npm@10.9.0",
     "scripts": {
         "start": "node server.js",
-        "build": "echo 'Build complete - BambiSleep Chat v0.3.0 ready for production'",
+        "build": "node scripts/build.js",
+        "build:fast": "node scripts/build.js --skip-tests",
+        "build:verbose": "node scripts/build.js --verbose",
+        "build:clean": "npm run clean && npm run build",
         "prestart": "npm run test:critical",
         "test": "node tests/unified-test-runner.js",
         "test:env": "node tests/unified-test-runner.js -- --tag=environment",
