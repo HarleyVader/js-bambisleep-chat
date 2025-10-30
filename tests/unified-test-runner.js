@@ -111,7 +111,7 @@ class BambiSleepTestRunner {
             // MCP Tools Integration tests - high priority
             try {
                 const mcpSuite = require('./mcp-tools.test.js');
-                this.framework.registerSuite('mcp-tools', mcpSuite.run, {
+                this.framework.registerSuite('mcp-tools', mcpSuite.testSuite, {
                     tags: ['critical', 'mcp', 'integration', 'api'],
                     priority: 85,
                     dependencies: ['environment'],
