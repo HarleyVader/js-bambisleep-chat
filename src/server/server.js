@@ -372,13 +372,13 @@ app.use((req, res, next) => {
     // Development CSP (more permissive for hot reload)
     if (isDevelopment) {
         baseCspDirectives.push(
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.socket.io cdn.jsdelivr.net localhost:* ws://localhost:*",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net localhost:* ws://localhost:*",
             `connect-src 'self' ws: wss: http://${kokoroHost}:${kokoroPort} http://${lmsHost}:${lmsPort} ws://localhost:* http://localhost:*`
         );
     } else {
         // Production CSP (stricter)
         baseCspDirectives.push(
-            "script-src 'self' 'unsafe-inline' cdn.socket.io cdn.jsdelivr.net"
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net"
         );
     }
 

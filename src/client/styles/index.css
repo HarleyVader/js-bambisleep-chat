@@ -1,13 +1,13 @@
 /* Import all existing CSS layers and styles */
-@import '/css/layers.css';
-@import '/css/style.css';
-@import '/css/buttons.css';
-@import '/css/chat.css';
-@import '/css/aigf.css';
-@import '/css/mobile.css';
-@import '/css/glassmorphism.css';
-@import '/css/spirals.css';
-@import '/css/brainwave.css';
+@import '../../../public/css/layers.css';
+@import '../../../public/css/style.css';
+@import '../../../public/css/buttons.css';
+@import '../../../public/css/chat.css';
+@import '../../../public/css/aigf.css';
+@import '../../../public/css/mobile.css';
+@import '../../../public/css/glassmorphism.css';
+@import '../../../public/css/spirals.css';
+@import '../../../public/css/brainwave.css';
 
 /* React-specific styles */
 @layer base {

@@ -153,7 +153,7 @@ const EXTERNAL = {
     BAMBISLEEP_WIKI: 'https://bambisleep.info',
     BAMBISLEEP_TRIGGERS: 'https://bambisleep.info/Triggers',
     KOKORO_DOCS: 'https://github.com/remsky/Kokoro-FastAPI',
-    SOCKETIO_CDN: 'https://cdn.socket.io/4.7.5/socket.io.min.js',
+    SOCKETIO_LOCAL: '/socket.io/socket.io.js',
     MARKDOWN_CDN: 'https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js'
 };
 

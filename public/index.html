@@ -72,12 +72,12 @@
         head.appendChild(mobileCSS);
 
         // Add mobile class to body for additional targeting
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
           document.body.classList.add('mobile-device');
         });
       } else {
         // Add desktop class to body for additional targeting
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
           document.body.classList.add('desktop-device');
         });
       }
@@ -93,7 +93,7 @@
   <!-- Always load brainwave.css -->
   <link rel="stylesheet" href="/css/brainwave.css">
 
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 
 <body>
@@ -184,7 +184,8 @@
       <div class="docs-link-container">
         <button id="toggle-chat" class="dropdown-btn toggle-button" data-state="on">💬Chat: ON</button>
         <a href="/docs.html" class="docs-link-btn" target="_blank">📚Docs</a>
-        <a href="https://bambisleep.info" class="docs-link-btn" id="wiki-btn" target="_blank" rel="noopener">📖W i k i</a>
+        <a href="https://bambisleep.info" class="docs-link-btn" id="wiki-btn" target="_blank" rel="noopener">📖W i k
+          i</a>
       </div>
     </div>
   </div>
