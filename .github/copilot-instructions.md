@@ -4,33 +4,30 @@
 
 ## Architecture Overview
 
-### Core Stack - v0.3.0
-- **Backend**: Express + Socket.io + Worker threads (`server.js`) + Environment validation  
-- **Frontend**: Vanilla JavaScript ES6 modules (NO frameworks) + Modern CSS @layer architecture
-- **Build**: Vite dev server (port 5173) proxies to Express backend (port 7878)
+### Core Stack - v0.3.0 (HYBRID MIGRATION)
+- **Backend**: Express + Socket.io + Worker threads (`src/server/server.js`) + Environment validation  
+- **Frontend**: **MIGRATING** Vanilla JS → React + Context API + Hooks
+  - Legacy: `public/js/` (Vanilla JS ES6 modules, CSS @layer system)
+  - Modern: `src/client/` (React 18, JSX components, Context providers)
+- **Build**: Vite dev server (5173) → Express backend (7878) with React support
 - **Data Flow**: Socket.io ↔ Server ↔ Worker threads (Kokoro TTS, LM Studio AI)
-- **Configuration**: Centralized `config/env.js` with validation and auto environment detection
-- **CSS Architecture**: Semantic CSS @layer system (no z-index numbers)
-- **Testing**: Unified test framework with parallel execution and HTML reports
-- **MCP Integration**: GitHub, Hugging Face, Stripe, Clarity, MongoDB servers
+- **Configuration**: Centralized `src/config/env.js` with validation and auto environment detection
+- **Testing**: Unified test framework v2.0 with parallel execution and HTML reports
+- **MCP Integration**: 8 active servers (GitHub, Hugging Face, Stripe, Clarity, MongoDB, Azure Quantum, Filesystem, ECL)
 
-### Key Files & Responsibilities - ENHANCED
+### Key Files & Responsibilities - HYBRID MIGRATION
 ```
-server.js                      # Main server: Express, Socket.io, worker mgmt + git deployment
-config/env.js                  # Centralized environment configuration with validation
-public/js/aigf-core.js         # Chat client: socket handling, UI, trigger processing
-public/js/dropdowns/           # Modular UI components (ES6 exports, unified system)
-public/js/dropdowns/index.js   # Central ES6 module exports for all dropdown components
-public/js/dropdowns.js         # Unified dropdown manager (consolidated from dropdown-utils)
-public/css/layers.css          # Modern @layer architecture (replaces z-index chaos)
-public/css/buttons.css         # Unified animation system + status classes
-workers/kokoro.js              # TTS worker (female voices only, enhanced error handling)
-workers/lmstudio.js            # AI chat worker (enhanced reliability)
-workers/triggers.json          # Official BambiSleep triggers (never hardcode)
-vite.config.js                 # Dev proxy: 5173 → 7878 for Socket.io/API + error handling
-tests/                         # Comprehensive testing suite (environment, stability, resources)
-mcp-manager.js                 # MCP server management CLI tool
-src/                           # Production-ready source structure
+src/server/server.js           # Main server: Express, Socket.io, worker mgmt + deployment
+src/config/env.js              # Centralized environment configuration with validation  
+src/client/App.jsx             # React entry point: providers, routing, error boundaries
+src/client/context/            # React Context API: SocketContext, ChatContext
+src/client/components/         # React components: MainLayout, dropdowns/, VisualEffects
+src/workers/                   # Worker threads: kokoro.js (TTS), lmstudio.js (AI), triggers.json
+public/js/aigf-core.js         # LEGACY: Vanilla JS chat client (being migrated)
+public/css/layers.css          # CSS @layer architecture (shared by both systems)
+vite.config.js                 # Dev proxy + React build: 5173 → 7878 for Socket.io/API
+tests/unified-test-framework.js # Unified testing v2.0 with parallel execution
+src/utils/mcp-manager.js       # MCP server management CLI (8 active servers)
 ```
 
 ## Development Commands
@@ -134,8 +131,8 @@ worker.postMessage({
 @layer base, background, interface, modals, overlays, debug, dropdowns;
 
 /* Status indicators - use these classes instead of inline styles */
-.status-active { color: #00ff00 !important; }
-.status-inactive { color: #666 !important; }
+.status-active { color: var(--success-color) !important; }
+.status-inactive { color: var(--inactive-color) !important; }
 
 /* Dropdown positioning handled by layers.css automatically */
 .dropdown-btn[data-state="on"]  { /* Green styling */ }
@@ -166,29 +163,89 @@ class ExampleDropdown {
 
 // Status indicators - USE CSS CLASSES, NO INLINE STYLES
 statusIndicator.className = 'status-active';   // ✅ Correct
-statusIndicator.style.color = '#00ff00';       // ❌ Avoid inline styles
+statusIndicator.style.color = 'green';         // ❌ Avoid inline styles
 ```
 
-### Socket.io Connection Architecture (CRITICAL)
+### Hybrid Architecture: Legacy + React Coexistence (CRITICAL)
 ```javascript
-// SINGLE SOURCE OF TRUTH: aigf-core.js owns the Socket.io connection
-// OTHER MODULES: Use event delegation, never create their own socket
+// TWO PARALLEL SYSTEMS during migration:
+// 1. LEGACY: public/js/ (Vanilla JS, still active)
+// 2. MODERN: src/client/ (React, being built)
 
-// ✅ Correct - In aigf-core.js (connection owner)
-this.socket = io();
+// ✅ LEGACY: Socket in aigf-core.js (still running)
+// public/js/aigf-core.js - Vanilla JS chat client
+class ChatCore {
+  constructor() {
+    this.socket = io(); // Legacy socket connection
+  }
+}
 
-// ✅ Correct - Other modules use DOM events to communicate
-document.dispatchEvent(new CustomEvent('globalChatMessage', { 
-  detail: { message, username, timestamp } 
-}));
+// ✅ MODERN: React Context pattern  
+// src/client/context/SocketContext.jsx
+export const SocketProvider = ({ children }) => {
+  const [socket, setSocket] = useState(null);
+  
+  useEffect(() => {
+    const newSocket = io({
+      transports: ['websocket', 'polling']
+    });
+    setSocket(newSocket);
+  }, []);
+  
+  return (
+    <SocketContext.Provider value={{ socket, isConnected }}>
+      {children}
+    </SocketContext.Provider>
+  );
+};
 
-// ❌ WRONG - Never create multiple socket connections
-// this.socket = io(); // Don't do this in chat.js, text2speech.js, etc.
+// ✅ Use React Context in components
+const MyComponent = () => {
+  const { socket, isConnected } = useSocket();
+  // Component logic here
+};
+```
 
-// ✅ Debugging Socket Connection Issues
-console.log('Socket connected:', this.socket?.connected);
-console.log('Socket ID:', this.socket?.id);
-console.log('Socket transport:', this.socket?.io?.engine?.transport?.name);
+### React Migration Patterns (NEW)
+```jsx
+// ✅ Component with Context pattern
+import { useSocket } from '../context/SocketContext';
+import { useChat } from '../context/ChatContext';
+
+const AIDropdown = ({ isOpen, onToggle }) => {
+  const { socket } = useSocket();
+  const { aiMode, setAIMode } = useChat();
+  
+  // Use React patterns: hooks, context, functional components
+  const handleToggle = () => {
+    setAIMode(!aiMode);
+  };
+  
+  return (
+    <div className="dropdown-container">
+      <button 
+        className={`dropdown-btn ${aiMode ? 'active' : ''}`}
+        data-state={aiMode ? 'on' : 'off'}
+        onClick={onToggle}
+      >
+        🤖 AI Mode
+      </button>
+    </div>
+  );
+};
+
+// ✅ Provider hierarchy in App.jsx
+function App() {
+  return (
+    <ErrorBoundary>
+      <SocketProvider>
+        <ChatProvider>
+          <MainLayout />
+        </ChatProvider>
+      </SocketProvider>
+    </ErrorBoundary>
+  );
+}
 ```
 
 ### Audio Delivery Pattern (Enhanced)
@@ -293,7 +350,7 @@ btn.setAttribute('data-state', 'on');
 btn.classList.add('dropdown-btn', 'toggle-button');
 
 // ❌ Avoid - Inline styles bypass CSS layer system
-statusIndicator.style.color = '#00ff00';
+statusIndicator.style.color = 'green';
 btn.style.background = 'green';
 ```
 
@@ -321,17 +378,21 @@ worker.postMessage({
 
 ### Testing & Validation - Unified Framework v2.0
 ```bash
-npm run test          # Run comprehensive validation with parallel execution
-npm run dev           # Full stack with auto-restart
-npm run clean         # Clean artifacts before commit
+npm run test          # Full unified test suite with HTML reports
+npm run test:critical # Pre-deployment essential tests only
+npm run test:env      # Environment configuration validation
+npm run test:mcp      # MCP server connectivity tests
+npm run test:mcp:standalone # Standalone MCP tools test
+npm run test:architecture   # Validate system architecture
+npm run test:stability     # Long-running stability tests
+npm run test:performance   # Performance benchmarking
+npm run test:dropdowns     # Dropdown system functionality tests
+npm run test:verbose      # Verbose test output for debugging
+npm run test:ci           # CI-specific test run with reports
+npm run all               # Complete workflow: clean + test + build + dev (USE THIS!)
 
-# Specific test patterns discovered:
-npm run test:ci       # CI/CD integration with exit codes and reports
-npm run test:verbose  # Detailed test output for debugging
-npm run all           # Complete workflow: clean + test + build + dev (USE THIS!)
-
-# Test reports generated in tests/reports/ with HTML and JSON formats
-# Each test suite exports both unified framework and legacy compatibility
+# Test reports generated in tests/reports/ - HTML and JSON formats
+# Unified framework v2.0 supports parallel execution and modular architecture
 ```
 
 ### Git Workflow - Auto Commit & Push (NEW)
@@ -349,7 +410,7 @@ npm run all           # Complete workflow: clean + test + build + dev (USE THIS!
    git commit -m "feat: [description]"  # Use conventional commits
 
 3. Push to repository:
-   git push origin main        # Push to main branch
+   git push origin production  # Push to production branch
    # OR for feature branches:
    git push origin feature/branch-name
 
@@ -363,13 +424,13 @@ npm run all           # Complete workflow: clean + test + build + dev (USE THIS!
 # chore: maintenance tasks
 
 # Examples:
-git commit -m "feat: add MCP server integration"
-git commit -m "fix: resolve socket connection issues"
-git commit -m "docs: update copilot instructions"
+git commit -m "feat: add React migration for dropdowns"
+git commit -m "fix: resolve Socket.io connection in hybrid mode"
+git commit -m "docs: update copilot instructions for v0.3.0"
 git commit -m "style: implement CSS layer architecture"
-git commit -m "refactor: reorganize src directory structure"
-git commit -m "test: enhance unified test framework"
-git commit -m "chore: update dependencies and cleanup"
+git commit -m "refactor: migrate components to React Context API"
+git commit -m "test: enhance unified test framework v2.0"
+git commit -m "chore: update dependencies and MCP servers"
 
 # CRITICAL: Always validate before committing
 npm run test:critical          # Run critical tests
@@ -395,25 +456,31 @@ git diff --staged             # Review changes before commit
 2. `npm run test` - Validate all changes
 3. `git add .` - Stage changes
 4. `git commit -m "feat: description"` - Commit with conventional format
-5. `git push origin main` - Push to repository
+5. `git push origin production` - Push to repository
 6. **ALWAYS complete this workflow when development work is done**
 
-**Add New Dropdown Component:**
-1. Create `public/js/dropdowns/my-dropdown.js`
-2. Export from `public/js/dropdowns/index.js`
-3. Use `.status-active/.status-inactive` classes
-4. Set `data-state="on/off"` attributes
-5. Import in main file: `import { MyDropdown } from './dropdowns/index.js';`
+**Add New Dropdown Component (React Migration):**
+1. Create `src/client/components/dropdowns/MyDropdown.jsx`
+2. Use React Context: `const { socket } = useSocket(); const { myState } = useChat();`
+3. Use CSS classes: `.status-active/.status-inactive` and `data-state="on/off"`
+4. Follow component pattern with `isOpen` and `onToggle` props
+5. Export from component and import in parent
 6. **Commit and push when complete**
 
+**Legacy Dropdown (Vanilla JS - being phased out):**
+1. Create `public/js/dropdowns/my-dropdown.js`
+2. Export from `public/js/dropdowns/index.js`
+3. Use unified DropdownManager pattern
+4. **Only for maintaining existing legacy code**
+
 **Modify Environment Config:**
-1. Edit `config/env.js` for new settings
+1. Edit `src/config/env.js` for new settings
 2. Use validation functions for safety
 3. Access via `import { KOKORO, LMS, SERVER } from '../config/env.js';`
 4. **Commit and push when complete**
 
 **Update Triggers:**
-1. Edit `workers/triggers.json` (authoritative source)
+1. Edit `src/workers/triggers.json` (authoritative source)
 2. Verify at `/api/triggers/json` endpoint
 3. Never hardcode trigger data in components
 4. **Commit and push when complete**

@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
 
     const serverPort = parseInt(env.PORT) || 7878
     const vitePort = parseInt(env.VITE_PORT) || 5173
-    
+
     console.log(`🚀 Vite Dev Server: http://localhost:${vitePort}`)
     console.log(`🔄 Proxying to Express: http://localhost:${serverPort}`)
 
@@ -18,11 +18,11 @@ export default defineConfig(({ mode }) => {
             // Fast Refresh configuration
             include: "**/*.{jsx,tsx}",
         })],
-        
+
         // Set correct root for React app
         root: './src/client',
         publicDir: false, // We'll serve static files from Express
-        
+
         server: {
             port: vitePort,
             host: '0.0.0.0',
@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => {
                 }
             }
         },
-        
+
         build: {
             outDir: '../../dist/client',
             emptyOutDir: true,
@@ -84,7 +84,7 @@ export default defineConfig(({ mode }) => {
                 }
             }
         },
-        
+
         resolve: {
             alias: {
                 '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -92,12 +92,12 @@ export default defineConfig(({ mode }) => {
                 '@server': fileURLToPath(new URL('./src/server', import.meta.url))
             }
         },
-        
+
         // Optimize dependencies
         optimizeDeps: {
             include: ['react', 'react-dom', 'socket.io-client']
         },
-        
+
         // Better error handling
         define: {
             __DEV__: mode === 'development',
