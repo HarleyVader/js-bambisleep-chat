@@ -117,7 +117,7 @@ class StabilityTestSuite {
             // Capture server output
             let serverOutput = '';
             let serverReady = false;
-            
+
             this.serverProcess.stdout.on('data', (data) => {
                 const output = data.toString();
                 serverOutput += output;

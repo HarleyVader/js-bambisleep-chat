@@ -14,8 +14,6 @@ yarn.lock
 pnpm-lock.yaml
 
 # Build output
-dist/
-public/dist/
 build/
 .vite/
 

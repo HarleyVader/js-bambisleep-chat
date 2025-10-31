@@ -447,7 +447,7 @@ class EnvironmentTestSuite {
             try {
                 // First check if file/directory exists
                 const stats = await fs.stat(file.path);
-                
+
                 // Test read access
                 await fs.access(file.path, fs.constants.R_OK);
                 let readAccess = true;
