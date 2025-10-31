@@ -539,7 +539,7 @@ function loadOfficialTriggers() {
     try {
         const fs = require('fs');
         const path = require('path');
-        const triggersPath = path.join(__dirname, 'workers', 'triggers.json');
+        const triggersPath = path.join(__dirname, '../workers', 'triggers.json');
 
         const data = JSON.parse(fs.readFileSync(triggersPath, 'utf8'));
 
@@ -586,7 +586,7 @@ function initializeLMWorker() {
     }
 
     try {
-        lmWorker = new Worker(path.join(__dirname, 'workers', 'lmstudio.js'));
+        lmWorker = new Worker(path.join(__dirname, '../workers', 'lmstudio.js'));
 
         lmWorker.on('message', (msg) => {
             handleLMWorkerMessage(msg);
@@ -624,7 +624,7 @@ function initializeLMWorker() {
 
 function initializeKokoroWorker() {
     try {
-        kokoroWorker = new Worker(path.join(__dirname, 'workers', 'kokoro.js'));
+        kokoroWorker = new Worker(path.join(__dirname, '../workers', 'kokoro.js'));
 
         kokoroWorker.on('message', (msg) => {
             handleKokoroWorkerMessage(msg);
