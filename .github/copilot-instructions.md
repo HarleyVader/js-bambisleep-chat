@@ -1,490 +1,635 @@
-# GitHub Copilot Instructions
+# GitHub Copilot Instructions - js-bambisleep-chat
 
-**BambiSleep Chat**: Real-time hypnosis chat app with AI, TTS, and visual effects engine.
+## 📑 Table of Contents
 
-## Architecture Overview
+- [🎯 Project Overview](#-project-overview)
+- [🏗️ Architecture & Critical Patterns](#️-architecture--critical-patterns)
+  - [Centralized Environment Configuration](#centralized-environment-configuration-srcconfigenvjs)
+  - [Worker Thread Architecture](#worker-thread-architecture)
+  - [Socket.io Event Patterns](#socketio-event-patterns)
+  - [React + Vite Development Mode](#react--vite-development-mode)
+- [🧪 Testing Philosophy](#-testing-philosophy---unified-test-framework-v30)
+- [🚀 Development Workflows](#-development-workflows)
+- [🎨 Frontend Architecture](#-frontend-architecture)
+  - [React Component Structure](#react-component-structure-guidelines)
+  - [Dropdown System](#dropdown-system---centralized-state-management)
+  - [Animation System](#animation-system)
+- [🔧 Key Implementation Details](#-key-implementation-details)
+  - [Trigger System](#trigger-system---read-only-official-data)
+  - [TTS System](#tts-system---kokoro-only-no-web-speech-api-fallback)
+  - [Chat History Management](#chat-history-management-system)
+  - [Session Management](#session-management-system)
+  - [Git Pull Detection](#git-pull-detection-system)
+- [🔌 Adding New Socket.io Events](#-adding-new-socketio-events)
+- [🔧 Integrating New Worker Services](#-integrating-new-worker-services)
+- [🤖 MCP Integration](#-mcp-model-context-protocol-integration)
+- [📦 Configuration & Environment](#-configuration--environment)
+- [🐛 Common Pitfalls & Solutions](#-common-pitfalls--solutions)
+- [📚 Essential Files](#-essential-files-for-ai-understanding)
+- [🎓 Learning Path](#-learning-path-for-new-ai-agents)
+- [🔄 Recent Major Changes](#-recent-major-changes-v030)
+- [📖 Quick Reference Guide](#-quick-reference-guide)
 
-### Core Stack - v0.3.0 (HYBRID MIGRATION)
-- **Backend**: Express + Socket.io + Worker threads (`src/server/server.js`) + Environment validation  
-- **Frontend**: **MIGRATING** Vanilla JS → React + Context API + Hooks
-  - Legacy: `public/js/` (Vanilla JS ES6 modules, CSS @layer system)
-  - Modern: `src/client/` (React 18, JSX components, Context providers)
-- **Build**: Vite dev server (5173) → Express backend (7878) with React support
-- **Data Flow**: Socket.io ↔ Server ↔ Worker threads (Kokoro TTS, LM Studio AI)
-- **Configuration**: Centralized `src/config/env.js` with validation and auto environment detection
-- **Testing**: Unified test framework v3.0 with smart auto-discovery, watch mode, and intelligent filtering
-- **MCP Integration**: 8 active servers (GitHub, Hugging Face, Stripe, Clarity, MongoDB, Azure Quantum, Filesystem, ECL)
+## 🎯 Project Overview
 
-### Key Files & Responsibilities - HYBRID MIGRATION
-```
-src/server/server.js           # Main server: Express, Socket.io, worker mgmt + deployment
-src/config/env.js              # Centralized environment configuration with validation  
-src/client/App.jsx             # React entry point: providers, routing, error boundaries
-src/client/context/            # React Context API: SocketContext, ChatContext
-src/client/components/         # React components: MainLayout, dropdowns/, VisualEffects
-src/workers/                   # Worker threads: kokoro.js (TTS), lmstudio.js (AI), triggers.json
-public/js/aigf-core.js         # LEGACY: Vanilla JS chat client (being migrated)
-public/css/layers.css          # CSS @layer architecture (shared by both systems)
-vite.config.js                 # Dev proxy + React build: 5173 → 7878 for Socket.io/API
-tests/unified-test-framework.js # Unified testing v3.0 with smart auto-discovery and watch mode
-src/utils/mcp-manager.js       # MCP server management CLI (8 active servers)
-```
+Modern real-time chat application with **Socket.io WebSockets**, **React frontend**, **Kokoro TTS**, **LM Studio AI**, psychedelic spiral animations, and trigger word detection. Features worker-based background processing and comprehensive unified testing framework.
 
-## Development Commands
-```bash
-npm run all          # ONE COMMAND: clean + test + build + dev (USE THIS!)
-npm run dev          # Full stack: Vite (5173) + Express (7878) + auto-restart  
-npm run dev:server   # Backend only (port 7878) with nodemon
-npm run dev:client   # Vite dev server only (port 5173)
-npm run test         # Smart auto-discovery test runner with HTML reports
-npm run test:watch   # Watch mode - re-runs tests on file changes
-npm run test:critical # Pre-deployment critical tests only
-npm run test:ci      # CI/CD optimized test execution
-npm run build        # Production build validation  
-npm run clean        # Clean artifacts with smart detection
-npm run deploy       # Production deployment scripts
-npm run mcp          # MCP server management (status, start, install)
-```
+**Stack**: Node.js 20+, Express 5, Socket.io 4.8, React 18, Vite 7, Worker Threads
+**Ports**: Express server (7878), Vite dev server (5173)
 
-## Critical Patterns - MODERNIZED
+## 🏗️ Architecture & Critical Patterns
 
-### Centralized Configuration (NEW)
+### Centralized Environment Configuration (`src/config/env.js`)
+**ALL environment variables MUST use the `ENV` module** - no direct `process.env` access in application code:
+
 ```javascript
-// ALWAYS use config/env.js for environment management
-import { KOKORO, LMS, SERVER } from '../config/env.js';
+const ENV = require('../config/env');
 
-// Automatic environment-driven host selection
-const kokoroUrl = KOKORO.URL;  // Auto-selects dev/prod host
-const lmsUrl = LMS.URL;        // Auto-selects dev/prod host
+// ✅ CORRECT: Use centralized ENV object
+const port = ENV.SERVER.PORT;           // Server config
+const lmsUrl = ENV.LMS.URL;             // Auto-selects prod/dev host
+const kokoroUrl = ENV.KOKORO.URL;       // Computed from host+port
+const isProduction = ENV.SERVER.isProduction;
 
-// Configuration validation built-in
-if (!KOKORO.isConfigured) {
-  console.error('Kokoro TTS not configured');
-}
+// ❌ WRONG: Never access process.env directly in app code
+const port = process.env.PORT;  // Don't do this!
 ```
 
-### Official Triggers Only
-- **Source**: `workers/triggers.json` (loaded from `/api/triggers/json`)
-- **Categories**: `primary`, `physical`, `mental` with safety levels
-- **Never hardcode**: Always load from API/JSON, respect official BambiSleep data
+**Why**: Environment-aware host selection (production vs development), computed URLs, type safety, centralized validation.
 
-### SystemD Service Deployment (NEW)
-```bash
-# Production deployment uses SystemD service
-sudo ./install.sh                    # Auto-installs service
-npm run deploy:status                # Check service status
-npm run validate-service             # Validate service configuration
+### Worker Thread Architecture
+Background services run in dedicated worker threads to prevent blocking:
 
-# Service file: bambisleepchat.service
-# Runs as production user, auto-restart on failure
-# Logs via journalctl -u bambisleepchat -f
-```
-
-### MCP Server Integration (NEW)
-```bash
-# 8 active MCP servers provide enhanced AI capabilities:
-# - GitHub: Repository releases, tags, team management  
-# - Hugging Face: ML models, datasets, image generation
-# - Stripe: Payment processing, subscriptions
-# - Clarity: Web analytics, session recordings  
-# - MongoDB: Database operations, aggregation
-# - Azure Quantum: Quantum computing operations
-# - Filesystem: Project file operations and search
-# - ECL Extension: HPCC Systems integration
-
-# MCP management commands
-npm run mcp:status    # Verify all 8 server connections (shows ✅/❌ status)
-npm run mcp:start     # Initialize and test MCP servers
-npm run mcp:install   # Install filesystem MCP server globally
-
-# Configuration files:
-# .vscode/mcp-settings.json - Server configurations
-# .env.mcp - API keys and authentication tokens
-# src/utils/mcp-manager.js - MCP server management CLI tool
-```
-
-### Worker Thread Communication (Enhanced)
 ```javascript
-// Server mediates between Socket.io and workers with enhanced error handling
-const worker = new Worker('./workers/kokoro.js');
-worker.postMessage({ type: 'tts', text: message, voice: 'af_bella' });
+// server.js spawns workers
+const kokoroWorker = new Worker('./src/workers/kokoro.js');
+const lmsWorker = new Worker('./src/workers/lmstudio.js');
 
-// Use config/env.js for worker configuration
-const { KOKORO } = require('./config/env.js');
-worker.postMessage({
-  type: 'tts',
-  text: message,
-  voice: KOKORO.DEFAULT_VOICE,
-  speed: 1.0
+// Workers communicate via messages
+kokoroWorker.postMessage({ type: 'tts', text: 'Hello', voice: 'af_sky' });
+kokoroWorker.on('message', (msg) => {
+    if (msg.type === 'tts-result') socket.emit('tts-audio', msg);
 });
 ```
 
-### Modern CSS Layer System (NEW)
-```css
-/* Use semantic layers instead of z-index numbers */
-@layer base, background, interface, modals, overlays, debug, dropdowns;
+**Workers**:
+- `kokoro.js` - Kokoro-FastAPI TTS (HTTP streaming, graceful fallback)
+- `lmstudio.js` - LM Studio AI chat (session management, model loading, 15min timeout)
+- `triggers.json` - Official BambiSleep trigger definitions (read-only)
 
-/* Status indicators - use these classes instead of inline styles */
-.status-active { color: var(--success-color) !important; }
-.status-inactive { color: var(--inactive-color) !important; }
+### Socket.io Event Patterns
+Real-time bidirectional communication follows consistent naming:
 
-/* Dropdown positioning handled by layers.css automatically */
-.dropdown-btn[data-state="on"]  { /* Green styling */ }
-.dropdown-btn[data-state="off"] { /* Red styling */ }
+```javascript
+// CLIENT -> SERVER events (kebab-case actions)
+socket.emit('global-message', { username, text });
+socket.emit('ai-chat', { message, sessionId });
+socket.emit('tts-request', { text, voice });
+
+// SERVER -> CLIENT events (kebab-case responses)
+socket.emit('global-chat-history', messages);
+socket.emit('ai-response', { response, sessionId });
+socket.emit('tts-audio', { audioData, format: 'mp3' });
+socket.emit('tts-error', { error: 'Service unavailable' });
 ```
 
-### Unified Dropdown System (Enhanced)
-```javascript
-// All dropdowns use unified DropdownManager with centralized state
-import { TTSDropdown, TriggersDropdown, AIDropdown, CollarDropdown, BrainwaveDropdown, SpiralDropdown } from './dropdowns/index.js';
+**State synchronization**: Server sends `connection-ack` on connect with server state (user count, trigger stats).
 
-// Each component uses centralized state management via dropdownManager
-class ExampleDropdown {
-    constructor(dropdownManager) {
-        this.dropdownManager = dropdownManager;
-        this.componentName = 'example';
+### React + Vite Development Mode
+Dual-server setup with intelligent proxying:
+
+```bash
+npm run dev  # Starts both servers concurrently
+# Vite: localhost:5173 (hot reload, React Fast Refresh)
+# Express: localhost:7878 (API, Socket.io, static assets)
+```
+
+**Vite proxies** `/api/*` and `/socket.io/*` to Express (see `vite.config.js`). Frontend lives in `src/client/`, built to `dist/` for production.
+
+## 🧪 Testing Philosophy - Unified Test Framework v3.0
+
+Custom test runner (`tests/unified-test-runner.js`) with **zero external dependencies**. All tests follow the suite class pattern:
+
+```javascript
+class MyTestSuite {
+    constructor() {
+        this.name = 'Feature Name';
+        this.tags = ['critical', 'architecture'];  // For filtering
+        this.priority = 90;  // Higher = runs first
     }
     
-    // Use getter/setter pattern for state access
-    get isEnabled() {
-        return this.dropdownManager.getComponentState(this.componentName, 'isEnabled') || false;
-    }
-    
-    set isEnabled(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'isEnabled', value);
+    async run() {
+        const results = { passed: 0, failed: 0, tests: [] };
+        // Test logic with file system checks, regex validations
+        return results;
     }
 }
-
-// Status indicators - USE CSS CLASSES, NO INLINE STYLES
-statusIndicator.className = 'status-active';   // ✅ Correct
-statusIndicator.style.color = 'green';         // ❌ Avoid inline styles
 ```
 
-### Hybrid Architecture: Legacy + React Coexistence (CRITICAL)
-```javascript
-// TWO PARALLEL SYSTEMS during migration:
-// 1. LEGACY: public/js/ (Vanilla JS, still active)
-// 2. MODERN: src/client/ (React, being built)
-
-// ✅ LEGACY: Socket in aigf-core.js (still running)
-// public/js/aigf-core.js - Vanilla JS chat client
-class ChatCore {
-  constructor() {
-    this.socket = io(); // Legacy socket connection
-  }
-}
-
-// ✅ MODERN: React Context pattern  
-// src/client/context/SocketContext.jsx
-export const SocketProvider = ({ children }) => {
-  const [socket, setSocket] = useState(null);
-  
-  useEffect(() => {
-    const newSocket = io({
-      transports: ['websocket', 'polling']
-    });
-    setSocket(newSocket);
-  }, []);
-  
-  return (
-    <SocketContext.Provider value={{ socket, isConnected }}>
-      {children}
-    </SocketContext.Provider>
-  );
-};
-
-// ✅ Use React Context in components
-const MyComponent = () => {
-  const { socket, isConnected } = useSocket();
-  // Component logic here
-};
+**Critical test commands**:
+```bash
+npm test                  # All tests (~30-60 sec)
+npm run test:critical     # Tagged critical only (6-8 tests, ~5 sec)
+npm run test:ci           # CI mode with HTML reports
+npm run test:watch        # Watch mode for development
 ```
 
-### React Migration Patterns (NEW)
+**Test categories** (see `tests/` directory):
+- `architecture-v2.test.js` - Dropdown architecture, CSS layers, centralized state
+- `environment-v2.test.js` - ENV module validation, host selection logic  
+- `stability-v2.test.js` - Race conditions, memory leaks, error handling
+- `performance-benchmark.test.js` - Response times, concurrent connections
+
+## 🚀 Development Workflows
+
+### Rapid Development Cycle
+```bash
+npm run dev               # Start dev servers (Vite + Express)
+# Edit code → Vite hot reload → Manual browser testing
+```
+
+### Pre-Deployment Validation
+```bash
+npm run build             # Full build: Vite + server packaging + validation
+npm run build:fast        # Skips tests for rapid iteration
+```
+
+### Production Deployment
+```bash
+node scripts/deploy.js install    # Install systemd service
+node scripts/deploy.js restart    # Restart service
+node scripts/deploy.js logs       # View logs
+```
+
+**Service file**: `bambisleepchat.service` (systemd unit, port 7878, production ENV).
+
+## 🎨 Frontend Architecture
+
+### React Component Structure Guidelines
+
+**Component Organization Pattern**:
 ```jsx
-// ✅ Component with Context pattern
-import { useSocket } from '../context/SocketContext';
-import { useChat } from '../context/ChatContext';
+// src/client/components/ChatMessage.jsx
+import React, { useState, useEffect } from 'react';
+import { useSocket } from '../hooks/useSocket';
+import styles from '../styles/ChatMessage.module.css';
 
-const AIDropdown = ({ isOpen, onToggle }) => {
-  const { socket } = useSocket();
-  const { aiMode, setAIMode } = useChat();
-  
-  // Use React patterns: hooks, context, functional components
-  const handleToggle = () => {
-    setAIMode(!aiMode);
-  };
-  
-  return (
-    <div className="dropdown-container">
-      <button 
-        className={`dropdown-btn ${aiMode ? 'active' : ''}`}
-        data-state={aiMode ? 'on' : 'off'}
-        onClick={onToggle}
-      >
-        🤖 AI Mode
-      </button>
-    </div>
-  );
+const ChatMessage = ({ message, username, timestamp, isTrigger }) => {
+    // 1. Hooks first
+    const [isAnimating, setIsAnimating] = useState(false);
+    const socket = useSocket();
+    
+    // 2. Effects
+    useEffect(() => {
+        if (isTrigger) {
+            setIsAnimating(true);
+            const timer = setTimeout(() => setIsAnimating(false), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [isTrigger]);
+    
+    // 3. Event handlers
+    const handleClick = () => {
+        socket.emit('message-interaction', { messageId: message.id });
+    };
+    
+    // 4. Render
+    return (
+        <div className={`${styles.message} ${isAnimating ? styles.trigger : ''}`}>
+            <span className={styles.username}>{username}</span>
+            <span className={styles.text}>{message}</span>
+            <time className={styles.timestamp}>{timestamp}</time>
+        </div>
+    );
 };
 
-// ✅ Provider hierarchy in App.jsx
-function App() {
-  return (
-    <ErrorBoundary>
-      <SocketProvider>
-        <ChatProvider>
-          <MainLayout />
-        </ChatProvider>
-      </SocketProvider>
-    </ErrorBoundary>
-  );
+export default ChatMessage;
+```
+
+### Dropdown System - Centralized State Management
+**DO NOT** add click handlers to individual dropdown components. All dropdown state is managed by `DropdownManager`:
+
+```javascript
+// ✅ CORRECT: Register dropdown in manager
+dropdownManager.register('myDropdown', element, {
+    closeOnClickOutside: true,
+    animations: 'slide-fade'
+});
+
+// ❌ WRONG: Separate click handlers cause race conditions
+button.addEventListener('click', () => dropdown.toggle());  // Don't do this!
+```
+
+**CSS Architecture**: Uses CSS `@layer` system for style precedence:
+1. `base` - Resets and defaults
+2. `components` - Component styles
+3. `utilities` - Utility classes
+4. `overrides` - High-priority overrides
+
+### Animation System
+Psychedelic spiral animations use `p5.js` (creative coding library). Located in `src/client/components/` or legacy `public/js/psychodelic-trigger-mania.js`.
+
+## 🔧 Key Implementation Details
+
+### Trigger System - Read-Only Official Data
+**Trigger modifications are DISABLED**. Only official BambiSleep triggers from `src/workers/triggers.json`:
+
+```javascript
+// ✅ Access via API
+fetch('/api/triggers/json');                        // All triggers
+fetch('/api/triggers/category/primary');            // Category filter
+fetch('/api/triggers/details/Sleep');               // Specific trigger
+
+// ❌ POST endpoints are disabled
+// POST /api/triggers → 501 Not Implemented
+```
+
+### TTS System - Kokoro-Only (No Web Speech API Fallback)
+**Breaking change in v0.3.0**: Removed Web Speech API fallback (~300 lines). Only Kokoro-FastAPI backend:
+
+```javascript
+// Message format standardized to { display, tts }
+const message = {
+    display: "Hello <b>world</b>!",  // HTML allowed
+    tts: "Hello world!"               // Plain text for TTS
+};
+
+// Worker handles streaming and errors
+kokoroWorker.postMessage({ type: 'tts', text: message.tts, voice });
+```
+
+**Fallback behavior**: If Kokoro unavailable, `fallbackMode = true` (no TTS, logs warning).
+
+### Git Pull Detection System
+Server **auto-detects deployments** by monitoring git commit hash every 30 seconds:
+
+```javascript
+// server.js polls git hash
+setInterval(() => {
+    const newHash = execSync('git rev-parse HEAD').toString().trim();
+    if (newHash !== currentHash) {
+        io.emit('server-restarting', { reason: 'deployment' });
+        gracefulShutdown();  // Cleanup workers, close connections
+    }
+}, 30000);
+```
+
+**Why**: Prevents stale server instances after `git pull` deployments.
+
+## 🔌 Adding New Socket.io Events
+
+### Server-Side Event Handler Pattern
+```javascript
+// src/server/server.js - Add new events in connection handler
+io.on('connection', (socket) => {
+    console.log(`✅ User connected: ${socket.id}`);
+    
+    // ✅ CORRECT: New custom event handler
+    socket.on('custom-action', async (data) => {
+        try {
+            // 1. Validate input
+            if (!data || !data.requiredField) {
+                socket.emit('custom-error', { 
+                    error: 'Missing required field',
+                    code: 'INVALID_INPUT'
+                });
+                return;
+            }
+            
+            // 2. Process action
+            const result = await performCustomAction(data);
+            
+            // 3. Emit response
+            socket.emit('custom-response', {
+                success: true,
+                data: result,
+                timestamp: new Date().toISOString()
+            });
+            
+            // 4. Broadcast to all clients (optional)
+            io.emit('custom-broadcast', {
+                userId: socket.id,
+                action: 'custom-action',
+                result: result
+            });
+            
+        } catch (error) {
+            console.error('Custom action error:', error);
+            socket.emit('custom-error', {
+                error: error.message,
+                code: 'INTERNAL_ERROR'
+            });
+        }
+    });
+});
+```
+
+### Event Naming Conventions
+- **Client to Server**: `action-name` (e.g., `global-message`, `ai-chat`, `tts-request`)
+- **Server to Client**: `action-response` or `action-error` (e.g., `ai-response`, `tts-error`)
+- **Broadcasts**: `event-broadcast` (e.g., `user-joined`, `trigger-detected`)
+
+## 🔧 Integrating New Worker Services
+
+### Creating a New Worker
+```javascript
+// src/workers/my-service.js
+const { parentPort } = require('worker_threads');
+const ENV = require('../config/env');
+
+class MyServiceWorker {
+    constructor() {
+        this.isHealthy = false;
+        this.config = this.loadConfiguration();
+        this.init();
+    }
+    
+    loadConfiguration() {
+        // Load from ENV module
+        if (!ENV.MY_SERVICE?.isConfigured) {
+            console.warn('⚠️ My Service not configured, running in fallback mode');
+            return { fallbackMode: true };
+        }
+        
+        return {
+            url: ENV.MY_SERVICE.URL,
+            apiKey: ENV.MY_SERVICE.API_KEY,
+            timeout: ENV.MY_SERVICE.TIMEOUT || 30000,
+            fallbackMode: false
+        };
+    }
+    
+    async init() {
+        console.log('🚀 My Service Worker initializing...');
+        
+        if (!this.config.fallbackMode) {
+            await this.healthCheck();
+        }
+        
+        if (parentPort) {
+            parentPort.on('message', this.handleMessage.bind(this));
+        }
+    }
+    
+    async handleMessage(msg) {
+        try {
+            switch (msg.type) {
+                case 'process-request':
+                    await this.processRequest(msg);
+                    break;
+                    
+                case 'health-check':
+                    await this.healthCheck();
+                    parentPort.postMessage({
+                        type: 'health-status',
+                        isHealthy: this.isHealthy
+                    });
+                    break;
+                    
+                default:
+                    console.warn('⚠️ Unknown message type:', msg.type);
+            }
+        } catch (error) {
+            console.error('❌ Worker error:', error);
+            parentPort.postMessage({
+                type: 'error',
+                error: error.message,
+                originalMessage: msg
+            });
+        }
+    }
 }
+
+// Initialize worker
+const worker = new MyServiceWorker();
 ```
 
-### Audio Delivery Pattern (Enhanced)
-```javascript
-// TTS: Server → Kokoro worker → Base64 MP3 → Socket.io → Client
-// Per Kokoro-FastAPI official docs: https://github.com/remsky/Kokoro-FastAPI
-// Uses centralized configuration from config/env.js
+## 🤖 MCP (Model Context Protocol) Integration
 
-// Worker generates speech via OpenAI-compatible endpoint
-const { KOKORO } = require('../config/env.js');
-const response = await fetch(`${KOKORO.URL}/v1/audio/speech`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        model: 'kokoro',
-        voice: 'af_bella+af_sky',  // Supports voice mixing with +
-        input: text,
-        response_format: 'mp3',
-        speed: 1.0
-    })
-});
+### Available MCP Tools
+The project has active MCP integrations (see `MCP-SETUP.md`):
 
-// Enhanced error handling and Base64 delivery
-if (!response.ok) throw new Error(`TTS failed: ${response.status}`);
-const audioBuffer = await response.arrayBuffer();
-const base64Audio = Buffer.from(audioBuffer).toString('base64');
+**Active Services**:
+- **Hugging Face** (`mcp_hf-mcp-server_*`) - ML models, datasets, image generation
+- **Stripe** (`mcp_stripe_agent-_*`) - Payment processing, subscriptions
+- **Microsoft Clarity** (`mcp_microsoft_cla_*`) - Web analytics, session recordings
+- **MongoDB** (`mcp_mongodb_*`) - Database operations (requires Atlas Local)
 
-// Server sends Base64 audio via Socket.io with metadata
-socket.emit('tts-response', {
-  audioData: base64Audio,
-  voice: 'af_bella',
-  duration: audioDuration,
-  timestamp: Date.now()
-});
+## 📦 Configuration & Environment
 
-// Client converts and plays with enhanced audio management
-const blob = base64ToBlob(audioData, 'audio/mpeg');
-const url = URL.createObjectURL(blob);
-audio.src = url;
-audio.play().catch(err => console.error('Audio playbook failed:', err));
+### Environment Variables (see `.env.example`)
+```env
+# Server
+PORT=7878
+NODE_ENV=development|production
+
+# LM Studio (auto-selects host by environment)
+LMS_HOST_PRODUCTION=192.168.0.100
+LMS_HOST_DEVELOPMENT=localhost
+LMS_PORT=7777
+TARGET_MODEL_NAME=l3-sthenomaidblackroot-8b-v1@q4_k_s
+
+# Kokoro TTS (auto-selects host by environment)
+KOKORO_HOST_PRODUCTION=192.168.0.100
+KOKORO_HOST_DEVELOPMENT=localhost
+KOKORO_PORT=8880
+KOKORO_DEFAULT_VOICE=af_sky+af_bella
+
+# Application
+MAX_MESSAGE_LENGTH=500
+CHAT_HISTORY_LIMIT=100
+DEBUG_MODE=true
 ```
 
-## Development Workflow
+**Host selection**: Production uses LAN IPs (e.g., `192.168.0.100`), development uses `localhost`. Handled automatically by `ENV` module.
 
-### 3-State Work Loop
-1. **IMAGINE** (3x): Simplest solution? Reuse existing? Configuration over code?
-2. **CREATE**: Minimal code, one function per purpose, test each step
-3. **DEPLOY**: Fix only what's broken, STOP when working
+## 🐛 Common Pitfalls & Solutions
 
-### CSS Architecture Rules (NEW)
-- **NEVER use inline styles** - All styling through CSS classes
-- **Use @layer system** - `@layer base, background, interface, modals, overlays, debug, dropdowns`
-- **Status indicators** - Use `.status-active` and `.status-inactive` classes
-- **Dropdown states** - Use `data-state="on/off"` attributes, not inline styling
-- **Z-index conflicts** - Use semantic CSS layers, avoid z-index numbers
+1. **❌ Dropdown closes immediately after opening**
+   - **Cause**: Multiple click handlers racing
+   - **Fix**: Use centralized `DropdownManager`, never add separate click handlers
 
-### Common Tasks & Patterns
+2. **❌ Worker communication failing**
+   - **Cause**: Incorrect message format or missing handlers
+   - **Fix**: Always check `msg.type` and handle errors: `if (msg.type === 'error') log(msg.error)`
 
-#### Socket.io Connection Debugging
-```javascript
-// ✅ Check connection status in browser console
-console.log('Socket status:', {
-  connected: window.socket?.connected,
-  id: window.socket?.id,
-  transport: window.socket?.io?.engine?.transport?.name
-});
+3. **❌ Tests passing locally, failing in CI**
+   - **Cause**: Environment differences or race conditions
+   - **Fix**: Use `TEST_VERBOSE=true npm run test:ci` for detailed output, check for hardcoded paths
 
-// ✅ Fix "Cannot send global message - not connected" error
-// Problem: chat.js creates its own socket instead of using aigf-core.js socket
-// Solution: Use event delegation pattern instead
+4. **❌ Vite proxy not forwarding requests**
+   - **Cause**: Express server not running or port mismatch
+   - **Fix**: Run `npm run dev` (starts both servers), check `vite.config.js` proxy target matches Express port
 
-// In chat.js (WRONG):
-// this.socket = io(); // Don't create multiple sockets!
+5. **❌ Environment variables not loading**
+   - **Cause**: Accessing `process.env` instead of `ENV` module
+   - **Fix**: Always use `const ENV = require('../config/env')` and access via `ENV.SERVER.PORT`, etc.
 
-// In chat.js (CORRECT):
-sendGlobalMessage(message, username) {
-  // Delegate to main socket via DOM events
-  document.dispatchEvent(new CustomEvent('sendGlobalMessage', {
-    detail: { message, username }
-  }));
-}
-```
+## 📚 Essential Files for AI Understanding
 
-#### CSS Layer Integration
-```css
-/* ✅ Correct - Use CSS layers and classes */
-@layer interface {
-  .status-active { color: var(--success-color); }
-  .status-inactive { color: var(--inactive-color); }
-}
+### Core Server Architecture
+- `src/server/server.js` - Main Express + Socket.io server
+- `src/config/env.js` - Centralized environment configuration
+- `src/workers/kokoro.js` - Kokoro TTS worker
+- `src/workers/lmstudio.js` - LM Studio AI worker
+- `src/workers/triggers.json` - Official BambiSleep trigger definitions
 
-/* ✅ Correct - Dropdown button states */
-.dropdown-btn[data-state="on"] { /* Green styling */ }
-.dropdown-btn[data-state="off"] { /* Red pulse animation */ }
-```
+### Frontend Architecture
+- `src/client/main.jsx` - React app entry point
+- `src/client/App.jsx` - Root component with routing
+- `src/client/components/` - Reusable React components
+- `src/client/hooks/` - Custom hooks (useSocket, useChatHistory, useAISession)
+- `src/client/context/` - Context providers (ChatContext, ThemeContext)
 
-#### Dropdown Component Pattern
-```javascript
-// ✅ Correct - Use CSS classes, no inline styles
-statusIndicator.className = 'status-active';
-btn.setAttribute('data-state', 'on');
-btn.classList.add('dropdown-btn', 'toggle-button');
+### Testing Framework
+- `tests/unified-test-runner.js` - Custom test runner
+- `tests/unified-test-framework.js` - Test framework core
+- `tests/architecture-v2.test.js` - Architecture validation
+- `tests/environment-v2.test.js` - ENV module tests
+- `tests/stability-v2.test.js` - Race conditions, memory leaks
+- `tests/performance-benchmark.test.js` - Response times, concurrent connections
 
-// ❌ Avoid - Inline styles bypass CSS layer system
-statusIndicator.style.color = 'green';
-btn.style.background = 'green';
-```
+### Build & Deployment
+- `scripts/build.js` - Production build orchestration
+- `scripts/deploy.js` - Systemd service management
+- `scripts/clean.js` - Cleanup artifacts and caches
+- `vite.config.js` - Frontend build and dev server proxy
+- `package.json` - Dependencies and npm scripts
+- `bambisleepchat.service` - Systemd service configuration
 
-#### Environment Configuration
-```javascript
-// ✅ Use centralized config/env.js
-import { KOKORO, LMS, SERVER } from '../config/env.js';
-const kokoroUrl = KOKORO.URL;  // Auto-selects dev/prod
+### Documentation
+- `README.md` - Project overview and quick start
+- `WORKFLOWS.md` - Comprehensive workflow documentation
+- `BUILD.md` - Build system details and troubleshooting
+- `CHANGELOG.md` - Version history and breaking changes
+- `MCP-SETUP.md` - MCP tool configuration and usage
 
-// ❌ Avoid hardcoded environment logic
-const host = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
-```
+## 🎓 Learning Path for New AI Agents
 
-#### Worker Communication
-```javascript
-// ✅ Enhanced worker messaging with config
-const { KOKORO } = require('./config/env.js');
-worker.postMessage({
-  type: 'tts',
-  text: message,
-  voice: KOKORO.DEFAULT_VOICE,
-  speed: 1.0
-});
-```
+1. **Start with `README.md`** - Understand project purpose and basic architecture
+2. **Read `src/config/env.js`** - Learn centralized configuration pattern
+3. **Study `src/server/server.js`** (lines 1-200) - See server initialization and worker setup
+4. **Examine worker files** - Understand background service patterns
+5. **Review test files** - See validation patterns and quality standards
+6. **Check `WORKFLOWS.md`** - Learn development workflows
+7. **Read this file** - Reference for specific implementation patterns
 
-### Testing & Validation - Unified Framework v3.0
+## 🔄 Recent Major Changes (v0.3.0)
+
+- **Removed Web Speech API fallback** - Kokoro-only TTS system
+- **Git pull detection** - Auto-restart on deployments
+- **Dropdown race condition fix** - Centralized state management
+- **Console log cleanup** - 350+ lines removed, cleaner output
+- **File structure consolidation** - Merged `dropdown-utils.js` into `dropdowns.js`
+
+## 📖 Quick Reference Guide
+
+### Most Common Tasks
+
+**Starting Development**:
 ```bash
-npm run test                    # Smart auto-discovery test runner
-npm run test:watch             # Watch mode with live file monitoring  
-npm run test:critical          # Pre-deployment essential tests only
-npm run test:ci                # CI/CD optimized execution
-npm run all                    # Complete workflow: clean + test + build + dev (USE THIS!)
-
-# Advanced usage with intelligent filtering:
-npm test -- --tags=critical,environment    # Run specific test categories
-npm test -- --watch --verbose             # Watch mode with detailed output
-npm test -- --exclude=slow                # Exclude specific test types
-
-# Test reports generated in tests/reports/ - HTML and JSON formats
-# Framework v3.0 features: smart discovery, watch mode, intelligent filtering
+npm run dev               # Start dev servers
 ```
 
-### Git Workflow - Auto Commit & Push (NEW)
+**Adding New Socket.io Event**:
+1. Add handler in `src/server/server.js` inside `io.on('connection', ...)`
+2. Create custom hook in `src/client/hooks/useYourEvent.js`
+3. Use kebab-case naming: `action-name`, `action-response`, `action-error`
+
+**Creating New Worker Service**:
+1. Create `src/workers/your-service.js` with Worker class pattern
+2. Add configuration to `src/config/env.js` with `YOUR_SERVICE` object
+3. Initialize in `src/server/server.js` with `new Worker()`
+4. Handle messages with `worker.on('message', ...)`
+
+**Adding Environment Variable**:
+1. Add to `.env.example` with description
+2. Add to `src/config/env.js` in appropriate section (SERVER, LMS, KOKORO, etc.)
+3. Use computed properties for URLs: `get URL() { return ... }`
+4. Never access `process.env` directly in app code
+
+**Running Tests**:
 ```bash
-# ALWAYS commit and push changes when development work is complete
-# Follow this exact workflow for ALL completed features/fixes:
-
-1. Run comprehensive validation first:
-   npm run test                 # Ensure all tests pass
-   npm run clean               # Clean artifacts
-
-2. Stage and commit changes:
-   git add .                   # Stage all changes
-   git status                  # Review staged files
-   git commit -m "feat: [description]"  # Use conventional commits
-
-3. Push to repository:
-   git push origin production  # Push to production branch
-   # OR for feature branches:
-   git push origin feature/branch-name
-
-# Conventional Commit Format (REQUIRED):
-# feat: new feature
-# fix: bug fix  
-# docs: documentation changes
-# style: formatting, css updates
-# refactor: code restructuring
-# test: adding/updating tests
-# chore: maintenance tasks
-
-# Examples:
-git commit -m "feat: add React migration for dropdowns"
-git commit -m "fix: resolve Socket.io connection in hybrid mode"
-git commit -m "docs: update copilot instructions for v0.3.0"
-git commit -m "style: implement CSS layer architecture"
-git commit -m "refactor: migrate components to React Context API"
-git commit -m "test: enhance unified test framework v2.0"
-git commit -m "chore: update dependencies and MCP servers"
-
-# CRITICAL: Always validate before committing
-npm run test:critical          # Run critical tests
-git diff --staged             # Review changes before commit
+npm run test:critical            # Fast critical tests only (5-8 sec)
+npm test                         # All tests (30-60 sec)
+npm run test:watch              # Watch mode for development
 ```
 
-### Architecture Enforcement
-- **Single Socket Connection**: Only `aigf-core.js` creates Socket.io connection, others use DOM events
-- **CSS Layers**: Use `@layer` system, avoid z-index numbers
-- **No Inline Styles**: All styling through CSS classes
-- **Centralized Config**: Use `config/env.js` for all environment logic
-- **Official Triggers**: Load from `/api/triggers/json`, never hardcode
-- **Worker Isolation**: Keep external API calls in worker threads
-- **ES6 Modules**: Clean module exports from `dropdowns/index.js`
-- **Production Structure**: Frontend in `public/`, backend in `src/`
-- **Unified Testing**: Each test suite supports both unified framework v2.0 and legacy compatibility
-- **MCP Integration**: 8 Model Context Protocol servers for enhanced AI capabilities
+**Building for Production**:
+```bash
+npm run build                    # Full build with validation
+npm run build:fast               # Quick build (skips tests)
+```
 
-### Quick Reference
+### Code Pattern Quick Lookup
 
-**Complete Development Workflow:**
-1. Make changes to codebase
-2. `npm run test` - Validate all changes
-3. `git add .` - Stage changes
-4. `git commit -m "feat: description"` - Commit with conventional format
-5. `git push origin production` - Push to repository
-6. **ALWAYS complete this workflow when development work is done**
+**Import ENV Module** (Required everywhere):
+```javascript
+const ENV = require('../config/env');  // Server-side
+```
 
-**Add New Dropdown Component (React Migration):**
-1. Create `src/client/components/dropdowns/MyDropdown.jsx`
-2. Use React Context: `const { socket } = useSocket(); const { myState } = useChat();`
-3. Use CSS classes: `.status-active/.status-inactive` and `data-state="on/off"`
-4. Follow component pattern with `isOpen` and `onToggle` props
-5. Export from component and import in parent
-6. **Commit and push when complete**
+**Socket.io Event Pattern**:
+```javascript
+// Server: src/server/server.js
+socket.on('event-name', (data) => { /* validate, process, emit */ });
+socket.emit('event-response', { success: true, data });
 
-**Legacy Dropdown (Vanilla JS - being phased out):**
-1. Create `public/js/dropdowns/my-dropdown.js`
-2. Export from `public/js/dropdowns/index.js`
-3. Use unified DropdownManager pattern
-4. **Only for maintaining existing legacy code**
+// Client: src/client/hooks/useEvent.js
+socket.emit('event-name', data);
+socket.on('event-response', (data) => { /* handle */ });
+```
 
-**Modify Environment Config:**
-1. Edit `src/config/env.js` for new settings
-2. Use validation functions for safety
-3. Access via `import { KOKORO, LMS, SERVER } from '../config/env.js';`
-4. **Commit and push when complete**
+**Worker Message Pattern**:
+```javascript
+// Server: src/server/server.js
+worker.postMessage({ type: 'action', data });
+worker.on('message', (msg) => { /* handle msg.type */ });
 
-**Update Triggers:**
-1. Edit `src/workers/triggers.json` (authoritative source)
-2. Verify at `/api/triggers/json` endpoint
-3. Never hardcode trigger data in components
-4. **Commit and push when complete**
+// Worker: src/workers/worker.js
+parentPort.on('message', (msg) => { /* handle msg.type */ });
+parentPort.postMessage({ type: 'result', data });
+```
 
-**Run Tests:**
-- `npm run test` - Smart auto-discovery test runner with HTML reports
-- `npm run test:watch` - Watch mode with live file monitoring
-- `npm run test:critical` - Pre-deployment essential tests only  
-- `npm run test:ci` - CI/CD optimized execution
-- `npm test -- --tags=critical,mcp` - Run specific test categories
-- `npm test -- --watch --verbose` - Watch mode with detailed output
-- `npm test -- --exclude=slow` - Exclude specific test types
+**React Component Pattern**:
+```jsx
+// 1. Hooks → 2. Effects → 3. Handlers → 4. Render
+const Component = ({ prop }) => {
+    const [state, setState] = useState();        // 1. Hooks
+    useEffect(() => { /* side effects */ }, []); // 2. Effects
+    const handleClick = () => { /* logic */ };   // 3. Handlers
+    return <div>...</div>;                       // 4. Render
+};
+```
 
-**Test Reports Location:** `tests/reports/` - HTML and JSON formats
-**Framework Features:** Smart discovery, watch mode, intelligent filtering
+**Test Suite Pattern**:
+```javascript
+class MyTestSuite {
+    constructor() {
+        this.name = 'Suite Name';
+        this.tags = ['critical', 'feature'];
+        this.priority = 90;
+    }
+    async run() {
+        return { passed: 0, failed: 0, tests: [] };
+    }
+}
+```
+
+### File Locations Cheat Sheet
+
+| Need to... | Edit File |
+|------------|-----------|
+| Add Socket.io event | `src/server/server.js` (connection handler) |
+| Add environment variable | `src/config/env.js` + `.env.example` |
+| Create new worker | `src/workers/your-service.js` |
+| Add React component | `src/client/components/YourComponent.jsx` |
+| Create custom hook | `src/client/hooks/useYourHook.js` |
+| Add test suite | `tests/your-feature.test.js` |
+| Modify build process | `scripts/build.js` |
+| Change proxy settings | `vite.config.js` |
+| Update workflow | `package.json` (scripts section) |
+| Add API endpoint | `src/server/server.js` (Express routes) |
+
+---
+
+**Key Principle**: This codebase prioritizes **real-time performance**, **graceful degradation**, and **comprehensive validation**. When in doubt, check existing patterns in tests and centralized configuration modules.

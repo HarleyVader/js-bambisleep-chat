@@ -343,7 +343,7 @@ const socketConfig = {
         origin: function (origin, callback) {
             // Environment-specific CORS configuration
             const isDevelopment = ENV.NODE_ENV !== 'production';
-            
+
             if (isDevelopment) {
                 // Development: Allow localhost and Vite dev server
                 const allowedOrigins = [
@@ -352,7 +352,7 @@ const socketConfig = {
                     'http://127.0.0.1:7878',
                     'http://127.0.0.1:5173'
                 ];
-                
+
                 if (!origin || allowedOrigins.includes(origin)) {
                     callback(null, true);
                 } else {
@@ -366,7 +366,7 @@ const socketConfig = {
                     'https://www.bambisleep.chat',
                     // Add your production domains here
                 ];
-                
+
                 if (allowedOrigins.includes(origin)) {
                     callback(null, true);
                 } else {
@@ -379,18 +379,18 @@ const socketConfig = {
         credentials: true,
         optionsSuccessStatus: 200
     },
-    
+
     // Enhanced Socket.io security settings
     allowEIO3: false, // Disable older Engine.IO versions
     transports: ['websocket', 'polling'], // Allow both transports
-    
+
     // Connection timeout and limits
     pingTimeout: 60000,
     pingInterval: 25000,
-    
+
     // Additional security headers
     serveClient: false, // Don't serve Socket.io client (we serve it ourselves)
-    
+
     // Rate limiting configuration
     connectionStateRecovery: {
         maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
@@ -665,11 +665,11 @@ function initializeLMWorker() {
             console.log(`❌ LM Studio worker exited with code ${code}`);
             lmWorker = null;
             connectionStateManager.updateWorkerState('lm', false);
-            
+
             // Enhanced restart logic with attempt limits
             if (code !== 0 && connectionStateManager.workerStates.lm.restartAttempts < connectionStateManager.maxRestartAttempts) {
                 const delay = connectionStateManager.restartDelay * (connectionStateManager.workerStates.lm.restartAttempts + 1);
-                console.log(`🔄 Restarting LM Studio worker in ${delay/1000} seconds... (attempt ${connectionStateManager.workerStates.lm.restartAttempts + 1}/${connectionStateManager.maxRestartAttempts})`);
+                console.log(`🔄 Restarting LM Studio worker in ${delay / 1000} seconds... (attempt ${connectionStateManager.workerStates.lm.restartAttempts + 1}/${connectionStateManager.maxRestartAttempts})`);
                 setTimeout(() => {
                     connectionStateManager.workerStates.lm.restartAttempts++;
                     initializeLMWorker();
@@ -691,14 +691,14 @@ function initializeLMWorker() {
                 triggers: triggerWords,
                 triggerData: triggerData // Send full trigger data to worker
             });
-            
+
             // Send health check to update status
             lmWorker.postMessage({ type: 'health' });
         }
 
         console.log('✅ LM Studio worker initialized');
         connectionStateManager.updateWorkerState('lm', true);
-        
+
     } catch (error) {
         console.error('❌ Failed to initialize LM Studio worker:', error);
         lmWorker = null;
@@ -729,11 +729,11 @@ function initializeKokoroWorker() {
             console.log(`❌ Kokoro TTS worker exited with code ${code}`);
             kokoroWorker = null;
             connectionStateManager.updateWorkerState('kokoro', false);
-            
+
             // Enhanced restart logic with attempt limits
             if (code !== 0 && connectionStateManager.workerStates.kokoro.restartAttempts < connectionStateManager.maxRestartAttempts) {
                 const delay = connectionStateManager.restartDelay * (connectionStateManager.workerStates.kokoro.restartAttempts + 1);
-                console.log(`🔄 Restarting Kokoro TTS worker in ${delay/1000} seconds... (attempt ${connectionStateManager.workerStates.kokoro.restartAttempts + 1}/${connectionStateManager.maxRestartAttempts})`);
+                console.log(`🔄 Restarting Kokoro TTS worker in ${delay / 1000} seconds... (attempt ${connectionStateManager.workerStates.kokoro.restartAttempts + 1}/${connectionStateManager.maxRestartAttempts})`);
                 setTimeout(() => {
                     connectionStateManager.workerStates.kokoro.restartAttempts++;
                     initializeKokoroWorker();
@@ -755,7 +755,7 @@ function initializeKokoroWorker() {
 
         console.log('✅ Kokoro TTS worker initialized');
         connectionStateManager.updateWorkerState('kokoro', true);
-        
+
     } catch (error) {
         console.error('❌ Failed to initialize Kokoro TTS worker:', error);
         kokoroWorker = null;
@@ -778,7 +778,7 @@ class ConnectionStateManager {
     updateWorkerState(workerType, healthy) {
         this.workerStates[workerType].healthy = healthy;
         this.workerStates[workerType].lastCheck = Date.now();
-        
+
         // Broadcast worker status to all connected clients
         io.emit('worker-status', {
             [workerType]: {
@@ -825,7 +825,7 @@ const connectionStateManager = new ConnectionStateManager();
 // Enhanced worker communication with retry logic and state management
 function sendToLMWorker(message, fallbackCallback = null, retries = 0) {
     const maxRetries = 2;
-    
+
     if (lmWorker && connectionStateManager.workerStates.lm.healthy) {
         try {
             lmWorker.postMessage(message);
@@ -834,7 +834,7 @@ function sendToLMWorker(message, fallbackCallback = null, retries = 0) {
             console.error('❌ Failed to send message to LM worker:', error);
             lmWorker = null;
             connectionStateManager.updateWorkerState('lm', false);
-            
+
             // Retry logic
             if (retries < maxRetries) {
                 console.log(`🔄 Retrying LM worker message (${retries + 1}/${maxRetries})...`);
@@ -848,7 +848,7 @@ function sendToLMWorker(message, fallbackCallback = null, retries = 0) {
 
     // Worker unavailable - handle gracefully
     console.log('ℹ️ LM Studio unavailable (AI chat disabled - core features work normally)');
-    
+
     // Send worker unavailable status to specific socket if provided
     if (message.socketId && connectionStateManager.isSocketValid(message.socketId)) {
         io.to(message.socketId).emit('worker-unavailable', {
@@ -857,7 +857,7 @@ function sendToLMWorker(message, fallbackCallback = null, retries = 0) {
             timestamp: new Date().toISOString()
         });
     }
-    
+
     if (fallbackCallback) {
         fallbackCallback();
     }
@@ -866,7 +866,7 @@ function sendToLMWorker(message, fallbackCallback = null, retries = 0) {
 
 function sendToKokoroWorker(message, fallbackCallback = null, retries = 0) {
     const maxRetries = 2;
-    
+
     if (kokoroWorker && connectionStateManager.workerStates.kokoro.healthy) {
         try {
             kokoroWorker.postMessage(message);
@@ -875,7 +875,7 @@ function sendToKokoroWorker(message, fallbackCallback = null, retries = 0) {
             console.error('❌ Failed to send message to Kokoro worker:', error);
             kokoroWorker = null;
             connectionStateManager.updateWorkerState('kokoro', false);
-            
+
             // Retry logic
             if (retries < maxRetries) {
                 console.log(`🔄 Retrying Kokoro worker message (${retries + 1}/${maxRetries})...`);
@@ -889,7 +889,7 @@ function sendToKokoroWorker(message, fallbackCallback = null, retries = 0) {
 
     // Worker unavailable - handle gracefully
     console.warn('⚠️ Kokoro TTS worker unavailable, using fallback');
-    
+
     // Send worker unavailable status to specific socket if provided
     if (message.socketId && connectionStateManager.isSocketValid(message.socketId)) {
         io.to(message.socketId).emit('worker-unavailable', {
@@ -898,7 +898,7 @@ function sendToKokoroWorker(message, fallbackCallback = null, retries = 0) {
             timestamp: new Date().toISOString()
         });
     }
-    
+
     if (fallbackCallback) {
         fallbackCallback();
     }
@@ -1031,7 +1031,7 @@ function handleKokoroWorkerMessage(msg) {
 
             case 'error':
                 console.error('🚨 Kokoro TTS error:', msg.error);
-                
+
                 // Validate socket exists before sending error
                 if (msg.socketId && io.sockets.sockets.has(msg.socketId)) {
                     io.to(msg.socketId).emit('tts-error', {
@@ -1117,22 +1117,22 @@ io.on('connection', (socket) => {
 
     // Unified message handler to prevent duplicate processing
     const processedMessages = new Set(); // Track processed messages to prevent duplicates
-    
+
     function handleGlobalMessage(data, eventType) {
         // Create unique message identifier
         const messageId = `${data.message}_${data.timestamp || Date.now()}_${data.username || socket.id}`;
-        
+
         // Check if message was already processed (prevent duplicate handling)
         if (processedMessages.has(messageId)) {
             console.log(`⚠️ Duplicate message detected and ignored: ${eventType}`);
             return;
         }
-        
+
         processedMessages.add(messageId);
-        
+
         // Clean up processed messages set periodically (prevent memory leak)
         setTimeout(() => processedMessages.delete(messageId), 60000); // 1 minute cleanup
-        
+
         const messageData = {
             id: Date.now(),
             message: data.message,
@@ -1345,7 +1345,7 @@ io.on('connection', (socket) => {
     socket.on('disconnect', (reason) => {
         connectedUsers--;
         workerUsers.delete(socket.id);
-        
+
         // Remove from connection state manager
         connectionStateManager.untrackSocket(socket.id);
 
