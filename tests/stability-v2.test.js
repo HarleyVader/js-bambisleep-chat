@@ -108,7 +108,7 @@ class StabilityTestSuite {
             console.log('🚀 Starting test server...');
 
             // Start server process
-            this.serverProcess = spawn('node', ['server.js'], {
+            this.serverProcess = spawn('node', ['src/server/server.js'], {
                 cwd: process.cwd(),
                 stdio: ['pipe', 'pipe', 'pipe'],
                 env: { ...process.env, NODE_ENV: 'test', PORT: '7878' }
@@ -116,8 +116,15 @@ class StabilityTestSuite {
 
             // Capture server output
             let serverOutput = '';
+            let serverReady = false;
+            
             this.serverProcess.stdout.on('data', (data) => {
-                serverOutput += data.toString();
+                const output = data.toString();
+                serverOutput += output;
+                // Look for server ready indicators (specific to BambiSleep Chat server)
+                if (output.includes('BambiSleep Chat server running on') || output.includes('listening on') || output.includes('Server memory manager cleaned up')) {
+                    serverReady = true;
+                }
             });
 
             this.serverProcess.stderr.on('data', (data) => {
@@ -125,17 +132,33 @@ class StabilityTestSuite {
                 console.log(`Server: ${errorOutput.trim()}`);
             });
 
-            // Wait for server to be ready (max 15 seconds)
+            // Handle server process errors
+            this.serverProcess.on('error', (error) => {
+                console.error(`❌ Server process error: ${error.message}`);
+            });
+
+            // Wait for server to be ready (max 20 seconds)
             const startTime = Date.now();
-            const timeout = 15000;
+            const timeout = 20000;
 
             while (Date.now() - startTime < timeout) {
-                try {
-                    await this.makeRequest('http://localhost:7878', { method: 'HEAD', timeout: 1000 });
-                    console.log('✅ Test server started successfully');
-                    return true;
-                } catch {
-                    await this.sleep(500); // Wait 500ms before retry
+                // If server indicated it's ready, try connecting
+                if (serverReady) {
+                    try {
+                        await this.makeRequest('http://localhost:7878', { method: 'GET', timeout: 2000 });
+                        console.log('✅ Test server started successfully');
+                        return true;
+                    } catch (error) {
+                        // Server said it's ready but connection failed, wait a bit more
+                        await this.sleep(500);
+                    }
+                } else {
+                    // If server process has exited, stop trying
+                    if (this.serverProcess.killed || this.serverProcess.exitCode !== null) {
+                        console.error('❌ Server process exited unexpectedly');
+                        return false;
+                    }
+                    await this.sleep(1000); // Wait 1 second before retry
                 }
             }
 

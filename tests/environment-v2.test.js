@@ -147,7 +147,7 @@ class EnvironmentTestSuite {
     async testFileSystemAccess() {
         const testPaths = [
             'public/js/aigf-core.js',
-            'server.js',
+            'src/server/server.js',
             'src/workers/kokoro.js',
             'src/workers/lmstudio.js',
             'src/workers/triggers.json',
@@ -195,7 +195,7 @@ class EnvironmentTestSuite {
     async testEnvironmentVariables() {
         try {
             // Try to load environment configuration
-            const envPath = path.join(process.cwd(), 'config', 'env.js');
+            const envPath = path.join(process.cwd(), 'src', 'config', 'env.js');
             const configExists = await fs.access(envPath).then(() => true).catch(() => false);
 
             if (!configExists) {
@@ -212,10 +212,13 @@ class EnvironmentTestSuite {
 
             const requiredVars = [
                 'NODE_ENV',
+                'PORT',
                 'KOKORO_HOST_DEVELOPMENT',
                 'KOKORO_HOST_PRODUCTION',
                 'LMS_HOST_DEVELOPMENT',
-                'LMS_HOST_PRODUCTION'
+                'LMS_HOST_PRODUCTION',
+                'KOKORO_PORT',
+                'LMS_PORT'
             ];
 
             const missingVars = [];
@@ -431,7 +434,7 @@ class EnvironmentTestSuite {
 
     async testFilePermissions() {
         const testFiles = [
-            { path: 'server.js', needsRead: true, needsWrite: false },
+            { path: 'src/server/server.js', needsRead: true, needsWrite: false },
             { path: 'package.json', needsRead: true, needsWrite: false },
             { path: 'tests', needsRead: true, needsWrite: true },
             { path: 'tests/reports', needsRead: true, needsWrite: true }
@@ -442,6 +445,9 @@ class EnvironmentTestSuite {
 
         for (const file of testFiles) {
             try {
+                // First check if file/directory exists
+                const stats = await fs.stat(file.path);
+                
                 // Test read access
                 await fs.access(file.path, fs.constants.R_OK);
                 let readAccess = true;
@@ -451,7 +457,7 @@ class EnvironmentTestSuite {
                 if (file.needsWrite) {
                     try {
                         await fs.access(file.path, fs.constants.W_OK);
-                    } catch {
+                    } catch (error) {
                         writeAccess = false;
                         allCorrect = false;
                     }
@@ -459,17 +465,22 @@ class EnvironmentTestSuite {
 
                 results.push({
                     path: file.path,
+                    exists: true,
                     readAccess,
                     writeAccess,
-                    needsWrite: file.needsWrite
+                    needsWrite: file.needsWrite,
+                    isDirectory: stats.isDirectory()
                 });
 
-            } catch {
+            } catch (error) {
                 results.push({
                     path: file.path,
+                    exists: false,
                     readAccess: false,
                     writeAccess: false,
-                    needsWrite: file.needsWrite
+                    needsWrite: file.needsWrite,
+                    isDirectory: false,
+                    error: error.code || error.message
                 });
                 allCorrect = false;
             }
