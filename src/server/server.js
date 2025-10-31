@@ -336,12 +336,69 @@ function validateConfiguration() {
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
+
+// Environment-specific Socket.io configuration with enhanced security
+const socketConfig = {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: function (origin, callback) {
+            // Environment-specific CORS configuration
+            const isDevelopment = ENV.NODE_ENV !== 'production';
+            
+            if (isDevelopment) {
+                // Development: Allow localhost and Vite dev server
+                const allowedOrigins = [
+                    'http://localhost:7878',
+                    'http://localhost:5173', // Vite dev server
+                    'http://127.0.0.1:7878',
+                    'http://127.0.0.1:5173'
+                ];
+                
+                if (!origin || allowedOrigins.includes(origin)) {
+                    callback(null, true);
+                } else {
+                    console.warn(`⚠️ CORS: Rejected origin in development: ${origin}`);
+                    callback(new Error('Not allowed by CORS'));
+                }
+            } else {
+                // Production: Strict origin validation
+                const allowedOrigins = [
+                    'https://bambisleep.chat',
+                    'https://www.bambisleep.chat',
+                    // Add your production domains here
+                ];
+                
+                if (allowedOrigins.includes(origin)) {
+                    callback(null, true);
+                } else {
+                    console.error(`🚨 CORS: Rejected origin in production: ${origin}`);
+                    callback(new Error('Not allowed by CORS'));
+                }
+            }
+        },
+        methods: ["GET", "POST"],
+        credentials: true,
+        optionsSuccessStatus: 200
+    },
+    
+    // Enhanced Socket.io security settings
+    allowEIO3: false, // Disable older Engine.IO versions
+    transports: ['websocket', 'polling'], // Allow both transports
+    
+    // Connection timeout and limits
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    
+    // Additional security headers
+    serveClient: false, // Don't serve Socket.io client (we serve it ourselves)
+    
+    // Rate limiting configuration
+    connectionStateRecovery: {
+        maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+        skipMiddlewares: true,
     }
-});
+};
+
+const io = new Server(server, socketConfig);
 
 // Validate configuration on startup
 const configStatus = validateConfiguration();
@@ -582,6 +639,7 @@ function initializeLMWorker() {
     // Skip LM Studio worker if disabled
     if (!ENV.LMS.ENABLED || !ENV.LMS.isConfigured) {
         console.log('🔧 LM Studio worker disabled (AI chat feature unavailable)');
+        connectionStateManager.updateWorkerState('lm', false);
         return;
     }
 
@@ -589,20 +647,40 @@ function initializeLMWorker() {
         lmWorker = new Worker(path.join(__dirname, '../workers', 'lmstudio.js'));
 
         lmWorker.on('message', (msg) => {
+            // Update worker health status based on messages
+            if (msg.type === 'health_response') {
+                connectionStateManager.updateWorkerState('lm', msg.healthy);
+            }
             handleLMWorkerMessage(msg);
         });
 
         lmWorker.on('error', (error) => {
             console.error('❌ LM Studio worker error:', error);
-            lmWorker = null; // Mark as unavailable
+            lmWorker = null;
+            connectionStateManager.updateWorkerState('lm', false);
+            connectionStateManager.workerStates.lm.restartAttempts++;
         });
 
         lmWorker.on('exit', (code) => {
             console.log(`❌ LM Studio worker exited with code ${code}`);
-            lmWorker = null; // Mark as unavailable
-            if (code !== 0) {
-                console.log('🔄 Restarting LM Studio worker in 5 seconds...');
-                setTimeout(initializeLMWorker, 5000);
+            lmWorker = null;
+            connectionStateManager.updateWorkerState('lm', false);
+            
+            // Enhanced restart logic with attempt limits
+            if (code !== 0 && connectionStateManager.workerStates.lm.restartAttempts < connectionStateManager.maxRestartAttempts) {
+                const delay = connectionStateManager.restartDelay * (connectionStateManager.workerStates.lm.restartAttempts + 1);
+                console.log(`🔄 Restarting LM Studio worker in ${delay/1000} seconds... (attempt ${connectionStateManager.workerStates.lm.restartAttempts + 1}/${connectionStateManager.maxRestartAttempts})`);
+                setTimeout(() => {
+                    connectionStateManager.workerStates.lm.restartAttempts++;
+                    initializeLMWorker();
+                }, delay);
+            } else if (connectionStateManager.workerStates.lm.restartAttempts >= connectionStateManager.maxRestartAttempts) {
+                console.error(`🚨 LM Studio worker failed to restart after ${connectionStateManager.maxRestartAttempts} attempts`);
+                io.emit('worker-critical-error', {
+                    worker: 'lm',
+                    message: 'AI chat service unavailable after multiple restart attempts',
+                    timestamp: new Date().toISOString()
+                });
             }
         });
 
@@ -613,12 +691,18 @@ function initializeLMWorker() {
                 triggers: triggerWords,
                 triggerData: triggerData // Send full trigger data to worker
             });
+            
+            // Send health check to update status
+            lmWorker.postMessage({ type: 'health' });
         }
 
         console.log('✅ LM Studio worker initialized');
+        connectionStateManager.updateWorkerState('lm', true);
+        
     } catch (error) {
         console.error('❌ Failed to initialize LM Studio worker:', error);
-        lmWorker = null; // Ensure it's marked as unavailable
+        lmWorker = null;
+        connectionStateManager.updateWorkerState('lm', false);
     }
 }
 
@@ -627,181 +711,360 @@ function initializeKokoroWorker() {
         kokoroWorker = new Worker(path.join(__dirname, '../workers', 'kokoro.js'));
 
         kokoroWorker.on('message', (msg) => {
+            // Update worker health status based on messages
+            if (msg.type === 'health_response') {
+                connectionStateManager.updateWorkerState('kokoro', msg.healthy);
+            }
             handleKokoroWorkerMessage(msg);
         });
 
         kokoroWorker.on('error', (error) => {
             console.error('❌ Kokoro TTS worker error:', error);
-            kokoroWorker = null; // Mark as unavailable
+            kokoroWorker = null;
+            connectionStateManager.updateWorkerState('kokoro', false);
+            connectionStateManager.workerStates.kokoro.restartAttempts++;
         });
 
         kokoroWorker.on('exit', (code) => {
             console.log(`❌ Kokoro TTS worker exited with code ${code}`);
-            kokoroWorker = null; // Mark as unavailable
-            if (code !== 0) {
-                console.log('🔄 Restarting Kokoro TTS worker in 5 seconds...');
-                setTimeout(initializeKokoroWorker, 5000);
+            kokoroWorker = null;
+            connectionStateManager.updateWorkerState('kokoro', false);
+            
+            // Enhanced restart logic with attempt limits
+            if (code !== 0 && connectionStateManager.workerStates.kokoro.restartAttempts < connectionStateManager.maxRestartAttempts) {
+                const delay = connectionStateManager.restartDelay * (connectionStateManager.workerStates.kokoro.restartAttempts + 1);
+                console.log(`🔄 Restarting Kokoro TTS worker in ${delay/1000} seconds... (attempt ${connectionStateManager.workerStates.kokoro.restartAttempts + 1}/${connectionStateManager.maxRestartAttempts})`);
+                setTimeout(() => {
+                    connectionStateManager.workerStates.kokoro.restartAttempts++;
+                    initializeKokoroWorker();
+                }, delay);
+            } else if (connectionStateManager.workerStates.kokoro.restartAttempts >= connectionStateManager.maxRestartAttempts) {
+                console.error(`🚨 Kokoro TTS worker failed to restart after ${connectionStateManager.maxRestartAttempts} attempts`);
+                io.emit('worker-critical-error', {
+                    worker: 'kokoro',
+                    message: 'TTS service unavailable after multiple restart attempts',
+                    timestamp: new Date().toISOString()
+                });
             }
         });
 
+        // Send health check to update status
+        if (kokoroWorker) {
+            kokoroWorker.postMessage({ type: 'health' });
+        }
+
         console.log('✅ Kokoro TTS worker initialized');
+        connectionStateManager.updateWorkerState('kokoro', true);
+        
     } catch (error) {
         console.error('❌ Failed to initialize Kokoro TTS worker:', error);
-        kokoroWorker = null; // Ensure it's marked as unavailable
+        kokoroWorker = null;
+        connectionStateManager.updateWorkerState('kokoro', false);
     }
 }
 
-// Helper functions to safely interact with workers
-function sendToLMWorker(message, fallbackCallback = null) {
-    if (lmWorker) {
+// Connection State Management System
+class ConnectionStateManager {
+    constructor() {
+        this.workerStates = {
+            lm: { healthy: false, lastCheck: null, restartAttempts: 0 },
+            kokoro: { healthy: false, lastCheck: null, restartAttempts: 0 }
+        };
+        this.connectedSockets = new Map(); // Track socket connection states
+        this.maxRestartAttempts = 3;
+        this.restartDelay = 5000;
+    }
+
+    updateWorkerState(workerType, healthy) {
+        this.workerStates[workerType].healthy = healthy;
+        this.workerStates[workerType].lastCheck = Date.now();
+        
+        // Broadcast worker status to all connected clients
+        io.emit('worker-status', {
+            [workerType]: {
+                healthy: healthy,
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+
+    trackSocket(socket) {
+        this.connectedSockets.set(socket.id, {
+            connected: true,
+            lastActivity: Date.now(),
+            ip: socket.handshake.address,
+            userAgent: socket.handshake.headers['user-agent']
+        });
+    }
+
+    untrackSocket(socketId) {
+        this.connectedSockets.delete(socketId);
+    }
+
+    isSocketValid(socketId) {
+        return this.connectedSockets.has(socketId) && io.sockets.sockets.has(socketId);
+    }
+
+    getWorkerStatus() {
+        return {
+            lm: {
+                available: !!lmWorker && this.workerStates.lm.healthy,
+                restartAttempts: this.workerStates.lm.restartAttempts
+            },
+            kokoro: {
+                available: !!kokoroWorker && this.workerStates.kokoro.healthy,
+                restartAttempts: this.workerStates.kokoro.restartAttempts
+            }
+        };
+    }
+}
+
+// Initialize connection state manager
+const connectionStateManager = new ConnectionStateManager();
+
+// Enhanced worker communication with retry logic and state management
+function sendToLMWorker(message, fallbackCallback = null, retries = 0) {
+    const maxRetries = 2;
+    
+    if (lmWorker && connectionStateManager.workerStates.lm.healthy) {
         try {
             lmWorker.postMessage(message);
             return true;
         } catch (error) {
             console.error('❌ Failed to send message to LM worker:', error);
             lmWorker = null;
+            connectionStateManager.updateWorkerState('lm', false);
+            
+            // Retry logic
+            if (retries < maxRetries) {
+                console.log(`🔄 Retrying LM worker message (${retries + 1}/${maxRetries})...`);
+                setTimeout(() => {
+                    sendToLMWorker(message, fallbackCallback, retries + 1);
+                }, 1000 * (retries + 1));
+                return false;
+            }
         }
     }
 
     // Worker unavailable - handle gracefully
     console.log('ℹ️ LM Studio unavailable (AI chat disabled - core features work normally)');
+    
+    // Send worker unavailable status to specific socket if provided
+    if (message.socketId && connectionStateManager.isSocketValid(message.socketId)) {
+        io.to(message.socketId).emit('worker-unavailable', {
+            worker: 'lm',
+            message: 'AI chat is temporarily unavailable',
+            timestamp: new Date().toISOString()
+        });
+    }
+    
     if (fallbackCallback) {
         fallbackCallback();
     }
     return false;
 }
 
-function sendToKokoroWorker(message, fallbackCallback = null) {
-    if (kokoroWorker) {
+function sendToKokoroWorker(message, fallbackCallback = null, retries = 0) {
+    const maxRetries = 2;
+    
+    if (kokoroWorker && connectionStateManager.workerStates.kokoro.healthy) {
         try {
             kokoroWorker.postMessage(message);
             return true;
         } catch (error) {
             console.error('❌ Failed to send message to Kokoro worker:', error);
             kokoroWorker = null;
+            connectionStateManager.updateWorkerState('kokoro', false);
+            
+            // Retry logic
+            if (retries < maxRetries) {
+                console.log(`🔄 Retrying Kokoro worker message (${retries + 1}/${maxRetries})...`);
+                setTimeout(() => {
+                    sendToKokoroWorker(message, fallbackCallback, retries + 1);
+                }, 1000 * (retries + 1));
+                return false;
+            }
         }
     }
 
     // Worker unavailable - handle gracefully
     console.warn('⚠️ Kokoro TTS worker unavailable, using fallback');
+    
+    // Send worker unavailable status to specific socket if provided
+    if (message.socketId && connectionStateManager.isSocketValid(message.socketId)) {
+        io.to(message.socketId).emit('worker-unavailable', {
+            worker: 'kokoro',
+            message: 'TTS is temporarily unavailable',
+            timestamp: new Date().toISOString()
+        });
+    }
+    
     if (fallbackCallback) {
         fallbackCallback();
     }
     return false;
 }
 
-// Handle messages from LM Studio worker
+// Handle messages from LM Studio worker with race condition protection
 function handleLMWorkerMessage(msg) {
-    switch (msg.type) {
-        case 'response':
-            // Check if this is an API request
-            if (global.pendingAPIRequests && global.pendingAPIRequests[msg.socketId]) {
-                const { res, timeout } = global.pendingAPIRequests[msg.socketId];
-                clearTimeout(timeout);
-                res.json({
-                    response: msg.response,
-                    wordCount: msg.wordCount || 0,
+    try {
+        // Validate message structure
+        if (!msg || typeof msg !== 'object' || !msg.type) {
+            console.warn('⚠️ Invalid LM worker message received:', msg);
+            return;
+        }
+
+        switch (msg.type) {
+            case 'response':
+                // Check if this is an API request
+                if (global.pendingAPIRequests && global.pendingAPIRequests[msg.socketId]) {
+                    const { res, timeout } = global.pendingAPIRequests[msg.socketId];
+                    clearTimeout(timeout);
+                    res.json({
+                        response: msg.response,
+                        wordCount: msg.wordCount || 0,
+                        timestamp: new Date().toISOString()
+                    });
+                    delete global.pendingAPIRequests[msg.socketId];
+                    return;
+                }
+
+                // Validate socket exists before sending response
+                if (msg.socketId && io.sockets.sockets.has(msg.socketId)) {
+                    io.to(msg.socketId).emit('ai-response', {
+                        message: msg.response,
+                        timestamp: new Date().toISOString(),
+                        wordCount: msg.wordCount || 0
+                    });
+
+                    // Add to AIGF chat history only (not global)
+                    const messageData = {
+                        id: Date.now(),
+                        message: msg.response,
+                        timestamp: new Date().toISOString(),
+                        user: 'BambiSleep',
+                        isAI: true,
+                        type: 'aigf'
+                    };
+
+                    // Add to unified chat history system
+                    chatHistoryManager.addMessage(messageData, ['aigf', 'legacy']);
+                } else if (msg.socketId) {
+                    console.warn(`⚠️ Attempted to send AI response to disconnected socket: ${msg.socketId}`);
+                }
+                break;
+
+            case 'error':
+                console.error('🚨 LM Worker error:', msg.error);
+
+                // Check if this is an API request
+                if (global.pendingAPIRequests && global.pendingAPIRequests[msg.socketId]) {
+                    const { res, timeout } = global.pendingAPIRequests[msg.socketId];
+                    clearTimeout(timeout);
+                    res.status(500).json({ error: msg.error || 'AI processing error' });
+                    delete global.pendingAPIRequests[msg.socketId];
+                    return;
+                }
+
+                // Validate socket exists before sending error
+                if (msg.socketId && io.sockets.sockets.has(msg.socketId)) {
+                    io.to(msg.socketId).emit('ai-error', {
+                        error: msg.error,
+                        timestamp: new Date().toISOString()
+                    });
+                } else if (msg.socketId) {
+                    console.warn(`⚠️ Attempted to send AI error to disconnected socket: ${msg.socketId}`);
+                }
+                break;
+
+            case 'health_response':
+                console.log(`💚 LM Worker health: ${msg.healthy}, sessions: ${msg.sessionCount}`);
+                break;
+
+            case 'model_loaded':
+                console.log(`✅ Model loaded: ${msg.modelId} (${msg.modelSize})`);
+                // Broadcast model status to all connected clients
+                io.emit('model-status', {
+                    loaded: true,
+                    modelId: msg.modelId,
+                    modelSize: msg.modelSize,
                     timestamp: new Date().toISOString()
                 });
-                delete global.pendingAPIRequests[msg.socketId];
-                return;
-            }
+                break;
 
-            // Send AI response to specific socket for regular chat
-            if (msg.socketId) {
-                io.to(msg.socketId).emit('ai-response', {
-                    message: msg.response,
-                    timestamp: new Date().toISOString(),
-                    wordCount: msg.wordCount || 0
-                });
-
-                // Add to AIGF chat history only (not global)
-                const messageData = {
-                    id: Date.now(),
-                    message: msg.response,
-                    timestamp: new Date().toISOString(),
-                    user: 'BambiSleep',
-                    isAI: true,
-                    type: 'aigf'
-                };
-
-                // Add to unified chat history system
-                chatHistoryManager.addMessage(messageData, ['aigf', 'legacy']);
-            }
-            break;
-
-        case 'error':
-            console.error('Worker error:', msg.error);
-
-            // Check if this is an API request
-            if (global.pendingAPIRequests && global.pendingAPIRequests[msg.socketId]) {
-                const { res, timeout } = global.pendingAPIRequests[msg.socketId];
-                clearTimeout(timeout);
-                res.status(500).json({ error: msg.error || 'AI processing error' });
-                delete global.pendingAPIRequests[msg.socketId];
-                return;
-            }
-
-            // Handle regular socket error
-            if (msg.socketId) {
-                io.to(msg.socketId).emit('ai-error', {
-                    error: msg.error,
-                    timestamp: new Date().toISOString()
-                });
-            }
-            break;
-
-        case 'health_response':
-            console.log(`Worker health: ${msg.healthy}, sessions: ${msg.sessionCount}`);
-            break;
-
-        case 'model_loaded':
-            console.log(`✅ Model loaded: ${msg.modelId} (${msg.modelSize})`);
-            io.emit('model-status', {
-                loaded: true,
-                modelId: msg.modelId,
-                modelSize: msg.modelSize,
-                timestamp: new Date().toISOString()
-            });
-            break;
+            default:
+                console.warn(`⚠️ Unknown LM worker message type: ${msg.type}`);
+                break;
+        }
+    } catch (error) {
+        console.error('🚨 Error handling LM worker message:', error);
+        console.error('🔍 Message content:', JSON.stringify(msg, null, 2));
     }
 }
 
-// Handle messages from Kokoro TTS worker
+// Handle messages from Kokoro TTS worker with race condition protection
 function handleKokoroWorkerMessage(msg) {
-    switch (msg.type) {
-        case 'tts_success':
-            // Send TTS audio to specific socket
-            if (msg.socketId) {
-                io.to(msg.socketId).emit('tts-response', {
-                    audioData: msg.audioData,
-                    format: msg.format,
-                    voice: msg.voice,
-                    text: msg.text,
-                    size: msg.size,
-                    timestamp: msg.timestamp
-                });
-            }
-            console.log(`✅ TTS generated for ${msg.socketId}: ${msg.size} bytes`);
-            break;
+    try {
+        // Validate message structure
+        if (!msg || typeof msg !== 'object' || !msg.type) {
+            console.warn('⚠️ Invalid Kokoro worker message received:', msg);
+            return;
+        }
 
-        case 'error':
-            console.error('Kokoro TTS error:', msg.error);
-            if (msg.socketId) {
-                io.to(msg.socketId).emit('tts-error', {
-                    error: msg.error,
-                    timestamp: msg.timestamp
-                });
-            }
-            break;
+        switch (msg.type) {
+            case 'tts_success':
+                // Validate socket exists before sending TTS response
+                if (msg.socketId && io.sockets.sockets.has(msg.socketId)) {
+                    io.to(msg.socketId).emit('tts-response', {
+                        audioData: msg.audioData,
+                        format: msg.format,
+                        voice: msg.voice,
+                        text: msg.text,
+                        size: msg.size,
+                        timestamp: msg.timestamp
+                    });
+                    console.log(`✅ TTS generated for ${msg.socketId}: ${msg.size} bytes`);
+                } else if (msg.socketId) {
+                    console.warn(`⚠️ Attempted to send TTS to disconnected socket: ${msg.socketId}`);
+                }
+                break;
 
-        case 'health_response':
-            console.log(`🎤 Kokoro TTS health: ${msg.healthy}, URL: ${msg.url}`);
-            break;
+            case 'error':
+                console.error('🚨 Kokoro TTS error:', msg.error);
+                
+                // Validate socket exists before sending error
+                if (msg.socketId && io.sockets.sockets.has(msg.socketId)) {
+                    io.to(msg.socketId).emit('tts-error', {
+                        error: msg.error,
+                        timestamp: msg.timestamp || new Date().toISOString()
+                    });
+                } else if (msg.socketId) {
+                    console.warn(`⚠️ Attempted to send TTS error to disconnected socket: ${msg.socketId}`);
+                }
+                break;
 
-        case 'voice_updated':
-            console.log(`🎤 Voice updated to: ${msg.voice}`);
-            break;
+            case 'health_response':
+                console.log(`🎤 Kokoro TTS health: ${msg.healthy}, URL: ${msg.url}`);
+                break;
+
+            case 'voice_updated':
+                console.log(`🎤 Voice updated to: ${msg.voice}`);
+                // Optionally broadcast voice update to specific socket
+                if (msg.socketId && io.sockets.sockets.has(msg.socketId)) {
+                    io.to(msg.socketId).emit('voice-updated', {
+                        voice: msg.voice,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                break;
+
+            default:
+                console.warn(`⚠️ Unknown Kokoro worker message type: ${msg.type}`);
+                break;
+        }
+    } catch (error) {
+        console.error('🚨 Error handling Kokoro worker message:', error);
+        console.error('🔍 Message content:', JSON.stringify(msg, null, 2));
     }
 }
 
@@ -812,9 +1075,12 @@ initializeKokoroWorker();
 // Setup TTS Routes with configuration validation
 setupTTSRoutes(app, configStatus);
 
-// Socket.io connection handling
+// Enhanced Socket.io connection handling with state management
 io.on('connection', (socket) => {
     connectedUsers++;
+
+    // Track connection with state manager
+    connectionStateManager.trackSocket(socket);
 
     // Track unique users by IP address for more accurate counting
     const clientIP = socket.handshake.address || socket.request.connection.remoteAddress;
@@ -823,11 +1089,23 @@ io.on('connection', (socket) => {
 
     uniqueUsers.add(userKey);
 
-    console.log(`User connected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`);
+    console.log(`✅ User connected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`);
     console.log(`🔍 New connection ID: ${socket.id}`);
     console.log(`🔍 Client IP: ${clientIP}`);
     console.log(`🔍 User Agent: ${userAgent?.substring(0, 100)}`);
     console.log(`🔍 Connection origin:`, socket.handshake.headers.origin);
+
+    // Send connection acknowledgment with server status
+    socket.emit('connection-ack', {
+        socketId: socket.id,
+        serverTime: new Date().toISOString(),
+        workerStatus: connectionStateManager.getWorkerStatus(),
+        features: {
+            aiChat: !!lmWorker && connectionStateManager.workerStates.lm.healthy,
+            tts: !!kokoroWorker && connectionStateManager.workerStates.kokoro.healthy,
+            globalChat: true
+        }
+    });
 
     // Send recent chat histories to new user using unified system
     socket.emit('global-chat-history', chatHistoryManager.getGlobalHistory(20));
@@ -837,45 +1115,51 @@ io.on('connection', (socket) => {
     io.emit('user-count', uniqueUsers.size);
     io.emit('global-user-count', uniqueUsers.size);
 
-    // Handle regular chat messages (legacy compatibility)
-    socket.on('message', (data) => {
+    // Unified message handler to prevent duplicate processing
+    const processedMessages = new Set(); // Track processed messages to prevent duplicates
+    
+    function handleGlobalMessage(data, eventType) {
+        // Create unique message identifier
+        const messageId = `${data.message}_${data.timestamp || Date.now()}_${data.username || socket.id}`;
+        
+        // Check if message was already processed (prevent duplicate handling)
+        if (processedMessages.has(messageId)) {
+            console.log(`⚠️ Duplicate message detected and ignored: ${eventType}`);
+            return;
+        }
+        
+        processedMessages.add(messageId);
+        
+        // Clean up processed messages set periodically (prevent memory leak)
+        setTimeout(() => processedMessages.delete(messageId), 60000); // 1 minute cleanup
+        
         const messageData = {
             id: Date.now(),
             message: data.message,
             timestamp: data.timestamp || new Date().toISOString(),
             user: data.username || socket.id,
             username: data.username,
-            type: 'global'
+            type: 'global',
+            source: eventType // Track which event handler processed this
         };
 
         // Store in unified chat history system
         chatHistoryManager.addMessage(messageData, ['global', 'legacy']);
 
-        // Broadcast to all clients with both events
-        socket.broadcast.emit('message', messageData); // Legacy
-        socket.broadcast.emit('global-message', messageData); // New
-
-        console.log(`Global message from ${messageData.user}: ${data.message}`);
-    });
-
-    // Handle dedicated global chat messages
-    socket.on('global-message', (data) => {
-        const messageData = {
-            id: Date.now(),
-            message: data.message,
-            timestamp: data.timestamp || new Date().toISOString(),
-            user: data.username || socket.id,
-            username: data.username,
-            type: 'global'
-        };
-
-        // Store in unified chat history system (global only)
-        chatHistoryManager.addMessage(messageData, ['global']);
-
-        // Broadcast to all clients as global message
+        // Broadcast unified message event (single event, no duplicates)
         socket.broadcast.emit('global-message', messageData);
 
-        console.log(`🌍 Global chat from ${messageData.user}: ${data.message}`);
+        console.log(`🌍 Global message (${eventType}) from ${messageData.user}: ${data.message}`);
+    }
+
+    // Handle legacy 'message' events (redirect to unified handler)
+    socket.on('message', (data) => {
+        handleGlobalMessage(data, 'legacy');
+    });
+
+    // Handle modern 'global-message' events (unified handler)
+    socket.on('global-message', (data) => {
+        handleGlobalMessage(data, 'global');
     });
 
     // Handle AI chat requests
@@ -1053,9 +1337,17 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('disconnect', () => {
+    // Handle connection errors and recovery
+    socket.on('connect_error', (error) => {
+        console.error(`🚨 Socket connection error for ${socket.id}:`, error);
+    });
+
+    socket.on('disconnect', (reason) => {
         connectedUsers--;
         workerUsers.delete(socket.id);
+        
+        // Remove from connection state manager
+        connectionStateManager.untrackSocket(socket.id);
 
         // Clean up unique user tracking on disconnect
         const clientIP = socket.handshake.address || socket.request.connection.remoteAddress;
@@ -1075,7 +1367,7 @@ io.on('connection', (socket) => {
             uniqueUsers.delete(userKey);
         }
 
-        console.log(`User disconnected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`);
+        console.log(`❌ User disconnected (${reason}). Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`);
         console.log(`🔍 Disconnected ID: ${socket.id}`);
 
         // Broadcast unique user count for both legacy and global
@@ -1086,18 +1378,33 @@ io.on('connection', (socket) => {
 
 // API Routes
 
-// Health check
+// Health check with enhanced worker status
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
         users: connectedUsers,
+        uniqueUsers: uniqueUsers.size,
         configuration: {
             ttsAvailable: configStatus.ttsAvailable,
             lmStudioConfigured: configStatus.lmStudioConfigured,
             warnings: configStatus.warnings,
             errors: configStatus.errors
+        },
+        workers: connectionStateManager.getWorkerStatus(),
+        socketio: {
+            connectedSockets: connectionStateManager.connectedSockets.size,
+            engineVersion: require('socket.io/package.json').version
         }
+    });
+});
+
+// Worker status endpoint for debugging
+app.get('/api/workers/status', (req, res) => {
+    res.json({
+        workers: connectionStateManager.getWorkerStatus(),
+        states: connectionStateManager.workerStates,
+        timestamp: new Date().toISOString()
     });
 });
 

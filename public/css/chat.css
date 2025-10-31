@@ -1,7 +1,7 @@
 /* BambiSleep Chat - Global Chat Messages CSS */
 /* Dedicated styling for global/community chat functionality */
 
-@layer background {
+@layer interface {
     /* ============================================================================
        GLOBAL CHAT CONTAINER
        ============================================================================ */
@@ -10,13 +10,15 @@
         flex: 1;
         padding: 14px;
         overflow-y: auto;
-        scroll-behavior: smooth;
         border: 1px solid rgba(21, 170, 181, 0.3);
         background: rgba(12, 42, 42, 0.3);
         -webkit-backdrop-filter: blur(8px);
         backdrop-filter: blur(8px);
         display: block;
         /* Default visible */
+        /* Ensure chat doesn't create new stacking context that blocks dropdowns */
+        position: relative;
+        z-index: auto;
     }
 
     /* Global Chat Messages */
@@ -29,7 +31,6 @@
         border-radius: 12px;
         border: 1px solid rgba(114, 2, 65, 0.4);
         box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.2);
-        animation: messageSlide 0.3s ease-out;
         display: flex;
         align-items: flex-start;
         gap: 5.6px;
@@ -38,26 +39,14 @@
         min-height: 28px;
         max-width: 100%;
         flex-wrap: wrap;
-        transition: all 0.2s ease;
     }
 
     #global-chat-messages .message:hover {
         background: rgba(12, 42, 42, 0.75);
         border-color: rgba(114, 2, 65, 0.6);
-        transform: translateX(2px);
     }
 
-    @keyframes messageSlide {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
 
     #global-chat-messages .message.system {
         border-left-color: var(--tertiary-alt);

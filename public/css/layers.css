@@ -152,6 +152,8 @@
             opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
             visibility 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         /* CSS layers handle stacking automatically */
+        /* Force dropdowns above all other content */
+        z-index: 9999;
         /* Enable container queries for responsive behavior */
         container-type: inline-size;
     }
