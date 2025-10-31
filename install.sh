@@ -80,7 +80,7 @@ if [ "$OPERATION" = "fix" ]; then
     print_info "Running in Fix Mode - repairing existing installation..."
 
     # Check if we're in the right directory
-    if [ ! -f "package.json" ] || [ ! -f "server.js" ]; then
+    if [ ! -f "package.json" ] || [ ! -f "src/server/server.js" ]; then
         print_error "Not in BambiSleep Chat directory."
         print_info "Please run this script from your BambiSleep Chat installation directory."
         print_info "Example: cd ~/web/bambisleep-chat && ./install.sh fix"
@@ -203,7 +203,7 @@ WorkingDirectory=$INSTALL_DIR
 ExecStartPre=$(which node) --version
 
 # Main application startup
-ExecStart=$(which node) server.js
+ExecStart=$(which node) src/server/server.js
 
 # Graceful shutdown
 ExecStop=/bin/kill -SIGTERM \$MAINPID

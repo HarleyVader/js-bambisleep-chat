@@ -20,6 +20,7 @@ server.js                      # Main server: Express, Socket.io, worker mgmt + 
 config/env.js                  # Centralized environment configuration with validation
 public/js/aigf-core.js         # Chat client: socket handling, UI, trigger processing
 public/js/dropdowns/           # Modular UI components (ES6 exports, unified system)
+public/js/dropdowns/index.js   # Central ES6 module exports for all dropdown components
 public/js/dropdowns.js         # Unified dropdown manager (consolidated from dropdown-utils)
 public/css/layers.css          # Modern @layer architecture (replaces z-index chaos)
 public/css/buttons.css         # Unified animation system + status classes
@@ -28,6 +29,8 @@ workers/lmstudio.js            # AI chat worker (enhanced reliability)
 workers/triggers.json          # Official BambiSleep triggers (never hardcode)
 vite.config.js                 # Dev proxy: 5173 → 7878 for Socket.io/API + error handling
 tests/                         # Comprehensive testing suite (environment, stability, resources)
+mcp-manager.js                 # MCP server management CLI tool
+src/                           # Production-ready source structure
 ```
 
 ## Development Commands
@@ -40,8 +43,13 @@ npm run test         # Unified test runner with HTML reports
 npm run test:critical # Pre-deployment critical tests only
 npm run test:env     # Environment configuration validation
 npm run test:mcp     # MCP server connectivity tests
+npm run test:mcp:standalone # Standalone MCP tools test
+npm run test:architecture   # Validate system architecture
+npm run test:stability     # Long-running stability tests
+npm run test:performance   # Performance benchmarking
 npm run build        # Production build validation  
 npm run clean        # Clean artifacts (--light or --full flags)
+npm run clean:full   # Deep clean including node_modules
 npm run deploy       # Production deployment scripts
 npm run mcp:status   # Check MCP server connections
 npm run mcp:start    # Initialize MCP servers
@@ -82,16 +90,26 @@ npm run validate-service             # Validate service configuration
 ```
 
 ### MCP Server Integration (NEW)
-```javascript
-// Active MCP servers provide enhanced AI capabilities
-// Hugging Face: ML models, datasets, image generation
-// Stripe: Payment processing, subscriptions
-// Clarity: Web analytics, session recordings  
-// MongoDB: Database operations, aggregation
+```bash
+# 8 active MCP servers provide enhanced AI capabilities:
+# - GitHub: Repository releases, tags, team management  
+# - Hugging Face: ML models, datasets, image generation
+# - Stripe: Payment processing, subscriptions
+# - Clarity: Web analytics, session recordings  
+# - MongoDB: Database operations, aggregation
+# - Azure Quantum: Quantum computing operations
+# - Filesystem: Project file operations and search
+# - ECL Extension: HPCC Systems integration
 
-// Check MCP status via npm scripts
-npm run mcp:status    // Verify all server connections
-npm run mcp:start     // Initialize MCP servers
+# MCP management commands
+npm run mcp:status    # Verify all 8 server connections (shows ✅/❌ status)
+npm run mcp:start     # Initialize and test MCP servers
+npm run mcp:install   # Install filesystem MCP server globally
+
+# Configuration files:
+# .vscode/mcp-settings.json - Server configurations
+# .env.mcp - API keys and authentication tokens
+# src/utils/mcp-manager.js - MCP server management CLI tool
 ```
 
 ### Worker Thread Communication (Enhanced)
@@ -126,8 +144,25 @@ worker.postMessage({
 
 ### Unified Dropdown System (Enhanced)
 ```javascript
-// All dropdowns use unified DropdownManager
-import { TTSDropdown, TriggersDropdown } from './dropdowns/index.js';
+// All dropdowns use unified DropdownManager with centralized state
+import { TTSDropdown, TriggersDropdown, AIDropdown, CollarDropdown, BrainwaveDropdown, SpiralDropdown } from './dropdowns/index.js';
+
+// Each component uses centralized state management via dropdownManager
+class ExampleDropdown {
+    constructor(dropdownManager) {
+        this.dropdownManager = dropdownManager;
+        this.componentName = 'example';
+    }
+    
+    // Use getter/setter pattern for state access
+    get isEnabled() {
+        return this.dropdownManager.getComponentState(this.componentName, 'isEnabled') || false;
+    }
+    
+    set isEnabled(value) {
+        this.dropdownManager.setComponentState(this.componentName, 'isEnabled', value);
+    }
+}
 
 // Status indicators - USE CSS CLASSES, NO INLINE STYLES
 statusIndicator.className = 'status-active';   // ✅ Correct
@@ -284,11 +319,61 @@ worker.postMessage({
 });
 ```
 
-### Testing & Validation
+### Testing & Validation - Unified Framework v2.0
 ```bash
-npm run test          # Run comprehensive validation
+npm run test          # Run comprehensive validation with parallel execution
 npm run dev           # Full stack with auto-restart
 npm run clean         # Clean artifacts before commit
+
+# Specific test patterns discovered:
+npm run test:ci       # CI/CD integration with exit codes and reports
+npm run test:verbose  # Detailed test output for debugging
+npm run all           # Complete workflow: clean + test + build + dev (USE THIS!)
+
+# Test reports generated in tests/reports/ with HTML and JSON formats
+# Each test suite exports both unified framework and legacy compatibility
+```
+
+### Git Workflow - Auto Commit & Push (NEW)
+```bash
+# ALWAYS commit and push changes when development work is complete
+# Follow this exact workflow for ALL completed features/fixes:
+
+1. Run comprehensive validation first:
+   npm run test                 # Ensure all tests pass
+   npm run clean               # Clean artifacts
+
+2. Stage and commit changes:
+   git add .                   # Stage all changes
+   git status                  # Review staged files
+   git commit -m "feat: [description]"  # Use conventional commits
+
+3. Push to repository:
+   git push origin main        # Push to main branch
+   # OR for feature branches:
+   git push origin feature/branch-name
+
+# Conventional Commit Format (REQUIRED):
+# feat: new feature
+# fix: bug fix  
+# docs: documentation changes
+# style: formatting, css updates
+# refactor: code restructuring
+# test: adding/updating tests
+# chore: maintenance tasks
+
+# Examples:
+git commit -m "feat: add MCP server integration"
+git commit -m "fix: resolve socket connection issues"
+git commit -m "docs: update copilot instructions"
+git commit -m "style: implement CSS layer architecture"
+git commit -m "refactor: reorganize src directory structure"
+git commit -m "test: enhance unified test framework"
+git commit -m "chore: update dependencies and cleanup"
+
+# CRITICAL: Always validate before committing
+npm run test:critical          # Run critical tests
+git diff --staged             # Review changes before commit
 ```
 
 ### Architecture Enforcement
@@ -299,8 +384,19 @@ npm run clean         # Clean artifacts before commit
 - **Official Triggers**: Load from `/api/triggers/json`, never hardcode
 - **Worker Isolation**: Keep external API calls in worker threads
 - **ES6 Modules**: Clean module exports from `dropdowns/index.js`
+- **Production Structure**: Frontend in `public/`, backend in `src/`
+- **Unified Testing**: Each test suite supports both unified framework v2.0 and legacy compatibility
+- **MCP Integration**: 8 Model Context Protocol servers for enhanced AI capabilities
 
 ### Quick Reference
+
+**Complete Development Workflow:**
+1. Make changes to codebase
+2. `npm run test` - Validate all changes
+3. `git add .` - Stage changes
+4. `git commit -m "feat: description"` - Commit with conventional format
+5. `git push origin main` - Push to repository
+6. **ALWAYS complete this workflow when development work is done**
 
 **Add New Dropdown Component:**
 1. Create `public/js/dropdowns/my-dropdown.js`
@@ -308,24 +404,31 @@ npm run clean         # Clean artifacts before commit
 3. Use `.status-active/.status-inactive` classes
 4. Set `data-state="on/off"` attributes
 5. Import in main file: `import { MyDropdown } from './dropdowns/index.js';`
+6. **Commit and push when complete**
 
 **Modify Environment Config:**
 1. Edit `config/env.js` for new settings
 2. Use validation functions for safety
 3. Access via `import { KOKORO, LMS, SERVER } from '../config/env.js';`
+4. **Commit and push when complete**
 
 **Update Triggers:**
 1. Edit `workers/triggers.json` (authoritative source)
 2. Verify at `/api/triggers/json` endpoint
 3. Never hardcode trigger data in components
+4. **Commit and push when complete**
 
 **Run Tests:**
 - `npm run test` - Full unified test suite with HTML reports
 - `npm run test:critical` - Pre-deployment essential tests only
 - `npm run test:env` - Environment configuration validation
 - `npm run test:mcp` - MCP server connectivity tests
+- `npm run test:mcp:standalone` - Standalone MCP tools test
 - `npm run test:architecture` - Validate system architecture
 - `npm run test:stability` - Long-running stability tests
 - `npm run test:performance` - Performance benchmarking
+- `npm run test:dropdowns` - Dropdown system functionality tests
+- `npm run test:verbose` - Verbose test output
+- `npm run test:ci` - CI-specific test run with reports
 
 **Test Reports Location:** `tests/reports/` - HTML and JSON formats

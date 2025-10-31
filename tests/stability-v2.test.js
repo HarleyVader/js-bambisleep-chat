@@ -9,7 +9,7 @@ const WebSocket = require('ws');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs').promises;
-const ENV = require('../config/env');
+const ENV = require('../src/config/env');
 
 class StabilityTestSuite {
     constructor() {

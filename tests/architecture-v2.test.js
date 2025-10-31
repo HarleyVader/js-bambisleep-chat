@@ -360,8 +360,8 @@ class ArchitectureTestSuite {
 
     async testConfigurationSystem() {
         const checks = [
-            { file: 'config/env.js', pattern: 'module.exports', description: 'Environment config export' },
-            { file: 'workers/triggers.json', pattern: '"Primary"', description: 'Triggers configuration' },
+            { file: 'src/config/env.js', pattern: 'module.exports', description: 'Environment config export' },
+            { file: 'src/workers/triggers.json', pattern: '"Primary"', description: 'Triggers configuration' },
             { file: 'vite.config.js', pattern: 'export default', description: 'Vite configuration' }
         ];
 

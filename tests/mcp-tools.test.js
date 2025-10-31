@@ -67,7 +67,7 @@ class MCPToolsTest {
         console.log('🔄 Testing MCP Server Activation...');
 
         try {
-            const MCPManager = require('../mcp-manager');
+            const MCPManager = require('../src/utils/mcp-manager');
             this.mcpManager = new MCPManager();
 
             await this.mcpManager.loadEnvironment();

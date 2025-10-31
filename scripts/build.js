@@ -70,10 +70,10 @@ class ProductionBuilder {
         // Check if all required files exist
         const requiredFiles = [
             'package.json',
-            'server.js',
+            'src/server/server.js',
             'vite.config.js',
             'public/index.html',
-            'config/env.js'
+            'src/config/env.js'
         ];
 
         for (const file of requiredFiles) {
@@ -155,12 +155,10 @@ class ProductionBuilder {
         console.log('📁 Copying server files...');
 
         const serverFiles = [
-            'server.js',
+            'src/',
             'package.json',
             'package-lock.json',
             '.env.production',
-            'config/',
-            'workers/',
             'scripts/',
             'bambisleepchat.service'
         ];
@@ -232,8 +230,8 @@ class ProductionBuilder {
         const prodPackage = {
             ...packageData,
             scripts: {
-                start: 'node server.js',
-                'prod:start': 'NODE_ENV=production node server.js',
+                start: 'node src/server/server.js',
+                'prod:start': 'NODE_ENV=production node src/server/server.js',
                 'validate-service': 'node scripts/validate-service.js'
             },
             // Remove devDependencies for production
@@ -304,12 +302,12 @@ PORT=7878
         // Check if essential files exist in build
         const essentialFiles = [
             'index.html',
-            'server.js',
+            'src/server/server.js',
             'package.json',
-            'config/env.js',
-            'workers/kokoro.js',
-            'workers/lmstudio.js',
-            'workers/triggers.json'
+            'src/config/env.js',
+            'src/workers/kokoro.js',
+            'src/workers/lmstudio.js',
+            'src/workers/triggers.json'
         ];
 
         for (const file of essentialFiles) {

@@ -107,8 +107,8 @@ function validateEnvironment() {
     console.log(`📦 Application: ${packageJson.name} v${packageJson.version}`);
 
     // Check main server file
-    if (!fs.existsSync('server.js')) {
-        throw new Error('server.js not found');
+    if (!fs.existsSync('src/server/server.js')) {
+        throw new Error('src/server/server.js not found');
     }
 
     console.log('✅ Environment validation passed');
@@ -140,7 +140,7 @@ WorkingDirectory=${config.workingDirectory}
 ExecStartPre=${config.nodeCommand} --version
 
 # Main application startup
-ExecStart=${config.nodeCommand} server.js
+ExecStart=${config.nodeCommand} src/server/server.js
 
 # Graceful shutdown
 ExecStop=/bin/kill -SIGTERM $MAINPID

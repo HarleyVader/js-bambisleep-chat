@@ -148,11 +148,11 @@ class EnvironmentTestSuite {
         const testPaths = [
             'public/js/aigf-core.js',
             'server.js',
-            'workers/kokoro.js',
-            'workers/lmstudio.js',
-            'workers/triggers.json',
+            'src/workers/kokoro.js',
+            'src/workers/lmstudio.js',
+            'src/workers/triggers.json',
             'public/css/layers.css',
-            'config/env.js'
+            'src/config/env.js'
         ];
 
         const results = [];
@@ -347,7 +347,7 @@ class EnvironmentTestSuite {
         const configFiles = [
             { path: 'package.json', required: true },
             { path: 'vite.config.js', required: true },
-            { path: 'config/env.js', required: true },
+            { path: 'src/config/env.js', required: true },
             { path: '.env', required: false },
             { path: '.gitignore', required: false }
         ];
@@ -386,8 +386,8 @@ class EnvironmentTestSuite {
             'public/js',
             'public/css',
             'public/js/dropdowns',
-            'workers',
-            'config',
+            'src/workers',
+            'src/config',
             'tests',
             'tests/reports'
         ];
