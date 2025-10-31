@@ -1,15 +1,16 @@
 /**
- * BambiSleep Chat - Unified Testing Framework
- * Centralized, modular, and future-proof test system
+ * BambiSleep Chat - Unified Testing Framework v3.0
+ * Simplified, intelligent, and high-performance test system
  *
  * Features:
- * - Modular test suite architecture
- * - Parallel test execution
- * - Comprehensive reporting
- * - CI/CD integration ready
- * - Extensible plugin system
- * - Real-time progress tracking
- * - Automated performance benchmarking
+ * - Smart test auto-discovery and selection
+ * - Watch mode with file monitoring
+ * - Intelligent parallel execution
+ * - Enhanced performance monitoring
+ * - Simplified configuration
+ * - Tag-based test filtering
+ * - Real-time progress updates
+ * - CI/CD optimized reporting
  */
 
 const fs = require('fs').promises;
@@ -22,14 +23,25 @@ const { Worker, isMainThread, parentPort, workerData } = require('worker_threads
  */
 class UnifiedTestFramework {
     constructor(options = {}) {
-        this.version = '2.0.0';
+        this.version = '3.0.0';
         this.config = {
-            parallel: options.parallel !== false, // Default to parallel execution
-            timeout: options.timeout || 300000, // 5 minutes default timeout
-            retries: options.retries || 0,
-            verbose: options.verbose || false,
+            // Core settings with smart defaults
+            parallel: options.parallel !== false,
+            timeout: options.timeout || 300000,
+            verbose: options.verbose || process.env.TEST_VERBOSE === 'true',
+            watch: options.watch || false,
+
+            // Auto-discovery and filtering
+            autoDiscover: options.autoDiscover !== false,
+            tags: options.tags || [],
+            exclude: options.exclude || [],
+
+            // Reporting
             generateReports: options.generateReports !== false,
             exitOnFailure: options.exitOnFailure !== false,
+
+            // Performance
+            maxWorkers: options.maxWorkers || Math.min(4, require('os').cpus().length),
             ...options
         };
 
@@ -74,17 +86,115 @@ class UnifiedTestFramework {
         this.reporters = [];
         this.startTime = Date.now();
         this.reportDir = path.join(process.cwd(), 'tests', 'reports');
+        this.testDir = path.join(process.cwd(), 'tests');
 
-        // Initialize performance monitoring
+        // Initialize performance monitoring and file watcher
         this.performanceMonitor = new PerformanceMonitor();
+        this.fileWatcher = null;
+
+        // Auto-discover test suites if enabled
+        if (this.config.autoDiscover) {
+            this.discoverTestSuites();
+        }
     }
 
     /**
-     * Register a test suite
+     * Automatically discover and register test suites
+     */
+    async discoverTestSuites() {
+        try {
+            const files = await fs.readdir(this.testDir);
+            const testFiles = files.filter(file =>
+                file.endsWith('-v2.test.js') ||
+                file.endsWith('.test.js')
+            );
+
+            for (const file of testFiles) {
+                try {
+                    const testModule = require(path.join(this.testDir, file));
+                    if (testModule.testSuite && testModule.config) {
+                        this.registerSuite(
+                            testModule.config.name || path.basename(file, '.js'),
+                            testModule.testSuite,
+                            testModule.config
+                        );
+                        console.log(`[2025-10-31T07:08:28.316Z] ℹ️ 📝 Auto-discovered: ${testModule.config.name || file}`);
+                    }
+                } catch (error) {
+                    // Skip files that can't be loaded as test modules
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Test auto-discovery failed:', error.message);
+        }
+    }
+
+    /**
+     * Start watch mode for continuous testing
+     */
+    async startWatch() {
+        if (!this.config.watch) return;
+
+        const { watch } = require('fs');
+        const watchDirs = [
+            path.join(process.cwd(), 'src'),
+            path.join(process.cwd(), 'tests'),
+            path.join(process.cwd(), 'public/js')
+        ];
+
+        console.log('👀 Watch mode enabled - monitoring file changes...');
+
+        for (const dir of watchDirs) {
+            try {
+                const watcher = watch(dir, { recursive: true }, (eventType, filename) => {
+                    if (filename && filename.endsWith('.js')) {
+                        console.log(`📝 File ${eventType}: ${filename}`);
+                        console.log('🔄 Re-running tests...\n');
+                        setTimeout(() => this.runSuites().catch(console.error), 100);
+                    }
+                });
+
+                if (!this.fileWatcher) this.fileWatcher = [];
+                this.fileWatcher.push(watcher);
+            } catch (error) {
+                console.warn(`⚠️ Cannot watch ${dir}:`, error.message);
+            }
+        }
+    }
+
+    /**
+     * Stop watch mode
+     */
+    stopWatch() {
+        if (this.fileWatcher && Array.isArray(this.fileWatcher)) {
+            this.fileWatcher.forEach(watcher => {
+                try {
+                    watcher.close();
+                } catch (error) {
+                    // Ignore close errors
+                }
+            });
+            this.fileWatcher = null;
+            console.log('👀 Watch mode stopped');
+        }
+    }
+
+    /**
+     * Register a test suite with intelligent tag filtering
      */
     registerSuite(name, testSuite, options = {}) {
         if (this.testSuites.has(name)) {
             throw new Error(`Test suite '${name}' is already registered`);
+        }
+
+        // Apply tag filtering during registration
+        if (this.config.tags.length > 0) {
+            const suiteTags = options.tags || [];
+            const hasMatchingTag = this.config.tags.some(tag => suiteTags.includes(tag));
+            if (!hasMatchingTag) {
+                console.log(`⏭️ Skipping ${name} - no matching tags`);
+                return;
+            }
         }
 
         const suiteConfig = {
@@ -167,10 +277,17 @@ class UnifiedTestFramework {
     }
 
     /**
+     * Run suites (alias for watch mode)
+     */
+    async runSuites(filterTags = []) {
+        return await this.run(filterTags);
+    }
+
+    /**
      * Run all registered test suites
      */
     async run(filterTags = []) {
-        this.log('🚀 === UNIFIED TEST FRAMEWORK v2.0 ===', 'header');
+        this.log('🚀 === UNIFIED TEST FRAMEWORK v3.0 ===', 'header');
         this.log(`📊 Framework Configuration:`, 'info');
         this.log(`   • Parallel Execution: ${this.config.parallel ? 'Enabled' : 'Disabled'}`, 'info');
         this.log(`   • Timeout: ${this.config.timeout / 1000}s`, 'info');

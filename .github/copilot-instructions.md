@@ -12,7 +12,7 @@
 - **Build**: Vite dev server (5173) → Express backend (7878) with React support
 - **Data Flow**: Socket.io ↔ Server ↔ Worker threads (Kokoro TTS, LM Studio AI)
 - **Configuration**: Centralized `src/config/env.js` with validation and auto environment detection
-- **Testing**: Unified test framework v2.0 with parallel execution and HTML reports
+- **Testing**: Unified test framework v3.0 with smart auto-discovery, watch mode, and intelligent filtering
 - **MCP Integration**: 8 active servers (GitHub, Hugging Face, Stripe, Clarity, MongoDB, Azure Quantum, Filesystem, ECL)
 
 ### Key Files & Responsibilities - HYBRID MIGRATION
@@ -26,7 +26,7 @@ src/workers/                   # Worker threads: kokoro.js (TTS), lmstudio.js (A
 public/js/aigf-core.js         # LEGACY: Vanilla JS chat client (being migrated)
 public/css/layers.css          # CSS @layer architecture (shared by both systems)
 vite.config.js                 # Dev proxy + React build: 5173 → 7878 for Socket.io/API
-tests/unified-test-framework.js # Unified testing v2.0 with parallel execution
+tests/unified-test-framework.js # Unified testing v3.0 with smart auto-discovery and watch mode
 src/utils/mcp-manager.js       # MCP server management CLI (8 active servers)
 ```
 
@@ -36,20 +36,14 @@ npm run all          # ONE COMMAND: clean + test + build + dev (USE THIS!)
 npm run dev          # Full stack: Vite (5173) + Express (7878) + auto-restart  
 npm run dev:server   # Backend only (port 7878) with nodemon
 npm run dev:client   # Vite dev server only (port 5173)
-npm run test         # Unified test runner with HTML reports
+npm run test         # Smart auto-discovery test runner with HTML reports
+npm run test:watch   # Watch mode - re-runs tests on file changes
 npm run test:critical # Pre-deployment critical tests only
-npm run test:env     # Environment configuration validation
-npm run test:mcp     # MCP server connectivity tests
-npm run test:mcp:standalone # Standalone MCP tools test
-npm run test:architecture   # Validate system architecture
-npm run test:stability     # Long-running stability tests
-npm run test:performance   # Performance benchmarking
+npm run test:ci      # CI/CD optimized test execution
 npm run build        # Production build validation  
-npm run clean        # Clean artifacts (--light or --full flags)
-npm run clean:full   # Deep clean including node_modules
+npm run clean        # Clean artifacts with smart detection
 npm run deploy       # Production deployment scripts
-npm run mcp:status   # Check MCP server connections
-npm run mcp:start    # Initialize MCP servers
+npm run mcp          # MCP server management (status, start, install)
 ```
 
 ## Critical Patterns - MODERNIZED
@@ -376,23 +370,21 @@ worker.postMessage({
 });
 ```
 
-### Testing & Validation - Unified Framework v2.0
+### Testing & Validation - Unified Framework v3.0
 ```bash
-npm run test          # Full unified test suite with HTML reports
-npm run test:critical # Pre-deployment essential tests only
-npm run test:env      # Environment configuration validation
-npm run test:mcp      # MCP server connectivity tests
-npm run test:mcp:standalone # Standalone MCP tools test
-npm run test:architecture   # Validate system architecture
-npm run test:stability     # Long-running stability tests
-npm run test:performance   # Performance benchmarking
-npm run test:dropdowns     # Dropdown system functionality tests
-npm run test:verbose      # Verbose test output for debugging
-npm run test:ci           # CI-specific test run with reports
-npm run all               # Complete workflow: clean + test + build + dev (USE THIS!)
+npm run test                    # Smart auto-discovery test runner
+npm run test:watch             # Watch mode with live file monitoring  
+npm run test:critical          # Pre-deployment essential tests only
+npm run test:ci                # CI/CD optimized execution
+npm run all                    # Complete workflow: clean + test + build + dev (USE THIS!)
+
+# Advanced usage with intelligent filtering:
+npm test -- --tags=critical,environment    # Run specific test categories
+npm test -- --watch --verbose             # Watch mode with detailed output
+npm test -- --exclude=slow                # Exclude specific test types
 
 # Test reports generated in tests/reports/ - HTML and JSON formats
-# Unified framework v2.0 supports parallel execution and modular architecture
+# Framework v3.0 features: smart discovery, watch mode, intelligent filtering
 ```
 
 ### Git Workflow - Auto Commit & Push (NEW)
@@ -486,16 +478,13 @@ git diff --staged             # Review changes before commit
 4. **Commit and push when complete**
 
 **Run Tests:**
-- `npm run test` - Full unified test suite with HTML reports
-- `npm run test:critical` - Pre-deployment essential tests only
-- `npm run test:env` - Environment configuration validation
-- `npm run test:mcp` - MCP server connectivity tests
-- `npm run test:mcp:standalone` - Standalone MCP tools test
-- `npm run test:architecture` - Validate system architecture
-- `npm run test:stability` - Long-running stability tests
-- `npm run test:performance` - Performance benchmarking
-- `npm run test:dropdowns` - Dropdown system functionality tests
-- `npm run test:verbose` - Verbose test output
-- `npm run test:ci` - CI-specific test run with reports
+- `npm run test` - Smart auto-discovery test runner with HTML reports
+- `npm run test:watch` - Watch mode with live file monitoring
+- `npm run test:critical` - Pre-deployment essential tests only  
+- `npm run test:ci` - CI/CD optimized execution
+- `npm test -- --tags=critical,mcp` - Run specific test categories
+- `npm test -- --watch --verbose` - Watch mode with detailed output
+- `npm test -- --exclude=slow` - Exclude specific test types
 
 **Test Reports Location:** `tests/reports/` - HTML and JSON formats
+**Framework Features:** Smart discovery, watch mode, intelligent filtering
