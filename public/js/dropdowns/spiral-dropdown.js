@@ -1,12 +1,22 @@
 /**
- * Spiral Dropdown Component for BambiSleep Chat
+ * Spiral Dropdown Component for BambiSleep Chat (Refactored to extend BaseDropdown)
  * Handles spiral control dropdown with sliders and local storage
  */
 
-export class SpiralDropdown {
+import { BaseDropdown } from './base-dropdown.js';
+
+export class SpiralDropdown extends BaseDropdown {
     constructor(dropdownManager) {
-        this.dropdownManager = dropdownManager;
-        this.buttonId = 'toggle-spiral';
+        super(dropdownManager, {
+            componentName: 'spiral',
+            buttonId: 'toggle-spiral',
+            storageKey: 'bambi-spiral-state',
+            defaultState: {
+                isEnabled: false,
+                currentPreset: null,
+                settings: {}
+            }
+        });
 
         // FINE-GRAIN Slider settings with ultra-responsive ranges and micro-steps
         this.sliderSettings = {
@@ -29,29 +39,42 @@ export class SpiralDropdown {
         this.init();
     }
 
-    // ENHANCED: Centralized State Helper Methods
+    async init() {
+        this.baseInit(); // Call parent initialization
+
+        const savedSettings = this.loadSettings();
+
+        // If no saved settings or settings are incomplete, initialize with defaults
+        if (Object.keys(savedSettings).length === 0) {
+            this.initializeDefaults();
+        }
+
+        this.setupEventListeners();
+    }
+
+    // State getters/setters for convenience
     get isEnabled() {
-        return this.dropdownManager.getComponentState('spiral', 'isEnabled') || false;
+        return this.getState('isEnabled') || false;
     }
 
     set isEnabled(value) {
-        this.dropdownManager.setComponentState('spiral', 'isEnabled', value);
+        this.setState('isEnabled', value);
     }
 
     get currentPreset() {
-        return this.dropdownManager.getComponentState('spiral', 'currentPreset');
+        return this.getState('currentPreset');
     }
 
     set currentPreset(value) {
-        this.dropdownManager.setComponentState('spiral', 'currentPreset', value);
+        this.setState('currentPreset', value);
     }
 
     get settings() {
-        return this.dropdownManager.getComponentState('spiral', 'settings') || {};
+        return this.getState('settings') || {};
     }
 
     set settings(value) {
-        this.dropdownManager.setComponentState('spiral', 'settings', value);
+        this.setState('settings', value);
     }
 
     // Helper function to safely access spiral controls
@@ -61,18 +84,6 @@ export class SpiralDropdown {
         }
         console.warn('⚠️ Spiral controls not available yet');
         return null;
-    }
-
-    init() {
-        const savedSettings = this.loadSettings();
-
-        // If no saved settings or settings are incomplete, initialize with defaults
-        if (Object.keys(savedSettings).length === 0) {
-            this.initializeDefaults();
-        }
-
-        this.setupEventListeners();
-        this.setupToggleHandling();
     }
 
     initializeDefaults() {
@@ -198,11 +209,6 @@ export class SpiralDropdown {
                 this.updateSliderValue(key, value);
             }
         });
-    }
-
-    setupToggleHandling() {
-        // Dropdown open/close is handled by DropdownManager
-        // This method kept for potential future toggle-specific logic
     }
 
     handleSliderChange(slider) {

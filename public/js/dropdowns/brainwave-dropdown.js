@@ -1,54 +1,63 @@
 /**
- * Brainwave Dropdown Component for BambiSleep Chat
+ * Brainwave Dropdown Component for BambiSleep Chat (Refactored to extend BaseDropdown)
  * Handles brainwave generator dropdown functionality using universal layers architecture
  */
 
-export class BrainwaveDropdown {
+import { BaseDropdown } from './base-dropdown.js';
+
+export class BrainwaveDropdown extends BaseDropdown {
     constructor(dropdownManager) {
-        this.dropdownManager = dropdownManager;
-        this.buttonId = 'toggle-brainwave';
-        this.componentName = 'brainwave'; // For centralized state access
+        super(dropdownManager, {
+            componentName: 'brainwave',
+            buttonId: 'toggle-brainwave',
+            storageKey: 'bambi-brainwave-state',
+            defaultState: {
+                isEnabled: false,
+                currentPreset: '',
+                volume: 10,
+                isPlaying: false
+            }
+        });
         this.init();
     }
 
-    init() {
+    async init() {
+        this.baseInit(); // Call parent initialization
         this.setupEventListeners();
-        this.setupToggleHandling();
-        this.loadSavedState();
         this.initializePresets();
     }
 
-    // ENHANCED: Centralized State Helper Methods
+    // State getters/setters for convenience
     get isEnabled() {
-        return this.dropdownManager.getComponentState(this.componentName, 'isEnabled') || false;
+        return this.getState('isEnabled') || false;
     }
 
     set isEnabled(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'isEnabled', value);
+        this.setState('isEnabled', value);
     }
 
     get currentPreset() {
-        return this.dropdownManager.getComponentState(this.componentName, 'currentPreset') || '';
+        return this.getState('currentPreset') || '';
     }
 
     set currentPreset(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'currentPreset', value);
+        this.setState('currentPreset', value);
     }
 
     get volume() {
-        return this.dropdownManager.getComponentState(this.componentName, 'volume') || 10;
+        return this.getState('volume') || 10;
     }
 
     set volume(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'volume', value);
+        this.setState('volume', value);
     }
 
     get isPlaying() {
-        return this.dropdownManager.getComponentState(this.componentName, 'isPlaying') || false;
+        return this.getState('isPlaying') || false;
     }
 
     set isPlaying(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'isPlaying', value);
+        this.setState('isPlaying', value);
     }
 
     setupEventListeners() {
@@ -65,17 +74,6 @@ export class BrainwaveDropdown {
                 this.handleStateChange(e.detail.key, e.detail.value);
             }
         });
-    }
-
-    setupToggleHandling() {
-        const btn = document.getElementById(this.buttonId);
-        const status = document.getElementById('brainwave-status');
-
-        if (btn && status) {
-            // Update button state using CSS classes (no inline styles)
-            btn.setAttribute('data-state', this.isEnabled ? 'on' : 'off');
-            status.className = this.isEnabled ? 'status-active' : 'status-inactive';
-        }
     }
 
     handleAction(action, detail) {
@@ -271,27 +269,14 @@ export class BrainwaveDropdown {
         console.error(`❌ Brainwave Error: ${message}`);
     }
 
+    // Override parent's loadSavedState to add specific volume/preset handling
     loadSavedState() {
-        // Load saved state from localStorage or use defaults
-        const savedVolume = localStorage.getItem('brainwave-volume');
-        if (savedVolume) {
-            this.volume = parseInt(savedVolume);
-        }
-
-        const savedPreset = localStorage.getItem('brainwave-preset');
-        if (savedPreset) {
-            this.currentPreset = savedPreset;
-        }
+        // Call parent method first
+        super.loadSavedState();
 
         // Apply loaded state to UI
         this.updateVolumeDisplay();
         this.updatePresetDisplay();
-    }
-
-    saveState() {
-        // Save current state to localStorage
-        localStorage.setItem('brainwave-volume', this.volume.toString());
-        localStorage.setItem('brainwave-preset', this.currentPreset);
     }
 
     // Cleanup method for memory management

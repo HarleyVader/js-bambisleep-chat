@@ -52,7 +52,12 @@ desktop.ini
 coverage/
 .nyc_output/
 
-# Optional: Uncomment if you want to ignore all test reports
-# tests/reports/*.html
-# tests/reports/*.json
-# tests/reports/*.txt
+# Test reports (keep only latest summaries)
+tests/reports/*.html
+tests/reports/*.json
+!tests/reports/latest-unified-summary.txt
+!tests/reports/README.md
+
+# Temporary documentation (consolidation files)
+CONSOLIDATION-*.md
+PROGRESS-*.md

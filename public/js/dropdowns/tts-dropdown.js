@@ -1,22 +1,29 @@
 /**
- * TTS Dropdown Component for BambiSleep Chat
+ * TTS Dropdown Component for BambiSleep Chat (Refactored to extend BaseDropdown)
  * Handles TTS system dropdown functionality
  */
 
-import { StorageUtils } from '../storage-utils.js';
+import { BaseDropdown } from './base-dropdown.js';
 
-export class TTSDropdown {
+export class TTSDropdown extends BaseDropdown {
     constructor(dropdownManager) {
-        this.dropdownManager = dropdownManager;
-        this.buttonId = 'toggle-tts';
-        this.componentName = 'tts'; // For centralized state access
+        super(dropdownManager, {
+            componentName: 'tts',
+            buttonId: 'toggle-tts',
+            storageKey: 'bambi-tts-state',
+            defaultState: {
+                currentVoice: null,
+                currentSpeed: 1.0,
+                selectedVoices: [],
+                isEnabled: false
+            }
+        });
         this.init();
     }
 
-    init() {
+    async init() {
+        this.baseInit(); // Call parent initialization
         this.setupEventListeners();
-        this.setupToggleHandling();
-        this.loadSavedState();
 
         // Schedule sync after TTS system is ready
         setTimeout(() => {
@@ -27,56 +34,47 @@ export class TTSDropdown {
         }, 1000);
     }
 
-    // ENHANCED: Centralized State Helper Methods
+    // State getters/setters for convenience
     get currentVoice() {
-        return this.dropdownManager.getComponentState(this.componentName, 'currentVoice');
+        return this.getState('currentVoice');
     }
 
     set currentVoice(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'currentVoice', value);
+        this.setState('currentVoice', value);
     }
 
     get currentSpeed() {
-        return this.dropdownManager.getComponentState(this.componentName, 'currentSpeed');
+        return this.getState('currentSpeed');
     }
 
     set currentSpeed(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'currentSpeed', value);
+        this.setState('currentSpeed', value);
     }
 
     get selectedVoices() {
-        return this.dropdownManager.getComponentState(this.componentName, 'selectedVoices');
+        return this.getState('selectedVoices') || [];
     }
 
     set selectedVoices(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'selectedVoices', value);
+        this.setState('selectedVoices', value);
     }
 
     get isEnabled() {
-        return this.dropdownManager.getComponentState(this.componentName, 'isEnabled');
+        return this.getState('isEnabled') || false;
     }
 
     set isEnabled(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'isEnabled', value);
+        this.setState('isEnabled', value);
     }
 
+    // Override parent's loadSavedState to add TTS system sync
     loadSavedState() {
-        // Load saved TTS state from localStorage
-        const savedState = StorageUtils.getItem('bambi-tts-state');
+        // Call parent method first
+        super.loadSavedState();
 
         // Also sync with TTS system state if available
         const ttsSystem = this.getTTSSystem();
-
-        if (savedState) {
-            try {
-                // savedState is already parsed by StorageUtils
-                this.setState(savedState);
-            } catch (e) {
-                console.warn('⚠️ Failed to load TTS state:', e);
-            }
-        }
-
-        // Sync with TTS system state (enhanced integration)
+        
         if (ttsSystem) {
             // Sync voice selection
             if (ttsSystem.selectedVoices && Array.isArray(ttsSystem.selectedVoices)) {
@@ -108,11 +106,6 @@ export class TTSDropdown {
                 this.handleAction(action, e.detail);
             }
         });
-    }
-
-    setupToggleHandling() {
-        // Dropdown open/close is handled by DropdownManager
-        // This method kept for potential future toggle-specific logic
     }
 
     handleAction(action, detail) {
@@ -303,50 +296,6 @@ export class TTSDropdown {
         document.dispatchEvent(event);
 
         this.dropdownManager.showToggleFeedback('TTS', newState);
-    }
-
-    showFeedback(message) {
-        // Create floating feedback notification (standardized like other dropdowns)
-        const feedback = document.createElement('div');
-        feedback.className = 'dropdown-notification z-notification';
-        feedback.textContent = message;
-
-        document.body.appendChild(feedback);
-
-        setTimeout(() => {
-            if (feedback && feedback.parentNode) {
-                feedback.parentNode.removeChild(feedback);
-            }
-        }, 3000);
-    }
-
-    saveState() {
-        // Save current state to localStorage
-        const state = this.getState();
-        StorageUtils.setItem('bambi-tts-state', state);
-        console.log('💾 TTS state saved to localStorage');
-    }
-
-    // Get current state for persistence
-    getState() {
-        return {
-            voice: this.currentVoice,
-            speed: this.currentSpeed,
-            selectedVoices: this.selectedVoices
-        };
-    }
-
-    // Restore state from persistence
-    setState(state) {
-        if (state.voice) {
-            this.currentVoice = state.voice;
-        }
-        if (state.speed) {
-            this.currentSpeed = state.speed;
-        }
-        if (state.selectedVoices) {
-            this.selectedVoices = state.selectedVoices;
-        }
     }
 
     // Helper function to safely access TTS system

@@ -1,40 +1,47 @@
 /**
- * Collar Dropdown Component for BambiSleep Chat
+ * Collar Dropdown Component for BambiSleep Chat (Refactored to extend BaseDropdown)
  * Handles collar settings and socket.io connectivity
  */
 
-import { StorageUtils } from '../storage-utils.js';
+import { BaseDropdown } from './base-dropdown.js';
 
-export class CollarDropdown {
+export class CollarDropdown extends BaseDropdown {
     constructor(dropdownManager) {
-        this.dropdownManager = dropdownManager;
-        this.buttonId = 'toggle-collar';
-        this.componentName = 'collar'; // For centralized state access
+        super(dropdownManager, {
+            componentName: 'collar',
+            buttonId: 'toggle-collar',
+            storageKey: 'bambi-collar-state',
+            defaultState: {
+                collarSettings: '',
+                isActive: false
+            }
+        });
         this.isResizing = false;
         this.init();
     }
 
-    init() {
+    async init() {
+        this.baseInit(); // Call parent initialization
         this.setupEventListeners();
         this.setupResizeHandling();
         this.loadSavedSettings();
     }
 
-    // ENHANCED: Centralized State Access Helper Methods
+    // State getters/setters for convenience
     get collarSettings() {
-        return this.dropdownManager.getComponentState(this.componentName, 'collarSettings') || '';
+        return this.getState('collarSettings') || '';
     }
 
     set collarSettings(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'collarSettings', value);
+        this.setState('collarSettings', value);
     }
 
     get isActive() {
-        return this.dropdownManager.getComponentState(this.componentName, 'isActive') || false;
+        return this.getState('isActive') || false;
     }
 
     set isActive(value) {
-        this.dropdownManager.setComponentState(this.componentName, 'isActive', value);
+        this.setState('isActive', value);
     }
 
     setupEventListeners() {
@@ -265,23 +272,6 @@ export class CollarDropdown {
                 statusIndicator.textContent = '●';
             }
         }
-    }
-
-    showFeedback(message) {
-        // Create floating feedback notification
-        const feedback = document.createElement('div');
-        feedback.className = 'collar-feedback';
-        feedback.textContent = message;
-        feedback.className = 'dropdown-notification z-notification';
-        feedback.textContent = message;
-
-        document.body.appendChild(feedback);
-
-        setTimeout(() => {
-            if (feedback && feedback.parentNode) {
-                feedback.parentNode.removeChild(feedback);
-            }
-        }, 3000);
     }
 
     getSocket() {
