@@ -1,0 +1,29 @@
+---
+labels: ["question"]
+---
+
+## Question
+
+<!-- Please describe your question clearly and provide context -->
+
+## Context
+
+<!-- What are you trying to achieve? What have you tried so far? -->
+
+## Environment (if applicable)
+
+- Node.js version:
+- npm version:
+- OS:
+- Browser (if applicable):
+
+## Additional Information
+
+<!-- Any other details that might help answer your question -->
+
+---
+
+**Before posting:**
+- [ ] I have searched existing discussions and issues
+- [ ] I have read the relevant documentation
+- [ ] I have provided enough context for others to understand my question
