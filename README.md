@@ -389,12 +389,31 @@ NODE_ENV=development npm start
 
 MIT License - see LICENSE file for details
 
-## Contributing **Enjoy the hypnotic chat experience! 🌀💖**
+## Contributing
 
+We welcome contributions from the community! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+
+- Code of Conduct
+- Development setup
+- Coding standards
+- Testing requirements
+- Pull request process
+
+Quick start:
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Test thoroughly
 5. Submit a pull request
+
+## Community & Support
+
+- **[GitHub Discussions](https://github.com/HarleyVader/js-bambisleep-chat/discussions)** - Ask questions, share ideas
+- **[Support Guide](SUPPORT.md)** - Get help and find resources
+- **[Contributing](CONTRIBUTING.md)** - Learn how to contribute
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
+- **[Security Policy](SECURITY.md)** - Report security vulnerabilities
+
+**Enjoy the hypnotic chat experience! 🌀💖**
 
 ---
