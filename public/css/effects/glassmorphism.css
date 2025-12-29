@@ -6,6 +6,7 @@
 
 @layer base {
     /* ===== Global Transparency ===== */
+    /* REMOVED .dropdown-content and .dropdown-menu - handled in @layer dropdowns */
     body,
     #chat-interface,
     #chat-header,
@@ -14,8 +15,6 @@
     #message-input,
     .message,
     .system-message,
-    .dropdown-content,
-    .dropdown-menu,
     .modal-content,
     .trigger-card,
     .category-header,
@@ -37,9 +36,7 @@
         background: linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(255, 130, 255, 0.2)) !important;
     }
 
-    .dropdown-content {
-        background: rgba(38, 20, 38, 0.85) !important;
-    }
+    /* REMOVED .dropdown-content - moved to @layer dropdowns in layers.css to fix stacking */
 
     .user-message {
         background: linear-gradient(135deg, rgba(255, 0, 255, 0.15), rgba(255, 192, 255, 0.15)) !important;

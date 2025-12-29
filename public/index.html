@@ -40,37 +40,14 @@
     function loadDeviceCSS() {
       const head = document.head;
 
-      // Always load the base style.css
+      // Always load the base style.css (includes @imports for all other CSS)
       const baseCSS = document.createElement('link');
       baseCSS.rel = 'stylesheet';
       baseCSS.href = '/css/style.css';
       head.appendChild(baseCSS);
 
-      // Always load the buttons.css
-      const buttonsCSS = document.createElement('link');
-      buttonsCSS.rel = 'stylesheet';
-      buttonsCSS.href = '/css/buttons.css';
-      head.appendChild(buttonsCSS);
-
-      // Always load chat.css for global chat styling
-      const chatCSS = document.createElement('link');
-      chatCSS.rel = 'stylesheet';
-      chatCSS.href = '/css/chat.css';
-      head.appendChild(chatCSS);
-
-      // Always load aigf.css for AI brainwash mode styling
-      const aigfCSS = document.createElement('link');
-      aigfCSS.rel = 'stylesheet';
-      aigfCSS.href = '/css/aigf.css';
-      head.appendChild(aigfCSS);
-
       // Only load mobile.css if it's actually a mobile device
       if (isMobileDevice()) {
-        const mobileCSS = document.createElement('link');
-        mobileCSS.rel = 'stylesheet';
-        mobileCSS.href = '/css/mobile.css';
-        head.appendChild(mobileCSS);
-
         // Add mobile class to body for additional targeting
         document.addEventListener('DOMContentLoaded', function() {
           document.body.classList.add('mobile-device');
@@ -87,12 +64,6 @@
     loadDeviceCSS();
   </script>
 
-  <!-- Always load spirals.css -->
-  <link rel="stylesheet" href="/css/spirals.css">
-
-  <!-- Always load brainwave.css -->
-  <link rel="stylesheet" href="/css/brainwave.css">
-
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 
@@ -103,60 +74,72 @@
       <div id="eye" class="spiral-text-center"></div>
     </div>
 
+    <!-- Dropdowns Menu - Buttons Only -->
+    <div id="dropdowns-menu" class="dropdowns-menu">
+      <div class="dropdown" data-dropdown="spiral">
+        <button id="toggle-spiral" class="dropdown-btn toggle-button" data-state="off">
+          🌀 Spiral
+          <span class="status-indicator" id="spiral-status">●</span>
+        </button>
+      </div>
+      <div class="dropdown" data-dropdown="tts">
+        <button id="toggle-tts" class="dropdown-btn toggle-button" data-state="off">
+          🔊 TTS
+          <span class="status-indicator" id="tts-status">●</span>
+        </button>
+      </div>
+      <div class="dropdown" data-dropdown="triggers">
+        <button id="toggle-triggers" class="dropdown-btn toggle-button" data-state="off">
+          🎯 Triggers
+          <span class="status-indicator" id="triggers-status">●</span>
+        </button>
+      </div>
+      <div class="dropdown" data-dropdown="ai">
+        <button id="toggle-ai" class="dropdown-btn toggle-button" data-state="off">
+          🌸 AIGF
+          <span class="status-indicator" id="ai-status">●</span>
+        </button>
+      </div>
+      <div class="dropdown collar-dropdown" data-dropdown="collar">
+        <button id="toggle-collar" class="dropdown-btn toggle-button" data-state="off">
+          ⛓️ Collar
+          <span class="status-indicator" id="collar-status">●</span>
+        </button>
+      </div>
+      <div class="dropdown" data-dropdown="brainwave">
+        <button id="toggle-brainwave" class="dropdown-btn toggle-button" data-state="off">
+          🧠 Brainwaves
+          <span class="status-indicator" id="brainwave-status">●</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Dropdown Content Modals - Separate from buttons -->
+    <div id="dropdown-modals">
+      <div class="dropdown-content" data-dropdown="spiral">
+        <!-- Content will be populated by spiral-dropdown.js -->
+      </div>
+      <div class="dropdown-content" data-dropdown="tts">
+        <!-- Content will be populated by tts-dropdown.js -->
+      </div>
+      <div class="dropdown-content" data-dropdown="triggers">
+        <!-- Content will be populated by triggers-dropdown.js -->
+      </div>
+      <div class="dropdown-content" data-dropdown="ai">
+        <!-- Content will be populated by ai-dropdown.js -->
+      </div>
+      <div class="dropdown-content" data-dropdown="collar">
+        <!-- Content will be populated by collar-dropdown.js -->
+      </div>
+      <div class="dropdown-content" data-dropdown="brainwave">
+        <!-- Content will be populated by brainwave-dropdown.js -->
+      </div>
+    </div>
+
     <!-- Chat Container -->
     <div id="chat-container">
       <div id="chat-header">
         <h1>🧠BambiSleep.Chat🌀</h1>
-        <div id="controls" class="controls">
-          <div class="dropdown">
-            <button id="toggle-spiral" class="dropdown-btn toggle-button" data-state="off">
-              🌀 Spiral
-              <span class="status-indicator" id="spiral-status">●</span>
-            </button>
-            <div class="dropdown-content">
-              <!-- Content will be populated by spiral-dropdown.js -->
-            </div>
-          </div>
-          <div class="dropdown">
-            <button id="toggle-tts" class="dropdown-btn toggle-button" data-state="off">
-              🔊 TTS
-              <span class="status-indicator" id="tts-status">●</span>
-            </button>
-            <div class="dropdown-content">
-              <!-- Content will be populated by tts-dropdown.js -->
-            </div>
-          </div>
-          <div class="dropdown">
-            <button id="toggle-triggers" class="dropdown-btn toggle-button" data-state="off">
-              🎯 Triggers
-              <span class="status-indicator" id="triggers-status">●</span>
-            </button>
-            <div class="dropdown-content">
-              <!-- Content will be populated by triggers-dropdown.js -->
-            </div>
-          </div>
-          <div class="dropdown">
-            <button id="toggle-ai" class="dropdown-btn toggle-button" data-state="off">
-              🌸 AIGF
-              <span class="status-indicator" id="ai-status">●</span>
-            </button>
-            <div class="dropdown-content">
-              <!-- Content will be populated by ai-dropdown.js -->
-            </div>
-          </div>
-          <div class="dropdown collar-dropdown">
-            <button id="toggle-collar" class="dropdown-btn toggle-button" data-state="off">
-              ⛓️ Collar
-              <span class="status-indicator" id="collar-status">●</span>
-            </button>
-            <div class="dropdown-content">
-              <!-- Content will be populated by collar-dropdown.js -->
-            </div>
-          </div>
-          <div id="brainwave-dropdown-container">
-            <!-- Brainwave dropdown will be populated by brainwave-dropdown.js -->
-          </div>
-        </div>
       </div>
 
       <!-- Global Chat Messages Container -->

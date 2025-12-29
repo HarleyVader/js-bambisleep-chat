@@ -25,16 +25,18 @@ class DropdownUtils {
 
     dropdowns.forEach((dropdown) => {
       const button = dropdown.querySelector(".dropdown-btn, .dropdown-button");
-      const content = dropdown.querySelector(".dropdown-content");
+      const dropdownType = dropdown.getAttribute("data-dropdown");
+      const content = document.querySelector(
+        `#dropdown-modals .dropdown-content[data-dropdown="${dropdownType}"]`
+      );
 
-      if (button && content) {
-        // Add utility classes
+      if (button) {
+        // Add utility classes to button
         button.classList.add(
           "smooth-transition",
           "enhanced-focus",
           "click-feedback"
         );
-        content.classList.add("smooth-transition");
 
         // Add hover effects
         button.addEventListener("mouseenter", () => {
@@ -42,6 +44,10 @@ class DropdownUtils {
             button.classList.add("glow-effect");
           }
         });
+      }
+
+      if (content) {
+        content.classList.add("smooth-transition");
 
         // Add items interaction
         const items = content.querySelectorAll(
@@ -145,9 +151,9 @@ class DropdownManager {
       DropdownUtils.repositionActiveDropdowns()
     );
 
-    // Initialize dropdowns and components
-    this.initializeDropdowns();
+    // Initialize components FIRST, then dropdowns (components must exist before dropdown handlers call populateDropdownContent)
     this.initializeComponents();
+    this.initializeDropdowns();
   }
 
   initializeComponents() {
@@ -159,22 +165,52 @@ class DropdownManager {
       this.components.ai = new AIDropdown(this);
       this.components.collar = new CollarDropdown(this);
 
-      // Initialize brainwave dropdown (functional component)
-      this.initializeBrainwaveDropdown();
+      // Initialize brainwave dropdown content (button is in HTML like others)
+      createBrainwaveDropdown();
+
+      // Create brainwave component wrapper for toggle handling
+      this.components.brainwave = {
+        buttonId: "toggle-brainwave",
+        toggleState: (btn) => {
+          const currentState = btn.getAttribute("data-state") || "off";
+          const newState = currentState === "off" ? "on" : "off";
+          const statusIndicator = document.getElementById("brainwave-status");
+
+          btn.setAttribute("data-state", newState);
+
+          // Update status indicator
+          if (statusIndicator) {
+            statusIndicator.style.color =
+              newState === "on" ? "#00ff00" : "#666";
+            statusIndicator.textContent = "●";
+          }
+
+          // Toggle brainwave generator if available
+          if (window.brainwaveGenerator) {
+            if (newState === "on") {
+              // Will be started when user selects a preset
+              console.log("🧠 Brainwave system enabled");
+            } else {
+              window.brainwaveGenerator.stop();
+              console.log("🧠 Brainwave system disabled");
+            }
+          }
+
+          // Dispatch toggle event
+          const event = new CustomEvent("toggleStateChange", {
+            detail: {
+              buttonId: "toggle-brainwave",
+              state: newState,
+              buttonName: "BRAINWAVE",
+            },
+          });
+          document.dispatchEvent(event);
+
+          this.showToggleFeedback("BRAINWAVE", newState);
+        },
+      };
     } catch (error) {
       console.error("❌ Error initializing dropdown components:", error);
-    }
-  }
-
-  initializeBrainwaveDropdown() {
-    try {
-      const container = document.getElementById("brainwave-dropdown-container");
-      if (container) {
-        const brainwaveDropdown = createBrainwaveDropdown();
-        container.appendChild(brainwaveDropdown);
-      }
-    } catch (error) {
-      console.error("❌ Error initializing brainwave dropdown:", error);
     }
   }
 
@@ -240,6 +276,8 @@ class DropdownManager {
         return this.components.ai;
       case "toggle-collar":
         return this.components.collar;
+      case "toggle-brainwave":
+        return this.components.brainwave;
       default:
         return null;
     }
@@ -247,30 +285,49 @@ class DropdownManager {
 
   toggleButtonState(btn) {
     const buttonId = btn.id;
-    const currentState = this.buttonStates[buttonId];
+    const currentState = btn.getAttribute("data-state") || "off";
     const newState = currentState === "off" ? "on" : "off";
+    const baseName = buttonId.replace("toggle-", "");
 
     this.buttonStates[buttonId] = newState;
     btn.setAttribute("data-state", newState);
 
-    // Update button text
-    const baseName = buttonId.replace("toggle-", "").toUpperCase();
-    btn.textContent = `${baseName}: ${newState.toUpperCase()}`;
+    // Update ONLY the status indicator (preserve button icon and text)
+    const statusIndicator =
+      btn.querySelector(".status-indicator") ||
+      document.getElementById(`${baseName}-status`);
+    if (statusIndicator) {
+      statusIndicator.style.color = newState === "on" ? "#00ff00" : "#666";
+      statusIndicator.textContent = "●";
+    }
 
     // Dispatch custom event
     const event = new CustomEvent("toggleStateChange", {
       detail: {
         buttonId: buttonId,
         state: newState,
-        buttonName: baseName,
+        buttonName: baseName.toUpperCase(),
       },
     });
     document.dispatchEvent(event);
 
-    this.showToggleFeedback(baseName, newState);
+    this.showToggleFeedback(baseName.toUpperCase(), newState);
   }
 
-  // Universal dropdown management methods - SIMPLIFIED
+  // Universal dropdown management methods - SEPARATED BUTTONS FROM CONTENT
+  getDropdownContent(dropdown) {
+    // Get data-dropdown attribute from button's parent or button itself
+    const dropdownType =
+      dropdown.getAttribute("data-dropdown") ||
+      dropdown.querySelector(".dropdown-btn")?.id?.replace("toggle-", "");
+    if (!dropdownType) return null;
+
+    // Find the corresponding dropdown-content in #dropdown-modals
+    return document.querySelector(
+      `#dropdown-modals .dropdown-content[data-dropdown="${dropdownType}"]`
+    );
+  }
+
   openDropdown(dropdown) {
     // Close any other open dropdown
     if (this.activeDropdown && this.activeDropdown !== dropdown) {
@@ -279,15 +336,20 @@ class DropdownManager {
 
     console.log("🔽 Dropdown opening:", dropdown);
 
-    // Simple activation - CSS handles everything
+    // Get the separate dropdown-content element
+    const content = this.getDropdownContent(dropdown);
+
+    // Activate both the button container and the content
     dropdown.classList.add("active");
+    if (content) {
+      content.classList.add("show");
+    }
     this.activeDropdown = dropdown;
 
     // Populate dropdown content if needed
     this.populateDropdownContent(dropdown);
 
-    // Focus first element
-    const content = dropdown.querySelector(".dropdown-content");
+    // Focus first element in content
     if (content) {
       const firstFocusable = content.querySelector("button, input, select");
       if (firstFocusable) {
@@ -299,8 +361,14 @@ class DropdownManager {
   closeDropdown(dropdown) {
     if (!dropdown) return;
 
+    // Get the separate dropdown-content element
+    const content = this.getDropdownContent(dropdown);
+
     // Simple close - immediate, no animations
     dropdown.classList.remove("active");
+    if (content) {
+      content.classList.remove("show");
+    }
 
     if (this.activeDropdown === dropdown) {
       this.activeDropdown = null;
@@ -311,6 +379,12 @@ class DropdownManager {
     const activeDropdowns = document.querySelectorAll(".dropdown.active");
     activeDropdowns.forEach((dropdown) => {
       this.closeDropdown(dropdown);
+    });
+
+    // Also close any orphaned dropdown-content that might be showing
+    const openContents = document.querySelectorAll(".dropdown-content.show");
+    openContents.forEach((content) => {
+      content.classList.remove("show");
     });
 
     // Ensure chat toggle button is restored when all dropdowns are closed
@@ -328,7 +402,7 @@ class DropdownManager {
     }
 
     const component = this.getComponentForButton(btn.id);
-    const contentContainer = dropdown.querySelector(".dropdown-content");
+    const contentContainer = this.getDropdownContent(dropdown);
 
     if (component && component.getDropdownContent && contentContainer) {
       // ALWAYS populate content - NO CONDITIONS
@@ -376,26 +450,25 @@ class DropdownManager {
 
   handleClick(e) {
     // Enhanced click handling with resize protection and component considerations
-    const isInsideDropdown = e.target.closest(".dropdown");
+    const isInsideDropdownBtn = e.target.closest(".dropdown");
+    const isInsideDropdownContent = e.target.closest(".dropdown-content");
     const isDropdownButton = e.target.closest(".dropdown-btn");
     const isResizing =
       e.target.classList.contains("collar-textarea") ||
       (this.components.collar && this.components.collar.isResizing);
 
     // Don't close if clicking on dropdown button (button handler will manage open/close)
-    // Don't close if clicking inside dropdown
+    // Don't close if clicking inside dropdown content
     // Don't close if resizing collar textarea
-    if (!isInsideDropdown && !isResizing) {
+    if (!isInsideDropdownBtn && !isInsideDropdownContent && !isResizing) {
       this.closeAllDropdowns();
-    } else if (isInsideDropdown && !isDropdownButton) {
-      // Clicking inside dropdown but not on button - keep dropdown open
-      // This prevents accidental closes when interacting with dropdown content
     }
   }
 
   handleKeydown(e) {
     // Enhanced keyboard navigation
     const activeDropdown = document.querySelector(".dropdown.active");
+    const activeContent = document.querySelector(".dropdown-content.show");
 
     if (e.key === "Escape") {
       this.closeAllDropdowns();
@@ -409,12 +482,13 @@ class DropdownManager {
       return;
     }
 
-    if (!activeDropdown) return;
+    if (!activeContent) return;
 
-    const items = activeDropdown.querySelectorAll(
+    // Navigate within the active content (separate from button container)
+    const items = activeContent.querySelectorAll(
       ".dropdown-item, button, input, select"
     );
-    const highlightedItem = activeDropdown.querySelector(".highlighted");
+    const highlightedItem = activeContent.querySelector(".highlighted");
 
     switch (e.key) {
       case "ArrowDown":
@@ -440,8 +514,14 @@ class DropdownManager {
 
   handleDropdownAction(link) {
     const action = link.getAttribute("data-action");
-    const dropdown = link.closest(".dropdown");
-    const buttonId = dropdown.querySelector(".dropdown-btn").id;
+    // Find the dropdown by checking data-dropdown on content, then finding matching button
+    const content = link.closest(".dropdown-content");
+    const dropdownType = content?.getAttribute("data-dropdown");
+    const dropdown = document.querySelector(
+      `.dropdown[data-dropdown="${dropdownType}"]`
+    );
+    const buttonId =
+      dropdown?.querySelector(".dropdown-btn")?.id || `toggle-${dropdownType}`;
 
     console.log(`Dropdown action: ${action} for button: ${buttonId}`);
 
@@ -454,8 +534,14 @@ class DropdownManager {
 
   handleDropdownSelect(select) {
     const action = select.getAttribute("data-action");
-    const dropdown = select.closest(".dropdown");
-    const buttonId = dropdown.querySelector(".dropdown-btn").id;
+    // Find dropdown via data-dropdown on content element (select is inside #dropdown-modals)
+    const content = select.closest(".dropdown-content");
+    const dropdownType = content?.getAttribute("data-dropdown");
+    const dropdown = document.querySelector(
+      `.dropdown[data-dropdown="${dropdownType}"]`
+    );
+    const buttonId =
+      dropdown?.querySelector(".dropdown-btn")?.id || `toggle-${dropdownType}`;
 
     console.log(
       `Dropdown select: ${action} for button: ${buttonId}, value: ${select.value}`

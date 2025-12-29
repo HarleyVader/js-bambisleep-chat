@@ -68,7 +68,7 @@
     /* Chat container stays in interface layer with LOWER priority than dropdowns */
     #chat-container {
         position: relative;
-        isolation: isolate;
+        /* NO isolation: isolate - breaks layer stacking order */
         contain: layout style;
     }
 
@@ -89,7 +89,7 @@
     /* Explicitly ensure global chat never overlaps dropdowns */
     #global-chat-messages {
         position: relative;
-        isolation: isolate;
+        /* NO isolation: isolate - breaks layer stacking */
     }
 }
 
@@ -107,6 +107,38 @@
 
 /* Dropdowns layer - dropdown menus as modals on top of everything */
 @layer dropdowns {
+    /* Dropdowns menu container - positioned absolutely to overlay page */
+    #dropdowns-menu,
+    .dropdowns-menu {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    /* Dropdown buttons need pointer events */
+    #dropdowns-menu .dropdown,
+    .dropdowns-menu .dropdown {
+        pointer-events: auto;
+    }
+
+    /* Dropdown modals container - holds all dropdown-content elements */
+    #dropdown-modals {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1001;
+    }
+
     /* Controls container */
     #controls,
     .controls {
@@ -127,7 +159,7 @@
         pointer-events: auto;
     }
 
-    /* Modal backdrop - simple, no complex effects */
+    /* Modal backdrop - BEHIND dropdown content */
     .dropdown.active::before {
         content: '';
         position: fixed;
@@ -136,6 +168,7 @@
         right: 0;
         bottom: 0;
         background: rgba(0, 0, 0, 0.6);
+        z-index: -1; /* Behind the dropdown-content */
     }
 
     /* Dropdown content - SIMPLE centered modal */
@@ -146,24 +179,27 @@
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
         
+        /* Stacking */
+        z-index: 1; /* Above backdrop */
+        
         /* Appearance */
         background: rgba(38, 20, 38, 0.95);
         border: 2px solid rgba(255, 105, 180, 0.5);
         border-radius: 12px;
         
-        /* Size constraints - stay within viewport */
-        min-width: 300px;
+        /* Size constraints - stay within viewport with safety margins */
+        min-width: min(300px, calc(100vw - 40px));
         max-width: min(90vw, 600px);
-        max-height: min(80vh, calc(100vh - 60px));
+        max-height: min(80vh, calc(100vh - 40px));
         width: auto;
         
         /* Scrolling */
         overflow-y: auto;
         overflow-x: hidden;
         
-        /* Spacing */
+        /* Spacing - NO MARGIN (causes overflow) */
         padding: 1.5rem;
-        margin: 20px;
+        margin: 0;
         box-sizing: border-box;
         
         /* Visibility */

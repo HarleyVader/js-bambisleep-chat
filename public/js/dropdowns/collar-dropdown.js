@@ -144,7 +144,9 @@ export class CollarDropdown {
     }
 
     // Close dropdown after save
-    const dropdown = document.querySelector(".collar-dropdown");
+    const dropdown = document.querySelector(
+      '.dropdown[data-dropdown="collar"]'
+    );
     if (dropdown) {
       this.dropdownManager.closeDropdown(dropdown);
     }

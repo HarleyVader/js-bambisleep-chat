@@ -498,9 +498,14 @@ class TextToSpeechSystem {
     );
 
     // Add pre-cleaned sentences directly to text array (legacy support)
+    // Convert to object format for compatibility with processTextQueue
     sentencesArray.forEach((sentence) => {
       if (sentence && sentence.trim().length > 0) {
-        this.textArray.push(sentence.trim());
+        const text = sentence.trim();
+        this.textArray.push({
+          display: text,
+          tts: text
+        });
       }
     });
 
@@ -590,9 +595,14 @@ class TextToSpeechSystem {
       this.isPlaying = true;
       const textItem = this.textArray.shift();
 
-      // Use new object format with separate display and TTS text
-      this.currentText = textItem.display;
-      this.currentTTSText = textItem.tts;
+      // Handle both object format {display, tts} and legacy string format
+      if (typeof textItem === 'string') {
+        this.currentText = textItem;
+        this.currentTTSText = textItem;
+      } else {
+        this.currentText = textItem.display;
+        this.currentTTSText = textItem.tts;
+      }
 
       console.log("🎤 Processing text:", this.currentText);
 

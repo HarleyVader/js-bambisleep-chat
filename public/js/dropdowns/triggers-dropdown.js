@@ -95,13 +95,14 @@ export class TriggersDropdown {
         this.triggersData = null;
         this.loadError = null;
         this.loadTriggerCategories().then(() => {
-          // Find the current dropdown and refresh its content
+          // Find the content container via data-dropdown attribute (separated from button)
           const currentDropdown = document
             .querySelector("#toggle-triggers")
             .closest(".dropdown");
           if (currentDropdown && currentDropdown.classList.contains("active")) {
-            const contentContainer =
-              currentDropdown.querySelector(".dropdown-content");
+            const contentContainer = document.querySelector(
+              '#dropdown-modals .dropdown-content[data-dropdown="triggers"]'
+            );
             if (contentContainer) {
               contentContainer.innerHTML = this.getDropdownContent();
               this.dropdownManager.attachContentEventListeners(

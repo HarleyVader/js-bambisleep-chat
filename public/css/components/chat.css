@@ -72,8 +72,6 @@
         scroll-behavior: smooth;
         border: 1px solid rgba(21, 170, 181, 0.3);
         background: rgba(12, 42, 42, 0.3);
-        -webkit-backdrop-filter: var(--blur-light);
-        backdrop-filter: var(--blur-light);
         display: block;
         position: relative;
     }
@@ -82,8 +80,6 @@
         margin-bottom: 5.6px;
         padding: 5.6px 8.4px;
         background: rgba(12, 42, 42, 0.6);
-        -webkit-backdrop-filter: var(--blur-light);
-        backdrop-filter: var(--blur-light);
         border-radius: var(--border-radius-lg);
         border: 1px solid rgba(114, 2, 65, 0.4);
         box-shadow: var(--shadow-sm);
@@ -119,8 +115,6 @@
     #global-chat-messages .message.system {
         border-left-color: var(--tertiary-alt);
         background: rgba(10, 38, 38, 0.6);
-        -webkit-backdrop-filter: var(--blur-light);
-        backdrop-filter: var(--blur-light);
         border: 1px solid rgba(2, 184, 147, 0.4);
         font-style: italic;
         opacity: 0.9;
@@ -192,8 +186,6 @@
         color: #fff;
         font-size: var(--font-size-md);
         outline: none;
-        -webkit-backdrop-filter: var(--blur-light);
-        backdrop-filter: var(--blur-light);
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.18);
         box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
