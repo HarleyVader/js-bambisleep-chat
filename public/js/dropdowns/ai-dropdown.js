@@ -1,4 +1,3 @@
-
 /**
  * AI Dropdown Component for BambiSleep Chat
  * Handles AI mode and model selection dropdown functionality
@@ -22,226 +21,226 @@
  * - Consistent with other dropdown components' button behavior
  */
 
-import { StorageUtils } from '../storage-utils.js';
+import { StorageUtils } from "../storage-utils.js";
 
 export class AIDropdown {
-    constructor(dropdownManager) {
-        this.dropdownManager = dropdownManager;
-        this.buttonId = 'toggle-ai';
-        this.isEnabled = false; // AIGF on/off state
-        this.currentModel = 'balanced'; // 'creative', 'balanced', 'precise'
-        this.init();
+  constructor(dropdownManager) {
+    this.dropdownManager = dropdownManager;
+    this.buttonId = "toggle-ai";
+    this.isEnabled = false; // AIGF on/off state
+    this.currentModel = "balanced"; // 'creative', 'balanced', 'precise'
+    this.init();
+  }
+
+  init() {
+    this.setupEventListeners();
+    this.setupToggleHandling();
+    this.ensureButtonStyling();
+    this.loadSavedState();
+  }
+
+  ensureButtonStyling() {
+    // Ensure the AI button has proper CSS classes from buttons.css
+    const btn = document.getElementById(this.buttonId);
+    const statusIndicator = document.getElementById("ai-status");
+
+    if (btn) {
+      btn.classList.add("dropdown-btn", "toggle-button");
+      // Remove any conflicting classes
+      btn.classList.remove("active");
+
+      // Set AIGF state
+      btn.setAttribute("data-state", this.isEnabled ? "on" : "off");
     }
 
-    init() {
-        this.setupEventListeners();
-        this.setupToggleHandling();
-        this.ensureButtonStyling();
-        this.loadSavedState();
+    // Update status indicator like brainwave
+    if (statusIndicator) {
+      if (this.isEnabled) {
+        statusIndicator.style.color = "#00ff00";
+        statusIndicator.textContent = "●";
+      } else {
+        statusIndicator.style.color = "#666";
+        statusIndicator.textContent = "●";
+      }
+    }
+  }
+
+  setupEventListeners() {
+    // Listen for dropdown actions specific to AI
+    document.addEventListener("dropdownAction", (e) => {
+      const { action, buttonId } = e.detail;
+      if (buttonId === this.buttonId) {
+        this.handleAction(action, e.detail);
+      }
+    });
+  }
+
+  setupToggleHandling() {
+    // AI button has special dual behavior:
+    // 1. Toggle AIGF on/off state
+    // 2. Open/close dropdown
+    // DropdownManager handles dropdown, this handles AIGF toggle
+    const aiButton = document.getElementById(this.buttonId);
+    if (aiButton) {
+      aiButton.addEventListener("click", (e) => {
+        // Don't stop propagation - let DropdownManager handle dropdown
+        // Just toggle AIGF state
+        this.toggleAIGF();
+      });
+    }
+  }
+
+  loadSavedState() {
+    // Load saved AI state from localStorage
+    const savedState = StorageUtils.getItem("bambi-ai-state");
+    if (savedState) {
+      try {
+        // savedState is already parsed by StorageUtils
+        this.setState(savedState);
+      } catch (e) {
+        console.warn("⚠️ Failed to load AI state:", e);
+      }
+    }
+    this.updateButtonState();
+  }
+
+  handleAction(action, detail) {
+    console.log(`🤖 AI action: ${action}`);
+
+    switch (action) {
+      case "ai-model-creative":
+        this.setModel("creative");
+        break;
+      case "ai-model-balanced":
+        this.setModel("balanced");
+        break;
+      case "ai-model-precise":
+        this.setModel("precise");
+        break;
+      default:
+        console.warn(`Unknown AI action: ${action}`);
+    }
+  }
+
+  toggleAIGF() {
+    this.isEnabled = !this.isEnabled;
+    this.updateButtonState();
+    this.saveState();
+
+    // Dispatch custom event
+    const event = new CustomEvent("aiModeChange", {
+      detail: {
+        enabled: this.isEnabled,
+        mode: "aigf",
+      },
+    });
+    document.dispatchEvent(event);
+
+    this.showFeedback("AIGF: " + (this.isEnabled ? "ENABLED" : "DISABLED"));
+  }
+
+  updateButtonState() {
+    const btn = document.getElementById(this.buttonId);
+    const statusIndicator = document.getElementById("ai-status");
+
+    if (!btn) return;
+
+    // Set proper data attributes for buttons.css red/green on/off styling system
+    btn.setAttribute("data-state", this.isEnabled ? "on" : "off");
+
+    // Update status indicator like brainwave
+    if (statusIndicator) {
+      if (this.isEnabled) {
+        statusIndicator.style.color = "#00ff00";
+        statusIndicator.textContent = "●";
+      } else {
+        statusIndicator.style.color = "#666";
+        statusIndicator.textContent = "●";
+      }
     }
 
-    ensureButtonStyling() {
-        // Ensure the AI button has proper CSS classes from buttons.css
-        const btn = document.getElementById(this.buttonId);
-        const statusIndicator = document.getElementById('ai-status');
+    // Ensure button has proper CSS classes from buttons.css
+    btn.classList.add("dropdown-btn", "toggle-button");
+    btn.classList.remove("active");
 
-        if (btn) {
-            btn.classList.add('dropdown-btn', 'toggle-button');
-            // Remove any conflicting classes
-            btn.classList.remove('active');
+    // Clear any inline styles to let buttons.css handle all button styling
+    btn.style.background = "";
+    btn.style.animation = "";
+    btn.style.minWidth = "";
+    btn.style.boxShadow = "";
+    btn.style.textShadow = "";
+    btn.style.border = "";
+  }
 
-            // Set AIGF state
-            btn.setAttribute('data-state', this.isEnabled ? 'on' : 'off');
-        }
+  setModel(model) {
+    this.currentModel = model;
 
-        // Update status indicator like brainwave
-        if (statusIndicator) {
-            if (this.isEnabled) {
-                statusIndicator.style.color = '#00ff00';
-                statusIndicator.textContent = '●';
-            } else {
-                statusIndicator.style.color = '#666';
-                statusIndicator.textContent = '●';
-            }
-        }
+    // Save state to localStorage
+    this.saveState();
+
+    // Update chatCore model if available
+    if (window.chatCore && window.chatCore.setModel) {
+      window.chatCore.setModel(model);
     }
 
-    setupEventListeners() {
-        // Listen for dropdown actions specific to AI
-        document.addEventListener('dropdownAction', (e) => {
-            const { action, buttonId } = e.detail;
-            if (buttonId === this.buttonId) {
-                this.handleAction(action, e.detail);
-            }
-        });
+    // Dispatch model change event
+    const event = new CustomEvent("aiModelChange", {
+      detail: {
+        model: model,
+        description: this.getModelDescription(model),
+      },
+    });
+    document.dispatchEvent(event);
+
+    this.showFeedback("AI MODEL: " + model.toUpperCase());
+  }
+
+  handleAIClick(button, action) {
+    // For single-selection categories, remove active from siblings first
+    const category = this.getAICategory(action);
+    if (this.isSingleSelectionCategory(category)) {
+      const siblings = button.parentElement.querySelectorAll(".ai-button");
+      siblings.forEach((sibling) => {
+        sibling.classList.remove("active");
+      });
     }
 
-    setupToggleHandling() {
-        // AI button has special dual behavior:
-        // 1. Toggle AIGF on/off state
-        // 2. Open/close dropdown
-        // DropdownManager handles dropdown, this handles AIGF toggle
-        const aiButton = document.getElementById(this.buttonId);
-        if (aiButton) {
-            aiButton.addEventListener('click', (e) => {
-                // Don't stop propagation - let DropdownManager handle dropdown
-                // Just toggle AIGF state
-                this.toggleAIGF();
-            });
-        }
-    }
+    // Add active state to clicked button
+    button.classList.add("active");
 
-    loadSavedState() {
-        // Load saved AI state from localStorage
-        const savedState = StorageUtils.getItem('bambi-ai-state');
-        if (savedState) {
-            try {
-                // savedState is already parsed by StorageUtils
-                this.setState(savedState);
-            } catch (e) {
-                console.warn('⚠️ Failed to load AI state:', e);
-            }
-        }
-        this.updateButtonState();
-    }
+    // Execute the AI action
+    this.handleAction(action, {
+      selectedText: button.textContent,
+      element: button,
+    });
+  }
 
-    handleAction(action, detail) {
-        console.log(`🤖 AI action: ${action}`);
+  getAICategory(action) {
+    if (action.includes("mode")) return "mode";
+    if (action.includes("model")) return "model";
+    return "other";
+  }
 
-        switch (action) {
-            case 'ai-model-creative':
-                this.setModel('creative');
-                break;
-            case 'ai-model-balanced':
-                this.setModel('balanced');
-                break;
-            case 'ai-model-precise':
-                this.setModel('precise');
-                break;
-            default:
-                console.warn(`Unknown AI action: ${action}`);
-        }
-    }
+  isSingleSelectionCategory(category) {
+    // These categories should only have one active selection at a time
+    return ["mode", "model"].includes(category);
+  }
 
-    toggleAIGF() {
-        this.isEnabled = !this.isEnabled;
-        this.updateButtonState();
-        this.saveState();
+  getModelDescription(model) {
+    const descriptions = {
+      creative: "High creativity, more experimental responses",
+      balanced: "Balanced creativity and accuracy",
+      precise: "High accuracy, more factual responses",
+    };
+    return descriptions[model] || "Unknown model";
+  }
 
-        // Dispatch custom event
-        const event = new CustomEvent('aiModeChange', {
-            detail: {
-                enabled: this.isEnabled,
-                mode: 'aigf'
-            }
-        });
-        document.dispatchEvent(event);
-
-        this.showFeedback('AIGF: ' + (this.isEnabled ? 'ENABLED' : 'DISABLED'));
-    }
-
-    updateButtonState() {
-        const btn = document.getElementById(this.buttonId);
-        const statusIndicator = document.getElementById('ai-status');
-
-        if (!btn) return;
-
-        // Set proper data attributes for buttons.css red/green on/off styling system
-        btn.setAttribute('data-state', this.isEnabled ? 'on' : 'off');
-
-        // Update status indicator like brainwave
-        if (statusIndicator) {
-            if (this.isEnabled) {
-                statusIndicator.style.color = '#00ff00';
-                statusIndicator.textContent = '●';
-            } else {
-                statusIndicator.style.color = '#666';
-                statusIndicator.textContent = '●';
-            }
-        }
-
-        // Ensure button has proper CSS classes from buttons.css
-        btn.classList.add('dropdown-btn', 'toggle-button');
-        btn.classList.remove('active');
-
-        // Clear any inline styles to let buttons.css handle all button styling
-        btn.style.background = '';
-        btn.style.animation = '';
-        btn.style.minWidth = '';
-        btn.style.boxShadow = '';
-        btn.style.textShadow = '';
-        btn.style.border = '';
-    }
-
-    setModel(model) {
-        this.currentModel = model;
-
-        // Save state to localStorage
-        this.saveState();
-
-        // Update chatCore model if available
-        if (window.chatCore && window.chatCore.setModel) {
-            window.chatCore.setModel(model);
-        }
-
-        // Dispatch model change event
-        const event = new CustomEvent('aiModelChange', {
-            detail: {
-                model: model,
-                description: this.getModelDescription(model)
-            }
-        });
-        document.dispatchEvent(event);
-
-        this.showFeedback('AI MODEL: ' + model.toUpperCase());
-    }
-
-    handleAIClick(button, action) {
-        // For single-selection categories, remove active from siblings first
-        const category = this.getAICategory(action);
-        if (this.isSingleSelectionCategory(category)) {
-            const siblings = button.parentElement.querySelectorAll('.ai-button');
-            siblings.forEach(sibling => {
-                sibling.classList.remove('active');
-            });
-        }
-
-        // Add active state to clicked button
-        button.classList.add('active');
-
-        // Execute the AI action
-        this.handleAction(action, {
-            selectedText: button.textContent,
-            element: button
-        });
-    }
-
-    getAICategory(action) {
-        if (action.includes('mode')) return 'mode';
-        if (action.includes('model')) return 'model';
-        return 'other';
-    }
-
-    isSingleSelectionCategory(category) {
-        // These categories should only have one active selection at a time
-        return ['mode', 'model'].includes(category);
-    }
-
-    getModelDescription(model) {
-        const descriptions = {
-            creative: 'High creativity, more experimental responses',
-            balanced: 'Balanced creativity and accuracy',
-            precise: 'High accuracy, more factual responses'
-        };
-        return descriptions[model] || 'Unknown model';
-    }
-
-    showFeedback(message) {
-        // Create floating feedback notification (like collar dropdown)
-        const feedback = document.createElement('div');
-        feedback.className = 'ai-feedback';
-        feedback.textContent = message;
-        feedback.style.cssText = `
+  showFeedback(message) {
+    // Create floating feedback notification (like collar dropdown)
+    const feedback = document.createElement("div");
+    feedback.className = "ai-feedback";
+    feedback.textContent = message;
+    feedback.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
@@ -258,34 +257,32 @@ export class AIDropdown {
             pointer-events: none;
         `;
 
-        document.body.appendChild(feedback);
+    document.body.appendChild(feedback);
 
-        setTimeout(() => {
-            if (feedback && feedback.parentNode) {
-                feedback.parentNode.removeChild(feedback);
-            }
-        }, 3000);
-    }
+    setTimeout(() => {
+      if (feedback && feedback.parentNode) {
+        feedback.parentNode.removeChild(feedback);
+      }
+    }, 3000);
+  }
 
-    saveState() {
-        // Save current state to localStorage
-        const state = this.getState();
-        StorageUtils.setItem('bambi-ai-state', state);
-    }
+  saveState() {
+    // Save current state to localStorage
+    const state = this.getState();
+    StorageUtils.setItem("bambi-ai-state", state);
+  }
 
-
-
-    addSystemMessage(message) {
-        // Use chatCore's system message if available, otherwise create own
-        if (window.chatCore && window.chatCore.addSystemMessagePublic) {
-            window.chatCore.addSystemMessagePublic(message);
-        } else {
-            // Fallback: add message to chat directly
-            const chatMessages = document.getElementById('chat-messages');
-            if (chatMessages) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'system-message';
-                messageDiv.style.cssText = `
+  addSystemMessage(message) {
+    // Use chatCore's system message if available, otherwise create own
+    if (window.chatCore && window.chatCore.addSystemMessagePublic) {
+      window.chatCore.addSystemMessagePublic(message);
+    } else {
+      // Fallback: add message to chat directly
+      const chatMessages = document.getElementById("chat-messages");
+      if (chatMessages) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = "system-message";
+        messageDiv.style.cssText = `
                     text-align: center;
                     color: var(--button-color);
                     font-weight: bold;
@@ -295,65 +292,67 @@ export class AIDropdown {
                     border-radius: var(--border-radius);
                     font-family: "Audiowide", sans-serif;
                 `;
-                messageDiv.textContent = message;
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-        }
+        messageDiv.textContent = message;
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
     }
+  }
 
-    // Get current state for persistence
-    getState() {
-        return {
-            enabled: this.isEnabled,
-            model: this.currentModel
-        };
+  // Get current state for persistence
+  getState() {
+    return {
+      enabled: this.isEnabled,
+      model: this.currentModel,
+    };
+  }
+
+  // Restore state from persistence
+  setState(state) {
+    if (state.hasOwnProperty("enabled")) {
+      this.isEnabled = state.enabled;
     }
-
-    // Restore state from persistence
-    setState(state) {
-        if (state.hasOwnProperty('enabled')) {
-            this.isEnabled = state.enabled;
-        }
-        // Support legacy mode for backward compatibility
-        if (state.mode === 'ai') {
-            this.isEnabled = true;
-        }
-        if (state.model) {
-            this.setModel(state.model);
-        }
+    // Support legacy mode for backward compatibility
+    if (state.mode === "ai") {
+      this.isEnabled = true;
     }
+    if (state.model) {
+      this.setModel(state.model);
+    }
+  }
 
-    // Get HTML content for the dropdown
-    getDropdownContent() {
-        return `
-            <div class="ai-config">
-                <!-- AIGF Status -->
-                <div class="control-section">
-                    <p class="config-label">� AIGF Status:</p>
-                    <div class="aigf-status">
-                        ${this.isEnabled ? '✅ BRAINWASH MODE ACTIVE' : '❌ BRAINWASH MODE DISABLED'}
-                    </div>
+  // Get HTML content for the dropdown
+  getDropdownContent() {
+    return `
+            <div class="dropdown-header">
+                <h3>🤖 AI Girlfriend Mode</h3>
+                <p>${
+                  this.isEnabled
+                    ? "BRAINWASH MODE ACTIVE"
+                    : "Configure AI settings"
+                }</p>
+            </div>
+            <div class="dropdown-body">
+                <div class="dropdown-section">
+                    <div class="dropdown-section-header">Model Selection</div>
+                    <button class="ai-button dropdown-item ${
+                      this.currentModel === "creative" ? "active" : ""
+                    }" data-action="ai-model-creative" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-model-creative')">🎨 Creative Model</button>
+                    <button class="ai-button dropdown-item ${
+                      this.currentModel === "balanced" ? "active" : ""
+                    }" data-action="ai-model-balanced" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-model-balanced')">⚖️ Balanced Model</button>
+                    <button class="ai-button dropdown-item ${
+                      this.currentModel === "precise" ? "active" : ""
+                    }" data-action="ai-model-precise" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-model-precise')">🎯 Precise Model</button>
                 </div>
-
-                <!-- Model Selection -->
-                <div class="control-section">
-                    <p class="config-label">🎭 Model Selection:</p>
-                    <div class="ai-buttons">
-                        <button class="ai-button ${this.currentModel === 'creative' ? 'active' : ''}" data-action="ai-model-creative" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-model-creative')">🎨 Creative Model</button>
-                        <button class="ai-button ${this.currentModel === 'balanced' ? 'active' : ''}" data-action="ai-model-balanced" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-model-balanced')">⚖️ Balanced Model</button>
-                        <button class="ai-button ${this.currentModel === 'precise' ? 'active' : ''}" data-action="ai-model-precise" onclick="window.dropdownManager.getComponent('ai').handleAIClick(this, 'ai-model-precise')">🎯 Precise Model</button>
-                    </div>
-                </div>
-
-                <!-- Model Information -->
-                <div class="control-section">
-                    <p class="config-label">ℹ️ Model Info:</p>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-section">
+                    <div class="dropdown-section-header">Model Info</div>
                     <div class="model-description">
                         ${this.getModelDescription(this.currentModel)}
                     </div>
                 </div>
             </div>
         `;
-    }
+  }
 }

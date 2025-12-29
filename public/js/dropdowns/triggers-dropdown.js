@@ -4,180 +4,199 @@
  */
 
 export class TriggersDropdown {
-    constructor(dropdownManager) {
-        this.dropdownManager = dropdownManager;
-        this.buttonId = 'toggle-triggers';
-        this.triggersData = null;
-        this.init();
-    }
+  constructor(dropdownManager) {
+    this.dropdownManager = dropdownManager;
+    this.buttonId = "toggle-triggers";
+    this.triggersData = null;
+    this.init();
+  }
 
-    // Helper function to safely access trigger system
-    getTriggerSystem() {
-        if (window.triggerSystem) {
-            return window.triggerSystem;
-        }
-        console.warn('⚠️ Trigger system not available yet');
-        return null;
+  // Helper function to safely access trigger system
+  getTriggerSystem() {
+    if (window.triggerSystem) {
+      return window.triggerSystem;
     }
+    console.warn("⚠️ Trigger system not available yet");
+    return null;
+  }
 
-    init() {
-        this.setupEventListeners();
-        this.setupToggleHandling();
-        // Load trigger data immediately during init
+  init() {
+    this.setupEventListeners();
+    this.setupToggleHandling();
+    // Load trigger data immediately during init
+    this.loadTriggerCategories();
+  }
+
+  setupEventListeners() {
+    // Listen for dropdown actions specific to triggers
+    document.addEventListener("dropdownAction", (e) => {
+      const { action, buttonId } = e.detail;
+      if (buttonId === this.buttonId) {
+        this.handleAction(action, e.detail);
+      }
+    });
+
+    // Listen for trigger selection events
+    document.addEventListener("triggerSelection", (e) => {
+      this.handleTriggerSelection(e.detail);
+    });
+
+    // Event delegation for trigger buttons to avoid inline onclick issues
+    document.addEventListener("click", (e) => {
+      if (
+        e.target.classList.contains("trigger-button") &&
+        e.target.dataset.triggerName
+      ) {
+        e.preventDefault();
+        this.handleTriggerClick(e.target, e.target.dataset.triggerName);
+      } else if (
+        e.target.classList.contains("retry-button") &&
+        e.target.dataset.action === "retry-triggers"
+      ) {
+        e.preventDefault();
         this.loadTriggerCategories();
-    }
+      }
+    });
+  }
 
-    setupEventListeners() {
-        // Listen for dropdown actions specific to triggers
-        document.addEventListener('dropdownAction', (e) => {
-            const { action, buttonId } = e.detail;
-            if (buttonId === this.buttonId) {
-                this.handleAction(action, e.detail);
+  setupToggleHandling() {
+    // Dropdown open/close is handled by DropdownManager
+    // This method kept for potential future toggle-specific logic
+  }
+
+  async loadTriggerCategories() {
+    try {
+      const response = await fetch("/api/triggers/json");
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      this.triggersData = await response.json();
+    } catch (error) {
+      console.error("❌ Failed to load trigger categories:", error);
+      this.loadError = error.message;
+    }
+  }
+
+  handleAction(action, detail) {
+    switch (action) {
+      case "triggers-enable-all":
+        this.enableAllTriggers();
+        break;
+      case "triggers-disable-all":
+        this.disableAllTriggers();
+        break;
+      case "triggers-toggle-category":
+        this.toggleCategory(detail.category);
+        break;
+      case "triggers-reload":
+        // Clear existing data and force reload
+        this.triggersData = null;
+        this.loadError = null;
+        this.loadTriggerCategories().then(() => {
+          // Find the current dropdown and refresh its content
+          const currentDropdown = document
+            .querySelector("#toggle-triggers")
+            .closest(".dropdown");
+          if (currentDropdown && currentDropdown.classList.contains("active")) {
+            const contentContainer =
+              currentDropdown.querySelector(".dropdown-content");
+            if (contentContainer) {
+              contentContainer.innerHTML = this.getDropdownContent();
+              this.dropdownManager.attachContentEventListeners(
+                contentContainer
+              );
             }
+          }
         });
+        break;
+      case "retry-triggers":
+        this.loadTriggerCategories();
+        this.dropdownManager.showActionFeedback("TRIGGERS", "RELOADING...");
+        break;
+      default:
+        console.warn(`Unknown triggers action: ${action}`);
+    }
+  }
 
-        // Listen for trigger selection events
-        document.addEventListener('triggerSelection', (e) => {
-            this.handleTriggerSelection(e.detail);
-        });
+  handleTriggerSelection(detail) {
+    const { trigger, active, category, safety } = detail;
+    console.log(
+      `🎯 Trigger ${
+        active ? "activated" : "deactivated"
+      }: ${trigger} (${category}, ${safety})`
+    );
 
-        // Event delegation for trigger buttons to avoid inline onclick issues
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('trigger-button') && e.target.dataset.triggerName) {
-                e.preventDefault();
-                this.handleTriggerClick(e.target, e.target.dataset.triggerName);
-            } else if (e.target.classList.contains('retry-button') && e.target.dataset.action === 'retry-triggers') {
-                e.preventDefault();
-                this.loadTriggerCategories();
-            }
-        });
+    // Show feedback
+    this.dropdownManager.showActionFeedback(
+      "TRIGGER",
+      `${trigger}: ${active ? "ON" : "OFF"}`
+    );
+  }
+
+  toggleState(btn) {
+    const currentState = btn.getAttribute("data-state");
+    const newState = currentState === "off" ? "on" : "off";
+    const statusIndicator = document.getElementById("triggers-status");
+
+    btn.setAttribute("data-state", newState);
+
+    // Update status indicator like brainwave
+    if (statusIndicator) {
+      if (newState === "on") {
+        statusIndicator.style.color = "#00ff00";
+        statusIndicator.textContent = "●";
+      } else {
+        statusIndicator.style.color = "#666";
+        statusIndicator.textContent = "●";
+      }
     }
 
-    setupToggleHandling() {
-        // Dropdown open/close is handled by DropdownManager
-        // This method kept for potential future toggle-specific logic
-    }
+    // Enable/disable trigger system
+    const triggerSystem = this.getTriggerSystem();
+    if (triggerSystem) {
+      // Check current state and toggle if needed
+      const currentSystemState = triggerSystem.isEnabled;
+      const targetState = newState === "on";
 
-    async loadTriggerCategories() {
-        try {
-            const response = await fetch('/api/triggers/json');
+      if (currentSystemState !== targetState) {
+        triggerSystem.toggle();
+      }
+    } else {
+      console.warn(
+        "⚠️ Trigger system not available, scheduling for later initialization"
+      );
+      setTimeout(() => {
+        const delayedTriggerSystem = this.getTriggerSystem();
+        if (delayedTriggerSystem) {
+          const currentSystemState = delayedTriggerSystem.isEnabled;
+          const targetState = newState === "on";
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            this.triggersData = await response.json();
-
-        } catch (error) {
-            console.error('❌ Failed to load trigger categories:', error);
-            this.loadError = error.message;
+          if (currentSystemState !== targetState) {
+            delayedTriggerSystem.toggle();
+          }
         }
+      }, 1000);
     }
 
-    handleAction(action, detail) {
-        switch (action) {
-            case 'triggers-enable-all':
-                this.enableAllTriggers();
-                break;
-            case 'triggers-disable-all':
-                this.disableAllTriggers();
-                break;
-            case 'triggers-toggle-category':
-                this.toggleCategory(detail.category);
-                break;
-            case 'triggers-reload':
-                // Clear existing data and force reload
-                this.triggersData = null;
-                this.loadError = null;
-                this.loadTriggerCategories().then(() => {
-                    // Find the current dropdown and refresh its content
-                    const currentDropdown = document.querySelector('#toggle-triggers').closest('.dropdown');
-                    if (currentDropdown && currentDropdown.classList.contains('active')) {
-                        const contentContainer = currentDropdown.querySelector('.dropdown-content');
-                        if (contentContainer) {
-                            contentContainer.innerHTML = this.getDropdownContent();
-                            this.dropdownManager.attachContentEventListeners(contentContainer);
-                        }
-                    }
-                });
-                break;
-            case 'retry-triggers':
-                this.loadTriggerCategories();
-                this.dropdownManager.showActionFeedback('TRIGGERS', 'RELOADING...');
-                break;
-            default:
-                console.warn(`Unknown triggers action: ${action}`);
-        }
-    }
+    // Dispatch toggle event
+    const event = new CustomEvent("triggerSystemToggle", {
+      detail: {
+        enabled: newState === "on",
+      },
+    });
+    document.dispatchEvent(event);
 
-    handleTriggerSelection(detail) {
-        const { trigger, active, category, safety } = detail;
-        console.log(`🎯 Trigger ${active ? 'activated' : 'deactivated'}: ${trigger} (${category}, ${safety})`);
+    this.dropdownManager.showToggleFeedback("TRIGGERS", newState);
+  }
 
-        // Show feedback
-        this.dropdownManager.showActionFeedback('TRIGGER', `${trigger}: ${active ? 'ON' : 'OFF'}`);
-    }
-
-    toggleState(btn) {
-        const currentState = btn.getAttribute('data-state');
-        const newState = currentState === 'off' ? 'on' : 'off';
-        const statusIndicator = document.getElementById('triggers-status');
-
-        btn.setAttribute('data-state', newState);
-
-        // Update status indicator like brainwave
-        if (statusIndicator) {
-            if (newState === 'on') {
-                statusIndicator.style.color = '#00ff00';
-                statusIndicator.textContent = '●';
-            } else {
-                statusIndicator.style.color = '#666';
-                statusIndicator.textContent = '●';
-            }
-        }
-
-        // Enable/disable trigger system
-        const triggerSystem = this.getTriggerSystem();
-        if (triggerSystem) {
-            // Check current state and toggle if needed
-            const currentSystemState = triggerSystem.isEnabled;
-            const targetState = newState === 'on';
-
-            if (currentSystemState !== targetState) {
-                triggerSystem.toggle();
-            }
-        } else {
-            console.warn('⚠️ Trigger system not available, scheduling for later initialization');
-            setTimeout(() => {
-                const delayedTriggerSystem = this.getTriggerSystem();
-                if (delayedTriggerSystem) {
-                    const currentSystemState = delayedTriggerSystem.isEnabled;
-                    const targetState = newState === 'on';
-
-                    if (currentSystemState !== targetState) {
-                        delayedTriggerSystem.toggle();
-                    }
-                }
-            }, 1000);
-        }
-
-        // Dispatch toggle event
-        const event = new CustomEvent('triggerSystemToggle', {
-            detail: {
-                enabled: newState === 'on'
-            }
-        });
-        document.dispatchEvent(event);
-
-        this.dropdownManager.showToggleFeedback('TRIGGERS', newState);
-    }
-
-    showFeedback(message) {
-        // Create floating feedback notification (standardized like other dropdowns)
-        const feedback = document.createElement('div');
-        feedback.className = 'triggers-feedback';
-        feedback.textContent = message;
-        feedback.style.cssText = `
+  showFeedback(message) {
+    // Create floating feedback notification (standardized like other dropdowns)
+    const feedback = document.createElement("div");
+    feedback.className = "triggers-feedback";
+    feedback.textContent = message;
+    feedback.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
@@ -194,175 +213,193 @@ export class TriggersDropdown {
             pointer-events: none;
         `;
 
-        document.body.appendChild(feedback);
+    document.body.appendChild(feedback);
 
-        setTimeout(() => {
-            if (feedback && feedback.parentNode) {
-                feedback.parentNode.removeChild(feedback);
-            }
-        }, 3000);
-    }
+    setTimeout(() => {
+      if (feedback && feedback.parentNode) {
+        feedback.parentNode.removeChild(feedback);
+      }
+    }, 3000);
+  }
 
-    enableAllTriggers() {
-        const buttons = document.querySelectorAll('.trigger-button');
-        buttons.forEach(button => {
-            if (!button.classList.contains('active')) {
-                button.click();
-            }
-        });
-        this.dropdownManager.showActionFeedback('TRIGGERS', 'ALL ENABLED');
-    }
+  enableAllTriggers() {
+    const buttons = document.querySelectorAll(".trigger-button");
+    buttons.forEach((button) => {
+      if (!button.classList.contains("active")) {
+        button.click();
+      }
+    });
+    this.dropdownManager.showActionFeedback("TRIGGERS", "ALL ENABLED");
+  }
 
-    disableAllTriggers() {
-        const buttons = document.querySelectorAll('.trigger-button');
-        buttons.forEach(button => {
-            if (button.classList.contains('active')) {
-                button.click();
-            }
-        });
-        this.dropdownManager.showActionFeedback('TRIGGERS', 'ALL DISABLED');
-    }
+  disableAllTriggers() {
+    const buttons = document.querySelectorAll(".trigger-button");
+    buttons.forEach((button) => {
+      if (button.classList.contains("active")) {
+        button.click();
+      }
+    });
+    this.dropdownManager.showActionFeedback("TRIGGERS", "ALL DISABLED");
+  }
 
-    toggleCategory(categoryName) {
-        const categoryDiv = Array.from(document.querySelectorAll('.trigger-category'))
-            .find(div => div.querySelector('.category-header').textContent === categoryName.toUpperCase());
+  toggleCategory(categoryName) {
+    const categoryDiv = Array.from(
+      document.querySelectorAll(".trigger-category")
+    ).find(
+      (div) =>
+        div.querySelector(".category-header").textContent ===
+        categoryName.toUpperCase()
+    );
 
-        if (categoryDiv) {
-            const buttons = categoryDiv.querySelectorAll('.trigger-button');
-            const firstButton = buttons[0];
-            const shouldActivate = !firstButton.classList.contains('active');
+    if (categoryDiv) {
+      const buttons = categoryDiv.querySelectorAll(".trigger-button");
+      const firstButton = buttons[0];
+      const shouldActivate = !firstButton.classList.contains("active");
 
-            buttons.forEach(button => {
-                if (shouldActivate && !button.classList.contains('active')) {
-                    button.click();
-                } else if (!shouldActivate && button.classList.contains('active')) {
-                    button.click();
-                }
-            });
-
-            this.dropdownManager.showActionFeedback('TRIGGERS', `${categoryName.toUpperCase()}: ${shouldActivate ? 'ON' : 'OFF'}`);
+      buttons.forEach((button) => {
+        if (shouldActivate && !button.classList.contains("active")) {
+          button.click();
+        } else if (!shouldActivate && button.classList.contains("active")) {
+          button.click();
         }
-    }
+      });
 
-    // Get HTML content for the dropdown
-    getDropdownContent() {
-        // If there was an error loading
-        if (this.loadError) {
-            return `
-                <div id="trigger-categories-dropdown" class="trigger-categories">
-                    <div class="category-error">
-                        <p>❌ Failed to load triggers: ${this.loadError}</p>
-                        <button class="retry-button" data-action="retry-triggers">🔄 Retry</button>
+      this.dropdownManager.showActionFeedback(
+        "TRIGGERS",
+        `${categoryName.toUpperCase()}: ${shouldActivate ? "ON" : "OFF"}`
+      );
+    }
+  }
+
+  // Get HTML content for the dropdown
+  getDropdownContent() {
+    // If there was an error loading
+    if (this.loadError) {
+      return `
+                <div class="dropdown-header">
+                    <h3>🎯 Trigger System</h3>
+                    <p>Error loading triggers</p>
+                </div>
+                <div class="dropdown-body">
+                    <div class="trigger-categories">
+                        <div class="category-error">
+                            <p>❌ Failed to load triggers: ${this.loadError}</p>
+                            <button class="retry-button dropdown-item" data-action="retry-triggers">🔄 Retry</button>
+                        </div>
                     </div>
                 </div>
-                <div class="control-section">
-                    <p class="config-label">🎯 Bulk Actions</p>
-                    <a href="#" data-action="triggers-reload">🔄 Reload Triggers</a>
-                </div>
             `;
-        }
-
-        // If no data yet, return basic controls only
-        if (!this.triggersData) {
-            return `
-                <div id="trigger-categories-dropdown" class="trigger-categories">
-                    <div class="category-placeholder">⚡ Ready for triggers...</div>
-                </div>
-                <div class="control-section">
-                    <p class="config-label">🎯 Bulk Actions</p>
-                    <a href="#" data-action="triggers-enable-all">✅ Enable All</a>
-                    <a href="#" data-action="triggers-disable-all">❌ Disable All</a>
-                    <a href="#" data-action="triggers-reload">🔄 Reload Triggers</a>
-                </div>
-            `;
-        }
-
-        // Generate content with loaded data
-        return this.generateTriggersContent();
     }
 
-    generateTriggersContent() {
-        if (!this.triggersData) return '';
+    // If no data yet, return loading state
+    if (!this.triggersData) {
+      return `
+                <div class="dropdown-header">
+                    <h3>🎯 Trigger System</h3>
+                    <p>Manage BambiSleep triggers</p>
+                </div>
+                <div class="dropdown-body">
+                    <div class="trigger-categories">
+                        <div class="category-placeholder">⚡ Loading triggers...</div>
+                    </div>
+                </div>
+            `;
+    }
 
-        let content = '<div id="trigger-categories-dropdown" class="trigger-categories">';
+    // Generate content with loaded data
+    return this.generateTriggersContent();
+  }
 
-        // Group triggers by category
-        const categories = {};
-        this.triggersData.triggers.forEach(trigger => {
-            const category = trigger.category || 'General';
-            if (!categories[category]) {
-                categories[category] = [];
-            }
-            categories[category].push(trigger);
-        });
+  generateTriggersContent() {
+    if (!this.triggersData) return "";
 
-        // Create category sections
-        Object.keys(categories).forEach(categoryName => {
-            content += `
+    let content = `
+            <div class="dropdown-header">
+                <h3>🎯 Trigger System</h3>
+                <p>Select active BambiSleep triggers</p>
+            </div>
+            <div class="dropdown-body">
+                <div class="trigger-categories">
+        `;
+
+    // Group triggers by category
+    const categories = {};
+    this.triggersData.triggers.forEach((trigger) => {
+      const category = trigger.category || "General";
+      if (!categories[category]) {
+        categories[category] = [];
+      }
+      categories[category].push(trigger);
+    });
+
+    // Create category sections
+    Object.keys(categories).forEach((categoryName) => {
+      content += `
                 <div class="trigger-category">
-                    <div class="category-header">${categoryName.toUpperCase()}</div>
-                    <div class="trigger-buttons">
+                    <div class="dropdown-section-header">${categoryName}</div>
             `;
 
-            categories[categoryName].forEach(trigger => {
-                content += `
-                    <button class="trigger-button"
-                            data-category="${trigger.category || 'default'}"
-                            data-safety="${trigger.safetyLevel || 'safe'}"
+      categories[categoryName].forEach((trigger) => {
+        content += `
+                    <button class="trigger-button dropdown-item"
+                            data-category="${trigger.category || "default"}"
+                            data-safety="${trigger.safetyLevel || "safe"}"
                             data-trigger-name="${trigger.name}">
                         ${trigger.name}
                     </button>
                 `;
-            });
+      });
 
-            content += `
-                    </div>
+      content += `</div>`;
+    });
+
+    content += `
                 </div>
-            `;
-        });
-
-        content += `
-            </div>
-            <div class="control-section">
-                <p class="config-label">🎯 Bulk Actions</p>
-                <a href="#" data-action="triggers-enable-all">✅ Enable All</a>
-                <a href="#" data-action="triggers-disable-all">❌ Disable All</a>
-                <a href="#" data-action="triggers-reload">🔄 Reload Triggers</a>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-section">
+                    <div class="dropdown-section-header">Bulk Actions</div>
+                    <button class="dropdown-item" data-action="triggers-enable-all">✅ Enable All</button>
+                    <button class="dropdown-item" data-action="triggers-disable-all">❌ Disable All</button>
+                    <button class="dropdown-item" data-action="triggers-reload">🔄 Reload Triggers</button>
+                </div>
             </div>
         `;
 
-        return content;
-    }
+    return content;
+  }
 
-    handleTriggerClick(button, triggerName) {
-        button.classList.toggle('active');
+  handleTriggerClick(button, triggerName) {
+    button.classList.toggle("active");
 
-        // Dispatch trigger selection event
-        const event = new CustomEvent('triggerSelection', {
-            detail: {
-                trigger: triggerName,
-                active: button.classList.contains('active'),
-                category: button.getAttribute('data-category'),
-                safety: button.getAttribute('data-safety')
-            }
-        });
-        document.dispatchEvent(event);
+    // Dispatch trigger selection event
+    const event = new CustomEvent("triggerSelection", {
+      detail: {
+        trigger: triggerName,
+        active: button.classList.contains("active"),
+        category: button.getAttribute("data-category"),
+        safety: button.getAttribute("data-safety"),
+      },
+    });
+    document.dispatchEvent(event);
 
-        // Update active triggers in chatCore if available
-        if (window.chatCore) {
-            const triggerNameUpper = triggerName.toUpperCase();
-            if (button.classList.contains('active')) {
-                if (!window.chatCore.activeTriggers.includes(triggerNameUpper)) {
-                    window.chatCore.activeTriggers.push(triggerNameUpper);
-                }
-            } else {
-                const index = window.chatCore.activeTriggers.indexOf(triggerNameUpper);
-                if (index > -1) {
-                    window.chatCore.activeTriggers.splice(index, 1);
-                }
-            }
-            window.chatCore.updateTriggers();
-            console.log('🎯 Updated active triggers:', window.chatCore.activeTriggers);
+    // Update active triggers in chatCore if available
+    if (window.chatCore) {
+      const triggerNameUpper = triggerName.toUpperCase();
+      if (button.classList.contains("active")) {
+        if (!window.chatCore.activeTriggers.includes(triggerNameUpper)) {
+          window.chatCore.activeTriggers.push(triggerNameUpper);
         }
+      } else {
+        const index = window.chatCore.activeTriggers.indexOf(triggerNameUpper);
+        if (index > -1) {
+          window.chatCore.activeTriggers.splice(index, 1);
+        }
+      }
+      window.chatCore.updateTriggers();
+      console.log(
+        "🎯 Updated active triggers:",
+        window.chatCore.activeTriggers
+      );
     }
+  }
 }

@@ -12,30 +12,40 @@ export function createBrainwaveDropdown() {
                 <p>Binaural beats for meditation, focus, and relaxation</p>
             </div>
 
-            <div class="brainwave-controls">
-                <div class="preset-section">
-                    <label>Preset:</label>
-                    <select id="brainwave-preset">
+            <div class="dropdown-body">
+                <div class="dropdown-section">
+                    <div class="dropdown-section-header">Preset Selection</div>
+                    <select id="brainwave-preset" class="dropdown-item">
                         <option value="">Select a preset...</option>
                     </select>
                 </div>
 
-                <div class="volume-section">
-                    <label>Volume:</label>
+                <div class="dropdown-divider"></div>
+
+                <div class="dropdown-section">
+                    <div class="dropdown-section-header">Volume Control</div>
                     <input type="range" id="brainwave-volume" min="0" max="100" value="10">
                     <span id="volume-display">10%</span>
                 </div>
 
-                <div class="control-buttons">
-                    <button id="brainwave-play" class="control-button play-btn" disabled>▶ Start</button>
-                    <button id="brainwave-stop" class="control-button stop-btn" disabled>⏹ Stop</button>
+                <div class="dropdown-divider"></div>
+
+                <div class="dropdown-section">
+                    <div class="dropdown-section-header">Controls</div>
+                    <div class="control-buttons">
+                        <button id="brainwave-play" class="dropdown-item control-button play-btn" disabled>▶ Start</button>
+                        <button id="brainwave-stop" class="dropdown-item control-button stop-btn" disabled>⏹ Stop</button>
+                    </div>
                 </div>
 
-                <div class="status-section">
+                <div class="dropdown-divider"></div>
+
+                <div class="dropdown-section">
+                    <div class="dropdown-section-header">Status</div>
                     <div id="brainwave-info" class="info-display">Ready to start...</div>
                 </div>
 
-                <div class="warning-section">
+                <div class="dropdown-footer">
                     <small>⚠️ Use headphones for binaural effect. Start with low volume.</small>
                 </div>
             </div>

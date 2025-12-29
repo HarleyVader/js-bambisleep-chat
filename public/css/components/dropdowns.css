@@ -1,293 +1,332 @@
 /**
- * Dropdown Components
+ * Dropdown Components - STANDARDIZED
  * @layer dropdowns
- * Dropdown menus, configurations, and controls
+ * 
+ * All dropdowns MUST use this structure:
+ * .dropdown > .dropdown-btn + .dropdown-content > .dropdown-header + .dropdown-body
+ * 
+ * See: /public/js/dropdowns/DROPDOWN-TEMPLATE.md
  */
 
 @layer dropdowns {
-    /* ===== Dropdown Scrollbars ===== */
-    .dropdown-content::-webkit-scrollbar {
-        width: 8px;
+    /* ===== STANDARD STRUCTURE ===== */
+    
+    .dropdown {
+        position: relative;
+        display: inline-block;
     }
 
-    .dropdown-content::-webkit-scrollbar-track {
-        background: var(--primary-color);
-        border-radius: var(--border-radius-sm);
+    .dropdown-btn {
+        cursor: pointer;
     }
 
-    .dropdown-content::-webkit-scrollbar-thumb {
-        background: var(--tertiary-color);
-        border-radius: var(--border-radius-sm);
+    .status-indicator {
+        display: inline-block;
+        margin-left: 8px;
+        font-size: 0.8em;
+        transition: color 0.3s ease;
     }
 
-    .dropdown-content::-webkit-scrollbar-thumb:hover {
-        background: var(--secondary-alt);
+    .dropdown-content {
+        display: none;
     }
 
-    /* ===== Dropdown Links ===== */
-    .dropdown-content a {
-        color: var(--nav-alt);
-        padding: 8px 12px;
-        text-decoration: none;
+    .dropdown.active .dropdown-content {
         display: block;
+    }
+
+    /* ===== STANDARD HEADER ===== */
+    
+    .dropdown-header {
+        padding: 0 0 1rem 0;
+        border-bottom: 2px solid rgba(255, 105, 180, 0.3);
+        margin-bottom: 1rem;
+    }
+
+    .dropdown-header h3 {
+        margin: 0 0 0.5rem 0;
+        color: var(--button-color);
+        font-size: var(--font-size-lg);
+        font-family: var(--font-primary);
+    }
+
+    .dropdown-header p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: var(--font-size-sm);
+        line-height: 1.4;
+    }
+
+    /* ===== STANDARD BODY ===== */
+    
+    .dropdown-body {
+        padding: 0;
+    }
+
+    .dropdown-footer {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        font-size: var(--font-size-xs);
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* ===== STANDARD ITEM ===== */
+    
+    .dropdown-item {
+        padding: 10px 12px;
+        margin: 2px 0;
+        border-radius: var(--border-radius-sm);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: transparent;
+        border: none;
+        color: var(--nav-alt);
         font-family: var(--font-primary);
         font-size: var(--font-size-sm);
-        transition: all var(--transition-medium);
-        border-bottom: 1px solid var(--primary-color);
-    }
-
-    .dropdown-content a:last-child {
-        border-bottom: none;
-    }
-
-    .dropdown-content a:hover {
-        background: var(--primary-color);
-        color: var(--button-color);
-        text-shadow: 0 0 5px var(--button-color);
-    }
-
-    /* ===== TTS Configuration ===== */
-    .tts-config {
-        padding: var(--spacing-sm);
-    }
-
-    .config-label {
-        color: var(--nav-alt);
-        font-size: var(--font-size-xs);
-        margin-bottom: 5px;
-    }
-
-    .api-key-input {
+        text-align: left;
         width: 100%;
-        padding: 4px;
-        border: 1px solid var(--primary-alt);
-        background: var(--primary-color);
-        color: white;
-        border-radius: var(--border-radius-sm);
-        font-size: var(--font-size-xs);
+        display: block;
+    }
+
+    .dropdown-item:hover {
+        background: rgba(255, 105, 180, 0.2);
+        color: #fff;
+        transform: translateX(2px);
+    }
+
+    .dropdown-item:active {
+        background: rgba(255, 105, 180, 0.4);
+    }
+
+    .dropdown-item.active,
+    .dropdown-item.selected {
+        background: rgba(255, 105, 180, 0.3);
+        color: #fff;
+        font-weight: bold;
+    }
+
+    .dropdown-item.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    /* ===== STANDARD SECTION ===== */
+    
+    .dropdown-section {
+        margin: 1rem 0;
+    }
+
+    .dropdown-section-header {
+        padding: 8px 0;
+        margin-bottom: 8px;
+        font-weight: bold;
+        font-size: var(--font-size-sm);
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 8px 0;
+    }
+
+    /* ===== STANDARD FORM CONTROLS ===== */
+    
+    .dropdown-content label {
+        display: block;
+        color: var(--nav-alt);
+        font-size: var(--font-size-sm);
+        margin-bottom: 4px;
         font-family: var(--font-primary);
     }
 
-    /* ===== Spiral Controls ===== */
+    .dropdown-content input[type="text"],
+    .dropdown-content input[type="number"],
+    .dropdown-content textarea,
+    .dropdown-content select {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 12px;
+        background: var(--primary-color);
+        border: 1px solid var(--primary-alt);
+        border-radius: var(--border-radius-sm);
+        color: #fff;
+        font-size: var(--font-size-sm);
+        font-family: var(--font-primary);
+    }
+
+    .dropdown-content input[type="range"] {
+        width: 100%;
+        margin: 8px 0;
+    }
+
+    .dropdown-content button {
+        margin: 4px 4px 4px 0;
+    }
+
+    .dropdown-content textarea {
+        resize: vertical;
+        min-height: 100px;
+        font-family: var(--font-mono);
+    }
+
+    /* ===== COMPONENT-SPECIFIC (minimal overrides) ===== */
+    
+    /* Spiral - needs scrolling */
     .spiral-controls {
-        padding: var(--spacing-sm);
         max-height: 70vh;
         overflow-y: auto;
     }
 
-    .spiral-controls::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .spiral-controls::-webkit-scrollbar-track {
-        background: var(--primary-color);
-        border-radius: var(--border-radius-sm);
-    }
-
-    .spiral-controls::-webkit-scrollbar-thumb {
-        background: var(--tertiary-color);
-        border-radius: var(--border-radius-sm);
-    }
-
-    .spiral-controls::-webkit-scrollbar-thumb:hover {
-        background: var(--secondary-alt);
-    }
-
-    .control-section {
-        margin-bottom: 12px;
-        border-bottom: 1px solid var(--primary-color);
-        padding-bottom: 8px;
-    }
-
-    .control-section:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-    }
-
-    .control-section .config-label {
-        color: var(--button-color);
-        font-weight: bold;
-        margin-bottom: 6px;
-        text-align: center;
-        text-shadow: 0 0 3px var(--button-color);
-    }
-
-    .control-section a {
-        padding: 6px 10px !important;
-        margin: 2px 0;
-        font-size: 0.55rem !important;
-        border-radius: var(--border-radius-sm);
-        transition: all var(--transition-fast);
-    }
-
-    .control-section a:hover {
-        background: var(--button-color) !important;
-        color: white !important;
-        text-shadow: 0 0 5px white;
-        transform: translateX(3px);
-    }
-
-    /* ===== Collar Configuration ===== */
-    .collar-config {
-        padding: var(--spacing-md);
-        min-width: 350px;
-        max-width: 90vw;
-        max-height: 80vh;
-        box-sizing: border-box;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .collar-textarea {
+    /* Collar - larger textarea */
+    .collar-config textarea,
+    #collar-text {
+        min-height: 150px;
         width: 100%;
-        height: 120px;
-        min-width: 200px;
-        max-width: calc(90vw - 40px);
-        min-height: 60px;
-        max-height: calc(80vh - 100px);
-        padding: var(--spacing-sm);
-        border: 1px solid var(--primary-alt);
-        background: var(--primary-color);
-        color: white;
-        border-radius: var(--border-radius-sm);
-        font-size: 0.7rem;
         resize: both;
+        padding: 10px;
+        border: 1px solid var(--button-color);
+        border-radius: var(--border-radius);
+        background: var(--chat-bg);
+        color: var(--text-color);
         font-family: var(--font-mono);
-        line-height: 1.4;
-        box-sizing: border-box;
-        overflow: auto;
+        font-size: 0.8rem;
     }
 
     .collar-buttons {
         display: flex;
-        gap: var(--spacing-sm);
-        margin-top: var(--spacing-sm);
-        justify-content: flex-end;
-        flex-shrink: 0;
-        position: sticky;
-        bottom: 0;
-        background: var(--nav-color);
-        padding-top: var(--spacing-sm);
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
     }
 
-    /* ===== Trigger Categories ===== */
+    .collar-btn {
+        flex: 1;
+        min-width: 60px;
+        padding: 6px 12px;
+        background: var(--button-color);
+        color: var(--primary-color);
+        border: none;
+        border-radius: var(--border-radius);
+        font-family: var(--font-primary);
+        font-size: 0.7rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .collar-btn:hover {
+        filter: brightness(1.2);
+        transform: scale(1.05);
+    }
+
+    .collar-btn[data-action="collar-save"] {
+        background: linear-gradient(45deg, #ff1493, #ff69b4);
+        color: white;
+        font-weight: bold;
+    }
+
+    /* TTS - voice grid */
+    .voice-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 8px;
+        margin: 12px 0;
+    }
+
+    /* Triggers - card layout */
     .trigger-categories {
         display: flex;
         flex-direction: column;
-        gap: 10.5px;
-        margin: 7px 0;
-        max-width: 100%;
+        gap: 10px;
         max-height: 350px;
         overflow-y: auto;
     }
 
-    .trigger-categories::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .trigger-categories::-webkit-scrollbar-track {
-        background: var(--primary-color);
-        border-radius: var(--border-radius-sm);
-    }
-
-    .trigger-categories::-webkit-scrollbar-thumb {
-        background: var(--tertiary-color);
-        border-radius: var(--border-radius-sm);
-    }
-
-    .trigger-categories::-webkit-scrollbar-thumb:hover {
-        background: var(--secondary-alt);
-    }
-
     .trigger-category {
-        background: transparent;
-        border-radius: var(--border-radius);
-        padding: 7px;
+        padding: 8px;
         border: 1px solid var(--primary-alt);
+        border-radius: var(--border-radius);
+        background: rgba(0, 0, 0, 0.2);
     }
 
-    .category-header {
-        font-size: var(--font-size-sm);
-        color: var(--tertiary-color);
+    .trigger-card {
+        padding: 12px;
+        margin: 8px 0;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--primary-alt);
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .trigger-card:hover {
+        border-color: var(--button-color);
+        background: rgba(255, 105, 180, 0.1);
+    }
+
+    .trigger-card.active {
+        border-color: var(--button-color);
+        background: rgba(255, 105, 180, 0.2);
+    }
+
+    .trigger-card .trigger-name {
         font-weight: bold;
-        margin: 0 0 5.6px 0;
-        text-transform: uppercase;
-    }
-
-    /* ===== Voice Categories ===== */
-    .voice-categories {
-        max-height: 300px;
-        overflow-y: auto;
-        padding: 10px;
-        border: 1px solid var(--primary-alt);
-        border-radius: var(--border-radius);
-        background: var(--primary-color);
-        margin: 10px 0;
-    }
-
-    .voice-categories::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .voice-categories::-webkit-scrollbar-track {
-        background: var(--primary-color);
-        border-radius: var(--border-radius-sm);
-    }
-
-    .voice-categories::-webkit-scrollbar-thumb {
-        background: var(--tertiary-color);
-        border-radius: var(--border-radius-sm);
-    }
-
-    .voice-categories::-webkit-scrollbar-thumb:hover {
-        background: var(--secondary-alt);
-    }
-
-    .voice-category {
-        margin-bottom: 15px;
-        border: 1px solid var(--primary-alt);
-        border-radius: var(--border-radius);
-        background: var(--nav-color);
-        padding: 10px;
-    }
-
-    .selected-voices-display {
-        margin: 10px 0;
-        padding: var(--spacing-sm);
-        background: var(--nav-color);
-        border: 1px solid var(--primary-alt);
-        border-radius: var(--border-radius);
-    }
-
-    .selected-voices-display .config-label {
-        margin: 0;
-        font-size: 0.8rem;
-    }
-
-    #current-voice-display {
-        color: var(--tertiary-alt);
-        font-weight: bold;
-    }
-
-    /* ===== Utility Classes ===== */
-    .coming-soon {
         color: var(--nav-alt);
-        padding: var(--spacing-sm);
-        font-style: italic;
-        text-align: center;
-        font-size: var(--font-size-sm);
+        margin-bottom: 4px;
     }
 
-    .coming-soon-small {
-        color: var(--nav-alt);
-        padding: 4px 0;
-        font-style: italic;
-        text-align: center;
-        font-size: 0.4rem;
+    .trigger-card .trigger-description {
+        font-size: var(--font-size-xs);
+        color: rgba(255, 255, 255, 0.6);
     }
 
-    .dropdown-hidden {
-        display: none !important;
+    /* Brainwave - control layout */
+    .brainwave-controls {
+        padding: 1rem 0;
+    }
+
+    .control-buttons {
+        display: flex;
+        gap: 8px;
+        margin: 12px 0;
+    }
+
+    .preset-section,
+    .volume-section,
+    .status-section,
+    .warning-section {
+        margin: 12px 0;
+    }
+
+    /* AI - model cards */
+    .model-selection {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .model-option {
+        padding: 12px;
+        border: 1px solid var(--primary-alt);
+        border-radius: var(--border-radius-sm);
+        background: rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .model-option:hover {
+        border-color: var(--button-color);
+        background: rgba(255, 105, 180, 0.1);
+    }
+
+    .model-option.active {
+        border-color: var(--button-color);
+        background: rgba(255, 105, 180, 0.2);
     }
 }
