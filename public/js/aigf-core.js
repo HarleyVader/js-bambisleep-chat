@@ -8,7 +8,7 @@ class ChatCore {
     this.messageHistory = [];
     this.maxMessages = 100;
     this.username = this.generateUsername();
-    this.aiMode = false;
+    this.aiMode = true; // AIGF mode permanently enabled
     this.collarActive = false;
     this.activeTriggers ??= []; // Will be loaded from official triggers.json
     this.chatEnabled ??= true; // AIGF chat enabled by default
@@ -527,9 +527,7 @@ class ChatCore {
     this.toggleTTS = document.getElementById("toggle-tts");
     this.toggleTriggers = document.getElementById("toggle-triggers");
 
-    // AI-specific controls
-    this.aiModeButton =
-      document.getElementById("toggle-ai") || this.createAIButton();
+    // Collar control
     this.collarButton =
       document.getElementById("toggle-collar") || this.createCollarButton();
     this.triggerContainer = document.getElementById("trigger-categories");
@@ -539,37 +537,17 @@ class ChatCore {
       this.populateTriggerButtons();
     }
 
-    // Initialize AIGF container visibility
+    // Initialize AIGF container visibility (always visible now)
     this.updateAIGFContainers();
   }
 
-  // Update AIGF container visibility based on mode
+  // Update AIGF container visibility - always visible since AIGF is permanently enabled
   updateAIGFContainers() {
     if (this.aigfChatMessages && this.aigfInputContainer) {
-      if (this.aiMode) {
-        this.aigfChatMessages.classList.add("visible");
-        this.aigfChatMessages.classList.remove("hidden");
-        this.aigfInputContainer.classList.remove("hidden");
-      } else {
-        this.aigfChatMessages.classList.remove("visible");
-        this.aigfChatMessages.classList.add("hidden");
-        this.aigfInputContainer.classList.add("hidden");
-      }
+      this.aigfChatMessages.classList.add("visible");
+      this.aigfChatMessages.classList.remove("hidden");
+      this.aigfInputContainer.classList.remove("hidden");
     }
-  }
-
-  createAIButton() {
-    const button = document.createElement("button");
-    button.id = "toggle-ai";
-    button.className = "control-button";
-    button.textContent = "CHAT";
-    button.title = "Toggle AI chat mode";
-
-    // Add to controls container
-    const controls = document.querySelector(".controls") || document.body;
-    controls.appendChild(button);
-
-    return button;
   }
 
   createCollarButton() {

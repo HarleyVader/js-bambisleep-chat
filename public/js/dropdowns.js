@@ -8,7 +8,6 @@ import {
   SpiralDropdown,
   TTSDropdown,
   TriggersDropdown,
-  AIDropdown,
   CollarDropdown,
   createBrainwaveDropdown,
 } from "./dropdowns/index.js";
@@ -110,7 +109,6 @@ class DropdownManager {
       "toggle-spiral": "off",
       "toggle-tts": "off",
       "toggle-triggers": "off",
-      "toggle-ai": "chat",
       "toggle-collar": "off",
     };
 
@@ -162,7 +160,6 @@ class DropdownManager {
       this.components.spiral = new SpiralDropdown(this);
       this.components.tts = new TTSDropdown(this);
       this.components.triggers = new TriggersDropdown(this);
-      this.components.ai = new AIDropdown(this);
       this.components.collar = new CollarDropdown(this);
 
       // Initialize brainwave dropdown content (button is in HTML like others)
@@ -230,11 +227,8 @@ class DropdownManager {
             this.openDropdown(dropdown);
           }
 
-          // Handle toggle functionality for toggle buttons (except AI which has custom logic)
-          if (
-            btn.classList.contains("toggle-button") &&
-            btn.id !== "toggle-ai"
-          ) {
+          // Handle toggle functionality for toggle buttons
+          if (btn.classList.contains("toggle-button")) {
             this.handleToggleClick(btn);
           }
         });
@@ -272,8 +266,6 @@ class DropdownManager {
         return this.components.tts;
       case "toggle-triggers":
         return this.components.triggers;
-      case "toggle-ai":
-        return this.components.ai;
       case "toggle-collar":
         return this.components.collar;
       case "toggle-brainwave":
