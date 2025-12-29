@@ -64,7 +64,6 @@
             min-height: 44px; /* Touch target size */
         }
 
-        #global-chat-messages,
         #aigf-chat-messages {
             padding: var(--spacing-sm);
         }
@@ -74,12 +73,10 @@
             font-size: 14px;
         }
 
-        #global-chat-input-container,
         #aigf-chat-input-container {
             padding: var(--spacing-sm);
         }
 
-        #global-chat-input,
         #aigf-chat-input {
             font-size: 16px; /* Prevent zoom on iOS */
             padding: 12px;

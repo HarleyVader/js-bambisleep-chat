@@ -438,14 +438,12 @@ class ChatHistoryManager {
   constructor() {
     this.messages = new Map(); // Store messages by type
     this.maxLimits = {
-      global: 100, // Global community chat
       aigf: 100, // AI chat responses
       legacy: 200, // Legacy compatibility
       all: 500, // Overall message limit
     };
 
     // Initialize message arrays by type
-    this.messages.set("global", []);
     this.messages.set("aigf", []);
     this.messages.set("legacy", []);
   }
@@ -513,10 +511,6 @@ class ChatHistoryManager {
   }
 
   // Legacy compatibility methods
-  getGlobalHistory(limit = 20) {
-    return this.getHistory("global", limit);
-  }
-
   getAIGFHistory(limit = 20) {
     return this.getHistory("aigf", limit);
   }
@@ -873,54 +867,11 @@ io.on("connection", (socket) => {
   console.log(`🔍 User Agent: ${userAgent?.substring(0, 100)}`);
   console.log(`🔍 Connection origin:`, socket.handshake.headers.origin);
 
-  // Send recent chat histories to new user using unified system
-  socket.emit("global-chat-history", chatHistoryManager.getGlobalHistory(20));
+  // Send recent chat history to new user
   socket.emit("chat-history", chatHistoryManager.getLegacyHistory(20));
 
   // Broadcast connection count (use unique users for display)
   io.emit("user-count", uniqueUsers.size);
-  io.emit("global-user-count", uniqueUsers.size);
-
-  // Handle regular chat messages (legacy compatibility)
-  socket.on("message", (data) => {
-    const messageData = {
-      id: Date.now(),
-      message: data.message,
-      timestamp: data.timestamp || new Date().toISOString(),
-      user: data.username || socket.id,
-      username: data.username,
-      type: "global",
-    };
-
-    // Store in unified chat history system
-    chatHistoryManager.addMessage(messageData, ["global", "legacy"]);
-
-    // Broadcast to all clients with both events
-    socket.broadcast.emit("message", messageData); // Legacy
-    socket.broadcast.emit("global-message", messageData); // New
-
-    console.log(`Global message from ${messageData.user}: ${data.message}`);
-  });
-
-  // Handle dedicated global chat messages
-  socket.on("global-message", (data) => {
-    const messageData = {
-      id: Date.now(),
-      message: data.message,
-      timestamp: data.timestamp || new Date().toISOString(),
-      user: data.username || socket.id,
-      username: data.username,
-      type: "global",
-    };
-
-    // Store in unified chat history system (global only)
-    chatHistoryManager.addMessage(messageData, ["global"]);
-
-    // Broadcast to all clients as global message
-    socket.broadcast.emit("global-message", messageData);
-
-    console.log(`🌍 Global chat from ${messageData.user}: ${data.message}`);
-  });
 
   // Handle AI chat requests
   socket.on("ai-chat", (data) => {
@@ -1149,9 +1100,8 @@ io.on("connection", (socket) => {
     );
     console.log(`🔍 Disconnected ID: ${socket.id}`);
 
-    // Broadcast unique user count for both legacy and global
+    // Broadcast unique user count
     io.emit("user-count", uniqueUsers.size);
-    io.emit("global-user-count", uniqueUsers.size);
   });
 });
 
@@ -1208,17 +1158,6 @@ app.get("/api/history", (req, res) => {
   });
 });
 
-// Global chat history
-app.get("/api/global/history", (req, res) => {
-  const limit = parseInt(req.query.limit) || 20;
-  const messages = chatHistoryManager.getGlobalHistory(limit);
-  res.json({
-    messages: messages,
-    total: chatHistoryManager.getHistory("global").length,
-    type: "global",
-  });
-});
-
 // AIGF chat history
 app.get("/api/aigf/history", (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
@@ -1228,44 +1167,6 @@ app.get("/api/aigf/history", (req, res) => {
     total: chatHistoryManager.getHistory("aigf").length,
     type: "aigf",
   });
-});
-
-// Global chat statistics
-app.get("/api/global/stats", (req, res) => {
-  const stats = chatHistoryManager.getStats();
-  const recentGlobal = chatHistoryManager.getGlobalHistory(5);
-
-  res.json({
-    totalMessages: stats.byType.global || 0,
-    connectedUsers: connectedUsers,
-    uniqueUsers: uniqueUsers.size,
-    recentActivity: recentGlobal.map((msg) => ({
-      timestamp: msg.timestamp,
-      user: msg.username || msg.user,
-    })),
-    historyStats: stats,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// Clear global chat history (admin endpoint)
-app.post("/api/global/clear", (req, res) => {
-  const originalCount = chatHistoryManager.getHistory("global").length;
-  chatHistoryManager.clearHistory("global");
-
-  // Broadcast to all connected clients
-  io.emit("global-chat-cleared", {
-    timestamp: new Date().toISOString(),
-    clearedCount: originalCount,
-  });
-
-  res.json({
-    success: true,
-    clearedMessages: originalCount,
-    timestamp: new Date().toISOString(),
-  });
-
-  console.log(`🌍 Global chat history cleared: ${originalCount} messages`);
 });
 
 // Unified chat history management endpoints
@@ -1292,7 +1193,7 @@ app.get("/api/chat/all", (req, res) => {
 
 app.post("/api/chat/clear/:type", (req, res) => {
   const { type } = req.params;
-  const validTypes = ["global", "aigf", "legacy", "all"];
+  const validTypes = ["aigf", "legacy", "all"];
 
   if (!validTypes.includes(type)) {
     return res.status(400).json({
@@ -1310,14 +1211,6 @@ app.post("/api/chat/clear/:type", (req, res) => {
     chatHistoryManager.clearAllHistory();
   } else {
     chatHistoryManager.clearHistory(type);
-  }
-
-  // Broadcast appropriate clear events
-  if (type === "global" || type === "all") {
-    io.emit("global-chat-cleared", {
-      timestamp: new Date().toISOString(),
-      clearedCount: originalCount,
-    });
   }
 
   res.json({

@@ -602,7 +602,6 @@ body {
 }
 
 /* Chat Input Containers */
-#global-chat-input-container,
 #aigf-chat-input-container {
     padding: 14px;
     border-top: 1px solid var(--nav-alt);
@@ -613,12 +612,6 @@ body {
     border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-/* Global chat input - blue theme */
-#global-chat-input-container {
-    border-color: var(--primary-alt);
-    background: var(--primary-color);
-}
-
 /* AIGF chat input - pink theme */
 #aigf-chat-input-container {
     border-color: var(--button-color);
@@ -626,14 +619,11 @@ body {
 }
 
 /* Container visibility control */
-#global-chat-messages.hidden,
 #aigf-chat-messages.hidden,
-#global-chat-input-container.hidden,
 #aigf-chat-input-container.hidden {
     display: none !important;
 }
 
-#global-chat-messages.visible,
 #aigf-chat-messages.visible {
     display: block !important;
 }
@@ -653,7 +643,6 @@ body {
 }
 
 /* Chat Input Fields */
-#global-chat-input,
 #aigf-chat-input,
 #chat-input {
     flex: 1;
@@ -671,12 +660,6 @@ body {
     font-family: "Audiowide", sans-serif;
 }
 
-/* Global chat input styling */
-#global-chat-input {
-    background: rgba(12, 42, 42, 0.5);
-    border: 1px solid rgba(21, 170, 181, 0.4);
-}
-
 /* AIGF chat input styling */
 #aigf-chat-input {
     background: rgba(64, 0, 47, 0.5);
@@ -690,7 +673,6 @@ body {
 }
 
 #chat-input:focus,
-#global-chat-input:focus,
 #aigf-chat-input:focus {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.3);
@@ -698,7 +680,6 @@ body {
 }
 
 #chat-input::placeholder,
-#global-chat-input::placeholder,
 #aigf-chat-input::placeholder {
     color: rgba(255, 255, 255, 0.5);
 }

@@ -94,12 +94,6 @@
           <span class="status-indicator" id="triggers-status">●</span>
         </button>
       </div>
-      <div class="dropdown" data-dropdown="ai">
-        <button id="toggle-ai" class="dropdown-btn toggle-button" data-state="off">
-          🌸 AIGF
-          <span class="status-indicator" id="ai-status">●</span>
-        </button>
-      </div>
       <div class="dropdown collar-dropdown" data-dropdown="collar">
         <button id="toggle-collar" class="dropdown-btn toggle-button" data-state="off">
           ⛓️ Collar
@@ -125,9 +119,6 @@
       <div class="dropdown-content" data-dropdown="triggers">
         <!-- Content will be populated by triggers-dropdown.js -->
       </div>
-      <div class="dropdown-content" data-dropdown="ai">
-        <!-- Content will be populated by ai-dropdown.js -->
-      </div>
       <div class="dropdown-content" data-dropdown="collar">
         <!-- Content will be populated by collar-dropdown.js -->
       </div>
@@ -142,17 +133,6 @@
         <h1>🧠BambiSleep.Chat🌀</h1>
       </div>
 
-      <!-- Global Chat Messages Container -->
-      <div id="global-chat-messages">
-        <!-- Global community chat messages appear here -->
-      </div>
-
-      <!-- Global Chat Input Container -->
-      <div id="global-chat-input-container">
-        <input type="text" id="global-chat-input" placeholder="Type global message..." maxlength="500">
-        <button id="global-send-button">Send Global</button>
-      </div>
-
       <!-- AIGF Chat Messages Container -->
       <div id="aigf-chat-messages">
         <!-- AI brainwash mode messages appear here -->
@@ -165,9 +145,8 @@
       </div>
 
       <div class="docs-link-container">
-        <button id="toggle-chat" class="dropdown-btn toggle-button" data-state="on">💬Chat: ON</button>
-        <a href="/docs.html" class="docs-link-btn" target="_blank">📚Docs</a>
-        <a href="https://bambisleep.info" class="docs-link-btn" id="wiki-btn" target="_blank" rel="noopener">📖W i k i</a>
+        <a href="/docs.html" class="docs-link-btn" target="_blank">📚 Docs</a>
+        <a href="https://bambisleep.info" class="docs-link-btn" id="wiki-btn" target="_blank" rel="noopener">📖 W i k i</a>
       </div>
     </div>
   </div>
@@ -180,7 +159,6 @@
   <script src="/js/brainwave.js"></script>
   <script src="/js/psychodelic-trigger-mania.js"></script>
   <script type="module" src="/js/dropdowns.js"></script>
-  <script src="/js/chat.js"></script>
   <script type="module" src="/js/aigf-core.js"></script>
   <script src="/js/mobile-interface.js"></script>
 

@@ -8,10 +8,9 @@ class ChatCore {
     this.messageHistory = [];
     this.maxMessages = 100;
     this.username = this.generateUsername();
-    this.aiMode = false;
+    this.aiMode = true; // AIGF mode permanently enabled
     this.collarActive = false;
     this.activeTriggers ??= []; // Will be loaded from official triggers.json
-    this.chatEnabled ??= true; // AIGF chat enabled by default
 
     // Initialize error management
     this.errorManager = new ErrorManager();
@@ -354,14 +353,6 @@ class ChatCore {
 
       // Send initial triggers to worker
       this.updateTriggers();
-
-      // Initialize global chat manager separately (independent system)
-      if (
-        typeof GlobalChatManager !== "undefined" &&
-        !window.globalChatManager
-      ) {
-        window.globalChatManager = new GlobalChatManager(this.socket);
-      }
     });
 
     this.socket.on("disconnect", () => {
@@ -372,9 +363,6 @@ class ChatCore {
       if (window.globalSocket === this.socket) {
         window.globalSocket = null;
       }
-
-      // Dispatch disconnection event for global chat
-      document.dispatchEvent(new CustomEvent("socketDisconnected"));
 
       console.log("Disconnected from server");
     });
@@ -538,9 +526,7 @@ class ChatCore {
     this.toggleTTS = document.getElementById("toggle-tts");
     this.toggleTriggers = document.getElementById("toggle-triggers");
 
-    // AI-specific controls
-    this.aiModeButton =
-      document.getElementById("toggle-ai") || this.createAIButton();
+    // Collar control
     this.collarButton =
       document.getElementById("toggle-collar") || this.createCollarButton();
     this.triggerContainer = document.getElementById("trigger-categories");
@@ -550,37 +536,17 @@ class ChatCore {
       this.populateTriggerButtons();
     }
 
-    // Initialize AIGF container visibility
+    // Initialize AIGF container visibility (always visible now)
     this.updateAIGFContainers();
   }
 
-  // Update AIGF container visibility based on mode
+  // Update AIGF container visibility - always visible since AIGF is permanently enabled
   updateAIGFContainers() {
     if (this.aigfChatMessages && this.aigfInputContainer) {
-      if (this.aiMode) {
-        this.aigfChatMessages.classList.add("visible");
-        this.aigfChatMessages.classList.remove("hidden");
-        this.aigfInputContainer.classList.remove("hidden");
-      } else {
-        this.aigfChatMessages.classList.remove("visible");
-        this.aigfChatMessages.classList.add("hidden");
-        this.aigfInputContainer.classList.add("hidden");
-      }
+      this.aigfChatMessages.classList.add("visible");
+      this.aigfChatMessages.classList.remove("hidden");
+      this.aigfInputContainer.classList.remove("hidden");
     }
-  }
-
-  createAIButton() {
-    const button = document.createElement("button");
-    button.id = "toggle-ai";
-    button.className = "control-button";
-    button.textContent = "CHAT";
-    button.title = "Toggle AI chat mode";
-
-    // Add to controls container
-    const controls = document.querySelector(".controls") || document.body;
-    controls.appendChild(button);
-
-    return button;
   }
 
   createCollarButton() {
@@ -727,37 +693,6 @@ class ChatCore {
     this.updateTriggers();
   }
 
-  // Toggle chat functionality
-  toggleChat() {
-    this.chatEnabled = !this.chatEnabled;
-    const chatButton = document.getElementById("toggle-chat");
-
-    if (chatButton) {
-      chatButton.setAttribute("data-state", this.chatEnabled ? "on" : "off");
-      chatButton.textContent = `💬 Chat: ${this.chatEnabled ? "ON" : "OFF"}`;
-    }
-
-    // Update AIGF input container visibility/functionality
-    if (this.aigfInputContainer && this.aigfChatInput) {
-      if (this.chatEnabled) {
-        this.aigfInputContainer.style.opacity = "1";
-        this.aigfChatInput.disabled = false;
-        this.aigfChatInput.placeholder = "Type AIGF message...";
-      } else {
-        this.aigfInputContainer.style.opacity = "0.5";
-        this.aigfChatInput.disabled = true;
-        this.aigfChatInput.placeholder = "AIGF Chat disabled";
-      }
-    }
-
-    this.addSystemMessage(
-      this.chatEnabled
-        ? "💬 Chat functionality ENABLED"
-        : "💬 Chat functionality DISABLED"
-    );
-    console.log("💬 Chat toggled:", this.chatEnabled ? "ON" : "OFF");
-  }
-
   bindEvents() {
     // AIGF message sending
     if (this.aigfSendButton && this.aigfChatInput) {
@@ -775,31 +710,6 @@ class ChatCore {
     // this.toggleSpiral.addEventListener('click', () => this.toggleSpiralAnimation());
     // this.toggleTTS.addEventListener('click', () => this.toggleTextToSpeech());
     // this.toggleTriggers.addEventListener('click', () => this.toggleTriggerSystem());
-
-    // Listen for AI mode changes from dropdown
-    document.addEventListener("aiModeChange", (event) => {
-      this.aiMode = event.detail.enabled || event.detail.mode === "aigf";
-      this.aiModeButton.classList.toggle("active", this.aiMode);
-
-      // Update AIGF container visibility
-      this.updateAIGFContainers();
-
-      if (this.aiMode) {
-        this.updateTriggers();
-        this.addSystemMessage("🌀 AIGF Mode Activated");
-      } else {
-        this.addSystemMessage("🌀 AIGF Mode Deactivated");
-      }
-    });
-
-    // Handle chat toggle button
-    const chatToggleButton = document.getElementById("toggle-chat");
-    if (chatToggleButton) {
-      this.chatEnabled = true; // Default chat enabled
-      chatToggleButton.addEventListener("click", () => {
-        this.toggleChat();
-      });
-    }
 
     // Listen for collar events from dropdown.js
     document.addEventListener("collarActivated", (event) => {
@@ -858,20 +768,6 @@ class ChatCore {
   sendAIGFMessage() {
     const message = this.aigfChatInput.value.trim();
     if (!message || !this.isConnected) return;
-
-    // Check if AIGF chat is enabled
-    if (!this.chatEnabled) {
-      this.addSystemMessage("💬 AIGF Chat is disabled.");
-      this.aigfChatInput.value = "";
-      return;
-    }
-
-    // Only send if AIGF mode is active
-    if (!this.aiMode) {
-      this.addSystemMessage("🌀 Activate AIGF mode to send AI messages");
-      this.aigfChatInput.value = "";
-      return;
-    }
 
     // Add message to AIGF UI immediately
     this.addMessage(message, new Date(), true, this.username);
@@ -1004,17 +900,6 @@ class ChatCore {
   scrollToBottom() {
     if (this.aigfChatMessages) {
       this.aigfChatMessages.scrollTop = this.aigfChatMessages.scrollHeight;
-    }
-  }
-
-  // AI-specific methods
-  toggleAIMode() {
-    this.aiMode = !this.aiMode;
-    this.aiModeButton.textContent = this.aiMode ? "AIGF" : "CHAT";
-    this.aiModeButton.classList.toggle("active", this.aiMode);
-
-    if (this.aiMode) {
-      this.updateTriggers();
     }
   }
 

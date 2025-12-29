@@ -1,4 +1,5 @@
 // text2speech.js - Enhanced Text-to-speech with Kokoro integration and spiral synchronization
+// OPTIMIZED: Added prefetching, parallel processing, and improved memory management
 class TextToSpeechSystem {
   constructor() {
     this.isEnabled ??= false;
@@ -43,6 +44,16 @@ class TextToSpeechSystem {
     this.maxQueueSize = 50; // Limit queue growth
     this.maxAudioCache = 25; // Limit audio URL cache
     this.cleanupInterval = null; // Regular cleanup timer
+
+    // OPTIMIZATION: Prefetching system for faster playback
+    this.prefetchQueue = []; // Queue of texts to prefetch
+    this.prefetchedAudio = new Map(); // Map of text -> blob URL
+    this.maxPrefetch = 3; // Max number of prefetched audio items
+    this.isPrefetching = false;
+
+    // OPTIMIZATION: Parallel processing configuration
+    this.maxParallelRequests = 2; // Max concurrent TTS requests
+    this.activeRequests = 0;
 
     this.init();
   }
@@ -591,7 +602,7 @@ class TextToSpeechSystem {
     }
 
     // Use Web Locks API to prevent concurrent processing (progressive enhancement)
-    const processLogic = () => {
+    const processLogic = async () => {
       this.isPlaying = true;
       const textItem = this.textArray.shift();
 
@@ -606,6 +617,25 @@ class TextToSpeechSystem {
 
       console.log("🎤 Processing text:", this.currentText);
 
+      // OPTIMIZATION: Check prefetch cache first for instant playback
+      const prefetchedUrl = this.getPrefetchedAudio(this.currentTTSText);
+      if (prefetchedUrl) {
+        // Use prefetched audio directly - much faster!
+        this.currentAudioUrl = prefetchedUrl;
+        if (this.currentAudio) {
+          this.currentAudio.src = prefetchedUrl;
+          this.currentAudio.load();
+          this.currentAudio.onloadedmetadata = () => {
+            console.log(
+              "⚡ Playing prefetched audio, duration:",
+              this.currentAudio.duration
+            );
+            this.currentAudio.play().catch((e) => this.handleAudioError(e));
+          };
+        }
+        return;
+      }
+
       // Add to audio queue using TTS text and use do_tts like original working version
       this.arrayPush(this.audioArray, this.currentTTSText);
       this.do_tts(this.audioArray); // CRITICAL: Use do_tts() not requestTTS()
@@ -618,16 +648,16 @@ class TextToSpeechSystem {
           "tts-processing",
           { mode: "exclusive" },
           async () => {
-            processLogic();
+            await processLogic();
             // Lock will be released when this function completes
           }
         );
       } catch (error) {
         console.warn("Web Locks API failed, using fallback:", error);
-        processLogic();
+        await processLogic();
       }
     } else {
-      processLogic();
+      await processLogic();
     }
   }
 
@@ -662,6 +692,9 @@ class TextToSpeechSystem {
 
     // Display in chat if response element exists
     this.displayInChat(this.currentText);
+
+    // OPTIMIZATION: Start prefetching next items while current is playing
+    this.prefetchNext();
   }
 
   handleAudioError(e) {
@@ -718,7 +751,12 @@ class TextToSpeechSystem {
   }
 
   handleKokoroResponse(data) {
-    console.log("🎤 Kokoro response received:", data.size, "bytes");
+    console.log(
+      "🎤 Kokoro response received:",
+      data.size,
+      "bytes",
+      data.cached ? "(cached)" : ""
+    );
 
     try {
       // Convert base64 audio data to blob URL
@@ -750,6 +788,74 @@ class TextToSpeechSystem {
       // Try next item in queue
       this.processTextQueue();
     }
+  }
+
+  // ==================== PREFETCHING SYSTEM ====================
+
+  /**
+   * OPTIMIZATION: Prefetch next items in queue while current is playing
+   */
+  prefetchNext() {
+    if (this.isPrefetching || this.textArray.length === 0) return;
+
+    // Prefetch up to maxPrefetch items
+    const itemsToPrefetch = this.textArray.slice(0, this.maxPrefetch);
+
+    itemsToPrefetch.forEach((textItem) => {
+      const ttsText = typeof textItem === "string" ? textItem : textItem.tts;
+
+      // Skip if already prefetched
+      if (this.prefetchedAudio.has(ttsText)) return;
+
+      // Request prefetch via socket
+      this.requestPrefetch(ttsText);
+    });
+  }
+
+  /**
+   * Request audio prefetch (non-blocking)
+   */
+  requestPrefetch(text) {
+    if (!this.socket?.connected || this.prefetchedAudio.has(text)) return;
+
+    console.log(`⚡ Prefetching: "${text.substring(0, 30)}..."`);
+
+    this.socket.emit("tts-request", {
+      text: text,
+      voice: this.currentVoice,
+      format: "mp3",
+      prefetch: true, // Mark as prefetch request
+    });
+  }
+
+  /**
+   * Check if audio is prefetched and return it
+   */
+  getPrefetchedAudio(text) {
+    const cached = this.prefetchedAudio.get(text);
+    if (cached) {
+      this.prefetchedAudio.delete(text); // Remove after use
+      console.log(
+        `⚡ Using prefetched audio for: "${text.substring(0, 30)}..."`
+      );
+      return cached;
+    }
+    return null;
+  }
+
+  /**
+   * Store prefetched audio for later use
+   */
+  storePrefetchedAudio(text, audioUrl) {
+    // Limit prefetch cache size
+    if (this.prefetchedAudio.size >= this.maxPrefetch * 2) {
+      const firstKey = this.prefetchedAudio.keys().next().value;
+      const oldUrl = this.prefetchedAudio.get(firstKey);
+      if (oldUrl) URL.revokeObjectURL(oldUrl);
+      this.prefetchedAudio.delete(firstKey);
+    }
+
+    this.prefetchedAudio.set(text, audioUrl);
   }
 
   base64ToBlob(base64, contentType) {
@@ -886,6 +992,7 @@ class TextToSpeechSystem {
   }
 
   // UPGRADED: Enhanced TTS processing with better error handling and blob management
+  // OPTIMIZED: Reduced retry delays and added connection reuse hints
   async do_tts(array) {
     const messageEl = document.querySelector("#message");
     if (messageEl) messageEl.textContent = "Synthesizing...";
@@ -898,39 +1005,35 @@ class TextToSpeechSystem {
 
     while (retries >= 0) {
       try {
-        // Enhanced logging for debugging
-        console.log(`🎤 TTS Request: ${currentURL}`);
-        console.log(`🎤 Current hostname: ${window.location.hostname}`);
-        console.log(`🎤 Current port: ${window.location.port}`);
+        // OPTIMIZATION: Minimal logging
+        console.log(`🎤 TTS Request: ${currentURL.substring(0, 80)}...`);
 
-        // Fetch the audio from the server
+        // OPTIMIZATION: Fetch with timeout for faster failure detection
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
         const response = await fetch(currentURL, {
           method: "GET",
           headers: {
-            Accept: "audio/mpeg", // Expect MP3 format
+            Accept: "audio/mpeg",
+            Connection: "keep-alive", // Hint for connection reuse
           },
+          signal: controller.signal,
         });
 
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
-          console.error(
-            `🎤 TTS API Error: ${response.status} ${response.statusText}`
-          );
-          console.error(`🎤 Request URL: ${currentURL}`);
-          console.error(`🎤 Response headers:`, [
-            ...response.headers.entries(),
-          ]);
+          console.error(`🎤 TTS API Error: ${response.status}`);
 
           if (retries > 0) {
-            console.log(
-              `🎤 Retrying TTS request (${retries} attempts left)...`
-            );
+            console.log(`🎤 Retrying TTS (${retries} left)...`);
             retries--;
-            await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retry
+            // OPTIMIZATION: Reduced retry delay from 1000ms to 300ms
+            await new Promise((resolve) => setTimeout(resolve, 300));
             continue;
           }
-          throw new Error(
-            `HTTP error! Status: ${response.status} - ${response.statusText}`
-          );
+          throw new Error(`HTTP ${response.status}`);
         }
 
         // Get audio data as blob
