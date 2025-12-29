@@ -79,7 +79,7 @@ socket.emit("ai-chat", { message: "Hello" });
 // Server emits 'ai-response' back to client
 ```
 
-**Key events**: `ai-chat`/`ai-response`, `tts-request`/`tts-response`, `message`/`global-message`, `activate-collar`
+**Key events**: `ai-chat`/`ai-response`, `tts-request`/`tts-response`, `activate-collar`
 
 ### 4. Worker Communication Pattern
 

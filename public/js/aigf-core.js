@@ -354,14 +354,6 @@ class ChatCore {
 
       // Send initial triggers to worker
       this.updateTriggers();
-
-      // Initialize global chat manager separately (independent system)
-      if (
-        typeof GlobalChatManager !== "undefined" &&
-        !window.globalChatManager
-      ) {
-        window.globalChatManager = new GlobalChatManager(this.socket);
-      }
     });
 
     this.socket.on("disconnect", () => {
@@ -372,9 +364,6 @@ class ChatCore {
       if (window.globalSocket === this.socket) {
         window.globalSocket = null;
       }
-
-      // Dispatch disconnection event for global chat
-      document.dispatchEvent(new CustomEvent("socketDisconnected"));
 
       console.log("Disconnected from server");
     });
@@ -453,7 +442,7 @@ class ChatCore {
             // Use object format for compatibility with processTextQueue
             window.ttsSystem.textArray.push({
               display: sentence,
-              tts: sentence
+              tts: sentence,
             });
             console.log("🎤 Added to text array:", sentence);
           }
@@ -461,7 +450,10 @@ class ChatCore {
 
         // Start TTS processing if not already playing
         // Reset state to true if queue has items and not currently playing
-        if (window.ttsSystem.textArray.length > 0 && !window.ttsSystem.isPlaying) {
+        if (
+          window.ttsSystem.textArray.length > 0 &&
+          !window.ttsSystem.isPlaying
+        ) {
           window.ttsSystem.state = true;
           console.log("🎤 Starting TTS queue processing...");
           window.ttsSystem.processTextQueue();

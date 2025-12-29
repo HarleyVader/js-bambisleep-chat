@@ -77,19 +77,11 @@
     }
 
     /* Force chat messages to stay in interface layer - NEVER above dropdowns */
-    #global-chat-messages,
     #aigf-chat-messages,
-    #global-chat-input-container,
     #aigf-chat-input-container,
     .docs-link-container {
         position: relative;
         /* Stay in interface layer - dropdowns layer is above this */
-    }
-
-    /* Explicitly ensure global chat never overlaps dropdowns */
-    #global-chat-messages {
-        position: relative;
-        /* NO isolation: isolate - breaks layer stacking */
     }
 }
 

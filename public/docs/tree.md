@@ -54,7 +54,6 @@ f:\js-bambisleep-chat\
 │   └── 📁 js\
 │       ├── 📄 aigf-core.js                           [🟢 92%] ✅ Excellent: Socket handling, trigger loading
 │       ├── 📄 brainwave.js                           [🟡 75%] Brainwave functionality
-│       ├── 📄 chat.js                                [🟡 80%] Chat interface logic
 │       ├── 📄 dropdowns.js                           [🟡 75%] Legacy dropdown management
 │       ├── 📄 effects.js                             [🟢 88%] ✅ Good trigger highlighting system
 │       ├── 📄 error-manager.js                       [🟢 95%] ✅ Excellent error handling system

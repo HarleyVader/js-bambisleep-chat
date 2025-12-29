@@ -515,7 +515,7 @@ class TextToSpeechSystem {
         const text = sentence.trim();
         this.textArray.push({
           display: text,
-          tts: text
+          tts: text,
         });
       }
     });
@@ -607,7 +607,7 @@ class TextToSpeechSystem {
       const textItem = this.textArray.shift();
 
       // Handle both object format {display, tts} and legacy string format
-      if (typeof textItem === 'string') {
+      if (typeof textItem === "string") {
         this.currentText = textItem;
         this.currentTTSText = textItem;
       } else {
@@ -626,7 +626,10 @@ class TextToSpeechSystem {
           this.currentAudio.src = prefetchedUrl;
           this.currentAudio.load();
           this.currentAudio.onloadedmetadata = () => {
-            console.log("⚡ Playing prefetched audio, duration:", this.currentAudio.duration);
+            console.log(
+              "⚡ Playing prefetched audio, duration:",
+              this.currentAudio.duration
+            );
             this.currentAudio.play().catch((e) => this.handleAudioError(e));
           };
         }
@@ -748,7 +751,12 @@ class TextToSpeechSystem {
   }
 
   handleKokoroResponse(data) {
-    console.log("🎤 Kokoro response received:", data.size, "bytes", data.cached ? "(cached)" : "");
+    console.log(
+      "🎤 Kokoro response received:",
+      data.size,
+      "bytes",
+      data.cached ? "(cached)" : ""
+    );
 
     try {
       // Convert base64 audio data to blob URL
@@ -792,13 +800,13 @@ class TextToSpeechSystem {
 
     // Prefetch up to maxPrefetch items
     const itemsToPrefetch = this.textArray.slice(0, this.maxPrefetch);
-    
+
     itemsToPrefetch.forEach((textItem) => {
-      const ttsText = typeof textItem === 'string' ? textItem : textItem.tts;
-      
+      const ttsText = typeof textItem === "string" ? textItem : textItem.tts;
+
       // Skip if already prefetched
       if (this.prefetchedAudio.has(ttsText)) return;
-      
+
       // Request prefetch via socket
       this.requestPrefetch(ttsText);
     });
@@ -809,14 +817,14 @@ class TextToSpeechSystem {
    */
   requestPrefetch(text) {
     if (!this.socket?.connected || this.prefetchedAudio.has(text)) return;
-    
+
     console.log(`⚡ Prefetching: "${text.substring(0, 30)}..."`);
-    
+
     this.socket.emit("tts-request", {
       text: text,
       voice: this.currentVoice,
       format: "mp3",
-      prefetch: true // Mark as prefetch request
+      prefetch: true, // Mark as prefetch request
     });
   }
 
@@ -827,7 +835,9 @@ class TextToSpeechSystem {
     const cached = this.prefetchedAudio.get(text);
     if (cached) {
       this.prefetchedAudio.delete(text); // Remove after use
-      console.log(`⚡ Using prefetched audio for: "${text.substring(0, 30)}..."`);
+      console.log(
+        `⚡ Using prefetched audio for: "${text.substring(0, 30)}..."`
+      );
       return cached;
     }
     return null;
@@ -844,7 +854,7 @@ class TextToSpeechSystem {
       if (oldUrl) URL.revokeObjectURL(oldUrl);
       this.prefetchedAudio.delete(firstKey);
     }
-    
+
     this.prefetchedAudio.set(text, audioUrl);
   }
 
@@ -1006,9 +1016,9 @@ class TextToSpeechSystem {
           method: "GET",
           headers: {
             Accept: "audio/mpeg",
-            Connection: "keep-alive" // Hint for connection reuse
+            Connection: "keep-alive", // Hint for connection reuse
           },
-          signal: controller.signal
+          signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
