@@ -31,13 +31,13 @@ npm run dev  # Development with nodemon
 npm test     # Test suite → reports in tests/reports/*.html
 ```
 
-| File | Purpose |
-|------|---------|
-| [server.js](server.js) | Express server, Socket.io, worker orchestration |
-| [config/env.js](config/env.js) | **Single source** for all environment config |
-| [public/js/aigf-core.js](public/js/aigf-core.js) | Main chat client (ChatCore class) |
-| [workers/triggers.json](workers/triggers.json) | **Authoritative** trigger definitions |
-| [public/js/dropdowns/](public/js/dropdowns/) | Modular UI components (ES6 exports) |
+| File                                             | Purpose                                         |
+| ------------------------------------------------ | ----------------------------------------------- |
+| [server.js](server.js)                           | Express server, Socket.io, worker orchestration |
+| [config/env.js](config/env.js)                   | **Single source** for all environment config    |
+| [public/js/aigf-core.js](public/js/aigf-core.js) | Main chat client (ChatCore class)               |
+| [workers/triggers.json](workers/triggers.json)   | **Authoritative** trigger definitions           |
+| [public/js/dropdowns/](public/js/dropdowns/)     | Modular UI components (ES6 exports)             |
 
 ## Critical Patterns
 
@@ -45,12 +45,12 @@ npm test     # Test suite → reports in tests/reports/*.html
 
 ```javascript
 // ✅ Always use centralized config
-const ENV = require('./config/env');
-const url = ENV.KOKORO.URL;            // Auto-switches dev/prod
-const ready = ENV.LMS.isConfigured;     // Computed property
+const ENV = require("./config/env");
+const url = ENV.KOKORO.URL; // Auto-switches dev/prod
+const ready = ENV.LMS.isConfigured; // Computed property
 
 // ❌ Never access process.env directly
-process.env.KOKORO_HOST_DEVELOPMENT    // Bypasses validation
+process.env.KOKORO_HOST_DEVELOPMENT; // Bypasses validation
 ```
 
 ### 2. Trigger System (Single Source of Truth)
@@ -59,12 +59,12 @@ Triggers live in `workers/triggers.json`, served at `/api/triggers/json`. **Neve
 
 ```javascript
 // ✅ Load from API
-const response = await fetch('/api/triggers/json');
+const response = await fetch("/api/triggers/json");
 const { triggers } = await response.json();
 // Each trigger: { name, category, safetyLevel, description, effect }
 
 // ❌ Hardcoded triggers get out of sync
-const triggers = ['BAMBI', 'GOOD GIRL'];
+const triggers = ["BAMBI", "GOOD GIRL"];
 ```
 
 ### 3. Socket.io Message Flow
@@ -73,7 +73,7 @@ Server **always** mediates between clients and workers. Workers never access soc
 
 ```javascript
 // Client → Server → Worker → Server → Client
-socket.emit('ai-chat', { message: 'Hello' });
+socket.emit("ai-chat", { message: "Hello" });
 // Server forwards to lmWorker via postMessage()
 // Worker responds via parentPort.postMessage()
 // Server emits 'ai-response' back to client
@@ -87,10 +87,10 @@ Workers are persistent (created once in server.js). Always include `socketId` fo
 
 ```javascript
 // Server → Worker
-worker.postMessage({ type: 'chat', prompt: text, socketId: socket.id });
+worker.postMessage({ type: "chat", prompt: text, socketId: socket.id });
 
 // Worker → Server
-parentPort.postMessage({ type: 'ai_response', response: text, socketId });
+parentPort.postMessage({ type: "ai_response", response: text, socketId });
 ```
 
 ### 5. Dropdown Component System
@@ -99,13 +99,15 @@ New UI controls go in `public/js/dropdowns/`. Export from `index.js`.
 
 ```javascript
 // 1. Create my-dropdown.js with named export
-export function MyDropdown() { /* returns DOM element */ }
+export function MyDropdown() {
+  /* returns DOM element */
+}
 
 // 2. Add to public/js/dropdowns/index.js
-export { MyDropdown } from './my-dropdown.js';
+export { MyDropdown } from "./my-dropdown.js";
 
 // 3. Import in aigf-core.js
-import { MyDropdown } from './dropdowns/index.js';
+import { MyDropdown } from "./dropdowns/index.js";
 ```
 
 ### 6. CSS Architecture (@layer system)
@@ -115,10 +117,10 @@ Use CSS custom properties from `public/css/variables.css`. Place new styles in a
 ```css
 @layer interface {
   .my-component {
-    background: var(--primary-color);   /* Teal */
-    color: var(--button-color);         /* Hot pink */
-    padding: var(--spacing-md);         /* 12px */
-    border: var(--border);              /* 3px ridge */
+    background: var(--primary-color); /* Teal */
+    color: var(--button-color); /* Hot pink */
+    padding: var(--spacing-md); /* 12px */
+    border: var(--border); /* 3px ridge */
   }
 }
 ```
@@ -129,11 +131,13 @@ Use CSS custom properties from `public/css/variables.css`. Place new styles in a
 
 **Add new trigger**: Edit `workers/triggers.json`, include `id`, `name`, `category`, `description`, `effect`
 
-**Add environment variable**: 
+**Add environment variable**:
+
 1. Define in `config/env.js` with appropriate section (SERVER/LMS/KOKORO/APPLICATION)
 2. Access via `ENV.SECTION.VARIABLE`
 
 **Debug service issues**: Check `ENV.SERVICE.isConfigured` and server console for emoji indicators:
+
 - ✅ success | ⚠️ warning | ❌ error | 🎤 TTS | 🤖 AI
 
 ## Conventions
@@ -145,7 +149,7 @@ Use CSS custom properties from `public/css/variables.css`. Place new styles in a
 
 ## External Services
 
-| Service | Purpose | Config Section |
-|---------|---------|----------------|
-| **Kokoro-FastAPI** | TTS (12 female voices, supports mixing) | `ENV.KOKORO` |
-| **LM Studio** | Local AI chat (@lmstudio/sdk) | `ENV.LMS` |
+| Service            | Purpose                                 | Config Section |
+| ------------------ | --------------------------------------- | -------------- |
+| **Kokoro-FastAPI** | TTS (12 female voices, supports mixing) | `ENV.KOKORO`   |
+| **LM Studio**      | Local AI chat (@lmstudio/sdk)           | `ENV.LMS`      |

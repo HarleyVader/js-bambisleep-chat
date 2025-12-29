@@ -1,0 +1,16 @@
+[Unit]
+Description=BambiSleep Chat Server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=zathras
+WorkingDirectory=/home/brandynette/web/bambisleep.chat/nodeapp/js-bambisleep-chat
+ExecStart=/bin/bash -c 'source /home/zathras/.nvm/nvm.sh && node server.js'
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
