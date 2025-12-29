@@ -3,8 +3,8 @@
  * Standardizes environment variable access across the entire codebase
  */
 
-const dotenv = require('dotenv');
-const path = require('path');
+const dotenv = require("dotenv");
+const path = require("path");
 
 // Load environment variables
 dotenv.config();
@@ -12,30 +12,30 @@ dotenv.config();
 /**
  * Environment Mode Detection
  */
-const NODE_ENV = process.env.NODE_ENV || 'development';
-const isProduction = NODE_ENV === 'production';
-const isDevelopment = NODE_ENV === 'development';
-const isTest = NODE_ENV === 'test';
+const NODE_ENV = process.env.NODE_ENV || "development";
+const isProduction = NODE_ENV === "production";
+const isDevelopment = NODE_ENV === "development";
+const isTest = NODE_ENV === "test";
 
 /**
  * Server Configuration
  */
 const SERVER = {
-    PORT: parseInt(process.env.PORT),
-    HOST: process.env.SERVER_HOST,
-    NODE_ENV,
-    isProduction,
-    isDevelopment,
-    isTest,
+  PORT: parseInt(process.env.PORT),
+  HOST: process.env.SERVER_HOST,
+  NODE_ENV,
+  isProduction,
+  isDevelopment,
+  isTest,
 
-    // Computed URLs
-    get URL() {
-        return `http://${this.HOST}:${this.PORT}`;
-    },
+  // Computed URLs
+  get URL() {
+    return `http://${this.HOST}:${this.PORT}`;
+  },
 
-    get isConfigured() {
-        return !!(this.HOST && this.PORT);
-    }
+  get isConfigured() {
+    return !!(this.HOST && this.PORT);
+  },
 };
 
 /**
@@ -43,33 +43,33 @@ const SERVER = {
  * Automatically selects host based on environment
  */
 const LMS = {
-    HOST: isProduction
-        ? process.env.LMS_HOST_PRODUCTION
-        : process.env.LMS_HOST_DEVELOPMENT,
-    PORT: parseInt(process.env.LMS_PORT),
+  HOST: isProduction
+    ? process.env.LMS_HOST_PRODUCTION
+    : process.env.LMS_HOST_DEVELOPMENT,
+  PORT: parseInt(process.env.LMS_PORT),
 
-    // Model Configuration
-    TARGET_MODEL_NAME: process.env.TARGET_MODEL_NAME,
-    MAX_SEARCH_ATTEMPTS: parseInt(process.env.MAX_SEARCH_ATTEMPTS),
+  // Model Configuration
+  TARGET_MODEL_NAME: process.env.TARGET_MODEL_NAME,
+  MAX_SEARCH_ATTEMPTS: parseInt(process.env.MAX_SEARCH_ATTEMPTS),
 
-    // Timeouts (milliseconds)
-    MODEL_LOAD_TIMEOUT: parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT),
-    API_CALL_TIMEOUT: parseInt(process.env.LMS_API_CALL_TIMEOUT),
-    REST_API_TIMEOUT: parseInt(process.env.LMS_REST_API_TIMEOUT),
-    SESSION_TIMEOUT_MINUTES: parseInt(process.env.SESSION_TIMEOUT_MINUTES),
+  // Timeouts (milliseconds)
+  MODEL_LOAD_TIMEOUT: parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT),
+  API_CALL_TIMEOUT: parseInt(process.env.LMS_API_CALL_TIMEOUT),
+  REST_API_TIMEOUT: parseInt(process.env.LMS_REST_API_TIMEOUT),
+  SESSION_TIMEOUT_MINUTES: parseInt(process.env.SESSION_TIMEOUT_MINUTES),
 
-    // Context Window
-    MAX_CONTEXT_TOKENS: parseInt(process.env.MAX_CONTEXT_TOKENS),
-    MAX_COMPLETION_TOKENS: parseInt(process.env.MAX_COMPLETION_TOKENS),
+  // Context Window
+  MAX_CONTEXT_TOKENS: parseInt(process.env.MAX_CONTEXT_TOKENS),
+  MAX_COMPLETION_TOKENS: parseInt(process.env.MAX_COMPLETION_TOKENS),
 
-    // Derived values
-    get URL() {
-        return this.HOST ? `http://${this.HOST}:${this.PORT}` : null;
-    },
+  // Derived values
+  get URL() {
+    return this.HOST ? `http://${this.HOST}:${this.PORT}` : null;
+  },
 
-    get isConfigured() {
-        return !!(this.HOST && this.PORT);
-    }
+  get isConfigured() {
+    return !!(this.HOST && this.PORT);
+  },
 };
 
 /**
@@ -77,70 +77,79 @@ const LMS = {
  * Automatically selects host based on environment
  */
 const KOKORO = {
-    HOST: isProduction
-        ? process.env.KOKORO_HOST_PRODUCTION
-        : process.env.KOKORO_HOST_DEVELOPMENT,
-    PORT: parseInt(process.env.KOKORO_PORT),
+  HOST: isProduction
+    ? process.env.KOKORO_HOST_PRODUCTION
+    : process.env.KOKORO_HOST_DEVELOPMENT,
+  PORT: parseInt(process.env.KOKORO_PORT),
 
-    API_KEY: process.env.KOKORO_API_KEY || '',
-    DEFAULT_VOICE: process.env.KOKORO_DEFAULT_VOICE,
-    TIMEOUT: parseInt(process.env.TTS_TIMEOUT),
+  API_KEY: process.env.KOKORO_API_KEY || "",
+  DEFAULT_VOICE: process.env.KOKORO_DEFAULT_VOICE,
+  TIMEOUT: parseInt(process.env.TTS_TIMEOUT),
 
-    // All available female voices (Kokoro-FastAPI official)
-    AVAILABLE_VOICES: [
-        'af_alloy', 'af_aoede', 'af_bella', 'af_heart',
-        'af_jadzia', 'af_jessica', 'af_kore', 'af_nicole',
-        'af_nova', 'af_river', 'af_sarah', 'af_sky'
-    ],
+  // All available female voices (Kokoro-FastAPI official)
+  AVAILABLE_VOICES: [
+    "af_alloy",
+    "af_aoede",
+    "af_bella",
+    "af_heart",
+    "af_jadzia",
+    "af_jessica",
+    "af_kore",
+    "af_nicole",
+    "af_nova",
+    "af_river",
+    "af_sarah",
+    "af_sky",
+  ],
 
-    // Derived values
-    get URL() {
-        return this.HOST ? `http://${this.HOST}:${this.PORT}` : null;
-    },
+  // Derived values
+  get URL() {
+    return this.HOST ? `http://${this.HOST}:${this.PORT}` : null;
+  },
 
-    get API_URL() {
-        return this.URL ? `${this.URL}/v1/audio/speech` : null;
-    },
+  get API_URL() {
+    return this.URL ? `${this.URL}/v1/audio/speech` : null;
+  },
 
-    get isConfigured() {
-        return !!(this.HOST && this.PORT);
-    }
+  get isConfigured() {
+    return !!(this.HOST && this.PORT);
+  },
 };
 
 /**
  * Chat Configuration
  */
 const CHAT = {
-    MAX_MESSAGE_LENGTH: parseInt(process.env.MAX_MESSAGE_LENGTH),
-    HISTORY_LIMIT: parseInt(process.env.CHAT_HISTORY_LIMIT)
+  MAX_MESSAGE_LENGTH: parseInt(process.env.MAX_MESSAGE_LENGTH),
+  HISTORY_LIMIT: parseInt(process.env.CHAT_HISTORY_LIMIT),
 };
 
 /**
  * Debug & Logging Configuration
  */
 const DEBUG = {
-    MODE: process.env.DEBUG_MODE === 'true',
-    LOG_LEVEL: process.env.LOG_LEVEL
+  MODE: process.env.DEBUG_MODE === "true",
+  LOG_LEVEL: process.env.LOG_LEVEL,
 };
 
 /**
  * Testing Configuration
  */
 const TEST = {
-    CI: process.env.CI === 'true',
-    SERVER_TIMEOUT: parseInt(process.env.TEST_SERVER_TIMEOUT)
+  CI: process.env.CI === "true",
+  SERVER_TIMEOUT: parseInt(process.env.TEST_SERVER_TIMEOUT),
 };
 
 /**
  * Security Configuration
  */
 const SECURITY = {
-    HTTPS_REDIRECT: process.env.HTTPS_REDIRECT === 'true',
-    SSL_CERT_PATH: process.env.SSL_CERT_PATH || '',
-    SSL_KEY_PATH: process.env.SSL_KEY_PATH || '',
-    CORS_ORIGIN: process.env.CORS_ORIGIN
-        ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-        : [`http://${SERVER.HOST}:${SERVER.PORT}`]
+  HTTPS_REDIRECT: process.env.HTTPS_REDIRECT === "true",
+  SSL_CERT_PATH: process.env.SSL_CERT_PATH || "",
+  SSL_KEY_PATH: process.env.SSL_KEY_PATH || "",
+  CORS_ORIGIN: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
+    : [`http://${SERVER.HOST}:${SERVER.PORT}`],
 };
 
 /**
@@ -148,11 +157,12 @@ const SECURITY = {
  * Official documentation and resource URLs
  */
 const EXTERNAL = {
-    BAMBISLEEP_WIKI: 'https://bambisleep.info',
-    BAMBISLEEP_TRIGGERS: 'https://bambisleep.info/Triggers',
-    KOKORO_DOCS: 'https://github.com/remsky/Kokoro-FastAPI',
-    SOCKETIO_CDN: 'https://cdn.socket.io/4.7.5/socket.io.min.js',
-    MARKDOWN_CDN: 'https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js'
+  BAMBISLEEP_WIKI: "https://bambisleep.info",
+  BAMBISLEEP_TRIGGERS: "https://bambisleep.info/Triggers",
+  KOKORO_DOCS: "https://github.com/remsky/Kokoro-FastAPI",
+  SOCKETIO_CDN: "https://cdn.socket.io/4.7.5/socket.io.min.js",
+  MARKDOWN_CDN:
+    "https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js",
 };
 
 /**
@@ -160,40 +170,44 @@ const EXTERNAL = {
  * Checks if required services are properly configured
  */
 const validation = {
-    validateLMS() {
-        const missing = [];
-        if (!LMS.HOST) missing.push('LMS_HOST_' + (isProduction ? 'PRODUCTION' : 'DEVELOPMENT'));
-        if (!LMS.PORT) missing.push('LMS_PORT');
+  validateLMS() {
+    const missing = [];
+    if (!LMS.HOST)
+      missing.push("LMS_HOST_" + (isProduction ? "PRODUCTION" : "DEVELOPMENT"));
+    if (!LMS.PORT) missing.push("LMS_PORT");
 
-        return {
-            valid: missing.length === 0,
-            missing,
-            configured: LMS.isConfigured
-        };
-    },
+    return {
+      valid: missing.length === 0,
+      missing,
+      configured: LMS.isConfigured,
+    };
+  },
 
-    validateKokoro() {
-        const missing = [];
-        if (!KOKORO.HOST) missing.push('KOKORO_HOST_' + (isProduction ? 'PRODUCTION' : 'DEVELOPMENT'));
-        if (!KOKORO.PORT) missing.push('KOKORO_PORT');
+  validateKokoro() {
+    const missing = [];
+    if (!KOKORO.HOST)
+      missing.push(
+        "KOKORO_HOST_" + (isProduction ? "PRODUCTION" : "DEVELOPMENT")
+      );
+    if (!KOKORO.PORT) missing.push("KOKORO_PORT");
 
-        return {
-            valid: missing.length === 0,
-            missing,
-            configured: KOKORO.isConfigured
-        };
-    },
+    return {
+      valid: missing.length === 0,
+      missing,
+      configured: KOKORO.isConfigured,
+    };
+  },
 
-    validateAll() {
-        return {
-            lms: this.validateLMS(),
-            kokoro: this.validateKokoro(),
-            server: {
-                valid: true,
-                configured: true
-            }
-        };
-    }
+  validateAll() {
+    return {
+      lms: this.validateLMS(),
+      kokoro: this.validateKokoro(),
+      server: {
+        valid: true,
+        configured: true,
+      },
+    };
+  },
 };
 
 /**
@@ -201,26 +215,26 @@ const validation = {
  * Returns a safe summary of the configuration (no sensitive data)
  */
 function getSummary() {
-    return {
-        environment: NODE_ENV,
-        server: {
-            port: SERVER.PORT,
-            host: SERVER.HOST
-        },
-        services: {
-            lms: {
-                configured: LMS.isConfigured,
-                url: LMS.URL || 'not-configured'
-            },
-            kokoro: {
-                configured: KOKORO.isConfigured,
-                url: KOKORO.URL || 'not-configured',
-                defaultVoice: KOKORO.DEFAULT_VOICE
-            }
-        },
-        debug: DEBUG.MODE,
-        test: TEST.CI
-    };
+  return {
+    environment: NODE_ENV,
+    server: {
+      port: SERVER.PORT,
+      host: SERVER.HOST,
+    },
+    services: {
+      lms: {
+        configured: LMS.isConfigured,
+        url: LMS.URL || "not-configured",
+      },
+      kokoro: {
+        configured: KOKORO.isConfigured,
+        url: KOKORO.URL || "not-configured",
+        defaultVoice: KOKORO.DEFAULT_VOICE,
+      },
+    },
+    debug: DEBUG.MODE,
+    test: TEST.CI,
+  };
 }
 
 /**
@@ -228,53 +242,59 @@ function getSummary() {
  * Logs configuration to console in a readable format
  */
 function printSummary() {
-    console.log('\n🔧 BambiSleep Chat Configuration');
-    console.log('═'.repeat(50));
-    console.log(`📍 Environment: ${NODE_ENV.toUpperCase()}`);
-    console.log(`🌐 Server: http://${SERVER.HOST}:${SERVER.PORT}`);
-    console.log('\n🤖 Services:');
-    console.log(`   LM Studio: ${LMS.isConfigured ? '✅ ' + LMS.URL : '❌ Not Configured'}`);
-    console.log(`   Kokoro TTS: ${KOKORO.isConfigured ? '✅ ' + KOKORO.URL : '❌ Not Configured'}`);
-    console.log(`   Default Voice: ${KOKORO.DEFAULT_VOICE}`);
-    console.log('\n📊 Limits:');
-    console.log(`   Max Message Length: ${CHAT.MAX_MESSAGE_LENGTH}`);
-    console.log(`   Chat History: ${CHAT.HISTORY_LIMIT}`);
-    console.log(`   LMS Timeout: ${LMS.API_CALL_TIMEOUT}ms`);
-    console.log(`   TTS Timeout: ${KOKORO.TIMEOUT}ms`);
-    console.log('\n🔍 Debug Mode: ' + (DEBUG.MODE ? '✅ ON' : '❌ OFF'));
-    console.log('═'.repeat(50) + '\n');
+  console.log("\n🔧 BambiSleep Chat Configuration");
+  console.log("═".repeat(50));
+  console.log(`📍 Environment: ${NODE_ENV.toUpperCase()}`);
+  console.log(`🌐 Server: http://${SERVER.HOST}:${SERVER.PORT}`);
+  console.log("\n🤖 Services:");
+  console.log(
+    `   LM Studio: ${LMS.isConfigured ? "✅ " + LMS.URL : "❌ Not Configured"}`
+  );
+  console.log(
+    `   Kokoro TTS: ${
+      KOKORO.isConfigured ? "✅ " + KOKORO.URL : "❌ Not Configured"
+    }`
+  );
+  console.log(`   Default Voice: ${KOKORO.DEFAULT_VOICE}`);
+  console.log("\n📊 Limits:");
+  console.log(`   Max Message Length: ${CHAT.MAX_MESSAGE_LENGTH}`);
+  console.log(`   Chat History: ${CHAT.HISTORY_LIMIT}`);
+  console.log(`   LMS Timeout: ${LMS.API_CALL_TIMEOUT}ms`);
+  console.log(`   TTS Timeout: ${KOKORO.TIMEOUT}ms`);
+  console.log("\n🔍 Debug Mode: " + (DEBUG.MODE ? "✅ ON" : "❌ OFF"));
+  console.log("═".repeat(50) + "\n");
 }
 
 // Export all configuration
 module.exports = {
-    // Main config objects
-    SERVER,
-    LMS,
-    KOKORO,
-    CHAT,
-    DEBUG,
-    TEST,
-    SECURITY,
-    EXTERNAL,
+  // Main config objects
+  SERVER,
+  LMS,
+  KOKORO,
+  CHAT,
+  DEBUG,
+  TEST,
+  SECURITY,
+  EXTERNAL,
 
-    // Environment flags
-    NODE_ENV,
-    isProduction,
-    isDevelopment,
-    isTest,
+  // Environment flags
+  NODE_ENV,
+  isProduction,
+  isDevelopment,
+  isTest,
 
-    // Utilities
-    validation,
-    getSummary,
-    printSummary,
+  // Utilities
+  validation,
+  getSummary,
+  printSummary,
 
-    // Legacy compatibility - export individual values
-    PORT: SERVER.PORT,
-    SERVER_HOST: SERVER.HOST,
+  // Legacy compatibility - export individual values
+  PORT: SERVER.PORT,
+  SERVER_HOST: SERVER.HOST,
 
-    // Kokoro legacy
-    KOKORO_API_URL: KOKORO.URL,
-    KOKORO_API_KEY: KOKORO.API_KEY,
-    KOKORO_DEFAULT_VOICE: KOKORO.DEFAULT_VOICE,
-    TTS_TIMEOUT: KOKORO.TIMEOUT
+  // Kokoro legacy
+  KOKORO_API_URL: KOKORO.URL,
+  KOKORO_API_KEY: KOKORO.API_KEY,
+  KOKORO_DEFAULT_VOICE: KOKORO.DEFAULT_VOICE,
+  TTS_TIMEOUT: KOKORO.TIMEOUT,
 };

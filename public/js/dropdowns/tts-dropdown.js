@@ -363,7 +363,7 @@ export class TTSDropdown {
 
     // Update button state to match TTS system
     ttsButton.setAttribute("data-state", targetState);
-    
+
     // Update ONLY the status indicator (preserve button icon and text)
     const statusIndicator = document.getElementById("tts-status");
     if (statusIndicator) {

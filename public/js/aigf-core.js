@@ -453,7 +453,7 @@ class ChatCore {
             // Use object format for compatibility with processTextQueue
             window.ttsSystem.textArray.push({
               display: sentence,
-              tts: sentence
+              tts: sentence,
             });
             console.log("🎤 Added to text array:", sentence);
           }
@@ -461,7 +461,10 @@ class ChatCore {
 
         // Start TTS processing if not already playing
         // Reset state to true if queue has items and not currently playing
-        if (window.ttsSystem.textArray.length > 0 && !window.ttsSystem.isPlaying) {
+        if (
+          window.ttsSystem.textArray.length > 0 &&
+          !window.ttsSystem.isPlaying
+        ) {
           window.ttsSystem.state = true;
           console.log("🎤 Starting TTS queue processing...");
           window.ttsSystem.processTextQueue();

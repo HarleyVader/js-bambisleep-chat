@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2025-12-29
 
 ### Added
+
 - **DOM Structure Separation for Dropdowns**
   - New `#dropdowns-menu` container for dropdown buttons
   - New `#dropdown-modals` container for dropdown content panels
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic state reset to ensure queue processing starts
 
 ### Changed
+
 - **HTML Structure Overhaul**
   - Dropdown buttons separated from dropdown content in DOM
   - Content panels positioned as overlay modals instead of inline elements
@@ -37,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed conflicting inline styles from components
 
 ### Fixed
+
 - **Critical: Dropdowns appearing behind chat container**
   - Root cause: DOM structure had dropdown content as children of buttons
   - Solution: Separated buttons and content into distinct DOM trees
@@ -60,20 +63,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Files Changed
 
-| File | Changes |
-|------|---------|
-| public/index.html | Restructured dropdown DOM, fixed CSS imports |
-| public/js/dropdowns.js | Added brainwave component wrapper, fixed toggleButtonState |
-| public/js/aigf-core.js | Emptied duplicate handlers, fixed TTS object format |
-| public/js/text2speech.js | Defensive format handling in processTextQueue |
-| public/js/dropdowns/tts-dropdown.js | Fixed syncButtonStateWithTTSSystem |
-| public/js/dropdowns/brainwave-dropdown.js | Fixed function scope/indentation |
-| public/js/dropdowns/collar-dropdown.js | Updated for new DOM structure |
-| public/js/dropdowns/triggers-dropdown.js | Updated for new DOM structure |
-| public/css/components/dropdowns.css | Status indicator styling |
-| public/css/layers.css | Updated layer positioning |
+| File                                      | Changes                                                    |
+| ----------------------------------------- | ---------------------------------------------------------- |
+| public/index.html                         | Restructured dropdown DOM, fixed CSS imports               |
+| public/js/dropdowns.js                    | Added brainwave component wrapper, fixed toggleButtonState |
+| public/js/aigf-core.js                    | Emptied duplicate handlers, fixed TTS object format        |
+| public/js/text2speech.js                  | Defensive format handling in processTextQueue              |
+| public/js/dropdowns/tts-dropdown.js       | Fixed syncButtonStateWithTTSSystem                         |
+| public/js/dropdowns/brainwave-dropdown.js | Fixed function scope/indentation                           |
+| public/js/dropdowns/collar-dropdown.js    | Updated for new DOM structure                              |
+| public/js/dropdowns/triggers-dropdown.js  | Updated for new DOM structure                              |
+| public/css/components/dropdowns.css       | Status indicator styling                                   |
+| public/css/layers.css                     | Updated layer positioning                                  |
 
 #### New DOM Structure
+
 ```html
 <!-- Buttons (visible toggle controls) -->
 <div id="dropdowns-menu">
@@ -95,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 #### TTS Queue Flow (Fixed)
+
 ```javascript
 // 1. AI response received
 // 2. Push to textArray with object format
@@ -107,6 +112,7 @@ if (typeof textItem === 'string') { ... } else { ... }
 ```
 
 ### Migration Notes
+
 - No API changes required
 - Existing localStorage states preserved
 - TTS voice selections maintained
@@ -117,6 +123,7 @@ if (typeof textItem === 'string') { ... } else { ... }
 ## [0.3.0] - 2025-10-25
 
 ### Added
+
 - **Git Pull Detection System** (`server.js`)
   - Automated deployment detection with graceful shutdown
   - Monitors git commit hash every 30 seconds
@@ -132,6 +139,7 @@ if (typeof textItem === 'string') { ... } else { ... }
   - Merged `dropdown-utils.js` into `dropdowns.js` for consolidation
 
 ### Changed
+
 - **BREAKING**: Removed Web Speech API fallback (Kokoro-only TTS)
   - Eliminated ~300 lines of legacy compatibility code
   - Simplified TTS system to single backend (Kokoro-FastAPI)
@@ -155,6 +163,7 @@ if (typeof textItem === 'string') { ... } else { ... }
   - Removed duplicate initialization calls
 
 ### Removed
+
 - Web Speech API fallback system (text2speech.js)
 - Legacy TTS format handling (string compatibility)
 - Legacy TTS exports (window.do_tts, window.speak, etc.)
@@ -163,6 +172,7 @@ if (typeof textItem === 'string') { ... } else { ... }
 - 350+ lines of verbose console logging across codebase
 
 ### Fixed
+
 - **Dropdown UX Issues**
   - Dropdowns now stay open until explicitly closed or outside click
   - Eliminated race condition from duplicate event handlers
@@ -175,10 +185,12 @@ if (typeof textItem === 'string') { ... } else { ... }
   - Reduced initialization log spam (50+ messages → minimal output)
 
 ### Security
+
 - 0 vulnerabilities (maintained)
 - Improved code maintainability with reduced complexity
 
 ### Performance
+
 - Reduced client-side JavaScript by ~350 lines (net)
 - Eliminated duplicate event listeners
 - Single dropdown initialization instead of dual system
@@ -189,22 +201,23 @@ if (typeof textItem === 'string') { ... } else { ... }
 
 #### Codebase Changes (since 0.2.0)
 
-| File | Lines Changed | Type |
-|------|---------------|------|
-| text2speech.js | -332 | Refactor |
-| dropdowns.js | +346 | Enhancement |
-| dropdown-utils.js | -317 | Removed |
-| server.js | +124 | Feature |
-| tts-dropdown.js | -57 | Cleanup |
-| aigf-core.js | -26 | Cleanup |
-| triggers-dropdown.js | -21 | Cleanup |
-| spiral-dropdown.js | -20 | Cleanup |
-| ai-dropdown.js | -22 | Cleanup |
-| effects.js | -11 | Cleanup |
-| error-manager.js | -7 | Cleanup |
-| **Total** | **-473 insertions, +823 deletions** | **Net: -350 lines** |
+| File                 | Lines Changed                       | Type                |
+| -------------------- | ----------------------------------- | ------------------- |
+| text2speech.js       | -332                                | Refactor            |
+| dropdowns.js         | +346                                | Enhancement         |
+| dropdown-utils.js    | -317                                | Removed             |
+| server.js            | +124                                | Feature             |
+| tts-dropdown.js      | -57                                 | Cleanup             |
+| aigf-core.js         | -26                                 | Cleanup             |
+| triggers-dropdown.js | -21                                 | Cleanup             |
+| spiral-dropdown.js   | -20                                 | Cleanup             |
+| ai-dropdown.js       | -22                                 | Cleanup             |
+| effects.js           | -11                                 | Cleanup             |
+| error-manager.js     | -7                                  | Cleanup             |
+| **Total**            | **-473 insertions, +823 deletions** | **Net: -350 lines** |
 
 #### Git Commits (v0.2.0 → v0.3.0)
+
 - `5587ae8` - Merge dropdown-utils.js into dropdowns.js
 - `58df66a` - Remove additional verbose console logs
 - `8b3e10a` - Fix dropdown race condition
@@ -216,6 +229,7 @@ if (typeof textItem === 'string') { ... } else { ... }
 #### Key Features
 
 **Git Pull Detection:**
+
 ```javascript
 class GitPullDetector {
   // Monitors: git rev-parse HEAD every 30s
@@ -224,6 +238,7 @@ class GitPullDetector {
 ```
 
 **Enhanced Dropdowns:**
+
 - View Transitions API for 60fps animations
 - Keyboard navigation: ↑↓ (navigate), Enter (select), Esc (close)
 - Smart positioning: Adjusts for viewport boundaries
@@ -231,13 +246,16 @@ class GitPullDetector {
 - Visual feedback with CSS animations
 
 **TTS Modernization:**
+
 - Kokoro-FastAPI only (no Web Speech API)
 - Unified message format: `{display: "TRIGGER", tts: "trigger"}`
 - Public API: `window.tts.speak()`, `window.tts.enable()`, etc.
 - Female voices only: af_bella, af_sky, af_nicole, etc.
 
 #### Migration Notes
+
 For projects upgrading from 0.2.0:
+
 1. Web Speech API removed - Kokoro required for TTS
 2. Update TTS calls to use `{display, tts}` object format
 3. Remove any legacy `window.do_tts()` or `window.speak()` calls
@@ -247,6 +265,7 @@ For projects upgrading from 0.2.0:
 7. Console output significantly cleaner - check for missing logs if debugging
 
 #### Compatibility
+
 - **Minimum Node.js**: 18.0.0 (unchanged)
 - **Tested Node.js**: 22.19.0
 - **Minimum npm**: 9.0.0 (unchanged)
@@ -258,6 +277,7 @@ For projects upgrading from 0.2.0:
 ## [0.2.0] - 2025-10-25
 
 ### Added
+
 - GitHub Actions CI/CD workflow (`.github/workflows/test.yml`)
   - Multi-version Node.js testing (18.x, 20.x, 22.x)
   - Multi-platform support (Ubuntu, Windows)
@@ -279,6 +299,7 @@ For projects upgrading from 0.2.0:
 - Engine requirements in `package.json` (Node >=18.0.0, npm >=9.0.0)
 
 ### Changed
+
 - **BREAKING**: Upgraded Express from 4.21.2 to 5.1.0
   - No breaking changes affecting codebase
   - Improved performance and security
@@ -295,6 +316,7 @@ For projects upgrading from 0.2.0:
   - Added `test:view` - View test reports (alias)
 
 ### Fixed
+
 - Node-fetch 3.x ESM compatibility issues
   - Replaced with native fetch API
   - Eliminated ESM/CommonJS conflicts
@@ -306,10 +328,12 @@ For projects upgrading from 0.2.0:
   - Removed `data-uri-to-buffer`, `fetch-blob`, `formdata-polyfill`, `web-streams-polyfill`
 
 ### Removed
+
 - `node-fetch` dependency (replaced with native fetch)
 - 6 transitive dependencies from node-fetch removal
 
 ### Security
+
 - 0 vulnerabilities (maintained)
 - Reduced attack surface (6 fewer dependencies)
 - Updated to latest secure versions of all dependencies
@@ -318,27 +342,31 @@ For projects upgrading from 0.2.0:
 
 #### Dependency Changes
 
-| Package | Old Version | New Version | Type |
-|---------|-------------|-------------|------|
-| express | 4.21.2 | 5.1.0 | MAJOR |
-| node-fetch | 2.7.0 | REMOVED | MAJOR |
-| cross-env | 7.0.3 | 10.1.0 | MAJOR |
-| rimraf | 5.0.10 | 6.0.1 | MAJOR |
+| Package    | Old Version | New Version | Type  |
+| ---------- | ----------- | ----------- | ----- |
+| express    | 4.21.2      | 5.1.0       | MAJOR |
+| node-fetch | 2.7.0       | REMOVED     | MAJOR |
+| cross-env  | 7.0.3       | 10.1.0      | MAJOR |
+| rimraf     | 5.0.10      | 6.0.1       | MAJOR |
 
 #### Test Results
+
 - Environment Tests: 20✅ 0❌ 0⚠️ (PASS)
 - Stability Tests: 5✅ 0❌ 0⚠️ (PASS)
 - Resource Tests: 9✅ 3❌ 0⚠️ (Expected - CPU monitoring limitation)
 - Overall: 36✅ 3❌ 4⚠️
 
 #### Compatibility
+
 - **Minimum Node.js**: 18.0.0 (for native fetch)
 - **Tested Node.js**: 18.x, 20.x, 22.19.0
 - **Minimum npm**: 9.0.0
 - **OS**: Windows, Linux, macOS
 
 #### Migration Notes
+
 For projects upgrading from 0.1.0:
+
 1. Ensure Node.js >= 18.0.0 installed
 2. Run `npm install` to update dependencies
 3. No code changes required (Express 5.x compatible)
@@ -350,6 +378,7 @@ For projects upgrading from 0.1.0:
 ## [0.1.0] - 2024-XX-XX
 
 ### Added
+
 - Initial release
 - Express + Socket.io server
 - Kokoro TTS integration (worker thread)
@@ -371,6 +400,7 @@ For projects upgrading from 0.1.0:
 - Storage utilities
 
 ### Technical Stack
+
 - Backend: Node.js, Express 4.x, Socket.io 4.x
 - Frontend: Vanilla JavaScript ES6 modules
 - Build: Vite

@@ -504,7 +504,7 @@ class TextToSpeechSystem {
         const text = sentence.trim();
         this.textArray.push({
           display: text,
-          tts: text
+          tts: text,
         });
       }
     });
@@ -596,7 +596,7 @@ class TextToSpeechSystem {
       const textItem = this.textArray.shift();
 
       // Handle both object format {display, tts} and legacy string format
-      if (typeof textItem === 'string') {
+      if (typeof textItem === "string") {
         this.currentText = textItem;
         this.currentTTSText = textItem;
       } else {

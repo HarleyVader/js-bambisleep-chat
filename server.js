@@ -2158,7 +2158,9 @@ process.on("SIGINT", () => {
 // Start server
 const PORT = ENV.SERVER.PORT;
 server.listen(PORT, () => {
-  console.log(`🚀 BambiSleep Chat server running on http://${ENV.SERVER.HOST}:${PORT}`);
+  console.log(
+    `🚀 BambiSleep Chat server running on http://${ENV.SERVER.HOST}:${PORT}`
+  );
   console.log(
     `📁 Serving static files from: ${path.join(__dirname, "public")}`
   );
