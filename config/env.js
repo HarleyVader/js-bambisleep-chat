@@ -21,9 +21,8 @@ const isTest = NODE_ENV === 'test';
  * Server Configuration
  */
 const SERVER = {
-    PORT: parseInt(process.env.PORT) || 6969,
-    VITE_PORT: parseInt(process.env.VITE_PORT) || 5173,
-    HOST: process.env.SERVER_HOST || 'localhost',
+    PORT: parseInt(process.env.PORT),
+    HOST: process.env.SERVER_HOST,
     NODE_ENV,
     isProduction,
     isDevelopment,
@@ -34,8 +33,8 @@ const SERVER = {
         return `http://${this.HOST}:${this.PORT}`;
     },
 
-    get VITE_URL() {
-        return `http://${this.HOST}:${this.VITE_PORT}`;
+    get isConfigured() {
+        return !!(this.HOST && this.PORT);
     }
 };
 
@@ -47,21 +46,21 @@ const LMS = {
     HOST: isProduction
         ? process.env.LMS_HOST_PRODUCTION
         : process.env.LMS_HOST_DEVELOPMENT,
-    PORT: parseInt(process.env.LMS_PORT) || 7777,
+    PORT: parseInt(process.env.LMS_PORT),
 
     // Model Configuration
-    TARGET_MODEL_NAME: process.env.TARGET_MODEL_NAME || 'l3-sthenomaidblackroot-8b-v1@q4_k_s',
-    MAX_SEARCH_ATTEMPTS: parseInt(process.env.MAX_SEARCH_ATTEMPTS) || 3,
+    TARGET_MODEL_NAME: process.env.TARGET_MODEL_NAME,
+    MAX_SEARCH_ATTEMPTS: parseInt(process.env.MAX_SEARCH_ATTEMPTS),
 
     // Timeouts (milliseconds)
-    MODEL_LOAD_TIMEOUT: parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT) || 30000,
-    API_CALL_TIMEOUT: parseInt(process.env.LMS_API_CALL_TIMEOUT) || 120000,
-    REST_API_TIMEOUT: parseInt(process.env.LMS_REST_API_TIMEOUT) || 5000,
-    SESSION_TIMEOUT_MINUTES: parseInt(process.env.SESSION_TIMEOUT_MINUTES) || 15,
+    MODEL_LOAD_TIMEOUT: parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT),
+    API_CALL_TIMEOUT: parseInt(process.env.LMS_API_CALL_TIMEOUT),
+    REST_API_TIMEOUT: parseInt(process.env.LMS_REST_API_TIMEOUT),
+    SESSION_TIMEOUT_MINUTES: parseInt(process.env.SESSION_TIMEOUT_MINUTES),
 
     // Context Window
-    MAX_CONTEXT_TOKENS: parseInt(process.env.MAX_CONTEXT_TOKENS) || 6144,
-    MAX_COMPLETION_TOKENS: parseInt(process.env.MAX_COMPLETION_TOKENS) || 2048,
+    MAX_CONTEXT_TOKENS: parseInt(process.env.MAX_CONTEXT_TOKENS),
+    MAX_COMPLETION_TOKENS: parseInt(process.env.MAX_COMPLETION_TOKENS),
 
     // Derived values
     get URL() {
@@ -81,11 +80,11 @@ const KOKORO = {
     HOST: isProduction
         ? process.env.KOKORO_HOST_PRODUCTION
         : process.env.KOKORO_HOST_DEVELOPMENT,
-    PORT: parseInt(process.env.KOKORO_PORT) || 8880,
+    PORT: parseInt(process.env.KOKORO_PORT),
 
     API_KEY: process.env.KOKORO_API_KEY || '',
-    DEFAULT_VOICE: process.env.KOKORO_DEFAULT_VOICE || 'af_sky+af_bella',
-    TIMEOUT: parseInt(process.env.TTS_TIMEOUT) || 300000,
+    DEFAULT_VOICE: process.env.KOKORO_DEFAULT_VOICE,
+    TIMEOUT: parseInt(process.env.TTS_TIMEOUT),
 
     // All available female voices (Kokoro-FastAPI official)
     AVAILABLE_VOICES: [
@@ -112,8 +111,8 @@ const KOKORO = {
  * Chat Configuration
  */
 const CHAT = {
-    MAX_MESSAGE_LENGTH: parseInt(process.env.MAX_MESSAGE_LENGTH) || 500,
-    HISTORY_LIMIT: parseInt(process.env.CHAT_HISTORY_LIMIT) || 100
+    MAX_MESSAGE_LENGTH: parseInt(process.env.MAX_MESSAGE_LENGTH),
+    HISTORY_LIMIT: parseInt(process.env.CHAT_HISTORY_LIMIT)
 };
 
 /**
@@ -121,7 +120,7 @@ const CHAT = {
  */
 const DEBUG = {
     MODE: process.env.DEBUG_MODE === 'true',
-    LOG_LEVEL: process.env.LOG_LEVEL || 'info'
+    LOG_LEVEL: process.env.LOG_LEVEL
 };
 
 /**
@@ -129,7 +128,7 @@ const DEBUG = {
  */
 const TEST = {
     CI: process.env.CI === 'true',
-    SERVER_TIMEOUT: parseInt(process.env.TEST_SERVER_TIMEOUT) || 10000
+    SERVER_TIMEOUT: parseInt(process.env.TEST_SERVER_TIMEOUT)
 };
 
 /**
@@ -141,7 +140,7 @@ const SECURITY = {
     SSL_KEY_PATH: process.env.SSL_KEY_PATH || '',
     CORS_ORIGIN: process.env.CORS_ORIGIN
         ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-        : [`http://${SERVER.HOST}:${SERVER.VITE_PORT}`, `http://${SERVER.HOST}:${SERVER.PORT}`]
+        : [`http://${SERVER.HOST}:${SERVER.PORT}`]
 };
 
 /**
@@ -206,7 +205,7 @@ function getSummary() {
         environment: NODE_ENV,
         server: {
             port: SERVER.PORT,
-            vitePort: SERVER.VITE_PORT
+            host: SERVER.HOST
         },
         services: {
             lms: {
@@ -232,8 +231,7 @@ function printSummary() {
     console.log('\n🔧 BambiSleep Chat Configuration');
     console.log('═'.repeat(50));
     console.log(`📍 Environment: ${NODE_ENV.toUpperCase()}`);
-    console.log(`🌐 Server Port: ${SERVER.PORT}`);
-    console.log(`⚡ Vite Port: ${SERVER.VITE_PORT}`);
+    console.log(`🌐 Server: http://${SERVER.HOST}:${SERVER.PORT}`);
     console.log('\n🤖 Services:');
     console.log(`   LM Studio: ${LMS.isConfigured ? '✅ ' + LMS.URL : '❌ Not Configured'}`);
     console.log(`   Kokoro TTS: ${KOKORO.isConfigured ? '✅ ' + KOKORO.URL : '❌ Not Configured'}`);
@@ -272,7 +270,6 @@ module.exports = {
 
     // Legacy compatibility - export individual values
     PORT: SERVER.PORT,
-    VITE_PORT: SERVER.VITE_PORT,
     SERVER_HOST: SERVER.HOST,
 
     // Kokoro legacy

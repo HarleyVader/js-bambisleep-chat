@@ -5,6 +5,115 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-12-29
+
+### Added
+- **DOM Structure Separation for Dropdowns**
+  - New `#dropdowns-menu` container for dropdown buttons
+  - New `#dropdown-modals` container for dropdown content panels
+  - `data-dropdown` attribute linking buttons to their content
+  - Proper z-index layering without conflicts
+- **Standardized Button Pattern**
+  - All toggle buttons now use: emoji + text + status indicator
+  - Status indicator: `●` gray (#666) when off, green (#00ff00) when on
+  - Consistent visual feedback across all dropdowns
+- **Defensive TTS Queue Handling**
+  - `processTextQueue` now handles both object `{display, tts}` and legacy string formats
+  - `speakSentences` converted to use object format internally
+  - Automatic state reset to ensure queue processing starts
+
+### Changed
+- **HTML Structure Overhaul**
+  - Dropdown buttons separated from dropdown content in DOM
+  - Content panels positioned as overlay modals instead of inline elements
+  - Eliminates z-index stacking context issues with chat container
+- **TTS Integration Improvements**
+  - `aigf-core.js` now pushes `{display, tts}` objects to textArray
+  - Explicit `state = true` reset before calling `processTextQueue()`
+  - Added console logging for queue processing start
+- **CSS Architecture**
+  - `#dropdown-modals` positioned fixed with high z-index (9999)
+  - Dropdown content uses `position: absolute` relative to viewport
+  - Removed conflicting inline styles from components
+
+### Fixed
+- **Critical: Dropdowns appearing behind chat container**
+  - Root cause: DOM structure had dropdown content as children of buttons
+  - Solution: Separated buttons and content into distinct DOM trees
+- **Critical: TTS not reading text aloud**
+  - Root cause: `state` was false, preventing `processTextQueue()` from starting
+  - Root cause: String format pushed to queue but object format expected
+  - Solution: Reset state and use consistent object format
+- **Duplicate Click Handlers**
+  - Removed conflicting dropdown handlers from `aigf-core.js` `setupClickOutsideHandling()`
+  - Centralized all dropdown click handling in `dropdowns.js`
+- **Button Icons Being Overwritten**
+  - `toggleButtonState` now only updates status indicator, not button text
+  - `syncButtonStateWithTTSSystem` preserves button icon during state sync
+- **CSS MIME Type Errors**
+  - Fixed `index.html` loading non-existent CSS paths
+  - Consolidated to single `style.css` with `@import` statements
+- **Brainwave Dropdown Function Scope**
+  - Fixed broken indentation causing function scope issues
+
+### Technical Details
+
+#### Files Changed
+
+| File | Changes |
+|------|---------|
+| public/index.html | Restructured dropdown DOM, fixed CSS imports |
+| public/js/dropdowns.js | Added brainwave component wrapper, fixed toggleButtonState |
+| public/js/aigf-core.js | Emptied duplicate handlers, fixed TTS object format |
+| public/js/text2speech.js | Defensive format handling in processTextQueue |
+| public/js/dropdowns/tts-dropdown.js | Fixed syncButtonStateWithTTSSystem |
+| public/js/dropdowns/brainwave-dropdown.js | Fixed function scope/indentation |
+| public/js/dropdowns/collar-dropdown.js | Updated for new DOM structure |
+| public/js/dropdowns/triggers-dropdown.js | Updated for new DOM structure |
+| public/css/components/dropdowns.css | Status indicator styling |
+| public/css/layers.css | Updated layer positioning |
+
+#### New DOM Structure
+```html
+<!-- Buttons (visible toggle controls) -->
+<div id="dropdowns-menu">
+  <div class="dropdown" data-dropdown="tts">
+    <button id="toggle-tts" class="dropdown-btn toggle-button" data-state="off">
+      🔊 TTS <span class="status-indicator" id="tts-status">●</span>
+    </button>
+  </div>
+  ...
+</div>
+
+<!-- Content Panels (overlay modals) -->
+<div id="dropdown-modals">
+  <div class="dropdown-content" data-dropdown="tts">
+    <!-- Populated by tts-dropdown.js -->
+  </div>
+  ...
+</div>
+```
+
+#### TTS Queue Flow (Fixed)
+```javascript
+// 1. AI response received
+// 2. Push to textArray with object format
+window.ttsSystem.textArray.push({ display: sentence, tts: sentence });
+// 3. Reset state and start processing
+window.ttsSystem.state = true;
+window.ttsSystem.processTextQueue();
+// 4. processTextQueue handles both formats defensively
+if (typeof textItem === 'string') { ... } else { ... }
+```
+
+### Migration Notes
+- No API changes required
+- Existing localStorage states preserved
+- TTS voice selections maintained
+- Dropdown states work with new structure automatically
+
+---
+
 ## [0.3.0] - 2025-10-25
 
 ### Added
@@ -271,6 +380,7 @@ For projects upgrading from 0.1.0:
 
 ---
 
+[2.0.0]: https://github.com/HarleyVader/js-bambisleep-chat/compare/v0.3.0...v2.0.0
 [0.3.0]: https://github.com/HarleyVader/js-bambisleep-chat/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/HarleyVader/js-bambisleep-chat/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/HarleyVader/js-bambisleep-chat/releases/tag/v0.1.0

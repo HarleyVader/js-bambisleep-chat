@@ -13,9 +13,9 @@ const dotenv = require('dotenv');
 // Load environment configuration
 dotenv.config();
 
-// Server configuration from environment
-const SERVER_PORT = parseInt(process.env.PORT) || 6969;
-const SERVER_HOST = process.env.SERVER_HOST || 'localhost';
+// Server configuration from environment (all values must be in .env)
+const SERVER_PORT = parseInt(process.env.PORT);
+const SERVER_HOST = process.env.SERVER_HOST;
 const BASE_URL = `http://${SERVER_HOST}:${SERVER_PORT}`;
 
 class StabilityTester {

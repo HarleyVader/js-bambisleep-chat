@@ -365,14 +365,14 @@ const configStatus = validateConfiguration();
 
 // Security Middleware - Content Security Policy
 app.use((req, res, next) => {
-  // Dynamically include external service hosts
-  const kokoroHost = ENV.KOKORO.HOST || "localhost";
-  const kokoroPort = ENV.KOKORO.PORT || 8880;
-  const lmsHost = ENV.LMS.HOST || "localhost";
-  const lmsPort = ENV.LMS.PORT || 7777;
+  // Dynamically include external service hosts from ENV
+  const kokoroHost = ENV.KOKORO.HOST;
+  const kokoroPort = ENV.KOKORO.PORT;
+  const lmsHost = ENV.LMS.HOST;
+  const lmsPort = ENV.LMS.PORT;
 
   // Content Security Policy for enhanced security (environment-aware)
-  const isDevelopment = process.env.NODE_ENV !== "production";
+  const isDevelopment = ENV.isDevelopment;
 
   const cspDirectives = [
     "default-src 'self'",
@@ -1770,25 +1770,10 @@ function handleTTSError(error, res) {
 
 // TTS Health check endpoint (enhanced) - No actual health check, just service info
 app.get("/api/tts/health", async (req, res) => {
-  // Determine correct Kokoro host based on NODE_ENV
-  let kokoroHost;
-  if (process.env.NODE_ENV === "production") {
-    kokoroHost =
-      process.env.KOKORO_HOST_PRODUCTION ||
-      process.env.KOKORO_HOST_DEVELOPMENT ||
-      "localhost";
-  } else {
-    kokoroHost =
-      process.env.KOKORO_HOST_DEVELOPMENT ||
-      process.env.KOKORO_HOST_PRODUCTION ||
-      "localhost";
-  }
-  const kokoroPort = process.env.KOKORO_PORT || 8880;
-
   res.json({
     healthy: kokoroWorker ? true : false,
     service: "Kokoro TTS",
-    url: `http://${kokoroHost}:${kokoroPort}`,
+    url: ENV.KOKORO.URL,
     config: config.KOKORO_API_URL,
     defaultVoice: config.KOKORO_DEFAULT_VOICE,
     timeout: config.TTS_TIMEOUT,
@@ -2173,12 +2158,11 @@ process.on("SIGINT", () => {
 // Start server
 const PORT = ENV.SERVER.PORT;
 server.listen(PORT, () => {
-  console.log(`🚀 BambiSleep Chat server running on http://localhost:${PORT}`);
+  console.log(`🚀 BambiSleep Chat server running on http://${ENV.SERVER.HOST}:${PORT}`);
   console.log(
     `📁 Serving static files from: ${path.join(__dirname, "public")}`
   );
   console.log(`🎯 Environment: ${ENV.NODE_ENV}`);
-  console.log(`⚡ Vite Dev: http://localhost:${ENV.SERVER.VITE_PORT}`);
   console.log(`🧹 Memory management: Active`);
 
   // Start git pull monitoring after server is ready

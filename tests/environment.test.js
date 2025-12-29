@@ -179,10 +179,9 @@ class EnvironmentTester {
         this.log('Testing network port availability...', 'info');
 
         const ports = [
-            { port: 5173, name: 'Vite Dev Server' },
-            { port: 6969, name: 'Backend Server' },
-            { port: 8880, name: 'Kokoro TTS (default)' },
-            { port: 7777, name: 'LM Studio (default)' }
+            { port: parseInt(process.env.PORT), name: 'Backend Server' },
+            { port: parseInt(process.env.KOKORO_PORT), name: 'Kokoro TTS' },
+            { port: parseInt(process.env.LMS_PORT), name: 'LM Studio' }
         ];
 
         const net = require('net');
