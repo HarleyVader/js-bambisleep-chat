@@ -85,49 +85,13 @@ class DropdownUtils {
   }
 
   static repositionActiveDropdowns() {
-    const activeDropdowns = document.querySelectorAll(".dropdown.active");
-    activeDropdowns.forEach((dropdown) => {
-      const content = dropdown.querySelector(".dropdown-content");
-      const button = dropdown.querySelector(".dropdown-btn, .dropdown-button");
-
-      if (content && button) {
-        const buttonRect = button.getBoundingClientRect();
-        content.style.top = `${buttonRect.bottom + 4}px`;
-        content.style.left = `${buttonRect.left}px`;
-
-        const contentRect = content.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-
-        if (contentRect.right > viewportWidth) {
-          content.style.left = `${viewportWidth - contentRect.width - 10}px`;
-        }
-
-        if (contentRect.bottom > viewportHeight) {
-          content.style.top = `${buttonRect.top - contentRect.height - 4}px`;
-        }
-      }
-    });
+    // Positioning now handled by CSS (fixed centering at 50%/50% with transform)
+    // No inline positioning needed - dropdowns auto-center on screen
   }
 
   static addVisualFeedback(element, type = "success") {
-    const feedback = document.createElement("div");
-    feedback.className = `visual-feedback ${type}`;
-    feedback.style.cssText = `
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: ${type === "success" ? "#00ff88" : "#ff4444"};
-            animation: feedbackPulse 0.6s ease-out;
-            pointer-events: none;
-            z-index: 1000;
-        `;
-
-    element.style.position = "relative";
-    element.appendChild(feedback);
+    // Simplified feedback - no visual effects
+    console.log(`✓ ${type}:`, element);
 
     setTimeout(() => feedback.remove(), 600);
   }
@@ -306,112 +270,40 @@ class DropdownManager {
     this.showToggleFeedback(baseName, newState);
   }
 
-  // Universal dropdown management methods
-  async openDropdown(dropdown) {
+  // Universal dropdown management methods - SIMPLIFIED
+  openDropdown(dropdown) {
     // Close any other open dropdown
     if (this.activeDropdown && this.activeDropdown !== dropdown) {
       this.closeDropdown(this.activeDropdown);
     }
 
-    const content = dropdown.querySelector(".dropdown-content");
-    const button = dropdown.querySelector(".dropdown-btn");
-
     console.log("🔽 Dropdown opening:", dropdown);
 
-    // Use View Transitions API for smooth animations (progressive enhancement)
-    const openAction = () => {
-      dropdown.classList.add("active");
-      this.activeDropdown = dropdown;
+    // Simple activation - CSS handles everything
+    dropdown.classList.add("active");
+    this.activeDropdown = dropdown;
 
-      // Make chat toggle button transparent and unclickable
-      const chatToggleBtn = document.getElementById("chat-toggle-button");
-      if (chatToggleBtn) {
-        chatToggleBtn.classList.add("dropdown-active");
+    // Populate dropdown content if needed
+    this.populateDropdownContent(dropdown);
+
+    // Focus first element
+    const content = dropdown.querySelector(".dropdown-content");
+    if (content) {
+      const firstFocusable = content.querySelector("button, input, select");
+      if (firstFocusable) {
+        setTimeout(() => firstFocusable.focus(), 50);
       }
-
-      // Populate dropdown content if needed
-      this.populateDropdownContent(dropdown);
-
-      // Enhanced positioning with content measurement
-      if (content && button) {
-        content.style.viewTransitionName = `dropdown-${
-          dropdown.id || "content"
-        }`;
-        content.offsetHeight; // Force reflow
-
-        const buttonRect = button.getBoundingClientRect();
-        const contentRect = content.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-
-        let top = buttonRect.bottom + 4;
-        let left = buttonRect.left;
-
-        // Adjust if off-screen
-        if (left + contentRect.width > viewportWidth) {
-          left = Math.max(10, viewportWidth - contentRect.width - 10);
-        }
-        if (top + contentRect.height > viewportHeight) {
-          top = Math.max(10, buttonRect.top - contentRect.height - 4);
-        }
-
-        content.style.top = `${top}px`;
-        content.style.left = `${left}px`;
-
-        // Add entering animation
-        content.classList.add("dropdown-entering");
-        content.classList.remove("dropdown-leaving");
-        setTimeout(() => content.classList.remove("dropdown-entering"), 200);
-
-        // Focus first focusable element
-        const firstFocusable = content.querySelector(
-          'button, input, select, [tabindex]:not([tabindex="-1"])'
-        );
-        if (firstFocusable) {
-          setTimeout(() => firstFocusable.focus(), 100);
-        }
-      }
-    };
-
-    // Check for View Transitions API support
-    if (
-      "startViewTransition" in document &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      try {
-        await document.startViewTransition(openAction).finished;
-      } catch (error) {
-        openAction();
-      }
-    } else {
-      openAction();
     }
   }
 
   closeDropdown(dropdown) {
-    const content = dropdown.querySelector(".dropdown-content");
+    if (!dropdown) return;
 
-    if (content) {
-      content.classList.add("dropdown-leaving");
-      content.classList.remove("dropdown-entering");
-
-      setTimeout(() => {
-        dropdown.classList.remove("active");
-        content.classList.remove("dropdown-leaving");
-        content.style.viewTransitionName = "";
-      }, 200);
-    } else {
-      dropdown.classList.remove("active");
-    }
+    // Simple close - immediate, no animations
+    dropdown.classList.remove("active");
 
     if (this.activeDropdown === dropdown) {
       this.activeDropdown = null;
-
-      // Restore chat toggle button when no dropdowns are active
-      const chatToggleBtn = document.getElementById("chat-toggle-button");
-      if (chatToggleBtn) {
-        chatToggleBtn.classList.remove("dropdown-active");
-      }
     }
   }
 

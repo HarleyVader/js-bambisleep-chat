@@ -65,7 +65,7 @@
 
 /* Interface layer - main UI elements (chat stays here) */
 @layer interface {
-    /* Chat container stays in interface layer with lower priority */
+    /* Chat container stays in interface layer with LOWER priority than dropdowns */
     #chat-container {
         position: relative;
         isolation: isolate;
@@ -76,12 +76,20 @@
         position: relative;
     }
 
+    /* Force chat messages to stay in interface layer - NEVER above dropdowns */
     #global-chat-messages,
     #aigf-chat-messages,
     #global-chat-input-container,
     #aigf-chat-input-container,
     .docs-link-container {
         position: relative;
+        /* Stay in interface layer - dropdowns layer is above this */
+    }
+
+    /* Explicitly ensure global chat never overlaps dropdowns */
+    #global-chat-messages {
+        position: relative;
+        isolation: isolate;
     }
 }
 
@@ -119,7 +127,7 @@
         pointer-events: auto;
     }
 
-    /* Modal backdrop when dropdown is open */
+    /* Modal backdrop - simple, no complex effects */
     .dropdown.active::before {
         content: '';
         position: fixed;
@@ -127,56 +135,52 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-        animation: fadeIn 0.2s ease;
-        will-change: opacity;
+        background: rgba(0, 0, 0, 0.6);
     }
 
-    /* Dropdown content as modal - centered on screen with highest priority */
+    /* Dropdown content - SIMPLE centered modal */
     .dropdown-content {
+        /* Fixed center positioning */
         position: fixed !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
-        background: rgba(38, 20, 38, 0.98);
-        -webkit-backdrop-filter: blur(20px);
-        backdrop-filter: blur(20px);
-        min-width: 400px;
-        max-width: 90vw;
-        width: auto;
-        box-shadow:
-            0 20px 60px 0 rgba(0, 0, 0, 0.8),
-            0 0 0 1px rgba(255, 255, 255, 0.2);
+        
+        /* Appearance */
+        background: rgba(38, 20, 38, 0.95);
         border: 2px solid rgba(255, 105, 180, 0.5);
-        border-radius: 16px;
-        max-height: 85vh;
+        border-radius: 12px;
+        
+        /* Size constraints - stay within viewport */
+        min-width: 300px;
+        max-width: min(90vw, 600px);
+        max-height: min(80vh, calc(100vh - 60px));
+        width: auto;
+        
+        /* Scrolling */
         overflow-y: auto;
         overflow-x: hidden;
-        pointer-events: auto;
+        
+        /* Spacing */
+        padding: 1.5rem;
+        margin: 20px;
+        box-sizing: border-box;
+        
+        /* Visibility */
         opacity: 0;
         visibility: hidden;
-        transition:
-            opacity 0.2s ease,
-            visibility 0.2s ease;
-        container-type: inline-size;
-        padding: 1.5rem;
-        will-change: opacity, visibility;
+        pointer-events: none;
+        
+        /* Simple transition */
+        transition: opacity 0.15s ease, visibility 0.15s ease;
     }
 
-    /* Show dropdown modal with smooth animation */
+    /* Show dropdown - simple */
     .dropdown.active .dropdown-content,
     .dropdown-content.show {
-        display: block !important;
-        transform: translate(-50%, -50%) !important;
         opacity: 1 !important;
         visibility: visible !important;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+        pointer-events: auto !important;
     }
 
     /* Ensure dropdown content is above everything in interface layer */
@@ -229,17 +233,13 @@
         }
     }
 
-    /* Responsive dropdown positioning (fallback for older browsers) */
+    /* Mobile - simpler sizing */
     @media (max-width: 768px) {
         .dropdown-content {
-            position: fixed;
-            top: auto;
-            bottom: 60px;
-            left: 10px;
-            right: 10px;
-            width: calc(100% - 20px);
-            min-width: unset;
-            max-width: unset;
+            width: calc(100vw - 40px);
+            max-width: calc(100vw - 40px);
+            max-height: calc(100vh - 80px);
+            padding: 1rem;
         }
     }
 }

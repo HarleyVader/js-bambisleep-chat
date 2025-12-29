@@ -1,0 +1,25 @@
+/**
+ * Brainwave Effects
+ * @layer background
+ * Brainwave visualization and animations
+ */
+
+@layer background {
+    .brainwave-canvas {
+        opacity: 0.7;
+        mix-blend-mode: screen;
+    }
+
+    @keyframes brainwavePulse {
+        0%, 100% {
+            opacity: 0.6;
+        }
+        50% {
+            opacity: 0.9;
+        }
+    }
+
+    .brainwave-active {
+        animation: brainwavePulse 2s ease-in-out infinite;
+    }
+}

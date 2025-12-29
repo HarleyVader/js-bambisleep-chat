@@ -1,0 +1,180 @@
+/**
+ * AIGF (AI Girlfriend) Components
+ * @layer interface
+ * AI-specific chat styling and effects
+ */
+
+@layer interface {
+    /* ===== AIGF Chat Container ===== */
+    #aigf-chat-messages {
+        flex: 1;
+        padding: 14px;
+        overflow-y: auto;
+        scroll-behavior: smooth;
+        border: var(--border) var(--button-color);
+        background: linear-gradient(145deg, rgba(255, 20, 147, 0.05), rgba(139, 0, 139, 0.05));
+        display: none;
+        position: relative;
+    }
+
+    #aigf-chat-messages::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at center, rgba(255, 20, 147, 0.1) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    /* ===== AIGF Messages ===== */
+    #aigf-chat-messages .message {
+        position: relative;
+        margin-bottom: 8px;
+        padding: 8px 12px;
+        background: linear-gradient(145deg, rgba(255, 20, 147, 0.2), rgba(139, 0, 139, 0.3));
+        border-radius: 15px;
+        border-left: 4px solid var(--button-color);
+        animation: aigfMessageSlide 0.4s ease-out;
+        border: 1px solid rgba(255, 20, 147, 0.5);
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        white-space: normal;
+        overflow: visible;
+        min-height: 32px;
+        max-width: 100%;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 10px rgba(255, 20, 147, 0.3);
+    }
+
+    @keyframes aigfMessageSlide {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            box-shadow: 0 0 20px rgba(255, 20, 147, 0.8);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            box-shadow: 0 2px 10px rgba(255, 20, 147, 0.3);
+        }
+    }
+
+    /* ===== AI Response Messages ===== */
+    #aigf-chat-messages .message.ai,
+    .message.ai {
+        background: linear-gradient(145deg, rgba(255, 20, 147, 0.3), rgba(255, 105, 180, 0.2));
+        border-left: 4px solid #ff1493;
+        animation: aiGlow 2s ease-in-out infinite;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        white-space: normal;
+        overflow: visible;
+        padding: 12px 16px;
+        box-shadow: 0 4px 15px rgba(255, 20, 147, 0.4);
+        position: relative;
+    }
+
+    #aigf-chat-messages .message.ai::before {
+        content: '🌀';
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        font-size: 1.2rem;
+        animation: spin 3s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes aiGlow {
+        0% {
+            box-shadow: 0 0 5px var(--tertiary-color);
+        }
+        50% {
+            box-shadow: 0 0 20px var(--tertiary-color);
+        }
+        100% {
+            box-shadow: 0 0 5px var(--tertiary-color);
+        }
+    }
+
+    .message.ai .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .message.ai .message-text {
+        line-height: 1.5;
+        width: 100%;
+        word-wrap: break-word;
+        white-space: normal;
+        margin: 0;
+    }
+
+    /* ===== AI-generated Highlighted Text ===== */
+    .ai-generated-highlight {
+        color: var(--button-color);
+        font-weight: bold;
+        text-shadow: 0 0 12px var(--button-color);
+        animation: aiHighlightPulse 3s ease-in-out infinite;
+        font-size: 1.05em;
+        letter-spacing: 0.5px;
+        background: rgba(223, 4, 113, 0.1);
+        padding: 2px 4px;
+        border-radius: 3px;
+        border: 1px solid rgba(223, 4, 113, 0.3);
+    }
+
+    @keyframes aiHighlightPulse {
+        0%, 100% {
+            opacity: 1;
+            text-shadow: 0 0 12px var(--button-color);
+            border-color: rgba(223, 4, 113, 0.3);
+        }
+        50% {
+            opacity: 0.9;
+            text-shadow: 0 0 18px var(--button-color), 0 0 25px var(--button-color);
+            border-color: rgba(223, 4, 113, 0.6);
+        }
+    }
+
+    /* ===== Trigger Text Effects ===== */
+    .trigger-text {
+        animation: flashTrigger 1s ease-in-out infinite;
+        color: var(--secondary-alt);
+        font-weight: bold;
+        text-shadow: 0 0 8px var(--secondary-alt);
+        position: relative;
+        display: inline;
+    }
+
+    @keyframes flashTrigger {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    @keyframes triggerPulse {
+        0%, 100% {
+            opacity: 1;
+            text-shadow: 0 0 10px var(--button-color);
+        }
+        50% {
+            opacity: 0.8;
+            text-shadow: 0 0 20px var(--button-color), 0 0 30px var(--button-color);
+        }
+    }
+
+    .trigger-highlighted {
+        background-color: rgba(255, 0, 128, 0.2) !important;
+    }
+}

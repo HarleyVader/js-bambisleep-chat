@@ -1,144 +1,268 @@
 # GitHub Copilot Instructions
 
-**BambiSleep Chat**: Real-time chat app with TTS, psychedelic visuals, and BambiSleep trigger detection.
+**BambiSleep Chat**: Real-time chat with TTS, psychedelic visuals, and BambiSleep trigger detection.
 
-## Architecture Overview
+## Quick Start
 
-### Core Stack
-- **Backend**: Express + Socket.io + Worker threads (`server.js`)
-- **Frontend**: Vanilla JavaScript ES6 modules (NO React/frameworks)
-- **Build**: Vite for development, serves from `/public` with proxy to port 6969
-- **Data Flow**: Socket.io ↔ Server ↔ Worker threads (Kokoro TTS, LM Studio AI)
+**Stack**: Express + Socket.io + Worker threads | Vanilla ES6 modules (NO frameworks) | Vite dev proxy
 
-### Key Files & Responsibilities
-```
-server.js              # Main server: Express, Socket.io, worker management
-public/js/aigf-core.js  # Chat client: socket handling, UI, trigger processing
-public/js/dropdowns/    # Modular UI components (ES6 exports)
-workers/kokoro.js       # TTS worker (female voices only)
-workers/lmstudio.js     # AI chat worker
-workers/triggers.json   # Official BambiSleep triggers (never hardcode)
-vite.config.js          # Dev proxy: 5173 → 6969 for Socket.io/API
-```
+**Commands** (PowerShell on Windows):
 
-## Development Commands
 ```bash
-npm run dev          # Full stack (Vite dev server + backend)
-npm run dev:server   # Backend only (port 6969)
-npm run dev:client   # Frontend only (port 5173)
+npm start              # Production (port 6969)
+npm run dev:server     # Backend only
+npm run test           # Run all test suites (generates HTML reports in tests/reports/)
 ```
 
-## Critical Patterns
+**Key Files**:
 
-### Environment-Driven Configuration
-```javascript
-// ALWAYS respect development vs production hosts
-const host = process.env.NODE_ENV === 'production'
-  ? process.env.KOKORO_HOST_PRODUCTION
-  : process.env.KOKORO_HOST_DEVELOPMENT;
+```
+server.js              # Express, Socket.io, worker orchestration, chat history
+config/env.js          # Centralized environment config (use ENV.KOKORO.URL, ENV.LMS.URL)
+public/js/aigf-core.js # Chat client: socket handling, trigger processing, TTS coordination
+public/js/dropdowns/   # Modular UI components (ES6 exports via index.js)
+workers/kokoro.js      # TTS worker (female voices only, Kokoro-FastAPI)
+workers/lmstudio.js    # AI chat worker (LM Studio SDK)
+workers/triggers.json  # Official BambiSleep triggers (AUTHORITATIVE - never hardcode)
 ```
 
-### Official Triggers Only
-- **Source**: `workers/triggers.json` (loaded from `/api/triggers/json`)
-- **Categories**: `primary`, `physical`, `mental` with safety levels
-- **Never hardcode**: Always load from API/JSON, respect official BambiSleep data
+## Architecture Patterns
 
-### Worker Thread Communication
+### 1. Centralized Environment Config
+
+**ALWAYS use `config/env.js`** - never access `process.env` directly in workers or client code.
+
 ```javascript
-// Server mediates between Socket.io and workers
-const worker = new Worker('./workers/kokoro.js');
-worker.postMessage({ type: 'tts', text: message, voice: 'af_bella' });
+// ✅ Correct - Use centralized config
+const ENV = require("./config/env");
+const kokoroUrl = ENV.KOKORO.URL; // Auto-selects dev/prod host
+const isConfigured = ENV.KOKORO.isConfigured; // Check before using service
+
+// ❌ Wrong - Direct process.env access
+const host = process.env.KOKORO_HOST_DEVELOPMENT; // Doesn't handle prod/dev switching
 ```
 
-### Modular Dropdown System
+**Why**: `config/env.js` handles dev/prod switching, validation, and provides computed properties (`.URL`, `.isConfigured`).
+
+### 2. Official Triggers Only
+
+**Source of truth**: `workers/triggers.json` → served via `/api/triggers/json`
+
 ```javascript
-// public/js/dropdowns/index.js exports all components
-import { TTSDropdown, TriggersDropdown } from './dropdowns/index.js';
+// ✅ Correct - Load from API
+async loadOfficialTriggers() {
+    const response = await fetch('/api/triggers/json');
+    const data = await response.json();
+    this.activeTriggers = data.triggers.map(t => t.name.toUpperCase());
+}
+
+// ❌ Wrong - Hardcoded triggers
+this.activeTriggers = ['BAMBI', 'GOOD GIRL'];  // Out of sync with official list
 ```
 
-### Audio Delivery Pattern
-```javascript
-// TTS: Server → Kokoro worker → Base64 MP3 → Socket.io → Client
-// Per Kokoro-FastAPI official docs: https://github.com/remsky/Kokoro-FastAPI
+**Structure**: Each trigger has `name`, `category` (Primary/Physical/Mental), `safetyLevel`, `description`, `effect`.
 
-// Worker generates speech via OpenAI-compatible endpoint
-const response = await fetch(`${kokoroUrl}/v1/audio/speech`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        model: 'kokoro',
-        voice: 'af_bella',  // Female voices only: af_bella, af_sky, af_nicole, etc.
-        input: text,
-        response_format: 'mp3',
-        speed: 1.0
-    })
+### 3. Socket.io Event Patterns
+
+Server mediates ALL communication. Workers never touch sockets directly.
+
+**Standard Flow**:
+
+```javascript
+// Client → Server
+socket.emit("tts-request", { text: "Hello", voice: "af_bella" });
+
+// Server → Worker
+ttsWorker.postMessage({
+  type: "tts",
+  text: "Hello",
+  voice: "af_bella",
+  socketId,
 });
 
-// Server sends Base64 audio via Socket.io
-socket.emit('tts-response', { audioData: base64Mp3, voice: 'af_bella' });
+// Worker → Server (via parentPort)
+parentPort.postMessage({ type: "tts_response", audioData: base64, socketId });
 
-// Client converts and plays
-const blob = base64ToBlob(audioData, 'audio/mpeg');
-const url = URL.createObjectURL(blob);
-audio.src = url;
-audio.play();
+// Server → Client
+socket.emit("tts-response", { audioData: base64, voice: "af_bella" });
 ```
 
-## Development Workflow
+**Key Events** (from `server.js:885-1104`):
 
-### 3-State Work Loop
-1. **IMAGINE** (3x): Simplest solution? Reuse existing? Configuration over code?
-2. **CREATE**: Minimal code, one function per purpose, test each step
-3. **DEPLOY**: Fix only what's broken, STOP when working
+- `message`, `global-message`: Chat messages (legacy + global history)
+- `ai-chat`: AI requests → `ai-response` or `ai-error`
+- `tts-request`: TTS generation → `tts-response` or `tts-error`
+- `activate-collar`, `deactivate-collar`: Trigger system control → `collar-activated`
+- `update-triggers`: Update active trigger list
 
-### Common Tasks
-## Copilot instructions — BambiSleep Chat (concise)
+### 4. Worker Thread Communication
 
-This project is a small, vanilla-ES6, real-time chat app with TTS and trigger detection.
-Be productive quickly by following the conventions below — these are the discoverable, enforced patterns.
+Workers are **stateful** and persist for the server lifetime.
 
-- Architecture: `server.js` (Express + Socket.io) mediates between clients and worker threads in `workers/`.
-- Frontend: plain ES6 modules under `public/js/` (no framework). Key entry: `public/js/aigf-core.js`.
-- Workers: `workers/kokoro.js` (TTS) and `workers/lmstudio.js` (AI). Triggers are authoritative in `workers/triggers.json`.
+```javascript
+// Server creates workers ONCE (server.js)
+const ttsWorker = new Worker("./workers/kokoro.js");
+ttsWorker.on("message", (msg) => {
+  const socket = io.sockets.sockets.get(msg.socketId);
+  socket?.emit(msg.type, msg.data);
+});
 
-- Common dev commands (use PowerShell on Windows):
-  - `npm run dev` — full stack (Vite dev server + backend proxy)
-  - `npm run dev:server` — backend only (port 6969)
-  - `npm run dev:client` — frontend only (port 5173)
-
-- Communication patterns to reuse (copy-paste safe):
-  - Worker messaging (server → worker):
-    ```javascript
-    const worker = new Worker('./workers/kokoro.js');
-    worker.postMessage({ type: 'tts', text: message, voice: 'af_bella' });
-    ```
-  - TTS audio delivery (worker → client via socket):
-    ```javascript
-    // Kokoro-FastAPI OpenAI-compatible endpoint usage
-    const response = await fetch(`http://192.168.0.170:8880/v1/audio/speech`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model: 'kokoro',
-            voice: 'af_sky+af_bella',  // Supports voice mixing with +
-            input: text,
-            response_format: 'mp3'
-        })
+// Worker handles messages (workers/kokoro.js)
+parentPort.on("message", async (msg) => {
+  if (msg.type === "tts") {
+    const audioData = await generateSpeech(msg.text, msg.voice);
+    parentPort.postMessage({
+      type: "tts_response",
+      audioData,
+      socketId: msg.socketId,
     });
-    socket.emit('tts-response', { audioData: base64Mp3, voice: 'af_bella' });
-    ```
+  }
+});
+```
 
-- Important project rules (enforce these):
-  - Never hardcode triggers — read from `/api/triggers/json` or `workers/triggers.json`.
-  - Keep external API calls inside worker threads (Kokoro/LMS) — main thread must stay lightweight.
-  - Use ES6 module exports for dropdown components: add files in `public/js/dropdowns/` and export them from `public/js/dropdowns/index.js`.
+### 5. Modular Dropdown System
 
-- Environment variables used at runtime (TTS and LMS hosts/ports):
-  - KOKORO_HOST_DEVELOPMENT / KOKORO_HOST_PRODUCTION, KOKORO_PORT, KOKORO_DEFAULT_VOICE
-  - LMS_HOST_DEVELOPMENT / LMS_HOST_PRODUCTION, LMS_PORT
+UI components are **ES6 modules** exported from `public/js/dropdowns/index.js`.
 
-- Quick examples of where to change behavior:
-  - To add UI options, create `public/js/dropdowns/my-dropdown.js` and export from `public/js/dropdowns/index.js`.
-  - To add/modify triggers, edit `workers/triggers.json` and verify at `/api/triggers/json`.
+```javascript
+// ✅ Add new dropdown
+// 1. Create public/js/dropdowns/my-feature-dropdown.js
+export function MyFeatureDropdown() {
+  const dropdown = document.createElement("div");
+  dropdown.className = "dropdown";
+  // ... build UI
+  return dropdown;
+}
 
-If anything in this short guide is unclear or you want more detail (examples, quick tests, or hooks for CI), tell me which area to expand and I will iterate.
+// 2. Export from public/js/dropdowns/index.js
+export { MyFeatureDropdown } from "./my-feature-dropdown.js";
+
+// 3. Import in aigf-core.js
+import { MyFeatureDropdown } from "./dropdowns/index.js";
+```
+
+### 6. CSS Custom Properties (Theming)
+
+All colors defined in `public/css/_variables.css`. **Never hardcode colors**.
+
+```css
+/* ✅ Use CSS variables */
+.my-element {
+  background: var(--primary-color); /* Teal */
+  border: var(--border); /* 3px ridge */
+  color: var(--button-color); /* Hot pink */
+  padding: var(--spacing-md); /* 12px */
+  border-radius: var(--border-radius); /* 8px */
+}
+
+/* ❌ Hardcoded values break theming */
+.my-element {
+  background: #0c2a2a;
+  padding: 12px;
+}
+```
+
+**Key Variables**: `--primary-color`, `--secondary-color`, `--tertiary-color`, `--button-color`, `--nav-alt`, `--error`, `--spacing-*`, `--font-size-*`.
+
+### 7. Modular CSS Architecture
+
+CSS uses **@layer system** for predictable cascade without z-index conflicts.
+
+**Structure** (`public/css/`):
+
+```
+style.css              # Main orchestrator (imports only)
+_variables.css         # Design tokens (colors, spacing, fonts)
+_layers.css            # Layer definitions & positioning rules
+components/            # UI components (@layer interface, dropdowns)
+  ├── buttons.css      # Button states, animations
+  ├── chat.css         # Chat containers, messages
+  ├── aigf.css         # AI girlfriend mode
+  └── dropdowns.css    # Dropdown configs
+effects/               # Visual effects (@layer background)
+  ├── glassmorphism.css
+  ├── spirals.css
+  └── brainwave.css
+layout/                # Responsive (@layer interface)
+  └── mobile.css       # Breakpoints, mobile-first
+```
+
+**Layer Order** (from `_layers.css`): `base` → `background` → `interface` → `dropdowns` → `modals` → `overlays` → `debug`
+
+**Adding CSS**:
+
+```css
+// 1. Create public/css/components/my-feature.css
+@layer interface {
+  .my-feature {
+    background: var(--primary-color);
+    padding: var(--spacing-md);
+  }
+}
+
+// 2. Import in style.css
+@import url("components/my-feature.css");
+```
+
+**See**: `public/css/README.md` for full architecture guide.
+
+## Testing & Debugging
+
+**Test Suite**: `npm test` runs `tests/master.test.js` → environment + stability + resource tests.
+
+- Reports: `tests/reports/unified-test-report-*.html` (open in browser)
+- Baselines: `tests/reports/performance-baselines.json`
+
+**Debugging**:
+
+```javascript
+// Enable debug mode in .env
+DEBUG_MODE = true;
+LOG_LEVEL = debug;
+
+// Server logs show:
+// ✅ = success, ⚠️ = warning, ❌ = error, 🔧 = config, 🎤 = TTS, 🤖 = AI
+```
+
+## Common Workflows
+
+**Add New UI Control**:
+
+1. Create `public/js/dropdowns/my-control-dropdown.js` (ES6 export)
+2. Export from `public/js/dropdowns/index.js`
+3. Import & initialize in `aigf-core.js`
+
+**Add Environment Variable**:
+
+1. Add to `config/env.js` in appropriate section (SERVER/LMS/KOKORO/APPLICATION)
+2. Run `npm start` → ENV validation auto-checks format & provides warnings
+3. Use via `ENV.SECTION.VARIABLE` (e.g., `ENV.APPLICATION.MAX_MESSAGE_LENGTH`)
+
+**Modify Triggers**:
+
+1. Edit `workers/triggers.json` (preserve structure: `name`, `category`, `safetyLevel`, `description`, `effect`)
+2. Test at `http://localhost:6969/api/triggers/json`
+3. Client auto-loads via `loadOfficialTriggers()` in `aigf-core.js`
+
+**Debug TTS Issues**:
+
+1. Check `ENV.KOKORO.isConfigured` (requires `KOKORO_HOST_DEVELOPMENT` or `KOKORO_HOST_PRODUCTION`)
+2. Verify Kokoro-FastAPI running: `curl http://<host>:<port>/v1/audio/speech`
+3. Worker logs in terminal show `🎤 Kokoro TTS configured: <url>`
+
+## Project-Specific Conventions
+
+1. **No Frameworks**: Vanilla JS only. Use DOM APIs, not React/Vue/etc.
+2. **Worker Isolation**: External API calls (Kokoro, LM Studio) ONLY in workers. Main thread stays lightweight.
+3. **Chat History**: Managed by `ChatHistoryManager` class (server.js:455). Supports `global`, `aigf`, `legacy` types.
+4. **Error Handling**: Use `ErrorManager` class (public/js/error-manager.js) for client errors with retry logic.
+5. **Security**: CSP headers auto-generated (server.js:372) with environment-aware external hosts.
+
+## External Dependencies
+
+- **Kokoro-FastAPI**: OpenAI-compatible TTS API (https://github.com/remsky/Kokoro-FastAPI)
+  - Voices: `af_bella`, `af_sky`, `af_nicole`, etc. (12 female voices)
+  - Supports voice mixing: `af_sky+af_bella`
+- **LM Studio**: Local AI model server (@lmstudio/sdk)
+  - Default model: `l3-sthenomaidblackroot-8b-v1@q4_k_s`
+  - Structured output for trigger highlighting (JSON mode)

@@ -1,0 +1,48 @@
+/**
+ * Spiral Visual Effects
+ * @layer background
+ * Spiral animations and canvas styling
+ */
+
+@layer background {
+    /* ===== Spiral Container ===== */
+    #spiral-container {
+        position: relative;
+        width: 70vw;
+        height: 100vh;
+        opacity: 0.6;
+        order: 2;
+        background: rgba(10, 38, 38, 0.3);
+        -webkit-backdrop-filter: var(--blur-light);
+        backdrop-filter: var(--blur-light);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-sm);
+        box-sizing: border-box;
+        transition: width var(--transition-slow), margin-left var(--transition-slow);
+    }
+
+    #spiral-canvas {
+        width: 100%;
+        height: 100%;
+        border: 2px solid var(--button-color);
+        border-radius: var(--border-radius);
+        box-sizing: border-box;
+        filter: brightness(1.4) saturate(1.6) contrast(1.2);
+        box-shadow:
+            0 0 20px rgba(0, 255, 255, 0.3),
+            0 0 40px rgba(255, 0, 255, 0.2),
+            inset 0 0 30px rgba(255, 255, 255, 0.1);
+    }
+
+    /* ===== Animation States ===== */
+    #spiral-container.spiral-normal {
+        width: 70vw;
+        margin-left: 0;
+    }
+
+    #spiral-container.spiral-expanded {
+        width: 100vw;
+        margin-left: -30vw;
+    }
+}

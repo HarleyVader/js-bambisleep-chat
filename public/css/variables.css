@@ -1,0 +1,91 @@
+/**
+ * BambiSleep Chat - CSS Custom Properties
+ * Centralized design tokens for theming and consistency
+ * @layer base
+ */
+
+@layer base {
+    :root {
+        /* ===== Color Palette ===== */
+        /* Primary - Teal/Cyan theme */
+        --primary-color: #0c2a2aE6;
+        --primary-alt: #15aab5E6;
+        
+        /* Secondary - Purple/Magenta theme */
+        --secondary-color: #40002fE6;
+        --secondary-alt: #cc0174E6;
+        
+        /* Tertiary - Pink/Teal theme */
+        --tertiary-color: #720241e6;
+        --tertiary-alt: #02b893E6;
+        
+        /* Accent - Hot Pink */
+        --button-color: #df0471E6;
+        --button-alt: #110000E6;
+        
+        /* Navigation */
+        --nav-color: #0a2626E6;
+        --nav-alt: #17dbd8E6;
+        
+        /* Utility */
+        --transparent: #124141E6;
+        --error: #ff3333E6;
+        
+        /* ===== Layout & Spacing ===== */
+        --border: 3px ridge;
+        --border-radius: 8px;
+        --border-radius-sm: 4px;
+        --border-radius-lg: 12px;
+        --border-radius-xl: 16px;
+        
+        --spacing-xs: 4px;
+        --spacing-sm: 8px;
+        --spacing-md: 12px;
+        --spacing-lg: 16px;
+        --spacing-xl: 20px;
+        
+        /* ===== Typography ===== */
+        --font-primary: "Audiowide", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        --font-mono: "Courier New", monospace;
+        
+        --font-size-xs: 0.5rem;
+        --font-size-sm: 0.6rem;
+        --font-size-md: 0.75rem;
+        --font-size-lg: 1rem;
+        --font-size-xl: 1.215rem;
+        --font-size-2xl: 2rem;
+        
+        /* ===== Effects ===== */
+        --blur-light: blur(8px);
+        --blur-medium: blur(16px);
+        --blur-heavy: blur(20px);
+        
+        --shadow-sm: 0 4px 16px 0 rgba(0, 0, 0, 0.25);
+        --shadow-md: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        --shadow-lg: 0 20px 60px 0 rgba(0, 0, 0, 0.8);
+        
+        /* ===== Animations ===== */
+        --transition-fast: 0.2s ease;
+        --transition-medium: 0.3s ease;
+        --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        /* ===== Z-Index Scale (deprecated - use CSS layers instead) ===== */
+        --z-background: 1;
+        --z-interface: 10;
+        --z-dropdowns: 100;
+        --z-modals: 1000;
+        --z-overlays: 10000;
+    }
+    
+    /* ===== Mobile Variables ===== */
+    @media (pointer: coarse) {
+        :root {
+            --mobile-bg: #0a0a0a;
+            --mobile-accent: var(--button-color);
+            --mobile-text: #ffffff;
+            --mobile-border: var(--primary-alt);
+            --mobile-glass: rgba(10, 10, 10, 0.9);
+            --mobile-secondary: var(--tertiary-alt);
+        }
+    }
+}

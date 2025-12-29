@@ -1,30 +1,39 @@
-/* BambiSleep Chat Styles */
+/**
+ * BambiSleep Chat - Main Stylesheet
+ * Modular CSS Architecture using CSS Layers
+ * 
+ * Layer Order (defined in _layers.css):
+ * 1. base       - Foundational elements
+ * 2. background - Visual effects (spirals, brainwaves)
+ * 3. interface  - Main UI components
+ * 4. dropdowns  - Dropdown modals
+ * 5. modals     - Modal dialogs
+ * 6. overlays   - Highest priority UI
+ * 7. debug      - Development tools
+ */
+
+/* ===== Google Fonts ===== */
 @import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
-@import url("glassmorphism.css");
-@import url("layers.css");
 
-:root {
-    --primary-color: #0c2a2aE6;
-    --primary-alt: #15aab5E6;
-    --secondary-color: #40002fE6;
-    --secondary-alt: #cc0174E6;
-    --tertiary-color: #720241e6;
-    --tertiary-alt: #02b893E6;
-    --button-color: #df0471E6;
-    --button-alt: #110000E6;
-    --nav-color: #0a2626E6;
-    --nav-alt: #17dbd8E6;
-    --transparent: #124141E6;
-    --error: #ff3333E6;
-    --border: 3px ridge;
-    --border-radius: 8px;
-}
+/* ===== Foundation: Variables & Layers ===== */
+@import url("variables.css");  /* CSS custom properties */
+@import url("layers.css");     /* Layer definitions & positioning */
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+/* ===== Effects ===== */
+@import url("effects/glassmorphism.css");  /* Frosted glass effects */
+@import url("effects/spirals.css");        /* Spiral animations */
+@import url("effects/brainwave.css");      /* Brainwave visualizations */
+
+/* ===== Components ===== */
+@import url("components/buttons.css");     /* Button components */
+@import url("components/chat.css");        /* Chat interface */
+@import url("components/aigf.css");        /* AI girlfriend mode */
+@import url("components/dropdowns.css");   /* Dropdown menus */
+
+/* ===== Layout ===== */
+@import url("layout/mobile.css");          /* Mobile responsive */
+
+/* Legacy layer-less imports removed - all styles now in modular components */
 
 /* Make all backgrounds transparent */
 body,
@@ -86,6 +95,7 @@ input[type="range"]::-webkit-slider-track {
 }
 
 body {
+    margin: 0;
     font-family: "Audiowide", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color), var(--tertiary-color));
     color: #fff;

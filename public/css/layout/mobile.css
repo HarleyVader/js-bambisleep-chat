@@ -1,0 +1,123 @@
+/**
+ * Mobile Layout
+ * @layer interface
+ * Mobile-specific responsive layouts and optimizations
+ */
+
+@layer interface {
+    /* ===== Mobile-Only Styles ===== */
+    @media (pointer: coarse) {
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--mobile-bg);
+            color: var(--mobile-text);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        #app {
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+        }
+
+        #chat-container {
+            width: 100vw;
+            max-width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            border-radius: 0;
+        }
+
+        #spiral-container {
+            display: none; /* Hide spiral on mobile for performance */
+        }
+
+        #chat-header h1 {
+            font-size: 1rem;
+            letter-spacing: 1px;
+        }
+
+        #controls {
+            gap: var(--spacing-xs);
+        }
+
+        .control-button,
+        .toggle-button,
+        button {
+            padding: var(--spacing-sm);
+            font-size: 12px;
+            min-height: 44px; /* Touch target size */
+        }
+
+        #global-chat-messages,
+        #aigf-chat-messages {
+            padding: var(--spacing-sm);
+        }
+
+        .message {
+            padding: var(--spacing-sm);
+            font-size: 14px;
+        }
+
+        #global-chat-input-container,
+        #aigf-chat-input-container {
+            padding: var(--spacing-sm);
+        }
+
+        #global-chat-input,
+        #aigf-chat-input {
+            font-size: 16px; /* Prevent zoom on iOS */
+            padding: 12px;
+        }
+    }
+
+    /* ===== Tablet Adjustments ===== */
+    @media (min-width: 768px) and (max-width: 1024px) {
+        #chat-container {
+            width: 40vw;
+            max-width: 40vw;
+        }
+
+        #spiral-container {
+            width: 60vw;
+        }
+    }
+
+    /* ===== Desktop Optimizations ===== */
+    @media (min-width: 1920px) {
+        #chat-container {
+            width: 25vw;
+            max-width: 25vw;
+        }
+
+        #spiral-container {
+            width: 75vw;
+        }
+    }
+
+    /* ===== Chat Animation States ===== */
+    #chat-container.chat-visible {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    #chat-container.chat-hidden {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+}
