@@ -1,14 +1,30 @@
 // workers/kokoro.js
 // Kokoro TTS Worker - Handles text-to-speech via Kokoro-FastAPI
+// OPTIMIZED: Added caching, connection pooling, and batch processing
 const { parentPort } = require('worker_threads');
+const http = require('http');
+const https = require('https');
 const ENV = require('../config/env');
-// Note: Using Node's native fetch API (available in Node 18+)
+
+// HTTP Keep-Alive agents for connection reuse (faster subsequent requests)
+const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 10, timeout: 15000 });
+const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10, timeout: 15000 });
 
 class KokoroTTSWorker {
     constructor() {
         this.isHealthy = false;
         this.fallbackMode = false;
         this.outputFormat = 'mp3';
+
+        // OPTIMIZATION: Audio cache for repeated phrases (LRU-style)
+        this.audioCache = new Map();
+        this.maxCacheSize = 50;
+        this.cacheHits = 0;
+        this.cacheMisses = 0;
+
+        // OPTIMIZATION: Request queue for batch processing
+        this.pendingRequests = new Map();
+        this.processingBatch = false;
 
         try {
             this.initializeKokoroConfig();
@@ -59,6 +75,27 @@ class KokoroTTSWorker {
                     await this.generateSpeech(msg);
                     break;
 
+                case 'tts_batch':
+                    // OPTIMIZATION: Process multiple texts in parallel
+                    await this.generateSpeechBatch(msg);
+                    break;
+
+                case 'cache_stats':
+                    this.sendResponse('cache_stats', {
+                        size: this.audioCache.size,
+                        hits: this.cacheHits,
+                        misses: this.cacheMisses,
+                        hitRate: this.cacheHits / (this.cacheHits + this.cacheMisses) || 0
+                    }, msg.socketId);
+                    break;
+
+                case 'clear_cache':
+                    this.audioCache.clear();
+                    this.cacheHits = 0;
+                    this.cacheMisses = 0;
+                    console.log('🧹 TTS cache cleared');
+                    break;
+
                 case 'health':
                     this.sendResponse('health_response', {
                         healthy: this.isHealthy,
@@ -90,8 +127,26 @@ class KokoroTTSWorker {
 
 
 
+    // OPTIMIZATION: Generate cache key for audio caching
+    getCacheKey(text, voice, format) {
+        return `${voice}:${format}:${text.substring(0, 200)}`; // Limit key length
+    }
+
+    // OPTIMIZATION: Add to cache with LRU eviction
+    addToCache(key, audioBase64) {
+        // Evict oldest entries if cache is full
+        if (this.audioCache.size >= this.maxCacheSize) {
+            const firstKey = this.audioCache.keys().next().value;
+            this.audioCache.delete(firstKey);
+        }
+        this.audioCache.set(key, {
+            data: audioBase64,
+            timestamp: Date.now()
+        });
+    }
+
     async generateSpeech(msg) {
-        const { text, voice, format, socketId, streaming = false } = msg;
+        const { text, voice, format, socketId, streaming = false, speed = 1.0 } = msg;
 
         if (!text || typeof text !== 'string') {
             throw new Error('Invalid text input for TTS');
@@ -99,29 +154,52 @@ class KokoroTTSWorker {
 
         const selectedVoice = voice || this.defaultVoice;
         const selectedFormat = format || this.outputFormat;
+        const cacheKey = this.getCacheKey(text, selectedVoice, selectedFormat);
+
+        // OPTIMIZATION: Check cache first
+        const cached = this.audioCache.get(cacheKey);
+        if (cached) {
+            this.cacheHits++;
+            console.log(`⚡ Cache hit for: "${text.substring(0, 30)}..." (${this.cacheHits} hits)`);
+            this.sendResponse('tts_success', {
+                audioData: cached.data,
+                format: selectedFormat,
+                voice: selectedVoice,
+                text: text,
+                size: cached.data.length * 0.75, // Approximate size from base64
+                cached: true,
+                timestamp: new Date().toISOString()
+            }, socketId);
+            return;
+        }
+        this.cacheMisses++;
 
         console.log(`🎤 Generating speech: "${text.substring(0, 50)}..." with voice: ${selectedVoice}`);
 
         try {
-            // Use OpenAI-compatible endpoint per Kokoro-FastAPI official docs
-            // https://github.com/remsky/Kokoro-FastAPI
+            // OPTIMIZATION: Reduced timeout from 30s to 15s for faster failure detection
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            // OPTIMIZATION: Use keep-alive agent for connection reuse
+            const isHttps = this.kokoroUrl.startsWith('https');
+            const agent = isHttps ? httpsAgent : httpAgent;
 
             const response = await fetch(`${this.kokoroUrl}/v1/audio/speech`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // NO Authorization header needed per Kokoro-FastAPI docs
+                    'Connection': 'keep-alive'
                 },
                 body: JSON.stringify({
                     model: 'kokoro',
                     voice: selectedVoice,
                     input: text,
                     response_format: selectedFormat,
-                    speed: 1.0
+                    speed: speed
                 }),
-                signal: controller.signal
+                signal: controller.signal,
+                agent: agent // Use keep-alive agent
             });
 
             clearTimeout(timeoutId);
@@ -135,6 +213,9 @@ class KokoroTTSWorker {
             const audioBuffer = await response.arrayBuffer();
             const audioBase64 = Buffer.from(audioBuffer).toString('base64');
 
+            // OPTIMIZATION: Cache the result
+            this.addToCache(cacheKey, audioBase64);
+
             console.log(`✅ Speech generated successfully (${audioBuffer.byteLength} bytes)`);
 
             this.sendResponse('tts_success', {
@@ -143,6 +224,7 @@ class KokoroTTSWorker {
                 voice: selectedVoice,
                 text: text,
                 size: audioBuffer.byteLength,
+                cached: false,
                 timestamp: new Date().toISOString()
             }, socketId);
 
@@ -150,6 +232,78 @@ class KokoroTTSWorker {
             console.error('Kokoro TTS generation failed:', error);
             this.sendError(`TTS generation failed: ${error.message}`, socketId);
         }
+    }
+
+    // OPTIMIZATION: Batch process multiple texts in parallel
+    async generateSpeechBatch(msg) {
+        const { texts, voice, format, socketId } = msg;
+
+        if (!Array.isArray(texts) || texts.length === 0) {
+            this.sendError('Invalid texts array for batch TTS', socketId);
+            return;
+        }
+
+        console.log(`🎤 Batch generating ${texts.length} speeches`);
+        const startTime = Date.now();
+
+        // Process up to 3 requests in parallel for optimal performance
+        const batchSize = 3;
+        const results = [];
+
+        for (let i = 0; i < texts.length; i += batchSize) {
+            const batch = texts.slice(i, i + batchSize);
+            const batchPromises = batch.map((text, idx) =>
+                this.generateSpeechInternal(text, voice, format)
+                    .then(result => ({ index: i + idx, success: true, ...result }))
+                    .catch(error => ({ index: i + idx, success: false, error: error.message }))
+            );
+            const batchResults = await Promise.all(batchPromises);
+            results.push(...batchResults);
+        }
+
+        const elapsed = Date.now() - startTime;
+        console.log(`✅ Batch complete: ${results.filter(r => r.success).length}/${texts.length} in ${elapsed}ms`);
+
+        this.sendResponse('tts_batch_success', {
+            results: results,
+            totalTime: elapsed,
+            timestamp: new Date().toISOString()
+        }, socketId);
+    }
+
+    // Internal speech generation without socket response (for batch processing)
+    async generateSpeechInternal(text, voice, format) {
+        const selectedVoice = voice || this.defaultVoice;
+        const selectedFormat = format || this.outputFormat;
+        const cacheKey = this.getCacheKey(text, selectedVoice, selectedFormat);
+
+        // Check cache
+        const cached = this.audioCache.get(cacheKey);
+        if (cached) {
+            this.cacheHits++;
+            return { audioData: cached.data, format: selectedFormat, voice: selectedVoice, text, cached: true };
+        }
+        this.cacheMisses++;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const response = await fetch(`${this.kokoroUrl}/v1/audio/speech`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Connection': 'keep-alive' },
+            body: JSON.stringify({ model: 'kokoro', voice: selectedVoice, input: text, response_format: selectedFormat, speed: 1.0 }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) throw new Error(`Kokoro API error: ${response.status}`);
+
+        const audioBuffer = await response.arrayBuffer();
+        const audioBase64 = Buffer.from(audioBuffer).toString('base64');
+        this.addToCache(cacheKey, audioBase64);
+
+        return { audioData: audioBase64, format: selectedFormat, voice: selectedVoice, text, cached: false, size: audioBuffer.byteLength };
     }
 
     sendResponse(type, data, socketId = null) {
