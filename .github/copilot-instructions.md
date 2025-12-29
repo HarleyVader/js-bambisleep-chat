@@ -144,7 +144,7 @@ Use CSS custom properties from `public/css/variables.css`. Place new styles in a
 
 - **Vanilla JS only** — no React/Vue. Use DOM APIs directly.
 - **Workers for external APIs** — Kokoro TTS and LM Studio calls stay in workers
-- **ChatHistoryManager** (server.js) handles all message storage with `global`, `aigf`, `legacy` types
+- **ChatHistoryManager** (server.js) handles all message storage with `aigf`, `legacy` types
 - **ErrorManager** (public/js/error-manager.js) for client-side error handling with retry
 
 ## External Services

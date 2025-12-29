@@ -216,7 +216,7 @@ class DropdownManager {
     dropdowns.forEach((dropdown) => {
       const btn = dropdown.querySelector(".dropdown-btn");
 
-      // Set up click handlers for all standard dropdowns (AI and collar have custom handling but now follow same pattern)
+      // Set up click handlers for all dropdowns
       if (btn) {
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -727,7 +727,7 @@ window.testDropdowns = function () {
   }
 
   // Test each component
-  const components = ["spiral", "tts", "triggers", "ai", "collar"];
+  const components = ["spiral", "tts", "triggers", "collar"];
   let allPassed = true;
 
   components.forEach((componentName) => {
