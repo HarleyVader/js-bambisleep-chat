@@ -351,14 +351,12 @@ body {
 /* Show dropdown ONLY on active state - NO HOVER CLOSING */
 .dropdown.active .dropdown-content {
     display: block;
-    animation: dropdownSlide 0.3s ease-out;
 }
 
 /* Collar dropdown only shows on active state - Same rule to ensure it works */
 .collar-dropdown.active .dropdown-content,
 .dropdown.collar-dropdown.active .dropdown-content {
     display: block !important;
-    animation: dropdownSlide 0.3s ease-out;
 }
 
 /* Hidden dropdowns for future development */
@@ -517,17 +515,7 @@ body {
 
 
 
-@keyframes dropdownSlide {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 
 

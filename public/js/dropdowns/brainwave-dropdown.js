@@ -1,7 +1,7 @@
 export function createBrainwaveDropdown() {
-    const dropdown = document.createElement('div');
-    dropdown.className = 'dropdown brainwave-dropdown';
-    dropdown.innerHTML = `
+  const dropdown = document.createElement("div");
+  dropdown.className = "dropdown brainwave-dropdown";
+  dropdown.innerHTML = `
         <button class="dropdown-btn toggle-button" id="brainwave-btn" data-state="off">
             🧠 Brainwaves
             <span class="status-indicator" id="brainwave-status">●</span>
@@ -42,133 +42,137 @@ export function createBrainwaveDropdown() {
         </div>
     `;
 
-    // Get elements for interaction
-    const btn = dropdown.querySelector('#brainwave-btn');
-    const content = dropdown.querySelector('#brainwave-content');
-    const presetSelect = dropdown.querySelector('#brainwave-preset');
-    const volumeSlider = dropdown.querySelector('#brainwave-volume');
-    const volumeDisplay = dropdown.querySelector('#volume-display');
-    const playBtn = dropdown.querySelector('#brainwave-play');
-    const stopBtn = dropdown.querySelector('#brainwave-stop');
-    const statusIndicator = dropdown.querySelector('#brainwave-status');
-    const infoDisplay = dropdown.querySelector('#brainwave-info');
+  // Get elements for interaction
+  const btn = dropdown.querySelector("#brainwave-btn");
+  const content = dropdown.querySelector("#brainwave-content");
+  const presetSelect = dropdown.querySelector("#brainwave-preset");
+  const volumeSlider = dropdown.querySelector("#brainwave-volume");
+  const volumeDisplay = dropdown.querySelector("#volume-display");
+  const playBtn = dropdown.querySelector("#brainwave-play");
+  const stopBtn = dropdown.querySelector("#brainwave-stop");
+  const statusIndicator = dropdown.querySelector("#brainwave-status");
+  const infoDisplay = dropdown.querySelector("#brainwave-info");
 
-    // Initialize preset options
-    function initializePresets() {
-        if (!window.brainwaveGenerator) {
-            setTimeout(initializePresets, 100);
-            return;
-        }
-
-        const presets = window.brainwaveGenerator.getPresets();
-        presets.forEach(preset => {
-            const option = document.createElement('option');
-            option.value = preset.name;
-            option.textContent = `${preset.name} (${preset.beat}Hz)`;
-            option.title = preset.description;
-            presetSelect.appendChild(option);
-        });
-
-        playBtn.disabled = false;
-        updateStatus();
+  // Initialize preset options
+  function initializePresets() {
+    if (!window.brainwaveGenerator) {
+      setTimeout(initializePresets, 100);
+      return;
     }
 
-    // Update UI status using standard button states from buttons.css
-    function updateStatus() {
-        if (!window.brainwaveGenerator) return;
+    const presets = window.brainwaveGenerator.getPresets();
+    presets.forEach((preset) => {
+      const option = document.createElement("option");
+      option.value = preset.name;
+      option.textContent = `${preset.name} (${preset.beat}Hz)`;
+      option.title = preset.description;
+      presetSelect.appendChild(option);
+    });
 
-        const state = window.brainwaveGenerator.getCurrentState();
+    playBtn.disabled = false;
+    updateStatus();
+  }
 
-        if (state.isPlaying) {
-            // Use standard "on" state from buttons.css
-            btn.setAttribute('data-state', 'on');
-            statusIndicator.style.color = '#00ff00';
-            statusIndicator.textContent = '●';
-            playBtn.disabled = true;
-            stopBtn.disabled = false;
-            infoDisplay.textContent = `Playing: ${state.currentPreset || 'Custom'}`;
-        } else {
-            // Use standard "off" state from buttons.css
-            btn.setAttribute('data-state', 'off');
-            statusIndicator.style.color = '#666';
-            statusIndicator.textContent = '●';
-            playBtn.disabled = false;
-            stopBtn.disabled = true;
-            infoDisplay.textContent = 'Ready to start...';
-        }
+  // Update UI status using standard button states from buttons.css
+  function updateStatus() {
+    if (!window.brainwaveGenerator) return;
+
+    const state = window.brainwaveGenerator.getCurrentState();
+
+    if (state.isPlaying) {
+      // Use standard "on" state from buttons.css
+      btn.setAttribute("data-state", "on");
+      statusIndicator.style.color = "#00ff00";
+      statusIndicator.textContent = "●";
+      playBtn.disabled = true;
+      stopBtn.disabled = false;
+      infoDisplay.textContent = `Playing: ${state.currentPreset || "Custom"}`;
+    } else {
+      // Use standard "off" state from buttons.css
+      btn.setAttribute("data-state", "off");
+      statusIndicator.style.color = "#666";
+      statusIndicator.textContent = "●";
+      playBtn.disabled = false;
+      stopBtn.disabled = true;
+      infoDisplay.textContent = "Ready to start...";
+    }
+  }
+
+  // Toggle dropdown visibility
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    content.style.display =
+      content.style.display === "block" ? "none" : "block";
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!dropdown.contains(e.target)) {
+      content.style.display = "none";
+    }
+  });
+
+  // Volume control
+  volumeSlider.addEventListener("input", (e) => {
+    const volume = parseInt(e.target.value);
+    volumeDisplay.textContent = `${volume}%`;
+
+    if (window.brainwaveGenerator) {
+      window.brainwaveGenerator.setVolume(volume / 100);
+    }
+  });
+
+  // Play button
+  playBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+
+    if (!window.brainwaveGenerator) {
+      infoDisplay.textContent = "Error: Generator not available";
+      return;
     }
 
-    // Toggle dropdown visibility
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        content.style.display = content.style.display === 'block' ? 'none' : 'block';
-    });
+    const selectedPreset = presetSelect.value;
 
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!dropdown.contains(e.target)) {
-            content.style.display = 'none';
-        }
-    });
+    if (!selectedPreset) {
+      infoDisplay.textContent = "Please select a preset first";
+      return;
+    }
 
-    // Volume control
-    volumeSlider.addEventListener('input', (e) => {
-        const volume = parseInt(e.target.value);
-        volumeDisplay.textContent = `${volume}%`;
+    infoDisplay.textContent = "Starting...";
 
-        if (window.brainwaveGenerator) {
-            window.brainwaveGenerator.setVolume(volume / 100);
-        }
-    });
+    const success = await window.brainwaveGenerator.startPreset(selectedPreset);
 
-    // Play button
-    playBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
+    if (success) {
+      updateStatus();
+      // Send chat notification
+      if (window.chatCore) {
+        window.chatCore.addMessage(
+          "system",
+          `🧠 Brainwave session started: ${selectedPreset}`
+        );
+      }
+    } else {
+      infoDisplay.textContent = "Failed to start. Check console for details.";
+    }
+  });
 
-        if (!window.brainwaveGenerator) {
-            infoDisplay.textContent = 'Error: Generator not available';
-            return;
-        }
+  // Stop button
+  stopBtn.addEventListener("click", (e) => {
+    e.preventDefault();
 
-        const selectedPreset = presetSelect.value;
+    if (window.brainwaveGenerator) {
+      window.brainwaveGenerator.stop();
+      updateStatus();
 
-        if (!selectedPreset) {
-            infoDisplay.textContent = 'Please select a preset first';
-            return;
-        }
+      // Send chat notification
+      if (window.chatCore) {
+        window.chatCore.addMessage("system", "🧠 Brainwave session stopped");
+      }
+    }
+  });
 
-        infoDisplay.textContent = 'Starting...';
+  // Initialize after DOM load
+  setTimeout(initializePresets, 100);
 
-        const success = await window.brainwaveGenerator.startPreset(selectedPreset);
-
-        if (success) {
-            updateStatus();
-            // Send chat notification
-            if (window.chatCore) {
-                window.chatCore.addMessage('system', `🧠 Brainwave session started: ${selectedPreset}`);
-            }
-        } else {
-            infoDisplay.textContent = 'Failed to start. Check console for details.';
-        }
-    });
-
-    // Stop button
-    stopBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-
-        if (window.brainwaveGenerator) {
-            window.brainwaveGenerator.stop();
-            updateStatus();
-
-            // Send chat notification
-            if (window.chatCore) {
-                window.chatCore.addMessage('system', '🧠 Brainwave session stopped');
-            }
-        }
-    });
-
-    // Initialize after DOM load
-    setTimeout(initializePresets, 100);
-
-    return dropdown;
+  return dropdown;
 }

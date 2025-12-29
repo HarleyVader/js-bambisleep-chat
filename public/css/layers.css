@@ -3,21 +3,21 @@
  * Replaces z-index numbers with semantic CSS layers
  */
 
+/* Simple stacking context fix - no build system needed */
 /* Define CSS layers in proper stacking order (DROPDOWNS ON TOP) */
-@layer base, background, interface, modals, overlays, debug, dropdowns;
+@layer base, background, interface, dropdowns, modals, overlays, debug;
 
 /* Base layer - foundational elements */
 @layer base {
-
     body,
     #app {
         position: relative;
+        isolation: isolate;
     }
 }
 
-/* Background layer - visual effects AND CHAT (behind everything) */
+/* Background layer - visual effects (behind everything) */
 @layer background {
-
     /* Visual effects behind everything */
     #spiral-container,
     .spiral-canvas,
@@ -61,11 +61,15 @@
         box-sizing: border-box;
         padding: 0 10px;
     }
+}
 
-    /* Chat elements moved to background to appear behind dropdowns */
+/* Interface layer - main UI elements (chat stays here) */
+@layer interface {
+    /* Chat container stays in interface layer with lower priority */
     #chat-container {
         position: relative;
-        isolation: auto;
+        isolation: isolate;
+        contain: layout style;
     }
 
     #chat-header {
@@ -93,22 +97,19 @@
     }
 }
 
-/* Dropdowns layer - dropdown menus and their buttons should be above interface */
+/* Dropdowns layer - dropdown menus as modals on top of everything */
 @layer dropdowns {
-
-    /* Controls container and dropdown buttons in dropdowns layer */
+    /* Controls container */
     #controls,
     .controls {
         position: relative;
         isolation: isolate;
-        z-index: 99999 !important;
     }
 
     .dropdown {
         position: relative;
         display: inline-block;
         isolation: isolate;
-        z-index: 99999 !important;
     }
 
     .dropdown-btn,
@@ -116,48 +117,66 @@
         position: relative;
         cursor: pointer;
         pointer-events: auto;
-        isolation: isolate;
-        z-index: 99999 !important;
     }
 
-    .dropdown-content {
+    /* Modal backdrop when dropdown is open */
+    .dropdown.active::before {
+        content: '';
         position: fixed;
-        background: rgba(38, 20, 38, 0.95);
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        animation: fadeIn 0.2s ease;
+        will-change: opacity;
+    }
+
+    /* Dropdown content as modal - centered on screen with highest priority */
+    .dropdown-content {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        background: rgba(38, 20, 38, 0.98);
         -webkit-backdrop-filter: blur(20px);
         backdrop-filter: blur(20px);
-        min-width: 300px;
+        min-width: 400px;
         max-width: 90vw;
         width: auto;
         box-shadow:
-            0 8px 32px 0 rgba(0, 0, 0, 0.6),
+            0 20px 60px 0 rgba(0, 0, 0, 0.8),
             0 0 0 1px rgba(255, 255, 255, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 12px;
-        margin-top: 4px;
-        max-height: 80vh;
+        border: 2px solid rgba(255, 105, 180, 0.5);
+        border-radius: 16px;
+        max-height: 85vh;
         overflow-y: auto;
         overflow-x: hidden;
         pointer-events: auto;
-        transform: translateY(-10px);
         opacity: 0;
         visibility: hidden;
         transition:
-            transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-            opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-            visibility 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        /* FORCE dropdowns on top of everything */
-        z-index: 999999 !important;
-        /* Enable container queries for responsive behavior */
+            opacity 0.2s ease,
+            visibility 0.2s ease;
         container-type: inline-size;
+        padding: 1.5rem;
+        will-change: opacity, visibility;
     }
 
-    /* Show dropdown with smooth animation */
+    /* Show dropdown modal with smooth animation */
     .dropdown.active .dropdown-content,
     .dropdown-content.show {
-        display: block;
-        transform: translateY(0);
-        opacity: 1;
-        visibility: visible;
+        display: block !important;
+        transform: translate(-50%, -50%) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
 
     /* Ensure dropdown content is above everything in interface layer */
@@ -166,11 +185,12 @@
         pointer-events: auto;
     }
 
-    /* Right-aligned dropdowns for better mobile experience */
-    .dropdown:last-child .dropdown-content,
-    .collar-dropdown .dropdown-content {
-        right: 0;
-        left: auto;
+    /* Mobile responsive adjustments for modal dropdowns */
+    @media (max-width: 768px) {
+        .dropdown-content {
+            min-width: 90vw;
+            max-height: 90vh;
+        }
     }
 
     /* Modern Container Queries for responsive dropdown behavior */
@@ -322,10 +342,7 @@
     isolation: isolate;
 }
 
-/* Remove all z-index values that conflict with the layer system */
-.no-z-index {
-    z-index: unset !important;
-}
+/* CSS layers handle stacking - no z-index needed */
 
 /* Additional visibility and interaction improvements */
 @layer dropdowns {
@@ -349,10 +366,6 @@
         .dropdown:has(.dropdown-content:hover) .dropdown-btn {
             background-color: rgba(255, 105, 180, 0.2);
             transform: translateY(-1px);
-        }
-
-        .dropdown:has(.dropdown-content.show) {
-            z-index: 1000000 !important;
         }
 
         .dropdown:has(.dropdown-item:focus) .dropdown-content {
@@ -427,7 +440,6 @@
         transition: width 0.3s, height 0.3s;
         transform: translate(-50%, -50%);
         pointer-events: none;
-        z-index: -1;
     }
 
     .dropdown-button:active::before,
@@ -536,36 +548,7 @@
         margin: 4px 8px;
     }
 
-    /* Dropdown animation states */
-    .dropdown-entering {
-        animation: dropdownSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
 
-    .dropdown-leaving {
-        animation: dropdownSlideOut 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    @keyframes dropdownSlideIn {
-        from {
-            opacity: 0;
-            transform: translateY(-10px) scale(0.95);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
-    @keyframes dropdownSlideOut {
-        from {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-
-        to {
-            opacity: 0;
-            transform: translateY(-10px) scale(0.95);
         }
     }
 
