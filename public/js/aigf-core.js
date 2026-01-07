@@ -976,7 +976,7 @@ class ChatCore {
       this.toggleTTS.classList.toggle("active", isEnabled);
 
       if (isEnabled) {
-        this.addSystemMessage("🎤 Enhanced TTS with Kokoro enabled");
+        this.addSystemMessage("🎤 Enhanced TTS with TTS Express enabled");
       } else {
         this.addSystemMessage("🎤 TTS disabled");
         window.tts.stop(); // Stop any current playback

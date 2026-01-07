@@ -572,7 +572,7 @@ export class TTSDropdown {
       "System Exists": !!ttsSystem,
       isEnabled: ttsSystem?.isEnabled,
       currentVoice: ttsSystem?.currentVoice,
-      useKokoro: ttsSystem?.useKokoro,
+      useTTSExpress: ttsSystem?.useTTSExpress,
       "socket connected": ttsSystem?.socket?.connected,
     });
 

@@ -73,20 +73,21 @@ const LMS = {
 };
 
 /**
- * Kokoro TTS Configuration
- * Automatically selects host based on environment
+ * TTS Express Server Configuration (Coqui TTS)
+ * Primary TTS service - Automatically selects host based on environment
  */
-const KOKORO = {
+const TTS_EXPRESS = {
   HOST: isProduction
-    ? process.env.KOKORO_HOST_PRODUCTION
-    : process.env.KOKORO_HOST_DEVELOPMENT,
-  PORT: parseInt(process.env.KOKORO_PORT),
+    ? process.env.TTS_EXPRESS_HOST_PRODUCTION
+    : process.env.TTS_EXPRESS_HOST_DEVELOPMENT,
+  PORT: parseInt(process.env.TTS_EXPRESS_PORT) || 8880,
 
-  API_KEY: process.env.KOKORO_API_KEY || "",
-  DEFAULT_VOICE: process.env.KOKORO_DEFAULT_VOICE,
-  TIMEOUT: parseInt(process.env.TTS_TIMEOUT),
+  DEFAULT_VOICE: process.env.TTS_EXPRESS_DEFAULT_VOICE || "af_bella",
+  DEFAULT_MODEL:
+    process.env.TTS_EXPRESS_DEFAULT_MODEL || "tts_models/en/ljspeech/glow-tts",
+  TIMEOUT: parseInt(process.env.TTS_TIMEOUT) || 15000,
 
-  // All available female voices (Kokoro-FastAPI official)
+  // All available female voices (TTS Express Server)
   AVAILABLE_VOICES: [
     "af_alloy",
     "af_aoede",
@@ -102,13 +103,59 @@ const KOKORO = {
     "af_sky",
   ],
 
+  // All available TTS models (Coqui TTS)
+  AVAILABLE_MODELS: [
+    {
+      name: "tts_models/en/ljspeech/glow-tts",
+      description: "Glow-TTS model trained on LJ Speech dataset",
+      language: "en",
+      multiSpeaker: false,
+      multiLingual: false,
+      quality: "high",
+      speed: "medium",
+    },
+    {
+      name: "tts_models/en/ljspeech/tacotron2-DDC",
+      description: "Tacotron2 model with DDC vocoder",
+      language: "en",
+      multiSpeaker: false,
+      multiLingual: false,
+      quality: "very_high",
+      speed: "slow",
+    },
+    {
+      name: "tts_models/multilingual/multi-dataset/xtts_v2",
+      description: "XTTS v2 - Multilingual with voice cloning support",
+      language: "multilingual",
+      multiSpeaker: true,
+      multiLingual: true,
+      quality: "high",
+      speed: "fast",
+      cloning: true,
+    },
+    {
+      name: "tts_models/en/ljspeech/speedyspeech",
+      description: "SpeedySpeech - Fast inference TTS",
+      language: "en",
+      multiSpeaker: false,
+      multiLingual: false,
+      quality: "medium",
+      speed: "very_fast",
+    },
+    {
+      name: "tts_models/en/ljspeech/vits",
+      description: "VITS model - High quality with fast synthesis",
+      language: "en",
+      multiSpeaker: false,
+      multiLingual: false,
+      quality: "high",
+      speed: "fast",
+    },
+  ],
+
   // Derived values
   get URL() {
     return this.HOST ? `http://${this.HOST}:${this.PORT}` : null;
-  },
-
-  get API_URL() {
-    return this.URL ? `${this.URL}/v1/audio/speech` : null;
   },
 
   get isConfigured() {
@@ -159,7 +206,7 @@ const SECURITY = {
 const EXTERNAL = {
   BAMBISLEEP_WIKI: "https://bambisleep.info",
   BAMBISLEEP_TRIGGERS: "https://bambisleep.info/Triggers",
-  KOKORO_DOCS: "https://github.com/remsky/Kokoro-FastAPI",
+  TTS_EXPRESS_DOCS: "https://github.com/BambiSleepChurch/tts-express-server",
   SOCKETIO_CDN: "https://cdn.socket.io/4.7.5/socket.io.min.js",
   MARKDOWN_CDN:
     "https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js",
@@ -183,25 +230,25 @@ const validation = {
     };
   },
 
-  validateKokoro() {
+  validateTTSExpress() {
     const missing = [];
-    if (!KOKORO.HOST)
+    if (!TTS_EXPRESS.HOST)
       missing.push(
-        "KOKORO_HOST_" + (isProduction ? "PRODUCTION" : "DEVELOPMENT")
+        "TTS_EXPRESS_HOST_" + (isProduction ? "PRODUCTION" : "DEVELOPMENT")
       );
-    if (!KOKORO.PORT) missing.push("KOKORO_PORT");
+    if (!TTS_EXPRESS.PORT) missing.push("TTS_EXPRESS_PORT");
 
     return {
       valid: missing.length === 0,
       missing,
-      configured: KOKORO.isConfigured,
+      configured: TTS_EXPRESS.isConfigured,
     };
   },
 
   validateAll() {
     return {
       lms: this.validateLMS(),
-      kokoro: this.validateKokoro(),
+      ttsExpress: this.validateTTSExpress(),
       server: {
         valid: true,
         configured: true,
@@ -226,10 +273,11 @@ function getSummary() {
         configured: LMS.isConfigured,
         url: LMS.URL || "not-configured",
       },
-      kokoro: {
-        configured: KOKORO.isConfigured,
-        url: KOKORO.URL || "not-configured",
-        defaultVoice: KOKORO.DEFAULT_VOICE,
+      ttsExpress: {
+        configured: TTS_EXPRESS.isConfigured,
+        url: TTS_EXPRESS.URL || "not-configured",
+        defaultVoice: TTS_EXPRESS.DEFAULT_VOICE,
+        defaultModel: TTS_EXPRESS.DEFAULT_MODEL,
       },
     },
     debug: DEBUG.MODE,
@@ -251,16 +299,18 @@ function printSummary() {
     `   LM Studio: ${LMS.isConfigured ? "✅ " + LMS.URL : "❌ Not Configured"}`
   );
   console.log(
-    `   Kokoro TTS: ${
-      KOKORO.isConfigured ? "✅ " + KOKORO.URL : "❌ Not Configured"
+    `   TTS Express: ${
+      TTS_EXPRESS.isConfigured ? "✅ " + TTS_EXPRESS.URL : "❌ Not Configured"
     }`
   );
-  console.log(`   Default Voice: ${KOKORO.DEFAULT_VOICE}`);
+  console.log(`   Default Voice: ${TTS_EXPRESS.DEFAULT_VOICE}`);
+  console.log(`   Default Model: ${TTS_EXPRESS.DEFAULT_MODEL}`);
+
   console.log("\n📊 Limits:");
   console.log(`   Max Message Length: ${CHAT.MAX_MESSAGE_LENGTH}`);
   console.log(`   Chat History: ${CHAT.HISTORY_LIMIT}`);
   console.log(`   LMS Timeout: ${LMS.API_CALL_TIMEOUT}ms`);
-  console.log(`   TTS Timeout: ${KOKORO.TIMEOUT}ms`);
+  console.log(`   TTS Timeout: ${TTS_EXPRESS.TIMEOUT}ms`);
   console.log("\n🔍 Debug Mode: " + (DEBUG.MODE ? "✅ ON" : "❌ OFF"));
   console.log("═".repeat(50) + "\n");
 }
@@ -270,6 +320,7 @@ module.exports = {
   // Main config objects
   SERVER,
   LMS,
+  TTS_EXPRESS,
   KOKORO,
   CHAT,
   DEBUG,
@@ -292,9 +343,14 @@ module.exports = {
   PORT: SERVER.PORT,
   SERVER_HOST: SERVER.HOST,
 
+  // TTS Express (primary)
+  TTS_EXPRESS_URL: TTS_EXPRESS.URL,
+  TTS_EXPRESS_DEFAULT_VOICE: TTS_EXPRESS.DEFAULT_VOICE,
+  TTS_EXPRESS_DEFAULT_MODEL: TTS_EXPRESS.DEFAULT_MODEL,
+  TTS_TIMEOUT: TTS_EXPRESS.TIMEOUT,
+
   // Kokoro legacy
   KOKORO_API_URL: KOKORO.URL,
   KOKORO_API_KEY: KOKORO.API_KEY,
   KOKORO_DEFAULT_VOICE: KOKORO.DEFAULT_VOICE,
-  TTS_TIMEOUT: KOKORO.TIMEOUT,
 };

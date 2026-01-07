@@ -93,7 +93,7 @@ class EnvironmentTester {
     const criticalPaths = [
       "public/js/aigf-core.js",
       "server.js",
-      "workers/kokoro.js",
+      "workers/tts-express.js",
       "workers/lmstudio.js",
       "workers/triggers.json",
       "public/css/layers.css",
@@ -133,10 +133,10 @@ class EnvironmentTester {
     ];
 
     const optionalEnvVars = [
-      "KOKORO_HOST_DEVELOPMENT",
-      "KOKORO_HOST_PRODUCTION",
-      "KOKORO_PORT",
-      "KOKORO_DEFAULT_VOICE",
+      "TTS_EXPRESS_HOST_DEVELOPMENT",
+      "TTS_EXPRESS_HOST_PRODUCTION",
+      "TTS_EXPRESS_PORT",
+      "TTS_EXPRESS_DEFAULT_VOICE",
       "LMS_HOST_DEVELOPMENT",
       "LMS_HOST_PRODUCTION",
       "LMS_PORT",
@@ -183,7 +183,7 @@ class EnvironmentTester {
 
     const ports = [
       { port: parseInt(process.env.PORT), name: "Backend Server" },
-      { port: parseInt(process.env.KOKORO_PORT), name: "Kokoro TTS" },
+      { port: parseInt(process.env.TTS_EXPRESS_PORT), name: "TTS Express" },
       { port: parseInt(process.env.LMS_PORT), name: "LM Studio" },
     ];
 

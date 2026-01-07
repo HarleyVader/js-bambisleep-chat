@@ -1,4 +1,4 @@
-// text2speech.js - Enhanced Text-to-speech with Kokoro integration and spiral synchronization
+// text2speech.js - Enhanced Text-to-speech with TTS Express Server integration and spiral synchronization
 // OPTIMIZED: Added prefetching, parallel processing, and improved memory management
 class TextToSpeechSystem {
   constructor() {
@@ -16,14 +16,14 @@ class TextToSpeechSystem {
     this.volume ??= 0.7;
     this.speed ??= 1.0; // Default speed setting
     this.socket ??= null;
-    this.useKokoro ??= true; // Prefer Kokoro over Web Speech API
-    this.currentVoice ??= "af_bella"; // Default FEMALE Kokoro voice - BambiSleep is a GIRL!
+    this.useTTSExpress ??= true; // Prefer TTS Express over Web Speech API
+    this.currentVoice ??= "af_bella"; // Default FEMALE voice - BambiSleep is a GIRL!
 
     // ENHANCED VOICE SELECTION - Integrated from TTS Dropdown
     this.selectedVoices = []; // Track multiple selected voices (max 2)
-    this.maxVoices = 2; // Maximum number of voices that can be selected per Kokoro-FastAPI
-    // All female voices from Kokoro-FastAPI official docs
-    // Reference: https://github.com/remsky/Kokoro-FastAPI
+    this.maxVoices = 2; // Maximum number of voices that can be selected
+    // All female voices supported by TTS Express Server
+    // Reference: https://github.com/BambiSleepChurch/tts-express-server
     this.availableVoices = [
       "af_alloy",
       "af_aoede",
@@ -62,7 +62,7 @@ class TextToSpeechSystem {
     // Initialize Web Audio API
     this.initAudioContext();
 
-    // Set up socket connection for Kokoro TTS
+    // Set up socket connection for TTS Express Server
     this.initSocket();
 
     // Create audio element for playback
@@ -141,13 +141,13 @@ class TextToSpeechSystem {
       return;
     }
 
-    // Listen for TTS responses from Kokoro
+    // Listen for TTS responses from TTS Express Server
     this.socket.on("tts-response", (data) => {
-      this.handleKokoroResponse(data);
+      this.handleTTSExpressResponse(data);
     });
 
     this.socket.on("tts-error", (data) => {
-      console.error("🎤 Kokoro TTS error from server:", data.error);
+      console.error("🎤 TTS Express error from server:", data.error);
 
       // Report error through error management system if available
       if (window.chatCore && window.chatCore.errorManager) {
@@ -157,7 +157,7 @@ class TextToSpeechSystem {
         });
       }
 
-      console.error("🎤 Kokoro TTS unavailable - no fallback configured");
+      console.error("🎤 TTS Express unavailable - no fallback configured");
     });
 
     // Add connection monitoring
@@ -732,35 +732,37 @@ class TextToSpeechSystem {
     }
   }
 
-  // Request TTS from Kokoro
+  // Request TTS from TTS Express Server
   requestTTS(text) {
     console.log("🎤 Requesting TTS for:", text.substring(0, 50) + "...");
 
     if (!this.socket || !this.socket.connected) {
-      console.error("🎤 Kokoro TTS socket not connected");
+      console.error("🎤 TTS Express socket not connected");
       return;
     }
 
-    console.log("🎤 Using Kokoro TTS via socket");
-    // Use Kokoro TTS via socket
+    console.log("🎤 Using TTS Express via socket");
+    // Use TTS Express via socket
     this.socket.emit("tts-request", {
       text: text,
       voice: this.currentVoice,
-      format: "mp3",
+      format: "wav", // TTS Express outputs WAV
+      speed: this.speed,
     });
   }
 
-  handleKokoroResponse(data) {
+  handleTTSExpressResponse(data) {
     console.log(
-      "🎤 Kokoro response received:",
+      "🎤 TTS Express response received:",
       data.size,
       "bytes",
       data.cached ? "(cached)" : ""
     );
 
     try {
-      // Convert base64 audio data to blob URL
-      const audioBlob = this.base64ToBlob(data.audioData, "audio/mpeg");
+      // Convert base64 audio data to blob URL (WAV format)
+      const mimeType = data.format === "wav" ? "audio/wav" : "audio/mpeg";
+      const audioBlob = this.base64ToBlob(data.audioData, mimeType);
       const audioUrl = URL.createObjectURL(audioBlob);
 
       // Track blob URL for cleanup
@@ -784,7 +786,7 @@ class TextToSpeechSystem {
         };
       }
     } catch (error) {
-      console.error("🎤 Error processing Kokoro response:", error);
+      console.error("🎤 Error processing TTS Express response:", error);
       // Try next item in queue
       this.processTextQueue();
     }
@@ -1325,7 +1327,7 @@ class TextToSpeechSystem {
     }
   }
 
-  // Get only verified female voices with combination support (Kokoro only)
+  // Get only verified female voices with combination support (TTS Express)
   getFemaleVoices() {
     // Base female voices
     const baseVoices = ["af_sky", "af_bella", "af_sarah", "af_nicole"];
@@ -1376,7 +1378,7 @@ class TextToSpeechSystem {
     return true;
   }
 
-  // Get available voice combinations for dropdown (Kokoro only)
+  // Get available voice combinations for dropdown (TTS Express)
   getVoiceCombinations() {
     return this.getFemaleVoices();
   }
@@ -1413,8 +1415,8 @@ class TextToSpeechSystem {
       const data = await response.json();
 
       if (data.success && data.audioData) {
-        // Handle base64 audio data from Kokoro
-        const audioBlob = this.base64ToBlob(data.audioData, "audio/mpeg");
+        // Handle base64 audio data from TTS Express
+        const audioBlob = this.base64ToBlob(data.audioData, "audio/wav");
         await this.playAudioBlob(audioBlob);
       } else {
         throw new Error("Invalid TTS response format");
@@ -1555,11 +1557,11 @@ class TextToSpeechSystem {
     this.speed = Math.max(0.1, Math.min(10, speed));
     console.log("⚡ TTS speed set to:", this.speed);
 
-    // Note: Kokoro TTS speed is controlled server-side
-    if (!this.useKokoro) {
+    // Note: TTS Express speed is controlled server-side
+    if (!this.useTTSExpress) {
       console.log("🎤 Web Speech API speed updated");
     } else {
-      console.log("🎤 Kokoro TTS speed updates require server configuration");
+      console.log("🎤 TTS Express speed sent with request");
     }
   }
 
@@ -1580,9 +1582,9 @@ class TextToSpeechSystem {
     return this.currentVoice;
   }
 
-  setUseKokoro(useKokoro) {
-    this.useKokoro = useKokoro;
-    console.log("🎤 Kokoro TTS:", useKokoro ? "ENABLED" : "DISABLED");
+  setUseTTSExpress(useTTSExpress) {
+    this.useTTSExpress = useTTSExpress;
+    console.log("🎤 TTS Express:", useTTSExpress ? "ENABLED" : "DISABLED");
   }
 
   getAvailableVoices() {
@@ -1666,7 +1668,7 @@ document.addEventListener("DOMContentLoaded", () => {
     getSelectedVoices: () => window.ttsSystem.selectedVoices,
 
     // Voice management and validation
-    setUseKokoro: (use) => window.ttsSystem.setUseKokoro(use),
+    setUseTTSExpress: (use) => window.ttsSystem.setUseTTSExpress(use),
     getAvailableVoices: () => window.ttsSystem.getAvailableVoices(), // Returns FEMALE voices only
     getFemaleVoices: () => window.ttsSystem.getFemaleVoices(), // Explicit female voice getter
     validateVoiceCombination: (voiceString) =>
@@ -1689,7 +1691,7 @@ document.addEventListener("DOMContentLoaded", () => {
         isPlaying: window.ttsSystem.isPlaying,
         currentVoice: window.ttsSystem.currentVoice,
         selectedVoices: window.ttsSystem.selectedVoices,
-        useKokoro: window.ttsSystem.useKokoro,
+        useTTSExpress: window.ttsSystem.useTTSExpress,
         socketConnected: window.ttsSystem.socket?.connected,
       });
       console.log("Queue Status:", {

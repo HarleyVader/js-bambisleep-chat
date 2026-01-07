@@ -12,13 +12,13 @@
                                              │ Worker Threads
                               ┌──────────────┼──────────────┐
                               ▼              ▼              ▼
-                       ┌──────────┐   ┌──────────┐   ┌──────────┐
-                       │ kokoro.js│   │lmstudio.js│   │triggers  │
-                       │   (TTS)  │   │   (AI)   │   │  .json   │
-                       └────┬─────┘   └────┬─────┘   └──────────┘
+                       ┌────────────┐ ┌──────────┐   ┌──────────┐
+                       │tts-express │ │lmstudio.js│   │triggers  │
+                       │   (TTS)    │ │   (AI)   │   │  .json   │
+                       └────┬───────┘ └────┬─────┘   └──────────┘
                             │              │
                             ▼              ▼
-                       Kokoro-FastAPI  LM Studio (local)
+                       TTS Express    LM Studio (local)
 ```
 
 **Stack**: Express + Socket.io + Worker threads | Vanilla ES6 modules (NO frameworks)
@@ -46,11 +46,11 @@ npm test     # Test suite → reports in tests/reports/*.html
 ```javascript
 // ✅ Always use centralized config
 const ENV = require("./config/env");
-const url = ENV.KOKORO.URL; // Auto-switches dev/prod
+const url = ENV.TTS_EXPRESS.URL; // Auto-switches dev/prod
 const ready = ENV.LMS.isConfigured; // Computed property
 
 // ❌ Never access process.env directly
-process.env.KOKORO_HOST_DEVELOPMENT; // Bypasses validation
+process.env.TTS_EXPRESS_HOST; // Bypasses validation
 ```
 
 ### 2. Trigger System (Single Source of Truth)
@@ -133,7 +133,7 @@ Use CSS custom properties from `public/css/variables.css`. Place new styles in a
 
 **Add environment variable**:
 
-1. Define in `config/env.js` with appropriate section (SERVER/LMS/KOKORO/APPLICATION)
+1. Define in `config/env.js` with appropriate section (SERVER/LMS/TTS_EXPRESS/APPLICATION)
 2. Access via `ENV.SECTION.VARIABLE`
 
 **Debug service issues**: Check `ENV.SERVICE.isConfigured` and server console for emoji indicators:
@@ -143,13 +143,13 @@ Use CSS custom properties from `public/css/variables.css`. Place new styles in a
 ## Conventions
 
 - **Vanilla JS only** — no React/Vue. Use DOM APIs directly.
-- **Workers for external APIs** — Kokoro TTS and LM Studio calls stay in workers
+- **Workers for external APIs** — TTS Express and LM Studio calls stay in workers
 - **ChatHistoryManager** (server.js) handles all message storage with `aigf`, `legacy` types
 - **ErrorManager** (public/js/error-manager.js) for client-side error handling with retry
 
 ## External Services
 
-| Service            | Purpose                                 | Config Section |
-| ------------------ | --------------------------------------- | -------------- |
-| **Kokoro-FastAPI** | TTS (12 female voices, supports mixing) | `ENV.KOKORO`   |
-| **LM Studio**      | Local AI chat (@lmstudio/sdk)           | `ENV.LMS`      |
+| Service               | Purpose                                 | Config Section   |
+| --------------------- | --------------------------------------- | ---------------- |
+| **TTS Express Server**| TTS (12 female voices, supports mixing) | `ENV.TTS_EXPRESS`|
+| **LM Studio**         | Local AI chat (@lmstudio/sdk)           | `ENV.LMS`        |
