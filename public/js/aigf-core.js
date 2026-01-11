@@ -425,38 +425,12 @@ class ChatCore {
       this.addMessage(data.message, data.timestamp, false, "BambiSleep", true);
       this.addSystemMessage(`AI generated ${data.wordCount} words`);
 
-      // Process TTS for AI response - RESTORED TO ORIGINAL WORKING PATTERN
+      // Process TTS for AI response using synchronized method
       if (window.ttsSystem && window.ttsSystem.isEnabled) {
-        console.log("🎤 Processing AI response for TTS - original pattern");
-
-        // Clean and split the message like original
-        const messageText = data.message.trim();
-        const sentences = messageText.split(/(?<=[:;,.!?]["']?)\s+/g);
-        console.log("🎤 Split into sentences:", sentences);
-
-        // Add sentences to TTS text array using object format
-        for (let sentence of sentences) {
-          sentence = sentence.trim();
-          if (sentence.length > 0) {
-            // Use object format for compatibility with processTextQueue
-            window.ttsSystem.textArray.push({
-              display: sentence,
-              tts: sentence,
-            });
-            console.log("🎤 Added to text array:", sentence);
-          }
-        }
-
-        // Start TTS processing if not already playing
-        // Reset state to true if queue has items and not currently playing
-        if (
-          window.ttsSystem.textArray.length > 0 &&
-          !window.ttsSystem.isPlaying
-        ) {
-          window.ttsSystem.state = true;
-          console.log("🎤 Starting TTS queue processing...");
-          window.ttsSystem.processTextQueue();
-        }
+        console.log(
+          "🎤 Processing AI response for TTS with sentence synchronization"
+        );
+        this.processAIResponseForTTS(data.message);
       }
     });
 

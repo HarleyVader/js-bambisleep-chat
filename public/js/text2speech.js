@@ -663,7 +663,9 @@ class TextToSpeechSystem {
 
   // Core synchronization function - Process next text in queue when audio ends
   handleAudioEnded() {
-    console.log("🎤 Audio ended, processing next in queue");
+    console.log(
+      `🎤 Audio finished - ${this.textArray.length} sentences remaining`
+    );
 
     // Cleanup current audio URL
     if (this.currentAudioUrl) {
@@ -677,24 +679,31 @@ class TextToSpeechSystem {
 
     // Process next item if available
     if (this.textArray.length > 0) {
+      console.log("🎤 Moving to next sentence...");
       this.processTextQueue();
     } else {
-      console.log("🎤 TTS queue empty");
+      console.log("🎤 ✅ All sentences spoken - TTS queue complete");
     }
   }
 
   handleAudioPlay() {
-    console.log("🎤 Audio playing:", this.currentText);
+    console.log("🎤 Audio started - displaying:", this.currentText);
     const duration = this.currentAudio.duration * 1000;
 
     // Display text in spiral center synchronized with audio
     this.flashTrigger(this.currentText, duration);
 
-    // Display in chat if response element exists
+    // Highlight current sentence in chat message
     this.displayInChat(this.currentText);
 
     // OPTIMIZATION: Start prefetching next items while current is playing
     this.prefetchNext();
+
+    console.log(
+      `🎤 Will speak for ${(duration / 1000).toFixed(1)}s, ${
+        this.textArray.length
+      } remaining in queue`
+    );
   }
 
   handleAudioError(e) {
@@ -934,38 +943,40 @@ class TextToSpeechSystem {
   }
 
   displayInChat(text) {
-    // Display text at the bottom of the message-text area
-    const response =
-      document.querySelector(".message.ai .message-text:last-child") ||
-      document.querySelector("#response") ||
-      document.querySelector("#message");
+    // Highlight the current sentence being spoken in the existing chat message
+    const latestMessage = document.querySelector(
+      ".message.ai:last-child .message-text"
+    );
 
-    if (response) {
-      const messageElement = document.createElement("p");
-      messageElement.className = "tts-speaking";
-      messageElement.textContent = text;
-      messageElement.style.cssText = `
-                color: #FF1493;
-                font-weight: bold;
-                margin: 0.5rem 0;
-                padding: 0.5rem;
-                background: rgba(255, 20, 147, 0.1);
-                border-left: 3px solid #FF1493;
-                border-radius: 4px;
-            `;
+    if (latestMessage) {
+      // Find and highlight the current sentence in the message
+      const messageHTML = latestMessage.innerHTML;
+      const displayText = this.currentText || text;
 
-      // Append to bottom of message-text (not insert at top)
-      response.appendChild(messageElement);
+      // Escape HTML for safe searching
+      const escapedText = displayText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-      // Remove after speaking
-      setTimeout(
-        () => {
-          if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement);
-          }
-        },
-        this.currentAudio ? this.currentAudio.duration * 1000 : 3000
+      // Wrap current sentence in highlight span
+      const highlightedHTML = messageHTML.replace(
+        new RegExp(escapedText, "i"),
+        `<span class="tts-currently-speaking" style="background: rgba(255, 20, 147, 0.2); padding: 2px 4px; border-radius: 3px; animation: pulse 0.5s ease-in-out infinite alternate;">$&</span>`
       );
+
+      latestMessage.innerHTML = highlightedHTML;
+
+      // Remove highlight after duration
+      const duration = this.currentAudio
+        ? this.currentAudio.duration * 1000
+        : 3000;
+      setTimeout(() => {
+        const highlightSpan = latestMessage.querySelector(
+          ".tts-currently-speaking"
+        );
+        if (highlightSpan) {
+          // Replace span with just the text content
+          highlightSpan.replaceWith(highlightSpan.textContent);
+        }
+      }, duration);
     }
   }
 
