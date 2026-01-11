@@ -19,6 +19,10 @@ class TextToSpeechSystem {
     this.useKokoro ??= true; // Prefer Kokoro over Web Speech API
     this.currentVoice ??= "af_bella"; // Default FEMALE Kokoro voice - BambiSleep is a GIRL!
 
+    // SEQUENTIAL MODE: Disable prefetching to ensure ONE request at a time
+    this.enablePrefetching = false; // Set to true only if you want parallel processing
+    this.maxPrefetch = 0; // Disable prefetch queue
+
     // ENHANCED VOICE SELECTION - Integrated from TTS Dropdown
     this.selectedVoices = []; // Track multiple selected voices (max 2)
     this.maxVoices = 2; // Maximum number of voices that can be selected per Kokoro-FastAPI
@@ -615,30 +619,25 @@ class TextToSpeechSystem {
         this.currentTTSText = textItem.tts;
       }
 
-      console.log("🎤 Processing text:", this.currentText);
+      console.log("🎤 [SEQUENTIAL] Generating audio for:", this.currentText);
 
-      // OPTIMIZATION: Check prefetch cache first for instant playback
-      const prefetchedUrl = this.getPrefetchedAudio(this.currentTTSText);
-      if (prefetchedUrl) {
-        // Use prefetched audio directly - much faster!
-        this.currentAudioUrl = prefetchedUrl;
-        if (this.currentAudio) {
-          this.currentAudio.src = prefetchedUrl;
-          this.currentAudio.load();
-          this.currentAudio.onloadedmetadata = () => {
-            console.log(
-              "⚡ Playing prefetched audio, duration:",
-              this.currentAudio.duration
-            );
-            this.currentAudio.play().catch((e) => this.handleAudioError(e));
-          };
-        }
-        return;
+      // SEQUENTIAL MODE: Generate audio on-demand, one at a time
+      // Request TTS generation via socket and WAIT for response
+      if (this.socket && this.socket.connected) {
+        console.log(
+          `🎤 Requesting TTS generation (${this.textArray.length} remaining in queue)...`
+        );
+        this.socket.emit("tts-request", {
+          text: this.currentTTSText,
+          voice: this.currentVoice,
+          format: "mp3",
+          prefetch: false, // This is the CURRENT item, not prefetch
+        });
+        // Response will come via 'tts-response' socket event → handleKokoroResponse()
+      } else {
+        console.error("🎤 Socket not connected - cannot generate TTS");
+        this.handleAudioError(new Error("Socket disconnected"));
       }
-
-      // Add to audio queue using TTS text and use do_tts like original working version
-      this.arrayPush(this.audioArray, this.currentTTSText);
-      this.do_tts(this.audioArray); // CRITICAL: Use do_tts() not requestTTS()
     };
 
     // Check for Web Locks API support
@@ -696,8 +695,10 @@ class TextToSpeechSystem {
     // Highlight current sentence in chat message
     this.displayInChat(this.currentText);
 
-    // OPTIMIZATION: Start prefetching next items while current is playing
-    this.prefetchNext();
+    // SEQUENTIAL MODE: No prefetching - wait for current to finish
+    if (this.enablePrefetching && this.textArray.length > 0) {
+      this.prefetchNext();
+    }
 
     console.log(
       `🎤 Will speak for ${(duration / 1000).toFixed(1)}s, ${
@@ -803,9 +804,15 @@ class TextToSpeechSystem {
 
   /**
    * OPTIMIZATION: Prefetch next items in queue while current is playing
+   * DISABLED by default - set enablePrefetching=true to activate
    */
   prefetchNext() {
-    if (this.isPrefetching || this.textArray.length === 0) return;
+    if (
+      !this.enablePrefetching ||
+      this.isPrefetching ||
+      this.textArray.length === 0
+    )
+      return;
 
     // Prefetch up to maxPrefetch items
     const itemsToPrefetch = this.textArray.slice(0, this.maxPrefetch);
