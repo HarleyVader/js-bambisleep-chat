@@ -277,7 +277,9 @@ class ChatCore {
       let restored = sentence;
       protectedPhrases.forEach((phrase, index) => {
         if (phrase) {
-          restored = restored.replace(`PROTECTED_PHRASE_${index}`, phrase);
+          const placeholder = `PROTECTED_PHRASE_${index}`;
+          // Use global replace to restore all instances
+          restored = restored.replace(new RegExp(placeholder, "g"), phrase);
         }
       });
       return restored;

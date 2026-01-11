@@ -190,13 +190,13 @@ class TextToSpeechSystem {
     }
 
     this.currentAudio = audio;
-    
+
     // Set initial playback rate for slower speech
     if (this.speed && this.speed !== 1.0) {
       this.currentAudio.playbackRate = this.speed;
       console.log("🎤 Initial playback speed set to:", this.speed);
     }
-    
+
     this.setupAudioListeners();
   }
 
@@ -788,7 +788,7 @@ class TextToSpeechSystem {
       if (this.currentAudio) {
         this.currentAudio.src = audioUrl;
         this.currentAudio.load();
-        
+
         // Apply speed setting (slower = more comprehensible)
         if (this.speed && this.speed !== 1.0) {
           this.currentAudio.playbackRate = this.speed;
