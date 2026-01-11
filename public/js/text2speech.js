@@ -14,7 +14,7 @@ class TextToSpeechSystem {
     this.currentTTSText ??= ""; // Currently playing text (cleaned for TTS)
     this.currentAudioUrl ??= null; // Track current blob URL for cleanup
     this.volume ??= 0.7;
-    this.speed ??= 1.0; // Default speed setting
+    this.speed ??= 0.85; // Slower speed for clearer comprehension (0.85 = 85% speed)
     this.socket ??= null;
     this.useKokoro ??= true; // Prefer Kokoro over Web Speech API
     this.currentVoice ??= "af_bella"; // Default FEMALE Kokoro voice - BambiSleep is a GIRL!
@@ -190,6 +190,13 @@ class TextToSpeechSystem {
     }
 
     this.currentAudio = audio;
+    
+    // Set initial playback rate for slower speech
+    if (this.speed && this.speed !== 1.0) {
+      this.currentAudio.playbackRate = this.speed;
+      console.log("🎤 Initial playback speed set to:", this.speed);
+    }
+    
     this.setupAudioListeners();
   }
 
@@ -781,6 +788,12 @@ class TextToSpeechSystem {
       if (this.currentAudio) {
         this.currentAudio.src = audioUrl;
         this.currentAudio.load();
+        
+        // Apply speed setting (slower = more comprehensible)
+        if (this.speed && this.speed !== 1.0) {
+          this.currentAudio.playbackRate = this.speed;
+          console.log("🎤 Playback speed set to:", this.speed);
+        }
 
         this.currentAudio.onloadedmetadata = () => {
           console.log(
@@ -1569,11 +1582,17 @@ class TextToSpeechSystem {
   }
 
   setSpeed(speed) {
-    // For Web Speech API voices, store speed setting
-    this.speed = Math.max(0.1, Math.min(10, speed));
+    // Store speed setting and apply to audio element
+    this.speed = Math.max(0.1, Math.min(2.0, speed)); // Limit range 0.1-2.0
     console.log("⚡ TTS speed set to:", this.speed);
 
-    // Note: Kokoro TTS speed is controlled server-side
+    // Apply immediately to current audio if playing
+    if (this.currentAudio) {
+      this.currentAudio.playbackRate = this.speed;
+      console.log("⚡ Applied speed to current audio:", this.speed);
+    }
+
+    // Note: Speed is applied via playbackRate for both Kokoro and Web Speech
     if (!this.useKokoro) {
       console.log("🎤 Web Speech API speed updated");
     } else {

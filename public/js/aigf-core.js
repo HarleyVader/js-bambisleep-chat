@@ -148,14 +148,8 @@ class ChatCore {
       message.substring(0, 50) + "..."
     );
 
-    // Split original message into sentences for display
+    // Split FIRST, THEN clean each sentence individually
     const originalSentences = this.splitIntoTTSSentences(message);
-
-    // Clean text for TTS (same cleaning as in text2speech.js)
-    let cleanText = this.cleanTextForTTS(message);
-
-    // Split cleaned text into sentences for TTS
-    const cleanSentences = this.splitIntoTTSSentences(cleanText);
 
     console.log(
       "🎤 Split into",
@@ -163,19 +157,19 @@ class ChatCore {
       "sentences for display and TTS"
     );
 
-    // Create pairs of original and cleaned sentences
+    // Create pairs by cleaning each sentence individually
     const sentencePairs = [];
     originalSentences.forEach((originalSentence, index) => {
       if (originalSentence.trim().length > 0) {
-        const cleanSentence = cleanSentences[index] || originalSentence; // Fallback to original if no clean version
+        const cleanSentence = this.cleanTextForTTS(originalSentence.trim());
         sentencePairs.push({
           display: originalSentence.trim(),
-          tts: cleanSentence.trim(),
+          tts: cleanSentence,
         });
         console.log(
           `🎤 Sentence ${index + 1} - Display:`,
           originalSentence.trim().substring(0, 30) + "... TTS:",
-          cleanSentence.trim().substring(0, 30) + "..."
+          cleanSentence.substring(0, 30) + "..."
         );
       }
     });
@@ -184,10 +178,10 @@ class ChatCore {
     if (window.ttsSystem) {
       window.ttsSystem.speakSentencePairs(sentencePairs);
     } else if (window.tts) {
-      // Fallback to old method - use clean sentences for TTS
-      cleanSentences.forEach((sentence) => {
-        if (sentence.trim().length > 0) {
-          window.tts.speak(sentence.trim());
+      // Fallback to old method
+      sentencePairs.forEach((pair) => {
+        if (pair.tts.trim().length > 0) {
+          window.tts.speak(pair.tts.trim());
         }
       });
     }
