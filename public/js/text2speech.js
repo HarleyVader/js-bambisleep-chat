@@ -78,8 +78,9 @@ class TextToSpeechSystem {
 
   initAudioContext() {
     try {
-      this.audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
+      this.audioContext = new (
+        window.AudioContext || window.webkitAudioContext
+      )();
     } catch (error) {
       console.warn("Web Audio API not supported");
     }
@@ -131,7 +132,7 @@ class TextToSpeechSystem {
             console.warn(
               "🎤 TTS socket connection failed after",
               maxAttempts,
-              "attempts - will use Web Speech API only"
+              "attempts - will use Web Speech API only",
             );
           }
         }
@@ -207,7 +208,7 @@ class TextToSpeechSystem {
     this.currentAudio.addEventListener("ended", () => this.handleAudioEnded());
     this.currentAudio.addEventListener("play", () => this.handleAudioPlay());
     this.currentAudio.addEventListener("error", (e) =>
-      this.handleAudioError(e)
+      this.handleAudioError(e),
     );
 
     // Start regular memory cleanup
@@ -273,7 +274,7 @@ class TextToSpeechSystem {
             context: { url, totalUrls: this.blobUrls.size },
             code: "BLOB_CLEANUP_FAILED",
             retryable: false,
-          }
+          },
         );
         console.warn("Blob URL cleanup error:", cleanupError);
       }
@@ -315,7 +316,7 @@ class TextToSpeechSystem {
     if (this.audioArray.length > this.maxAudioCache) {
       const toRemove = this.audioArray.slice(
         0,
-        this.audioArray.length - this.maxAudioCache
+        this.audioArray.length - this.maxAudioCache,
       );
 
       toRemove.forEach((url) => {
@@ -370,7 +371,7 @@ class TextToSpeechSystem {
             context: { url: this.currentAudioUrl },
             code: "AUDIO_STOP_CLEANUP_FAILED",
             retryable: false,
-          }
+          },
         );
         console.warn("Audio stop cleanup error:", stopError);
       }
@@ -516,7 +517,7 @@ class TextToSpeechSystem {
     console.log(
       "🎤 TTS speakSentences request:",
       sentencesArray.length,
-      "sentences"
+      "sentences",
     );
 
     // Add pre-cleaned sentences directly to text array (legacy support)
@@ -551,7 +552,7 @@ class TextToSpeechSystem {
     console.log(
       "🎤 TTS speakSentencePairs request:",
       sentencePairsArray.length,
-      "sentence pairs"
+      "sentence pairs",
     );
 
     // Add sentence pairs to text array
@@ -567,7 +568,7 @@ class TextToSpeechSystem {
     console.log(
       "🎤 Added",
       this.textArray.length,
-      "sentence pairs to TTS queue"
+      "sentence pairs to TTS queue",
     );
 
     // Start processing if not already playing (original pattern: state=true means ready)
@@ -581,7 +582,7 @@ class TextToSpeechSystem {
     if (this.currentTTSText && this.currentTTSText.trim().length > 0) {
       console.log(
         "🎤 Retrying TTS for:",
-        this.currentTTSText.substring(0, 50) + "..."
+        this.currentTTSText.substring(0, 50) + "...",
       );
 
       // Add back to the front of the queue
@@ -632,7 +633,7 @@ class TextToSpeechSystem {
       // Request TTS generation via socket and WAIT for response
       if (this.socket && this.socket.connected) {
         console.log(
-          `🎤 Requesting TTS generation (${this.textArray.length} remaining in queue)...`
+          `🎤 Requesting TTS generation (${this.textArray.length} remaining in queue)...`,
         );
         this.socket.emit("tts-request", {
           text: this.currentTTSText,
@@ -656,7 +657,7 @@ class TextToSpeechSystem {
           async () => {
             await processLogic();
             // Lock will be released when this function completes
-          }
+          },
         );
       } catch (error) {
         console.warn("Web Locks API failed, using fallback:", error);
@@ -670,7 +671,7 @@ class TextToSpeechSystem {
   // Core synchronization function - Process next text in queue when audio ends
   handleAudioEnded() {
     console.log(
-      `🎤 Audio finished - ${this.textArray.length} sentences remaining`
+      `🎤 Audio finished - ${this.textArray.length} sentences remaining`,
     );
 
     // Cleanup current audio URL
@@ -710,7 +711,7 @@ class TextToSpeechSystem {
     console.log(
       `🎤 Will speak for ${(duration / 1000).toFixed(1)}s, ${
         this.textArray.length
-      } remaining in queue`
+      } remaining in queue`,
     );
   }
 
@@ -772,7 +773,7 @@ class TextToSpeechSystem {
       "🎤 Kokoro response received:",
       data.size,
       "bytes",
-      data.cached ? "(cached)" : ""
+      data.cached ? "(cached)" : "",
     );
 
     try {
@@ -798,7 +799,7 @@ class TextToSpeechSystem {
         this.currentAudio.onloadedmetadata = () => {
           console.log(
             "🎤 Audio metadata loaded, duration:",
-            this.currentAudio.duration
+            this.currentAudio.duration,
           );
           this.currentAudio.play().catch((e) => {
             console.error("🎤 Error playing audio:", e);
@@ -865,7 +866,7 @@ class TextToSpeechSystem {
     if (cached) {
       this.prefetchedAudio.delete(text); // Remove after use
       console.log(
-        `⚡ Using prefetched audio for: "${text.substring(0, 30)}..."`
+        `⚡ Using prefetched audio for: "${text.substring(0, 30)}..."`,
       );
       return cached;
     }
@@ -908,56 +909,67 @@ class TextToSpeechSystem {
 
   // Flash text in spiral center (from tts.js)
   flashTrigger(text, duration) {
-    // Try to find spiral container or eye element
-    let container =
-      document.getElementById("eye") ??
-      document.getElementById("spiral-container") ??
-      document.querySelector("#spiral-container");
+    // ALWAYS use spiral-container as the parent for proper positioning
+    let container = document.getElementById("spiral-container");
 
     if (!container) {
       console.warn("🎤 No spiral container found for text display");
       return;
     }
 
+    console.log("🎤 Flashing text in spiral:", text.substring(0, 50) + "...");
+
     // Create or find text display element
     let textDisplay = container.querySelector(".tts-text-display");
     if (!textDisplay) {
       textDisplay = document.createElement("div");
       textDisplay.className = "tts-text-display";
-      textDisplay.style.cssText = `
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: var(--tertiary-alt);
-                font-size: 2rem;
-                font-weight: bold;
-                text-align: center;
-                text-shadow: 0 0 10px var(--tertiary-alt), 0 0 20px var(--tertiary-alt);
-                z-index: 1000;
-                pointer-events: none;
-                max-width: 90%;
-                word-wrap: break-word;
-                white-space: normal;
-                animation: pulse 0.5s ease-in-out infinite alternate;
-                overflow-wrap: break-word;
-                hyphens: auto;
-                line-height: 1.2;
-            `;
+      // Add directly to spiral-container for proper centering
       container.appendChild(textDisplay);
+      console.log("🎤 Created new TTS text display element");
     }
+
+    // OVERRIDE CSS with stronger inline styles for visibility
+    textDisplay.style.cssText = `
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      color: var(--tertiary-alt) !important;
+      font-size: 2.5rem !important;
+      font-weight: bold !important;
+      text-align: center !important;
+      text-shadow: 0 0 20px var(--tertiary-alt), 0 0 40px var(--tertiary-alt), 0 0 60px var(--button-color) !important;
+      z-index: 9999 !important;
+      pointer-events: none !important;
+      max-width: 85% !important;
+      width: auto !important;
+      word-wrap: break-word !important;
+      white-space: normal !important;
+      animation: kokoroFlash 0.6s ease-in-out infinite !important;
+      overflow-wrap: break-word !important;
+      hyphens: auto !important;
+      line-height: 1.3 !important;
+      filter: drop-shadow(0 0 15px var(--button-color)) !important;
+      font-family: 'Audiowide', sans-serif !important;
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    `;
 
     // Display the text horizontally, not as a vertical column
     // Keep text flowing left to right, only break on explicit newlines
     let html = String(text).replace(/\n/g, " "); // Replace newlines with spaces for horizontal flow
     textDisplay.innerHTML = html;
-    textDisplay.style.display = "block";
+
+    console.log("🎤 Text display updated, visible for", duration, "ms");
 
     // Clear after duration
     setTimeout(() => {
       if (textDisplay) {
         textDisplay.style.display = "none";
         textDisplay.innerHTML = "";
+        console.log("🎤 Text display cleared");
       }
     }, duration || 3000);
   }
@@ -965,7 +977,7 @@ class TextToSpeechSystem {
   displayInChat(text) {
     // Highlight the current sentence being spoken in the existing chat message
     const latestMessage = document.querySelector(
-      ".message.ai:last-child .message-text"
+      ".message.ai:last-child .message-text",
     );
 
     if (latestMessage) {
@@ -979,7 +991,7 @@ class TextToSpeechSystem {
       // Wrap current sentence in highlight span
       const highlightedHTML = messageHTML.replace(
         new RegExp(escapedText, "i"),
-        `<span class="tts-currently-speaking" style="background: rgba(255, 20, 147, 0.2); padding: 2px 4px; border-radius: 3px; animation: pulse 0.5s ease-in-out infinite alternate;">$&</span>`
+        `<span class="tts-currently-speaking" style="background: rgba(255, 20, 147, 0.2); padding: 2px 4px; border-radius: 3px; animation: pulse 0.5s ease-in-out infinite alternate;">$&</span>`,
       );
 
       latestMessage.innerHTML = highlightedHTML;
@@ -990,7 +1002,7 @@ class TextToSpeechSystem {
         : 3000;
       setTimeout(() => {
         const highlightSpan = latestMessage.querySelector(
-          ".tts-currently-speaking"
+          ".tts-currently-speaking",
         );
         if (highlightSpan) {
           // Replace span with just the text content
@@ -1008,7 +1020,7 @@ class TextToSpeechSystem {
 
     // Use improved URL format with better encoding
     let URL = `/api/tts?text=${encodeURIComponent(
-      text
+      text,
     )}&voice=${encodeURIComponent(this.currentVoice)}`;
     array.push(URL);
   }
@@ -1088,7 +1100,7 @@ class TextToSpeechSystem {
           this.currentAudio.onloadedmetadata = () => {
             console.log(
               "🎤 Audio metadata loaded, duration:",
-              this.currentAudio.duration
+              this.currentAudio.duration,
             );
             if (messageEl) messageEl.textContent = "Playing...";
             this.currentAudio.play().catch((e) => {
@@ -1182,7 +1194,7 @@ class TextToSpeechSystem {
         "✅ Voice set to:",
         voice,
         "| Selected voices:",
-        this.selectedVoices
+        this.selectedVoices,
       );
 
       // Update voice on server if socket available
@@ -1227,7 +1239,7 @@ class TextToSpeechSystem {
       "✅ Voice added:",
       voiceName,
       "| Selected:",
-      this.selectedVoices
+      this.selectedVoices,
     );
 
     return true;
@@ -1247,7 +1259,7 @@ class TextToSpeechSystem {
       "✅ Voice removed:",
       voiceName,
       "| Selected:",
-      this.selectedVoices
+      this.selectedVoices,
     );
 
     return true;
@@ -1281,7 +1293,7 @@ class TextToSpeechSystem {
   validateAndCleanVoiceSelection() {
     // Remove any invalid voices
     this.selectedVoices = this.selectedVoices.filter((voice) =>
-      this.availableVoices.includes(voice)
+      this.availableVoices.includes(voice),
     );
 
     // Enforce max voices limit
@@ -1640,7 +1652,7 @@ class TextToSpeechSystem {
 
     console.log(
       "🎤 Processing AI response for TTS:",
-      message.substring(0, 50) + "..."
+      message.substring(0, 50) + "...",
     );
     this.speak(message);
   }

@@ -205,6 +205,37 @@ body {
     }
 }
 
+/* Enhanced Kokoro Speaking Flash Animation */
+@keyframes kokoroFlash {
+    0% {
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(0.8);
+        text-shadow: 0 0 5px var(--tertiary-alt), 0 0 10px var(--tertiary-alt);
+    }
+    25% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.15);
+        text-shadow: 0 0 20px var(--tertiary-alt), 0 0 40px var(--tertiary-alt),
+                     0 0 60px var(--button-color), 0 0 80px var(--button-color);
+    }
+    50% {
+        opacity: 0.4;
+        transform: translate(-50%, -50%) scale(0.85);
+        text-shadow: 0 0 10px var(--tertiary-alt), 0 0 20px var(--tertiary-alt);
+    }
+    75% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+        text-shadow: 0 0 15px var(--tertiary-alt), 0 0 30px var(--tertiary-alt),
+                     0 0 45px var(--button-color), 0 0 60px var(--button-color);
+    }
+    100% {
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(0.8);
+        text-shadow: 0 0 5px var(--tertiary-alt), 0 0 10px var(--tertiary-alt);
+    }
+}
+
 @keyframes ttsSpeaking {
     0% {
         opacity: 0.8;
