@@ -5,7 +5,12 @@ export function ButtplugDropdown() {
   container.innerHTML = `
     <div class="control-section">
       <h3>🔌 Device Integration</h3>
-      <p class="info-text">Connect intimate hardware to BambiSleep triggers using Buttplug.io</p>
+      <p class="info-text">
+        Connect intimate hardware to BambiSleep triggers using 
+        <a href="https://buttplug.io" target="_blank" rel="noopener noreferrer" class="buttplug-link">
+          Buttplug.io ↗
+        </a>
+      </p>
       
       <div class="connection-section">
         <div class="mode-selector">

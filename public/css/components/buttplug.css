@@ -24,6 +24,24 @@
     margin-bottom: var(--spacing-md);
   }
 
+  .buttplug-controls .buttplug-link {
+    color: var(--button-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid transparent;
+  }
+
+  .buttplug-controls .buttplug-link:hover {
+    color: var(--tertiary-alt);
+    border-bottom-color: var(--tertiary-alt);
+    text-shadow: 0 0 8px var(--tertiary-alt);
+  }
+
+  .buttplug-controls .buttplug-link:active {
+    transform: scale(0.98);
+  }
+
   .connection-section,
   .device-section,
   .audio-sync-section,
