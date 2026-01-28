@@ -1616,36 +1616,6 @@ class TextToSpeechSystem {
     });
   }
 
-  stop() {
-    // Stop current playback
-    if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.cleanupCurrentAudio();
-    }
-
-    // Stop Web Speech API
-    if ("speechSynthesis" in window) {
-      speechSynthesis.cancel();
-    }
-
-    // Clear all queues
-    this.textArray = [];
-    this.audioArray = [];
-    this.queue = [];
-
-    this.isPlaying = false;
-    this.state = false;
-
-    // Clear spiral text display
-    this.clearSpiralText();
-  }
-
-  clearQueue() {
-    this.textArray = [];
-    this.audioArray = [];
-    this.queue = [];
-  }
-
   clearSpiralText() {
     const container =
       document.getElementById("eye") ||
