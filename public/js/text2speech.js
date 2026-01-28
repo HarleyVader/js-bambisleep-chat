@@ -1617,10 +1617,10 @@ class TextToSpeechSystem {
       const triggerName = trigger.name.toUpperCase();
       
       // Escape special regex characters
-      const escapedTrigger = triggerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedTrigger = triggerName.replace(/[.*+?^${}()|[\]\\]/g, '\\\\$&');
       
       // Use word boundaries for accurate detection
-      const regex = new RegExp(`\\b${escapedTrigger}\\b`, 'i');
+      const regex = new RegExp(`\\\\b${escapedTrigger}\\\\b`, 'i');
       
       if (regex.test(upperText)) {
         detectedTriggers.push(trigger);
