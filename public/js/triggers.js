@@ -146,7 +146,8 @@ class TriggerSystem {
       );
 
       if (triggerData) {
-        category = triggerData.category || "default";
+        // Convert category to lowercase for buttplug integration
+        category = (triggerData.category || "default").toLowerCase();
       }
     }
 
