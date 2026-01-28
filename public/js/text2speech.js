@@ -676,7 +676,9 @@ class TextToSpeechSystem {
     );
 
     // Stop buttplug vibration when audio ends
-    this.stopButtplugVibration();
+    if (window.buttplugIntegration && window.buttplugIntegration.isEnabled) {
+      window.buttplugIntegration.stopAllDevices();
+    }
 
     // Cleanup current audio URL
     if (this.currentAudioUrl) {
@@ -701,8 +703,10 @@ class TextToSpeechSystem {
     console.log("🎤 Audio started - displaying:", this.currentText);
     const duration = this.currentAudio.duration * 1000;
 
-    // 🔥 TRIGGER DETECTION: Check if text contains triggers and activate buttplug
-    this.detectAndActivateTriggers(this.currentText, duration);
+    // 🔥 BUTTPLUG VIBRATION: Vibrate devices during TTS playback
+    if (window.buttplugIntegration && window.buttplugIntegration.isEnabled) {
+      window.buttplugIntegration.vibrateDuringTTS(this.currentText, duration);
+    }
 
     // Display text in spiral center synchronized with audio
     this.flashTrigger(this.currentText, duration);

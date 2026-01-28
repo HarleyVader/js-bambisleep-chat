@@ -358,6 +358,41 @@ class ButtplugIntegration {
     }
   }
 
+  // Vibrate all devices during TTS playback
+  async vibrateDuringTTS(text, duration) {
+    if (!this.isConnected || !this.isEnabled || this.devices.length === 0) {
+      return;
+    }
+
+    console.log(`🔊 TTS vibration starting for ${duration}ms`);
+
+    // Default gentle vibration for speech
+    const intensity = 0.4;
+
+    // Activate all vibrating devices with gentle continuous vibration
+    for (const device of this.devices) {
+      if (device.vibrateAttributes && device.vibrateAttributes.length > 0) {
+        try {
+          await device.vibrate(intensity);
+
+          // Store timeout for auto-stop
+          const timeoutId = setTimeout(async () => {
+            try {
+              await device.stop();
+              this.activePatterns.delete(device.index);
+            } catch (error) {
+              console.error(`❌ Error auto-stopping device:`, error);
+            }
+          }, duration);
+
+          this.activePatterns.set(device.index, timeoutId);
+        } catch (error) {
+          console.error(`❌ Error vibrating device ${device.name}:`, error);
+        }
+      }
+    }
+  }
+
   // Stop all devices
   async stopAllDevices() {
     // Clear all active timeouts
