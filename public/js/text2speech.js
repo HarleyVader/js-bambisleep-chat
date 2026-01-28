@@ -299,8 +299,15 @@ class TextToSpeechSystem {
    * LIGHTWEIGHT memory cleanup - DEVICE CACHE ONLY
    * ✅ Cleans: Blob URLs, temporary audio cache, oversized queues
    * ❌ NEVER touches: User settings, chat data, localStorage
+   * ⚠️ ONLY runs when queue is EMPTY - never during active playback
    */
   performMemoryCleanup() {
+    // CRITICAL: DO NOT clean up while TTS is active or has queued items
+    if (this.isPlaying || this.textArray.length > 0 || this.audioArray.length > 0) {
+      console.debug("🧹 Skipping cleanup - TTS queue active");
+      return;
+    }
+
     let cleaned = 0;
 
     // ONLY clean up temporary blob URLs (device cache)
@@ -362,6 +369,13 @@ class TextToSpeechSystem {
         console.warn("Blob URL cleanup error:", cleanupError);
       }
     });
+
+    // Log details if significant cleanup occurred
+    if (cleaned > 0) {
+      console.debug(
+        `🧹 Cleaned ${cleaned} finished audio blobs (${this.blobUrls.size} active, ${inUseUrls.size} protected)`
+      );
+    }
 
     return cleaned;
   }
