@@ -1575,6 +1575,9 @@ class TextToSpeechSystem {
     text = text.replace(/\s+/g, " ").trim();
 
     // Convert to lowercase for TTS (display stays uppercase, but speech is lowercase)
+    return text.toLowerCase();
+  }
+
   // ==================== TRIGGER DETECTION SYSTEM ====================
 
   /**
@@ -1584,7 +1587,10 @@ class TextToSpeechSystem {
    */
   detectAndActivateTriggers(text, duration) {
     // Check if buttplug is available and connected
-    if (!window.buttplugIntegration || !window.buttplugIntegration.isConnected) {
+    if (
+      !window.buttplugIntegration ||
+      !window.buttplugIntegration.isConnected
+    ) {
       return;
     }
 
@@ -1596,9 +1602,12 @@ class TextToSpeechSystem {
 
     // Detect triggers in the text
     const detectedTriggers = this.detectTriggersInText(text, allTriggers);
-    
+
     if (detectedTriggers.length > 0) {
-      console.log("🔥 TRIGGERS DETECTED in TTS:", detectedTriggers.map(t => t.name));
+      console.log(
+        "🔥 TRIGGERS DETECTED in TTS:",
+        detectedTriggers.map((t) => t.name),
+      );
       this.startButtplugVibration(detectedTriggers, duration);
     }
   }
@@ -1613,15 +1622,18 @@ class TextToSpeechSystem {
     const detectedTriggers = [];
     const upperText = text.toUpperCase();
 
-    triggers.forEach(trigger => {
+    triggers.forEach((trigger) => {
       const triggerName = trigger.name.toUpperCase();
-      
-      // Escape special regex characters
-      const escapedTrigger = triggerName.replace(/[.*+?^${}()|[\]\\]/g, '\\\\$&');
-      
+
+      // Escape special regex characters using a function
+      const escapedTrigger = triggerName.replace(
+        /[-\/\\^$*+?.()|[\]{}]/g,
+        "\\$&",
+      );
+
       // Use word boundaries for accurate detection
-      const regex = new RegExp(`\\\\b${escapedTrigger}\\\\b`, 'i');
-      
+      const regex = new RegExp("\\b" + escapedTrigger + "\\b", "i");
+
       if (regex.test(upperText)) {
         detectedTriggers.push(trigger);
       }
@@ -1636,7 +1648,10 @@ class TextToSpeechSystem {
    * @param {number} duration - Duration to vibrate in milliseconds
    */
   startButtplugVibration(triggers, duration) {
-    if (!window.buttplugIntegration || !window.buttplugIntegration.isConnected) {
+    if (
+      !window.buttplugIntegration ||
+      !window.buttplugIntegration.isConnected
+    ) {
       return;
     }
 
@@ -1649,21 +1664,21 @@ class TextToSpeechSystem {
     // Determine vibration intensity based on trigger category
     let maxIntensity = 0.5; // Default intensity
 
-    triggers.forEach(trigger => {
+    triggers.forEach((trigger) => {
       let intensity = 0.5;
-      
+
       // Category-based intensity matching buttplug integration patterns
-      switch(trigger.category?.toLowerCase()) {
-        case 'primary':
+      switch (trigger.category?.toLowerCase()) {
+        case "primary":
           intensity = 0.7; // Strong for primary triggers
           break;
-        case 'physical':
+        case "physical":
           intensity = 0.9; // Very strong for physical triggers
           break;
-        case 'mental':
+        case "mental":
           intensity = 0.5; // Medium for mental triggers
           break;
-        case 'behavioral':
+        case "behavioral":
           intensity = 0.6; // Medium-strong for behavioral
           break;
         default:
@@ -1673,7 +1688,9 @@ class TextToSpeechSystem {
       maxIntensity = Math.max(maxIntensity, intensity);
     });
 
-    console.log(`🔥 Activating buttplug vibration: ${maxIntensity * 100}% for ${duration}ms`);
+    console.log(
+      `🔥 Activating buttplug vibration: ${maxIntensity * 100}% for ${duration}ms`,
+    );
     this.activateTTSVibration(device, duration, maxIntensity);
   }
 
@@ -1688,14 +1705,13 @@ class TextToSpeechSystem {
       // Create pulsing pattern
       const pulseInterval = 200; // Pulse every 200ms
       const pulses = Math.floor(duration / pulseInterval);
-      
+
       for (let i = 0; i < pulses; i++) {
         await device.vibrate(intensity);
-        await new Promise(resolve => setTimeout(resolve, pulseInterval / 2));
+        await new Promise((resolve) => setTimeout(resolve, pulseInterval / 2));
         await device.vibrate(intensity * 0.3); // Lower intensity for pulse effect
-        await new Promise(resolve => setTimeout(resolve, pulseInterval / 2));
+        await new Promise((resolve) => setTimeout(resolve, pulseInterval / 2));
       }
-      
     } catch (error) {
       console.error("Failed to vibrate device:", error);
     }
@@ -1706,7 +1722,10 @@ class TextToSpeechSystem {
    */
   async stopButtplugVibration() {
     try {
-      if (window.buttplugIntegration && window.buttplugIntegration.isConnected) {
+      if (
+        window.buttplugIntegration &&
+        window.buttplugIntegration.isConnected
+      ) {
         const device = window.buttplugIntegration.currentDevice;
         if (device) {
           await device.vibrate(0);
@@ -1715,9 +1734,6 @@ class TextToSpeechSystem {
     } catch (error) {
       console.error("Failed to stop vibration:", error);
     }
-  }
-
-    return text.toLowerCase();
   }
 
   setVolume(volume) {
