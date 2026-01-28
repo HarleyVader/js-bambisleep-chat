@@ -23,8 +23,69 @@ class ButtplugIntegration {
     // Active patterns tracking
     this.activePatterns = new Map();
 
+    // Load saved settings from localStorage
+    this.loadSettings();
+
     // Load libraries
     this.loadLibraries();
+  }
+
+  // Load settings from localStorage
+  loadSettings() {
+    try {
+      const saved = localStorage.getItem("buttplug-settings");
+      if (saved) {
+        const settings = JSON.parse(saved);
+
+        // Restore connection settings
+        if (settings.serverUrl) {
+          this.serverUrl = settings.serverUrl;
+        }
+        if (settings.connectionMode) {
+          this.connectionMode = settings.connectionMode;
+        }
+
+        // Restore trigger pattern intensities
+        if (settings.triggerPatterns) {
+          if (settings.triggerPatterns.primary !== undefined) {
+            this.triggerPatterns.primary.intensity =
+              settings.triggerPatterns.primary;
+          }
+          if (settings.triggerPatterns.mental !== undefined) {
+            this.triggerPatterns.mental.intensity =
+              settings.triggerPatterns.mental;
+          }
+          if (settings.triggerPatterns.physical !== undefined) {
+            this.triggerPatterns.physical.intensity =
+              settings.triggerPatterns.physical;
+          }
+        }
+
+        console.log("💾 Loaded Buttplug settings from localStorage:", settings);
+      }
+    } catch (error) {
+      console.warn("⚠️ Failed to load Buttplug settings:", error);
+    }
+  }
+
+  // Save settings to localStorage
+  saveSettings() {
+    try {
+      const settings = {
+        serverUrl: this.serverUrl,
+        connectionMode: this.connectionMode,
+        triggerPatterns: {
+          primary: this.triggerPatterns.primary.intensity,
+          mental: this.triggerPatterns.mental.intensity,
+          physical: this.triggerPatterns.physical.intensity,
+        },
+      };
+
+      localStorage.setItem("buttplug-settings", JSON.stringify(settings));
+      console.log("💾 Saved Buttplug settings to localStorage");
+    } catch (error) {
+      console.warn("⚠️ Failed to save Buttplug settings:", error);
+    }
   }
 
   // Load Buttplug client + WASM server from CDN
@@ -149,10 +210,10 @@ class ButtplugIntegration {
 
         console.log("🔄 Connecting via WASM (WebBluetooth)...");
 
-        // Create embedded connector using WASM server  
+        // Create embedded connector using WASM server
         this.connector = new window.buttplug.ButtplugEmbeddedConnectorOptions();
         this.connector.ServerFactory = () => window.ButtplugWASM;
-        
+
         await this.client.connect(this.connector);
         console.log("✅ Connected via WASM server");
       } else {
@@ -171,6 +232,7 @@ class ButtplugIntegration {
       }
 
       this.isConnected = true;
+      this.saveSettings();
       return true;
     } catch (error) {
       console.error("❌ Connection failed:", error);

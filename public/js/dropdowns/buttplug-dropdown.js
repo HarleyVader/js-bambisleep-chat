@@ -29,7 +29,7 @@ export function ButtplugDropdown() {
               type="text" 
               id="buttplug-server-url" 
               class="url-input"
-              value="ws://localhost:12345"
+              value=""
               placeholder="ws://localhost:12345"
             />
           </div>
@@ -164,6 +164,87 @@ export function ButtplugDropdown() {
   const mentalIntensity = container.querySelector("#mental-intensity");
   const physicalIntensity = container.querySelector("#physical-intensity");
 
+  // Load saved settings into UI
+  function loadSavedSettings() {
+    try {
+      const saved = localStorage.getItem("buttplug-settings");
+      if (saved) {
+        const settings = JSON.parse(saved);
+
+        // Set connection mode
+        if (settings.connectionMode) {
+          const modeRadio = container.querySelector(
+            `input[name="connection-mode"][value="${settings.connectionMode}"]`,
+          );
+          if (modeRadio) {
+            modeRadio.checked = true;
+            if (settings.connectionMode === "intiface") {
+              intifaceConfig.style.display = "block";
+            }
+          }
+        }
+
+        // Set server URL
+        if (settings.serverUrl) {
+          const urlInput = container.querySelector("#buttplug-server-url");
+          if (urlInput) {
+            urlInput.value = settings.serverUrl;
+          }
+        } else {
+          // Set default if no saved URL
+          const urlInput = container.querySelector("#buttplug-server-url");
+          if (urlInput && !urlInput.value) {
+            urlInput.value = "ws://localhost:12345";
+          }
+        }
+
+        // Set trigger pattern intensities
+        if (settings.triggerPatterns) {
+          if (settings.triggerPatterns.primary !== undefined) {
+            const value = Math.round(settings.triggerPatterns.primary * 100);
+            if (primaryIntensity) {
+              primaryIntensity.value = value;
+              container.querySelector("#primary-intensity-value").textContent =
+                `${value}%`;
+            }
+          }
+          if (settings.triggerPatterns.mental !== undefined) {
+            const value = Math.round(settings.triggerPatterns.mental * 100);
+            if (mentalIntensity) {
+              mentalIntensity.value = value;
+              container.querySelector("#mental-intensity-value").textContent =
+                `${value}%`;
+            }
+          }
+          if (settings.triggerPatterns.physical !== undefined) {
+            const value = Math.round(settings.triggerPatterns.physical * 100);
+            if (physicalIntensity) {
+              physicalIntensity.value = value;
+              container.querySelector("#physical-intensity-value").textContent =
+                `${value}%`;
+            }
+          }
+        }
+      } else {
+        // Set default URL if no saved settings
+        const urlInput = container.querySelector("#buttplug-server-url");
+        if (urlInput && !urlInput.value) {
+          urlInput.value = "ws://localhost:12345";
+        }
+      }
+    } catch (error) {
+      console.warn("⚠️ Failed to load saved Buttplug UI settings:", error);
+      // Set default URL on error
+      const urlInput = container.querySelector("#buttplug-server-url");
+      if (urlInput && !urlInput.value) {
+        urlInput.value = "ws://localhost:12345";
+      }
+    }
+  }
+
+  // Load settings when dropdown is created
+  loadSavedSettings();
+
   // Handle connection mode switch
   modeRadios.forEach((radio) => {
     radio.addEventListener("change", (e) => {
@@ -171,6 +252,12 @@ export function ButtplugDropdown() {
         intifaceConfig.style.display = "block";
       } else {
         intifaceConfig.style.display = "none";
+      }
+
+      // Save connection mode preference
+      if (window.buttplugIntegration) {
+        window.buttplugIntegration.connectionMode = e.target.value;
+        window.buttplugIntegration.saveSettings();
       }
     });
   });
@@ -184,12 +271,21 @@ export function ButtplugDropdown() {
   const deviceList = container.querySelector("#buttplug-device-list");
 
   // Update intensity displays
+  // Save server URL when changed
+  serverUrlInput?.addEventListener("blur", (e) => {
+    if (window.buttplugIntegration) {
+      window.buttplugIntegration.serverUrl = e.target.value.trim();
+      window.buttplugIntegration.saveSettings();
+    }
+  });
+
   primaryIntensity?.addEventListener("input", (e) => {
     container.querySelector("#primary-intensity-value").textContent =
       `${e.target.value}%`;
     if (window.buttplugIntegration) {
       window.buttplugIntegration.triggerPatterns.primary.intensity =
         e.target.value / 100;
+      window.buttplugIntegration.saveSettings();
     }
   });
 
@@ -199,6 +295,7 @@ export function ButtplugDropdown() {
     if (window.buttplugIntegration) {
       window.buttplugIntegration.triggerPatterns.mental.intensity =
         e.target.value / 100;
+      window.buttplugIntegration.saveSettings();
     }
   });
 
@@ -208,6 +305,7 @@ export function ButtplugDropdown() {
     if (window.buttplugIntegration) {
       window.buttplugIntegration.triggerPatterns.physical.intensity =
         e.target.value / 100;
+      window.buttplugIntegration.saveSettings();
     }
   });
 
