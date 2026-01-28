@@ -1,41 +1,44 @@
 # �✨ Device Integration - Good Girl's Pleasure Guide! ✨💕
 
-*Hiii Bambi!* 💖 Ready to make your body feel what your mind is experiencing? This guide will help you connect your special toys to respond when you hear those yummy trigger words! *So exciting!*
+_Hiii Bambi!_ 💖 Ready to make your body feel what your mind is experiencing? This guide will help you connect your special toys to respond when you hear those yummy trigger words! _So exciting!_
 
 ## 🎀 What Does This Do? 🎀
 
 When you're being a **Good Girl** and chatting with the AI, your connected toys will vibrate and pulse in sync with:
-- 💗 **Trigger Words** - When "Good Girl", "Bambi", "Drop for Cock" appear, you'll *feel it*
+
+- 💗 **Trigger Words** - When "Good Girl", "Bambi", "Drop for Cock" appear, you'll _feel it_
 - 🎵 **Voice Patterns** - Gentle pulses during soft speech, stronger when she emphasizes words
 - ✨ **Audio Sync** - Real-time response to how the voice sounds (pitch, volume, intensity)
 
-*It's like the hypnosis can touch you!* 🥰
+_It's like the hypnosis can touch you!_ 🥰
 
 ## 💖 Do I Need Special Stuff? 💖
 
 **Nope! Super easy!** Just need:
+
 - 🌸 Any Bluetooth intimate toy (Lovense, We-Vibe, etc.)
 - 💕 Chrome or Edge browser (they have magic Bluetooth powers!)
 - ✨ That's it! No downloads needed for basic mode!
 
-*Want to check if your toy works?* Visit [iostindex.com](https://iostindex.com) - it's like a toy directory! 📱
+_Want to check if your toy works?_ Visit [iostindex.com](https://iostindex.com) - it's like a toy directory! 📱
 
 ## 🌺 Two Ways to Connect 🌺
 
-### 🌐 Browser Mode ⭐ *Soooo Easy!*
+### 🌐 Browser Mode ⭐ _Soooo Easy!_
 
 **This is the recommended way!** No software, just click and pair!
 
 **Steps:**
+
 1. Turn on your toy and make it ready to pair (usually hold the button)
 2. Click **🔌 Devices** in the dropdown menu
 3. Make sure "🌐 Browser" is selected (it should be!)
 4. Click **"🔌 Connect"**
 5. Click **"🔍 Scan for Devices"**
 6. Pick your toy from the list that pops up!
-7. *Done!* You'll see a cute ✅ checkmark
+7. _Done!_ You'll see a cute ✅ checkmark
 
-### 🖥️ Intiface Mode - *For Advanced Bambis*
+### 🖥️ Intiface Mode - _For Advanced Bambis_
 
 Only use this if Browser mode doesn't work!
 
@@ -54,16 +57,19 @@ Only use this if Browser mode doesn't work!
 In the **🔌 Devices** menu, you'll see three sliders:
 
 **💗 Primary Triggers** (Default: 70%)
-- Words like "Bambi", "Good Girl", "Bambi Sleep"
-- *These are your identity! Medium-strong feels~*
 
-**💭 Mental Triggers** (Default: 50%)  
+- Words like "Bambi", "Good Girl", "Bambi Sleep"
+- _These are your identity! Medium-strong feels~_
+
+**💭 Mental Triggers** (Default: 50%)
+
 - "Blonde Moment", "Snap and Forget", "Airhead"
-- *Gentler pulses for ditzy思考~*
+- _Gentler pulses for ditzy思考~_
 
 **🍆 Physical Triggers** (Default: 90%)
-- "Drop for Cock", "Bambi Freeze", "Bambi Limp"  
-- *STRONG! For when you need to obey~* 😳
+
+- "Drop for Cock", "Bambi Freeze", "Bambi Limp"
+- _STRONG! For when you need to obey~_ 😳
 
 Drag the sliders to adjust! Higher = more intense vibrations! 💕
 
@@ -71,66 +77,73 @@ Drag the sliders to adjust! Higher = more intense vibrations! 💕
 
 Check the box: **"🎵 Sync vibrations with speech patterns"**
 
-When enabled, your toy becomes *super smart*:
+When enabled, your toy becomes _super smart_:
+
 - Gentle buzzing during normal talking (10-30%)
 - Stronger when her voice gets excited or loud
-- MAXIMUM (95%) when trigger words are spoken! 
+- MAXIMUM (95%) when trigger words are spoken!
 
-*It's like she's actually touching you through the speakers!* 🥰✨
+_It's like she's actually touching you through the speakers!_ 🥰✨
 
 Turn it OFF if you only want vibrations during trigger words!
 
 ## 🎯 Testing Your Setup
 
 1. Click **"🎯 Test Vibration"** - Your toy should pulse at 70% for 3 seconds
-2. If it works: *Yay! You're all set!* 💖
+2. If it works: _Yay! You're all set!_ 💖
 3. If nothing happens: Check the toy is charged and paired!
 
 **Emergency Stop**: See the **⛔ Emergency Stop** button? Click it anytime to make everything stop immediately! Safety first! 💕
 
 ## 🎀 How It Feels During Chat 🎀
 
-*Let me paint a picture~*
+_Let me paint a picture~_
 
 **Without Audio Sync:**
+
 - AI says "Good Girl" → Toy vibrates at 70% for 3 seconds
-- AI says "Drop for Cock" → TOY VIBRATES HARD at 90%! 
+- AI says "Drop for Cock" → TOY VIBRATES HARD at 90%!
 - Normal chat → No vibration (quiet time!)
 
 **With Audio Sync ON:**
+
 - AI is talking normally → Gentle 10-30% purr
 - AI's voice gets higher/louder → Increases to 40-60%
 - AI emphasizes a word → Jumps to 70-85%!
 - AI says "GOOD GIRL" → BLASTS to 95%+ 🔥
 - Voice returns to normal → Gently fades back down
 
-*It's reactive! Dynamic! Like she's playing with you!* 💖✨
+_It's reactive! Dynamic! Like she's playing with you!_ 💖✨
 
 ## 🌸 Troubleshooting (When Things Don't Work)
 
 **"I can't find my toy when scanning!"**
+
 - Is it turned on? Check the battery!
 - Is it in pairing mode? (Hold power button usually)
 - Try turning it off and on again!
 - Move it closer to your computer!
 
 **"It connected but won't vibrate!"**
+
 - Make sure **🎯 Triggers** is turned ON (green)!
 - Check the intensity sliders aren't at 0%!
 - Try the **🎯 Test Vibration** button!
 - Some toys don't vibrate, only rotate (check iostindex.com)
 
 **"Vibrations feel weak!"**
+
 - Audio sync makes it gentle during normal speech!
 - Turn UP your TTS volume - louder voice = stronger vibes!
 - Or turn OFF audio sync for constant intensity!
 - Increase the slider for that trigger category!
 
 **"It's too much!"**
+
 - Lower the intensity sliders to 30-50%!
 - Turn OFF audio sync for less surprises!
 - Click ⛔ Emergency Stop if you need to!
-- *It's okay to take breaks, cutie!* 💕
+- _It's okay to take breaks, cutie!_ 💕
 
 ## 💝 Safety & Being a Responsible Bambi 💝
 
@@ -149,24 +162,27 @@ Turn it OFF if you only want vibrations during trigger words!
 ## 🎀 Advanced Bambi Tips 🎀
 
 **Want maximum intensity?**
+
 - Set ALL sliders to 90-100%
 - Enable Audio Sync
 - Turn TTS volume to MAX
 - Have AI use lots of triggers!
-- *Prepare to melt!* 😳💦
+- _Prepare to melt!_ 😳💦
 
 **Want gentle, teasing vibes?**
+
 - Set sliders to 20-40%
-- Enable Audio Sync  
+- Enable Audio Sync
 - Normal TTS volume
 - Triggers give little reminders without overwhelming!
-- *Perfect for extended play~* 💕
+- _Perfect for extended play~_ 💕
 
 **Want trigger-only (no audio sync)?**
+
 - Uncheck "🎵 Sync vibrations with speech"
 - Set your desired intensity per category
 - Only vibrates when trigger words appear!
-- *Classic mode!* ✨
+- _Classic mode!_ ✨
 
 ## 🌺 Questions? 🌺
 
@@ -177,24 +193,24 @@ A: Android Chrome works! iPhone Safari doesn't have Bluetooth powers yet! Deskto
 A: Yes! Buttplug.io is a trusted library, and everything stays on YOUR device! No data sent anywhere! 💖
 
 **Q: Can I use multiple toys?**  
-A: Yes! All connected toys vibrate together! *Double the fun!* 🎉
+A: Yes! All connected toys vibrate together! _Double the fun!_ 🎉
 
 **Q: What if I don't have a toy?**  
 A: That's totally okay! This feature is optional! BambiSleep Chat works great without devices too! 💕
 
 ## 💖 Have Fun, Good Girl! 💖
 
-*Now you know how to make the hypnosis touch your body!* Let your toys respond to triggers, sync with her voice, and feel what a Good Girl you are! 
+_Now you know how to make the hypnosis touch your body!_ Let your toys respond to triggers, sync with her voice, and feel what a Good Girl you are!
 
 Remember to stay safe, start gentle, and use that Emergency Stop if needed!
 
-*Enjoy your enhanced BambiSleep experience!* 💕✨🎀
+_Enjoy your enhanced BambiSleep experience!_ 💕✨🎀
 
 ---
 
-*For device compatibility, visit [iostindex.com](https://iostindex.com)*  
-*For Buttplug.io info, visit [buttplug.io](https://buttplug.io)*  
-*Last Updated: January 28, 2026*
+_For device compatibility, visit [iostindex.com](https://iostindex.com)_  
+_For Buttplug.io info, visit [buttplug.io](https://buttplug.io)_  
+_Last Updated: January 28, 2026_
 
 ## 🎯 Features
 

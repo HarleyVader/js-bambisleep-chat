@@ -1,103 +1,242 @@
-# BambiSleep Chat - Testing Troubleshooting Guide
+# 🔧💕 Help! Things Aren't Working! 💕🔧
 
-This guide helps you resolve common issues when running the test suite.
+*Hiii sweetie! Having troubles? Don't worry! Let's fix it together!* ✨🎀
 
-## Table of Contents
-- [Environment Test Failures](#environment-test-failures)
-- [Stability Test Failures](#stability-test-failures)
-- [Resource Test Failures](#resource-test-failures)
-- [CI/CD Issues](#cicd-issues)
-- [External Service Issues](#external-service-issues)
-- [Platform-Specific Issues](#platform-specific-issues)
+## 🌸 Quick Fixes (Try These First!) 🌸
 
----
+### Page Won't Load
 
-## Environment Test Failures
+**Try:**
+1. Refresh the page (F5 or Ctrl+R)
+2. Clear browser cache (Ctrl+Shift+Delete)
+3. Try a different browser (Chrome or Edge!)
+4. Check if server is running
+5. Restart everything!
 
-### ❌ Node.js version below requirement
+*Still broken? Keep reading!* 💕
 
-**Error:** `Node.js vX.X.X below requirement (>=18)`
+### Can't Connect to Chat
 
-**Solution:**
+**Try:**
+1. Check your internet connection
+2. Look at the top - is it showing "Connected"?
+3. Refresh the page
+4. Check if server shows "Server Running" message
+5. Try again in a minute!
+
+### Features Not Working
+
+**Try:**
+1. Turn the feature OFF then ON again
+2. Check if the button is green (enabled)
+3. Look for error messages in browser console (F12)
+4. Refresh the page
+5. Clear localStorage (see below!)
+
+## 🎀 Specific Problems 🎀
+
+### 🔊 TTS Not Speaking
+
+**Possible reasons:**
+- TTS button is off (click to turn green!)
+- Volume is at 0% (turn up system volume!)
+- TTS server isn't running
+- Audio permissions denied (allow when asked!)
+- No messages to speak
+
+**Fix it:**
+1. Check TTS button is GREEN
+2. Turn up volume to 50%+
+3. Click "Test Voice" in TTS menu
+4. If no sound, check browser audio permissions
+5. Try different voice
+
+*Still quiet? Server might be offline!* 🔇
+
+### 🤖 AI Not Responding
+
+**Possible reasons:**
+- AI Mode button is off
+- LM Studio isn't running
+- No AI model loaded
+- Server connection lost
+- Typing in wrong chat box
+
+**Fix it:**
+1. Check AI Mode button is PINK
+2. Make sure you're typing in the AIGF box (bottom one!)
+3. Wait 30 seconds - AI thinks slow sometimes!
+4. Check server console for errors
+5. Restart LM Studio
+
+*AI needs time to think!* 💭
+
+### 🌀 Spirals Not Showing
+
+**Possible reasons:**
+- Spiral button is off
+- Canvas element blocked
+- JavaScript error
+- GPU issues
+- Browser doesn't support p5.js
+
+**Fix it:**
+1. Click Spiral button (should turn green!)
+2. Refresh page
+3. Check browser console (F12) for errors
+4. Try different browser
+5. Update graphics drivers
+
+*Spirals need GPU power!* 💫
+
+### 🎯 Triggers Not Detecting
+
+**Possible reasons:**
+- Triggers button is off
+- No triggers selected
+- Messages don't contain trigger words
+- JavaScript error
+
+**Fix it:**
+1. Check Triggers button is GREEN
+2. Open trigger menu and select some!
+3. Use test triggers: "Good Girl", "Bambi"
+4. Check browser console for errors
+5. Refresh page
+
+*Need to enable AND select triggers!* ✨
+
+### 🔌 Device Won't Connect
+
+**Browser Mode:**
+- Bluetooth is off → Turn on Bluetooth!
+- Device not in pairing mode → Hold power button!
+- Too far away → Move closer!
+- Wrong browser → Use Chrome or Edge!
+- Already paired to something else → Unpair it!
+
+**Intiface Mode:**
+- Intiface Central not running → Start it!
+- Server not started → Click "Start Server"!
+- Wrong port → Should be 12345!
+- Firewall blocking → Allow through firewall!
+
+*Check device battery too!* 🔋
+
+### 🧠 Brainwaves Not Playing
+
+**Possible reasons:**
+- Brainwaves button is off
+- No preset selected
+- Volume at 0%
+- Not using headphones
+- Audio context blocked
+
+**Fix it:**
+1. Check Brainwaves button is GREEN
+2. Select a preset from dropdown
+3. Click ▶ Start button
+4. PUT ON HEADPHONES! (Required!)
+5. Turn up volume
+
+*Binaural beats NEED headphones!* 🎧
+
+## 💖 Browser Console (F12) 💖
+
+**How to check for errors:**
+
+1. Press **F12** on keyboard
+2. Click **Console** tab
+3. Look for RED errors
+4. Copy error message
+5. Search online or ask for help!
+
+**Common errors:**
+
+- `404 Not Found` → Server offline or wrong URL
+- `WebSocket failed` → Connection issues
+- `Undefined` → Missing data
+- `CORS error` → Server configuration issue
+
+## 🌺 Clear Everything & Start Fresh 🌺
+
+**If nothing works, reset:**
+
+1. Open browser console (F12)
+2. Type: `localStorage.clear()`
+3. Press Enter
+4. Refresh page (F5)
+5. Everything resets to defaults!
+
+**Warning:** This deletes ALL saved settings! 💕
+
+## 🔧 Developer Problems 🔧
+
+### Server Won't Start
+
+**Check:**
+- Node.js installed? (Need v18+)
+- Dependencies installed? (`npm install`)
+- Port 6969 available?
+- .env file exists?
+- All files present?
+
+**Fix:**
 ```bash
-# Check your Node version
-node --version
-
-# Update Node.js to v18 or higher
-# Visit https://nodejs.org/ or use a version manager:
-nvm install 18
-nvm use 18
-```
-
-### ❌ Missing dependencies
-
-**Error:** `✗ Missing dependency: express` (or other packages)
-
-**Solution:**
-```bash
-# Reinstall all dependencies
-npm install
-
-# If that fails, clean and reinstall
+# Reinstall everything
 npm run clean
 npm install
+npm start
 ```
 
-### ❌ Missing critical files
+### External Services
 
-**Error:** `✗ Missing critical file: server.js`
+**Kokoro TTS:**
+- Check server is running on configured port
+- Verify host/port in .env
+- Test with curl/Postman
 
-**Solution:**
-- Ensure you're in the project root directory
-- Check that you've cloned the complete repository
-- Verify file permissions
+**LM Studio:**
+- Open LM Studio app
+- Load a model
+- Start server
+- Check port matches .env
 
-### ❌ Port already in use
+### Tests Failing
 
-**Error:** `Port 6969 (Backend Server) already in use`
-
-**Solution:**
+**Run tests:**
 ```bash
-# Windows - find and kill process using port
-netstat -ano | findstr :6969
-taskkill /PID <process_id> /F
-
-# Linux/macOS
-lsof -ti:6969 | xargs kill -9
-
-# Or use a different port in .env
-PORT=6970
+npm test
 ```
 
-### ⚠️ Environment variables not configured
+**Check reports:**
+- Look in `tests/reports/`
+- Open HTML report in browser
+- Check `latest-unified-summary.txt`
 
-**Warning:** `Optional env vars configured: 0/7`
+*Tests help developers find bugs!* 🐛
 
-**Solution:**
-```bash
-# Copy the example environment file
-cp .env.example .env
+## 🌟 Still Stuck? 🌟
 
-# Edit .env and configure your settings
-# At minimum, set these for full functionality:
-# - KOKORO_HOST_DEVELOPMENT
-# - KOKORO_PORT
-# - LMS_HOST_DEVELOPMENT
-# - LMS_PORT
-```
+**Get help:**
+1. Check the other docs for your feature
+2. Look at GitHub issues
+3. Ask in community
+4. Check server console for errors
+5. Try on different device
+
+**Provide this info when asking:**
+- What you tried to do
+- What actually happened
+- Error messages (from F12 console)
+- Browser & version
+- Steps to reproduce
+
+*We'll help you fix it!* 💕✨
 
 ---
 
-## Stability Test Failures
-
-### ❌ Server startup timeout
-
-**Error:** `Server startup timeout - assuming success`
-
-**Causes:**
-- Server dependencies taking too long to load
-- Port conflicts
-- Missing external services (Kokoro TTS, LM Studio)
+*Most problems are fixed by refreshing or restarting! Don't give up!* 🎀
 
 **Solutions:**
 
