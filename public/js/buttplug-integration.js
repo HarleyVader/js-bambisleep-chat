@@ -22,6 +22,7 @@ class ButtplugIntegration {
 
     // Active patterns tracking
     this.activePatterns = new Map();
+    this.brainwaveInterval = null; // Track brainwave pulse interval
 
     // Load saved settings from localStorage
     this.loadSettings();
@@ -393,39 +394,53 @@ class ButtplugIntegration {
     }
   }
 
-  // Stop all devices
-  async stopAllDevices() {
-    // Clear all active timeouts
-    this.activePatterns.forEach((timeoutId) => clearTimeout(timeoutId));
-    this.activePatterns.clear();
-
-    // Stop all devices
-    for (const device of this.devices) {
-      try {
-        await device.stop();
-      } catch (error) {
-        console.error(`❌ Error stopping device ${device.name}:`, error);
-      }
+  // Vibrate in sync with brainwave binaural beats
+  async vibrateWithBrainwave(beatFreq) {
+    if (!this.isConnected || !this.isEnabled || this.devices.length === 0) {
+      return;
     }
 
-    console.log("⛔ All devices stopped");
+    console.log(`🧠 Brainwave sync vibration: ${beatFreq}Hz`);
+
+    // Map brainwave frequency to vibration pattern
+    // Lower frequencies = slower pulses, higher = faster
+    const pulseInterval = Math.max(100, 1000 / beatFreq); // Convert Hz to ms interval
+    const intensity = 0.3; // Gentle for continuous brainwave sync
+
+    // Stop any existing brainwave pattern
+    this.stopBrainwaveVibration();
+
+    // Create pulsing pattern synced to brainwave frequency
+    this.brainwaveInterval = setInterval(async () => {
+      for (const device of this.devices) {
+        if (device.vibrateAttributes && device.vibrateAttributes.length > 0) {
+          try {
+            // Pulse on
+            await device.vibrate(intensity);
+            // Pulse off after half interval
+            setTimeout(async () => {
+              try {
+                await device.vibrate(0);
+              } catch (error) {
+                // Ignore errors during pulse off
+              }
+            }, pulseInterval / 2);
+          } catch (error) {
+            console.error(`❌ Error pulsing device:`, error);
+          }
+        }
+      }
+    }, pulseInterval);
   }
 
-  // Enable/disable the integration
-  toggle() {
-    this.isEnabled = !this.isEnabled;
-
-    if (!this.isEnabled) {
+  // Stop brainwave vibration
+  stopBrainwaveVibration() {
+    if (this.brainwaveInterval) {
+      clearInterval(this.brainwaveInterval);
+      this.brainwaveInterval = null;
       this.stopAllDevices();
     }
-
-    console.log(
-      `🔌 Buttplug integration ${this.isEnabled ? "ENABLED" : "DISABLED"}`,
-    );
-    return this.isEnabled;
   }
-
-  // Get connection status
   getStatus() {
     return {
       isConnected: this.isConnected,
@@ -465,6 +480,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (window.buttplugIntegration) {
       await window.buttplugIntegration.triggerDevice(triggerName, category);
+    }
+  });
+
+  // Listen for brainwave events
+  document.addEventListener("brainwave-started", async (event) => {
+    const { beatFreq } = event.detail;
+    console.log(`🧠 Brainwave started, syncing buttplug to ${beatFreq}Hz`);
+
+    if (window.buttplugIntegration) {
+      await window.buttplugIntegration.vibrateWithBrainwave(beatFreq);
+    }
+  });
+
+  document.addEventListener("brainwave-stopped", async () => {
+    console.log("🧠 Brainwave stopped, stopping buttplug vibration");
+
+    if (window.buttplugIntegration) {
+      window.buttplugIntegration.stopBrainwaveVibration();
     }
   });
 });

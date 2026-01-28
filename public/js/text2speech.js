@@ -703,10 +703,8 @@ class TextToSpeechSystem {
     console.log("🎤 Audio started - displaying:", this.currentText);
     const duration = this.currentAudio.duration * 1000;
 
-    // 🔥 BUTTPLUG VIBRATION: Vibrate devices during TTS playback
-    if (window.buttplugIntegration && window.buttplugIntegration.isEnabled) {
-      window.buttplugIntegration.vibrateDuringTTS(this.currentText, duration);
-    }
+    // 🔥 TRIGGER DETECTION: Check if text contains triggers and activate buttplug
+    this.detectAndActivateTriggers(this.currentText, duration);
 
     // Display text in spiral center synchronized with audio
     this.flashTrigger(this.currentText, duration);
@@ -1615,7 +1613,9 @@ class TextToSpeechSystem {
         "🔥 TRIGGERS DETECTED in TTS:",
         detectedTriggers.map((t) => t.name),
       );
-      this.startButtplugVibration(detectedTriggers, duration);
+
+      // Activate buttplug vibration for detected triggers
+      this.vibrateForTriggers(detectedTriggers, duration);
     }
   }
 
@@ -1654,51 +1654,21 @@ class TextToSpeechSystem {
    * @param {Array} triggers - Array of detected trigger objects
    * @param {number} duration - Duration to vibrate in milliseconds
    */
-  startButtplugVibration(triggers, duration) {
+  vibrateForTriggers(triggers, duration) {
     if (
       !window.buttplugIntegration ||
-      !window.buttplugIntegration.isConnected
+      !window.buttplugIntegration.isConnected ||
+      !window.buttplugIntegration.isEnabled
     ) {
       return;
     }
 
-    // Get the device
-    const device = window.buttplugIntegration.currentDevice;
-    if (!device) {
-      return;
-    }
-
-    // Determine vibration intensity based on trigger category
-    let maxIntensity = 0.5; // Default intensity
-
+    // Trigger each detected trigger via buttplug integration
     triggers.forEach((trigger) => {
-      let intensity = 0.5;
-
-      // Category-based intensity matching buttplug integration patterns
-      switch (trigger.category?.toLowerCase()) {
-        case "primary":
-          intensity = 0.7; // Strong for primary triggers
-          break;
-        case "physical":
-          intensity = 0.9; // Very strong for physical triggers
-          break;
-        case "mental":
-          intensity = 0.5; // Medium for mental triggers
-          break;
-        case "behavioral":
-          intensity = 0.6; // Medium-strong for behavioral
-          break;
-        default:
-          intensity = 0.5;
-      }
-
-      maxIntensity = Math.max(maxIntensity, intensity);
+      const category = (trigger.category || "default").toLowerCase();
+      console.log(`🔥 Vibrating for trigger: ${trigger.name} (${category})`);
+      window.buttplugIntegration.triggerDevice(trigger.name, category);
     });
-
-    console.log(
-      `🔥 Activating buttplug vibration: ${maxIntensity * 100}% for ${duration}ms`,
-    );
-    this.activateTTSVibration(device, duration, maxIntensity);
   }
 
   /**
