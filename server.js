@@ -388,11 +388,11 @@ app.use((req, res, next) => {
   // Script sources
   if (isDevelopment) {
     cspDirectives.push(
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.socket.io cdn.jsdelivr.net localhost:* ws://localhost:*"
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.socket.io cdn.jsdelivr.net unpkg.com localhost:* ws://localhost:*"
     );
   } else {
     cspDirectives.push(
-      "script-src 'self' 'unsafe-inline' cdn.socket.io cdn.jsdelivr.net"
+      "script-src 'self' 'unsafe-inline' cdn.socket.io cdn.jsdelivr.net unpkg.com"
     );
   }
 

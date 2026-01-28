@@ -174,7 +174,7 @@ export function ButtplugDropdown() {
         intifaceConfig.style.display = "none";
       }
     });
-  }
+  });
   const disconnectBtn = container.querySelector("#buttplug-disconnect-btn");
   const scanBtn = container.querySelector("#buttplug-scan-btn");
   const testBtn = container.querySelector("#buttplug-test-btn");
