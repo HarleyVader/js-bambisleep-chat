@@ -116,6 +116,18 @@ export function ButtplugDropdown() {
         </div>
       </div>
 
+      <div class="audio-sync-section">
+        <h4>🎵 Audio Pattern Synchronization</h4>
+        <label class="checkbox-label">
+          <input type="checkbox" id="audio-sync-toggle" checked />
+          Sync vibrations with speech patterns (emphasis, pitch, volume)
+        </label>
+        <p class="info-text">
+          When enabled, device vibration intensity automatically adjusts based on
+          real-time audio analysis. Stronger vibrations during emphasis and peaks.
+        </p>
+      </div>
+
       <div class="test-section">
         <button id="buttplug-test-btn" class="control-button" disabled>
           🎯 Test Vibration
@@ -269,6 +281,17 @@ export function ButtplugDropdown() {
   const serverUrlInput = container.querySelector("#buttplug-server-url");
   const statusText = container.querySelector("#buttplug-connection-status");
   const deviceList = container.querySelector("#buttplug-device-list");
+  const audioSyncToggle = container.querySelector("#audio-sync-toggle");
+
+  // Audio sync toggle
+  audioSyncToggle?.addEventListener("change", (e) => {
+    if (window.ttsSystem) {
+      window.ttsSystem.vibrationSyncEnabled = e.target.checked;
+      console.log(
+        `🎵 Audio pattern vibration sync ${e.target.checked ? "ENABLED" : "DISABLED"}`,
+      );
+    }
+  });
 
   // Update intensity displays
   // Save server URL when changed

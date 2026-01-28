@@ -1,6 +1,6 @@
 # GitHub Copilot Instructions
 
-**BambiSleep Chat**: Real-time chat with TTS, psychedelic visuals, and BambiSleep trigger detection.
+**BambiSleep Chat**: Real-time chat with TTS, psychedelic visuals, BambiSleep trigger detection, and audio-synced haptic feedback.
 
 ## Architecture Overview
 
@@ -8,16 +8,16 @@
 ┌─────────────────┐    Socket.io    ┌──────────────────┐
 │  Browser Client │◄──────────────►│    server.js     │
 │  (aigf-core.js) │                 │  Express+Socket  │
-└─────────────────┘                 └────────┬─────────┘
-                                             │ Worker Threads (persistent)
-                              ┌──────────────┼──────────────┐
-                              ▼              ▼              ▼
-                       ┌──────────┐   ┌──────────┐   ┌──────────┐
-                       │ kokoro.js│   │lmstudio.js│   │triggers  │
-                       │   (TTS)  │   │   (AI)   │   │  .json   │
-                       └────┬─────┘   └────┬─────┘   └──────────┘
-                            │              │
-                            ▼              ▼
+│  + Web Audio API│                 └────────┬─────────┘
+└────────┬────────┘                          │ Worker Threads (persistent)
+         │                    ┌──────────────┼──────────────┐
+         │ Realtime Analysis  ▼              ▼              ▼
+         ▼              ┌──────────┐   ┌──────────┐   ┌──────────┐
+    ┌─────────────┐    │ kokoro.js│   │lmstudio.js│   │triggers  │
+    │  Analyser   │    │   (TTS)  │   │   (AI)   │   │  .json   │
+    │  FFT → 🎵  │    └────┬─────┘   └────┬─────┘   └──────────┘
+    │  Vibration  │         │              │
+    └─────────────┘         ▼              ▼
                        Kokoro-FastAPI  LM Studio (local)
 ```
 
@@ -40,6 +40,7 @@ npm run clean  # Clean generated files/caches
 | [server.js](server.js)                                   | Express server, Socket.io, worker orchestration    |
 | [config/env.js](config/env.js)                           | **Single source** for all environment config       |
 | [public/js/aigf-core.js](public/js/aigf-core.js)         | Main chat client (ChatCore class)                  |
+| [public/js/text2speech.js](public/js/text2speech.js)     | TTS with Web Audio API analysis & vibration sync   |
 | [workers/triggers.json](workers/triggers.json)           | **Authoritative** trigger definitions              |
 | [workers/kokoro.js](workers/kokoro.js)                   | TTS worker (HTTP keep-alive, caching, batching)    |
 | [workers/lmstudio.js](workers/lmstudio.js)               | AI chat worker (@lmstudio/sdk)                     |

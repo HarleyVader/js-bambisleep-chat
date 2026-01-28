@@ -9,10 +9,20 @@ class TextToSpeechSystem {
     this.isPlaying ??= false;
     this.state ??= true; // TTS state machine for synchronization (true = ready to start)
     this.audioContext ??= null;
+    this.analyser ??= null; // Web Audio API analyser for speech pattern detection
+    this.audioSource ??= null; // Audio source node
+    this.animationFrameId ??= null; // RequestAnimationFrame ID for analysis loop
     this.currentAudio ??= null;
     this.currentText ??= ""; // Currently playing text (original for display)
     this.currentTTSText ??= ""; // Currently playing text (cleaned for TTS)
     this.currentAudioUrl ??= null; // Track current blob URL for cleanup
+
+    // Speech pattern analysis configuration
+    this.analysisEnabled ??= true; // Enable real-time audio analysis
+    this.vibrationSyncEnabled ??= true; // Sync vibrations with audio patterns
+    this.frequencyData ??= null; // Frequency domain data buffer
+    this.timeDomainData ??= null; // Time domain data buffer (waveform)
+    this.lastVibrationIntensity ??= 0; // Track last vibration level for smoothing
     this.volume ??= 0.7;
     this.speed ??= 0.85; // Slower speed for clearer comprehension (0.85 = 85% speed)
     this.socket ??= null;
@@ -198,7 +208,51 @@ class TextToSpeechSystem {
       console.log("🎤 Initial playback speed set to:", this.speed);
     }
 
+    // Initialize Web Audio API for speech pattern analysis
+    this.initAudioAnalysis();
+
     this.setupAudioListeners();
+  }
+
+  // Initialize Web Audio API for real-time speech pattern analysis
+  initAudioAnalysis() {
+    try {
+      // Create AudioContext (handle browser prefixes)
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) {
+        console.warn(
+          "⚠️ Web Audio API not supported, disabling audio analysis",
+        );
+        this.analysisEnabled = false;
+        return;
+      }
+
+      this.audioContext = new AudioContext();
+      this.analyser = this.audioContext.createAnalyser();
+
+      // Configure analyser for speech pattern detection
+      this.analyser.fftSize = 2048; // Higher resolution for better frequency detection
+      this.analyser.smoothingTimeConstant = 0.8; // Smooth out rapid changes
+      this.analyser.minDecibels = -90;
+      this.analyser.maxDecibels = -10;
+
+      // Create data buffers
+      const bufferLength = this.analyser.frequencyBinCount;
+      this.frequencyData = new Uint8Array(bufferLength);
+      this.timeDomainData = new Uint8Array(bufferLength);
+
+      // Connect audio element to analyser
+      this.audioSource = this.audioContext.createMediaElementSource(
+        this.currentAudio,
+      );
+      this.audioSource.connect(this.analyser);
+      this.analyser.connect(this.audioContext.destination);
+
+      console.log("🎵 Web Audio API initialized for speech pattern analysis");
+    } catch (error) {
+      console.error("❌ Failed to initialize Web Audio API:", error);
+      this.analysisEnabled = false;
+    }
   }
 
   setupAudioListeners() {
@@ -675,6 +729,12 @@ class TextToSpeechSystem {
       `🎤 Audio finished - ${this.textArray.length} sentences remaining`,
     );
 
+    // Stop audio analysis loop
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
     // Stop buttplug vibration when audio ends
     if (window.buttplugIntegration && window.buttplugIntegration.isEnabled) {
       window.buttplugIntegration.stopAllDevices();
@@ -705,6 +765,11 @@ class TextToSpeechSystem {
 
     // 🔥 TRIGGER DETECTION: Check if text contains triggers and activate buttplug
     this.detectAndActivateTriggers(this.currentText, duration);
+
+    // 🎵 START AUDIO ANALYSIS: Begin real-time speech pattern detection
+    if (this.analysisEnabled && this.vibrationSyncEnabled) {
+      this.startAudioAnalysis();
+    }
 
     // Display text in spiral center synchronized with audio
     this.flashTrigger(this.currentText, duration);
@@ -1691,6 +1756,131 @@ class TextToSpeechSystem {
       }
     } catch (error) {
       console.error("Failed to vibrate device:", error);
+    }
+  }
+
+  // ==================== AUDIO PATTERN ANALYSIS ====================
+
+  /**
+   * Start real-time audio analysis loop
+   * Analyzes frequency and amplitude patterns to sync vibrations with speech
+   */
+  startAudioAnalysis() {
+    if (!this.analyser || !window.buttplugIntegration?.isConnected) {
+      return;
+    }
+
+    console.log("🎵 Starting real-time audio pattern analysis");
+
+    const analyze = () => {
+      // Get frequency and time domain data
+      this.analyser.getByteFrequencyData(this.frequencyData);
+      this.analyser.getByteTimeDomainData(this.timeDomainData);
+
+      // Calculate audio characteristics
+      const audioPatterns = this.analyzeAudioPatterns();
+
+      // Sync vibration with audio patterns
+      if (audioPatterns.shouldVibrate) {
+        this.syncVibrationWithAudio(audioPatterns);
+      }
+
+      // Continue analysis loop
+      this.animationFrameId = requestAnimationFrame(analyze);
+    };
+
+    analyze();
+  }
+
+  /**
+   * Analyze audio patterns from frequency and time domain data
+   * @returns {Object} Audio pattern characteristics
+   */
+  analyzeAudioPatterns() {
+    // Calculate average frequency energy
+    let sum = 0;
+    for (let i = 0; i < this.frequencyData.length; i++) {
+      sum += this.frequencyData[i];
+    }
+    const avgFrequency = sum / this.frequencyData.length;
+
+    // Calculate amplitude (volume)
+    let amplitudeSum = 0;
+    for (let i = 0; i < this.timeDomainData.length; i++) {
+      amplitudeSum += Math.abs(this.timeDomainData[i] - 128);
+    }
+    const amplitude = amplitudeSum / this.timeDomainData.length;
+
+    // Detect speech emphasis (peaks in low-mid frequencies 200-2000Hz)
+    const lowFreqStart = Math.floor(
+      200 / (this.audioContext.sampleRate / this.analyser.fftSize),
+    );
+    const lowFreqEnd = Math.floor(
+      2000 / (this.audioContext.sampleRate / this.analyser.fftSize),
+    );
+    let speechEnergySum = 0;
+    for (let i = lowFreqStart; i < lowFreqEnd; i++) {
+      speechEnergySum += this.frequencyData[i];
+    }
+    const speechEnergy = speechEnergySum / (lowFreqEnd - lowFreqStart);
+
+    // Detect if audio is active (not silence)
+    const isActive = amplitude > 5 && avgFrequency > 10;
+
+    // Detect emphasis (sudden volume increase or pitch change)
+    const isEmphasis = speechEnergy > 60 || amplitude > 30;
+
+    return {
+      avgFrequency,
+      amplitude,
+      speechEnergy,
+      isActive,
+      isEmphasis,
+      shouldVibrate: isActive && window.buttplugIntegration?.isEnabled,
+    };
+  }
+
+  /**
+   * Sync vibration intensity with audio patterns
+   * @param {Object} patterns - Audio pattern characteristics
+   */
+  async syncVibrationWithAudio(patterns) {
+    if (
+      !window.buttplugIntegration?.isConnected ||
+      window.buttplugIntegration.devices.length === 0
+    ) {
+      return;
+    }
+
+    // Map audio characteristics to vibration intensity
+    // Base intensity from speech energy (0.1 - 0.6 range for comfortable continuous vibration)
+    let targetIntensity = 0.1 + (patterns.speechEnergy / 255) * 0.5;
+
+    // Boost intensity during emphasis (peaks in speech)
+    if (patterns.isEmphasis) {
+      targetIntensity = Math.min(0.8, targetIntensity + 0.3);
+    }
+
+    // Smooth transitions to avoid jarring changes
+    const smoothingFactor = 0.3;
+    const smoothedIntensity =
+      this.lastVibrationIntensity * (1 - smoothingFactor) +
+      targetIntensity * smoothingFactor;
+
+    this.lastVibrationIntensity = smoothedIntensity;
+
+    // Only update if significant change (avoid micro-adjustments)
+    if (Math.abs(smoothedIntensity - this.lastVibrationIntensity) > 0.05) {
+      // Vibrate all devices with calculated intensity
+      for (const device of window.buttplugIntegration.devices) {
+        if (device.vibrateAttributes && device.vibrateAttributes.length > 0) {
+          try {
+            await device.vibrate(smoothedIntensity);
+          } catch (error) {
+            // Ignore vibration errors during rapid updates
+          }
+        }
+      }
     }
   }
 
