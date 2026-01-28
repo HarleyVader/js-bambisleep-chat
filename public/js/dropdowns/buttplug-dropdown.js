@@ -154,9 +154,6 @@ export function ButtplugDropdown() {
     </div>
   `;
 
-  // Initialize controls
-  setupButtplugControls(container);
-
   const modeRadios = container.querySelectorAll('input[name="connection-mode"]');
   const intifaceConfig = container.querySelector("#intiface-config");
 
