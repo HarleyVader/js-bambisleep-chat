@@ -207,6 +207,15 @@ class DropdownManager {
           const event = new CustomEvent("toggleStateChange", {
             detail: {
               buttonId: "toggle-brainwave",
+              state: newState,
+              buttonName: "BRAINWAVE",
+            },
+          });
+          document.dispatchEvent(event);
+
+          this.showToggleFeedback("BRAINWAVE", newState);
+        },
+      };
 
       // Create Buttplug component wrapper for toggle handling
       this.components.buttplug = {
@@ -242,15 +251,6 @@ class DropdownManager {
           document.dispatchEvent(event);
 
           this.showToggleFeedback("BUTTPLUG", newState);
-        },
-      };
-              state: newState,
-              buttonName: "BRAINWAVE",
-            },
-          });
-          document.dispatchEvent(event);
-
-          this.showToggleFeedback("BRAINWAVE", newState);
         },
       };
     } catch (error) {

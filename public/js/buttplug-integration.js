@@ -59,25 +59,43 @@ class ButtplugIntegration {
         return;
       }
 
-      // Load from CDN
-      const script = document.createElement("script");
-      script.src =
-        "https://cdn.jsdelivr.net/npm/buttplug@3.2.4/dist/web/buttplug.min.js";
-      script.async = true;
+      // CDN sources with fallback
+      const cdnSources = [
+        "https://cdn.jsdelivr.net/npm/buttplug@3.2.4/dist/web/buttplug.min.js",
+        "https://unpkg.com/buttplug@3.2.4/dist/web/buttplug.min.js"
+      ];
 
-      script.onload = () => {
-        console.log("✅ Buttplug.io library loaded successfully");
-        this.initializeButtplug();
-      };
-
-      script.onerror = (error) => {
-        console.error("❌ Failed to load Buttplug.io library:", error);
-      };
-
-      document.head.appendChild(script);
+      this.tryLoadFromCDN(cdnSources, 0);
     } catch (error) {
       console.error("❌ Error loading Buttplug.io library:", error);
+      this.showError("Failed to initialize Buttplug library");
     }
+  }
+
+  // Try loading from CDN with fallback
+  tryLoadFromCDN(sources, index) {
+    if (index >= sources.length) {
+      console.error("❌ All CDN sources failed for Buttplug.io library");
+      this.showError("Cannot load Buttplug library. Please check your internet connection.");
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = sources[index];
+    script.async = true;
+
+    script.onload = () => {
+      console.log(`✅ Buttplug.io library loaded from: ${sources[index]}`);
+      this.initializeButtplug();
+    };
+
+    script.onerror = () => {
+      console.warn(`⚠️ Failed to load from ${sources[index]}, trying next source...`);
+      document.head.removeChild(script);
+      this.tryLoadFromCDN(sources, index + 1);
+    };
+
+    document.head.appendChild(script);
   }
 
   // Initialize Buttplug client
@@ -484,6 +502,24 @@ class ButtplugIntegration {
       deviceCount: this.devices.length,
       devices: this.devices.map((d) => d.name),
     };
+  }
+
+  // Show error message to user
+  showError(message) {
+    console.error(`🔌 Buttplug Error: ${message}`);
+    
+    // Update UI if status element exists
+    const statusDiv = document.getElementById("buttplug-status-text");
+    if (statusDiv) {
+      statusDiv.textContent = `Error: ${message}`;
+      statusDiv.style.color = "#ff0000";
+    }
+    
+    // Dispatch error event
+    const event = new CustomEvent("buttplug-error", {
+      detail: { message }
+    });
+    document.dispatchEvent(event);
   }
 }
 
