@@ -2,7 +2,7 @@ export function createBrainwaveDropdown() {
   // Find the existing content placeholder in #dropdown-modals
   const modalsContainer = document.getElementById("dropdown-modals");
   const content = modalsContainer?.querySelector(
-    '.dropdown-content[data-dropdown="brainwave"]'
+    '.dropdown-content[data-dropdown="brainwave"]',
   );
 
   if (!content) {
@@ -59,7 +59,7 @@ export function createBrainwaveDropdown() {
 
   // Get elements for interaction - button is now in #dropdowns-menu
   const dropdown = document.querySelector(
-    '.dropdown[data-dropdown="brainwave"]'
+    '.dropdown[data-dropdown="brainwave"]',
   );
   const btn = document.getElementById("toggle-brainwave");
   const statusIndicator = document.getElementById("brainwave-status");
@@ -124,6 +124,44 @@ export function createBrainwaveDropdown() {
     }
   }
 
+  // Load saved settings from localStorage
+  function loadSavedSettings() {
+    try {
+      const saved = localStorage.getItem("brainwave-settings");
+      if (saved) {
+        const settings = JSON.parse(saved);
+
+        // Restore volume
+        if (settings.volume !== undefined && volumeSlider && volumeDisplay) {
+          volumeSlider.value = settings.volume;
+          volumeDisplay.textContent = `${settings.volume}%`;
+          if (window.brainwaveGenerator) {
+            window.brainwaveGenerator.setVolume(settings.volume / 100);
+          }
+        }
+
+        console.log("💾 Loaded brainwave settings from localStorage");
+      }
+    } catch (error) {
+      console.warn("⚠️ Failed to load brainwave settings:", error);
+    }
+  }
+
+  // Save settings to localStorage
+  function saveSettings() {
+    try {
+      const settings = {
+        volume: volumeSlider ? parseInt(volumeSlider.value) : 10,
+      };
+      localStorage.setItem("brainwave-settings", JSON.stringify(settings));
+    } catch (error) {
+      console.warn("⚠️ Failed to save brainwave settings:", error);
+    }
+  }
+
+  // Load saved settings on initialization
+  loadSavedSettings();
+
   // Note: Toggle dropdown visibility is handled by the DropdownManager
   // The button click is managed by dropdowns.js initializeDropdowns()
 
@@ -136,6 +174,9 @@ export function createBrainwaveDropdown() {
       if (window.brainwaveGenerator) {
         window.brainwaveGenerator.setVolume(volume / 100);
       }
+
+      // Save volume setting
+      saveSettings();
     });
   }
 
@@ -160,9 +201,8 @@ export function createBrainwaveDropdown() {
 
       if (infoDisplay) infoDisplay.textContent = "Starting...";
 
-      const success = await window.brainwaveGenerator.startPreset(
-        selectedPreset
-      );
+      const success =
+        await window.brainwaveGenerator.startPreset(selectedPreset);
 
       if (success) {
         updateStatus();
@@ -170,7 +210,7 @@ export function createBrainwaveDropdown() {
         if (window.chatCore) {
           window.chatCore.addMessage(
             "system",
-            `🧠 Brainwave session started: ${selectedPreset}`
+            `🧠 Brainwave session started: ${selectedPreset}`,
           );
         }
       } else {

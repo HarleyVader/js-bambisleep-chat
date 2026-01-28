@@ -237,6 +237,18 @@ export function ButtplugDropdown() {
             }
           }
         }
+
+        // Restore audio sync toggle state
+        if (settings.vibrationSyncEnabled !== undefined) {
+          const audioSyncToggle = container.querySelector("#audio-sync-toggle");
+          if (audioSyncToggle) {
+            audioSyncToggle.checked = settings.vibrationSyncEnabled;
+            if (window.ttsSystem) {
+              window.ttsSystem.vibrationSyncEnabled =
+                settings.vibrationSyncEnabled;
+            }
+          }
+        }
       } else {
         // Set default URL if no saved settings
         const urlInput = container.querySelector("#buttplug-server-url");
@@ -290,6 +302,10 @@ export function ButtplugDropdown() {
       console.log(
         `🎵 Audio pattern vibration sync ${e.target.checked ? "ENABLED" : "DISABLED"}`,
       );
+      // Save setting
+      if (window.buttplugIntegration) {
+        window.buttplugIntegration.saveSettings();
+      }
     }
   });
 

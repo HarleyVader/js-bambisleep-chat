@@ -75,6 +75,7 @@ class ButtplugIntegration {
       const settings = {
         serverUrl: this.serverUrl,
         connectionMode: this.connectionMode,
+        vibrationSyncEnabled: window.ttsSystem?.vibrationSyncEnabled ?? true,
         triggerPatterns: {
           primary: this.triggerPatterns.primary.intensity,
           mental: this.triggerPatterns.mental.intensity,
@@ -204,17 +205,17 @@ class ButtplugIntegration {
       this.connectionMode = mode;
 
       if (mode === "browser") {
-        // Use WASM server for direct WebBluetooth
-        if (!window.ButtplugWASM) {
-          throw new Error("WASM server not loaded. Try Intiface mode instead.");
+        // Use WASM connector for direct WebBluetooth
+        if (!window.ButtplugWASM || !window.ButtplugWASM.ButtplugWasmClientConnector) {
+          throw new Error("WASM connector not loaded. Try Intiface mode instead.");
         }
 
         console.log("🔄 Connecting via WASM (WebBluetooth)...");
 
-        // Create embedded connector using WASM server
-        this.connector = new window.buttplug.ButtplugEmbeddedConnectorOptions();
-        this.connector.ServerFactory = () => window.ButtplugWASM;
-
+        // Create WASM connector (handles WebBluetooth internally)
+        this.connector = new window.ButtplugWASM.ButtplugWasmClientConnector();
+        
+        // Connect the Buttplug client to the WASM connector
         await this.client.connect(this.connector);
         console.log("✅ Connected via WASM server");
       } else {
