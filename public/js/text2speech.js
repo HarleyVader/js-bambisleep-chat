@@ -258,7 +258,7 @@ class TextToSpeechSystem {
       }
 
       // CRITICAL: Resume AudioContext if suspended (required for audio to play/end properly)
-      if (this.audioContext.state === 'suspended') {
+      if (this.audioContext.state === "suspended") {
         this.audioContext.resume().then(() => {
           console.log("🎵 AudioContext resumed");
         });
@@ -806,7 +806,7 @@ class TextToSpeechSystem {
       isPlaying: this.isPlaying,
       state: this.state,
       queueLength: this.textArray.length,
-      audioArrayLength: this.audioArray.length
+      audioArrayLength: this.audioArray.length,
     });
 
     // Stop audio analysis loop
@@ -845,7 +845,7 @@ class TextToSpeechSystem {
     const duration = this.currentAudio.duration * 1000;
 
     // CRITICAL: Resume AudioContext if suspended (browser autoplay policy)
-    if (this.audioContext && this.audioContext.state === 'suspended') {
+    if (this.audioContext && this.audioContext.state === "suspended") {
       this.audioContext.resume().then(() => {
         console.log("🎵 AudioContext resumed on play");
       });
@@ -1899,10 +1899,10 @@ class TextToSpeechSystem {
     const isActive = amplitude > 3 && avgFrequency > 5;
 
     // ENHANCED: Detect emphasis with multiple factors
-    const isEmphasis = 
-      speechEnergy > 55 ||  // Lowered from 60 for sensitivity
-      amplitude > 25 ||      // Lowered from 30
-      highFreqEnergy > 40;   // High frequency emphasis (s sounds, emphasis)
+    const isEmphasis =
+      speechEnergy > 55 || // Lowered from 60 for sensitivity
+      amplitude > 25 || // Lowered from 30
+      highFreqEnergy > 40; // High frequency emphasis (s sounds, emphasis)
 
     return {
       avgFrequency,
@@ -1945,15 +1945,20 @@ class TextToSpeechSystem {
     }
 
     // CRITICAL: Check if current text contains triggers - MAXIMUM INTENSITY
-    const isTriggerActive = this.currentText && this.detectTriggersInText(
-      this.currentText,
-      window.chatCore?.allTriggers || []
-    ).length > 0;
+    const isTriggerActive =
+      this.currentText &&
+      this.detectTriggersInText(
+        this.currentText,
+        window.chatCore?.allTriggers || [],
+      ).length > 0;
 
     if (isTriggerActive) {
       // TRIGGER BOOST: Hit hardest when triggers are spoken
       targetIntensity = Math.max(targetIntensity, 0.95); // 95% minimum for triggers
-      console.log("🔥 Trigger vibration boost active:", targetIntensity.toFixed(2));
+      console.log(
+        "🔥 Trigger vibration boost active:",
+        targetIntensity.toFixed(2),
+      );
     }
 
     // PEAKED: Minimal smoothing for faster, sharper changes
@@ -1966,7 +1971,7 @@ class TextToSpeechSystem {
     // PEAKED: Much smaller threshold for very responsive, sharp updates
     if (Math.abs(smoothedIntensity - this.lastVibrationIntensity) > 0.01) {
       this.lastVibrationIntensity = smoothedIntensity;
-      
+
       // Vibrate all devices with calculated intensity
       for (const device of window.buttplugIntegration.devices) {
         if (device.vibrateAttributes && device.vibrateAttributes.length > 0) {
