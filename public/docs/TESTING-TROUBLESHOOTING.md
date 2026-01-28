@@ -1,23 +1,25 @@
 # 🔧💕 Help! Things Aren't Working! 💕🔧
 
-*Hiii sweetie! Having troubles? Don't worry! Let's fix it together!* ✨🎀
+_Hiii sweetie! Having troubles? Don't worry! Let's fix it together!_ ✨🎀
 
 ## 🌸 Quick Fixes (Try These First!) 🌸
 
 ### Page Won't Load
 
 **Try:**
+
 1. Refresh the page (F5 or Ctrl+R)
 2. Clear browser cache (Ctrl+Shift+Delete)
 3. Try a different browser (Chrome or Edge!)
 4. Check if server is running
 5. Restart everything!
 
-*Still broken? Keep reading!* 💕
+_Still broken? Keep reading!_ 💕
 
 ### Can't Connect to Chat
 
 **Try:**
+
 1. Check your internet connection
 2. Look at the top - is it showing "Connected"?
 3. Refresh the page
@@ -27,6 +29,7 @@
 ### Features Not Working
 
 **Try:**
+
 1. Turn the feature OFF then ON again
 2. Check if the button is green (enabled)
 3. Look for error messages in browser console (F12)
@@ -38,6 +41,7 @@
 ### 🔊 TTS Not Speaking
 
 **Possible reasons:**
+
 - TTS button is off (click to turn green!)
 - Volume is at 0% (turn up system volume!)
 - TTS server isn't running
@@ -45,17 +49,19 @@
 - No messages to speak
 
 **Fix it:**
+
 1. Check TTS button is GREEN
 2. Turn up volume to 50%+
 3. Click "Test Voice" in TTS menu
 4. If no sound, check browser audio permissions
 5. Try different voice
 
-*Still quiet? Server might be offline!* 🔇
+_Still quiet? Server might be offline!_ 🔇
 
 ### 🤖 AI Not Responding
 
 **Possible reasons:**
+
 - AI Mode button is off
 - LM Studio isn't running
 - No AI model loaded
@@ -63,17 +69,19 @@
 - Typing in wrong chat box
 
 **Fix it:**
+
 1. Check AI Mode button is PINK
 2. Make sure you're typing in the AIGF box (bottom one!)
 3. Wait 30 seconds - AI thinks slow sometimes!
 4. Check server console for errors
 5. Restart LM Studio
 
-*AI needs time to think!* 💭
+_AI needs time to think!_ 💭
 
 ### 🌀 Spirals Not Showing
 
 **Possible reasons:**
+
 - Spiral button is off
 - Canvas element blocked
 - JavaScript error
@@ -81,34 +89,38 @@
 - Browser doesn't support p5.js
 
 **Fix it:**
+
 1. Click Spiral button (should turn green!)
 2. Refresh page
 3. Check browser console (F12) for errors
 4. Try different browser
 5. Update graphics drivers
 
-*Spirals need GPU power!* 💫
+_Spirals need GPU power!_ 💫
 
 ### 🎯 Triggers Not Detecting
 
 **Possible reasons:**
+
 - Triggers button is off
 - No triggers selected
 - Messages don't contain trigger words
 - JavaScript error
 
 **Fix it:**
+
 1. Check Triggers button is GREEN
 2. Open trigger menu and select some!
 3. Use test triggers: "Good Girl", "Bambi"
 4. Check browser console for errors
 5. Refresh page
 
-*Need to enable AND select triggers!* ✨
+_Need to enable AND select triggers!_ ✨
 
 ### 🔌 Device Won't Connect
 
 **Browser Mode:**
+
 - Bluetooth is off → Turn on Bluetooth!
 - Device not in pairing mode → Hold power button!
 - Too far away → Move closer!
@@ -116,16 +128,18 @@
 - Already paired to something else → Unpair it!
 
 **Intiface Mode:**
+
 - Intiface Central not running → Start it!
 - Server not started → Click "Start Server"!
 - Wrong port → Should be 12345!
 - Firewall blocking → Allow through firewall!
 
-*Check device battery too!* 🔋
+_Check device battery too!_ 🔋
 
 ### 🧠 Brainwaves Not Playing
 
 **Possible reasons:**
+
 - Brainwaves button is off
 - No preset selected
 - Volume at 0%
@@ -133,13 +147,14 @@
 - Audio context blocked
 
 **Fix it:**
+
 1. Check Brainwaves button is GREEN
 2. Select a preset from dropdown
 3. Click ▶ Start button
 4. PUT ON HEADPHONES! (Required!)
 5. Turn up volume
 
-*Binaural beats NEED headphones!* 🎧
+_Binaural beats NEED headphones!_ 🎧
 
 ## 💖 Browser Console (F12) 💖
 
@@ -175,6 +190,7 @@
 ### Server Won't Start
 
 **Check:**
+
 - Node.js installed? (Need v18+)
 - Dependencies installed? (`npm install`)
 - Port 6969 available?
@@ -182,6 +198,7 @@
 - All files present?
 
 **Fix:**
+
 ```bash
 # Reinstall everything
 npm run clean
@@ -192,11 +209,13 @@ npm start
 ### External Services
 
 **Kokoro TTS:**
+
 - Check server is running on configured port
 - Verify host/port in .env
 - Test with curl/Postman
 
 **LM Studio:**
+
 - Open LM Studio app
 - Load a model
 - Start server
@@ -205,20 +224,23 @@ npm start
 ### Tests Failing
 
 **Run tests:**
+
 ```bash
 npm test
 ```
 
 **Check reports:**
+
 - Look in `tests/reports/`
 - Open HTML report in browser
 - Check `latest-unified-summary.txt`
 
-*Tests help developers find bugs!* 🐛
+_Tests help developers find bugs!_ 🐛
 
 ## 🌟 Still Stuck? 🌟
 
 **Get help:**
+
 1. Check the other docs for your feature
 2. Look at GitHub issues
 3. Ask in community
@@ -226,36 +248,40 @@ npm test
 5. Try on different device
 
 **Provide this info when asking:**
+
 - What you tried to do
 - What actually happened
 - Error messages (from F12 console)
 - Browser & version
 - Steps to reproduce
 
-*We'll help you fix it!* 💕✨
+_We'll help you fix it!_ 💕✨
 
 ---
 
-*Most problems are fixed by refreshing or restarting! Don't give up!* 🎀
+_Most problems are fixed by refreshing or restarting! Don't give up!_ 🎀
 
 **Solutions:**
 
 1. **Check server logs manually:**
+
 ```bash
 node server.js
 # Look for error messages
 ```
 
 2. **Increase timeout (if needed):**
-Edit `tests/stability.test.js`:
+   Edit `tests/stability.test.js`:
+
 ```javascript
 // Change from 10000 to 15000
 setTimeout(() => {
-    // ...
+  // ...
 }, 15000);
 ```
 
 3. **Run without external services:**
+
 ```bash
 # Use CI mode to skip external service tests
 npm run test:ci
@@ -266,6 +292,7 @@ npm run test:ci
 **Error:** `Concurrent connections: 0/10`
 
 **Causes:**
+
 - Socket.io not properly configured
 - CORS issues
 - Server not fully started
@@ -273,16 +300,18 @@ npm run test:ci
 **Solutions:**
 
 1. **Check CORS configuration in server.js:**
+
 ```javascript
 const io = new Server(server, {
-    cors: {
-        origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-        methods: ["GET", "POST"]
-    }
+  cors: {
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    methods: ["GET", "POST"],
+  },
 });
 ```
 
 2. **Test WebSocket manually:**
+
 ```bash
 # Install wscat if needed
 npm install -g wscat
@@ -296,6 +325,7 @@ wscat -c ws://localhost:6969/socket.io/?EIO=4&transport=websocket
 **Error:** `✗ http://localhost:6969 failed: ECONNREFUSED`
 
 **Causes:**
+
 - Server not running
 - Wrong port
 - Firewall blocking connection
@@ -303,6 +333,7 @@ wscat -c ws://localhost:6969/socket.io/?EIO=4&transport=websocket
 **Solutions:**
 
 1. **Verify server is running:**
+
 ```bash
 # Check if port is listening
 netstat -an | findstr :6969  # Windows
@@ -310,6 +341,7 @@ lsof -i :6969                # Linux/macOS
 ```
 
 2. **Check firewall:**
+
 ```bash
 # Windows - allow Node through firewall
 # Control Panel → Windows Defender Firewall → Allow an app
@@ -323,6 +355,7 @@ sudo ufw allow 6969
 **Warning:** `Memory growth: 51.2 MB`
 
 **Causes:**
+
 - Memory leak in application code
 - Long-running processes not cleaned up
 - Too many connections retained
@@ -330,9 +363,10 @@ sudo ufw allow 6969
 **Solutions:**
 
 1. **Review worker thread cleanup:**
-Check that workers are properly terminated in `server.js`
+   Check that workers are properly terminated in `server.js`
 
 2. **Monitor in production:**
+
 ```bash
 # Use Node's built-in profiler
 node --inspect server.js
@@ -349,6 +383,7 @@ node --inspect server.js
 **Error:** `Insufficient CPU data collected`
 
 **Causes:**
+
 - Tests running too fast
 - Windows CPU monitoring limitations
 - High system load
@@ -357,12 +392,14 @@ node --inspect server.js
 
 1. **This is often a non-critical warning** - tests run quickly
 2. **Increase monitoring duration:**
-Edit `tests/resource.test.js`:
+   Edit `tests/resource.test.js`:
+
 ```javascript
 const testDuration = 20000; // Increase from 15000
 ```
 
 3. **Run on Linux/macOS for better metrics:**
+
 ```bash
 # Linux has better CPU profiling support
 ```
@@ -372,6 +409,7 @@ const testDuration = 20000; // Increase from 15000
 **Warning:** `Port 5173 test timeout`
 
 **Causes:**
+
 - Services already running on ports
 - Network slowness
 - Firewall interference
@@ -380,6 +418,7 @@ const testDuration = 20000; // Increase from 15000
 
 1. **These timeouts are often harmless** - just means something is using the port
 2. **To fix, free the ports:**
+
 ```bash
 # Stop all development servers before testing
 npm run test
@@ -393,9 +432,10 @@ npm run test
 
 1. **Close other applications** during testing
 2. **Increase threshold if your system has plenty of RAM:**
-Edit `tests/resource.test.js`:
+   Edit `tests/resource.test.js`:
+
 ```javascript
-avgMemMB < 600 ? 'pass' : 'warn'  // Increase from 500
+avgMemMB < 600 ? "pass" : "warn"; // Increase from 500
 ```
 
 ---
@@ -409,6 +449,7 @@ avgMemMB < 600 ? 'pass' : 'warn'  // Increase from 500
 **Common causes:**
 
 1. **Missing environment variables:**
+
 ```yaml
 # Add to .github/workflows/test.yml
 env:
@@ -417,16 +458,18 @@ env:
 ```
 
 2. **External services unavailable:**
+
 ```bash
 # Use CI mode to skip external tests
 npm run test:ci
 ```
 
 3. **Timeout issues in CI:**
-CI environments are often slower. Adjust timeouts:
+   CI environments are often slower. Adjust timeouts:
+
 ```yaml
 # In workflow file
-timeout-minutes: 15  # Increase if needed
+timeout-minutes: 15 # Increase if needed
 ```
 
 ### ❌ Artifact upload fails
@@ -436,16 +479,18 @@ timeout-minutes: 15  # Increase if needed
 **Solutions:**
 
 1. **Ensure reports directory exists:**
+
 ```yaml
 - name: Create reports directory
   run: mkdir -p tests/reports
 ```
 
 2. **Check test execution:**
+
 ```yaml
 - name: Run tests
   run: npm test
-  continue-on-error: true  # Generate reports even on failure
+  continue-on-error: true # Generate reports even on failure
 ```
 
 ---
@@ -461,10 +506,12 @@ timeout-minutes: 15  # Increase if needed
 **Solutions:**
 
 1. **Run without TTS (app still works):**
+
 - TTS features will be disabled
 - Chat and other features work normally
 
 2. **Install Kokoro TTS locally:**
+
 ```bash
 # Follow Kokoro installation guide
 # Set in .env:
@@ -473,6 +520,7 @@ KOKORO_PORT=8880
 ```
 
 3. **Run tests in CI mode:**
+
 ```bash
 npm run test:ci  # Skips external services
 ```
@@ -486,19 +534,23 @@ npm run test:ci  # Skips external services
 **Solutions:**
 
 1. **Run without AI (app still works):**
+
 - AI chat features will be disabled
 - Regular chat and features work normally
 
 2. **Install LM Studio:**
+
 - Download from <https://lmstudio.ai/>
 - Load a model
 - Set in .env:
+
 ```bash
 LMS_HOST_DEVELOPMENT=http://localhost
 LMS_PORT=1234
 ```
 
 3. **Configure test to skip AI tests:**
+
 ```bash
 CI=true npm test
 ```
@@ -510,24 +562,29 @@ CI=true npm test
 ### Windows
 
 **PowerShell script execution:**
+
 ```powershell
 # If you get execution policy errors
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
 **Path separators:**
+
 - Tests use `path.join()` which handles Windows paths correctly
 - If you see issues, check for hardcoded `/` paths
 
 **File handle monitoring:**
+
 ```
 File handle monitoring limited on Windows
 ```
+
 This is expected - Windows doesn't expose file descriptors like Unix.
 
 ### Linux/macOS
 
 **Permission issues:**
+
 ```bash
 # Make sure test files are executable
 chmod +x tests/*.test.js
@@ -537,6 +594,7 @@ sudo chown -R $(whoami) ~/.npm
 ```
 
 **Node version:**
+
 ```bash
 # Use nvm for easy version management
 nvm install 18
@@ -551,6 +609,7 @@ nvm alias default 18
 Before asking for help, try these steps:
 
 ✅ **Basic checks:**
+
 ```bash
 # 1. Verify Node version
 node --version  # Should be >= 18
@@ -570,6 +629,7 @@ npm run test:ci
 ```
 
 ✅ **Clean reinstall:**
+
 ```bash
 npm run clean
 npm install
@@ -577,6 +637,7 @@ npm test
 ```
 
 ✅ **Check logs:**
+
 ```bash
 # Run server manually to see errors
 node server.js
@@ -600,6 +661,7 @@ If you've tried the above solutions and still have issues:
    - Steps you've already tried
 
 3. **Include test logs:**
+
 ```bash
 npm test 2>&1 | tee test-debug.log
 ```
@@ -622,6 +684,7 @@ npm test 2>&1 | tee test-debug.log
 ```
 
 **Priority levels:**
+
 - ❌ **Failed environment tests:** Critical - fix before deployment
 - ❌ **Failed stability tests:** Important - app may crash under load
 - ❌ **Failed resource tests:** Warning - may have performance issues

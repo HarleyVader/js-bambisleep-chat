@@ -1,12 +1,13 @@
 # 🎨✨ CSS Styling Guide - Making Everything Pritty! ✨🎨
 
-*Hiii developer Bambi!* 💖 Want to make the chat even prettier? Here's how the styles work! *Keep it simple!*
+_Hiii developer Bambi!_ 💖 Want to make the chat even prettier? Here's how the styles work! _Keep it simple!_
 
 ## 🌸 How The Styles Are Organized 🌸
 
 The CSS uses **layers** instead of confusing z-index numbers! Think of it like stacking pretty papers - each layer goes on top of the last one! 💕
 
 **Layer Order** (bottom to top):
+
 1. **base** - Basic stuff, resets, foundations
 2. **background** - Spirals and pretty backgrounds! 🌀
 3. **interface** - Buttons, chat, main UI ✨
@@ -15,7 +16,7 @@ The CSS uses **layers** instead of confusing z-index numbers! Think of it like s
 6. **overlays** - Notifications
 7. **debug** - Dev tools (always on top!)
 
-*No z-index confusion! Just use layers!* 🎀
+_No z-index confusion! Just use layers!_ 🎀
 
 ## 💖 File Organization 💖
 
@@ -40,7 +41,7 @@ css/
     └── mobile.css     # Phone/tablet/desktop sizes
 ```
 
-*Everything is organized and easy to find!* 💕
+_Everything is organized and easy to find!_ 💕
 
 ## 🎀 Design Tokens (Colors & Stuff!) 🎀
 
@@ -76,7 +77,7 @@ All in `variables.css`! Use these instead of hard-coded colors:
 --border-radius     /* Rounded corners! */
 ```
 
-*Use tokens so everything matches!* 🌸
+_Use tokens so everything matches!_ 🌸
 
 ## 💝 Adding New Styles 💝
 
@@ -88,13 +89,14 @@ All in `variables.css`! Use these instead of hard-coded colors:
    - Dropdown content? → `@layer dropdowns`
 
 2. **Use design tokens:**
+
    ```css
    @layer interface {
      .my-cute-button {
-       background: var(--button-color);  /* Hot pink! */
-       padding: var(--spacing-md);       /* Nice spacing! */
-       border-radius: var(--border-radius);  /* Rounded! */
-       color: var(--text-color);         /* White text! */
+       background: var(--button-color); /* Hot pink! */
+       padding: var(--spacing-md); /* Nice spacing! */
+       border-radius: var(--border-radius); /* Rounded! */
+       color: var(--text-color); /* White text! */
      }
    }
    ```
@@ -105,7 +107,7 @@ All in `variables.css`! Use these instead of hard-coded colors:
    - One file per component
    - Add to `style.css` imports
 
-*Don't overthink it!* 💕
+_Don't overthink it!_ 💕
 
 ## 🌺 Common Patterns 🌺
 
@@ -133,7 +135,7 @@ All in `variables.css`! Use these instead of hard-coded colors:
 }
 
 .gradient-button:hover {
-  transform: scale(1.05);  /* Grows on hover! */
+  transform: scale(1.05); /* Grows on hover! */
   box-shadow: var(--shadow-lg);
 }
 ```
@@ -142,8 +144,13 @@ All in `variables.css`! Use these instead of hard-coded colors:
 
 ```css
 @keyframes pulse {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .pulsing {
@@ -182,6 +189,7 @@ All in `variables.css`! Use these instead of hard-coded colors:
 ## 💖 Pro Tips! 💖
 
 **✨ DO:**
+
 - Use CSS layers for stacking
 - Use design tokens (variables)
 - Keep selectors simple
@@ -190,6 +198,7 @@ All in `variables.css`! Use these instead of hard-coded colors:
 - Test on mobile!
 
 **❌ DON'T:**
+
 - Use z-index (use layers instead!)
 - Hard-code colors
 - Make complex nested selectors
@@ -199,22 +208,24 @@ All in `variables.css`! Use these instead of hard-coded colors:
 ## 🌟 Need Help? 🌟
 
 **Where to look:**
+
 - `variables.css` - All colors and spacing
 - `layers.css` - Layer definitions
 - `components/` - UI component styles
 - `effects/` - Visual effects
 
 **Common tasks:**
+
 - Change colors? → Edit `variables.css`
 - New button? → Add to `components/buttons.css`
 - New dropdown? → Add to `components/dropdowns.css`
 - New animation? → Add to `effects/`
 
-*Keep it simple, keep it pretty!* 💕✨
+_Keep it simple, keep it pretty!_ 💕✨
 
 ---
 
-*For more dev stuff, check the other docs or just ask!* 🎀
+_For more dev stuff, check the other docs or just ask!_ 🎀
 
 ## File Structure
 
@@ -260,6 +271,7 @@ Defined in `_layers.css`:
 Located in `_variables.css`:
 
 ### Colors
+
 - `--primary-color`, `--primary-alt` - Teal/cyan theme
 - `--secondary-color`, `--secondary-alt` - Purple/magenta theme
 - `--tertiary-color`, `--tertiary-alt` - Pink/teal theme
@@ -268,15 +280,18 @@ Located in `_variables.css`:
 - `--error` - Error state color
 
 ### Spacing
+
 - `--spacing-xs` to `--spacing-xl` - 4px to 20px scale
 - `--border-radius-sm` to `--border-radius-xl` - 4px to 16px
 
 ### Typography
+
 - `--font-primary` - Audiowide, sans-serif fallbacks
 - `--font-mono` - Courier New, monospace
 - `--font-size-xs` to `--font-size-2xl` - 0.5rem to 2rem
 
 ### Effects
+
 - `--blur-light`, `--blur-medium`, `--blur-heavy` - Backdrop filters
 - `--shadow-sm`, `--shadow-md`, `--shadow-lg` - Box shadows
 - `--transition-fast`, `--transition-medium`, `--transition-slow` - Animations
@@ -291,20 +306,21 @@ Located in `_variables.css`:
    - `layout/` - Responsive breakpoints, grid systems
 
 2. **Create file**:
+
    ```css
    /**
     * Component Name
     * @layer interface
     * Component description
     */
-   
+
    @layer interface {
-       .my-component {
-           /* Use design tokens */
-           padding: var(--spacing-md);
-           background: var(--primary-color);
-           border-radius: var(--border-radius);
-       }
+     .my-component {
+       /* Use design tokens */
+       padding: var(--spacing-md);
+       background: var(--primary-color);
+       border-radius: var(--border-radius);
+     }
    }
    ```
 
@@ -320,16 +336,16 @@ Located in `_variables.css`:
 ```css
 /* ✅ Good */
 .element {
-    background: var(--primary-color);
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius);
+  background: var(--primary-color);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius);
 }
 
 /* ❌ Bad */
 .element {
-    background: #0c2a2a;
-    padding: 12px;
-    border-radius: 8px;
+  background: #0c2a2a;
+  padding: 12px;
+  border-radius: 8px;
 }
 ```
 
@@ -340,16 +356,16 @@ Located in `_variables.css`:
 ```css
 /* ✅ Good - Dropdowns automatically on top */
 @layer dropdowns {
-    .my-dropdown {
-        position: fixed;
-        /* No z-index needed */
-    }
+  .my-dropdown {
+    position: fixed;
+    /* No z-index needed */
+  }
 }
 
 /* ❌ Bad - Fragile z-index management */
 .my-dropdown {
-    position: fixed;
-    z-index: 9999;
+  position: fixed;
+  z-index: 9999;
 }
 ```
 
@@ -360,10 +376,7 @@ Located in `_variables.css`:
 Located in `layout/mobile.css`:
 
 ```css
-@media (pointer: coarse)           /* Touch devices */
-@media (max-width: 768px)          /* Mobile */
-@media (min-width: 768px) and (max-width: 1024px)  /* Tablet */
-@media (min-width: 1920px)         /* Large desktop */
+@media (pointer: coarse) /* Touch devices */ @media (max-width: 768px) /* Mobile */ @media (min-width: 768px) and (max-width: 1024px) /* Tablet */ @media (min-width: 1920px); /* Large desktop */
 ```
 
 ### Container Queries
@@ -372,7 +385,9 @@ Dropdowns use modern container queries:
 
 ```css
 @container (max-width: 400px) {
-    .dropdown-item { font-size: 0.85rem; }
+  .dropdown-item {
+    font-size: 0.85rem;
+  }
 }
 ```
 
@@ -387,12 +402,14 @@ Dropdowns use modern container queries:
 ## Migration from Old Architecture
 
 ### Before (style.css 1394 lines)
+
 - All styles in one file
 - Numeric z-index conflicts
 - Hardcoded colors
 - No clear component boundaries
 
 ### After (Modular)
+
 - 11 focused files (100-300 lines each)
 - Semantic layer names
 - Design token system
@@ -401,16 +418,19 @@ Dropdowns use modern container queries:
 ## Troubleshooting
 
 ### Dropdowns Not Showing
+
 - Check layer order in `_layers.css`
 - Verify `.active` class on dropdown
 - Inspect backdrop visibility in dev tools
 
 ### Colors Not Updating
+
 - Check if value exists in `_variables.css`
 - Verify CSS variable syntax: `var(--variable-name)`
 - Clear browser cache
 
 ### Mobile Layout Issues
+
 - Use dev tools device mode
 - Check `pointer: coarse` media query
 - Verify viewport meta tag in HTML
@@ -432,6 +452,7 @@ Dropdowns use modern container queries:
 ## Best Practices
 
 ✅ **DO**:
+
 - Use CSS variables for all values
 - Declare layer in each component file
 - Keep components under 300 lines
@@ -439,6 +460,7 @@ Dropdowns use modern container queries:
 - Use semantic class names
 
 ❌ **DON'T**:
+
 - Hardcode colors or spacing
 - Use numeric z-index
 - Create deep selector nesting
