@@ -1,152 +1,116 @@
 // buttplug-integration.js - Buttplug.io device integration for BambiSleep triggers
-// Connects intimate hardware to trigger word detection for enhanced experience
+// Rebuilt using official buttplug client + WASM server for WebBluetooth
 
 class ButtplugIntegration {
   constructor() {
     this.client = null;
+    this.server = null; // WASM server for browser mode
     this.connector = null;
     this.devices = [];
     this.isConnected = false;
     this.isEnabled = false;
-    this.connectionMode = "browser"; // "browser" or "intiface"
-    this.serverUrl = "ws://localhost:12345"; // Default Intiface Central WebSocket URL (fallback)
+    this.connectionMode = "browser"; // "browser" (WASM) or "intiface" (websocket)
+    this.serverUrl = "ws://localhost:12345"; // Intiface Central WebSocket URL
 
     // Trigger intensity mappings (0.0 to 1.0 scale)
     this.triggerPatterns = {
-      // Primary triggers - Medium to high intensity
-      primary: {
-        intensity: 0.7,
-        duration: 2000,
-        pattern: "pulse",
-      },
-
-      // Mental triggers - Low to medium intensity, longer duration
-      mental: {
-        intensity: 0.5,
-        duration: 3000,
-        pattern: "wave",
-      },
-
-      // Physical triggers - High intensity, short bursts
-      physical: {
-        intensity: 0.9,
-        duration: 1500,
-        pattern: "burst",
-      },
-
-      // Default pattern for uncategorized triggers
-      default: {
-        intensity: 0.6,
-        duration: 2000,
-        pattern: "steady",
-      },
+      primary: { intensity: 0.7, duration: 2000 },
+      mental: { intensity: 0.5, duration: 3000 },
+      physical: { intensity: 0.9, duration: 1500 },
+      default: { intensity: 0.6, duration: 2000 },
     };
 
     // Active patterns tracking
     this.activePatterns = new Map();
 
-    // Load Buttplug.io library
-    this.loadButtplugLibrary();
+    // Load libraries
+    this.loadLibraries();
   }
 
-  // Load the Buttplug.io library from CDN
-  async loadButtplugLibrary() {
+  // Load Buttplug client + WASM server from CDN
+  async loadLibraries() {
     try {
-      // Check if buttplug is already loaded
-      if (window.Buttplug) {
-        console.log("🔌 Buttplug.io library already loaded");
-        this.initializeButtplug();
+      console.log("🔌 Loading Buttplug libraries...");
+
+      // Load client library first
+      await this.loadScript(
+        "https://cdn.jsdelivr.net/npm/buttplug@3.2.2/dist/web/buttplug.min.js",
+        "buttplug-client"
+      );
+
+      // Load WASM server for browser mode (ES module)
+      await this.loadWASMServer();
+
+      console.log("✅ Buttplug libraries loaded successfully");
+      this.initializeButtplug();
+    } catch (error) {
+      console.error("❌ Failed to load Buttplug libraries:", error);
+      this.showError("Cannot load Buttplug library. CDN may be blocked or offline.");
+    }
+  }
+
+  // Load script dynamically
+  loadScript(url, id) {
+    return new Promise((resolve, reject) => {
+      if (document.getElementById(id)) {
+        console.log(`✅ ${id} already loaded`);
+        resolve();
         return;
       }
 
-      // CDN sources with fallback (v3.2.2 is latest, 3.2.4 doesn't exist)
-      const cdnSources = [
-        "https://cdn.jsdelivr.net/npm/buttplug@3.2.2/dist/web/buttplug.min.js",
-        "https://unpkg.com/buttplug@3.2.2/dist/web/buttplug.min.js",
-      ];
-
-      this.tryLoadFromCDN(cdnSources, 0);
-    } catch (error) {
-      console.error("❌ Error loading Buttplug.io library:", error);
-      this.showError("Failed to initialize Buttplug library");
-    }
+      const script = document.createElement("script");
+      script.id = id;
+      script.src = url;
+      script.async = true;
+      script.onload = () => {
+        console.log(`✅ Loaded: ${id}`);
+        resolve();
+      };
+      script.onerror = () => reject(new Error(`Failed to load ${id} from ${url}`));
+      document.head.appendChild(script);
+    });
   }
 
-  // Try loading from CDN with fallback
-  tryLoadFromCDN(sources, index) {
-    if (index >= sources.length) {
-      console.error("❌ All CDN sources failed for Buttplug.io library");
-      this.showError(
-        "Cannot load Buttplug library. Please check your internet connection.",
-      );
-      return;
+  // Load WASM server as ES module
+  async loadWASMServer() {
+    try {
+      // The WASM server is ~5MB, so this may take a moment
+      console.log("🔄 Loading WASM server (may take a few seconds, ~5MB)...");
+      
+      const module = await import("https://cdn.jsdelivr.net/npm/buttplug-wasm@2.0.1/dist/web/buttplug_wasm.mjs");
+      window.ButtplugWASM = module;
+      
+      console.log("✅ WASM server loaded");
+    } catch (error) {
+      console.warn("⚠️ WASM server failed to load:", error);
+      console.warn("Browser mode will not be available. Intiface mode still works.");
     }
-
-    const script = document.createElement("script");
-    script.src = sources[index];
-    script.async = true;
-
-    script.onload = () => {
-      console.log(`✅ Buttplug.io library loaded from: ${sources[index]}`);
-      this.initializeButtplug();
-    };
-
-    script.onerror = () => {
-      console.warn(
-        `⚠️ Failed to load from ${sources[index]}, trying next source...`,
-      );
-      document.head.removeChild(script);
-      this.tryLoadFromCDN(sources, index + 1);
-    };
-
-    document.head.appendChild(script);
   }
 
   // Initialize Buttplug client
   initializeButtplug() {
     try {
       if (!window.Buttplug) {
-        console.error("❌ Buttplug.io library not available");
+        console.error("❌ Buttplug library not available");
         return;
       }
 
-      // Create client instance
+      // Create client
       this.client = new window.Buttplug.ButtplugClient("BambiSleep Chat");
-
+      
       // Set up event listeners
-      this.setupEventListeners();
+      this.client.addListener("deviceadded", (device) => this.onDeviceAdded(device));
+      this.client.addListener("deviceremoved", (device) => this.onDeviceRemoved(device));
+      this.client.addListener("scanningfinished", () => this.onScanningFinished());
 
       console.log("✅ Buttplug client initialized");
     } catch (error) {
       console.error("❌ Failed to initialize Buttplug client:", error);
+      this.showError("Failed to initialize Buttplug client");
     }
   }
 
-  // Set up event listeners for device connection/disconnection
-  setupEventListeners() {
-    if (!this.client) return;
-
-    // Device added event
-    this.client.addListener("deviceadded", (device) => {
-      console.log(`🔌 Device connected: ${device.name}`);
-      this.devices.push(device);
-      this.updateDeviceList();
-    });
-
-    // Device removed event
-    this.client.addListener("deviceremoved", (device) => {
-      console.log(`🔌 Device disconnected: ${device.name}`);
-      this.devices = this.devices.filter((d) => d.index !== device.index);
-      this.updateDeviceList();
-    });
-
-    // Scanning finished event
-    this.client.addListener("scanningfinished", () => {
-      console.log("🔍 Device scanning finished");
-    });
-  }
-
-  // Connect using browser WebBluetooth or Intiface Central
+  // Connect to server
   async connect(mode = "browser", serverUrl = null) {
     if (this.isConnected) {
       console.warn("⚠️ Already connected");
@@ -154,8 +118,7 @@ class ButtplugIntegration {
     }
 
     if (!this.client) {
-      const errorMsg =
-        "Buttplug library failed to load. CDN may be blocked or offline.";
+      const errorMsg = "Buttplug library failed to load. CDN may be blocked or offline.";
       console.error("❌", errorMsg);
       this.showError(errorMsg);
       return false;
@@ -165,47 +128,33 @@ class ButtplugIntegration {
       this.connectionMode = mode;
 
       if (mode === "browser") {
-        // Use browser's built-in WebBluetooth
-        console.log("🔌 Connecting via WebBluetooth (browser-native)...");
-
-        // Check if WebBluetooth is supported
-        if (!navigator.bluetooth) {
-          console.error("❌ WebBluetooth not supported in this browser");
-          console.log("💡 Try Chrome, Edge, or Opera. Or use Intiface mode.");
-          return false;
+        // Use WASM server for direct WebBluetooth
+        if (!window.ButtplugWASM) {
+          throw new Error("WASM server not loaded. Try Intiface mode instead.");
         }
 
-        // Create embedded connector (uses browser's WebBluetooth)
+        console.log("🔄 Connecting via WASM (WebBluetooth)...");
+        
+        // Create embedded connector
         this.connector = new window.Buttplug.ButtplugEmbeddedConnectorOptions();
-
+        this.connector.ServerName = "BambiSleep WASM Server";
+        
         await this.client.connect(this.connector);
-
-        this.isConnected = true;
-        console.log(
-          "✅ Connected via WebBluetooth (direct browser connection)",
-        );
-        console.log("💡 Click 'Scan for Devices' to find Bluetooth devices");
+        console.log("✅ Connected via WASM server");
       } else {
-        // Use Intiface Central WebSocket connection
-        const url = serverUrl || this.serverUrl;
+        // Use websocket to connect to Intiface Central
+        this.serverUrl = serverUrl || this.serverUrl;
+        console.log(`🔄 Connecting to Intiface Central at ${this.serverUrl}...`);
 
-        console.log(`🔌 Connecting to Intiface Central at ${url}...`);
-
-        this.connector =
-          new window.Buttplug.ButtplugBrowserWebsocketClientConnector(url);
-
+        this.connector = new window.Buttplug.ButtplugBrowserWebsocketClientConnector(this.serverUrl);
         await this.client.connect(this.connector);
-
-        this.isConnected = true;
-        console.log("✅ Connected to Intiface Central successfully");
+        console.log("✅ Connected to Intiface Central");
       }
 
-      // Start scanning for devices
-      await this.startScanning();
-
+      this.isConnected = true;
       return true;
     } catch (error) {
-      console.error("❌ Failed to connect to Buttplug server:", error);
+      console.error("❌ Connection failed:", error);
       this.isConnected = false;
       return false;
     }
@@ -217,12 +166,12 @@ class ButtplugIntegration {
 
     try {
       await this.stopAllDevices();
-      await this.client.disconnect();
-
+      if (this.client) {
+        await this.client.disconnect();
+      }
       this.isConnected = false;
       this.devices = [];
-
-      console.log("✅ Disconnected from Buttplug server");
+      console.log("⚫ Disconnected from Buttplug server");
     } catch (error) {
       console.error("❌ Error disconnecting:", error);
     }
@@ -231,7 +180,7 @@ class ButtplugIntegration {
   // Start scanning for devices
   async startScanning() {
     if (!this.isConnected) {
-      console.warn("⚠️ Not connected to server");
+      console.error("❌ Not connected to server");
       return;
     }
 
@@ -239,252 +188,110 @@ class ButtplugIntegration {
       console.log("🔍 Scanning for devices...");
       await this.client.startScanning();
     } catch (error) {
-      console.error("❌ Error starting device scan:", error);
+      console.error("❌ Scan failed:", error);
     }
   }
 
-  // Stop scanning for devices
+  // Stop scanning
   async stopScanning() {
+    if (!this.isConnected) return;
+
     try {
       await this.client.stopScanning();
-      console.log("🔍 Device scanning stopped");
+      console.log("⏹️ Stopped scanning");
     } catch (error) {
-      console.error("❌ Error stopping device scan:", error);
+      console.error("❌ Error stopping scan:", error);
     }
   }
 
-  // Trigger device response based on trigger word and category
-  async triggerDevice(triggerName, category = "default") {
-    if (!this.isEnabled || !this.isConnected || this.devices.length === 0) {
+  // Device added event
+  onDeviceAdded(device) {
+    console.log(`📱 Device added: ${device.name}`);
+    this.devices.push(device);
+    this.broadcastDeviceUpdate();
+  }
+
+  // Device removed event
+  onDeviceRemoved(device) {
+    console.log(`📴 Device removed: ${device.name}`);
+    this.devices = this.devices.filter((d) => d.index !== device.index);
+    this.broadcastDeviceUpdate();
+  }
+
+  // Scanning finished event
+  onScanningFinished() {
+    console.log("✅ Device scan complete");
+  }
+
+  // Broadcast device list update
+  broadcastDeviceUpdate() {
+    const deviceInfo = this.devices.map((device) => ({
+      name: device.name,
+      index: device.index,
+      hasVibrate: device.vibrateAttributes.length > 0,
+      hasBattery: device.hasBattery,
+    }));
+
+    document.dispatchEvent(
+      new CustomEvent("buttplug-devices-updated", {
+        detail: { devices: deviceInfo },
+      })
+    );
+  }
+
+  // Trigger device based on BambiSleep trigger
+  async triggerDevice(triggerName, category) {
+    if (!this.isConnected || !this.isEnabled || this.devices.length === 0) {
       return;
     }
 
-    try {
-      const pattern =
-        this.triggerPatterns[category.toLowerCase()] ||
-        this.triggerPatterns.default;
+    // Get pattern based on category
+    const pattern = this.triggerPatterns[category] || this.triggerPatterns.default;
 
-      console.log(
-        `🎯 Trigger activated: ${triggerName} (${category}) - ${pattern.pattern} pattern`,
-      );
+    console.log(`🎯 Triggering devices for: ${triggerName} (${category})`);
 
-      // Execute pattern on all connected devices
-      for (const device of this.devices) {
-        await this.executePattern(device, pattern, triggerName);
+    // Activate all vibrating devices
+    for (const device of this.devices) {
+      if (device.vibrateAttributes.length > 0) {
+        await this.activateDevice(device, pattern);
       }
-    } catch (error) {
-      console.error("❌ Error triggering device:", error);
     }
   }
 
-  // Execute vibration pattern on a device
-  async executePattern(device, pattern, triggerName) {
-    const patternId = `${device.index}-${Date.now()}`;
-
+  // Activate a specific device with pattern
+  async activateDevice(device, pattern) {
     try {
-      switch (pattern.pattern) {
-        case "pulse":
-          await this.pulsePattern(device, pattern, patternId);
-          break;
+      // Send vibration command
+      await device.vibrate(pattern.intensity);
 
-        case "wave":
-          await this.wavePattern(device, pattern, patternId);
-          break;
-
-        case "burst":
-          await this.burstPattern(device, pattern, patternId);
-          break;
-
-        case "steady":
-        default:
-          await this.steadyPattern(device, pattern, patternId);
-          break;
-      }
-    } catch (error) {
-      console.error(`❌ Error executing pattern on ${device.name}:`, error);
-    }
-  }
-
-  // Steady vibration pattern
-  async steadyPattern(device, pattern, patternId) {
-    const { intensity, duration } = pattern;
-
-    // Start vibration
-    await this.vibrateDevice(device, intensity);
-
-    // Store pattern for cleanup
-    this.activePatterns.set(patternId, {
-      device,
-      timeout: setTimeout(async () => {
-        await this.vibrateDevice(device, 0);
-        this.activePatterns.delete(patternId);
-      }, duration),
-    });
-  }
-
-  // Pulsing vibration pattern
-  async pulsePattern(device, pattern, patternId) {
-    const { intensity, duration } = pattern;
-    const pulseInterval = 500; // ms between pulses
-    const pulses = Math.floor(duration / pulseInterval);
-
-    let currentPulse = 0;
-
-    const pulseIntervalId = setInterval(async () => {
-      if (currentPulse >= pulses) {
-        clearInterval(pulseIntervalId);
-        await this.vibrateDevice(device, 0);
-        this.activePatterns.delete(patternId);
-        return;
-      }
-
-      // Alternate between on and off
-      const vibeIntensity = currentPulse % 2 === 0 ? intensity : 0;
-      await this.vibrateDevice(device, vibeIntensity);
-
-      currentPulse++;
-    }, pulseInterval);
-
-    this.activePatterns.set(patternId, {
-      device,
-      interval: pulseIntervalId,
-    });
-  }
-
-  // Wave vibration pattern (gradual increase and decrease)
-  async wavePattern(device, pattern, patternId) {
-    const { intensity, duration } = pattern;
-    const steps = 20; // Number of steps in the wave
-    const stepDuration = duration / steps;
-
-    let currentStep = 0;
-
-    const waveIntervalId = setInterval(async () => {
-      if (currentStep >= steps) {
-        clearInterval(waveIntervalId);
-        await this.vibrateDevice(device, 0);
-        this.activePatterns.delete(patternId);
-        return;
-      }
-
-      // Calculate sine wave intensity
-      const progress = currentStep / steps;
-      const waveIntensity = intensity * Math.sin(progress * Math.PI);
-
-      await this.vibrateDevice(device, waveIntensity);
-
-      currentStep++;
-    }, stepDuration);
-
-    this.activePatterns.set(patternId, {
-      device,
-      interval: waveIntervalId,
-    });
-  }
-
-  // Burst vibration pattern (quick intense bursts)
-  async burstPattern(device, pattern, patternId) {
-    const { intensity, duration } = pattern;
-    const burstDuration = 200; // ms per burst
-    const pauseDuration = 300; // ms between bursts
-    const totalBurstTime = burstDuration + pauseDuration;
-    const bursts = Math.floor(duration / totalBurstTime);
-
-    let currentBurst = 0;
-
-    const executeBurst = async () => {
-      if (currentBurst >= bursts) {
-        await this.vibrateDevice(device, 0);
-        this.activePatterns.delete(patternId);
-        return;
-      }
-
-      // Burst on
-      await this.vibrateDevice(device, intensity);
-
-      // Wait for burst duration
-      setTimeout(async () => {
-        // Burst off
-        await this.vibrateDevice(device, 0);
-
-        // Wait for pause duration before next burst
-        setTimeout(() => {
-          currentBurst++;
-          executeBurst();
-        }, pauseDuration);
-      }, burstDuration);
-    };
-
-    executeBurst();
-
-    this.activePatterns.set(patternId, {
-      device,
-      executing: true,
-    });
-  }
-
-  // Send vibration command to device
-  async vibrateDevice(device, intensity) {
-    try {
-      // Check if device supports vibration
-      if (!device.vibrateAttributes || device.vibrateAttributes.length === 0) {
-        return;
-      }
-
-      // Clamp intensity between 0 and 1
-      const clampedIntensity = Math.max(0, Math.min(1, intensity));
-
-      // Send vibrate command to all vibration motors
-      await device.vibrate(clampedIntensity);
-    } catch (error) {
-      console.error(`❌ Error vibrating device ${device.name}:`, error);
-    }
-  }
-
-  // Stop all active patterns and devices
-  async stopAllDevices() {
-    try {
-      // Clear all active patterns
-      for (const [patternId, pattern] of this.activePatterns.entries()) {
-        if (pattern.timeout) {
-          clearTimeout(pattern.timeout);
-        }
-        if (pattern.interval) {
-          clearInterval(pattern.interval);
-        }
-
-        if (pattern.device) {
-          await this.vibrateDevice(pattern.device, 0);
-        }
-      }
-
-      this.activePatterns.clear();
-
-      // Stop all devices
-      for (const device of this.devices) {
+      // Store timeout for auto-stop
+      const timeoutId = setTimeout(async () => {
         await device.stop();
-      }
+        this.activePatterns.delete(device.index);
+      }, pattern.duration);
 
-      console.log("✅ All devices stopped");
+      this.activePatterns.set(device.index, timeoutId);
     } catch (error) {
-      console.error("❌ Error stopping devices:", error);
+      console.error(`❌ Error activating device ${device.name}:`, error);
     }
   }
 
-  // Update device list in UI
-  updateDeviceList() {
-    // Dispatch event for UI to update
-    const event = new CustomEvent("buttplug-devices-updated", {
-      detail: {
-        devices: this.devices.map((d) => ({
-          index: d.index,
-          name: d.name,
-          hasVibrate: d.vibrateAttributes && d.vibrateAttributes.length > 0,
-        })),
-      },
-    });
+  // Stop all devices
+  async stopAllDevices() {
+    // Clear all active timeouts
+    this.activePatterns.forEach((timeoutId) => clearTimeout(timeoutId));
+    this.activePatterns.clear();
 
-    document.dispatchEvent(event);
+    // Stop all devices
+    for (const device of this.devices) {
+      try {
+        await device.stop();
+      } catch (error) {
+        console.error(`❌ Error stopping device ${device.name}:`, error);
+      }
+    }
+
+    console.log("⛔ All devices stopped");
   }
 
   // Enable/disable the integration
@@ -495,9 +302,7 @@ class ButtplugIntegration {
       this.stopAllDevices();
     }
 
-    console.log(
-      `🔌 Buttplug integration ${this.isEnabled ? "ENABLED" : "DISABLED"}`,
-    );
+    console.log(`🔌 Buttplug integration ${this.isEnabled ? "ENABLED" : "DISABLED"}`);
     return this.isEnabled;
   }
 
@@ -508,6 +313,7 @@ class ButtplugIntegration {
       isEnabled: this.isEnabled,
       deviceCount: this.devices.length,
       devices: this.devices.map((d) => d.name),
+      mode: this.connectionMode,
     };
   }
 
