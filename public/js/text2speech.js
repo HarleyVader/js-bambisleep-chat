@@ -1927,21 +1927,21 @@ class TextToSpeechSystem {
       return;
     }
 
-    // ENHANCED: More responsive mapping with wider dynamic range
-    // Base intensity from speech energy (0.15 - 0.5 range for gentle baseline)
-    let targetIntensity = 0.15 + (patterns.speechEnergy / 255) * 0.35;
+    // PEAKED: Wider dynamic range with higher peaks
+    // Base intensity from speech energy (0.1 - 0.55 range)
+    let targetIntensity = 0.1 + (patterns.speechEnergy / 255) * 0.45;
 
-    // ENHANCED: Intonation boost - higher frequencies (pitch variation) increase intensity
-    const intonationBoost = (patterns.avgFrequency / 255) * 0.15;
+    // PEAKED: Stronger intonation boost for dramatic pitch changes
+    const intonationBoost = (patterns.avgFrequency / 255) * 0.25;
     targetIntensity += intonationBoost;
 
-    // ENHANCED: Volume/amplitude sensitivity for word emphasis
-    const volumeBoost = (patterns.amplitude / 100) * 0.2;
+    // PEAKED: Higher volume/amplitude sensitivity
+    const volumeBoost = (patterns.amplitude / 100) * 0.3;
     targetIntensity += volumeBoost;
 
-    // ENHANCED: Strong emphasis boost for dramatic moments
+    // PEAKED: Much stronger emphasis boost for dramatic peaks
     if (patterns.isEmphasis) {
-      targetIntensity = Math.min(0.85, targetIntensity + 0.35);
+      targetIntensity = Math.min(0.95, targetIntensity + 0.5);
     }
 
     // CRITICAL: Check if current text contains triggers - MAXIMUM INTENSITY
@@ -1952,19 +1952,19 @@ class TextToSpeechSystem {
 
     if (isTriggerActive) {
       // TRIGGER BOOST: Hit hardest when triggers are spoken
-      targetIntensity = Math.max(targetIntensity, 0.90); // Minimum 90% for triggers
+      targetIntensity = Math.max(targetIntensity, 0.95); // 95% minimum for triggers
       console.log("🔥 Trigger vibration boost active:", targetIntensity.toFixed(2));
     }
 
-    // ENHANCED: Adaptive smoothing - faster response to increases, slower to decreases
+    // PEAKED: Minimal smoothing for faster, sharper changes
     const isIncreasing = targetIntensity > this.lastVibrationIntensity;
-    const smoothingFactor = isIncreasing ? 0.5 : 0.25; // Faster ramp up, slower decay
+    const smoothingFactor = isIncreasing ? 0.7 : 0.4; // Very fast ramp-up, faster decay
     const smoothedIntensity =
       this.lastVibrationIntensity * (1 - smoothingFactor) +
       targetIntensity * smoothingFactor;
 
-    // ENHANCED: Smaller threshold for more responsive updates
-    if (Math.abs(smoothedIntensity - this.lastVibrationIntensity) > 0.02) {
+    // PEAKED: Much smaller threshold for very responsive, sharp updates
+    if (Math.abs(smoothedIntensity - this.lastVibrationIntensity) > 0.01) {
       this.lastVibrationIntensity = smoothedIntensity;
       
       // Vibrate all devices with calculated intensity
