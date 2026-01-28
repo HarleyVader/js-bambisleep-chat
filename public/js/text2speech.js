@@ -1,4 +1,4 @@
-// text2speech.js - Enhanced Text-to-speech with TTS Express Server integration and spiral synchronization
+// text2speech.js - Enhanced Text-to-speech with Kokoro integration and spiral synchronization
 // OPTIMIZED: Added prefetching, parallel processing, and improved memory management
 class TextToSpeechSystem {
   constructor() {
@@ -9,21 +9,35 @@ class TextToSpeechSystem {
     this.isPlaying ??= false;
     this.state ??= true; // TTS state machine for synchronization (true = ready to start)
     this.audioContext ??= null;
+    this.analyser ??= null; // Web Audio API analyser for speech pattern detection
+    this.audioSource ??= null; // Audio source node
+    this.animationFrameId ??= null; // RequestAnimationFrame ID for analysis loop
     this.currentAudio ??= null;
     this.currentText ??= ""; // Currently playing text (original for display)
     this.currentTTSText ??= ""; // Currently playing text (cleaned for TTS)
     this.currentAudioUrl ??= null; // Track current blob URL for cleanup
+
+    // Speech pattern analysis configuration
+    this.analysisEnabled ??= true; // Enable real-time audio analysis
+    this.vibrationSyncEnabled ??= true; // Sync vibrations with audio patterns
+    this.frequencyData ??= null; // Frequency domain data buffer
+    this.timeDomainData ??= null; // Time domain data buffer (waveform)
+    this.lastVibrationIntensity ??= 0; // Track last vibration level for smoothing
     this.volume ??= 0.7;
-    this.speed ??= 1.0; // Default speed setting
+    this.speed ??= 0.85; // Slower speed for clearer comprehension (0.85 = 85% speed)
     this.socket ??= null;
-    this.useTTSExpress ??= true; // Prefer TTS Express over Web Speech API
-    this.currentVoice ??= "af_bella"; // Default FEMALE voice - BambiSleep is a GIRL!
+    this.useKokoro ??= true; // Prefer Kokoro over Web Speech API
+    this.currentVoice ??= "af_bella"; // Default FEMALE Kokoro voice - BambiSleep is a GIRL!
+
+    // SEQUENTIAL MODE: Disable prefetching to ensure ONE request at a time
+    this.enablePrefetching = false; // Set to true only if you want parallel processing
+    this.maxPrefetch = 0; // Disable prefetch queue
 
     // ENHANCED VOICE SELECTION - Integrated from TTS Dropdown
     this.selectedVoices = []; // Track multiple selected voices (max 2)
-    this.maxVoices = 2; // Maximum number of voices that can be selected
-    // All female voices supported by TTS Express Server
-    // Reference: https://github.com/BambiSleepChurch/tts-express-server
+    this.maxVoices = 2; // Maximum number of voices that can be selected per Kokoro-FastAPI
+    // All female voices from Kokoro-FastAPI official docs
+    // Reference: https://github.com/remsky/Kokoro-FastAPI
     this.availableVoices = [
       "af_alloy",
       "af_aoede",
@@ -62,7 +76,7 @@ class TextToSpeechSystem {
     // Initialize Web Audio API
     this.initAudioContext();
 
-    // Set up socket connection for TTS Express Server
+    // Set up socket connection for Kokoro TTS
     this.initSocket();
 
     // Create audio element for playback
@@ -74,8 +88,9 @@ class TextToSpeechSystem {
 
   initAudioContext() {
     try {
-      this.audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
+      this.audioContext = new (
+        window.AudioContext || window.webkitAudioContext
+      )();
     } catch (error) {
       console.warn("Web Audio API not supported");
     }
@@ -127,7 +142,7 @@ class TextToSpeechSystem {
             console.warn(
               "🎤 TTS socket connection failed after",
               maxAttempts,
-              "attempts - will use Web Speech API only"
+              "attempts - will use Web Speech API only",
             );
           }
         }
@@ -141,13 +156,13 @@ class TextToSpeechSystem {
       return;
     }
 
-    // Listen for TTS responses from TTS Express Server
+    // Listen for TTS responses from Kokoro
     this.socket.on("tts-response", (data) => {
-      this.handleTTSExpressResponse(data);
+      this.handleKokoroResponse(data);
     });
 
     this.socket.on("tts-error", (data) => {
-      console.error("🎤 TTS Express error from server:", data.error);
+      console.error("🎤 Kokoro TTS error from server:", data.error);
 
       // Report error through error management system if available
       if (window.chatCore && window.chatCore.errorManager) {
@@ -157,7 +172,7 @@ class TextToSpeechSystem {
         });
       }
 
-      console.error("🎤 TTS Express unavailable - no fallback configured");
+      console.error("🎤 Kokoro TTS unavailable - no fallback configured");
     });
 
     // Add connection monitoring
@@ -186,7 +201,72 @@ class TextToSpeechSystem {
     }
 
     this.currentAudio = audio;
+
+    // Set initial playback rate for slower speech
+    if (this.speed && this.speed !== 1.0) {
+      this.currentAudio.playbackRate = this.speed;
+      console.log("🎤 Initial playback speed set to:", this.speed);
+    }
+
+    // Initialize Web Audio API for speech pattern analysis
+    this.initAudioAnalysis();
+
     this.setupAudioListeners();
+  }
+
+  // Initialize Web Audio API for real-time speech pattern analysis
+  initAudioAnalysis() {
+    try {
+      // Create AudioContext (handle browser prefixes)
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) {
+        console.warn(
+          "⚠️ Web Audio API not supported, disabling audio analysis",
+        );
+        this.analysisEnabled = false;
+        return;
+      }
+
+      this.audioContext = new AudioContext();
+      this.analyser = this.audioContext.createAnalyser();
+
+      // Configure analyser for speech pattern detection
+      this.analyser.fftSize = 2048; // Higher resolution for better frequency detection
+      this.analyser.smoothingTimeConstant = 0.8; // Smooth out rapid changes
+      this.analyser.minDecibels = -90;
+      this.analyser.maxDecibels = -10;
+
+      // Create data buffers
+      const bufferLength = this.analyser.frequencyBinCount;
+      this.frequencyData = new Uint8Array(bufferLength);
+      this.timeDomainData = new Uint8Array(bufferLength);
+
+      // CRITICAL: Only create MediaElementSource once per audio element
+      // Creating multiple sources from same element causes playback failure
+      if (!this.audioSource) {
+        this.audioSource = this.audioContext.createMediaElementSource(
+          this.currentAudio,
+        );
+        this.audioSource.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
+        console.log("🎵 Web Audio API initialized for speech pattern analysis");
+      } else {
+        // Reconnect existing source
+        this.audioSource.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
+        console.log("🎵 Reconnected existing audio source to analyser");
+      }
+
+      // CRITICAL: Resume AudioContext if suspended (required for audio to play/end properly)
+      if (this.audioContext.state === "suspended") {
+        this.audioContext.resume().then(() => {
+          console.log("🎵 AudioContext resumed");
+        });
+      }
+    } catch (error) {
+      console.error("❌ Failed to initialize Web Audio API:", error);
+      this.analysisEnabled = false;
+    }
   }
 
   setupAudioListeners() {
@@ -196,7 +276,7 @@ class TextToSpeechSystem {
     this.currentAudio.addEventListener("ended", () => this.handleAudioEnded());
     this.currentAudio.addEventListener("play", () => this.handleAudioPlay());
     this.currentAudio.addEventListener("error", (e) =>
-      this.handleAudioError(e)
+      this.handleAudioError(e),
     );
 
     // Start regular memory cleanup
@@ -226,8 +306,19 @@ class TextToSpeechSystem {
    * LIGHTWEIGHT memory cleanup - DEVICE CACHE ONLY
    * ✅ Cleans: Blob URLs, temporary audio cache, oversized queues
    * ❌ NEVER touches: User settings, chat data, localStorage
+   * ⚠️ ONLY runs when queue is EMPTY - never during active playback
    */
   performMemoryCleanup() {
+    // CRITICAL: DO NOT clean up while TTS is active or has queued items
+    if (
+      this.isPlaying ||
+      this.textArray.length > 0 ||
+      this.audioArray.length > 0
+    ) {
+      console.debug("🧹 Skipping cleanup - TTS queue active");
+      return;
+    }
+
     let cleaned = 0;
 
     // ONLY clean up temporary blob URLs (device cache)
@@ -244,14 +335,36 @@ class TextToSpeechSystem {
     }
   }
   /**
-   * Clean up all tracked blob URLs
+   * Clean up all tracked blob URLs (EXCLUDING currently playing and queued audio)
    */
   cleanupBlobUrls() {
     let cleaned = 0;
 
+    // Build set of URLs that are currently in use (DO NOT CLEAN THESE)
+    const inUseUrls = new Set();
+
+    // Protect currently playing audio
+    if (this.currentAudioUrl) {
+      inUseUrls.add(this.currentAudioUrl);
+    }
+
+    // Protect queued audio URLs
+    this.audioArray.forEach((url) => {
+      if (typeof url === "string" && url.startsWith("blob:")) {
+        inUseUrls.add(url);
+      }
+    });
+
+    // Only cleanup blob URLs that are NOT in use
     this.blobUrls.forEach((url) => {
+      // Skip URLs that are currently in use
+      if (inUseUrls.has(url)) {
+        return; // Keep this URL
+      }
+
       try {
         URL.revokeObjectURL(url);
+        this.blobUrls.delete(url); // Remove from tracked set
         cleaned++;
       } catch (error) {
         // Enhanced error with cause chain
@@ -262,13 +375,19 @@ class TextToSpeechSystem {
             context: { url, totalUrls: this.blobUrls.size },
             code: "BLOB_CLEANUP_FAILED",
             retryable: false,
-          }
+          },
         );
         console.warn("Blob URL cleanup error:", cleanupError);
       }
     });
 
-    this.blobUrls.clear();
+    // Log details if significant cleanup occurred
+    if (cleaned > 0) {
+      console.debug(
+        `🧹 Cleaned ${cleaned} finished audio blobs (${this.blobUrls.size} active, ${inUseUrls.size} protected)`,
+      );
+    }
+
     return cleaned;
   }
 
@@ -304,7 +423,7 @@ class TextToSpeechSystem {
     if (this.audioArray.length > this.maxAudioCache) {
       const toRemove = this.audioArray.slice(
         0,
-        this.audioArray.length - this.maxAudioCache
+        this.audioArray.length - this.maxAudioCache,
       );
 
       toRemove.forEach((url) => {
@@ -345,7 +464,30 @@ class TextToSpeechSystem {
    * Enhanced stop with cleanup
    */
   stop() {
-    // Cleanup current audio URL
+    // CRITICAL: Stop audio playback FIRST before revoking blob URL
+    // This prevents audio errors from trying to play a revoked URL
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.src = "";
+    }
+
+    // Stop Web Speech API if active
+    if ("speechSynthesis" in window) {
+      speechSynthesis.cancel();
+    }
+
+    // Stop audio analysis
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    // Stop buttplug vibration
+    if (window.buttplugIntegration && window.buttplugIntegration.isEnabled) {
+      window.buttplugIntegration.stopAllDevices();
+    }
+
+    // NOW cleanup current audio URL (after stopping playback)
     if (this.currentAudioUrl) {
       try {
         URL.revokeObjectURL(this.currentAudioUrl);
@@ -359,22 +501,20 @@ class TextToSpeechSystem {
             context: { url: this.currentAudioUrl },
             code: "AUDIO_STOP_CLEANUP_FAILED",
             retryable: false,
-          }
+          },
         );
         console.warn("Audio stop cleanup error:", stopError);
       }
       this.currentAudioUrl = null;
     }
 
-    if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio.src = "";
-    }
-
     this.isPlaying = false;
     this.state = true;
     this.currentText = "";
     this.currentTTSText = "";
+
+    // Clear spiral text display
+    this.clearSpiralText();
 
     console.log("🛑 TTS stopped with memory cleanup");
   }
@@ -505,7 +645,7 @@ class TextToSpeechSystem {
     console.log(
       "🎤 TTS speakSentences request:",
       sentencesArray.length,
-      "sentences"
+      "sentences",
     );
 
     // Add pre-cleaned sentences directly to text array (legacy support)
@@ -540,7 +680,7 @@ class TextToSpeechSystem {
     console.log(
       "🎤 TTS speakSentencePairs request:",
       sentencePairsArray.length,
-      "sentence pairs"
+      "sentence pairs",
     );
 
     // Add sentence pairs to text array
@@ -556,7 +696,7 @@ class TextToSpeechSystem {
     console.log(
       "🎤 Added",
       this.textArray.length,
-      "sentence pairs to TTS queue"
+      "sentence pairs to TTS queue",
     );
 
     // Start processing if not already playing (original pattern: state=true means ready)
@@ -570,7 +710,7 @@ class TextToSpeechSystem {
     if (this.currentTTSText && this.currentTTSText.trim().length > 0) {
       console.log(
         "🎤 Retrying TTS for:",
-        this.currentTTSText.substring(0, 50) + "..."
+        this.currentTTSText.substring(0, 50) + "...",
       );
 
       // Add back to the front of the queue
@@ -587,11 +727,12 @@ class TextToSpeechSystem {
   }
 
   splitTextIntoSentences(text) {
-    // Split on sentence boundaries including asterisks, but preserve triggers as single units
-    // Handle asterisks as sentence separators (common in AI responses)
+    // Split on EVERY punctuation mark for natural TTS pauses
+    // Simple regex: split on any punctuation followed by optional space
     return text
-      .split(/(?<=[:;,.!?\*]["']?)\s+|(?<=\*\*)\s+|\*\s+/g)
-      .filter((s) => s.trim().length > 0);
+      .split(/[,.!?;:\*]+\s*/g)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
   }
 
   async processTextQueue() {
@@ -615,30 +756,25 @@ class TextToSpeechSystem {
         this.currentTTSText = textItem.tts;
       }
 
-      console.log("🎤 Processing text:", this.currentText);
+      console.log("🎤 [SEQUENTIAL] Generating audio for:", this.currentText);
 
-      // OPTIMIZATION: Check prefetch cache first for instant playback
-      const prefetchedUrl = this.getPrefetchedAudio(this.currentTTSText);
-      if (prefetchedUrl) {
-        // Use prefetched audio directly - much faster!
-        this.currentAudioUrl = prefetchedUrl;
-        if (this.currentAudio) {
-          this.currentAudio.src = prefetchedUrl;
-          this.currentAudio.load();
-          this.currentAudio.onloadedmetadata = () => {
-            console.log(
-              "⚡ Playing prefetched audio, duration:",
-              this.currentAudio.duration
-            );
-            this.currentAudio.play().catch((e) => this.handleAudioError(e));
-          };
-        }
-        return;
+      // SEQUENTIAL MODE: Generate audio on-demand, one at a time
+      // Request TTS generation via socket and WAIT for response
+      if (this.socket && this.socket.connected) {
+        console.log(
+          `🎤 Requesting TTS generation (${this.textArray.length} remaining in queue)...`,
+        );
+        this.socket.emit("tts-request", {
+          text: this.currentTTSText,
+          voice: this.currentVoice,
+          format: "mp3",
+          prefetch: false, // This is the CURRENT item, not prefetch
+        });
+        // Response will come via 'tts-response' socket event → handleKokoroResponse()
+      } else {
+        console.error("🎤 Socket not connected - cannot generate TTS");
+        this.handleAudioError(new Error("Socket disconnected"));
       }
-
-      // Add to audio queue using TTS text and use do_tts like original working version
-      this.arrayPush(this.audioArray, this.currentTTSText);
-      this.do_tts(this.audioArray); // CRITICAL: Use do_tts() not requestTTS()
     };
 
     // Check for Web Locks API support
@@ -650,7 +786,7 @@ class TextToSpeechSystem {
           async () => {
             await processLogic();
             // Lock will be released when this function completes
-          }
+          },
         );
       } catch (error) {
         console.warn("Web Locks API failed, using fallback:", error);
@@ -663,11 +799,31 @@ class TextToSpeechSystem {
 
   // Core synchronization function - Process next text in queue when audio ends
   handleAudioEnded() {
-    console.log("🎤 Audio ended, processing next in queue");
+    console.log(
+      `🎤 Audio finished - ${this.textArray.length} sentences remaining`,
+    );
+    console.log("🎤 Current state:", {
+      isPlaying: this.isPlaying,
+      state: this.state,
+      queueLength: this.textArray.length,
+      audioArrayLength: this.audioArray.length,
+    });
+
+    // Stop audio analysis loop
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    // Stop buttplug vibration when audio ends
+    if (window.buttplugIntegration && window.buttplugIntegration.isEnabled) {
+      window.buttplugIntegration.stopAllDevices();
+    }
 
     // Cleanup current audio URL
     if (this.currentAudioUrl) {
       URL.revokeObjectURL(this.currentAudioUrl);
+      this.blobUrls.delete(this.currentAudioUrl);
       this.currentAudioUrl = null;
     }
 
@@ -677,24 +833,48 @@ class TextToSpeechSystem {
 
     // Process next item if available
     if (this.textArray.length > 0) {
+      console.log("🎤 Moving to next sentence...");
       this.processTextQueue();
     } else {
-      console.log("🎤 TTS queue empty");
+      console.log("🎤 ✅ All sentences spoken - TTS queue complete");
     }
   }
 
   handleAudioPlay() {
-    console.log("🎤 Audio playing:", this.currentText);
+    console.log("🎤 Audio started - displaying:", this.currentText);
     const duration = this.currentAudio.duration * 1000;
+
+    // CRITICAL: Resume AudioContext if suspended (browser autoplay policy)
+    if (this.audioContext && this.audioContext.state === "suspended") {
+      this.audioContext.resume().then(() => {
+        console.log("🎵 AudioContext resumed on play");
+      });
+    }
+
+    // 🔥 TRIGGER DETECTION: Check if text contains triggers and activate buttplug
+    this.detectAndActivateTriggers(this.currentText, duration);
+
+    // 🎵 START AUDIO ANALYSIS: Begin real-time speech pattern detection
+    if (this.analysisEnabled && this.vibrationSyncEnabled) {
+      this.startAudioAnalysis();
+    }
 
     // Display text in spiral center synchronized with audio
     this.flashTrigger(this.currentText, duration);
 
-    // Display in chat if response element exists
+    // Highlight current sentence in chat message
     this.displayInChat(this.currentText);
 
-    // OPTIMIZATION: Start prefetching next items while current is playing
-    this.prefetchNext();
+    // SEQUENTIAL MODE: No prefetching - wait for current to finish
+    if (this.enablePrefetching && this.textArray.length > 0) {
+      this.prefetchNext();
+    }
+
+    console.log(
+      `🎤 Will speak for ${(duration / 1000).toFixed(1)}s, ${
+        this.textArray.length
+      } remaining in queue`,
+    );
   }
 
   handleAudioError(e) {
@@ -732,37 +912,35 @@ class TextToSpeechSystem {
     }
   }
 
-  // Request TTS from TTS Express Server
+  // Request TTS from Kokoro
   requestTTS(text) {
     console.log("🎤 Requesting TTS for:", text.substring(0, 50) + "...");
 
     if (!this.socket || !this.socket.connected) {
-      console.error("🎤 TTS Express socket not connected");
+      console.error("🎤 Kokoro TTS socket not connected");
       return;
     }
 
-    console.log("🎤 Using TTS Express via socket");
-    // Use TTS Express via socket
+    console.log("🎤 Using Kokoro TTS via socket");
+    // Use Kokoro TTS via socket
     this.socket.emit("tts-request", {
       text: text,
       voice: this.currentVoice,
-      format: "wav", // TTS Express outputs WAV
-      speed: this.speed,
+      format: "mp3",
     });
   }
 
-  handleTTSExpressResponse(data) {
+  handleKokoroResponse(data) {
     console.log(
-      "🎤 TTS Express response received:",
+      "🎤 Kokoro response received:",
       data.size,
       "bytes",
-      data.cached ? "(cached)" : ""
+      data.cached ? "(cached)" : "",
     );
 
     try {
-      // Convert base64 audio data to blob URL (WAV format)
-      const mimeType = data.format === "wav" ? "audio/wav" : "audio/mpeg";
-      const audioBlob = this.base64ToBlob(data.audioData, mimeType);
+      // Convert base64 audio data to blob URL
+      const audioBlob = this.base64ToBlob(data.audioData, "audio/mpeg");
       const audioUrl = URL.createObjectURL(audioBlob);
 
       // Track blob URL for cleanup
@@ -774,10 +952,16 @@ class TextToSpeechSystem {
         this.currentAudio.src = audioUrl;
         this.currentAudio.load();
 
+        // Apply speed setting (slower = more comprehensible)
+        if (this.speed && this.speed !== 1.0) {
+          this.currentAudio.playbackRate = this.speed;
+          console.log("🎤 Playback speed set to:", this.speed);
+        }
+
         this.currentAudio.onloadedmetadata = () => {
           console.log(
             "🎤 Audio metadata loaded, duration:",
-            this.currentAudio.duration
+            this.currentAudio.duration,
           );
           this.currentAudio.play().catch((e) => {
             console.error("🎤 Error playing audio:", e);
@@ -786,7 +970,7 @@ class TextToSpeechSystem {
         };
       }
     } catch (error) {
-      console.error("🎤 Error processing TTS Express response:", error);
+      console.error("🎤 Error processing Kokoro response:", error);
       // Try next item in queue
       this.processTextQueue();
     }
@@ -796,9 +980,15 @@ class TextToSpeechSystem {
 
   /**
    * OPTIMIZATION: Prefetch next items in queue while current is playing
+   * DISABLED by default - set enablePrefetching=true to activate
    */
   prefetchNext() {
-    if (this.isPrefetching || this.textArray.length === 0) return;
+    if (
+      !this.enablePrefetching ||
+      this.isPrefetching ||
+      this.textArray.length === 0
+    )
+      return;
 
     // Prefetch up to maxPrefetch items
     const itemsToPrefetch = this.textArray.slice(0, this.maxPrefetch);
@@ -838,7 +1028,7 @@ class TextToSpeechSystem {
     if (cached) {
       this.prefetchedAudio.delete(text); // Remove after use
       console.log(
-        `⚡ Using prefetched audio for: "${text.substring(0, 30)}..."`
+        `⚡ Using prefetched audio for: "${text.substring(0, 30)}..."`,
       );
       return cached;
     }
@@ -881,93 +1071,109 @@ class TextToSpeechSystem {
 
   // Flash text in spiral center (from tts.js)
   flashTrigger(text, duration) {
-    // Try to find spiral container or eye element
-    let container =
-      document.getElementById("eye") ??
-      document.getElementById("spiral-container") ??
-      document.querySelector("#spiral-container");
+    // ALWAYS use spiral-container as the parent for proper positioning
+    let container = document.getElementById("spiral-container");
 
     if (!container) {
       console.warn("🎤 No spiral container found for text display");
       return;
     }
 
+    console.log("🎤 Flashing text in spiral:", text.substring(0, 50) + "...");
+
     // Create or find text display element
     let textDisplay = container.querySelector(".tts-text-display");
     if (!textDisplay) {
       textDisplay = document.createElement("div");
       textDisplay.className = "tts-text-display";
-      textDisplay.style.cssText = `
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: var(--tertiary-alt);
-                font-size: 2rem;
-                font-weight: bold;
-                text-align: center;
-                text-shadow: 0 0 10px var(--tertiary-alt), 0 0 20px var(--tertiary-alt);
-                z-index: 1000;
-                pointer-events: none;
-                max-width: 90%;
-                word-wrap: break-word;
-                white-space: normal;
-                animation: pulse 0.5s ease-in-out infinite alternate;
-                overflow-wrap: break-word;
-                hyphens: auto;
-                line-height: 1.2;
-            `;
+      // Add directly to spiral-container for proper centering
       container.appendChild(textDisplay);
+      console.log("🎤 Created new TTS text display element");
     }
 
-    // Display the text horizontally, not as a vertical column
-    // Keep text flowing left to right, only break on explicit newlines
-    let html = String(text).replace(/\n/g, " "); // Replace newlines with spaces for horizontal flow
+    // OVERRIDE CSS with stronger inline styles for visibility
+    textDisplay.style.cssText = `
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      color: var(--tertiary-alt) !important;
+      font-size: 2.5rem !important;
+      font-weight: bold !important;
+      text-align: center !important;
+      text-shadow: 0 0 20px var(--tertiary-alt), 0 0 40px var(--tertiary-alt), 0 0 60px var(--button-color) !important;
+      z-index: 9999 !important;
+      pointer-events: none !important;
+      max-width: 85% !important;
+      width: auto !important;
+      word-wrap: break-word !important;
+      white-space: normal !important;
+      animation: kokoroFlash 0.6s ease-in-out infinite !important;
+      overflow-wrap: break-word !important;
+      hyphens: auto !important;
+      line-height: 1.3 !important;
+      filter: drop-shadow(0 0 15px var(--button-color)) !important;
+      font-family: 'Audiowide', sans-serif !important;
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    `;
+
+    // Display the text with each sentence/phrase on a new line
+    // Split on punctuation marks (commas, periods, semicolons, etc.) to show triggers separately
+    let html = String(text)
+      .split(/([,.!?;:]+\s*)/) // Split on punctuation while keeping the punctuation
+      .filter((part) => part.trim().length > 0) // Remove empty parts
+      .join("<br>"); // Join with line breaks
     textDisplay.innerHTML = html;
-    textDisplay.style.display = "block";
+
+    console.log("🎤 Text display updated, visible for", duration, "ms");
 
     // Clear after duration
     setTimeout(() => {
       if (textDisplay) {
         textDisplay.style.display = "none";
         textDisplay.innerHTML = "";
+        console.log("🎤 Text display cleared");
       }
     }, duration || 3000);
   }
 
   displayInChat(text) {
-    // Display text at the bottom of the message-text area
-    const response =
-      document.querySelector(".message.ai .message-text:last-child") ||
-      document.querySelector("#response") ||
-      document.querySelector("#message");
+    // Highlight the current sentence being spoken in the existing chat message
+    const latestMessage = document.querySelector(
+      ".message.ai:last-child .message-text",
+    );
 
-    if (response) {
-      const messageElement = document.createElement("p");
-      messageElement.className = "tts-speaking";
-      messageElement.textContent = text;
-      messageElement.style.cssText = `
-                color: #FF1493;
-                font-weight: bold;
-                margin: 0.5rem 0;
-                padding: 0.5rem;
-                background: rgba(255, 20, 147, 0.1);
-                border-left: 3px solid #FF1493;
-                border-radius: 4px;
-            `;
+    if (latestMessage) {
+      // Find and highlight the current sentence in the message
+      const messageHTML = latestMessage.innerHTML;
+      const displayText = this.currentText || text;
 
-      // Append to bottom of message-text (not insert at top)
-      response.appendChild(messageElement);
+      // Escape HTML for safe searching
+      const escapedText = displayText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-      // Remove after speaking
-      setTimeout(
-        () => {
-          if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement);
-          }
-        },
-        this.currentAudio ? this.currentAudio.duration * 1000 : 3000
+      // Wrap current sentence in highlight span
+      const highlightedHTML = messageHTML.replace(
+        new RegExp(escapedText, "i"),
+        `<span class="tts-currently-speaking" style="background: rgba(255, 20, 147, 0.2); padding: 2px 4px; border-radius: 3px; animation: pulse 0.5s ease-in-out infinite alternate;">$&</span>`,
       );
+
+      latestMessage.innerHTML = highlightedHTML;
+
+      // Remove highlight after duration
+      const duration = this.currentAudio
+        ? this.currentAudio.duration * 1000
+        : 3000;
+      setTimeout(() => {
+        const highlightSpan = latestMessage.querySelector(
+          ".tts-currently-speaking",
+        );
+        if (highlightSpan) {
+          // Replace span with just the text content
+          highlightSpan.replaceWith(highlightSpan.textContent);
+        }
+      }, duration);
     }
   }
 
@@ -979,7 +1185,7 @@ class TextToSpeechSystem {
 
     // Use improved URL format with better encoding
     let URL = `/api/tts?text=${encodeURIComponent(
-      text
+      text,
     )}&voice=${encodeURIComponent(this.currentVoice)}`;
     array.push(URL);
   }
@@ -1059,7 +1265,7 @@ class TextToSpeechSystem {
           this.currentAudio.onloadedmetadata = () => {
             console.log(
               "🎤 Audio metadata loaded, duration:",
-              this.currentAudio.duration
+              this.currentAudio.duration,
             );
             if (messageEl) messageEl.textContent = "Playing...";
             this.currentAudio.play().catch((e) => {
@@ -1153,7 +1359,7 @@ class TextToSpeechSystem {
         "✅ Voice set to:",
         voice,
         "| Selected voices:",
-        this.selectedVoices
+        this.selectedVoices,
       );
 
       // Update voice on server if socket available
@@ -1198,7 +1404,7 @@ class TextToSpeechSystem {
       "✅ Voice added:",
       voiceName,
       "| Selected:",
-      this.selectedVoices
+      this.selectedVoices,
     );
 
     return true;
@@ -1218,7 +1424,7 @@ class TextToSpeechSystem {
       "✅ Voice removed:",
       voiceName,
       "| Selected:",
-      this.selectedVoices
+      this.selectedVoices,
     );
 
     return true;
@@ -1252,7 +1458,7 @@ class TextToSpeechSystem {
   validateAndCleanVoiceSelection() {
     // Remove any invalid voices
     this.selectedVoices = this.selectedVoices.filter((voice) =>
-      this.availableVoices.includes(voice)
+      this.availableVoices.includes(voice),
     );
 
     // Enforce max voices limit
@@ -1327,7 +1533,7 @@ class TextToSpeechSystem {
     }
   }
 
-  // Get only verified female voices with combination support (TTS Express)
+  // Get only verified female voices with combination support (Kokoro only)
   getFemaleVoices() {
     // Base female voices
     const baseVoices = ["af_sky", "af_bella", "af_sarah", "af_nicole"];
@@ -1378,7 +1584,7 @@ class TextToSpeechSystem {
     return true;
   }
 
-  // Get available voice combinations for dropdown (TTS Express)
+  // Get available voice combinations for dropdown (Kokoro only)
   getVoiceCombinations() {
     return this.getFemaleVoices();
   }
@@ -1415,8 +1621,8 @@ class TextToSpeechSystem {
       const data = await response.json();
 
       if (data.success && data.audioData) {
-        // Handle base64 audio data from TTS Express
-        const audioBlob = this.base64ToBlob(data.audioData, "audio/wav");
+        // Handle base64 audio data from Kokoro
+        const audioBlob = this.base64ToBlob(data.audioData, "audio/mpeg");
         await this.playAudioBlob(audioBlob);
       } else {
         throw new Error("Invalid TTS response format");
@@ -1447,36 +1653,6 @@ class TextToSpeechSystem {
       this.currentAudio = audio;
       audio.play().catch(reject);
     });
-  }
-
-  stop() {
-    // Stop current playback
-    if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.cleanupCurrentAudio();
-    }
-
-    // Stop Web Speech API
-    if ("speechSynthesis" in window) {
-      speechSynthesis.cancel();
-    }
-
-    // Clear all queues
-    this.textArray = [];
-    this.audioArray = [];
-    this.queue = [];
-
-    this.isPlaying = false;
-    this.state = false;
-
-    // Clear spiral text display
-    this.clearSpiralText();
-  }
-
-  clearQueue() {
-    this.textArray = [];
-    this.audioArray = [];
-    this.queue = [];
   }
 
   clearSpiralText() {
@@ -1530,6 +1706,304 @@ class TextToSpeechSystem {
     return text.toLowerCase();
   }
 
+  // ==================== TRIGGER DETECTION SYSTEM ====================
+
+  /**
+   * Detect triggers in spoken text and activate buttplug vibration
+   * @param {string} text - The text being spoken
+   * @param {number} duration - Duration of the audio in milliseconds
+   */
+  detectAndActivateTriggers(text, duration) {
+    // Check if buttplug is available and connected
+    if (
+      !window.buttplugIntegration ||
+      !window.buttplugIntegration.isConnected
+    ) {
+      return;
+    }
+
+    // Get all triggers from ChatCore
+    const allTriggers = window.chatCore?.allTriggers || [];
+    if (allTriggers.length === 0) {
+      return;
+    }
+
+    // Detect triggers in the text
+    const detectedTriggers = this.detectTriggersInText(text, allTriggers);
+
+    if (detectedTriggers.length > 0) {
+      console.log(
+        "🔥 TRIGGERS DETECTED in TTS:",
+        detectedTriggers.map((t) => t.name),
+      );
+
+      // Activate buttplug vibration for detected triggers
+      this.vibrateForTriggers(detectedTriggers, duration);
+    }
+  }
+
+  /**
+   * Scan text for trigger words
+   * @param {string} text - Text to scan
+   * @param {Array} triggers - Array of trigger objects
+   * @returns {Array} - Array of detected trigger objects
+   */
+  detectTriggersInText(text, triggers) {
+    const detectedTriggers = [];
+    const upperText = text.toUpperCase();
+
+    triggers.forEach((trigger) => {
+      const triggerName = trigger.name.toUpperCase();
+
+      // Escape special regex characters including apostrophes/single quotes
+      const escapedTrigger = triggerName.replace(
+        /[.*+?^${}()|[\]\\'\/\-]/g,
+        "\\$&",
+      );
+
+      // Use word boundaries for accurate detection
+      const regex = new RegExp("\\b" + escapedTrigger + "\\b", "i");
+
+      if (regex.test(upperText)) {
+        detectedTriggers.push(trigger);
+      }
+    });
+
+    return detectedTriggers;
+  }
+
+  /**
+   * Activate buttplug vibration for detected triggers
+   * @param {Array} triggers - Array of detected trigger objects
+   * @param {number} duration - Duration to vibrate in milliseconds
+   */
+  vibrateForTriggers(triggers, duration) {
+    if (
+      !window.buttplugIntegration ||
+      !window.buttplugIntegration.isConnected ||
+      !window.buttplugIntegration.isEnabled
+    ) {
+      return;
+    }
+
+    // Trigger each detected trigger via buttplug integration
+    triggers.forEach((trigger) => {
+      const category = (trigger.category || "default").toLowerCase();
+      console.log(`🔥 Vibrating for trigger: ${trigger.name} (${category})`);
+      window.buttplugIntegration.triggerDevice(trigger.name, category);
+    });
+  }
+
+  /**
+   * Vibrate device with pulsing pattern
+   * @param {Object} device - Buttplug device
+   * @param {number} duration - Duration in milliseconds
+   * @param {number} intensity - Intensity from 0.0 to 1.0
+   */
+  async activateTTSVibration(device, duration, intensity) {
+    try {
+      // Create pulsing pattern
+      const pulseInterval = 200; // Pulse every 200ms
+      const pulses = Math.floor(duration / pulseInterval);
+
+      for (let i = 0; i < pulses; i++) {
+        await device.vibrate(intensity);
+        await new Promise((resolve) => setTimeout(resolve, pulseInterval / 2));
+        await device.vibrate(intensity * 0.3); // Lower intensity for pulse effect
+        await new Promise((resolve) => setTimeout(resolve, pulseInterval / 2));
+      }
+    } catch (error) {
+      console.error("Failed to vibrate device:", error);
+    }
+  }
+
+  // ==================== AUDIO PATTERN ANALYSIS ====================
+
+  /**
+   * Start real-time audio analysis loop
+   * Analyzes frequency and amplitude patterns to sync vibrations with speech
+   */
+  startAudioAnalysis() {
+    if (!this.analyser || !window.buttplugIntegration?.isConnected) {
+      return;
+    }
+
+    console.log("🎵 Starting real-time audio pattern analysis");
+
+    const analyze = () => {
+      // Get frequency and time domain data
+      this.analyser.getByteFrequencyData(this.frequencyData);
+      this.analyser.getByteTimeDomainData(this.timeDomainData);
+
+      // Calculate audio characteristics
+      const audioPatterns = this.analyzeAudioPatterns();
+
+      // Sync vibration with audio patterns
+      if (audioPatterns.shouldVibrate) {
+        this.syncVibrationWithAudio(audioPatterns);
+      }
+
+      // Continue analysis loop
+      this.animationFrameId = requestAnimationFrame(analyze);
+    };
+
+    analyze();
+  }
+
+  /**
+   * Analyze audio patterns from frequency and time domain data
+   * @returns {Object} Audio pattern characteristics
+   */
+  analyzeAudioPatterns() {
+    // Calculate average frequency energy (pitch/intonation)
+    let sum = 0;
+    for (let i = 0; i < this.frequencyData.length; i++) {
+      sum += this.frequencyData[i];
+    }
+    const avgFrequency = sum / this.frequencyData.length;
+
+    // Calculate amplitude (volume/loudness)
+    let amplitudeSum = 0;
+    for (let i = 0; i < this.timeDomainData.length; i++) {
+      amplitudeSum += Math.abs(this.timeDomainData[i] - 128);
+    }
+    const amplitude = amplitudeSum / this.timeDomainData.length;
+
+    // ENHANCED: Detect speech emphasis (peaks in low-mid frequencies 200-2000Hz)
+    const lowFreqStart = Math.floor(
+      200 / (this.audioContext.sampleRate / this.analyser.fftSize),
+    );
+    const lowFreqEnd = Math.floor(
+      2000 / (this.audioContext.sampleRate / this.analyser.fftSize),
+    );
+    let speechEnergySum = 0;
+    for (let i = lowFreqStart; i < lowFreqEnd; i++) {
+      speechEnergySum += this.frequencyData[i];
+    }
+    const speechEnergy = speechEnergySum / (lowFreqEnd - lowFreqStart);
+
+    // ENHANCED: Detect high frequency content for sibilance/emphasis (2kHz-8kHz)
+    const highFreqStart = Math.floor(
+      2000 / (this.audioContext.sampleRate / this.analyser.fftSize),
+    );
+    const highFreqEnd = Math.floor(
+      8000 / (this.audioContext.sampleRate / this.analyser.fftSize),
+    );
+    let highFreqSum = 0;
+    for (let i = highFreqStart; i < highFreqEnd; i++) {
+      highFreqSum += this.frequencyData[i];
+    }
+    const highFreqEnergy = highFreqSum / (highFreqEnd - highFreqStart);
+
+    // Detect if audio is active (not silence) - LOWERED threshold for sensitivity
+    const isActive = amplitude > 3 && avgFrequency > 5;
+
+    // ENHANCED: Detect emphasis with multiple factors
+    const isEmphasis =
+      speechEnergy > 55 || // Lowered from 60 for sensitivity
+      amplitude > 25 || // Lowered from 30
+      highFreqEnergy > 40; // High frequency emphasis (s sounds, emphasis)
+
+    return {
+      avgFrequency,
+      amplitude,
+      speechEnergy,
+      highFreqEnergy,
+      isActive,
+      isEmphasis,
+      shouldVibrate: isActive && window.buttplugIntegration?.isEnabled,
+    };
+  }
+
+  /**
+   * Sync vibration intensity with audio patterns
+   * @param {Object} patterns - Audio pattern characteristics
+   */
+  async syncVibrationWithAudio(patterns) {
+    if (
+      !window.buttplugIntegration?.isConnected ||
+      window.buttplugIntegration.devices.length === 0
+    ) {
+      return;
+    }
+
+    // PEAKED: Wider dynamic range with higher peaks
+    // Base intensity from speech energy (0.1 - 0.55 range)
+    let targetIntensity = 0.1 + (patterns.speechEnergy / 255) * 0.45;
+
+    // PEAKED: Stronger intonation boost for dramatic pitch changes
+    const intonationBoost = (patterns.avgFrequency / 255) * 0.25;
+    targetIntensity += intonationBoost;
+
+    // PEAKED: Higher volume/amplitude sensitivity
+    const volumeBoost = (patterns.amplitude / 100) * 0.3;
+    targetIntensity += volumeBoost;
+
+    // PEAKED: Much stronger emphasis boost for dramatic peaks
+    if (patterns.isEmphasis) {
+      targetIntensity = Math.min(0.95, targetIntensity + 0.5);
+    }
+
+    // CRITICAL: Check if current text contains triggers - MAXIMUM INTENSITY
+    const isTriggerActive =
+      this.currentText &&
+      this.detectTriggersInText(
+        this.currentText,
+        window.chatCore?.allTriggers || [],
+      ).length > 0;
+
+    if (isTriggerActive) {
+      // TRIGGER BOOST: Hit hardest when triggers are spoken
+      targetIntensity = Math.max(targetIntensity, 0.95); // 95% minimum for triggers
+      console.log(
+        "🔥 Trigger vibration boost active:",
+        targetIntensity.toFixed(2),
+      );
+    }
+
+    // PEAKED: Minimal smoothing for faster, sharper changes
+    const isIncreasing = targetIntensity > this.lastVibrationIntensity;
+    const smoothingFactor = isIncreasing ? 0.7 : 0.4; // Very fast ramp-up, faster decay
+    const smoothedIntensity =
+      this.lastVibrationIntensity * (1 - smoothingFactor) +
+      targetIntensity * smoothingFactor;
+
+    // PEAKED: Much smaller threshold for very responsive, sharp updates
+    if (Math.abs(smoothedIntensity - this.lastVibrationIntensity) > 0.01) {
+      this.lastVibrationIntensity = smoothedIntensity;
+
+      // Vibrate all devices with calculated intensity
+      for (const device of window.buttplugIntegration.devices) {
+        if (device.vibrateAttributes && device.vibrateAttributes.length > 0) {
+          try {
+            await device.vibrate(smoothedIntensity);
+          } catch (error) {
+            // Ignore vibration errors during rapid updates
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Stop buttplug vibration
+   */
+  async stopButtplugVibration() {
+    try {
+      if (
+        window.buttplugIntegration &&
+        window.buttplugIntegration.isConnected
+      ) {
+        const device = window.buttplugIntegration.currentDevice;
+        if (device) {
+          await device.vibrate(0);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to stop vibration:", error);
+    }
+  }
+
   setVolume(volume) {
     this.volume = Math.max(0, Math.min(1, volume));
   }
@@ -1553,15 +2027,21 @@ class TextToSpeechSystem {
   }
 
   setSpeed(speed) {
-    // For Web Speech API voices, store speed setting
-    this.speed = Math.max(0.1, Math.min(10, speed));
+    // Store speed setting and apply to audio element
+    this.speed = Math.max(0.1, Math.min(2.0, speed)); // Limit range 0.1-2.0
     console.log("⚡ TTS speed set to:", this.speed);
 
-    // Note: TTS Express speed is controlled server-side
-    if (!this.useTTSExpress) {
+    // Apply immediately to current audio if playing
+    if (this.currentAudio) {
+      this.currentAudio.playbackRate = this.speed;
+      console.log("⚡ Applied speed to current audio:", this.speed);
+    }
+
+    // Note: Speed is applied via playbackRate for both Kokoro and Web Speech
+    if (!this.useKokoro) {
       console.log("🎤 Web Speech API speed updated");
     } else {
-      console.log("🎤 TTS Express speed sent with request");
+      console.log("🎤 Kokoro TTS speed updates require server configuration");
     }
   }
 
@@ -1582,9 +2062,9 @@ class TextToSpeechSystem {
     return this.currentVoice;
   }
 
-  setUseTTSExpress(useTTSExpress) {
-    this.useTTSExpress = useTTSExpress;
-    console.log("🎤 TTS Express:", useTTSExpress ? "ENABLED" : "DISABLED");
+  setUseKokoro(useKokoro) {
+    this.useKokoro = useKokoro;
+    console.log("🎤 Kokoro TTS:", useKokoro ? "ENABLED" : "DISABLED");
   }
 
   getAvailableVoices() {
@@ -1605,7 +2085,7 @@ class TextToSpeechSystem {
 
     console.log(
       "🎤 Processing AI response for TTS:",
-      message.substring(0, 50) + "..."
+      message.substring(0, 50) + "...",
     );
     this.speak(message);
   }
@@ -1668,7 +2148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     getSelectedVoices: () => window.ttsSystem.selectedVoices,
 
     // Voice management and validation
-    setUseTTSExpress: (use) => window.ttsSystem.setUseTTSExpress(use),
+    setUseKokoro: (use) => window.ttsSystem.setUseKokoro(use),
     getAvailableVoices: () => window.ttsSystem.getAvailableVoices(), // Returns FEMALE voices only
     getFemaleVoices: () => window.ttsSystem.getFemaleVoices(), // Explicit female voice getter
     validateVoiceCombination: (voiceString) =>
@@ -1691,7 +2171,7 @@ document.addEventListener("DOMContentLoaded", () => {
         isPlaying: window.ttsSystem.isPlaying,
         currentVoice: window.ttsSystem.currentVoice,
         selectedVoices: window.ttsSystem.selectedVoices,
-        useTTSExpress: window.ttsSystem.useTTSExpress,
+        useKokoro: window.ttsSystem.useKokoro,
         socketConnected: window.ttsSystem.socket?.connected,
       });
       console.log("Queue Status:", {

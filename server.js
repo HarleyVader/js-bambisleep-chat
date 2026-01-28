@@ -11,10 +11,10 @@ const ENV = require("./config/env");
 
 // Legacy config object for backward compatibility
 const config = {
-  TTS_EXPRESS_URL: ENV.TTS_EXPRESS.URL,
-  TTS_EXPRESS_DEFAULT_VOICE: ENV.TTS_EXPRESS.DEFAULT_VOICE,
-  TTS_EXPRESS_DEFAULT_MODEL: ENV.TTS_EXPRESS.DEFAULT_MODEL,
-  TTS_TIMEOUT: ENV.TTS_EXPRESS.TIMEOUT,
+  KOKORO_API_URL: ENV.KOKORO.URL,
+  KOKORO_API_KEY: ENV.KOKORO.API_KEY,
+  KOKORO_DEFAULT_VOICE: ENV.KOKORO.DEFAULT_VOICE,
+  TTS_TIMEOUT: ENV.KOKORO.TIMEOUT,
 };
 
 // Comprehensive Environment Variable Validation System
@@ -45,22 +45,17 @@ class EnvironmentValidator {
         { name: "SESSION_TIMEOUT_MINUTES", default: 15, type: "number" },
       ],
 
-      // TTS Express Server configurations
-      ttsExpress: [
-        { name: "TTS_EXPRESS_HOST_PRODUCTION", required: false, type: "host" },
-        { name: "TTS_EXPRESS_HOST_DEVELOPMENT", required: false, type: "host" },
-        { name: "TTS_EXPRESS_PORT", default: 8880, type: "port" },
+      // TTS (Kokoro) configurations
+      kokoro: [
+        { name: "KOKORO_HOST_PRODUCTION", required: false, type: "host" },
+        { name: "KOKORO_HOST_DEVELOPMENT", required: false, type: "host" },
+        { name: "KOKORO_PORT", default: 8880, type: "port" },
         {
-          name: "TTS_EXPRESS_DEFAULT_VOICE",
-          default: "af_bella",
+          name: "KOKORO_DEFAULT_VOICE",
+          default: "af_sky+af_bella",
           type: "string",
         },
-        {
-          name: "TTS_EXPRESS_DEFAULT_MODEL",
-          default: "tts_models/en/ljspeech/glow-tts",
-          type: "string",
-        },
-        { name: "TTS_TIMEOUT", default: 15000, type: "number" },
+        { name: "TTS_TIMEOUT", default: 300000, type: "number" },
       ],
 
       // Application configurations
@@ -81,7 +76,7 @@ class EnvironmentValidator {
     // Validate each category
     this.validateCategory("optional", "Basic Configuration");
     this.validateCategory("lmStudio", "LM Studio AI Configuration");
-    this.validateCategory("ttsExpress", "TTS Express Server Configuration");
+    this.validateCategory("kokoro", "Kokoro TTS Configuration");
     this.validateCategory("application", "Application Configuration");
 
     // Service-specific validation
@@ -174,8 +169,8 @@ class EnvironmentValidator {
     // LM Studio service validation
     this.validateLMStudioConfig();
 
-    // TTS Express service validation
-    this.validateTTSExpressConfig();
+    // Kokoro TTS service validation
+    this.validateKokoroConfig();
   }
 
   validateLMStudioConfig() {
@@ -205,37 +200,37 @@ class EnvironmentValidator {
     }
   }
 
-  validateTTSExpressConfig() {
+  validateKokoroConfig() {
     const isProduction = process.env.NODE_ENV === "production";
     const hostVar = isProduction
-      ? "TTS_EXPRESS_HOST_PRODUCTION"
-      : "TTS_EXPRESS_HOST_DEVELOPMENT";
+      ? "KOKORO_HOST_PRODUCTION"
+      : "KOKORO_HOST_DEVELOPMENT";
     const host = process.env[hostVar];
 
     if (!host) {
       this.warnings.push({
-        category: "ttsExpress",
+        category: "kokoro",
         variable: hostVar,
-        message: `TTS Express host not configured for ${process.env.NODE_ENV} environment`,
-        suggestion: `Set ${hostVar} in .env file to enable TTS features`,
+        message: `Kokoro TTS host not configured for ${process.env.NODE_ENV} environment`,
+        suggestion: `Set ${hostVar} in .env file to enable advanced TTS features`,
       });
     }
 
     // Validate voice configuration
-    const voice = process.env.TTS_EXPRESS_DEFAULT_VOICE;
-    if (voice && !this.isValidTTSVoice(voice)) {
+    const voice = process.env.KOKORO_DEFAULT_VOICE;
+    if (voice && !this.isValidKokoroVoice(voice)) {
       this.warnings.push({
-        category: "ttsExpress",
-        variable: "TTS_EXPRESS_DEFAULT_VOICE",
+        category: "kokoro",
+        variable: "KOKORO_DEFAULT_VOICE",
         message: `Unrecognized voice format: ${voice}`,
         suggestion:
-          'Use format like "af_bella" or other valid TTS Express voice names',
+          'Use format like "af_bella" or "af_sky+af_bella" for voice mixing',
       });
     }
   }
 
-  isValidTTSVoice(voice) {
-    // Basic voice validation for TTS voice format
+  isValidKokoroVoice(voice) {
+    // Basic voice validation for Kokoro format
     const validVoicePattern = /^[a-z]{2}_[a-z]+(\+[a-z]{2}_[a-z]+)*$/;
     return validVoicePattern.test(voice);
   }
@@ -277,17 +272,17 @@ class EnvironmentValidator {
       warnings: this.warnings,
       servicesAvailable: {
         lmStudio: this.isServiceConfigured("lmStudio"),
-        ttsExpress: this.isServiceConfigured("ttsExpress"),
+        kokoro: this.isServiceConfigured("kokoro"),
       },
     };
 
     // Exit if critical errors exist
     if (this.errors.length > 0) {
       console.error(
-        "💥 Configuration validation failed. Please fix the errors above."
+        "💥 Configuration validation failed. Please fix the errors above.",
       );
       console.error(
-        "📖 Refer to .env.example for proper configuration format."
+        "📖 Refer to .env.example for proper configuration format.",
       );
       process.exit(1);
     }
@@ -305,11 +300,11 @@ class EnvironmentValidator {
           : process.env.LMS_HOST_DEVELOPMENT;
         return !!(lmsHost && process.env.LMS_PORT);
 
-      case "ttsExpress":
-        const ttsHost = isProduction
-          ? process.env.TTS_EXPRESS_HOST_PRODUCTION
-          : process.env.TTS_EXPRESS_HOST_DEVELOPMENT;
-        return !!(ttsHost && process.env.TTS_EXPRESS_PORT);
+      case "kokoro":
+        const kokoroHost = isProduction
+          ? process.env.KOKORO_HOST_PRODUCTION
+          : process.env.KOKORO_HOST_DEVELOPMENT;
+        return !!(kokoroHost && process.env.KOKORO_PORT);
 
       default:
         return false;
@@ -326,11 +321,11 @@ function validateConfiguration() {
   ENV.printSummary();
 
   const result = {
-    ttsAvailable: validationResults.ttsExpress.configured,
+    ttsAvailable: validationResults.kokoro.configured,
     lmStudioConfigured: validationResults.lms.configured,
     servicesAvailable: {
       lmStudio: validationResults.lms.configured,
-      ttsExpress: validationResults.ttsExpress.configured,
+      kokoro: validationResults.kokoro.configured,
     },
     warnings: [],
     errors: [],
@@ -341,14 +336,14 @@ function validateConfiguration() {
   // Add warnings for missing services
   if (!validationResults.lms.configured) {
     result.warnings.push(
-      "LM Studio not configured - AI chat will be unavailable"
+      "LM Studio not configured - AI chat will be unavailable",
     );
     result.warningCount++;
   }
 
-  if (!validationResults.ttsExpress.configured) {
+  if (!validationResults.kokoro.configured) {
     result.warnings.push(
-      "TTS Express not configured - voice features will be unavailable"
+      "Kokoro TTS not configured - voice features will be unavailable",
     );
     result.warningCount++;
   }
@@ -370,14 +365,14 @@ const configStatus = validateConfiguration();
 
 // Security Middleware - Content Security Policy
 app.use((req, res, next) => {
-  // Dynamically include external service hosts from ENV
-  const ttsHost = ENV.TTS_EXPRESS.HOST;
-  const ttsPort = ENV.TTS_EXPRESS.PORT;
-  const lmsHost = ENV.LMS.HOST;
-  const lmsPort = ENV.LMS.PORT;
+  // Dynamically include external service hosts
+  const kokoroHost = ENV.KOKORO.HOST || "localhost";
+  const kokoroPort = ENV.KOKORO.PORT || 8880;
+  const lmsHost = ENV.LMS.HOST || "localhost";
+  const lmsPort = ENV.LMS.PORT || 7777;
 
   // Content Security Policy for enhanced security (environment-aware)
-  const isDevelopment = ENV.isDevelopment;
+  const isDevelopment = process.env.NODE_ENV !== "production";
 
   const cspDirectives = [
     "default-src 'self'",
@@ -393,11 +388,11 @@ app.use((req, res, next) => {
   // Script sources
   if (isDevelopment) {
     cspDirectives.push(
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.socket.io cdn.jsdelivr.net localhost:* ws://localhost:*"
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.socket.io cdn.jsdelivr.net unpkg.com localhost:* ws://localhost:*",
     );
   } else {
     cspDirectives.push(
-      "script-src 'self' 'unsafe-inline' cdn.socket.io cdn.jsdelivr.net"
+      "script-src 'self' 'unsafe-inline' cdn.socket.io cdn.jsdelivr.net unpkg.com",
     );
   }
 
@@ -407,7 +402,7 @@ app.use((req, res, next) => {
     "ws:",
     "wss:",
     "https://cdn.socket.io",
-    `http://${ttsHost}:${ttsPort}`,
+    `http://${kokoroHost}:${kokoroPort}`,
     `http://${lmsHost}:${lmsPort}`,
   ];
 
@@ -428,7 +423,7 @@ app.use((req, res, next) => {
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader(
     "Permissions-Policy",
-    "microphone=(), camera=(), geolocation=(), payment=()"
+    "microphone=(), camera=(), geolocation=(), payment=()",
   );
 
   next();
@@ -480,7 +475,7 @@ class ChatHistoryManager {
     console.log(
       `📝 Added message to histories: [${types.join(", ")}] - "${
         messageData.message?.substring(0, 50) || "N/A"
-      }..."`
+      }..."`,
     );
     return enhancedMessage;
   }
@@ -509,7 +504,7 @@ class ChatHistoryManager {
     ];
 
     uniqueMessages.sort(
-      (a, b) => new Date(a.serverTimestamp) - new Date(b.serverTimestamp)
+      (a, b) => new Date(a.serverTimestamp) - new Date(b.serverTimestamp),
     );
 
     return limit ? uniqueMessages.slice(-limit) : uniqueMessages;
@@ -597,7 +592,7 @@ function loadOfficialTriggers() {
   } catch (error) {
     console.error(
       "CRITICAL: Failed to load official BambiSleep triggers:",
-      error
+      error,
     );
     // NO FALLBACK - Only use official triggers
     triggerWords = [];
@@ -610,7 +605,7 @@ loadOfficialTriggers();
 
 // Worker Management
 let lmWorker = null;
-let ttsExpressWorker = null;
+let kokoroWorker = null;
 let workerUsers = new Map(); // Track which users are using AI
 let collarActive = false;
 let collarText = "";
@@ -654,34 +649,32 @@ function initializeLMWorker() {
   }
 }
 
-function initializeTTSExpressWorker() {
+function initializeKokoroWorker() {
   try {
-    ttsExpressWorker = new Worker(
-      path.join(__dirname, "workers", "tts-express.js")
-    );
+    kokoroWorker = new Worker(path.join(__dirname, "workers", "kokoro.js"));
 
-    ttsExpressWorker.on("message", (msg) => {
-      handleTTSExpressWorkerMessage(msg);
+    kokoroWorker.on("message", (msg) => {
+      handleKokoroWorkerMessage(msg);
     });
 
-    ttsExpressWorker.on("error", (error) => {
-      console.error("❌ TTS Express worker error:", error);
-      ttsExpressWorker = null; // Mark as unavailable
+    kokoroWorker.on("error", (error) => {
+      console.error("❌ Kokoro TTS worker error:", error);
+      kokoroWorker = null; // Mark as unavailable
     });
 
-    ttsExpressWorker.on("exit", (code) => {
-      console.log(`❌ TTS Express worker exited with code ${code}`);
-      ttsExpressWorker = null; // Mark as unavailable
+    kokoroWorker.on("exit", (code) => {
+      console.log(`❌ Kokoro TTS worker exited with code ${code}`);
+      kokoroWorker = null; // Mark as unavailable
       if (code !== 0) {
-        console.log("🔄 Restarting TTS Express worker in 5 seconds...");
-        setTimeout(initializeTTSExpressWorker, 5000);
+        console.log("🔄 Restarting Kokoro TTS worker in 5 seconds...");
+        setTimeout(initializeKokoroWorker, 5000);
       }
     });
 
-    console.log("✅ TTS Express worker initialized");
+    console.log("✅ Kokoro TTS worker initialized");
   } catch (error) {
-    console.error("❌ Failed to initialize TTS Express worker:", error);
-    ttsExpressWorker = null; // Ensure it's marked as unavailable
+    console.error("❌ Failed to initialize Kokoro TTS worker:", error);
+    kokoroWorker = null; // Ensure it's marked as unavailable
   }
 }
 
@@ -705,19 +698,19 @@ function sendToLMWorker(message, fallbackCallback = null) {
   return false;
 }
 
-function sendToTTSExpressWorker(message, fallbackCallback = null) {
-  if (ttsExpressWorker) {
+function sendToKokoroWorker(message, fallbackCallback = null) {
+  if (kokoroWorker) {
     try {
-      ttsExpressWorker.postMessage(message);
+      kokoroWorker.postMessage(message);
       return true;
     } catch (error) {
-      console.error("❌ Failed to send message to TTS Express worker:", error);
-      ttsExpressWorker = null;
+      console.error("❌ Failed to send message to Kokoro worker:", error);
+      kokoroWorker = null;
     }
   }
 
   // Worker unavailable - handle gracefully
-  console.warn("⚠️ TTS Express worker unavailable, using fallback");
+  console.warn("⚠️ Kokoro TTS worker unavailable, using fallback");
   if (fallbackCallback) {
     fallbackCallback();
   }
@@ -793,7 +786,7 @@ function handleLMWorkerMessage(msg) {
 
     case "health_response":
       console.log(
-        `Worker health: ${msg.healthy}, sessions: ${msg.sessionCount}`
+        `Worker health: ${msg.healthy}, sessions: ${msg.sessionCount}`,
       );
       break;
 
@@ -809,8 +802,8 @@ function handleLMWorkerMessage(msg) {
   }
 }
 
-// Handle messages from TTS Express worker
-function handleTTSExpressWorkerMessage(msg) {
+// Handle messages from Kokoro TTS worker
+function handleKokoroWorkerMessage(msg) {
   switch (msg.type) {
     case "tts_success":
       // Send TTS audio to specific socket
@@ -819,22 +812,16 @@ function handleTTSExpressWorkerMessage(msg) {
           audioData: msg.audioData,
           format: msg.format,
           voice: msg.voice,
-          model: msg.model,
           text: msg.text,
           size: msg.size,
-          cached: msg.cached,
           timestamp: msg.timestamp,
         });
       }
-      console.log(
-        `✅ TTS generated for ${msg.socketId}: ${msg.size} bytes${
-          msg.cached ? " (cached)" : ""
-        }`
-      );
+      console.log(`✅ TTS generated for ${msg.socketId}: ${msg.size} bytes`);
       break;
 
     case "error":
-      console.error("TTS Express error:", msg.error);
+      console.error("Kokoro TTS error:", msg.error);
       if (msg.socketId) {
         io.to(msg.socketId).emit("tts-error", {
           error: msg.error,
@@ -844,26 +831,18 @@ function handleTTSExpressWorkerMessage(msg) {
       break;
 
     case "health_response":
-      console.log(`🎤 TTS Express health: ${msg.healthy}, URL: ${msg.url}`);
+      console.log(`🎤 Kokoro TTS health: ${msg.healthy}, URL: ${msg.url}`);
       break;
 
     case "voice_updated":
       console.log(`🎤 Voice updated to: ${msg.voice}`);
-      break;
-
-    case "voices_list":
-      console.log(`🎤 Available voices: ${msg.voices?.length || 0}`);
-      break;
-
-    case "models_list":
-      console.log(`🎤 Available models: ${msg.models?.length || 0}`);
       break;
   }
 }
 
 // Initialize workers on startup
 initializeLMWorker();
-initializeTTSExpressWorker();
+initializeKokoroWorker();
 
 // Setup TTS Routes with configuration validation
 setupTTSRoutes(app, configStatus);
@@ -881,7 +860,7 @@ io.on("connection", (socket) => {
   uniqueUsers.add(userKey);
 
   console.log(
-    `User connected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`
+    `User connected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`,
   );
   console.log(`🔍 New connection ID: ${socket.id}`);
   console.log(`🔍 Client IP: ${clientIP}`);
@@ -930,7 +909,7 @@ io.on("connection", (socket) => {
           triggers: [],
           isError: true,
         });
-      }
+      },
     );
   });
 
@@ -944,22 +923,22 @@ io.on("connection", (socket) => {
         socketId: socket.id,
       });
       console.log(
-        `Updated triggers for ${socket.id}: ${data.triggers.join(", ")}`
+        `Updated triggers for ${socket.id}: ${data.triggers.join(", ")}`,
       );
     }
   });
 
   // Handle TTS requests
   socket.on("tts-request", (data) => {
-    if (!ttsExpressWorker) {
+    if (!kokoroWorker) {
       socket.emit("tts-error", {
-        error: "TTS Express worker not available",
+        error: "Kokoro TTS worker not available",
         timestamp: new Date().toISOString(),
       });
       return;
     }
 
-    const { text, voice, format, speed } = data;
+    const { text, voice, format } = data;
 
     if (!text || typeof text !== "string") {
       socket.emit("tts-error", {
@@ -975,35 +954,34 @@ io.on("connection", (socket) => {
     console.log(
       `🎤 TTS request from ${socket.id}: "${text.substring(
         0,
-        50
-      )}..." -> cleaned: "${cleanedText.substring(0, 50)}..."`
+        50,
+      )}..." -> cleaned: "${cleanedText.substring(0, 50)}..."`,
     );
 
-    // Send to TTS Express worker
-    sendToTTSExpressWorker(
+    // Send to Kokoro worker
+    sendToKokoroWorker(
       {
         type: "tts",
         text: cleanedText, // Send cleaned lowercase text
         voice: voice,
-        format: format || "wav",
-        speed: speed || 1.0,
+        format: format,
         socketId: socket.id,
       },
       () => {
         socket.emit("tts-error", {
           error:
-            "TTS Express service unavailable. Please check your configuration.",
+            "Kokoro TTS service unavailable. Please check your configuration.",
           timestamp: new Date().toISOString(),
         });
-      }
+      },
     );
   });
 
   // Handle voice setting updates
   socket.on("set-voice", (data) => {
-    if (!ttsExpressWorker) {
+    if (!kokoroWorker) {
       socket.emit("tts-error", {
-        error: "TTS Express worker not available",
+        error: "Kokoro TTS worker not available",
         timestamp: new Date().toISOString(),
       });
       return;
@@ -1021,7 +999,7 @@ io.on("connection", (socket) => {
 
     console.log(`🎤 Voice update from ${socket.id}: ${voice}`);
 
-    sendToTTSExpressWorker({
+    sendToKokoroWorker({
       type: "set_voice",
       voice: voice,
       socketId: socket.id,
@@ -1041,7 +1019,7 @@ io.on("connection", (socket) => {
     });
 
     console.log(
-      `Collar activated for ${socket.id}: "${collarText.substring(0, 30)}..."`
+      `Collar activated for ${socket.id}: "${collarText.substring(0, 30)}..."`,
     );
 
     // Notify client
@@ -1079,7 +1057,7 @@ io.on("connection", (socket) => {
           message: "LM Studio worker not available",
           timestamp: new Date().toISOString(),
         });
-      }
+      },
     );
 
     if (success) {
@@ -1110,7 +1088,7 @@ io.on("connection", (socket) => {
         const otherAgent = s.handshake.headers["user-agent"] || "unknown";
         const otherKey = `${otherIP}-${otherAgent.substring(0, 50)}`;
         return otherKey === userKey;
-      }
+      },
     );
 
     if (!hasOtherConnections) {
@@ -1118,7 +1096,7 @@ io.on("connection", (socket) => {
     }
 
     console.log(
-      `User disconnected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`
+      `User disconnected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`,
     );
     console.log(`🔍 Disconnected ID: ${socket.id}`);
 
@@ -1243,7 +1221,7 @@ app.post("/api/chat/clear/:type", (req, res) => {
   });
 
   console.log(
-    `🗑️ Chat history cleared - Type: ${type}, Messages: ${originalCount}`
+    `🗑️ Chat history cleared - Type: ${type}, Messages: ${originalCount}`,
   );
 });
 
@@ -1273,7 +1251,7 @@ app.get("/api/triggers/category/:category", (req, res) => {
   }
 
   const categoryTriggers = triggerData.triggers.filter(
-    (trigger) => trigger.category === category
+    (trigger) => trigger.category === category,
   );
 
   res.json({
@@ -1295,7 +1273,7 @@ app.get("/api/triggers/details/:triggerName", (req, res) => {
   }
 
   const trigger = triggerData.triggers.find(
-    (t) => t.name.toLowerCase() === triggerName.toLowerCase()
+    (t) => t.name.toLowerCase() === triggerName.toLowerCase(),
   );
 
   if (trigger) {
@@ -1353,7 +1331,7 @@ app.post("/api/chat", (req, res) => {
         clearTimeout(global.pendingAPIRequests[tempSocketId].timeout);
         delete global.pendingAPIRequests[tempSocketId];
       }
-    }
+    },
   );
 
   if (!success) {
@@ -1407,17 +1385,17 @@ app.get("/api/collar", (req, res) => {
 
 // Setup TTS Routes with configuration validation
 function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
-  // Check if TTS Express API is configured
-  if (!config.TTS_EXPRESS_URL || !ttsExpressWorker || !configStatus.ttsAvailable) {
+  // Check if Kokoro API is configured
+  if (!config.KOKORO_API_URL || !kokoroWorker || !configStatus.ttsAvailable) {
     console.warn(
-      "🎤 TTS Express API or worker not configured, TTS routes will return 503"
+      "🎤 Kokoro API or worker not configured, TTS routes will return 503",
     );
 
     // Return service unavailable for all TTS endpoints
     app.get("/api/tts/voices", (req, res) => {
       res.status(503).json({
         error: "TTS service not configured",
-        message: "TTS Express worker is not available or properly configured.",
+        message: "Kokoro TTS worker is not available or properly configured.",
         fallback: "Web Speech API may be available in browser",
       });
     });
@@ -1425,16 +1403,16 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
     app.get("/api/tts", (req, res) => {
       res.status(503).json({
         error: "TTS service not configured",
-        message: "TTS Express worker is not available or properly configured.",
-        fallback: "Please use Web Speech API or configure TTS Express",
+        message: "Kokoro TTS worker is not available or properly configured.",
+        fallback: "Please use Web Speech API or configure Kokoro TTS",
       });
     });
 
     app.post("/api/tts", (req, res) => {
       res.status(503).json({
         error: "TTS service not configured",
-        message: "TTS Express worker is not available or properly configured.",
-        fallback: "Please use Web Speech API or configure TTS Express",
+        message: "Kokoro TTS worker is not available or properly configured.",
+        fallback: "Please use Web Speech API or configure Kokoro TTS",
       });
     });
 
@@ -1444,8 +1422,8 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
   // Get voice list
   app.get("/api/tts/voices", async (req, res) => {
     try {
-      // All female voices from TTS Express Server
-      // Reference: https://github.com/BambiSleepChurch/tts-express-server
+      // All female voices from Kokoro-FastAPI
+      // Reference: https://github.com/remsky/Kokoro-FastAPI
       const femaleVoices = [
         "af_alloy",
         "af_aoede",
@@ -1461,7 +1439,7 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
         "af_sky",
       ];
 
-      // Generate all possible combinations (maximum 2 voices per TTS Express docs)
+      // Generate all possible combinations (maximum 2 voices per Kokoro docs)
       const voiceCombinations = [];
 
       // Add individual voices
@@ -1497,12 +1475,12 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
       res.json({
         voices: voiceCombinations,
         femaleOnly: femaleVoices,
-        defaultVoice: config.TTS_EXPRESS_DEFAULT_VOICE,
+        defaultVoice: config.KOKORO_DEFAULT_VOICE,
         description:
-          "Available TTS Express female voices. BambiSleep enforces female-only voices. Use + to combine up to 2 voices.",
+          "Available Kokoro-FastAPI female voices. BambiSleep enforces female-only voices. Use + to combine up to 2 voices.",
         maxCombination: 2,
         language: "en",
-        tts_server: config.TTS_EXPRESS_URL,
+        kokoro_server: config.KOKORO_API_URL,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
@@ -1517,7 +1495,7 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
   // Generate speech (GET method for compatibility)
   app.get("/api/tts", async (req, res) => {
     const text = req.query.text;
-    const voice = req.query.voice || config.TTS_EXPRESS_DEFAULT_VOICE;
+    const voice = req.query.voice || config.KOKORO_DEFAULT_VOICE;
 
     if (typeof text !== "string" || text.trim() === "") {
       return res
@@ -1535,7 +1513,7 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
   // Generate speech (POST method)
   app.post("/api/tts", async (req, res) => {
     const { text, voice, format } = req.body;
-    const selectedVoice = voice || config.TTS_EXPRESS_DEFAULT_VOICE;
+    const selectedVoice = voice || config.KOKORO_DEFAULT_VOICE;
 
     if (!text || typeof text !== "string") {
       return res.status(400).json({ error: "Invalid text input" });
@@ -1548,7 +1526,7 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
     }
   });
 
-  console.log("🎤 TTS routes configured with TTS Express integration");
+  console.log("🎤 TTS routes configured with Kokoro integration");
 }
 
 // Clean text for TTS processing - mirrors client-side cleanTextForTTS
@@ -1588,8 +1566,8 @@ function cleanTextForTTS(text) {
   return text.toLowerCase();
 }
 
-// Generate TTS audio using TTS Express worker
-async function generateTTSAudio(text, voice, res, format = "wav") {
+// Generate TTS audio using Kokoro worker
+async function generateTTSAudio(text, voice, res, format = "mp3") {
   return new Promise((resolve, reject) => {
     // Generate a temporary socket ID for API requests
     const tempSocketId = `api_tts_${Date.now()}_${Math.random()
@@ -1602,15 +1580,15 @@ async function generateTTSAudio(text, voice, res, format = "wav") {
     console.log(
       `🎤 API TTS request: "${text.substring(
         0,
-        50
+        50,
       )}..." -> cleaned: "${cleanedText.substring(
         0,
-        50
-      )}..." with voice: ${voice}`
+        50,
+      )}..." with voice: ${voice}`,
     );
 
-    // Send to TTS Express worker
-    const success = sendToTTSExpressWorker(
+    // Send to Kokoro worker
+    const success = sendToKokoroWorker(
       {
         type: "tts",
         text: cleanedText, // Send cleaned lowercase text
@@ -1621,10 +1599,10 @@ async function generateTTSAudio(text, voice, res, format = "wav") {
       () => {
         reject(
           new Error(
-            "TTS Express worker unavailable. Please check your configuration."
-          )
+            "Kokoro TTS worker unavailable. Please check your configuration.",
+          ),
         );
-      }
+      },
     );
 
     if (!success) {
@@ -1637,8 +1615,8 @@ async function generateTTSAudio(text, voice, res, format = "wav") {
     }, config.TTS_TIMEOUT);
 
     // Listen for worker response
-    const originalHandler = handleTTSExpressWorkerMessage;
-    handleTTSExpressWorkerMessage = (msg) => {
+    const originalHandler = handleKokoroWorkerMessage;
+    handleKokoroWorkerMessage = (msg) => {
       if (msg.socketId === tempSocketId) {
         clearTimeout(timeout);
 
@@ -1646,7 +1624,7 @@ async function generateTTSAudio(text, voice, res, format = "wav") {
           // Convert base64 to buffer and send as audio
           const audioBuffer = Buffer.from(msg.audioData, "base64");
 
-          res.setHeader("Content-Type", "audio/wav");
+          res.setHeader("Content-Type", "audio/mpeg");
           res.setHeader("Cache-Control", "no-cache");
           res.setHeader("Content-Length", audioBuffer.length);
 
@@ -1656,7 +1634,7 @@ async function generateTTSAudio(text, voice, res, format = "wav") {
           reject(new Error(msg.error));
         }
 
-        handleTTSExpressWorkerMessage = originalHandler;
+        handleKokoroWorkerMessage = originalHandler;
       } else {
         originalHandler(msg);
       }
@@ -1683,302 +1661,32 @@ function handleTTSError(error, res) {
   }
 }
 
-// TTS Health check endpoint (enhanced) - Proxies to TTS Express Server
+// TTS Health check endpoint (enhanced) - No actual health check, just service info
 app.get("/api/tts/health", async (req, res) => {
-  try {
-    // Attempt to check actual TTS Express health
-    if (ENV.TTS_EXPRESS.isConfigured) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const healthResponse = await fetch(`${ENV.TTS_EXPRESS.URL}/health`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      if (healthResponse.ok) {
-        const healthData = await healthResponse.json();
-        res.json({
-          healthy: healthData.status === "healthy",
-          service: "TTS Express Server",
-          url: ENV.TTS_EXPRESS.URL,
-          defaultVoice: config.TTS_EXPRESS_DEFAULT_VOICE,
-          defaultModel: config.TTS_EXPRESS_DEFAULT_MODEL,
-          timeout: config.TTS_TIMEOUT,
-          workerAvailable: ttsExpressWorker ? true : false,
-          upstream: healthData,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-    }
-  } catch (error) {
-    // Fall through to basic response
+  // Determine correct Kokoro host based on NODE_ENV
+  let kokoroHost;
+  if (process.env.NODE_ENV === "production") {
+    kokoroHost =
+      process.env.KOKORO_HOST_PRODUCTION ||
+      process.env.KOKORO_HOST_DEVELOPMENT ||
+      "localhost";
+  } else {
+    kokoroHost =
+      process.env.KOKORO_HOST_DEVELOPMENT ||
+      process.env.KOKORO_HOST_PRODUCTION ||
+      "localhost";
   }
-  
+  const kokoroPort = process.env.KOKORO_PORT || 8880;
+
   res.json({
-    healthy: ttsExpressWorker ? true : false,
-    service: "TTS Express Server",
-    url: ENV.TTS_EXPRESS.URL,
-    defaultVoice: config.TTS_EXPRESS_DEFAULT_VOICE,
-    defaultModel: config.TTS_EXPRESS_DEFAULT_MODEL,
+    healthy: kokoroWorker ? true : false,
+    service: "Kokoro TTS",
+    url: `http://${kokoroHost}:${kokoroPort}`,
+    config: config.KOKORO_API_URL,
+    defaultVoice: config.KOKORO_DEFAULT_VOICE,
     timeout: config.TTS_TIMEOUT,
-    workerAvailable: ttsExpressWorker ? true : false,
+    workerAvailable: kokoroWorker ? true : false,
     timestamp: new Date().toISOString(),
-  });
-});
-
-// TTS Models endpoint - Proxies to TTS Express Server
-app.get("/api/tts/models", async (req, res) => {
-  try {
-    if (ENV.TTS_EXPRESS.isConfigured) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const modelsResponse = await fetch(`${ENV.TTS_EXPRESS.URL}/api/tts/models`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      if (modelsResponse.ok) {
-        const modelsData = await modelsResponse.json();
-        res.json(modelsData);
-        return;
-      }
-    }
-  } catch (error) {
-    console.error("Error fetching TTS models:", error.message);
-  }
-  
-  // Fallback: return default models
-  res.json({
-    total: 5,
-    models: [
-      { name: "tts_models/en/ljspeech/glow-tts", description: "Glow-TTS model trained on LJ Speech dataset", language: "en", quality: "high", speed: "medium" },
-      { name: "tts_models/en/ljspeech/tacotron2-DDC", description: "Tacotron2 model with DDC vocoder", language: "en", quality: "very_high", speed: "slow" },
-      { name: "tts_models/multilingual/multi-dataset/xtts_v2", description: "XTTS v2 - Multilingual with voice cloning support", language: "multilingual", quality: "high", speed: "fast" },
-      { name: "tts_models/en/ljspeech/speedyspeech", description: "SpeedySpeech - Fast inference TTS", language: "en", quality: "medium", speed: "very_fast" },
-      { name: "tts_models/en/ljspeech/vits", description: "VITS model - High quality with fast synthesis", language: "en", quality: "high", speed: "fast" }
-    ],
-    categories: { singleSpeaker: 4, multiSpeaker: 1, multiLingual: 1 }
-  });
-});
-
-// TTS Speak endpoint - Stream audio (GET)
-app.get("/api/tts/speak", async (req, res) => {
-  try {
-    const { text, file, voice = config.TTS_EXPRESS_DEFAULT_VOICE, speed = "1.0" } = req.query;
-    
-    if (!ENV.TTS_EXPRESS.isConfigured) {
-      return res.status(503).json({ error: "TTS Express Server not configured" });
-    }
-    
-    // Build URL to proxy to TTS Express
-    const url = new URL(`${ENV.TTS_EXPRESS.URL}/api/tts/speak`);
-    if (text) url.searchParams.set("text", text);
-    if (file) url.searchParams.set("file", file);
-    url.searchParams.set("voice", voice);
-    url.searchParams.set("speed", speed);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-    
-    const response = await fetch(url.toString(), {
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).json({ error: errorText });
-    }
-    
-    // Stream the audio response
-    res.setHeader("Content-Type", "audio/wav");
-    res.setHeader("Cache-Control", "public, max-age=31536000");
-    
-    const reader = response.body.getReader();
-    const pump = async () => {
-      const { done, value } = await reader.read();
-      if (done) {
-        res.end();
-        return;
-      }
-      res.write(Buffer.from(value));
-      await pump();
-    };
-    await pump();
-  } catch (error) {
-    console.error("TTS speak error:", error.message);
-    if (!res.headersSent) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-});
-
-// TTS Generate URL endpoint - Get URL for audio file
-app.get("/api/tts/generate-url", async (req, res) => {
-  try {
-    const { text, voice = config.TTS_EXPRESS_DEFAULT_VOICE, speed = "1.0" } = req.query;
-    
-    if (!text) {
-      return res.status(400).json({ error: "Text parameter required" });
-    }
-    
-    if (!ENV.TTS_EXPRESS.isConfigured) {
-      return res.status(503).json({ error: "TTS Express Server not configured" });
-    }
-    
-    const url = new URL(`${ENV.TTS_EXPRESS.URL}/api/tts/generate-url`);
-    url.searchParams.set("text", text);
-    url.searchParams.set("voice", voice);
-    url.searchParams.set("speed", speed);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    
-    const response = await fetch(url.toString(), {
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).json({ error: errorText });
-    }
-    
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error("TTS generate-url error:", error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// TTS Generate endpoint (POST) - Proxies to TTS Express Server
-app.post("/api/tts/generate", async (req, res) => {
-  try {
-    const { text, model, voice, language = "en", speed = 1.0 } = req.body;
-    
-    if (!text || typeof text !== "string" || text.trim().length === 0) {
-      return res.status(400).json({
-        error: "Invalid input",
-        message: "Text parameter is required and must be non-empty"
-      });
-    }
-    
-    if (text.length > 1000) {
-      return res.status(400).json({
-        error: "Text too long",
-        message: "Text must be 1000 characters or less"
-      });
-    }
-    
-    if (!ENV.TTS_EXPRESS.isConfigured) {
-      return res.status(503).json({ error: "TTS Express Server not configured" });
-    }
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-    
-    const response = await fetch(`${ENV.TTS_EXPRESS.URL}/api/tts/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: cleanTextForTTS(text),
-        model: model || config.TTS_EXPRESS_DEFAULT_MODEL,
-        voice: voice || config.TTS_EXPRESS_DEFAULT_VOICE,
-        language,
-        speed
-      }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).json({ error: errorText });
-    }
-    
-    const data = await response.json();
-    res.status(201).json(data);
-  } catch (error) {
-    console.error("TTS generate error:", error.message);
-    res.status(500).json({
-      error: "Generation failed",
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// TTS Status endpoint - Proxies to TTS Express Server
-app.get("/api/status/tts", async (req, res) => {
-  try {
-    if (ENV.TTS_EXPRESS.isConfigured) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const statusResponse = await fetch(`${ENV.TTS_EXPRESS.URL}/api/status/tts`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      if (statusResponse.ok) {
-        const statusData = await statusResponse.json();
-        res.json(statusData);
-        return;
-      }
-    }
-  } catch (error) {
-    console.error("Error fetching TTS status:", error.message);
-  }
-  
-  // Fallback status
-  res.json({
-    status: ttsExpressWorker ? "operational" : "unavailable",
-    timestamp: new Date().toISOString(),
-    components: {
-      api: "running",
-      worker: ttsExpressWorker ? "available" : "unavailable"
-    },
-    capabilities: {
-      textToSpeech: true,
-      multiLanguage: true,
-      multiSpeaker: true,
-      voiceCloning: true
-    }
-  });
-});
-
-// TTS Metrics endpoint - Proxies to TTS Express Server
-app.get("/api/status/metrics", async (req, res) => {
-  try {
-    if (ENV.TTS_EXPRESS.isConfigured) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const metricsResponse = await fetch(`${ENV.TTS_EXPRESS.URL}/api/status/metrics`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      if (metricsResponse.ok) {
-        const metricsData = await metricsResponse.json();
-        res.json(metricsData);
-        return;
-      }
-    }
-  } catch (error) {
-    console.error("Error fetching TTS metrics:", error.message);
-  }
-  
-  // Fallback metrics
-  res.json({
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memoryUsage: process.memoryUsage(),
-    ttsWorker: ttsExpressWorker ? "active" : "inactive"
   });
 });
 
@@ -2022,16 +1730,16 @@ app.post("/api/tts/voice", (req, res) => {
     });
   }
 
-  const success = sendToTTSExpressWorker(
+  const success = sendToKokoroWorker(
     {
       type: "set_voice",
       voice: voice,
     },
     () => {
       return res.status(503).json({
-        error: "TTS Express worker not available",
+        error: "Kokoro TTS worker not available",
       });
-    }
+    },
   );
 
   if (!success) {
@@ -2117,7 +1825,7 @@ class ServerMemoryManager {
 
       if (freedResources > 0) {
         console.log(
-          `🧹 Server cache cleanup: freed ${freedResources} technical resources (user data preserved)`
+          `🧹 Server cache cleanup: freed ${freedResources} technical resources (user data preserved)`,
         );
       }
     } catch (error) {
@@ -2245,7 +1953,7 @@ class GitPullDetector {
 
     if (!this.lastCommitHash) {
       console.warn(
-        "⚠️ Git pull detection disabled - not a git repository or git unavailable"
+        "⚠️ Git pull detection disabled - not a git repository or git unavailable",
       );
       return;
     }
@@ -2253,8 +1961,8 @@ class GitPullDetector {
     console.log(
       `🔍 Git pull detection active - monitoring commit: ${this.lastCommitHash.substring(
         0,
-        7
-      )}`
+        7,
+      )}`,
     );
 
     // Check every 30 seconds for changes
@@ -2316,8 +2024,8 @@ class GitPullDetector {
     if (lmWorker) {
       lmWorker.terminate();
     }
-    if (ttsExpressWorker) {
-      ttsExpressWorker.terminate();
+    if (kokoroWorker) {
+      kokoroWorker.terminate();
     }
 
     // Cleanup memory manager
@@ -2358,13 +2066,12 @@ process.on("SIGINT", () => {
 // Start server
 const PORT = ENV.SERVER.PORT;
 server.listen(PORT, () => {
+  console.log(`🚀 BambiSleep Chat server running on http://localhost:${PORT}`);
   console.log(
-    `🚀 BambiSleep Chat server running on http://${ENV.SERVER.HOST}:${PORT}`
-  );
-  console.log(
-    `📁 Serving static files from: ${path.join(__dirname, "public")}`
+    `📁 Serving static files from: ${path.join(__dirname, "public")}`,
   );
   console.log(`🎯 Environment: ${ENV.NODE_ENV}`);
+  console.log(`⚡ Vite Dev: http://localhost:${ENV.SERVER.VITE_PORT}`);
   console.log(`🧹 Memory management: Active`);
 
   // Start git pull monitoring after server is ready
