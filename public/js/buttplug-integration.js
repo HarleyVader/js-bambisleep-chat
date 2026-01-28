@@ -394,6 +394,24 @@ class ButtplugIntegration {
     }
   }
 
+  // Stop all device vibrations
+  async stopAllDevices() {
+    // Clear all active pattern timeouts
+    for (const timeoutId of this.activePatterns.values()) {
+      clearTimeout(timeoutId);
+    }
+    this.activePatterns.clear();
+
+    // Stop all devices
+    for (const device of this.devices) {
+      try {
+        await device.stop();
+      } catch (error) {
+        console.error(`❌ Error stopping device ${device.name}:`, error);
+      }
+    }
+  }
+
   // Vibrate in sync with brainwave binaural beats
   async vibrateWithBrainwave(beatFreq) {
     if (!this.isConnected || !this.isEnabled || this.devices.length === 0) {
