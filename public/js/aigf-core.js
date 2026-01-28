@@ -106,7 +106,7 @@ class ChatCore {
           },
           code: "AI_EFFECTS_PROCESSING_FAILED",
           retryable: false,
-        }
+        },
       );
       console.error("AI effects processing error:", effectsError);
       // Fallback: manual processing if effects system fails
@@ -138,14 +138,14 @@ class ChatCore {
     ) {
       console.warn(
         "🎤 Received empty or invalid AI response for TTS:",
-        message
+        message,
       );
       return;
     }
 
     console.log(
       "🎤 Processing AI response for TTS with sentence splitting:",
-      message.substring(0, 50) + "..."
+      message.substring(0, 50) + "...",
     );
 
     // Split FIRST, THEN clean each sentence individually
@@ -154,7 +154,7 @@ class ChatCore {
     console.log(
       "🎤 Split into",
       originalSentences.length,
-      "sentences for display and TTS"
+      "sentences for display and TTS",
     );
 
     // Create pairs by cleaning each sentence individually
@@ -169,7 +169,7 @@ class ChatCore {
         console.log(
           `🎤 Sentence ${index + 1} - Display:`,
           originalSentence.trim().substring(0, 30) + "... TTS:",
-          cleanSentence.substring(0, 30) + "..."
+          cleanSentence.substring(0, 30) + "...",
         );
       }
     });
@@ -265,10 +265,10 @@ class ChatCore {
       });
     });
 
-    // Split on sentence boundaries including asterisks, but be more conservative
-    // Handle asterisks as sentence separators (common in AI responses for emphasis)
+    // Split on EVERY punctuation mark for natural TTS pauses
+    // Simple regex: split on any punctuation followed by optional space
     const sentences = protectedText
-      .split(/(?<=[.!?\*])\s+(?=[A-Z])|(?<=\*\*)\s+|\*\s+/g)
+      .split(/[,.!?;:\*]+\s*/g)
       .map((sentence) => sentence.trim())
       .filter((sentence) => sentence.length > 0);
 
@@ -376,7 +376,7 @@ class ChatCore {
       console.log(
         "🌸 AIGF Socket reconnected after",
         attemptNumber,
-        "attempts"
+        "attempts",
       );
       this.addSystemMessage("Reconnected to server");
     });
@@ -391,7 +391,7 @@ class ChatCore {
           msg.message,
           msg.timestamp,
           msg.user === this.socket.id,
-          msg.user
+          msg.user,
         );
       });
     });
@@ -424,7 +424,7 @@ class ChatCore {
       // Process TTS for AI response using synchronized method
       if (window.ttsSystem && window.ttsSystem.isEnabled) {
         console.log(
-          "🎤 Processing AI response for TTS with sentence synchronization"
+          "🎤 Processing AI response for TTS with sentence synchronization",
         );
         this.processAIResponseForTTS(data.message);
       }
@@ -449,7 +449,7 @@ class ChatCore {
       this.collarActive = data.active;
       if (data.active) {
         this.addSystemMessage(
-          "🔗 Collar activated - deeper submission engaged"
+          "🔗 Collar activated - deeper submission engaged",
         );
       } else {
         this.addSystemMessage("🔗 Collar deactivated");
@@ -460,7 +460,7 @@ class ChatCore {
     this.socket.on("detected-triggers", (data) => {
       if (data.triggers && data.triggers.length > 0) {
         this.addSystemMessage(
-          `⚡ Triggers detected: ${data.triggers.map((t) => t.name).join(", ")}`
+          `⚡ Triggers detected: ${data.triggers.map((t) => t.name).join(", ")}`,
         );
       }
     });
@@ -471,7 +471,7 @@ class ChatCore {
         this.addSystemMessage(`🔄 ${data.message}`);
       } else if (data.loaded) {
         this.addSystemMessage(
-          `✅ Model loaded: ${data.modelId} (${data.modelSize})`
+          `✅ Model loaded: ${data.modelId} (${data.modelSize})`,
         );
       } else if (data.error) {
         this.addSystemMessage(`❌ Model error: ${data.message}`);
@@ -490,7 +490,7 @@ class ChatCore {
     this.aigfChatInput = document.getElementById("aigf-chat-input");
     this.aigfSendButton = document.getElementById("aigf-send-button");
     this.aigfInputContainer = document.getElementById(
-      "aigf-chat-input-container"
+      "aigf-chat-input-container",
     );
     this.toggleSpiral = document.getElementById("toggle-spiral");
     this.toggleTTS = document.getElementById("toggle-tts");
@@ -627,7 +627,7 @@ class ChatCore {
         });
 
         console.log(
-          "🎯 Populated trigger buttons with categorized official triggers"
+          "🎯 Populated trigger buttons with categorized official triggers",
         );
       } else {
         // Show error message
@@ -667,7 +667,7 @@ class ChatCore {
     // AIGF message sending
     if (this.aigfSendButton && this.aigfChatInput) {
       this.aigfSendButton.addEventListener("click", () =>
-        this.sendAIGFMessage()
+        this.sendAIGFMessage(),
       );
       this.aigfChatInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
@@ -696,7 +696,7 @@ class ChatCore {
     // Listen for trigger system toggle events
     document.addEventListener("triggerSystemToggle", (event) => {
       console.log(
-        `Trigger system ${event.detail.enabled ? "enabled" : "disabled"}`
+        `Trigger system ${event.detail.enabled ? "enabled" : "disabled"}`,
       );
     });
 
@@ -752,8 +752,8 @@ class ChatCore {
 
     this.addSystemMessage(
       `🤖 Sending to BambiSleep AI with triggers: ${this.activeTriggers.join(
-        ", "
-      )}`
+        ", ",
+      )}`,
     );
 
     // Clear input
@@ -766,7 +766,7 @@ class ChatCore {
     timestamp,
     isOwn = false,
     username = "Unknown",
-    isAI = false
+    isAI = false,
   ) {
     const messageDiv = document.createElement("div");
     messageDiv.className = `message ${isOwn ? "own" : ""} ${isAI ? "ai" : ""}`;
@@ -878,11 +878,11 @@ class ChatCore {
       const select = this.triggerSelector.querySelector("select");
       if (select) {
         this.activeTriggers = Array.from(select.selectedOptions).map(
-          (option) => option.value
+          (option) => option.value,
         );
         this.updateTriggers();
         this.addSystemMessage(
-          `Active triggers updated: ${this.activeTriggers.join(", ")}`
+          `Active triggers updated: ${this.activeTriggers.join(", ")}`,
         );
       }
     }
@@ -924,7 +924,7 @@ class ChatCore {
     if (this.socket && this.isConnected) {
       this.socket.emit("load-model");
       this.addSystemMessage(
-        "🔍 Requesting auto-load of best l3-sthenomaidblackroot-8b-v1 model..."
+        "🔍 Requesting auto-load of best l3-sthenomaidblackroot-8b-v1 model...",
       );
     } else {
       this.addSystemMessage("❌ Not connected to server");

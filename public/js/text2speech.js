@@ -599,12 +599,12 @@ class TextToSpeechSystem {
   }
 
   splitTextIntoSentences(text) {
-    // Split on sentence boundaries including asterisks AND commas
-    // Commas are now treated as sentence separators for more natural pauses
-    // Also handle periods, exclamation marks, question marks, colons, semicolons, and asterisks
+    // Split on EVERY punctuation mark for natural TTS pauses
+    // Simple regex: split on any punctuation followed by optional space
     return text
-      .split(/(?<=[,.!?:;\*]["']?)\s+|(?<=\*\*)\s+|\*\s+/g)
-      .filter((s) => s.trim().length > 0);
+      .split(/[,.!?;:\*]+\s*/g)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
   }
 
   async processTextQueue() {
