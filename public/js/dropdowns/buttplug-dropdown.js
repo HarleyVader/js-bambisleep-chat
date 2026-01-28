@@ -214,7 +214,8 @@ export function ButtplugDropdown() {
   // Check if library loaded successfully
   function checkLibraryStatus() {
     if (!window.buttplugIntegration?.client) {
-      statusText.textContent = "❌ Library failed to load - CDN blocked or offline";
+      statusText.textContent =
+        "❌ Library failed to load - CDN blocked or offline";
       statusText.style.color = "var(--error-color)";
       connectBtn.disabled = true;
       return false;

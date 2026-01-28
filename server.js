@@ -279,10 +279,10 @@ class EnvironmentValidator {
     // Exit if critical errors exist
     if (this.errors.length > 0) {
       console.error(
-        "💥 Configuration validation failed. Please fix the errors above."
+        "💥 Configuration validation failed. Please fix the errors above.",
       );
       console.error(
-        "📖 Refer to .env.example for proper configuration format."
+        "📖 Refer to .env.example for proper configuration format.",
       );
       process.exit(1);
     }
@@ -336,14 +336,14 @@ function validateConfiguration() {
   // Add warnings for missing services
   if (!validationResults.lms.configured) {
     result.warnings.push(
-      "LM Studio not configured - AI chat will be unavailable"
+      "LM Studio not configured - AI chat will be unavailable",
     );
     result.warningCount++;
   }
 
   if (!validationResults.kokoro.configured) {
     result.warnings.push(
-      "Kokoro TTS not configured - voice features will be unavailable"
+      "Kokoro TTS not configured - voice features will be unavailable",
     );
     result.warningCount++;
   }
@@ -388,11 +388,11 @@ app.use((req, res, next) => {
   // Script sources
   if (isDevelopment) {
     cspDirectives.push(
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.socket.io cdn.jsdelivr.net unpkg.com localhost:* ws://localhost:*"
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.socket.io cdn.jsdelivr.net unpkg.com localhost:* ws://localhost:*",
     );
   } else {
     cspDirectives.push(
-      "script-src 'self' 'unsafe-inline' cdn.socket.io cdn.jsdelivr.net unpkg.com"
+      "script-src 'self' 'unsafe-inline' cdn.socket.io cdn.jsdelivr.net unpkg.com",
     );
   }
 
@@ -423,7 +423,7 @@ app.use((req, res, next) => {
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader(
     "Permissions-Policy",
-    "microphone=(), camera=(), geolocation=(), payment=()"
+    "microphone=(), camera=(), geolocation=(), payment=()",
   );
 
   next();
@@ -475,7 +475,7 @@ class ChatHistoryManager {
     console.log(
       `📝 Added message to histories: [${types.join(", ")}] - "${
         messageData.message?.substring(0, 50) || "N/A"
-      }..."`
+      }..."`,
     );
     return enhancedMessage;
   }
@@ -504,7 +504,7 @@ class ChatHistoryManager {
     ];
 
     uniqueMessages.sort(
-      (a, b) => new Date(a.serverTimestamp) - new Date(b.serverTimestamp)
+      (a, b) => new Date(a.serverTimestamp) - new Date(b.serverTimestamp),
     );
 
     return limit ? uniqueMessages.slice(-limit) : uniqueMessages;
@@ -592,7 +592,7 @@ function loadOfficialTriggers() {
   } catch (error) {
     console.error(
       "CRITICAL: Failed to load official BambiSleep triggers:",
-      error
+      error,
     );
     // NO FALLBACK - Only use official triggers
     triggerWords = [];
@@ -786,7 +786,7 @@ function handleLMWorkerMessage(msg) {
 
     case "health_response":
       console.log(
-        `Worker health: ${msg.healthy}, sessions: ${msg.sessionCount}`
+        `Worker health: ${msg.healthy}, sessions: ${msg.sessionCount}`,
       );
       break;
 
@@ -860,7 +860,7 @@ io.on("connection", (socket) => {
   uniqueUsers.add(userKey);
 
   console.log(
-    `User connected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`
+    `User connected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`,
   );
   console.log(`🔍 New connection ID: ${socket.id}`);
   console.log(`🔍 Client IP: ${clientIP}`);
@@ -909,7 +909,7 @@ io.on("connection", (socket) => {
           triggers: [],
           isError: true,
         });
-      }
+      },
     );
   });
 
@@ -923,7 +923,7 @@ io.on("connection", (socket) => {
         socketId: socket.id,
       });
       console.log(
-        `Updated triggers for ${socket.id}: ${data.triggers.join(", ")}`
+        `Updated triggers for ${socket.id}: ${data.triggers.join(", ")}`,
       );
     }
   });
@@ -954,8 +954,8 @@ io.on("connection", (socket) => {
     console.log(
       `🎤 TTS request from ${socket.id}: "${text.substring(
         0,
-        50
-      )}..." -> cleaned: "${cleanedText.substring(0, 50)}..."`
+        50,
+      )}..." -> cleaned: "${cleanedText.substring(0, 50)}..."`,
     );
 
     // Send to Kokoro worker
@@ -973,7 +973,7 @@ io.on("connection", (socket) => {
             "Kokoro TTS service unavailable. Please check your configuration.",
           timestamp: new Date().toISOString(),
         });
-      }
+      },
     );
   });
 
@@ -1019,7 +1019,7 @@ io.on("connection", (socket) => {
     });
 
     console.log(
-      `Collar activated for ${socket.id}: "${collarText.substring(0, 30)}..."`
+      `Collar activated for ${socket.id}: "${collarText.substring(0, 30)}..."`,
     );
 
     // Notify client
@@ -1057,7 +1057,7 @@ io.on("connection", (socket) => {
           message: "LM Studio worker not available",
           timestamp: new Date().toISOString(),
         });
-      }
+      },
     );
 
     if (success) {
@@ -1088,7 +1088,7 @@ io.on("connection", (socket) => {
         const otherAgent = s.handshake.headers["user-agent"] || "unknown";
         const otherKey = `${otherIP}-${otherAgent.substring(0, 50)}`;
         return otherKey === userKey;
-      }
+      },
     );
 
     if (!hasOtherConnections) {
@@ -1096,7 +1096,7 @@ io.on("connection", (socket) => {
     }
 
     console.log(
-      `User disconnected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`
+      `User disconnected. Total connections: ${connectedUsers}, Unique users: ${uniqueUsers.size}`,
     );
     console.log(`🔍 Disconnected ID: ${socket.id}`);
 
@@ -1221,7 +1221,7 @@ app.post("/api/chat/clear/:type", (req, res) => {
   });
 
   console.log(
-    `🗑️ Chat history cleared - Type: ${type}, Messages: ${originalCount}`
+    `🗑️ Chat history cleared - Type: ${type}, Messages: ${originalCount}`,
   );
 });
 
@@ -1251,7 +1251,7 @@ app.get("/api/triggers/category/:category", (req, res) => {
   }
 
   const categoryTriggers = triggerData.triggers.filter(
-    (trigger) => trigger.category === category
+    (trigger) => trigger.category === category,
   );
 
   res.json({
@@ -1273,7 +1273,7 @@ app.get("/api/triggers/details/:triggerName", (req, res) => {
   }
 
   const trigger = triggerData.triggers.find(
-    (t) => t.name.toLowerCase() === triggerName.toLowerCase()
+    (t) => t.name.toLowerCase() === triggerName.toLowerCase(),
   );
 
   if (trigger) {
@@ -1331,7 +1331,7 @@ app.post("/api/chat", (req, res) => {
         clearTimeout(global.pendingAPIRequests[tempSocketId].timeout);
         delete global.pendingAPIRequests[tempSocketId];
       }
-    }
+    },
   );
 
   if (!success) {
@@ -1388,7 +1388,7 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
   // Check if Kokoro API is configured
   if (!config.KOKORO_API_URL || !kokoroWorker || !configStatus.ttsAvailable) {
     console.warn(
-      "🎤 Kokoro API or worker not configured, TTS routes will return 503"
+      "🎤 Kokoro API or worker not configured, TTS routes will return 503",
     );
 
     // Return service unavailable for all TTS endpoints
@@ -1580,11 +1580,11 @@ async function generateTTSAudio(text, voice, res, format = "mp3") {
     console.log(
       `🎤 API TTS request: "${text.substring(
         0,
-        50
+        50,
       )}..." -> cleaned: "${cleanedText.substring(
         0,
-        50
-      )}..." with voice: ${voice}`
+        50,
+      )}..." with voice: ${voice}`,
     );
 
     // Send to Kokoro worker
@@ -1599,10 +1599,10 @@ async function generateTTSAudio(text, voice, res, format = "mp3") {
       () => {
         reject(
           new Error(
-            "Kokoro TTS worker unavailable. Please check your configuration."
-          )
+            "Kokoro TTS worker unavailable. Please check your configuration.",
+          ),
         );
-      }
+      },
     );
 
     if (!success) {
@@ -1739,7 +1739,7 @@ app.post("/api/tts/voice", (req, res) => {
       return res.status(503).json({
         error: "Kokoro TTS worker not available",
       });
-    }
+    },
   );
 
   if (!success) {
@@ -1825,7 +1825,7 @@ class ServerMemoryManager {
 
       if (freedResources > 0) {
         console.log(
-          `🧹 Server cache cleanup: freed ${freedResources} technical resources (user data preserved)`
+          `🧹 Server cache cleanup: freed ${freedResources} technical resources (user data preserved)`,
         );
       }
     } catch (error) {
@@ -1953,7 +1953,7 @@ class GitPullDetector {
 
     if (!this.lastCommitHash) {
       console.warn(
-        "⚠️ Git pull detection disabled - not a git repository or git unavailable"
+        "⚠️ Git pull detection disabled - not a git repository or git unavailable",
       );
       return;
     }
@@ -1961,8 +1961,8 @@ class GitPullDetector {
     console.log(
       `🔍 Git pull detection active - monitoring commit: ${this.lastCommitHash.substring(
         0,
-        7
-      )}`
+        7,
+      )}`,
     );
 
     // Check every 30 seconds for changes
@@ -2068,7 +2068,7 @@ const PORT = ENV.SERVER.PORT;
 server.listen(PORT, () => {
   console.log(`🚀 BambiSleep Chat server running on http://localhost:${PORT}`);
   console.log(
-    `📁 Serving static files from: ${path.join(__dirname, "public")}`
+    `📁 Serving static files from: ${path.join(__dirname, "public")}`,
   );
   console.log(`🎯 Environment: ${ENV.NODE_ENV}`);
   console.log(`⚡ Vite Dev: http://localhost:${ENV.SERVER.VITE_PORT}`);
