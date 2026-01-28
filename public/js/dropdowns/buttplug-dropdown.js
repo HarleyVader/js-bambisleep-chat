@@ -154,7 +154,9 @@ export function ButtplugDropdown() {
     </div>
   `;
 
-  const modeRadios = container.querySelectorAll('input[name="connection-mode"]');
+  const modeRadios = container.querySelectorAll(
+    'input[name="connection-mode"]',
+  );
   const intifaceConfig = container.querySelector("#intiface-config");
 
   // Intensity sliders
@@ -209,6 +211,20 @@ export function ButtplugDropdown() {
     }
   });
 
+  // Check if library loaded successfully
+  function checkLibraryStatus() {
+    if (!window.buttplugIntegration?.client) {
+      statusText.textContent = "❌ Library failed to load - CDN blocked or offline";
+      statusText.style.color = "var(--error-color)";
+      connectBtn.disabled = true;
+      return false;
+    }
+    return true;
+  }
+
+  // Initial check
+  setTimeout(() => checkLibraryStatus(), 2000);
+
   // Connect button
   connectBtn?.addEventListener("click", async () => {
     if (!window.buttplugIntegration) {
@@ -217,18 +233,33 @@ export function ButtplugDropdown() {
       return;
     }
 
+    if (!checkLibraryStatus()) {
+      return;
+    }
+
     // Get selected connection mode
-    const selectedMode = container.querySelector('input[name="connection-mode"]:checked')?.value || "browser";
+    const selectedMode =
+      container.querySelector('input[name="connection-mode"]:checked')?.value ||
+      "browser";
     const serverUrl = serverUrlInput.value.trim();
 
     connectBtn.disabled = true;
-    statusText.textContent = selectedMode === "browser" ? "🔄 Connecting via WebBluetooth..." : "🔄 Connecting to Intiface...";
+    statusText.textContent =
+      selectedMode === "browser"
+        ? "🔄 Connecting via WebBluetooth..."
+        : "🔄 Connecting to Intiface...";
     statusText.style.color = "var(--warning-color)";
 
-    const success = await window.buttplugIntegration.connect(selectedMode, serverUrl);
+    const success = await window.buttplugIntegration.connect(
+      selectedMode,
+      serverUrl,
+    );
 
     if (success) {
-      statusText.textContent = selectedMode === "browser" ? "✅ Connected (Browser)" : "✅ Connected (Intiface)";
+      statusText.textContent =
+        selectedMode === "browser"
+          ? "✅ Connected (Browser)"
+          : "✅ Connected (Intiface)";
       statusText.style.color = "var(--success-color)";
       connectBtn.disabled = true;
       disconnectBtn.disabled = false;

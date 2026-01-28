@@ -154,7 +154,9 @@ class ButtplugIntegration {
     }
 
     if (!this.client) {
-      console.error("❌ Buttplug client not initialized");
+      const errorMsg = "Buttplug library failed to load. CDN may be blocked or offline.";
+      console.error("❌", errorMsg);
+      this.showError(errorMsg);
       return false;
     }
 
