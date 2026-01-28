@@ -28,10 +28,12 @@
 
 ```bash
 npm start      # Production server (port 6969)
-npm run dev    # Development mode (uses nodemon for auto-restart)
-npm test       # Test suite → HTML/JSON reports in tests/reports/
+npm run dev    # Development mode (nodemon auto-restart)
+npm test       # Run full test suite → tests/reports/bambisleep-test-report-*.{html,json}
 npm run clean  # Clean generated files/caches
 ```
+
+**Test Reports**: HTML reports open automatically in browser after test run. Check `tests/reports/latest-unified-summary.txt` for quick results.
 
 | File                                                     | Purpose                                            |
 | -------------------------------------------------------- | -------------------------------------------------- |
@@ -155,7 +157,24 @@ import { MyDropdown } from "./dropdowns/index.js";
 
 **Existing dropdowns**: TTSDropdown, TriggersDropdown, SpiralDropdown, CollarDropdown (classes), ButtplugDropdown, createBrainwaveDropdown (functions)
 
-### 6. CSS Architecture (@layer system)
+### 6. API Endpoints (Trigger System)
+
+Server exposes trigger data via RESTful endpoints. **Never create/modify triggers via API** - only read operations supported.
+
+```javascript
+// Client fetches trigger data
+GET /api/triggers/json           // Raw triggers.json with metadata
+GET /api/triggers/category/:cat  // Filter by category (Primary, Mental, Physical, Behavioral)
+GET /api/triggers/details/:name  // Single trigger details
+GET /api/triggers                // Metadata + counts
+
+// Server loads on startup via loadOfficialTriggers()
+// Workers receive triggers via postMessage on init
+```
+
+**Trigger API pattern**: Server reads `workers/triggers.json` → broadcasts to workers → serves via HTTP endpoints
+
+### 7. CSS Architecture (@layer system)
 
 Use CSS custom properties from `public/css/variables.css`. Place new styles in appropriate layer.
 
@@ -173,6 +192,23 @@ Use CSS custom properties from `public/css/variables.css`. Place new styles in a
 **Layer order**: `base` → `background` → `interface` → `dropdowns` → `modals` → `overlays` → `debug`  
 **Never use z-index** - layers handle stacking automatically
 
+## Testing & Debugging
+
+**Test Suite**: Three-tier testing (environment → stability → resource) orchestrated by `tests/master.test.js`
+
+```bash
+npm test  # Runs all suites, generates HTML/JSON reports
+```
+
+**Reports location**: `tests/reports/bambisleep-test-report-{timestamp}.html` (auto-opens in browser)  
+**Quick summary**: Check `tests/reports/latest-unified-summary.txt` for pass/fail overview
+
+**Service debugging**: Server console shows emoji indicators for service status:
+
+- ✅ success | ⚠️ warning | ❌ error | 🎤 TTS | 🤖 AI
+
+**Logs pattern**: `[timestamp] emoji message` format throughout server logs
+
 ## Common Tasks
 
 **Add new trigger**: Edit `workers/triggers.json`, include `id`, `name`, `category`, `description`, `effect`
@@ -180,7 +216,10 @@ Use CSS custom properties from `public/css/variables.css`. Place new styles in a
 **Add environment variable**:
 
 1. Define in `config/env.js` with appropriate section (SERVER/LMS/KOKORO/APPLICATION)
-2. Access via `ENV.SECTION.VARIABLE`
+2. Add validation logic if needed (with defaults/computed properties)
+3. Access via `ENV.SECTION.VARIABLE`
+
+**Add API endpoint**: Follow RESTful patterns in server.js, use ChatHistoryManager for data, validate with ENV.isConfigured checks
 
 **Debug service issues**: Check `ENV.SERVICE.isConfigured` and server console for emoji indicators:
 
@@ -189,9 +228,11 @@ Use CSS custom properties from `public/css/variables.css`. Place new styles in a
 ## Conventions
 
 - **Vanilla JS only** — no React/Vue. Use DOM APIs directly.
+- **Module systems**: CommonJS for server/workers (`require`/`module.exports`), ES6 modules for client (`import`/`export`)
 - **Workers for external APIs** — Kokoro TTS and LM Studio calls stay in workers
-- **ChatHistoryManager** (server.js) handles all message storage with `aigf`, `legacy` types
-- **ErrorManager** (public/js/error-manager.js) for client-side error handling with retry
+- **ChatHistoryManager** (server.js) handles all message storage with `aigf`, `legacy` types - tracks per-type limits and provides filtered retrieval
+- **ErrorManager** (client) uses modern Error cause chaining with `.cause` property for debugging - see `ErrorManager.createError()`
+- **No hardcoded values** — Always use `ENV` for config, `workers/triggers.json` for triggers, CSS variables for styling
 
 ## External Services
 

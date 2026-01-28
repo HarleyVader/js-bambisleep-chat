@@ -119,14 +119,14 @@ class TriggerSystem {
             `<span class="trigger-text" data-trigger="${trigger}">${match}</span>`,
           );
 
+          // ALWAYS dispatch trigger event for integrations (buttplug, etc.)
+          // even if already highlighted in text
+          this.playTriggerEffect();
+          this.dispatchTriggerEvent(trigger);
+
           if (alreadyHighlighted) {
             return match;
           }
-
-          this.playTriggerEffect();
-
-          // Dispatch event for Buttplug integration
-          this.dispatchTriggerEvent(trigger);
 
           return `<span class="trigger-text" data-trigger="${trigger}">${match}</span>`;
         },

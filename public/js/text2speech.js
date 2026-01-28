@@ -964,9 +964,12 @@ class TextToSpeechSystem {
       visibility: visible !important;
     `;
 
-    // Display the text horizontally, not as a vertical column
-    // Keep text flowing left to right, only break on explicit newlines
-    let html = String(text).replace(/\n/g, " "); // Replace newlines with spaces for horizontal flow
+    // Display the text with each sentence/phrase on a new line
+    // Split on punctuation marks (commas, periods, semicolons, etc.) to show triggers separately
+    let html = String(text)
+      .split(/([,.!?;:]+\s*)/) // Split on punctuation while keeping the punctuation
+      .filter((part) => part.trim().length > 0) // Remove empty parts
+      .join("<br>"); // Join with line breaks
     textDisplay.innerHTML = html;
 
     console.log("🎤 Text display updated, visible for", duration, "ms");
