@@ -303,7 +303,11 @@ class TextToSpeechSystem {
    */
   performMemoryCleanup() {
     // CRITICAL: DO NOT clean up while TTS is active or has queued items
-    if (this.isPlaying || this.textArray.length > 0 || this.audioArray.length > 0) {
+    if (
+      this.isPlaying ||
+      this.textArray.length > 0 ||
+      this.audioArray.length > 0
+    ) {
       console.debug("🧹 Skipping cleanup - TTS queue active");
       return;
     }
@@ -373,7 +377,7 @@ class TextToSpeechSystem {
     // Log details if significant cleanup occurred
     if (cleaned > 0) {
       console.debug(
-        `🧹 Cleaned ${cleaned} finished audio blobs (${this.blobUrls.size} active, ${inUseUrls.size} protected)`
+        `🧹 Cleaned ${cleaned} finished audio blobs (${this.blobUrls.size} active, ${inUseUrls.size} protected)`,
       );
     }
 
@@ -791,6 +795,12 @@ class TextToSpeechSystem {
     console.log(
       `🎤 Audio finished - ${this.textArray.length} sentences remaining`,
     );
+    console.log("🎤 Current state:", {
+      isPlaying: this.isPlaying,
+      state: this.state,
+      queueLength: this.textArray.length,
+      audioArrayLength: this.audioArray.length
+    });
 
     // Stop audio analysis loop
     if (this.animationFrameId) {
@@ -806,6 +816,7 @@ class TextToSpeechSystem {
     // Cleanup current audio URL
     if (this.currentAudioUrl) {
       URL.revokeObjectURL(this.currentAudioUrl);
+      this.blobUrls.delete(this.currentAudioUrl);
       this.currentAudioUrl = null;
     }
 
