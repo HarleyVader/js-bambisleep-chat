@@ -432,7 +432,30 @@ class TextToSpeechSystem {
    * Enhanced stop with cleanup
    */
   stop() {
-    // Cleanup current audio URL
+    // CRITICAL: Stop audio playback FIRST before revoking blob URL
+    // This prevents audio errors from trying to play a revoked URL
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.src = "";
+    }
+
+    // Stop Web Speech API if active
+    if ("speechSynthesis" in window) {
+      speechSynthesis.cancel();
+    }
+
+    // Stop audio analysis
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    // Stop buttplug vibration
+    if (window.buttplugIntegration && window.buttplugIntegration.isEnabled) {
+      window.buttplugIntegration.stopAllDevices();
+    }
+
+    // NOW cleanup current audio URL (after stopping playback)
     if (this.currentAudioUrl) {
       try {
         URL.revokeObjectURL(this.currentAudioUrl);
@@ -453,15 +476,13 @@ class TextToSpeechSystem {
       this.currentAudioUrl = null;
     }
 
-    if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio.src = "";
-    }
-
     this.isPlaying = false;
     this.state = true;
     this.currentText = "";
     this.currentTTSText = "";
+
+    // Clear spiral text display
+    this.clearSpiralText();
 
     console.log("🛑 TTS stopped with memory cleanup");
   }
