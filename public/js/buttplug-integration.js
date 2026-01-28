@@ -59,10 +59,10 @@ class ButtplugIntegration {
         return;
       }
 
-      // CDN sources with fallback
+      // CDN sources with fallback (v3.2.2 is latest, 3.2.4 doesn't exist)
       const cdnSources = [
-        "https://cdn.jsdelivr.net/npm/buttplug@3.2.4/dist/web/buttplug.min.js",
-        "https://unpkg.com/buttplug@3.2.4/dist/web/buttplug.min.js",
+        "https://cdn.jsdelivr.net/npm/buttplug@3.2.2/dist/web/buttplug.min.js",
+        "https://unpkg.com/buttplug@3.2.2/dist/web/buttplug.min.js",
       ];
 
       this.tryLoadFromCDN(cdnSources, 0);
@@ -154,7 +154,8 @@ class ButtplugIntegration {
     }
 
     if (!this.client) {
-      const errorMsg = "Buttplug library failed to load. CDN may be blocked or offline.";
+      const errorMsg =
+        "Buttplug library failed to load. CDN may be blocked or offline.";
       console.error("❌", errorMsg);
       this.showError(errorMsg);
       return false;
