@@ -206,15 +206,20 @@ class ButtplugIntegration {
 
       if (mode === "browser") {
         // Use WASM connector for direct WebBluetooth
-        if (!window.ButtplugWASM || !window.ButtplugWASM.ButtplugWasmClientConnector) {
-          throw new Error("WASM connector not loaded. Try Intiface mode instead.");
+        if (
+          !window.ButtplugWASM ||
+          !window.ButtplugWASM.ButtplugWasmClientConnector
+        ) {
+          throw new Error(
+            "WASM connector not loaded. Try Intiface mode instead.",
+          );
         }
 
         console.log("🔄 Connecting via WASM (WebBluetooth)...");
 
         // Create WASM connector (handles WebBluetooth internally)
         this.connector = new window.ButtplugWASM.ButtplugWasmClientConnector();
-        
+
         // Connect the Buttplug client to the WASM connector
         await this.client.connect(this.connector);
         console.log("✅ Connected via WASM server");

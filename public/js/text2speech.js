@@ -310,14 +310,36 @@ class TextToSpeechSystem {
     }
   }
   /**
-   * Clean up all tracked blob URLs
+   * Clean up all tracked blob URLs (EXCLUDING currently playing and queued audio)
    */
   cleanupBlobUrls() {
     let cleaned = 0;
 
+    // Build set of URLs that are currently in use (DO NOT CLEAN THESE)
+    const inUseUrls = new Set();
+
+    // Protect currently playing audio
+    if (this.currentAudioUrl) {
+      inUseUrls.add(this.currentAudioUrl);
+    }
+
+    // Protect queued audio URLs
+    this.audioArray.forEach((url) => {
+      if (typeof url === "string" && url.startsWith("blob:")) {
+        inUseUrls.add(url);
+      }
+    });
+
+    // Only cleanup blob URLs that are NOT in use
     this.blobUrls.forEach((url) => {
+      // Skip URLs that are currently in use
+      if (inUseUrls.has(url)) {
+        return; // Keep this URL
+      }
+
       try {
         URL.revokeObjectURL(url);
+        this.blobUrls.delete(url); // Remove from tracked set
         cleaned++;
       } catch (error) {
         // Enhanced error with cause chain
@@ -334,7 +356,6 @@ class TextToSpeechSystem {
       }
     });
 
-    this.blobUrls.clear();
     return cleaned;
   }
 

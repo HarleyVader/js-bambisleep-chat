@@ -193,6 +193,70 @@ Use CSS custom properties from `public/css/variables.css`. Place new styles in a
 **Layer order**: `base` → `background` → `interface` → `dropdowns` → `modals` → `overlays` → `debug`  
 **Never use z-index** - layers handle stacking automatically
 
+### 8. Advanced Patterns
+
+**ChatHistoryManager** (server-side message storage with type-based filtering):
+
+```javascript
+// Add message to specific history type(s) - supports multiple types
+chatHistory.addMessage(
+  { username, message, timestamp },
+  ["aigf", "legacy"], // Message appears in both histories
+);
+
+// Retrieve by type with optional limit
+const aiHistory = chatHistory.getHistory("aigf", 20); // Last 20 AI messages
+const allMessages = chatHistory.getAllHistory(50); // Deduplicated combined history
+
+// Type limits: aigf=100, legacy=200, all=500 (auto-trimmed)
+```
+
+**ErrorManager.createError()** (modern error cause chaining for debugging):
+
+```javascript
+// Create error with cause chain (client-side)
+try {
+  await fetch("/api/data");
+} catch (networkError) {
+  throw ErrorManager.createError("Failed to load data", {
+    cause: networkError, // Original error preserved
+    context: { endpoint: "/api/data", retries: 3 },
+    code: "DATA_LOAD_FAILED",
+    retryable: true,
+  });
+}
+// Error includes: message, cause, timestamp, context, code, retryable flag
+```
+
+**Worker Performance Patterns**:
+
+```javascript
+// HTTP keep-alive agents for connection reuse (kokoro.js, lmstudio.js)
+const httpAgent = new http.Agent({
+  keepAlive: true, // Reuse connections
+  maxSockets: 10,
+  timeout: 15000,
+});
+
+// LRU-style audio cache (kokoro.js)
+this.audioCache = new Map(); // text → blob URL
+this.maxCacheSize = 50;
+// Check cache before making TTS request to avoid duplicate API calls
+```
+
+**TTS Processing Control** (text2speech.js):
+
+```javascript
+// Sequential mode (one request at a time)
+this.enablePrefetching = false;
+this.maxPrefetch = 0;
+
+// Parallel mode (faster but higher load)
+this.enablePrefetching = true;
+this.maxPrefetch = 3; // Prefetch next 3 items
+this.maxParallelRequests = 2;
+```
+
 ## Testing & Debugging
 
 **Test Suite**: Three-tier testing (environment → stability → resource) orchestrated by `tests/master.test.js`
