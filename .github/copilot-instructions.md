@@ -27,10 +27,10 @@
 ## Quick Reference
 
 ```bash
-npm start      # Production server (port 6969)
-npm run dev    # Development mode (nodemon auto-restart)
-npm test       # Run full test suite → tests/reports/bambisleep-test-report-*.{html,json}
-npm run clean  # Clean generated files/caches
+npm start            # Production server (port 6969)
+npm run dev:server   # Development mode (nodemon auto-restart, backend only)
+npm test             # Run full test suite → tests/reports/bambisleep-test-report-*.{html,json}
+npm run clean        # Clean generated files/caches
 ```
 
 **Test Reports**: HTML reports open automatically in browser after test run. Check `tests/reports/latest-unified-summary.txt` for quick results.
@@ -156,7 +156,9 @@ export { MyDropdown } from "./my-dropdown.js";
 import { MyDropdown } from "./dropdowns/index.js";
 ```
 
-**Existing dropdowns**: TTSDropdown, TriggersDropdown, SpiralDropdown, CollarDropdown (classes), ButtplugDropdown, createBrainwaveDropdown (functions)
+**Existing dropdowns**: TTSDropdown, TriggersDropdown, SpiralDropdown, CollarDropdown, ButtplugDropdown (classes), createBrainwaveDropdown (function)
+
+**See**: [public/js/dropdowns/](public/js/dropdowns/) for implementations
 
 ### 6. API Endpoints (Trigger System)
 
@@ -285,6 +287,12 @@ npm test  # Runs all suites, generates HTML/JSON reports
 3. Access via `ENV.SECTION.VARIABLE`
 
 **Add API endpoint**: Follow RESTful patterns in server.js, use ChatHistoryManager for data, validate with ENV.isConfigured checks
+
+**Add new dropdown component**:
+
+1. Create `public/js/dropdowns/my-dropdown.js` (export class or function)
+2. Export from `public/js/dropdowns/index.js`
+3. Import in `aigf-core.js` and integrate into UI
 
 **Debug service issues**: Check `ENV.SERVICE.isConfigured` and server console for emoji indicators:
 
