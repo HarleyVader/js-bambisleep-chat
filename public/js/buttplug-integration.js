@@ -32,10 +32,10 @@ class ButtplugIntegration {
     try {
       console.log("🔌 Loading Buttplug libraries...");
 
-      // Load client library first
+      // Load client library first (UMD build exposes window.buttplug namespace)
       await this.loadScript(
-        "https://cdn.jsdelivr.net/npm/buttplug@3.2.2/dist/web/buttplug.min.js",
-        "buttplug-client"
+        "https://cdn.jsdelivr.net/npm/buttplug@3.2.2/dist/web/buttplug.js",
+        "buttplug-client",
       );
 
       // Load WASM server for browser mode (ES module)
@@ -45,7 +45,9 @@ class ButtplugIntegration {
       this.initializeButtplug();
     } catch (error) {
       console.error("❌ Failed to load Buttplug libraries:", error);
-      this.showError("Cannot load Buttplug library. CDN may be blocked or offline.");
+      this.showError(
+        "Cannot load Buttplug library. CDN may be blocked or offline.",
+      );
     }
   }
 
@@ -66,7 +68,8 @@ class ButtplugIntegration {
         console.log(`✅ Loaded: ${id}`);
         resolve();
       };
-      script.onerror = () => reject(new Error(`Failed to load ${id} from ${url}`));
+      script.onerror = () =>
+        reject(new Error(`Failed to load ${id} from ${url}`));
       document.head.appendChild(script);
     });
   }
@@ -76,32 +79,42 @@ class ButtplugIntegration {
     try {
       // The WASM server is ~5MB, so this may take a moment
       console.log("🔄 Loading WASM server (may take a few seconds, ~5MB)...");
-      
-      const module = await import("https://cdn.jsdelivr.net/npm/buttplug-wasm@2.0.1/dist/web/buttplug_wasm.mjs");
+
+      const module =
+        await import("https://cdn.jsdelivr.net/npm/buttplug-wasm@2.0.1/dist/buttplug-wasm.mjs");
       window.ButtplugWASM = module;
-      
+
       console.log("✅ WASM server loaded");
     } catch (error) {
       console.warn("⚠️ WASM server failed to load:", error);
-      console.warn("Browser mode will not be available. Intiface mode still works.");
+      console.warn(
+        "Browser mode will not be available. Intiface mode still works.",
+      );
     }
   }
 
   // Initialize Buttplug client
   initializeButtplug() {
     try {
-      if (!window.Buttplug) {
+      // UMD build exposes window.buttplug (lowercase)
+      if (!window.buttplug) {
         console.error("❌ Buttplug library not available");
         return;
       }
 
-      // Create client
-      this.client = new window.Buttplug.ButtplugClient("BambiSleep Chat");
-      
+      // Create client (using lowercase buttplug namespace)
+      this.client = new window.buttplug.ButtplugClient("BambiSleep Chat");
+
       // Set up event listeners
-      this.client.addListener("deviceadded", (device) => this.onDeviceAdded(device));
-      this.client.addListener("deviceremoved", (device) => this.onDeviceRemoved(device));
-      this.client.addListener("scanningfinished", () => this.onScanningFinished());
+      this.client.addListener("deviceadded", (device) =>
+        this.onDeviceAdded(device),
+      );
+      this.client.addListener("deviceremoved", (device) =>
+        this.onDeviceRemoved(device),
+      );
+      this.client.addListener("scanningfinished", () =>
+        this.onScanningFinished(),
+      );
 
       console.log("✅ Buttplug client initialized");
     } catch (error) {
@@ -118,7 +131,8 @@ class ButtplugIntegration {
     }
 
     if (!this.client) {
-      const errorMsg = "Buttplug library failed to load. CDN may be blocked or offline.";
+      const errorMsg =
+        "Buttplug library failed to load. CDN may be blocked or offline.";
       console.error("❌", errorMsg);
       this.showError(errorMsg);
       return false;
@@ -134,19 +148,24 @@ class ButtplugIntegration {
         }
 
         console.log("🔄 Connecting via WASM (WebBluetooth)...");
-        
-        // Create embedded connector
-        this.connector = new window.Buttplug.ButtplugEmbeddedConnectorOptions();
-        this.connector.ServerName = "BambiSleep WASM Server";
+
+        // Create embedded connector using WASM server  
+        this.connector = new window.buttplug.ButtplugEmbeddedConnectorOptions();
+        this.connector.ServerFactory = () => window.ButtplugWASM;
         
         await this.client.connect(this.connector);
         console.log("✅ Connected via WASM server");
       } else {
         // Use websocket to connect to Intiface Central
         this.serverUrl = serverUrl || this.serverUrl;
-        console.log(`🔄 Connecting to Intiface Central at ${this.serverUrl}...`);
+        console.log(
+          `🔄 Connecting to Intiface Central at ${this.serverUrl}...`,
+        );
 
-        this.connector = new window.Buttplug.ButtplugBrowserWebsocketClientConnector(this.serverUrl);
+        this.connector =
+          new window.buttplug.ButtplugBrowserWebsocketClientConnector(
+            this.serverUrl,
+          );
         await this.client.connect(this.connector);
         console.log("✅ Connected to Intiface Central");
       }
@@ -235,7 +254,7 @@ class ButtplugIntegration {
     document.dispatchEvent(
       new CustomEvent("buttplug-devices-updated", {
         detail: { devices: deviceInfo },
-      })
+      }),
     );
   }
 
@@ -246,7 +265,8 @@ class ButtplugIntegration {
     }
 
     // Get pattern based on category
-    const pattern = this.triggerPatterns[category] || this.triggerPatterns.default;
+    const pattern =
+      this.triggerPatterns[category] || this.triggerPatterns.default;
 
     console.log(`🎯 Triggering devices for: ${triggerName} (${category})`);
 
@@ -302,7 +322,9 @@ class ButtplugIntegration {
       this.stopAllDevices();
     }
 
-    console.log(`🔌 Buttplug integration ${this.isEnabled ? "ENABLED" : "DISABLED"}`);
+    console.log(
+      `🔌 Buttplug integration ${this.isEnabled ? "ENABLED" : "DISABLED"}`,
+    );
     return this.isEnabled;
   }
 
