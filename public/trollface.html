@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BambiSleepChat</title>
+
+  <!-- Favicon and Icon Links for All Devices -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/site.webmanifest">
+
+  <!-- Mobile Web App Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BambiSleep.Chat">
+  <meta name="application-name" content="BambiSleep.Chat">
+
+  <!-- Dynamic CSS Loading - Mobile vs Desktop Detection -->
+  <script>
+    function isMobileDevice() {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      return isMobileUA || isTouchDevice;
+    }
+
+    function loadDeviceCSS() {
+      const head = document.head;
+      const baseCSS = document.createElement('link');
+      baseCSS.rel = 'stylesheet';
+      baseCSS.href = '/css/style.css';
+      head.appendChild(baseCSS);
+
+      if (isMobileDevice()) {
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.classList.add('mobile-device');
+        });
+      } else {
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.classList.add('desktop-device');
+        });
+      }
+    }
+
+    loadDeviceCSS();
+  </script>
+</head>
+
+<body>
+  <div id="app">
+    <div id="spiral-container">
+      <div id="eye" class="spiral-text-center"></div>
+    </div>
+
+    <div id="dropdowns-menu" class="dropdowns-menu">
+      <div class="dropdown" data-dropdown="spiral">
+        <button type="button" id="toggle-spiral" class="dropdown-btn toggle-button" data-state="off">
+          🌀 Spiral
+          <span class="status-indicator" id="spiral-status">●</span>
+        </button>
+      </div>
+      <div class="dropdown" data-dropdown="tts">
+        <button type="button" id="toggle-tts" class="dropdown-btn toggle-button" data-state="off">
+          🔊 TTS
+          <span class="status-indicator" id="tts-status">●</span>
+        </button>
+      </div>
+      <div class="dropdown" data-dropdown="triggers">
+        <button type="button" id="toggle-triggers" class="dropdown-btn toggle-button" data-state="off">
+          🎯 Triggers
+          <span class="status-indicator" id="triggers-status">●</span>
+        </button>
+      </div>
+      <div class="dropdown collar-dropdown" data-dropdown="collar">
+        <button type="button" id="toggle-collar" class="dropdown-btn toggle-button" data-state="off">
+          ⛓️ Collar
+          <span class="status-indicator" id="collar-status">●</span>
+        </button>
+      </div>
+      <div class="dropdown" data-dropdown="brainwave">
+        <button type="button" id="toggle-brainwave" class="dropdown-btn toggle-button" data-state="off">
+          🧠 Brainwaves
+          <span class="status-indicator" id="brainwave-status">●</span>
+        </button>
+      </div>
+      <div class="dropdown" data-dropdown="buttplug">
+        <button type="button" id="toggle-buttplug" class="dropdown-btn toggle-button" data-state="off">
+          🔌 Devices
+          <span class="status-indicator" id="buttplug-status">●</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="dropdown-modals">
+      <div class="dropdown-content" data-dropdown="spiral"></div>
+      <div class="dropdown-content" data-dropdown="tts"></div>
+      <div class="dropdown-content" data-dropdown="triggers"></div>
+      <div class="dropdown-content" data-dropdown="buttplug"></div>
+      <div class="dropdown-content" data-dropdown="collar"></div>
+      <div class="dropdown-content" data-dropdown="brainwave"></div>
+    </div>
+
+    <div id="chat-container">
+      <div id="chat-header">
+        <h1>🧠BambiSleep.Chat🌀</h1>
+      </div>
+
+      <div id="aigf-chat-messages"></div>
+
+      <div id="aigf-chat-input-container">
+        <input type="text" id="aigf-chat-input" placeholder="Type AIGF message..." maxlength="500">
+        <button type="button" id="aigf-send-button">Send AIGF</button>
+      </div>
+
+      <div class="docs-link-container">
+        <a href="/docs.html" class="docs-link-btn" target="_blank">📚D o c s</a>
+        <a href="https://bambisleep.church" class="docs-link-btn" id="church-btn" target="_blank" rel="noopener">🦋Church</a>
+        <a href="https://bambicloud.com" class="docs-link-btn" id="cloud-btn" target="_blank" rel="noopener">🔉C l o u d</a>
+        <a href="https://bambisleep.info" class="docs-link-btn" id="wiki-btn" target="_blank" rel="noopener">📖W i k i</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="resource-monitor" class="resource-monitor">
+    <div class="resource-content">
+      <div class="resource-title">💾 Resources</div>
+      <div class="resource-stats">
+        <div class="stat-item">
+          <span class="stat-label">Memory:</span>
+          <span id="memory-usage" class="stat-value">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">TTS Queue:</span>
+          <span id="tts-queue-size" class="stat-value">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Blob URLs:</span>
+          <span id="blob-count" class="stat-value">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Socket:</span>
+          <span id="socket-status" class="stat-value">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
