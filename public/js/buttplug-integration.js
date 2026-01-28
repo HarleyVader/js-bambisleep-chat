@@ -441,6 +441,23 @@ class ButtplugIntegration {
       this.stopAllDevices();
     }
   }
+
+  // Enable/disable the integration
+  toggle() {
+    this.isEnabled = !this.isEnabled;
+
+    if (!this.isEnabled) {
+      this.stopAllDevices();
+      this.stopBrainwaveVibration();
+    }
+
+    console.log(
+      `🔌 Buttplug integration ${this.isEnabled ? "ENABLED" : "DISABLED"}`,
+    );
+    return this.isEnabled;
+  }
+
+  // Get connection status
   getStatus() {
     return {
       isConnected: this.isConnected,
