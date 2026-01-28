@@ -106,6 +106,12 @@
           <span class="status-indicator" id="brainwave-status">●</span>
         </button>
       </div>
+      <div class="dropdown" data-dropdown="buttplug">
+        <button id="toggle-buttplug" class="dropdown-btn toggle-button" data-state="off">
+          🔌 Devices
+          <span class="status-indicator" id="buttplug-status">●</span>
+        </button>
+      </div>
     </div>
 
     <!-- Dropdown Content Modals - Separate from buttons -->
@@ -118,6 +124,9 @@
       </div>
       <div class="dropdown-content" data-dropdown="triggers">
         <!-- Content will be populated by triggers-dropdown.js -->
+      </div>
+      <div class="dropdown-content" data-dropdown="buttplug">
+        <!-- Content will be populated by buttplug-dropdown.js -->
       </div>
       <div class="dropdown-content" data-dropdown="collar">
         <!-- Content will be populated by collar-dropdown.js -->
@@ -154,6 +163,7 @@
   <!-- Load scripts in order -->
   <script src="/js/effects.js"></script>
   <script src="/js/triggers.js"></script>
+  <script src="/js/buttplug-integration.js"></script>
   <script type="module" src="/js/error-manager.js"></script>
   <script src="/js/text2speech.js"></script>
   <script src="/js/brainwave.js"></script>

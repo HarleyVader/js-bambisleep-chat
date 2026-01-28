@@ -10,6 +10,7 @@ import {
   TriggersDropdown,
   CollarDropdown,
   createBrainwaveDropdown,
+  ButtplugDropdown,
 } from "./dropdowns/index.js";
 
 import { StorageUtils } from "./storage-utils.js";
@@ -165,6 +166,15 @@ class DropdownManager {
       // Initialize brainwave dropdown content (button is in HTML like others)
       createBrainwaveDropdown();
 
+      // Initialize Buttplug dropdown
+      const buttplugContent = document.querySelector(
+        '.dropdown-content[data-dropdown="buttplug"]'
+      );
+      if (buttplugContent) {
+        const buttplugDropdown = ButtplugDropdown();
+        buttplugContent.appendChild(buttplugDropdown);
+      }
+
       // Create brainwave component wrapper for toggle handling
       this.components.brainwave = {
         buttonId: "toggle-brainwave",
@@ -197,6 +207,43 @@ class DropdownManager {
           const event = new CustomEvent("toggleStateChange", {
             detail: {
               buttonId: "toggle-brainwave",
+
+      // Create Buttplug component wrapper for toggle handling
+      this.components.buttplug = {
+        buttonId: "toggle-buttplug",
+        toggleState: (btn) => {
+          const currentState = btn.getAttribute("data-state") || "off";
+          const newState = currentState === "off" ? "on" : "off";
+          const statusIndicator = document.getElementById("buttplug-status");
+
+          btn.setAttribute("data-state", newState);
+
+          // Update status indicator
+          if (statusIndicator) {
+            statusIndicator.style.color =
+              newState === "on" ? "#00ff00" : "#666";
+            statusIndicator.textContent = "●";
+          }
+
+          // Toggle Buttplug integration if available
+          if (window.buttplugIntegration) {
+            window.buttplugIntegration.toggle();
+            console.log(`🔌 Buttplug integration ${newState === "on" ? "ENABLED" : "DISABLED"}`);
+          }
+
+          // Dispatch toggle event
+          const event = new CustomEvent("toggleStateChange", {
+            detail: {
+              buttonId: "toggle-buttplug",
+              state: newState,
+              buttonName: "BUTTPLUG",
+            },
+          });
+          document.dispatchEvent(event);
+
+          this.showToggleFeedback("BUTTPLUG", newState);
+        },
+      };
               state: newState,
               buttonName: "BRAINWAVE",
             },
@@ -270,6 +317,8 @@ class DropdownManager {
         return this.components.collar;
       case "toggle-brainwave":
         return this.components.brainwave;
+      case "toggle-buttplug":
+        return this.components.buttplug;
       default:
         return null;
     }

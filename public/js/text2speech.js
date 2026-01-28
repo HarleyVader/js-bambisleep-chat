@@ -599,10 +599,11 @@ class TextToSpeechSystem {
   }
 
   splitTextIntoSentences(text) {
-    // Split on sentence boundaries including asterisks, but preserve triggers as single units
-    // Handle asterisks as sentence separators (common in AI responses)
+    // Split on sentence boundaries including asterisks AND commas
+    // Commas are now treated as sentence separators for more natural pauses
+    // Also handle periods, exclamation marks, question marks, colons, semicolons, and asterisks
     return text
-      .split(/(?<=[:;,.!?\*]["']?)\s+|(?<=\*\*)\s+|\*\s+/g)
+      .split(/(?<=[,.!?:;\*]["']?)\s+|(?<=\*\*)\s+|\*\s+/g)
       .filter((s) => s.trim().length > 0);
   }
 

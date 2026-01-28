@@ -29,6 +29,7 @@
 @import url("components/chat.css");        /* Chat interface */
 @import url("components/aigf.css");        /* AI girlfriend mode */
 @import url("components/dropdowns.css");   /* Dropdown menus */
+@import url("components/buttplug.css");    /* Buttplug.io integration */
 
 /* ===== Layout ===== */
 @import url("layout/mobile.css");          /* Mobile responsive */
