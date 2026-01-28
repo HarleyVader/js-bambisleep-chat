@@ -1,8 +1,200 @@
-# 🔌 Buttplug.io Device Integration Guide
+# �✨ Device Integration - Good Girl's Pleasure Guide! ✨💕
 
-## Overview
+*Hiii Bambi!* 💖 Ready to make your body feel what your mind is experiencing? This guide will help you connect your special toys to respond when you hear those yummy trigger words! *So exciting!*
 
-BambiSleep Chat integrates with [Buttplug.io](https://buttplug.io) to enable intimate hardware devices to respond to BambiSleep trigger words and speech patterns during AI conversations. Devices provide real-time haptic feedback synchronized with audio analysis and trigger detection.
+## 🎀 What Does This Do? 🎀
+
+When you're being a **Good Girl** and chatting with the AI, your connected toys will vibrate and pulse in sync with:
+- 💗 **Trigger Words** - When "Good Girl", "Bambi", "Drop for Cock" appear, you'll *feel it*
+- 🎵 **Voice Patterns** - Gentle pulses during soft speech, stronger when she emphasizes words
+- ✨ **Audio Sync** - Real-time response to how the voice sounds (pitch, volume, intensity)
+
+*It's like the hypnosis can touch you!* 🥰
+
+## 💖 Do I Need Special Stuff? 💖
+
+**Nope! Super easy!** Just need:
+- 🌸 Any Bluetooth intimate toy (Lovense, We-Vibe, etc.)
+- 💕 Chrome or Edge browser (they have magic Bluetooth powers!)
+- ✨ That's it! No downloads needed for basic mode!
+
+*Want to check if your toy works?* Visit [iostindex.com](https://iostindex.com) - it's like a toy directory! 📱
+
+## 🌺 Two Ways to Connect 🌺
+
+### 🌐 Browser Mode ⭐ *Soooo Easy!*
+
+**This is the recommended way!** No software, just click and pair!
+
+**Steps:**
+1. Turn on your toy and make it ready to pair (usually hold the button)
+2. Click **🔌 Devices** in the dropdown menu
+3. Make sure "🌐 Browser" is selected (it should be!)
+4. Click **"🔌 Connect"**
+5. Click **"🔍 Scan for Devices"**
+6. Pick your toy from the list that pops up!
+7. *Done!* You'll see a cute ✅ checkmark
+
+### 🖥️ Intiface Mode - *For Advanced Bambis*
+
+Only use this if Browser mode doesn't work!
+
+1. Download [Intiface Central](https://intiface.com/central/) and install it
+2. Open it and click "Start Server"
+3. In BambiSleep Chat, click **🔌 Devices**
+4. Select "🖥️ Intiface Central"
+5. Click **"🔌 Connect"** (it connects to the software)
+6. Click **"🔍 Scan for Devices"**
+7. Your toy appears with ✅!
+
+## 💝 Making It Feel Perfect 💝
+
+### ⚙️ Intensity Settings
+
+In the **🔌 Devices** menu, you'll see three sliders:
+
+**💗 Primary Triggers** (Default: 70%)
+- Words like "Bambi", "Good Girl", "Bambi Sleep"
+- *These are your identity! Medium-strong feels~*
+
+**💭 Mental Triggers** (Default: 50%)  
+- "Blonde Moment", "Snap and Forget", "Airhead"
+- *Gentler pulses for ditzy思考~*
+
+**🍆 Physical Triggers** (Default: 90%)
+- "Drop for Cock", "Bambi Freeze", "Bambi Limp"  
+- *STRONG! For when you need to obey~* 😳
+
+Drag the sliders to adjust! Higher = more intense vibrations! 💕
+
+### 🎵 Audio Sync Magic
+
+Check the box: **"🎵 Sync vibrations with speech patterns"**
+
+When enabled, your toy becomes *super smart*:
+- Gentle buzzing during normal talking (10-30%)
+- Stronger when her voice gets excited or loud
+- MAXIMUM (95%) when trigger words are spoken! 
+
+*It's like she's actually touching you through the speakers!* 🥰✨
+
+Turn it OFF if you only want vibrations during trigger words!
+
+## 🎯 Testing Your Setup
+
+1. Click **"🎯 Test Vibration"** - Your toy should pulse at 70% for 3 seconds
+2. If it works: *Yay! You're all set!* 💖
+3. If nothing happens: Check the toy is charged and paired!
+
+**Emergency Stop**: See the **⛔ Emergency Stop** button? Click it anytime to make everything stop immediately! Safety first! 💕
+
+## 🎀 How It Feels During Chat 🎀
+
+*Let me paint a picture~*
+
+**Without Audio Sync:**
+- AI says "Good Girl" → Toy vibrates at 70% for 3 seconds
+- AI says "Drop for Cock" → TOY VIBRATES HARD at 90%! 
+- Normal chat → No vibration (quiet time!)
+
+**With Audio Sync ON:**
+- AI is talking normally → Gentle 10-30% purr
+- AI's voice gets higher/louder → Increases to 40-60%
+- AI emphasizes a word → Jumps to 70-85%!
+- AI says "GOOD GIRL" → BLASTS to 95%+ 🔥
+- Voice returns to normal → Gently fades back down
+
+*It's reactive! Dynamic! Like she's playing with you!* 💖✨
+
+## 🌸 Troubleshooting (When Things Don't Work)
+
+**"I can't find my toy when scanning!"**
+- Is it turned on? Check the battery!
+- Is it in pairing mode? (Hold power button usually)
+- Try turning it off and on again!
+- Move it closer to your computer!
+
+**"It connected but won't vibrate!"**
+- Make sure **🎯 Triggers** is turned ON (green)!
+- Check the intensity sliders aren't at 0%!
+- Try the **🎯 Test Vibration** button!
+- Some toys don't vibrate, only rotate (check iostindex.com)
+
+**"Vibrations feel weak!"**
+- Audio sync makes it gentle during normal speech!
+- Turn UP your TTS volume - louder voice = stronger vibes!
+- Or turn OFF audio sync for constant intensity!
+- Increase the slider for that trigger category!
+
+**"It's too much!"**
+- Lower the intensity sliders to 30-50%!
+- Turn OFF audio sync for less surprises!
+- Click ⛔ Emergency Stop if you need to!
+- *It's okay to take breaks, cutie!* 💕
+
+## 💝 Safety & Being a Responsible Bambi 💝
+
+**Good Girls stay safe!** Here's how:
+
+✨ **Start Gentle**: Try 30-50% intensity first, increase slowly  
+✨ **Test First**: Always use Test Vibration before playing  
+✨ **Know the Stop**: Emergency Stop button is your safety!  
+✨ **Take Breaks**: If your toy gets warm, let it rest!  
+✨ **Stay Charged**: Don't use toys below 20% battery  
+✨ **Keep It Clean**: Follow your toy's cleaning instructions  
+✨ **Privacy First**: All device control is LOCAL - nothing sent online!
+
+**18+ Only!** This is for consenting adults who understand hypnosis and intimate devices. Use responsibly! 💖
+
+## 🎀 Advanced Bambi Tips 🎀
+
+**Want maximum intensity?**
+- Set ALL sliders to 90-100%
+- Enable Audio Sync
+- Turn TTS volume to MAX
+- Have AI use lots of triggers!
+- *Prepare to melt!* 😳💦
+
+**Want gentle, teasing vibes?**
+- Set sliders to 20-40%
+- Enable Audio Sync  
+- Normal TTS volume
+- Triggers give little reminders without overwhelming!
+- *Perfect for extended play~* 💕
+
+**Want trigger-only (no audio sync)?**
+- Uncheck "🎵 Sync vibrations with speech"
+- Set your desired intensity per category
+- Only vibrates when trigger words appear!
+- *Classic mode!* ✨
+
+## 🌺 Questions? 🌺
+
+**Q: Does this work on my phone?**  
+A: Android Chrome works! iPhone Safari doesn't have Bluetooth powers yet! Desktop is best! 📱
+
+**Q: Is this safe?**  
+A: Yes! Buttplug.io is a trusted library, and everything stays on YOUR device! No data sent anywhere! 💖
+
+**Q: Can I use multiple toys?**  
+A: Yes! All connected toys vibrate together! *Double the fun!* 🎉
+
+**Q: What if I don't have a toy?**  
+A: That's totally okay! This feature is optional! BambiSleep Chat works great without devices too! 💕
+
+## 💖 Have Fun, Good Girl! 💖
+
+*Now you know how to make the hypnosis touch your body!* Let your toys respond to triggers, sync with her voice, and feel what a Good Girl you are! 
+
+Remember to stay safe, start gentle, and use that Emergency Stop if needed!
+
+*Enjoy your enhanced BambiSleep experience!* 💕✨🎀
+
+---
+
+*For device compatibility, visit [iostindex.com](https://iostindex.com)*  
+*For Buttplug.io info, visit [buttplug.io](https://buttplug.io)*  
+*Last Updated: January 28, 2026*
 
 ## 🎯 Features
 
@@ -521,6 +713,7 @@ A: Yes. Buttplug.io respects device safety limits and won't exceed manufacturer 
 
 **Q: Do I need internet connection?**  
 A: Device control is 100% local. Internet only needed for:
+
 - AI chat with LM Studio (if using remote server)
 - Initial page load
 - Downloading voices (cached after first use)
@@ -542,6 +735,7 @@ A: BambiSleep Chat is free. Buttplug.io is free. Intiface Central is free. You o
 ### Architecture
 
 **Browser Mode:**
+
 ```
 BambiSleep Chat (Browser)
     ↓ Web Bluetooth API (direct)
@@ -549,6 +743,7 @@ Device Hardware
 ```
 
 **Intiface Mode:**
+
 ```
 BambiSleep Chat (Browser)
     ↓ WebSocket (ws://localhost:12345)
@@ -567,25 +762,27 @@ Device Hardware
 
 ### Browser Compatibility
 
-| Browser | Web Bluetooth | WebSocket | Recommended |
-|---------|---------------|-----------|-------------|
-| Chrome  | ✅ Full       | ✅ Full   | ✅ Yes      |
-| Edge    | ✅ Full       | ✅ Full   | ✅ Yes      |
-| Opera   | ✅ Full       | ✅ Full   | ✅ Yes      |
+| Browser | Web Bluetooth | WebSocket | Recommended      |
+| ------- | ------------- | --------- | ---------------- |
+| Chrome  | ✅ Full       | ✅ Full   | ✅ Yes           |
+| Edge    | ✅ Full       | ✅ Full   | ✅ Yes           |
+| Opera   | ✅ Full       | ✅ Full   | ✅ Yes           |
 | Firefox | ❌ No         | ✅ Full   | ⚠️ Intiface only |
-| Safari  | ❌ No         | ✅ Full   | ❌ Limited  |
+| Safari  | ❌ No         | ✅ Full   | ❌ Limited       |
 
 **Note**: Web Bluetooth requires HTTPS or localhost. This app uses localhost for development.
 
 ### Performance Metrics
 
 **Audio Analysis:**
+
 - **Latency**: <20ms from audio to device command
 - **CPU Usage**: 1-2% on modern processors (Intel i5/AMD Ryzen 5+)
 - **Memory**: ~5MB additional (for audio buffers and FFT)
 - **Update Rate**: 60 Hz (60 times per second)
 
 **Device Communication:**
+
 - **Latency**: 10-50ms (device-dependent)
 - **Bluetooth**: 5-15ms typical
 - **USB**: 1-5ms typical
@@ -594,24 +791,28 @@ Device Hardware
 ## 🎓 Best Practices
 
 ### Getting Started
+
 1. **Start Low**: Begin with 20-30% intensity and increase gradually
 2. **Test First**: Always use "🎯 Test Vibration" before live sessions
 3. **Know Your Limits**: Emergency stop is always available (⛔ button)
 4. **Device Care**: Keep devices charged (>30%), clean, and within temperature limits
 
 ### Trigger Configuration
+
 1. **Start Simple**: Enable 2-3 core triggers first (Good Girl, Bambi)
 2. **Category Balance**: Mental triggers lower (50%), Physical triggers higher (90%)
 3. **Trigger Selection**: Choose triggers that resonate with your experience
 4. **Gradual Expansion**: Add more triggers as you become comfortable
 
 ### Audio Sync Usage
+
 1. **Enable TTS**: Audio sync requires active speech playback
 2. **Adjust Volume**: System/TTS volume affects intensity calculation
 3. **Voice Selection**: Choose voices with clear, expressive intonation
 4. **Test Patterns**: Speak/play different content to feel intensity variations
 
 ### Safety & Comfort
+
 1. **Session Length**: Take breaks every 30-60 minutes, let device cool
 2. **Battery Monitoring**: Don't use on very low battery (<10%)
 3. **Temperature**: If device feels hot, stop and let it cool
@@ -623,30 +824,35 @@ Device Hardware
 Planned enhancements:
 
 **Device Control:**
+
 - Individual device control (different intensities per device)
 - Multi-motor support (control different motors independently)
 - Pattern recording and playback
 - Custom pattern builder UI
 
 **Audio Features:**
+
 - Custom audio file analysis (upload your own files)
 - Beat detection for rhythm-based patterns
 - Voice frequency fingerprinting (different patterns for different speakers)
 - Stereo audio analysis (left/right channel mapping)
 
 **Trigger Enhancements:**
+
 - Trigger-specific pattern overrides
 - Duration customization per trigger
 - Trigger combinations (AND/OR logic)
 - Trigger intensity ramp-up over session time
 
 **Integration:**
+
 - Mobile device support (Android/iOS apps)
 - Multi-user synchronization (shared sessions)
 - Community pattern library
 - VR headset integration
 
 **Advanced:**
+
 - Machine learning pattern generation
 - Biometric feedback integration (heart rate, arousal detection)
 - Scriptable patterns (JavaScript API)
@@ -657,6 +863,7 @@ Planned enhancements:
 **Age Restriction**: This integration is for adults (18+) only.
 
 **User Responsibility**: Users are solely responsible for:
+
 - Safe, consensual, and legal use of intimate devices
 - Following all device manufacturer safety guidelines
 - Monitoring device temperature, battery, and condition
@@ -665,24 +872,28 @@ Planned enhancements:
 - Compliance with local laws and regulations
 
 **No Liability**: The developers, contributors, and Buttplug.io are not responsible for:
+
 - Device misuse, damage, malfunction, or injury
 - Data loss or privacy breaches
 - Third-party device manufacturer issues
 - Consequences of improper use
 
-**Device Safety**: 
+**Device Safety**:
+
 - Never use damaged devices
 - Follow manufacturer intensity and duration limits
 - Stop immediately if pain or discomfort occurs
 - Seek medical attention if injury occurs
 
-**Privacy**: 
+**Privacy**:
+
 - All device communication is local (not sent to internet)
 - Settings stored in browser only (not on server)
 - No telemetry or usage tracking
 - Your sessions are private
 
 **Health**:
+
 - Consult healthcare provider if you have medical conditions
 - Not recommended for individuals with pacemakers, epilepsy, or heart conditions
 - Pregnant individuals should consult doctor before use
@@ -692,7 +903,7 @@ Planned enhancements:
 
 **Enjoy your enhanced BambiSleep experience responsibly! 💖✨**
 
-*Last Updated: January 28, 2026*  
-*Version: 2.0 (Audio Sync Release)*
+_Last Updated: January 28, 2026_  
+_Version: 2.0 (Audio Sync Release)_
 
 _For technical issues, see troubleshooting section. For device compatibility questions, visit [iostindex.com](https://iostindex.com). For general support, join the [Buttplug.io Discord](https://discord.buttplug.io)._
