@@ -675,6 +675,9 @@ class TextToSpeechSystem {
       `🎤 Audio finished - ${this.textArray.length} sentences remaining`,
     );
 
+    // Stop buttplug vibration when audio ends
+    this.stopButtplugVibration();
+
     // Cleanup current audio URL
     if (this.currentAudioUrl) {
       URL.revokeObjectURL(this.currentAudioUrl);
@@ -697,6 +700,9 @@ class TextToSpeechSystem {
   handleAudioPlay() {
     console.log("🎤 Audio started - displaying:", this.currentText);
     const duration = this.currentAudio.duration * 1000;
+
+    // 🔥 TRIGGER DETECTION: Check if text contains triggers and activate buttplug
+    this.detectAndActivateTriggers(this.currentText, duration);
 
     // Display text in spiral center synchronized with audio
     this.flashTrigger(this.currentText, duration);
@@ -1569,6 +1575,148 @@ class TextToSpeechSystem {
     text = text.replace(/\s+/g, " ").trim();
 
     // Convert to lowercase for TTS (display stays uppercase, but speech is lowercase)
+  // ==================== TRIGGER DETECTION SYSTEM ====================
+
+  /**
+   * Detect triggers in spoken text and activate buttplug vibration
+   * @param {string} text - The text being spoken
+   * @param {number} duration - Duration of the audio in milliseconds
+   */
+  detectAndActivateTriggers(text, duration) {
+    // Check if buttplug is available and connected
+    if (!window.buttplugIntegration || !window.buttplugIntegration.isConnected) {
+      return;
+    }
+
+    // Get all triggers from ChatCore
+    const allTriggers = window.chatCore?.allTriggers || [];
+    if (allTriggers.length === 0) {
+      return;
+    }
+
+    // Detect triggers in the text
+    const detectedTriggers = this.detectTriggersInText(text, allTriggers);
+    
+    if (detectedTriggers.length > 0) {
+      console.log("🔥 TRIGGERS DETECTED in TTS:", detectedTriggers.map(t => t.name));
+      this.startButtplugVibration(detectedTriggers, duration);
+    }
+  }
+
+  /**
+   * Scan text for trigger words
+   * @param {string} text - Text to scan
+   * @param {Array} triggers - Array of trigger objects
+   * @returns {Array} - Array of detected trigger objects
+   */
+  detectTriggersInText(text, triggers) {
+    const detectedTriggers = [];
+    const upperText = text.toUpperCase();
+
+    triggers.forEach(trigger => {
+      const triggerName = trigger.name.toUpperCase();
+      
+      // Escape special regex characters
+      const escapedTrigger = triggerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Use word boundaries for accurate detection
+      const regex = new RegExp(`\\b${escapedTrigger}\\b`, 'i');
+      
+      if (regex.test(upperText)) {
+        detectedTriggers.push(trigger);
+      }
+    });
+
+    return detectedTriggers;
+  }
+
+  /**
+   * Activate buttplug vibration for detected triggers
+   * @param {Array} triggers - Array of detected trigger objects
+   * @param {number} duration - Duration to vibrate in milliseconds
+   */
+  startButtplugVibration(triggers, duration) {
+    if (!window.buttplugIntegration || !window.buttplugIntegration.isConnected) {
+      return;
+    }
+
+    // Get the device
+    const device = window.buttplugIntegration.currentDevice;
+    if (!device) {
+      return;
+    }
+
+    // Determine vibration intensity based on trigger category
+    let maxIntensity = 0.5; // Default intensity
+
+    triggers.forEach(trigger => {
+      let intensity = 0.5;
+      
+      // Category-based intensity matching buttplug integration patterns
+      switch(trigger.category?.toLowerCase()) {
+        case 'primary':
+          intensity = 0.7; // Strong for primary triggers
+          break;
+        case 'physical':
+          intensity = 0.9; // Very strong for physical triggers
+          break;
+        case 'mental':
+          intensity = 0.5; // Medium for mental triggers
+          break;
+        case 'behavioral':
+          intensity = 0.6; // Medium-strong for behavioral
+          break;
+        default:
+          intensity = 0.5;
+      }
+
+      maxIntensity = Math.max(maxIntensity, intensity);
+    });
+
+    console.log(`🔥 Activating buttplug vibration: ${maxIntensity * 100}% for ${duration}ms`);
+    this.activateTTSVibration(device, duration, maxIntensity);
+  }
+
+  /**
+   * Vibrate device with pulsing pattern
+   * @param {Object} device - Buttplug device
+   * @param {number} duration - Duration in milliseconds
+   * @param {number} intensity - Intensity from 0.0 to 1.0
+   */
+  async activateTTSVibration(device, duration, intensity) {
+    try {
+      // Create pulsing pattern
+      const pulseInterval = 200; // Pulse every 200ms
+      const pulses = Math.floor(duration / pulseInterval);
+      
+      for (let i = 0; i < pulses; i++) {
+        await device.vibrate(intensity);
+        await new Promise(resolve => setTimeout(resolve, pulseInterval / 2));
+        await device.vibrate(intensity * 0.3); // Lower intensity for pulse effect
+        await new Promise(resolve => setTimeout(resolve, pulseInterval / 2));
+      }
+      
+    } catch (error) {
+      console.error("Failed to vibrate device:", error);
+    }
+  }
+
+  /**
+   * Stop buttplug vibration
+   */
+  async stopButtplugVibration() {
+    try {
+      if (window.buttplugIntegration && window.buttplugIntegration.isConnected) {
+        const device = window.buttplugIntegration.currentDevice;
+        if (device) {
+          await device.vibrate(0);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to stop vibration:", error);
+    }
+  }
+
     return text.toLowerCase();
   }
 
