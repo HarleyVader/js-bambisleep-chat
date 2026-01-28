@@ -256,6 +256,13 @@ class TextToSpeechSystem {
         this.analyser.connect(this.audioContext.destination);
         console.log("🎵 Reconnected existing audio source to analyser");
       }
+
+      // CRITICAL: Resume AudioContext if suspended (required for audio to play/end properly)
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume().then(() => {
+          console.log("🎵 AudioContext resumed");
+        });
+      }
     } catch (error) {
       console.error("❌ Failed to initialize Web Audio API:", error);
       this.analysisEnabled = false;
@@ -836,6 +843,13 @@ class TextToSpeechSystem {
   handleAudioPlay() {
     console.log("🎤 Audio started - displaying:", this.currentText);
     const duration = this.currentAudio.duration * 1000;
+
+    // CRITICAL: Resume AudioContext if suspended (browser autoplay policy)
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      this.audioContext.resume().then(() => {
+        console.log("🎵 AudioContext resumed on play");
+      });
+    }
 
     // 🔥 TRIGGER DETECTION: Check if text contains triggers and activate buttplug
     this.detectAndActivateTriggers(this.currentText, duration);
