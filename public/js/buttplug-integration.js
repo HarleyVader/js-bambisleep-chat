@@ -62,7 +62,7 @@ class ButtplugIntegration {
       // CDN sources with fallback
       const cdnSources = [
         "https://cdn.jsdelivr.net/npm/buttplug@3.2.4/dist/web/buttplug.min.js",
-        "https://unpkg.com/buttplug@3.2.4/dist/web/buttplug.min.js"
+        "https://unpkg.com/buttplug@3.2.4/dist/web/buttplug.min.js",
       ];
 
       this.tryLoadFromCDN(cdnSources, 0);
@@ -76,7 +76,9 @@ class ButtplugIntegration {
   tryLoadFromCDN(sources, index) {
     if (index >= sources.length) {
       console.error("❌ All CDN sources failed for Buttplug.io library");
-      this.showError("Cannot load Buttplug library. Please check your internet connection.");
+      this.showError(
+        "Cannot load Buttplug library. Please check your internet connection.",
+      );
       return;
     }
 
@@ -90,7 +92,9 @@ class ButtplugIntegration {
     };
 
     script.onerror = () => {
-      console.warn(`⚠️ Failed to load from ${sources[index]}, trying next source...`);
+      console.warn(
+        `⚠️ Failed to load from ${sources[index]}, trying next source...`,
+      );
       document.head.removeChild(script);
       this.tryLoadFromCDN(sources, index + 1);
     };
@@ -507,17 +511,17 @@ class ButtplugIntegration {
   // Show error message to user
   showError(message) {
     console.error(`🔌 Buttplug Error: ${message}`);
-    
+
     // Update UI if status element exists
     const statusDiv = document.getElementById("buttplug-status-text");
     if (statusDiv) {
       statusDiv.textContent = `Error: ${message}`;
       statusDiv.style.color = "#ff0000";
     }
-    
+
     // Dispatch error event
     const event = new CustomEvent("buttplug-error", {
-      detail: { message }
+      detail: { message },
     });
     document.dispatchEvent(event);
   }

@@ -33,18 +33,18 @@ npm test       # Test suite → HTML/JSON reports in tests/reports/
 npm run clean  # Clean generated files/caches
 ```
 
-| File                                             | Purpose                                          |
-| ------------------------------------------------ | ------------------------------------------------ |
-| [server.js](server.js)                           | Express server, Socket.io, worker orchestration  |
-| [config/env.js](config/env.js)                   | **Single source** for all environment config     |
-| [public/js/aigf-core.js](public/js/aigf-core.js) | Main chat client (ChatCore class)                |
-| [workers/triggers.json](workers/triggers.json)   | **Authoritative** trigger definitions            |
-| [workers/kokoro.js](workers/kokoro.js)           | TTS worker (HTTP keep-alive, caching, batching)  |
-| [workers/lmstudio.js](workers/lmstudio.js)       | AI chat worker (@lmstudio/sdk)                   |
-| [public/js/dropdowns/](public/js/dropdowns/)     | Modular UI components (ES6 class/function exports) |
-| [public/js/error-manager.js](public/js/error-manager.js) | Client-side error handling with retry logic |
-| [public/css/layers.css](public/css/layers.css)   | CSS @layer definitions (stacking context)        |
-| [public/css/variables.css](public/css/variables.css) | CSS custom properties (design tokens)         |
+| File                                                     | Purpose                                            |
+| -------------------------------------------------------- | -------------------------------------------------- |
+| [server.js](server.js)                                   | Express server, Socket.io, worker orchestration    |
+| [config/env.js](config/env.js)                           | **Single source** for all environment config       |
+| [public/js/aigf-core.js](public/js/aigf-core.js)         | Main chat client (ChatCore class)                  |
+| [workers/triggers.json](workers/triggers.json)           | **Authoritative** trigger definitions              |
+| [workers/kokoro.js](workers/kokoro.js)                   | TTS worker (HTTP keep-alive, caching, batching)    |
+| [workers/lmstudio.js](workers/lmstudio.js)               | AI chat worker (@lmstudio/sdk)                     |
+| [public/js/dropdowns/](public/js/dropdowns/)             | Modular UI components (ES6 class/function exports) |
+| [public/js/error-manager.js](public/js/error-manager.js) | Client-side error handling with retry logic        |
+| [public/css/layers.css](public/css/layers.css)           | CSS @layer definitions (stacking context)          |
+| [public/css/variables.css](public/css/variables.css)     | CSS custom properties (design tokens)              |
 
 ## Critical Patterns
 
@@ -55,12 +55,12 @@ All environment variables go through `config/env.js` - it provides validation, c
 ```javascript
 // ✅ Always use centralized config
 const ENV = require("./config/env");
-const url = ENV.KOKORO.URL;           // Auto-switches dev/prod
-const ready = ENV.LMS.isConfigured;   // Computed property
-const port = ENV.SERVER.PORT;         // Default: 6969
+const url = ENV.KOKORO.URL; // Auto-switches dev/prod
+const ready = ENV.LMS.isConfigured; // Computed property
+const port = ENV.SERVER.PORT; // Default: 6969
 
 // ❌ Never access process.env directly outside config/env.js
-process.env.KOKORO_HOST_DEVELOPMENT;  // Bypasses validation & computed logic
+process.env.KOKORO_HOST_DEVELOPMENT; // Bypasses validation & computed logic
 ```
 
 **ENV sections**: `SERVER`, `LMS`, `KOKORO`, `APPLICATION` (see [config/env.js](config/env.js:1-284))
@@ -79,7 +79,7 @@ const { triggers } = await response.json();
 // Server loads triggers on startup via loadOfficialTriggers()
 
 // ❌ Hardcoded triggers get out of sync
-const triggers = ["BAMBI", "GOOD GIRL"];  // Fragile and incomplete
+const triggers = ["BAMBI", "GOOD GIRL"]; // Fragile and incomplete
 ```
 
 **Server pattern**: `loadOfficialTriggers()` in [server.js](server.js:565-602) loads JSON and broadcasts to workers via `postMessage({ type: 'triggers' })`
@@ -107,24 +107,24 @@ Workers are persistent (created once in server.js). Always include `socketId` fo
 
 ```javascript
 // Server → Worker (in server.js)
-lmWorker.postMessage({ 
-  type: "chat", 
-  prompt: text, 
-  socketId: socket.id  // Essential for routing response back
+lmWorker.postMessage({
+  type: "chat",
+  prompt: text,
+  socketId: socket.id, // Essential for routing response back
 });
 
 // Worker → Server (in worker file)
-parentPort.postMessage({ 
-  type: "ai_response", 
-  response: text, 
-  socketId  // Server uses this to emit to correct client
+parentPort.postMessage({
+  type: "ai_response",
+  response: text,
+  socketId, // Server uses this to emit to correct client
 });
 
 // Server broadcasts triggers to all workers on startup
-lmWorker.postMessage({ 
-  type: "triggers", 
-  triggers: triggerWords,      // Array of trigger names
-  triggerData: triggerData     // Full trigger objects
+lmWorker.postMessage({
+  type: "triggers",
+  triggers: triggerWords, // Array of trigger names
+  triggerData: triggerData, // Full trigger objects
 });
 ```
 
@@ -141,7 +141,9 @@ export function MyDropdown() {
 }
 // OR use class export
 export class MyDropdown {
-  constructor() { /* ... */ }
+  constructor() {
+    /* ... */
+  }
 }
 
 // 2. Add to public/js/dropdowns/index.js

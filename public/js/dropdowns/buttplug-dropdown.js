@@ -175,6 +175,7 @@ export function ButtplugDropdown() {
       }
     });
   });
+  const connectBtn = container.querySelector("#buttplug-connect-btn");
   const disconnectBtn = container.querySelector("#buttplug-disconnect-btn");
   const scanBtn = container.querySelector("#buttplug-scan-btn");
   const testBtn = container.querySelector("#buttplug-test-btn");
@@ -182,11 +183,6 @@ export function ButtplugDropdown() {
   const serverUrlInput = container.querySelector("#buttplug-server-url");
   const statusText = container.querySelector("#buttplug-connection-status");
   const deviceList = container.querySelector("#buttplug-device-list");
-
-  // Intensity sliders
-  const primaryIntensity = container.querySelector("#primary-intensity");
-  const mentalIntensity = container.querySelector("#mental-intensity");
-  const physicalIntensity = container.querySelector("#physical-intensity");
 
   // Update intensity displays
   primaryIntensity?.addEventListener("input", (e) => {
