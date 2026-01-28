@@ -241,14 +241,21 @@ class TextToSpeechSystem {
       this.frequencyData = new Uint8Array(bufferLength);
       this.timeDomainData = new Uint8Array(bufferLength);
 
-      // Connect audio element to analyser
-      this.audioSource = this.audioContext.createMediaElementSource(
-        this.currentAudio,
-      );
-      this.audioSource.connect(this.analyser);
-      this.analyser.connect(this.audioContext.destination);
-
-      console.log("🎵 Web Audio API initialized for speech pattern analysis");
+      // CRITICAL: Only create MediaElementSource once per audio element
+      // Creating multiple sources from same element causes playback failure
+      if (!this.audioSource) {
+        this.audioSource = this.audioContext.createMediaElementSource(
+          this.currentAudio,
+        );
+        this.audioSource.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
+        console.log("🎵 Web Audio API initialized for speech pattern analysis");
+      } else {
+        // Reconnect existing source
+        this.audioSource.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
+        console.log("🎵 Reconnected existing audio source to analyser");
+      }
     } catch (error) {
       console.error("❌ Failed to initialize Web Audio API:", error);
       this.analysisEnabled = false;
