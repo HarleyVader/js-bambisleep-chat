@@ -275,7 +275,8 @@ class TriggerSystem {
   }
 
   escapeRegex(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Escape all special regex characters including apostrophes/single quotes
+    return string.replace(/[.*+?^${}()|[\]\\'\/]/g, "\\$&");
   }
 }
 

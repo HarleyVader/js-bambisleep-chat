@@ -1628,9 +1628,9 @@ class TextToSpeechSystem {
     triggers.forEach((trigger) => {
       const triggerName = trigger.name.toUpperCase();
 
-      // Escape special regex characters using a function
+      // Escape special regex characters including apostrophes/single quotes
       const escapedTrigger = triggerName.replace(
-        /[-\/\\^$*+?.()|[\]{}]/g,
+        /[.*+?^${}()|[\]\\'\/\-]/g,
         "\\$&",
       );
 
