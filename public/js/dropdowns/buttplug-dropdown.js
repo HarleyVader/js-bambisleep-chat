@@ -314,6 +314,8 @@ export function ButtplugDropdown() {
       )
       .join("");
   });
+
+  return container;
 }
 
 function updateStatusIndicator(connected) {
