@@ -1855,21 +1855,21 @@ class TextToSpeechSystem {
    * @returns {Object} Audio pattern characteristics
    */
   analyzeAudioPatterns() {
-    // Calculate average frequency energy
+    // Calculate average frequency energy (pitch/intonation)
     let sum = 0;
     for (let i = 0; i < this.frequencyData.length; i++) {
       sum += this.frequencyData[i];
     }
     const avgFrequency = sum / this.frequencyData.length;
 
-    // Calculate amplitude (volume)
+    // Calculate amplitude (volume/loudness)
     let amplitudeSum = 0;
     for (let i = 0; i < this.timeDomainData.length; i++) {
       amplitudeSum += Math.abs(this.timeDomainData[i] - 128);
     }
     const amplitude = amplitudeSum / this.timeDomainData.length;
 
-    // Detect speech emphasis (peaks in low-mid frequencies 200-2000Hz)
+    // ENHANCED: Detect speech emphasis (peaks in low-mid frequencies 200-2000Hz)
     const lowFreqStart = Math.floor(
       200 / (this.audioContext.sampleRate / this.analyser.fftSize),
     );
@@ -1882,16 +1882,33 @@ class TextToSpeechSystem {
     }
     const speechEnergy = speechEnergySum / (lowFreqEnd - lowFreqStart);
 
-    // Detect if audio is active (not silence)
-    const isActive = amplitude > 5 && avgFrequency > 10;
+    // ENHANCED: Detect high frequency content for sibilance/emphasis (2kHz-8kHz)
+    const highFreqStart = Math.floor(
+      2000 / (this.audioContext.sampleRate / this.analyser.fftSize),
+    );
+    const highFreqEnd = Math.floor(
+      8000 / (this.audioContext.sampleRate / this.analyser.fftSize),
+    );
+    let highFreqSum = 0;
+    for (let i = highFreqStart; i < highFreqEnd; i++) {
+      highFreqSum += this.frequencyData[i];
+    }
+    const highFreqEnergy = highFreqSum / (highFreqEnd - highFreqStart);
 
-    // Detect emphasis (sudden volume increase or pitch change)
-    const isEmphasis = speechEnergy > 60 || amplitude > 30;
+    // Detect if audio is active (not silence) - LOWERED threshold for sensitivity
+    const isActive = amplitude > 3 && avgFrequency > 5;
+
+    // ENHANCED: Detect emphasis with multiple factors
+    const isEmphasis = 
+      speechEnergy > 55 ||  // Lowered from 60 for sensitivity
+      amplitude > 25 ||      // Lowered from 30
+      highFreqEnergy > 40;   // High frequency emphasis (s sounds, emphasis)
 
     return {
       avgFrequency,
       amplitude,
       speechEnergy,
+      highFreqEnergy,
       isActive,
       isEmphasis,
       shouldVibrate: isActive && window.buttplugIntegration?.isEnabled,
@@ -1910,25 +1927,46 @@ class TextToSpeechSystem {
       return;
     }
 
-    // Map audio characteristics to vibration intensity
-    // Base intensity from speech energy (0.1 - 0.6 range for comfortable continuous vibration)
-    let targetIntensity = 0.1 + (patterns.speechEnergy / 255) * 0.5;
+    // ENHANCED: More responsive mapping with wider dynamic range
+    // Base intensity from speech energy (0.15 - 0.5 range for gentle baseline)
+    let targetIntensity = 0.15 + (patterns.speechEnergy / 255) * 0.35;
 
-    // Boost intensity during emphasis (peaks in speech)
+    // ENHANCED: Intonation boost - higher frequencies (pitch variation) increase intensity
+    const intonationBoost = (patterns.avgFrequency / 255) * 0.15;
+    targetIntensity += intonationBoost;
+
+    // ENHANCED: Volume/amplitude sensitivity for word emphasis
+    const volumeBoost = (patterns.amplitude / 100) * 0.2;
+    targetIntensity += volumeBoost;
+
+    // ENHANCED: Strong emphasis boost for dramatic moments
     if (patterns.isEmphasis) {
-      targetIntensity = Math.min(0.8, targetIntensity + 0.3);
+      targetIntensity = Math.min(0.85, targetIntensity + 0.35);
     }
 
-    // Smooth transitions to avoid jarring changes
-    const smoothingFactor = 0.3;
+    // CRITICAL: Check if current text contains triggers - MAXIMUM INTENSITY
+    const isTriggerActive = this.currentText && this.detectTriggersInText(
+      this.currentText,
+      window.chatCore?.allTriggers || []
+    ).length > 0;
+
+    if (isTriggerActive) {
+      // TRIGGER BOOST: Hit hardest when triggers are spoken
+      targetIntensity = Math.max(targetIntensity, 0.90); // Minimum 90% for triggers
+      console.log("🔥 Trigger vibration boost active:", targetIntensity.toFixed(2));
+    }
+
+    // ENHANCED: Adaptive smoothing - faster response to increases, slower to decreases
+    const isIncreasing = targetIntensity > this.lastVibrationIntensity;
+    const smoothingFactor = isIncreasing ? 0.5 : 0.25; // Faster ramp up, slower decay
     const smoothedIntensity =
       this.lastVibrationIntensity * (1 - smoothingFactor) +
       targetIntensity * smoothingFactor;
 
-    this.lastVibrationIntensity = smoothedIntensity;
-
-    // Only update if significant change (avoid micro-adjustments)
-    if (Math.abs(smoothedIntensity - this.lastVibrationIntensity) > 0.05) {
+    // ENHANCED: Smaller threshold for more responsive updates
+    if (Math.abs(smoothedIntensity - this.lastVibrationIntensity) > 0.02) {
+      this.lastVibrationIntensity = smoothedIntensity;
+      
       // Vibrate all devices with calculated intensity
       for (const device of window.buttplugIntegration.devices) {
         if (device.vibrateAttributes && device.vibrateAttributes.length > 0) {
