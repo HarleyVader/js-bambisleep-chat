@@ -348,11 +348,11 @@ export class PatreonClient {
    */
   checkAuthResult() {
     const params = new URLSearchParams(window.location.search);
-    
+
     // Check for success (auth_success=true&tier=...)
     const authSuccess = params.get("auth_success");
     const tier = params.get("tier");
-    
+
     // Check for error (auth_error=...)
     const authError = params.get("auth_error");
 

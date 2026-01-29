@@ -1418,14 +1418,14 @@ app.get("/auth/patreon", (req, res) => {
 app.get("/api/patreon/login-url", (req, res) => {
   try {
     const socketId = req.query.socketId || "default";
-    
+
     if (!patreonService.isConfigured()) {
       return res.json({
         error: "Patreon not configured",
         authUrl: null,
       });
     }
-    
+
     const authUrl = patreonService.getAuthorizationUrl(socketId);
     res.json({ authUrl });
   } catch (error) {
@@ -1458,7 +1458,7 @@ app.get("/auth/patreon/callback", async (req, res) => {
     // Get session data from state
     const sessionData = patreonService.sessionStore.get(state);
     const socketId = sessionData?.socketId || "default";
-    
+
     console.log(`🔐 Patreon callback - state: ${state}, socketId: ${socketId}`);
     console.log(`📊 Session data found: ${sessionData ? "yes" : "no"}`);
 
