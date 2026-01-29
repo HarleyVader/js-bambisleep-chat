@@ -101,11 +101,12 @@ class PatreonService {
     try {
       const url = `${this.config.API_URL}/identity`;
       const params = new URLSearchParams({
-        include: "memberships,memberships.currently_entitled_tiers",
+        include: "memberships,memberships.campaign,memberships.currently_entitled_tiers",
         "fields[user]": "email,full_name,first_name,image_url,thumb_url",
         "fields[member]":
-          "patron_status,currently_entitled_amount_cents,lifetime_support_cents",
+          "patron_status,currently_entitled_amount_cents,lifetime_support_cents,campaign_lifetime_support_cents",
         "fields[tier]": "title,amount_cents",
+        "fields[campaign]": "vanity,creation_name",
       });
 
       const response = await axios.get(`${url}?${params.toString()}`, {
@@ -130,70 +131,132 @@ class PatreonService {
    * @returns {string} Tier name (FREE, GOOD_GIRL, PINK_POODLE, AIRHEAD_BARBIE)
    */
   determineMembershipTier(identityData) {
-    // Debug: Log full identity data structure
-    console.log("🔍 Patreon Identity Data:", JSON.stringify(identityData, null, 2));
-    
     // Check if user has any memberships
     const memberships =
       identityData.included?.filter((item) => item.type === "member") || [];
 
-    console.log(`📊 Found ${memberships.length} membership(s)`);
+    // Get all tiers from the response
+    const allTiers = identityData.included?.filter((item) => item.type === "tier") || [];
+    
+    // Get all campaigns from the response  
+    const allCampaigns = identityData.included?.filter((item) => item.type === "campaign") || [];
+
+    console.log(`📊 Found ${memberships.length} membership(s), ${allTiers.length} tier(s), ${allCampaigns.length} campaign(s)`);
     
     if (memberships.length === 0) {
       console.log("❌ No memberships found - returning FREE");
       return "FREE";
     }
 
-    // Log all memberships for debugging
-    memberships.forEach((m, i) => {
-      const campaignId = m.relationships?.campaign?.data?.id;
-      const status = m.attributes?.patron_status;
-      const tiers = m.relationships?.currently_entitled_tiers?.data || [];
-      console.log(`📋 Membership ${i + 1}: campaign=${campaignId}, status=${status}, tiers=${JSON.stringify(tiers)}`);
-    });
+    // Find active patron memberships
+    const activePatronships = memberships.filter(
+      (m) => m.attributes?.patron_status === "active_patron"
+    );
     
-    console.log(`🎯 Looking for campaign ID: "${this.config.CAMPAIGN_ID}"`);
+    console.log(`✅ Found ${activePatronships.length} active patron membership(s)`);
 
-    // Find membership to our campaign
-    const ourMembership = memberships.find((member) => {
-      const campaignRel = member.relationships?.campaign?.data;
-      return campaignRel?.id === this.config.CAMPAIGN_ID;
+    // Log active memberships with their campaigns and tiers
+    activePatronships.forEach((m, i) => {
+      const campaignId = m.relationships?.campaign?.data?.id;
+      const campaign = allCampaigns.find((c) => c.id === campaignId);
+      const tierRels = m.relationships?.currently_entitled_tiers?.data || [];
+      const tierNames = tierRels.map((tr) => {
+        const tier = allTiers.find((t) => t.id === tr.id);
+        return tier ? `${tier.attributes?.title} ($${(tier.attributes?.amount_cents || 0) / 100})` : tr.id;
+      });
+      const amountCents = m.attributes?.currently_entitled_amount_cents || 0;
+      console.log(`📋 Active ${i + 1}: campaign="${campaign?.attributes?.creation_name || campaignId}", amount=$${amountCents / 100}, tiers=[${tierNames.join(", ")}]`);
     });
 
-    if (
-      !ourMembership ||
-      ourMembership.attributes?.patron_status !== "active_patron"
-    ) {
-      return "FREE";
+    // If we have a specific CAMPAIGN_ID configured, look for that first
+    if (this.config.CAMPAIGN_ID) {
+      console.log(`🎯 Looking for specific campaign ID: "${this.config.CAMPAIGN_ID}"`);
+      const ourMembership = activePatronships.find((member) => {
+        const campaignRel = member.relationships?.campaign?.data;
+        return campaignRel?.id === this.config.CAMPAIGN_ID;
+      });
+
+      if (ourMembership) {
+        return this.determineTierFromMembership(ourMembership, allTiers);
+      }
+      console.log("⚠️ No membership found for configured campaign ID");
     }
 
-    // Get entitled tiers
-    const entitledTierRels =
-      ourMembership.relationships?.currently_entitled_tiers?.data || [];
-    const entitledTiers =
-      identityData.included?.filter(
-        (item) =>
-          item.type === "tier" &&
-          entitledTierRels.some((rel) => rel.id === item.id),
-      ) || [];
+    // Fallback: Check if user is an active patron of ANY campaign with paid tiers
+    // This allows the app to work without specific tier IDs configured
+    console.log("🔄 Checking active memberships for any paid tier...");
+    
+    // Sort by amount_cents descending to get highest tier first
+    const sortedActivePatronships = [...activePatronships].sort((a, b) => {
+      const amountA = a.attributes?.currently_entitled_amount_cents || 0;
+      const amountB = b.attributes?.currently_entitled_amount_cents || 0;
+      return amountB - amountA;
+    });
 
-    // Check tier hierarchy (highest tier wins)
+    for (const membership of sortedActivePatronships) {
+      const result = this.determineTierFromMembership(membership, allTiers);
+      if (result !== "FREE") {
+        return result;
+      }
+    }
+
+    // User is active patron but only of free tiers
+    if (activePatronships.length > 0) {
+      console.log("ℹ️ User is active patron but only has free tier memberships");
+      return "GOOD_GIRL"; // Give basic premium for being a patron at all
+    }
+
+    return "FREE";
+  }
+
+  /**
+   * Determine tier from a specific membership
+   * @param {object} membership - Membership object
+   * @param {Array} allTiers - All tier objects from response
+   * @returns {string} Tier name
+   */
+  determineTierFromMembership(membership, allTiers) {
+    const entitledTierRels = membership.relationships?.currently_entitled_tiers?.data || [];
+    const amountCents = membership.attributes?.currently_entitled_amount_cents || 0;
+    
+    // Get the actual tier objects
+    const entitledTiers = entitledTierRels.map((rel) => 
+      allTiers.find((t) => t.id === rel.id)
+    ).filter(Boolean);
+
+    // Check for specific tier IDs first (if configured)
     for (const tier of entitledTiers) {
       if (tier.id === this.config.TIERS.AIRHEAD_BARBIE) {
+        console.log(`👑 Found AIRHEAD_BARBIE tier by ID`);
         return "AIRHEAD_BARBIE";
       }
     }
 
     for (const tier of entitledTiers) {
       if (tier.id === this.config.TIERS.PINK_POODLE) {
+        console.log(`🎀 Found PINK_POODLE tier by ID`);
         return "PINK_POODLE";
       }
     }
 
     for (const tier of entitledTiers) {
       if (tier.id === this.config.TIERS.GOOD_GIRL) {
+        console.log(`💕 Found GOOD_GIRL tier by ID`);
         return "GOOD_GIRL";
       }
+    }
+
+    // Fallback: Determine tier by amount (if no specific IDs configured)
+    // $10+ = AIRHEAD_BARBIE, $5+ = PINK_POODLE, $1+ = GOOD_GIRL
+    if (amountCents >= 1000) {
+      console.log(`👑 AIRHEAD_BARBIE tier by amount: $${amountCents / 100}`);
+      return "AIRHEAD_BARBIE";
+    } else if (amountCents >= 500) {
+      console.log(`🎀 PINK_POODLE tier by amount: $${amountCents / 100}`);
+      return "PINK_POODLE";
+    } else if (amountCents >= 100) {
+      console.log(`💕 GOOD_GIRL tier by amount: $${amountCents / 100}`);
+      return "GOOD_GIRL";
     }
 
     return "FREE";
