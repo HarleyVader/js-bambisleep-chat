@@ -870,6 +870,17 @@ io.on("connection", (socket) => {
   // Send recent chat history to new user
   socket.emit("chat-history", chatHistoryManager.getLegacyHistory(20));
 
+  // Send Patreon membership tier info on connection
+  const tierInfo = patreonService.getUserTier(socket.id);
+  socket.emit("membership-tier", {
+    tier: tierInfo.tier,
+    features: tierInfo.features,
+    fullName: tierInfo.fullName,
+    avatarUrl: tierInfo.avatarUrl,
+    thumbUrl: tierInfo.thumbUrl,
+    patreonConfigured: patreonService.isConfigured(),
+  });
+
   // Broadcast connection count (use unique users for display)
   io.emit("user-count", uniqueUsers.size);
 
@@ -1381,6 +1392,157 @@ app.get("/api/collar", (req, res) => {
     text: collarText,
     timestamp: new Date().toISOString(),
   });
+});
+
+// ============================================================================
+// PATREON OAUTH ROUTES
+// ============================================================================
+const patreonService = require("./services/patreon");
+
+// Patreon OAuth initiation
+app.get("/auth/patreon", (req, res) => {
+  try {
+    const socketId = req.query.socket_id || "default";
+    const authUrl = patreonService.getAuthorizationUrl(socketId);
+    res.redirect(authUrl);
+  } catch (error) {
+    console.error("❌ Patreon auth error:", error);
+    res.status(503).json({
+      error: "Patreon not configured",
+      message: error.message,
+    });
+  }
+});
+
+// Get Patreon login URL (for client-side redirect)
+app.get("/api/patreon/login-url", (req, res) => {
+  try {
+    const socketId = req.query.socketId || "default";
+    
+    if (!patreonService.isConfigured()) {
+      return res.json({
+        error: "Patreon not configured",
+        authUrl: null,
+      });
+    }
+    
+    const authUrl = patreonService.getAuthorizationUrl(socketId);
+    res.json({ authUrl });
+  } catch (error) {
+    console.error("❌ Patreon login URL error:", error);
+    res.status(503).json({
+      error: "Failed to generate Patreon login URL",
+      message: error.message,
+    });
+  }
+});
+
+// Patreon OAuth callback
+app.get("/auth/patreon/callback", async (req, res) => {
+  const { code, state, error } = req.query;
+
+  if (error) {
+    return res.redirect(`/?auth_error=${encodeURIComponent(error)}`);
+  }
+
+  try {
+    // Exchange code for tokens
+    const tokenData = await patreonService.exchangeCodeForToken(code);
+
+    // Get user identity and membership
+    const identity = await patreonService.getUserIdentity(
+      tokenData.access_token,
+    );
+    const tier = patreonService.determineMembershipTier(identity);
+
+    // Get session data from state
+    const sessionData = patreonService.sessionStore.get(state);
+    const socketId = sessionData?.socketId || "default";
+
+    // Store tier info with avatar
+    const userAttributes = identity.data.attributes;
+    patreonService.setUserTier(socketId, {
+      tier,
+      userId: identity.data.id,
+      fullName: userAttributes.full_name,
+      email: userAttributes.email,
+      avatarUrl: userAttributes.image_url || null,
+      thumbUrl: userAttributes.thumb_url || null,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+    });
+
+    console.log(
+      `✅ Patreon auth successful for ${userAttributes.full_name} (${tier})`,
+    );
+    if (userAttributes.image_url) {
+      console.log(`🖼️ Avatar URL: ${userAttributes.image_url}`);
+    }
+
+    // Emit membership tier to connected socket
+    const socket = io.sockets.sockets.get(socketId);
+    if (socket) {
+      const tierInfo = patreonService.getUserTier(socketId);
+      socket.emit("patreon-authenticated", {
+        tier: tierInfo.tier,
+        features: tierInfo.features,
+        fullName: tierInfo.fullName,
+        avatarUrl: tierInfo.avatarUrl,
+        thumbUrl: tierInfo.thumbUrl,
+        message: `Welcome back, ${tierInfo.fullName}! You have ${tierInfo.tier} tier access.`,
+      });
+    }
+
+    // Redirect to success page with tier info
+    res.redirect(`/?auth_success=true&tier=${tier}`);
+  } catch (error) {
+    console.error("❌ Patreon callback error:", error);
+    res.redirect(`/?auth_error=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Check authentication status
+app.get("/api/patreon/status", (req, res) => {
+  const socketId = req.query.socket_id;
+  if (!socketId) {
+    return res.status(400).json({ error: "socket_id required" });
+  }
+
+  const tierInfo = patreonService.getUserTier(socketId);
+  res.json({
+    authenticated: tierInfo.tier !== "FREE",
+    tier: tierInfo.tier,
+    features: tierInfo.features,
+    fullName: tierInfo.fullName,
+    avatarUrl: tierInfo.avatarUrl,
+    thumbUrl: tierInfo.thumbUrl,
+  });
+});
+
+// Check feature access
+app.get("/api/patreon/check/:feature", (req, res) => {
+  const socketId = req.query.socket_id;
+  const feature = req.params.feature;
+
+  if (!socketId) {
+    return res.status(400).json({ error: "socket_id required" });
+  }
+
+  const hasAccess = patreonService.hasFeatureAccess(socketId, feature);
+  const tierInfo = patreonService.getUserTier(socketId);
+
+  res.json({
+    feature,
+    hasAccess,
+    tier: tierInfo?.tier || "FREE",
+    requiresTier: hasAccess ? null : "GOOD_GIRL",
+  });
+});
+
+// Tier statistics (admin only)
+app.get("/api/patreon/stats", (req, res) => {
+  const stats = patreonService.getTierStatistics();
+  res.json(stats);
 });
 
 // Setup TTS Routes with configuration validation

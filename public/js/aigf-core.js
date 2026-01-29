@@ -1,5 +1,6 @@
 // aigf-core.js - Main chat logic, socket, and UI management
 import { ErrorManager } from "./error-manager.js";
+import { PatreonClient } from "./patreon-client.js";
 
 class ChatCore {
   constructor() {
@@ -11,6 +12,7 @@ class ChatCore {
     this.aiMode = true; // AIGF mode permanently enabled
     this.collarActive = false;
     this.activeTriggers ??= []; // Will be loaded from official triggers.json
+    this.patreonClient = null; // Patreon integration
 
     // Initialize error management
     this.errorManager = new ErrorManager();
@@ -332,16 +334,59 @@ class ChatCore {
     return `${adj}${noun}${Math.floor(Math.random() * 100)}`;
   }
 
+  /**
+   * Initialize Patreon client for membership tier management
+   */
+  initPatreonClient() {
+    if (!this.socket) {
+      console.warn("Cannot initialize PatreonClient - socket not ready");
+      return;
+    }
+
+    try {
+      this.patreonClient = new PatreonClient(this.socket);
+      window.patreonClient = this.patreonClient; // Make globally accessible for upgrade buttons
+
+      // Check for auth result in URL (returning from Patreon OAuth)
+      this.patreonClient.checkAuthResult();
+
+      console.log("💎 PatreonClient initialized");
+    } catch (error) {
+      console.error("Failed to initialize PatreonClient:", error);
+      this.errorManager.reportError("patreon", "init_failed", {
+        message: "Failed to initialize Patreon integration",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Check if user has access to a feature via Patreon tier
+   * @param {string} feature - Feature name
+   * @returns {boolean}
+   */
+  hasFeatureAccess(feature) {
+    if (!this.patreonClient) {
+      // Default to checking chat feature only
+      return feature === "chat";
+    }
+    return this.patreonClient.hasFeature(feature);
+  }
+
   initSocket() {
     // Prevent multiple socket connections
     if (window.globalSocket) {
       this.socket = window.globalSocket;
       this.isConnected = this.socket.connected;
+      this.initPatreonClient();
       return;
     }
 
     this.socket = io();
     window.globalSocket = this.socket; // Store globally to prevent duplicates
+
+    // Initialize Patreon client for membership features
+    this.initPatreonClient();
 
     this.socket.on("connect", () => {
       this.isConnected = true;

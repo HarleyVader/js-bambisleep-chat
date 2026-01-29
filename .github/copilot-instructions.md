@@ -40,12 +40,14 @@ npm run clean        # Clean generated files/caches
 | [server.js](server.js)                                   | Express server, Socket.io, worker orchestration    |
 | [config/env.js](config/env.js)                           | **Single source** for all environment config       |
 | [public/js/aigf-core.js](public/js/aigf-core.js)         | Main chat client (ChatCore class)                  |
+| [public/js/patreon-client.js](public/js/patreon-client.js) | Patreon OAuth & tier management (avatars, features) |
 | [public/js/text2speech.js](public/js/text2speech.js)     | TTS with Web Audio API analysis & vibration sync   |
 | [workers/triggers.json](workers/triggers.json)           | **Authoritative** trigger definitions              |
 | [workers/kokoro.js](workers/kokoro.js)                   | TTS worker (HTTP keep-alive, caching, batching)    |
 | [workers/lmstudio.js](workers/lmstudio.js)               | AI chat worker (@lmstudio/sdk)                     |
 | [public/js/dropdowns/](public/js/dropdowns/)             | Modular UI components (ES6 class/function exports) |
 | [public/js/error-manager.js](public/js/error-manager.js) | Client-side error handling with retry logic        |
+| [services/patreon.js](services/patreon.js)               | Patreon service (OAuth, tiers, avatar fetching)    |
 | [public/css/layers.css](public/css/layers.css)           | CSS @layer definitions (stacking context)          |
 | [public/css/variables.css](public/css/variables.css)     | CSS custom properties (design tokens)              |
 

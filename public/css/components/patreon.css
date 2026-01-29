@@ -1,0 +1,407 @@
+/**
+ * Patreon Integration Styles
+ * Tier badges, notifications, and premium feature indicators
+ */
+
+/* Tier Badge Display */
+.tier-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9em;
+    margin: 10px;
+    border: 2px ridge;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    animation: tier-pulse 2s ease-in-out infinite;
+}
+
+.tier-free {
+    background: linear-gradient(135deg, #555, #777);
+    color: #fff;
+    border-color: #888;
+}
+
+.tier-good-girl {
+    background: linear-gradient(135deg, #FF69B4, #FF1493);
+    color: #fff;
+    border-color: #FF69B4;
+}
+
+.tier-pink-poodle {
+    background: linear-gradient(135deg, #FF1493, #FF69B4);
+    color: #fff;
+    border-color: #FF1493;
+    animation: tier-premium-pulse 2s ease-in-out infinite;
+}
+
+.tier-airhead-barbie {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #000;
+    border-color: #FFD700;
+    animation: tier-admin-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tier-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes tier-premium-pulse {
+    0%, 100% { 
+        transform: scale(1); 
+        box-shadow: 0 0 10px rgba(255, 20, 147, 0.5);
+    }
+    50% { 
+        transform: scale(1.05); 
+        box-shadow: 0 0 20px rgba(255, 20, 147, 0.8);
+    }
+}
+
+@keyframes tier-admin-pulse {
+    0%, 100% { 
+        transform: scale(1); 
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+    }
+    50% { 
+        transform: scale(1.08); 
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.9);
+    }
+}
+
+/* Patreon Login Button */
+.patreon-login-btn {
+    background: linear-gradient(135deg, #FF424D, #F96854);
+    color: white;
+    border: 3px ridge #FF424D;
+    padding: 12px 24px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 25px;
+    cursor: pointer;
+    margin: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 66, 77, 0.4);
+}
+
+.patreon-login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 66, 77, 0.6);
+    background: linear-gradient(135deg, #F96854, #FF424D);
+}
+
+.patreon-login-btn:active {
+    transform: translateY(0);
+}
+
+/* Locked Features */
+.locked {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    position: relative;
+}
+
+.locked::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.lock-icon {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 0.8em;
+}
+
+/* Tier Notification */
+.tier-notification {
+    position: fixed;
+    top: 20px;
+    right: -400px;
+    z-index: 10000;
+    transition: right 0.5s ease;
+}
+
+.tier-notification.show {
+    right: 20px;
+}
+
+.tier-notification-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    color: white;
+    font-weight: bold;
+    border: 3px ridge rgba(255, 255, 255, 0.3);
+}
+
+.tier-icon {
+    font-size: 2em;
+    animation: icon-bounce 0.6s ease infinite;
+}
+
+@keyframes icon-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.tier-message {
+    font-size: 1.1em;
+}
+
+/* Feature Denied Notification */
+.feature-denied-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+    z-index: 10001;
+    transition: all 0.3s ease;
+}
+
+.feature-denied-notification.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.denied-content {
+    background: linear-gradient(135deg, #333, #222);
+    border: 3px ridge var(--button-color, hotpink);
+    border-radius: 20px;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    min-width: 350px;
+}
+
+.denied-icon {
+    font-size: 3em;
+}
+
+.denied-text {
+    color: white;
+}
+
+.denied-text strong {
+    display: block;
+    font-size: 1.3em;
+    margin-bottom: 8px;
+    color: var(--button-color, hotpink);
+}
+
+.denied-text p {
+    margin: 10px 0;
+    color: #ccc;
+}
+
+.upgrade-btn {
+    background: linear-gradient(135deg, #FF1493, #FF69B4);
+    color: white;
+    border: 2px ridge #FF69B4;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.upgrade-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 20, 147, 0.6);
+}
+
+/* Premium Feature Indicators */
+.feature-premium::before {
+    content: '💎';
+    margin-right: 5px;
+}
+
+.feature-admin::before {
+    content: '👑';
+    margin-right: 5px;
+}
+
+/* Tier Info Panel (optional) */
+.tier-info-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px ridge var(--primary-color, teal);
+    border-radius: 15px;
+    padding: 15px;
+    color: white;
+    font-size: 0.9em;
+    max-width: 250px;
+    z-index: 1000;
+}
+
+.tier-info-panel h4 {
+    margin: 0 0 10px 0;
+    color: var(--button-color, hotpink);
+}
+
+.tier-info-panel ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tier-info-panel li {
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tier-info-panel li:last-child {
+    border-bottom: none;
+}
+
+.feature-enabled {
+    color: #4CAF50;
+}
+
+.feature-disabled {
+    color: #888;
+    text-decoration: line-through;
+}
+
+/* Patreon User Info with Avatar */
+.patreon-tier-container {
+    margin: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+.patreon-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(30, 30, 30, 0.9));
+    border: 2px ridge var(--button-color, hotpink);
+    border-radius: 30px;
+    padding: 8px 16px 8px 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.patreon-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--button-color, hotpink);
+    object-fit: cover;
+    box-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.patreon-avatar:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.8);
+}
+
+.patreon-avatar-placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--button-color, hotpink);
+    background: linear-gradient(135deg, #FF69B4, #FF1493);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    box-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+}
+
+.patreon-user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.patreon-username {
+    font-weight: bold;
+    color: white;
+    font-size: 0.95em;
+    text-shadow: 0 0 5px rgba(255, 105, 180, 0.5);
+}
+
+.patreon-user-info .tier-badge {
+    margin: 0;
+    font-size: 0.75em;
+    padding: 4px 10px;
+}
+
+/* Tier-specific avatar glows */
+.patreon-tier-container:has(.tier-good-girl) .patreon-avatar,
+.patreon-tier-container:has(.tier-good-girl) .patreon-avatar-placeholder {
+    box-shadow: 0 0 15px rgba(255, 105, 180, 0.7);
+    border-color: #FF69B4;
+}
+
+.patreon-tier-container:has(.tier-pink-poodle) .patreon-avatar,
+.patreon-tier-container:has(.tier-pink-poodle) .patreon-avatar-placeholder {
+    box-shadow: 0 0 20px rgba(255, 20, 147, 0.8);
+    border-color: #FF1493;
+    animation: avatar-premium-pulse 2s ease-in-out infinite;
+}
+
+.patreon-tier-container:has(.tier-airhead-barbie) .patreon-avatar,
+.patreon-tier-container:has(.tier-airhead-barbie) .patreon-avatar-placeholder {
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.9);
+    border-color: #FFD700;
+    animation: avatar-admin-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes avatar-premium-pulse {
+    0%, 100% { 
+        box-shadow: 0 0 15px rgba(255, 20, 147, 0.6);
+    }
+    50% { 
+        box-shadow: 0 0 25px rgba(255, 20, 147, 0.9);
+    }
+}
+
+@keyframes avatar-admin-pulse {
+    0%, 100% { 
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+    }
+    50% { 
+        box-shadow: 0 0 35px rgba(255, 215, 0, 1);
+    }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .patreon-user-info {
+        padding: 6px 12px 6px 6px;
+        gap: 8px;
+    }
+    
+    .patreon-avatar,
+    .patreon-avatar-placeholder {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .patreon-username {
+        font-size: 0.85em;
+    }
+    
+    .patreon-user-info .tier-badge {
+        font-size: 0.7em;
+        padding: 3px 8px;
+    }
+}
