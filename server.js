@@ -431,6 +431,8 @@ app.use((req, res, next) => {
 
 // Middleware
 app.use(express.json());
+const cookieParser = require("cookie-parser");
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 // Unified Chat History Management System
@@ -870,8 +872,27 @@ io.on("connection", (socket) => {
   // Send recent chat history to new user
   socket.emit("chat-history", chatHistoryManager.getLegacyHistory(20));
 
+  // Check for existing Patreon session via cookie
+  let tierInfo;
+  const cookies = socket.handshake.headers.cookie || "";
+  const patreonUserIdMatch = cookies.match(/patreon_user_id=([^;]+)/);
+  const patreonUserId = patreonUserIdMatch ? patreonUserIdMatch[1] : null;
+
+  if (patreonUserId) {
+    // Try to restore tier from persistent storage
+    const persistedTier = patreonService.linkSocketToPatreonUser(socket.id, patreonUserId);
+    if (persistedTier) {
+      console.log(`🔄 Restored Patreon session for ${persistedTier.fullName} (${persistedTier.tier})`);
+      tierInfo = persistedTier;
+    } else {
+      console.log(`⚠️ Patreon cookie found but no persisted tier for user ${patreonUserId}`);
+      tierInfo = patreonService.getUserTier(socket.id);
+    }
+  } else {
+    tierInfo = patreonService.getUserTier(socket.id);
+  }
+
   // Send Patreon membership tier info on connection
-  const tierInfo = patreonService.getUserTier(socket.id);
   socket.emit("membership-tier", {
     tier: tierInfo.tier,
     features: tierInfo.features,
@@ -1495,6 +1516,16 @@ app.get("/auth/patreon/callback", async (req, res) => {
         message: `Welcome back, ${tierInfo.fullName}! You have ${tierInfo.tier} tier access.`,
       });
     }
+
+    // Set persistent cookie with Patreon user ID (30 day expiry)
+    const patreonUserId = identity.data.id;
+    res.cookie("patreon_user_id", patreonUserId, {
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true,
+      secure: ENV.SERVER.IS_PRODUCTION,
+      sameSite: "lax",
+    });
+    console.log(`🍪 Set patreon_user_id cookie: ${patreonUserId}`);
 
     // Redirect to success page with tier info
     res.redirect(`/?auth_success=true&tier=${tier}`);

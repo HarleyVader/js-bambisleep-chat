@@ -10,6 +10,7 @@ class PatreonService {
   constructor() {
     this.config = ENV.PATREON;
     this.userTiers = new Map(); // socketId → tier info
+    this.usersByPatreonId = new Map(); // patreonUserId → tier info (persistent)
     this.sessionStore = new Map(); // state → session data
   }
 
@@ -295,7 +296,7 @@ class PatreonService {
    * @param {object} tierInfo - Tier information
    */
   setUserTier(socketId, tierInfo) {
-    this.userTiers.set(socketId, {
+    const tierData = {
       tier: tierInfo.tier,
       features: this.getFeaturesForTier(tierInfo.tier),
       userId: tierInfo.userId,
@@ -304,7 +305,16 @@ class PatreonService {
       avatarUrl: tierInfo.avatarUrl || null,
       thumbUrl: tierInfo.thumbUrl || null,
       updatedAt: new Date().toISOString(),
-    });
+    };
+
+    // Store by socket ID for real-time events
+    this.userTiers.set(socketId, tierData);
+
+    // Also store by Patreon user ID for persistence across reconnections
+    if (tierInfo.userId) {
+      this.usersByPatreonId.set(tierInfo.userId, tierData);
+      console.log(`💾 Tier persisted for Patreon user ID: ${tierInfo.userId}`);
+    }
 
     console.log(`💎 User tier set: ${socketId} → ${tierInfo.tier}`);
     if (tierInfo.avatarUrl) {
@@ -313,9 +323,9 @@ class PatreonService {
   }
 
   /**
-   * Get user tier information
+   * Get user tier information by socket ID
    * @param {string} socketId - User's socket ID
-   * @returns {object|null} Tier information or null
+   * @returns {object} Tier information
    */
   getUserTier(socketId) {
     return (
@@ -330,6 +340,31 @@ class PatreonService {
         updatedAt: new Date().toISOString(),
       }
     );
+  }
+
+  /**
+   * Get user tier information by Patreon user ID (persistent)
+   * @param {string} patreonUserId - Patreon user ID
+   * @returns {object|null} Tier information or null if not found
+   */
+  getTierByPatreonId(patreonUserId) {
+    return this.usersByPatreonId.get(patreonUserId) || null;
+  }
+
+  /**
+   * Link a socket to an existing Patreon user (for reconnections)
+   * @param {string} socketId - New socket ID
+   * @param {string} patreonUserId - Patreon user ID from cookie
+   * @returns {object|null} Tier info if found, null otherwise
+   */
+  linkSocketToPatreonUser(socketId, patreonUserId) {
+    const tierData = this.usersByPatreonId.get(patreonUserId);
+    if (tierData) {
+      this.userTiers.set(socketId, tierData);
+      console.log(`🔗 Socket ${socketId} linked to Patreon user ${patreonUserId} (${tierData.tier})`);
+      return tierData;
+    }
+    return null;
   }
 
   /**
