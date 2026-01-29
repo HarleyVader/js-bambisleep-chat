@@ -880,12 +880,19 @@ io.on("connection", (socket) => {
 
   if (patreonUserId) {
     // Try to restore tier from persistent storage
-    const persistedTier = patreonService.linkSocketToPatreonUser(socket.id, patreonUserId);
+    const persistedTier = patreonService.linkSocketToPatreonUser(
+      socket.id,
+      patreonUserId,
+    );
     if (persistedTier) {
-      console.log(`🔄 Restored Patreon session for ${persistedTier.fullName} (${persistedTier.tier})`);
+      console.log(
+        `🔄 Restored Patreon session for ${persistedTier.fullName} (${persistedTier.tier})`,
+      );
       tierInfo = persistedTier;
     } else {
-      console.log(`⚠️ Patreon cookie found but no persisted tier for user ${patreonUserId}`);
+      console.log(
+        `⚠️ Patreon cookie found but no persisted tier for user ${patreonUserId}`,
+      );
       tierInfo = patreonService.getUserTier(socket.id);
     }
   } else {

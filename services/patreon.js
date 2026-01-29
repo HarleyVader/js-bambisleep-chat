@@ -102,7 +102,8 @@ class PatreonService {
     try {
       const url = `${this.config.API_URL}/identity`;
       const params = new URLSearchParams({
-        include: "memberships,memberships.campaign,memberships.currently_entitled_tiers",
+        include:
+          "memberships,memberships.campaign,memberships.currently_entitled_tiers",
         "fields[user]": "email,full_name,first_name,image_url,thumb_url",
         "fields[member]":
           "patron_status,currently_entitled_amount_cents,lifetime_support_cents,campaign_lifetime_support_cents",
@@ -137,13 +138,17 @@ class PatreonService {
       identityData.included?.filter((item) => item.type === "member") || [];
 
     // Get all tiers from the response
-    const allTiers = identityData.included?.filter((item) => item.type === "tier") || [];
-    
-    // Get all campaigns from the response  
-    const allCampaigns = identityData.included?.filter((item) => item.type === "campaign") || [];
+    const allTiers =
+      identityData.included?.filter((item) => item.type === "tier") || [];
 
-    console.log(`📊 Found ${memberships.length} membership(s), ${allTiers.length} tier(s), ${allCampaigns.length} campaign(s)`);
-    
+    // Get all campaigns from the response
+    const allCampaigns =
+      identityData.included?.filter((item) => item.type === "campaign") || [];
+
+    console.log(
+      `📊 Found ${memberships.length} membership(s), ${allTiers.length} tier(s), ${allCampaigns.length} campaign(s)`,
+    );
+
     if (memberships.length === 0) {
       console.log("❌ No memberships found - returning FREE");
       return "FREE";
@@ -151,10 +156,12 @@ class PatreonService {
 
     // Find active patron memberships
     const activePatronships = memberships.filter(
-      (m) => m.attributes?.patron_status === "active_patron"
+      (m) => m.attributes?.patron_status === "active_patron",
     );
-    
-    console.log(`✅ Found ${activePatronships.length} active patron membership(s)`);
+
+    console.log(
+      `✅ Found ${activePatronships.length} active patron membership(s)`,
+    );
 
     // Log active memberships with their campaigns and tiers
     activePatronships.forEach((m, i) => {
@@ -163,15 +170,21 @@ class PatreonService {
       const tierRels = m.relationships?.currently_entitled_tiers?.data || [];
       const tierNames = tierRels.map((tr) => {
         const tier = allTiers.find((t) => t.id === tr.id);
-        return tier ? `${tier.attributes?.title} ($${(tier.attributes?.amount_cents || 0) / 100})` : tr.id;
+        return tier
+          ? `${tier.attributes?.title} ($${(tier.attributes?.amount_cents || 0) / 100})`
+          : tr.id;
       });
       const amountCents = m.attributes?.currently_entitled_amount_cents || 0;
-      console.log(`📋 Active ${i + 1}: campaign="${campaign?.attributes?.creation_name || campaignId}", amount=$${amountCents / 100}, tiers=[${tierNames.join(", ")}]`);
+      console.log(
+        `📋 Active ${i + 1}: campaign="${campaign?.attributes?.creation_name || campaignId}", amount=$${amountCents / 100}, tiers=[${tierNames.join(", ")}]`,
+      );
     });
 
     // If we have a specific CAMPAIGN_ID configured, look for that first
     if (this.config.CAMPAIGN_ID) {
-      console.log(`🎯 Looking for specific campaign ID: "${this.config.CAMPAIGN_ID}"`);
+      console.log(
+        `🎯 Looking for specific campaign ID: "${this.config.CAMPAIGN_ID}"`,
+      );
       const ourMembership = activePatronships.find((member) => {
         const campaignRel = member.relationships?.campaign?.data;
         return campaignRel?.id === this.config.CAMPAIGN_ID;
@@ -186,7 +199,7 @@ class PatreonService {
     // Fallback: Check if user is an active patron of ANY campaign with paid tiers
     // This allows the app to work without specific tier IDs configured
     console.log("🔄 Checking active memberships for any paid tier...");
-    
+
     // Sort by amount_cents descending to get highest tier first
     const sortedActivePatronships = [...activePatronships].sort((a, b) => {
       const amountA = a.attributes?.currently_entitled_amount_cents || 0;
@@ -203,7 +216,9 @@ class PatreonService {
 
     // User is active patron but only of free tiers
     if (activePatronships.length > 0) {
-      console.log("ℹ️ User is active patron but only has free tier memberships");
+      console.log(
+        "ℹ️ User is active patron but only has free tier memberships",
+      );
       return "GOOD_GIRL"; // Give basic premium for being a patron at all
     }
 
@@ -217,13 +232,15 @@ class PatreonService {
    * @returns {string} Tier name
    */
   determineTierFromMembership(membership, allTiers) {
-    const entitledTierRels = membership.relationships?.currently_entitled_tiers?.data || [];
-    const amountCents = membership.attributes?.currently_entitled_amount_cents || 0;
-    
+    const entitledTierRels =
+      membership.relationships?.currently_entitled_tiers?.data || [];
+    const amountCents =
+      membership.attributes?.currently_entitled_amount_cents || 0;
+
     // Get the actual tier objects
-    const entitledTiers = entitledTierRels.map((rel) => 
-      allTiers.find((t) => t.id === rel.id)
-    ).filter(Boolean);
+    const entitledTiers = entitledTierRels
+      .map((rel) => allTiers.find((t) => t.id === rel.id))
+      .filter(Boolean);
 
     // Check for specific tier IDs first (if configured)
     for (const tier of entitledTiers) {
@@ -361,7 +378,9 @@ class PatreonService {
     const tierData = this.usersByPatreonId.get(patreonUserId);
     if (tierData) {
       this.userTiers.set(socketId, tierData);
-      console.log(`🔗 Socket ${socketId} linked to Patreon user ${patreonUserId} (${tierData.tier})`);
+      console.log(
+        `🔗 Socket ${socketId} linked to Patreon user ${patreonUserId} (${tierData.tier})`,
+      );
       return tierData;
     }
     return null;
