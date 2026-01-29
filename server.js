@@ -1458,6 +1458,9 @@ app.get("/auth/patreon/callback", async (req, res) => {
     // Get session data from state
     const sessionData = patreonService.sessionStore.get(state);
     const socketId = sessionData?.socketId || "default";
+    
+    console.log(`🔐 Patreon callback - state: ${state}, socketId: ${socketId}`);
+    console.log(`📊 Session data found: ${sessionData ? "yes" : "no"}`);
 
     // Store tier info with avatar
     const userAttributes = identity.data.attributes;

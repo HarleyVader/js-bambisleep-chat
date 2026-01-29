@@ -348,20 +348,24 @@ export class PatreonClient {
    */
   checkAuthResult() {
     const params = new URLSearchParams(window.location.search);
-    const patreonResult = params.get("patreon");
+    
+    // Check for success (auth_success=true&tier=...)
+    const authSuccess = params.get("auth_success");
     const tier = params.get("tier");
+    
+    // Check for error (auth_error=...)
+    const authError = params.get("auth_error");
 
-    if (patreonResult === "success" && tier) {
+    if (authSuccess === "true" && tier) {
       this.showTierNotification(
-        `✨ Successfully authenticated! You are now ${tier.replace("_", " ")}!`,
+        `✨ Successfully authenticated! You are now ${tier.replace(/_/g, " ")}!`,
       );
 
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (patreonResult === "error") {
-      const msg = params.get("msg");
-      console.error("Patreon auth error:", msg);
-      alert("Patreon authentication failed. Please try again.");
+    } else if (authError) {
+      console.error("Patreon auth error:", authError);
+      alert(`Patreon authentication failed: ${decodeURIComponent(authError)}`);
 
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
