@@ -130,13 +130,29 @@ class PatreonService {
    * @returns {string} Tier name (FREE, GOOD_GIRL, PINK_POODLE, AIRHEAD_BARBIE)
    */
   determineMembershipTier(identityData) {
+    // Debug: Log full identity data structure
+    console.log("🔍 Patreon Identity Data:", JSON.stringify(identityData, null, 2));
+    
     // Check if user has any memberships
     const memberships =
       identityData.included?.filter((item) => item.type === "member") || [];
 
+    console.log(`📊 Found ${memberships.length} membership(s)`);
+    
     if (memberships.length === 0) {
+      console.log("❌ No memberships found - returning FREE");
       return "FREE";
     }
+
+    // Log all memberships for debugging
+    memberships.forEach((m, i) => {
+      const campaignId = m.relationships?.campaign?.data?.id;
+      const status = m.attributes?.patron_status;
+      const tiers = m.relationships?.currently_entitled_tiers?.data || [];
+      console.log(`📋 Membership ${i + 1}: campaign=${campaignId}, status=${status}, tiers=${JSON.stringify(tiers)}`);
+    });
+    
+    console.log(`🎯 Looking for campaign ID: "${this.config.CAMPAIGN_ID}"`);
 
     // Find membership to our campaign
     const ourMembership = memberships.find((member) => {
