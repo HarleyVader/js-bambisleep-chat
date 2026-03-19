@@ -154,8 +154,27 @@ const PATREON = {
   FEATURES: {
     FREE: ["chat"],
     GOOD_GIRL: ["chat", "tts", "triggers", "spiral"],
-    PINK_POODLE: ["chat", "tts", "triggers", "spiral", "collar", "devices", "brainwave", "buttplug"],
-    AIRHEAD_BARBIE: ["chat", "tts", "triggers", "spiral", "collar", "devices", "brainwave", "buttplug", "admin"],
+    PINK_POODLE: [
+      "chat",
+      "tts",
+      "triggers",
+      "spiral",
+      "collar",
+      "devices",
+      "brainwave",
+      "buttplug",
+    ],
+    AIRHEAD_BARBIE: [
+      "chat",
+      "tts",
+      "triggers",
+      "spiral",
+      "collar",
+      "devices",
+      "brainwave",
+      "buttplug",
+      "admin",
+    ],
   },
 
   // OAuth scopes
@@ -164,6 +183,18 @@ const PATREON = {
   // Derived values
   get isConfigured() {
     return !!(this.CLIENT_ID && this.CLIENT_SECRET && this.REDIRECT_URI);
+  },
+
+  get isFullyConfigured() {
+    return !!(
+      this.CLIENT_ID &&
+      this.CLIENT_SECRET &&
+      this.REDIRECT_URI &&
+      this.CAMPAIGN_ID &&
+      this.TIERS.GOOD_GIRL &&
+      this.TIERS.PINK_POODLE &&
+      this.TIERS.AIRHEAD_BARBIE
+    );
   },
 
   get getAuthUrl() {
