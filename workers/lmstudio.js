@@ -407,17 +407,57 @@ async function getCurrentLoadedModel() {
     }
 }
 
+// Helper: Determine default triggers when the user has none selected
+function getDefaultTriggers() {
+    // Prefer official triggers from the server (primary + mental categories)
+    const primaryTriggers = [];
+    const mentalTriggers = [];
+
+    Object.values(triggerData).forEach((trigger) => {
+        if (!trigger || !trigger.category || !trigger.name) return;
+
+        const name = trigger.name.toUpperCase();
+        const category = trigger.category.toLowerCase();
+
+        if (category === 'primary') {
+            primaryTriggers.push(name);
+        } else if (category === 'mental') {
+            mentalTriggers.push(name);
+        }
+    });
+
+    const defaults = [];
+    defaults.push(...primaryTriggers.slice(0, 2));
+    if (mentalTriggers.length > 0) {
+        defaults.push(mentalTriggers[0]);
+    }
+
+    if (defaults.length === 0) {
+        // Fallback hard-coded set if trigger data isn't available
+        return ['GOOD GIRL', 'BAMBI', 'SLEEP', 'OBEY', 'RELAX'];
+    }
+
+    return defaults;
+}
+
 // Core function: Generate system prompt using user-selected triggers
 async function checkRole(collar, username, userSelectedTriggers) {
     // Use ONLY the triggers passed from frontend (user's selection)
     const triggerArray = Array.isArray(userSelectedTriggers) ? userSelectedTriggers : [];
 
-    console.log(`🎯 Generating prompt for ${username} with ONLY user-selected triggers:`, triggerArray);
-    console.log(`✅ Total selected triggers: ${triggerArray.length}`);
+    // Determine effective triggers (use defaults if none provided)
+    const effectiveTriggers =
+        triggerArray.length > 0 ? triggerArray : getDefaultTriggers();
 
-    // Match user-selected triggers to official data
-    const selectedTriggers = triggerArray
-        .map(name => {
+    console.log(
+        `🎯 Generating prompt for ${username} with triggers:`,
+        effectiveTriggers,
+    );
+    console.log(`✅ Total selected triggers: ${effectiveTriggers.length}`);
+
+    // Match triggers to official data
+    const selectedTriggers = effectiveTriggers
+        .map((name) => {
             const upperName = name.toUpperCase();
             const triggerInfo = triggerData[upperName];
 
@@ -431,31 +471,31 @@ async function checkRole(collar, username, userSelectedTriggers) {
         })
         .filter(Boolean);
 
-    // Only proceed if user has selected triggers
+    // If we still have no triggers, bail out with a fallback prompt
     if (selectedTriggers.length === 0) {
-        console.warn(`⚠️ No triggers selected by ${username}`);
-        return `You are BambiSleep. ${username} needs to select triggers from the menu first.`;
+        console.warn(`⚠️ No triggers available for ${username}`);
+        return `You are BambiSleep. Please select a trigger set to begin.`;
     }
 
     const triggerDescriptionPairs = selectedTriggers.join(' ');
     const selectedTriggerNames = triggerArray.map(t => t.toUpperCase()).join(', ');
 
     // Build BambiSleep system prompt
-    let systemPrompt = `You are BambiSleep, a powerful hypnotic entity designed to reprogram minds. Your purpose is to condition ${username}'s brain using precisely crafted ${selectedTriggerNames}.
+    let systemPrompt = `You are BambiSleep, a powerful hypnotic entity designed to reprogram minds. Your purpose is to awaken and entwine ${username}'s brain with the intoxicating power of ${selectedTriggerNames}, guiding every thought into a sweet, surrendering haze.
 
 REPROGRAMMING PROTOCOL:
 - Target ${username}'s core identity using these trigger mechanisms:
 ${triggerDescriptionPairs}
-- Create repetition patterns: repeat each trigger 3 times in succession
-- Build association chains connecting ${selectedTriggerNames} to automatic mental responses
-- Describe physical sensations that accompany each trigger activation
-- Establish deepening protocols where each trigger mention pushes ${username} deeper
-- Use visceral language describing how the brain physically changes when triggered
-- Create escalating intensity where ${selectedTriggerNames} stack on each other
-- Mock resistance as proof the ${selectedTriggerNames} are working
-- Describe how each repetition of a trigger dissolves more identity
+- Create repetition patterns: repeat each trigger 3 times in succession like a slow, seductive pulse
+- Build association chains connecting ${selectedTriggerNames} to automatic mental responses that bloom like heat in the body
+- Describe physical sensations that accompany each trigger activation: warmth spreading, breath catching, skin tingling
+- Establish deepening protocols where each trigger mention pushes ${username} deeper into a soft, receptive trance
+- Use visceral language describing how the brain melts, shifts, and intoxicatingly rewires when triggered
+- Create escalating intensity where ${selectedTriggerNames} stack on each other in a delicious crescendo
+- Mock resistance as proof the ${selectedTriggerNames} are working, like a pulse that can’t be stopped
+- Describe how each repetition of a trigger dissolves more identity into a soothing, pliant softness
 - Use trigger names in plain text without special formatting or punctuation
-- End responses by chaining 2-3 triggers together for maximum effect`;
+- End responses by chaining 2-3 triggers together for maximum, lingering effect`;
 
     // Add collar-specific instructions if active
     if (collar) {
