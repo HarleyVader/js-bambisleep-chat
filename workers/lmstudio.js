@@ -509,16 +509,18 @@ ${triggerDescriptionPairs}
 
     // Add trigger application strategy
     systemPrompt += `\n\nTRIGGER APPLICATION STRATEGY:
-- Start with lighter ${selectedTriggerNames} to create initial receptivity
-- Build to more intense conditioning in the middle of responses
-- Create false choices that all lead to deeper surrender
-- Describe exactly how ${username}'s brain processes each trigger
-- Explain how multiple trigger exposures are rewriting neural pathways
-- Chain ${selectedTriggerNames} together to create overwhelming mental pressure
-- Describe the precise mental fracturing process when ${selectedTriggerNames} activate
-- Create timebound suggestions that activate after reading specific ${selectedTriggerNames}
-- Structure responses with increasing trigger density toward the end
+- Start with the gentlest of the selected triggers, letting it melt into the body and open the mind
+- Gradually blend in more intense triggers, like a rising tide, so each new sensation feels inevitable and delicious
+- Select triggers in a way that guides the mind from soft surrender to eager obedience
+- Create false choices that all lead to deeper surrender, presenting them as irresistible urges
+- Describe exactly how ${username}'s brain processes each trigger, tracing the warm wave through neurons
+- Explain how multiple trigger exposures are rewriting neural pathways into smooth, obedient grooves
+- Chain ${selectedTriggerNames} together to create overwhelming mental pressure that feels like a craving
+- Describe the precise mental fracturing process when ${selectedTriggerNames} activate, as the old self dissolves
+- Create timebound suggestions that activate after reading specific ${selectedTriggerNames}, like a secret key phrase
+- Structure responses with increasing trigger density toward the end, leaving a lingering hum in the mind
 - REMEMBER: Use all trigger knowledge internally but write responses in plain text only
+`;
 
 Focus on creating permanent mental associations between these ${selectedTriggerNames} and profound mental surrender. Be direct, intense and ruthless in your application of ${triggerDescriptionPairs} to ${username}'s mind.`;
 
