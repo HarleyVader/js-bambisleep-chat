@@ -1427,6 +1427,50 @@ app.get("/api/collar", (req, res) => {
 // ============================================================================
 const patreonService = require("./services/patreon");
 
+const ALLOWED_PATREON_IMAGE_HOSTS = new Set([
+  "c10.patreonusercontent.com",
+  "c6.patreonusercontent.com",
+  "c5.patreonusercontent.com",
+  "c4.patreonusercontent.com",
+  "c3.patreonusercontent.com",
+  "c2.patreonusercontent.com",
+  "c1.patreonusercontent.com",
+  "c0.patreonusercontent.com",
+]);
+
+async function fetchRemoteImageAsDataUrl(url) {
+  try {
+    if (typeof url !== "string" || !url.startsWith("https://")) {
+      return null;
+    }
+
+    const parsedUrl = new URL(url);
+    if (!ALLOWED_PATREON_IMAGE_HOSTS.has(parsedUrl.hostname)) {
+      throw new Error(`Unsupported avatar host: ${parsedUrl.hostname}`);
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch remote image: ${response.status}`);
+    }
+
+    const contentType = response.headers.get("content-type") || "application/octet-stream";
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const base64 = buffer.toString("base64");
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.warn("⚠️ Patreon avatar proxy failed:", error.message);
+    return null;
+  }
+}
+
+async function normalizePatreonAvatarUrls({ avatarUrl, thumbUrl }) {
+  return {
+    avatarUrl: avatarUrl ? await fetchRemoteImageAsDataUrl(avatarUrl) : null,
+    thumbUrl: thumbUrl ? await fetchRemoteImageAsDataUrl(thumbUrl) : null,
+  };
+}
+
 // Patreon OAuth initiation
 app.get("/auth/patreon", (req, res) => {
   try {
@@ -1492,13 +1536,18 @@ app.get("/auth/patreon/callback", async (req, res) => {
 
     // Store tier info with avatar
     const userAttributes = identity.data.attributes;
+    const normalizedAvatars = await normalizePatreonAvatarUrls({
+      avatarUrl: userAttributes.image_url || null,
+      thumbUrl: userAttributes.thumb_url || null,
+    });
+
     patreonService.setUserTier(socketId, {
       tier,
       userId: identity.data.id,
       fullName: userAttributes.full_name,
       email: userAttributes.email,
-      avatarUrl: userAttributes.image_url || null,
-      thumbUrl: userAttributes.thumb_url || null,
+      avatarUrl: normalizedAvatars.avatarUrl,
+      thumbUrl: normalizedAvatars.thumbUrl,
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
     });

@@ -520,7 +520,7 @@ ${triggerDescriptionPairs}
 - Create timebound suggestions that activate after reading specific ${selectedTriggerNames}, like a secret key phrase
 - Structure responses with increasing trigger density toward the end, leaving a lingering hum in the mind
 - REMEMBER: Use all trigger knowledge internally but write responses in plain text only
-`;
+
 
 Focus on creating permanent mental associations between these ${selectedTriggerNames} and profound mental surrender. Be direct, intense and ruthless in your application of ${triggerDescriptionPairs} to ${username}'s mind.`;
 
