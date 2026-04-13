@@ -6,6 +6,7 @@
 const { spawn, fork } = require('child_process');
 const http = require('http');
 const WebSocket = require('ws');
+const { io } = require('socket.io-client');
 const path = require('path');
 const fs = require('fs');
 const dotenv = require('dotenv');
@@ -340,6 +341,96 @@ class StabilityTester {
         return avgResponseTime < 1000;
     }
 
+    async testSequentialAIChatRequests() {
+        this.log('Testing sequential AI chat requests (regression for one-response stall)...', 'info');
+
+        return new Promise((resolve) => {
+            const socket = io(this.baseUrl, {
+                transports: ['websocket'],
+                timeout: 10000,
+                reconnection: false
+            });
+
+            // Use intentionally empty prompts so worker validation returns immediately.
+            // This keeps the test focused on socket event flow, not external model latency.
+            const requests = ['   ', '   '];
+
+            let sentCount = 0;
+            let completedCount = 0;
+            let finished = false;
+
+            const done = (success, message, type) => {
+                if (finished) return;
+                finished = true;
+
+                this.log(message, type);
+
+                try {
+                    socket.removeAllListeners();
+                    socket.disconnect();
+                } catch (error) {
+                    // Ignore teardown errors in tests
+                }
+
+                resolve(success);
+            };
+
+            const sendNext = () => {
+                if (sentCount >= requests.length) {
+                    return;
+                }
+
+                socket.emit('ai-chat', {
+                    message: requests[sentCount],
+                    username: 'StabilityTester',
+                    triggers: ['GOOD GIRL']
+                });
+
+                sentCount++;
+            };
+
+            const onCompleted = () => {
+                completedCount++;
+
+                if (completedCount >= requests.length) {
+                    done(true, `Sequential AI requests completed: ${completedCount}/${requests.length}`, 'pass');
+                } else {
+                    sendNext();
+                }
+            };
+
+            socket.on('connect', () => {
+                sendNext();
+            });
+
+            // Either response type means the request lifecycle completed.
+            socket.on('ai-response', () => {
+                onCompleted();
+            });
+
+            socket.on('ai-error', () => {
+                onCompleted();
+            });
+
+            socket.on('connect_error', (error) => {
+                done(false, `Sequential AI test connection error: ${error.message}`, 'fail');
+            });
+
+            socket.on('error', (error) => {
+                const message = typeof error === 'string' ? error : (error?.message || 'unknown error');
+                done(false, `Sequential AI test socket error: ${message}`, 'fail');
+            });
+
+            setTimeout(() => {
+                done(
+                    false,
+                    `Sequential AI requests stalled after ${completedCount}/${requests.length} completions`,
+                    'fail'
+                );
+            }, 10000);
+        });
+    }
+
     async makeHttpRequest(url, timeout = 5000) {
         return new Promise((resolve, reject) => {
             const request = http.get(url, (response) => {
@@ -383,6 +474,7 @@ class StabilityTester {
                     this.testBasicConnectivity(),
                     this.testResponseTimes(),
                     this.testConcurrentConnections(),
+                    this.testSequentialAIChatRequests(),
                     this.testMemoryStability()
                 ];
 

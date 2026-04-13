@@ -447,6 +447,15 @@ class ChatCore {
 
     // AI-specific events
     this.socket.on("ai-response", (data) => {
+      // Guard against malformed payloads so one bad response does not break chat flow
+      if (!data || typeof data !== "object") {
+        this.errorManager.reportError("ai-chat", "worker_unavailable", {
+          message: "Received invalid AI response payload",
+        });
+        this.addSystemMessage("AI Error: Invalid response payload");
+        return;
+      }
+
       // Handle error responses from our graceful fallbacks
       if (data.isError) {
         this.errorManager.reportError("ai-chat", "worker_unavailable", {
@@ -454,12 +463,20 @@ class ChatCore {
           retryCallback: () => {
             const lastMessage =
               this.messageHistory[this.messageHistory.length - 1];
-            if (lastMessage && lastMessage.role === "user") {
-              this.sendAIMessage(lastMessage.content);
+            if (lastMessage && lastMessage.isOwn && !lastMessage.isAI) {
+              this.sendAIMessage(lastMessage.text);
             }
           },
         });
         this.addSystemMessage(`❌ ${data.content}`);
+        return;
+      }
+
+      if (!data.message || typeof data.message !== "string") {
+        this.errorManager.reportError("ai-chat", "worker_unavailable", {
+          message: "AI response missing message content",
+        });
+        this.addSystemMessage("AI Error: Empty response from AI worker");
         return;
       }
 
@@ -482,8 +499,8 @@ class ChatCore {
           // Retry last AI message if available
           const lastMessage =
             this.messageHistory[this.messageHistory.length - 1];
-          if (lastMessage && lastMessage.role === "user") {
-            this.sendAIMessage(lastMessage.content);
+          if (lastMessage && lastMessage.isOwn && !lastMessage.isAI) {
+            this.sendAIMessage(lastMessage.text);
           }
         },
       });
@@ -784,12 +801,25 @@ class ChatCore {
     const message = this.aigfChatInput.value.trim();
     if (!message || !this.isConnected) return;
 
+    this.sendAIMessage(message);
+
+    // Clear input
+    this.aigfChatInput.value = "";
+    this.aigfChatInput.focus();
+  }
+
+  // Unified AI message sender used by UI and retry callbacks
+  sendAIMessage(message) {
+    const normalizedMessage =
+      typeof message === "string" ? message.trim() : "";
+    if (!normalizedMessage || !this.isConnected || !this.socket) return;
+
     // Add message to AIGF UI immediately
-    this.addMessage(message, new Date(), true, this.username);
+    this.addMessage(normalizedMessage, new Date(), true, this.username);
 
     // Send to AI with selected triggers
     this.socket.emit("ai-chat", {
-      message: message,
+      message: normalizedMessage,
       username: this.username,
       triggers: this.activeTriggers,
       timestamp: new Date().toISOString(),
@@ -800,10 +830,6 @@ class ChatCore {
         ", ",
       )}`,
     );
-
-    // Clear input
-    this.aigfChatInput.value = "";
-    this.aigfChatInput.focus();
   }
 
   addMessage(
