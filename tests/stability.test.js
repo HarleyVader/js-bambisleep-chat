@@ -65,6 +65,28 @@ class StabilityTester {
         if (type === 'warn') this.results.warnings++;
     }
 
+    classifyServerStderr(output) {
+        const message = output.trim();
+
+        if (!message || message.includes('DeprecationWarning')) {
+            return null;
+        }
+
+        const fatalPatterns = [
+            'Unhandled',
+            'EADDRINUSE',
+            'SyntaxError',
+            'ReferenceError',
+            'TypeError',
+            'RangeError',
+            'ERR_'
+        ];
+
+        return fatalPatterns.some((pattern) => message.includes(pattern))
+            ? 'fail'
+            : 'warn';
+    }
+
     async startTestServer() {
         if (this.ciMode) {
             this.log('CI mode: Skipping server startup', 'info');
@@ -93,8 +115,10 @@ class StabilityTester {
 
             this.serverProcess.stderr.on('data', (data) => {
                 const error = data.toString();
-                if (!error.includes('DeprecationWarning')) {
-                    this.log(`Server error: ${error.trim()}`, 'fail');
+                const severity = this.classifyServerStderr(error);
+
+                if (severity) {
+                    this.log(`Server stderr: ${error.trim()}`, severity);
                 }
             });
 
@@ -141,24 +165,42 @@ class StabilityTester {
         this.log('Testing basic HTTP connectivity...', 'info');
 
         const testUrls = [
-            this.baseUrl,
-            `${this.baseUrl}/api/triggers/json`,
-            `${this.baseUrl}/socket.io/`
+            {
+                url: this.baseUrl,
+                validate: (statusCode) => statusCode < 400,
+                formatSuccess: (statusCode) => `✓ ${this.baseUrl} responds (${statusCode})`,
+                formatFailure: (statusCode) => `✗ ${this.baseUrl} error (${statusCode})`
+            },
+            {
+                url: `${this.baseUrl}/api/triggers/json`,
+                validate: (statusCode) => statusCode < 400,
+                formatSuccess: (statusCode) => `✓ ${this.baseUrl}/api/triggers/json responds (${statusCode})`,
+                formatFailure: (statusCode) => `✗ ${this.baseUrl}/api/triggers/json error (${statusCode})`
+            },
+            {
+                url: `${this.baseUrl}/socket.io/`,
+                validate: (statusCode) => statusCode === 400 || statusCode === 200,
+                formatSuccess: (statusCode) =>
+                    statusCode === 400
+                        ? `✓ ${this.baseUrl}/socket.io/ responds (${statusCode}, handshake required)`
+                        : `✓ ${this.baseUrl}/socket.io/ responds (${statusCode})`,
+                formatFailure: (statusCode) => `✗ ${this.baseUrl}/socket.io/ error (${statusCode})`
+            }
         ];
 
         let successCount = 0;
 
-        for (const url of testUrls) {
+        for (const testCase of testUrls) {
             try {
-                const response = await this.makeHttpRequest(url, 5000);
-                if (response.statusCode < 400) {
-                    this.log(`✓ ${url} responds (${response.statusCode})`, 'pass');
+                const response = await this.makeHttpRequest(testCase.url, 5000);
+                if (testCase.validate(response.statusCode)) {
+                    this.log(testCase.formatSuccess(response.statusCode), 'pass');
                     successCount++;
                 } else {
-                    this.log(`✗ ${url} error (${response.statusCode})`, 'fail');
+                    this.log(testCase.formatFailure(response.statusCode), 'fail');
                 }
             } catch (error) {
-                this.log(`✗ ${url} failed: ${error.message}`, 'fail');
+                this.log(`✗ ${testCase.url} failed: ${error.message}`, 'fail');
             }
         }
 

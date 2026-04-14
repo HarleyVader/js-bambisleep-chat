@@ -155,6 +155,15 @@ class ResourceTester {
     async testCPUUsage() {
         this.log('Testing CPU usage patterns...', 'info');
 
+        const maxWaitMs = 3000;
+        const pollIntervalMs = 250;
+        let waitedMs = 0;
+
+        while (this.results.metrics.cpu.length < 2 && waitedMs < maxWaitMs) {
+            await this.delay(pollIntervalMs);
+            waitedMs += pollIntervalMs;
+        }
+
         const cpuData = this.results.metrics.cpu;
         if (cpuData.length < 2) {
             this.log('Insufficient CPU data collected', 'fail');
