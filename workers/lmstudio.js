@@ -633,7 +633,7 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
             actualTokenUsage = response.data.usage;
         }
 
-        const finalContent = response.data.choices[0].message.content;
+        const finalContent = extractCompletionContent(response.data);
 
         // Add assistant response to session history
         sessionHistories[socketId].push({
@@ -669,14 +669,61 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         if (error.code === 'ECONNREFUSED') {
             console.error('LM Studio connection failed - is LM Studio running?');
             sendResponse("Sorry, I'm having trouble connecting to the AI. Please make sure LM Studio is running.", socketId, username);
+        } else if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+            console.error('LM Studio request timed out');
+            sendResponse("Sorry, the AI took too long to respond. Please try again.", socketId, username);
         } else if (error.response && error.response.status === 404) {
             console.error('LM Studio model not found or not loaded');
             sendResponse("Sorry, no AI model is currently loaded. Please load a model in LM Studio.", socketId, username);
+        } else if (error.response && error.response.status >= 500) {
+            console.error('LM Studio upstream service error');
+            sendResponse("Sorry, the AI service returned an internal error. Please try again.", socketId, username);
         } else {
             console.error('Generic error caught, details:', error.message);
             sendResponse("Sorry, I encountered an error. Please try again.", socketId, username);
         }
     }
+}
+
+function extractCompletionContent(responseData) {
+    const firstChoice = responseData?.choices?.[0];
+
+    if (!firstChoice) {
+        throw new Error('LM Studio response missing choices[0]');
+    }
+
+    const messageContent = firstChoice.message?.content;
+    if (typeof messageContent === 'string' && messageContent.trim().length > 0) {
+        return messageContent;
+    }
+
+    if (Array.isArray(messageContent)) {
+        const textParts = messageContent
+            .map((part) => {
+                if (typeof part === 'string') {
+                    return part;
+                }
+
+                if (part && typeof part.text === 'string') {
+                    return part.text;
+                }
+
+                return '';
+            })
+            .filter(Boolean)
+            .join('')
+            .trim();
+
+        if (textParts.length > 0) {
+            return textParts;
+        }
+    }
+
+    if (typeof firstChoice.text === 'string' && firstChoice.text.trim().length > 0) {
+        return firstChoice.text;
+    }
+
+    throw new Error('LM Studio response missing assistant content');
 }
 
 // Send response back to main thread
