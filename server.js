@@ -1161,6 +1161,48 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Live reachability probe for LM Studio and Kokoro TTS
+app.get("/api/services/status", async (req, res) => {
+  function probe(hostname, port, path, timeoutMs) {
+    return new Promise((resolve) => {
+      const start = Date.now();
+      const options = { hostname, port, path, method: "GET" };
+      const r = http.request(options, (response) => {
+        response.resume(); // drain
+        resolve({ reachable: true, status: response.statusCode, latencyMs: Date.now() - start });
+      });
+      r.setTimeout(timeoutMs, () => { r.destroy(); });
+      r.on("error", (e) => resolve({ reachable: false, error: e.message, latencyMs: Date.now() - start }));
+      r.end();
+    });
+  }
+
+  const [lms, kokoro] = await Promise.all([
+    ENV.LMS.isConfigured
+      ? probe(ENV.LMS.HOST, ENV.LMS.PORT, "/v1/models", 5000)
+      : Promise.resolve({ reachable: false, error: "not configured" }),
+    ENV.KOKORO.isConfigured
+      ? probe(ENV.KOKORO.HOST, ENV.KOKORO.PORT, "/health", 5000)
+      : Promise.resolve({ reachable: false, error: "not configured" }),
+  ]);
+
+  res.json({
+    timestamp: new Date().toISOString(),
+    lmstudio: {
+      configured: ENV.LMS.isConfigured,
+      endpoint: ENV.LMS.URL,
+      model: ENV.LMS.TARGET_MODEL_NAME,
+      ...lms,
+    },
+    kokoro: {
+      configured: ENV.KOKORO.isConfigured,
+      endpoint: ENV.KOKORO.URL,
+      voice: ENV.KOKORO.DEFAULT_VOICE,
+      ...kokoro,
+    },
+  });
+});
+
 // Serve docs folder for markdown documentation
 app.use("/docs", express.static(path.join(__dirname, "public", "docs")));
 
