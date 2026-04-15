@@ -166,23 +166,31 @@ class TextToSpeechSystem {
 
     // Listen for TTS responses from Kokoro
     this.socket.on("tts-response", (data) => {
+      this.kokoroDown = false; // service is alive
       this.handleKokoroResponse(data);
     });
 
     this.socket.on("tts-error", (data) => {
-      console.error("🎤 Kokoro TTS error from server:", data.error);
+      // Only log/report the first error per outage
+      if (!this.kokoroDown) {
+        this.kokoroDown = true;
+        console.error("🎤 Kokoro TTS unavailable:", data.error);
 
-      // Report error through error management system if available
-      if (window.chatCore && window.chatCore.errorManager) {
-        window.chatCore.errorManager.reportError("tts", "service_unavailable", {
-          message: data.error,
-          retryCallback: () => this.retryCurrentText(),
-        });
+        if (window.chatCore && window.chatCore.errorManager) {
+          window.chatCore.errorManager.reportError("tts", "service_unavailable", {
+            message: data.error,
+            retryCallback: () => this.retryCurrentText(),
+          });
+        }
+
+        // Retry availability after 30s
+        setTimeout(() => { this.kokoroDown = false; }, 30000);
       }
 
-      // Advance queue to prevent indefinite stall
-      console.error("🎤 Kokoro TTS unavailable - advancing queue");
-      this.handleAudioEnded();
+      // Drain entire queue immediately — no point sending more requests
+      this.textArray = [];
+      this.isPlaying = false;
+      this.state = true;
     });
 
     // Add connection monitoring
@@ -764,6 +772,14 @@ class TextToSpeechSystem {
       } else {
         this.currentText = textItem.display;
         this.currentTTSText = textItem.tts;
+      }
+
+      // Skip immediately if Kokoro is known to be down
+      if (this.kokoroDown) {
+        this.textArray = [];
+        this.isPlaying = false;
+        this.state = true;
+        return;
       }
 
       console.log("🎤 [SEQUENTIAL] Generating audio for:", this.currentText);
