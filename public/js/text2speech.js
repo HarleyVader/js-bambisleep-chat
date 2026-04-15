@@ -91,6 +91,14 @@ class TextToSpeechSystem {
       this.audioContext = new (
         window.AudioContext || window.webkitAudioContext
       )();
+      // Resume AudioContext on first user gesture (browser autoplay policy)
+      const resumeOnGesture = () => {
+        if (this.audioContext && this.audioContext.state === "suspended") {
+          this.audioContext.resume();
+        }
+      };
+      document.addEventListener("click", resumeOnGesture, { once: true });
+      document.addEventListener("keydown", resumeOnGesture, { once: true });
     } catch (error) {
       console.warn("Web Audio API not supported");
     }
@@ -172,7 +180,9 @@ class TextToSpeechSystem {
         });
       }
 
-      console.error("🎤 Kokoro TTS unavailable - no fallback configured");
+      // Advance queue to prevent indefinite stall
+      console.error("🎤 Kokoro TTS unavailable - advancing queue");
+      this.handleAudioEnded();
     });
 
     // Add connection monitoring
