@@ -56,7 +56,7 @@ const LMS = {
 
   // Timeouts (milliseconds)
   MODEL_LOAD_TIMEOUT: parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT) || 30000,
-  API_CALL_TIMEOUT: parseInt(process.env.LMS_API_CALL_TIMEOUT) || 120000,
+  API_CALL_TIMEOUT: parseInt(process.env.LMS_API_CALL_TIMEOUT) || 300000,
   REST_API_TIMEOUT: parseInt(process.env.LMS_REST_API_TIMEOUT) || 5000,
   SESSION_TIMEOUT_MINUTES: parseInt(process.env.SESSION_TIMEOUT_MINUTES) || 15,
 
