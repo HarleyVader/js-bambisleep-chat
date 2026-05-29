@@ -55,10 +55,10 @@ const LMS = {
   MAX_SEARCH_ATTEMPTS: parseInt(process.env.MAX_SEARCH_ATTEMPTS) || 3,
 
   // Timeouts (milliseconds)
-  MODEL_LOAD_TIMEOUT: parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT) || 30000,
-  API_CALL_TIMEOUT: parseInt(process.env.LMS_API_CALL_TIMEOUT) || 300000,
-  REST_API_TIMEOUT: parseInt(process.env.LMS_REST_API_TIMEOUT) || 5000,
-  SESSION_TIMEOUT_MINUTES: parseInt(process.env.SESSION_TIMEOUT_MINUTES) || 15,
+  MODEL_LOAD_TIMEOUT: parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT) || 120000,
+  API_CALL_TIMEOUT: parseInt(process.env.LMS_API_CALL_TIMEOUT) || 600000,
+  REST_API_TIMEOUT: parseInt(process.env.LMS_REST_API_TIMEOUT) || 15000,
+  SESSION_TIMEOUT_MINUTES: parseInt(process.env.SESSION_TIMEOUT_MINUTES) || 30,
 
   // Context Window
   MAX_CONTEXT_TOKENS: parseInt(process.env.MAX_CONTEXT_TOKENS) || 6144,

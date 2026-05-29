@@ -39,10 +39,10 @@ class EnvironmentValidator {
         { name: "LMS_PORT", default: 7777, type: "port" },
         { name: "TARGET_MODEL_NAME", required: false, type: "string" },
         { name: "MAX_SEARCH_ATTEMPTS", default: 3, type: "number" },
-        { name: "LMS_MODEL_LOAD_TIMEOUT", default: 30000, type: "number" },
-        { name: "LMS_API_CALL_TIMEOUT", default: 120000, type: "number" },
-        { name: "LMS_REST_API_TIMEOUT", default: 5000, type: "number" },
-        { name: "SESSION_TIMEOUT_MINUTES", default: 15, type: "number" },
+        { name: "LMS_MODEL_LOAD_TIMEOUT", default: 120000, type: "number" },
+        { name: "LMS_API_CALL_TIMEOUT", default: 600000, type: "number" },
+        { name: "LMS_REST_API_TIMEOUT", default: 15000, type: "number" },
+        { name: "SESSION_TIMEOUT_MINUTES", default: 30, type: "number" },
       ],
 
       // TTS (Kokoro) configurations
