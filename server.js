@@ -1423,7 +1423,7 @@ app.post("/api/chat", (req, res) => {
   const timeout = setTimeout(() => {
     res.status(504).json({ error: "AI response timeout" });
     delete pendingAPIRequests[tempSocketId];
-  }, 60000); // 1 minute timeout
+  }, ENV.LMS.API_CALL_TIMEOUT);
 
   // Store the response object for this request
   if (!global.pendingAPIRequests) {
@@ -2131,7 +2131,7 @@ class ServerMemoryManager {
 
     let cleaned = 0;
     const now = Date.now();
-    const timeout = 60000; // 1 minute
+    const timeout = ENV.LMS.API_CALL_TIMEOUT;
 
     Object.keys(global.pendingAPIRequests).forEach((key) => {
       const request = global.pendingAPIRequests[key];
@@ -2359,6 +2359,15 @@ process.on("SIGINT", () => {
 
 // Start server
 const PORT = ENV.SERVER.PORT;
+
+// Allow long-running AI/TTS requests to complete without HTTP socket timing out.
+// Must be >= ENV.LMS.API_CALL_TIMEOUT and ENV.KOKORO.TIMEOUT.
+const HTTP_LONG_TIMEOUT = Math.max(ENV.LMS.API_CALL_TIMEOUT, ENV.KOKORO.TIMEOUT) + 30000;
+server.timeout = HTTP_LONG_TIMEOUT;
+server.requestTimeout = HTTP_LONG_TIMEOUT;
+server.keepAliveTimeout = HTTP_LONG_TIMEOUT;
+server.headersTimeout = HTTP_LONG_TIMEOUT + 1000;
+
 server.listen(PORT, () => {
   console.log(`🚀 BambiSleep Chat server running on http://localhost:${PORT}`);
   console.log(
