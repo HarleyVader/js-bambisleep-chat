@@ -408,13 +408,27 @@ module.exports = {
   printSummary,
 
   // Legacy compatibility - export individual values
-  PORT: SERVER.PORT,
-  VITE_PORT: SERVER.VITE_PORT,
-  SERVER_HOST: SERVER.HOST,
+  get PORT() {
+    return SERVER.PORT;
+  },
+  get VITE_PORT() {
+    return SERVER.VITE_PORT;
+  },
+  get SERVER_HOST() {
+    return SERVER.HOST;
+  },
 
   // Kokoro legacy
-  KOKORO_API_URL: KOKORO.URL,
-  KOKORO_API_KEY: KOKORO.API_KEY,
-  KOKORO_DEFAULT_VOICE: KOKORO.DEFAULT_VOICE,
-  TTS_TIMEOUT: KOKORO.TIMEOUT,
+  get KOKORO_API_URL() {
+    return KOKORO.URL;
+  },
+  get KOKORO_API_KEY() {
+    return KOKORO.API_KEY;
+  },
+  get KOKORO_DEFAULT_VOICE() {
+    return KOKORO.DEFAULT_VOICE;
+  },
+  get TTS_TIMEOUT() {
+    return KOKORO.TIMEOUT;
+  },
 };
