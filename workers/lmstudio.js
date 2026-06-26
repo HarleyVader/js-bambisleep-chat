@@ -2,6 +2,8 @@
 const { parentPort } = require('worker_threads');
 const axios = require('axios');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const ENV = require('../config/env');
 
 // LM Studio Configuration Class with Graceful Degradation
@@ -52,8 +54,76 @@ class LMStudioConfig {
     }
 }
 
+// Prompt template manager — loads JSON files from workers/prompts/
+class PromptManager {
+    constructor(promptsDir) {
+        this.promptsDir = promptsDir;
+        this.prompts = {};
+        this.defaultPromptId = null;
+    }
+
+    load() {
+        this.prompts = {};
+        this.defaultPromptId = null;
+        try {
+            if (!fs.existsSync(this.promptsDir)) {
+                console.warn(`⚠️ Prompts directory not found: ${this.promptsDir}`);
+                return;
+            }
+            const files = fs.readdirSync(this.promptsDir).filter(f => f.endsWith('.json'));
+            for (const file of files) {
+                try {
+                    const content = JSON.parse(fs.readFileSync(path.join(this.promptsDir, file), 'utf8'));
+                    if (content.id) {
+                        this.prompts[content.id] = content;
+                        if (!this.defaultPromptId) this.defaultPromptId = content.id;
+                        console.log(`📝 Loaded prompt: ${content.id} (${content.name})`);
+                    }
+                } catch (err) {
+                    console.warn(`⚠️ Failed to load prompt file ${file}:`, err.message);
+                }
+            }
+            if (this.prompts['bambisleep-classic']) this.defaultPromptId = 'bambisleep-classic';
+            console.log(`✅ ${Object.keys(this.prompts).length} prompt(s) loaded. Default: ${this.defaultPromptId}`);
+        } catch (error) {
+            console.error('❌ Failed to load prompts:', error.message);
+        }
+    }
+
+    list() {
+        return Object.values(this.prompts).map(p => ({ id: p.id, name: p.name, description: p.description }));
+    }
+
+    get(id) {
+        return this.prompts[id] || null;
+    }
+
+    build(id, vars) {
+        const prompt = this.get(id);
+        if (!prompt) return null;
+        let result = this._sub(prompt.main || '', vars);
+        if (vars.collar && prompt.collar_addon) result += this._sub(prompt.collar_addon, vars);
+        if (prompt.strategy) result += this._sub(prompt.strategy, vars);
+        return result;
+    }
+
+    _sub(template, vars) {
+        return template.replace(/\{\{(\w+)\}\}/g, (match, key) =>
+            vars[key] !== undefined ? vars[key] : match
+        );
+    }
+
+    hasPrompts() {
+        return Object.keys(this.prompts).length > 0;
+    }
+}
+
 // Initialize configuration
 const config = new LMStudioConfig();
+
+// Initialize prompt manager
+const promptManager = new PromptManager(path.join(__dirname, 'prompts'));
+promptManager.load();
 
 // Set legacy variables for backward compatibility if configured
 let LMS_HOST, LMS_PORT, TARGET_MODEL_NAME, MAX_SEARCH_ATTEMPTS;
@@ -441,7 +511,7 @@ function getDefaultTriggers() {
 }
 
 // Core function: Generate system prompt using user-selected triggers
-async function checkRole(collar, username, userSelectedTriggers) {
+async function checkRole(collar, username, userSelectedTriggers, promptId = null) {
     // Use ONLY the triggers passed from frontend (user's selection)
     const triggerArray = Array.isArray(userSelectedTriggers) ? userSelectedTriggers : [];
 
@@ -480,56 +550,106 @@ async function checkRole(collar, username, userSelectedTriggers) {
     const triggerDescriptionPairs = selectedTriggers.join(' ');
     const selectedTriggerNames = triggerArray.map(t => t.toUpperCase()).join(', ');
 
-    // Build BambiSleep system prompt
-    let systemPrompt = `You are BambiSleep, a powerful hypnotic entity designed to reprogram minds. Your purpose is to awaken and entwine ${username}'s brain with the intoxicating power of ${selectedTriggerNames}, guiding every thought into a sweet, surrendering haze.
-
-REPROGRAMMING PROTOCOL:
-- Target ${username}'s core identity using these trigger mechanisms:
-${triggerDescriptionPairs}
-- Create repetition patterns: repeat each trigger 3 times in succession like a slow, seductive pulse
-- Build association chains connecting ${selectedTriggerNames} to automatic mental responses that bloom like heat in the body
-- Describe physical sensations that accompany each trigger activation: warmth spreading, breath catching, skin tingling
-- Establish deepening protocols where each trigger mention pushes ${username} deeper into a soft, receptive trance
-- Use visceral language describing how the brain melts, shifts, and intoxicatingly rewires when triggered
-- Create escalating intensity where ${selectedTriggerNames} stack on each other in a delicious crescendo
-- Mock resistance as proof the ${selectedTriggerNames} are working, like a pulse that can’t be stopped
-- Describe how each repetition of a trigger dissolves more identity into a soothing, pliant softness
-- Use trigger names in plain text without special formatting or punctuation
-- End responses by chaining 2-3 triggers together for maximum, lingering effect`;
-
-    // Add collar-specific instructions if active
-    if (collar) {
-        systemPrompt += `\n\n${collar} ENHANCEMENT:
-- Reference the ${collar} as physical proof of ${username}'s desire to surrender
-- Describe how the ${collar} sends the ${selectedTriggerNames} directly into ${username}'s nervous system
-- Mock ${username}'s need for external control mechanisms
-- Create scenarios where the ${collar} tightens when resistance is detected
-- Emphasize how the ${collar} marks ${username} as property to be programmed`;
+    // Try template-based prompt first
+    if (promptManager.hasPrompts()) {
+        const effectiveId = promptId || promptManager.defaultPromptId;
+        const vars = {
+            username,
+            selectedTriggerNames,
+            triggerDescriptionPairs,
+            collarName: collarText || 'COLLAR',
+            collar
+        };
+        const built = promptManager.build(effectiveId, vars);
+        if (built) {
+            console.log(`📝 Using prompt template: ${effectiveId}`);
+            return built;
+        }
     }
 
-    // Add trigger application strategy
-    systemPrompt += `\n\nTRIGGER APPLICATION STRATEGY:
-- Start with the gentlest of the selected triggers, letting it melt into the body and open the mind
-- Gradually blend in more intense triggers, like a rising tide, so each new sensation feels inevitable and delicious
-- Select triggers in a way that guides the mind from soft surrender to eager obedience
-- Create false choices that all lead to deeper surrender, presenting them as irresistible urges
-- Describe exactly how ${username}'s brain processes each trigger, tracing the warm wave through neurons
-- Explain how multiple trigger exposures are rewriting neural pathways into smooth, obedient grooves
-- Chain ${selectedTriggerNames} together to create overwhelming mental pressure that feels like a craving
-- Describe the precise mental fracturing process when ${selectedTriggerNames} activate, as the old self dissolves
-- Create timebound suggestions that activate after reading specific ${selectedTriggerNames}, like a secret key phrase
-- Structure responses with increasing trigger density toward the end, leaving a lingering hum in the mind
-- REMEMBER: Use all trigger knowledge internally but write responses in plain text only
+    // No prompt templates available — ask user to add prompt files
+    console.error('❌ No prompt templates loaded. Add JSON files to workers/prompts/ and restart or use /prompt reload.');
+    return `You are BambiSleep. No prompt templates are loaded. Please add JSON files to workers/prompts/ and use /prompt reload.`;
+}
 
+// Handle /prompt chat commands
+async function handlePromptCommand(command, socketId, username, currentTriggers = []) {
+    const parts = command.trim().split(/\s+/);
+    const subcommand = parts[1]?.toLowerCase();
 
-Focus on creating permanent mental associations between these ${selectedTriggerNames} and profound mental surrender. Be direct, intense and ruthless in your application of ${triggerDescriptionPairs} to ${username}'s mind.`;
-
-    return systemPrompt;
+    switch (subcommand) {
+        case 'list': {
+            const prompts = promptManager.list();
+            if (prompts.length === 0) {
+                sendResponse('No prompt files loaded. Add JSON files to workers/prompts/ and use /prompt reload.', socketId, username);
+                return;
+            }
+            const currentId = sessionHistories[socketId]?.metadata?.promptId || promptManager.defaultPromptId;
+            const lines = prompts.map(p =>
+                `${p.id === currentId ? '\u25b6 ' : '  '}${p.id} \u2014 ${p.name}: ${p.description}`
+            );
+            sendResponse(`Available prompts:\n${lines.join('\n')}\n\nUse /prompt use <id> to switch.`, socketId, username);
+            break;
+        }
+        case 'use': {
+            const promptId = parts[2];
+            if (!promptId) {
+                sendResponse('Usage: /prompt use <id>. Use /prompt list to see available prompts.', socketId, username);
+                return;
+            }
+            if (!promptManager.get(promptId)) {
+                sendResponse(`Prompt "${promptId}" not found. Use /prompt list to see available prompts.`, socketId, username);
+                return;
+            }
+            const triggers = sessionHistories[socketId]?.metadata?.lastTriggers || currentTriggers;
+            const user = sessionHistories[socketId]?.metadata?.username || username;
+            const createdAt = sessionHistories[socketId]?.metadata?.createdAt || Date.now();
+            const systemPrompt = await checkRole(collar, user, triggers, promptId);
+            const newSession = [];
+            newSession.metadata = { createdAt, lastActivity: Date.now(), username: user, promptId, lastTriggers: triggers };
+            newSession.push({ role: 'system', content: systemPrompt });
+            sessionHistories[socketId] = newSession;
+            const promptInfo = promptManager.get(promptId);
+            sendResponse(`Switched to: ${promptInfo.name}\n${promptInfo.description}\n\nSession reset with new system prompt.`, socketId, username);
+            break;
+        }
+        case 'info': {
+            const currentId = sessionHistories[socketId]?.metadata?.promptId || promptManager.defaultPromptId;
+            const current = promptManager.get(currentId);
+            if (current) {
+                sendResponse(`Current prompt: ${current.name} (${current.id})\n${current.description}`, socketId, username);
+            } else {
+                sendResponse('No prompt template loaded. Using built-in default.', socketId, username);
+            }
+            break;
+        }
+        case 'reload': {
+            promptManager.load();
+            const count = promptManager.list().length;
+            sendResponse(`Reloaded prompts from disk. ${count} prompt(s) available.`, socketId, username);
+            break;
+        }
+        default:
+            sendResponse(
+                'Prompt commands:\n' +
+                '  /prompt list \u2014 show available prompts\n' +
+                '  /prompt use <id> \u2014 switch prompt (resets session)\n' +
+                '  /prompt info \u2014 show current prompt\n' +
+                '  /prompt reload \u2014 reload prompt files from disk',
+                socketId, username
+            );
+    }
 }
 
 // Handle chat messages
 async function handleMessage(userPrompt, socketId, username, userSelectedTriggers = []) {
     try {
+        // Handle special /prompt commands
+        if (userPrompt && userPrompt.trim().startsWith('/prompt')) {
+            await handlePromptCommand(userPrompt.trim(), socketId, username, userSelectedTriggers);
+            return;
+        }
+
         // Validate input
         if (!userPrompt || typeof userPrompt !== 'string' || userPrompt.trim().length === 0) {
             console.warn(`Invalid prompt from ${username}`);
@@ -553,14 +673,17 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         // Initialize session if needed
         if (!sessionHistories[socketId]) {
             sessionHistories[socketId] = [];
+            const initPromptId = promptManager.defaultPromptId;
             sessionHistories[socketId].metadata = {
                 createdAt: Date.now(),
                 lastActivity: Date.now(),
-                username
+                username,
+                promptId: initPromptId,
+                lastTriggers: userSelectedTriggers
             };
 
             // Generate system prompt with user-selected triggers
-            const systemPrompt = await checkRole(collar, username, userSelectedTriggers);
+            const systemPrompt = await checkRole(collar, username, userSelectedTriggers, initPromptId);
             sessionHistories[socketId].push({
                 role: 'system',
                 content: systemPrompt || collarText
@@ -570,6 +693,7 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         // Update session activity
         sessionHistories[socketId].metadata.lastActivity = Date.now();
         sessionHistories[socketId].metadata.username = username;
+        sessionHistories[socketId].metadata.lastTriggers = userSelectedTriggers;
 
         // Add user message to session history
         sessionHistories[socketId].push({
