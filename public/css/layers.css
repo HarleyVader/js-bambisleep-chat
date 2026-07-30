@@ -168,7 +168,7 @@
         pointer-events: auto;
     }
 
-    /* Modal backdrop - BEHIND dropdown content */
+    /* Modal backdrop - BEHIND dropdown content, transparent to pointer events so other buttons remain clickable */
     .dropdown.active::before {
         content: '';
         position: fixed;
@@ -178,6 +178,7 @@
         bottom: 0;
         background: rgba(0, 0, 0, 0.6);
         z-index: -1; /* Behind the dropdown-content */
+        pointer-events: none;
     }
 
     /* Dropdown content - SIMPLE centered modal */
