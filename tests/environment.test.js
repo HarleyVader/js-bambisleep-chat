@@ -94,7 +94,7 @@ class EnvironmentTester {
             'public/js/aigf-core.js',
             'server.js',
             'workers/kokoro.js',
-            'workers/lmstudio.js',
+            'workers/ollama.js',
             'workers/triggers.json',
             'public/css/layers.css'
         ];
@@ -137,9 +137,10 @@ class EnvironmentTester {
             'KOKORO_HOST_PRODUCTION',
             'KOKORO_PORT',
             'KOKORO_DEFAULT_VOICE',
-            'LMS_HOST_DEVELOPMENT',
-            'LMS_HOST_PRODUCTION',
-            'LMS_PORT'
+            'OLLAMA_HOST_DEVELOPMENT',
+            'OLLAMA_HOST_PRODUCTION',
+            'OLLAMA_PORT',
+            'OLLAMA_MODEL'
         ];
 
         // Test .env file existence
@@ -182,7 +183,7 @@ class EnvironmentTester {
             { port: 5173, name: 'Vite Dev Server' },
             { port: 6969, name: 'Backend Server' },
             { port: 8880, name: 'Kokoro TTS (default)' },
-            { port: 7777, name: 'LM Studio (default)' }
+            { port: 11434, name: 'Ollama (default)' }
         ];
 
         const net = require('net');
@@ -246,7 +247,6 @@ class EnvironmentTester {
         const criticalDeps = [
             'express',
             'socket.io',
-            '@lmstudio/sdk',
             'dotenv',
             'axios'
         ];

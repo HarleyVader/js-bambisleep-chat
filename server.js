@@ -1,5 +1,5 @@
 // server.js
-// Express + Socket.io + TTS + Triggers + LM Studio chat server
+// Express + Socket.io + TTS + Triggers + Ollama chat server
 const express = require("express");
 const http = require("http");
 const fs = require("fs");
@@ -34,15 +34,15 @@ class EnvironmentValidator {
       ],
 
       // Service-specific configurations
-      lmStudio: [
-        { name: "LMS_HOST_PRODUCTION", required: false, type: "host" },
-        { name: "LMS_HOST_DEVELOPMENT", required: false, type: "host" },
-        { name: "LMS_PORT", default: 7777, type: "port" },
-        { name: "TARGET_MODEL_NAME", required: false, type: "string" },
-        { name: "MAX_SEARCH_ATTEMPTS", default: 3, type: "number" },
-        { name: "LMS_MODEL_LOAD_TIMEOUT", default: 120000, type: "number" },
-        { name: "LMS_API_CALL_TIMEOUT", default: 600000, type: "number" },
-        { name: "LMS_REST_API_TIMEOUT", default: 15000, type: "number" },
+      ollama: [
+        { name: "OLLAMA_HOST_PRODUCTION", required: false, type: "host" },
+        { name: "OLLAMA_HOST_DEVELOPMENT", required: false, type: "host" },
+        { name: "OLLAMA_PORT", default: 11434, type: "port" },
+        { name: "OLLAMA_MODEL", required: false, type: "string" },
+        { name: "OLLAMA_MAX_SEARCH_ATTEMPTS", default: 3, type: "number" },
+        { name: "OLLAMA_MODEL_LOAD_TIMEOUT", default: 120000, type: "number" },
+        { name: "OLLAMA_API_CALL_TIMEOUT", default: 600000, type: "number" },
+        { name: "OLLAMA_REST_API_TIMEOUT", default: 15000, type: "number" },
         { name: "SESSION_TIMEOUT_MINUTES", default: 30, type: "number" },
       ],
 
@@ -76,7 +76,7 @@ class EnvironmentValidator {
 
     // Validate each category
     this.validateCategory("optional", "Basic Configuration");
-    this.validateCategory("lmStudio", "LM Studio AI Configuration");
+    this.validateCategory("ollama", "Ollama AI Configuration");
     this.validateCategory("kokoro", "Kokoro TTS Configuration");
     this.validateCategory("application", "Application Configuration");
 
@@ -167,36 +167,35 @@ class EnvironmentValidator {
   }
 
   validateServiceConfigurations() {
-    // LM Studio service validation
-    this.validateLMStudioConfig();
+    // Ollama service validation
+    this.validateOllamaConfig();
 
     // Kokoro TTS service validation
     this.validateKokoroConfig();
   }
 
-  validateLMStudioConfig() {
+  validateOllamaConfig() {
     const isProduction = process.env.NODE_ENV === "production";
     const hostVar = isProduction
-      ? "LMS_HOST_PRODUCTION"
-      : "LMS_HOST_DEVELOPMENT";
+      ? "OLLAMA_HOST_PRODUCTION"
+      : "OLLAMA_HOST_DEVELOPMENT";
     const host = process.env[hostVar];
 
     if (!host) {
       this.warnings.push({
-        category: "lmStudio",
+        category: "ollama",
         variable: hostVar,
-        message: `LM Studio host not configured for ${process.env.NODE_ENV} environment`,
+        message: `Ollama host not configured for ${process.env.NODE_ENV} environment`,
         suggestion: `Set ${hostVar} in .env file to enable AI chat features`,
       });
     }
 
-    // Check if model configuration is complete
-    if (!process.env.TARGET_MODEL_NAME) {
+    if (!process.env.OLLAMA_MODEL) {
       this.warnings.push({
-        category: "lmStudio",
-        variable: "TARGET_MODEL_NAME",
-        message: "AI model name not specified - auto-loading may fail",
-        suggestion: "Set TARGET_MODEL_NAME to specify preferred AI model",
+        category: "ollama",
+        variable: "OLLAMA_MODEL",
+        message: "Ollama model name not specified - using default",
+        suggestion: "Set OLLAMA_MODEL to specify preferred AI model",
       });
     }
   }
@@ -272,7 +271,7 @@ class EnvironmentValidator {
       errors: this.errors,
       warnings: this.warnings,
       servicesAvailable: {
-        lmStudio: this.isServiceConfigured("lmStudio"),
+        ollama: this.isServiceConfigured("ollama"),
         kokoro: this.isServiceConfigured("kokoro"),
       },
     };
@@ -295,11 +294,11 @@ class EnvironmentValidator {
     const isProduction = process.env.NODE_ENV === "production";
 
     switch (service) {
-      case "lmStudio":
-        const lmsHost = isProduction
-          ? process.env.LMS_HOST_PRODUCTION
-          : process.env.LMS_HOST_DEVELOPMENT;
-        return !!(lmsHost && process.env.LMS_PORT);
+      case "ollama":
+        const ollamaHost = isProduction
+          ? process.env.OLLAMA_HOST_PRODUCTION
+          : process.env.OLLAMA_HOST_DEVELOPMENT;
+        return !!(ollamaHost && process.env.OLLAMA_PORT);
 
       case "kokoro":
         const kokoroHost = isProduction
@@ -323,9 +322,9 @@ function validateConfiguration() {
 
   const result = {
     ttsAvailable: validationResults.kokoro.configured,
-    lmStudioConfigured: validationResults.lms.configured,
+    ollamaConfigured: validationResults.ollama.configured,
     servicesAvailable: {
-      lmStudio: validationResults.lms.configured,
+      ollama: validationResults.ollama.configured,
       kokoro: validationResults.kokoro.configured,
     },
     warnings: [],
@@ -335,9 +334,9 @@ function validateConfiguration() {
   };
 
   // Add warnings for missing services
-  if (!validationResults.lms.configured) {
+  if (!validationResults.ollama.configured) {
     result.warnings.push(
-      "LM Studio not configured - AI chat will be unavailable",
+      "Ollama not configured - AI chat will be unavailable",
     );
     result.warningCount++;
   }
@@ -369,8 +368,8 @@ app.use((req, res, next) => {
   // Dynamically include external service hosts
   const kokoroHost = ENV.KOKORO.HOST || "localhost";
   const kokoroPort = ENV.KOKORO.PORT || 8880;
-  const lmsHost = ENV.LMS.HOST || "localhost";
-  const lmsPort = ENV.LMS.PORT || 7777;
+  const ollamaHost = ENV.OLLAMA.HOST || "localhost";
+  const ollamaPort = ENV.OLLAMA.PORT || 11434;
 
   // Content Security Policy for enhanced security (environment-aware)
   const isDevelopment = process.env.NODE_ENV !== "production";
@@ -404,7 +403,7 @@ app.use((req, res, next) => {
     "wss:",
     "https://cdn.socket.io",
     `http://${kokoroHost}:${kokoroPort}`,
-    `http://${lmsHost}:${lmsPort}`,
+    `http://${ollamaHost}:${ollamaPort}`,
   ];
 
   if (isDevelopment) {
@@ -616,22 +615,22 @@ let collarText = "";
 // Initialize Workers
 function initializeLMWorker() {
   try {
-    lmWorker = new Worker(path.join(__dirname, "workers", "lmstudio.js"));
+    lmWorker = new Worker(path.join(__dirname, "workers", "ollama.js"));
 
     lmWorker.on("message", (msg) => {
       handleLMWorkerMessage(msg);
     });
 
     lmWorker.on("error", (error) => {
-      console.error("❌ LM Studio worker error:", error);
+      console.error("❌ Ollama worker error:", error);
       lmWorker = null; // Mark as unavailable
     });
 
     lmWorker.on("exit", (code) => {
-      console.log(`❌ LM Studio worker exited with code ${code}`);
+      console.log(`❌ Ollama worker exited with code ${code}`);
       lmWorker = null; // Mark as unavailable
       if (code !== 0) {
-        console.log("🔄 Restarting LM Studio worker in 5 seconds...");
+        console.log("🔄 Restarting Ollama worker in 5 seconds...");
         setTimeout(initializeLMWorker, 5000);
       }
     });
@@ -645,9 +644,9 @@ function initializeLMWorker() {
       });
     }
 
-    console.log("✅ LM Studio worker initialized");
+    console.log("✅ Ollama worker initialized");
   } catch (error) {
-    console.error("❌ Failed to initialize LM Studio worker:", error);
+    console.error("❌ Failed to initialize Ollama worker:", error);
     lmWorker = null; // Ensure it's marked as unavailable
   }
 }
@@ -694,7 +693,7 @@ function sendToLMWorker(message, fallbackCallback = null) {
   }
 
   // Worker unavailable - handle gracefully
-  console.warn("⚠️ LM Studio worker unavailable, using fallback");
+  console.warn("⚠️ Ollama worker unavailable, using fallback");
   if (fallbackCallback) {
     fallbackCallback();
   }
@@ -720,7 +719,7 @@ function sendToKokoroWorker(message, fallbackCallback = null) {
   return false;
 }
 
-// Handle messages from LM Studio worker
+// Handle messages from Ollama worker
 function handleLMWorkerMessage(msg) {
   switch (msg.type) {
     case "response":
@@ -945,7 +944,7 @@ io.on("connection", (socket) => {
         // Fallback: Send error response to client
         socket.emit("ai-response", {
           content:
-            "AI chat is currently unavailable. Please check your LM Studio configuration.",
+            "AI chat is currently unavailable. Please check your Ollama configuration.",
           triggers: [],
           isError: true,
         });
@@ -1094,7 +1093,7 @@ io.on("connection", (socket) => {
       () => {
         socket.emit("model-status", {
           error: true,
-          message: "LM Studio worker not available",
+          message: "Ollama worker not available",
           timestamp: new Date().toISOString(),
         });
       },
@@ -1155,14 +1154,14 @@ app.get("/api/health", (req, res) => {
     users: connectedUsers,
     configuration: {
       ttsAvailable: configStatus.ttsAvailable,
-      lmStudioConfigured: configStatus.lmStudioConfigured,
+      ollamaConfigured: configStatus.ollamaConfigured,
       warnings: configStatus.warnings,
       errors: configStatus.errors,
     },
   });
 });
 
-// Live reachability probe for LM Studio and Kokoro TTS
+// Live reachability probe for Ollama and Kokoro TTS
 app.get("/api/services/status", async (req, res) => {
   function probe(hostname, port, path, timeoutMs) {
     return new Promise((resolve) => {
@@ -1178,9 +1177,9 @@ app.get("/api/services/status", async (req, res) => {
     });
   }
 
-  const [lms, kokoro] = await Promise.all([
-    ENV.LMS.isConfigured
-      ? probe(ENV.LMS.HOST, ENV.LMS.PORT, "/v1/models", 5000)
+  const [ollama, kokoro] = await Promise.all([
+    ENV.OLLAMA.isConfigured
+      ? probe(ENV.OLLAMA.HOST, ENV.OLLAMA.PORT, "/api/tags", 5000)
       : Promise.resolve({ reachable: false, error: "not configured" }),
     ENV.KOKORO.isConfigured
       ? probe(ENV.KOKORO.HOST, ENV.KOKORO.PORT, "/health", 5000)
@@ -1189,11 +1188,11 @@ app.get("/api/services/status", async (req, res) => {
 
   res.json({
     timestamp: new Date().toISOString(),
-    lmstudio: {
-      configured: ENV.LMS.isConfigured,
-      endpoint: ENV.LMS.URL,
-      model: ENV.LMS.TARGET_MODEL_NAME,
-      ...lms,
+    ollama: {
+      configured: ENV.OLLAMA.isConfigured,
+      endpoint: ENV.OLLAMA.URL,
+      model: ENV.OLLAMA.MODEL,
+      ...ollama,
     },
     kokoro: {
       configured: ENV.KOKORO.isConfigured,
@@ -1431,7 +1430,7 @@ app.post("/api/chat", (req, res) => {
     () => {
       res.status(503).json({
         error:
-          "LM Studio worker not available. Please check your configuration.",
+          "Ollama worker not available. Please check your configuration.",
         configurable: true,
       });
       if (
@@ -1452,7 +1451,7 @@ app.post("/api/chat", (req, res) => {
   const timeout = setTimeout(() => {
     res.status(504).json({ error: "AI response timeout" });
     delete pendingAPIRequests[tempSocketId];
-  }, ENV.LMS.API_CALL_TIMEOUT);
+  }, ENV.OLLAMA.API_CALL_TIMEOUT);
 
   // Store the response object for this request
   if (!global.pendingAPIRequests) {
@@ -2160,7 +2159,7 @@ class ServerMemoryManager {
 
     let cleaned = 0;
     const now = Date.now();
-    const timeout = ENV.LMS.API_CALL_TIMEOUT;
+    const timeout = ENV.OLLAMA.API_CALL_TIMEOUT;
 
     Object.keys(global.pendingAPIRequests).forEach((key) => {
       const request = global.pendingAPIRequests[key];
@@ -2390,8 +2389,8 @@ process.on("SIGINT", () => {
 const PORT = ENV.SERVER.PORT;
 
 // Allow long-running AI/TTS requests to complete without HTTP socket timing out.
-// Must be >= ENV.LMS.API_CALL_TIMEOUT and ENV.KOKORO.TIMEOUT.
-const HTTP_LONG_TIMEOUT = Math.max(ENV.LMS.API_CALL_TIMEOUT, ENV.KOKORO.TIMEOUT) + 30000;
+// Must be >= ENV.OLLAMA.API_CALL_TIMEOUT and ENV.KOKORO.TIMEOUT.
+const HTTP_LONG_TIMEOUT = Math.max(ENV.OLLAMA.API_CALL_TIMEOUT, ENV.KOKORO.TIMEOUT) + 30000;
 server.timeout = HTTP_LONG_TIMEOUT;
 server.requestTimeout = HTTP_LONG_TIMEOUT;
 server.keepAliveTimeout = HTTP_LONG_TIMEOUT;

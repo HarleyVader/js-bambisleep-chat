@@ -40,24 +40,23 @@ const SERVER = {
 };
 
 /**
- * LM Studio AI Configuration
+ * Ollama AI Configuration
  * Automatically selects host based on environment
  */
-const LMS = {
+const OLLAMA = {
   HOST: isProduction
-    ? process.env.LMS_HOST_PRODUCTION
-    : process.env.LMS_HOST_DEVELOPMENT,
-  PORT: parseInt(process.env.LMS_PORT) || 7777,
+    ? process.env.OLLAMA_HOST_PRODUCTION
+    : process.env.OLLAMA_HOST_DEVELOPMENT,
+  PORT: parseInt(process.env.OLLAMA_PORT) || 11434,
 
   // Model Configuration
-  TARGET_MODEL_NAME:
-    process.env.TARGET_MODEL_NAME || "l3-sthenomaidblackroot-8b-v1@q4_k_s",
-  MAX_SEARCH_ATTEMPTS: parseInt(process.env.MAX_SEARCH_ATTEMPTS) || 3,
+  MODEL: process.env.OLLAMA_MODEL || "qwen3.6-35b-a3b",
+  MAX_SEARCH_ATTEMPTS: parseInt(process.env.OLLAMA_MAX_SEARCH_ATTEMPTS) || 3,
 
   // Timeouts (milliseconds)
-  MODEL_LOAD_TIMEOUT: parseInt(process.env.LMS_MODEL_LOAD_TIMEOUT) || 120000,
-  API_CALL_TIMEOUT: parseInt(process.env.LMS_API_CALL_TIMEOUT) || 600000,
-  REST_API_TIMEOUT: parseInt(process.env.LMS_REST_API_TIMEOUT) || 15000,
+  MODEL_LOAD_TIMEOUT: parseInt(process.env.OLLAMA_MODEL_LOAD_TIMEOUT) || 120000,
+  API_CALL_TIMEOUT: parseInt(process.env.OLLAMA_API_CALL_TIMEOUT) || 600000,
+  REST_API_TIMEOUT: parseInt(process.env.OLLAMA_REST_API_TIMEOUT) || 15000,
   SESSION_TIMEOUT_MINUTES: parseInt(process.env.SESSION_TIMEOUT_MINUTES) || 30,
 
   // Context Window
@@ -268,16 +267,16 @@ const EXTERNAL = {
  * Checks if required services are properly configured
  */
 const validation = {
-  validateLMS() {
+  validateOllama() {
     const missing = [];
-    if (!LMS.HOST)
-      missing.push("LMS_HOST_" + (isProduction ? "PRODUCTION" : "DEVELOPMENT"));
-    if (!LMS.PORT) missing.push("LMS_PORT");
+    if (!OLLAMA.HOST)
+      missing.push("OLLAMA_HOST_" + (isProduction ? "PRODUCTION" : "DEVELOPMENT"));
+    if (!OLLAMA.PORT) missing.push("OLLAMA_PORT");
 
     return {
       valid: missing.length === 0,
       missing,
-      configured: LMS.isConfigured,
+      configured: OLLAMA.isConfigured,
     };
   },
 
@@ -311,7 +310,7 @@ const validation = {
 
   validateAll() {
     return {
-      lms: this.validateLMS(),
+      ollama: this.validateOllama(),
       kokoro: this.validateKokoro(),
       patreon: this.validatePatreon(),
       server: {
@@ -334,9 +333,9 @@ function getSummary() {
       vitePort: SERVER.VITE_PORT,
     },
     services: {
-      lms: {
-        configured: LMS.isConfigured,
-        url: LMS.URL || "not-configured",
+      ollama: {
+        configured: OLLAMA.isConfigured,
+        url: OLLAMA.URL || "not-configured",
       },
       kokoro: {
         configured: KOKORO.isConfigured,
@@ -365,7 +364,7 @@ function printSummary() {
   console.log(`⚡ Vite Port: ${SERVER.VITE_PORT}`);
   console.log("\n🤖 Services:");
   console.log(
-    `   LM Studio: ${LMS.isConfigured ? "✅ " + LMS.URL : "❌ Not Configured"}`,
+    `   Ollama: ${OLLAMA.isConfigured ? "✅ " + OLLAMA.URL : "❌ Not Configured"}`,
   );
   console.log(
     `   Kokoro TTS: ${KOKORO.isConfigured ? "✅ " + KOKORO.URL : "❌ Not Configured"}`,
@@ -377,7 +376,7 @@ function printSummary() {
   console.log("\n📊 Limits:");
   console.log(`   Max Message Length: ${CHAT.MAX_MESSAGE_LENGTH}`);
   console.log(`   Chat History: ${CHAT.HISTORY_LIMIT}`);
-  console.log(`   LMS Timeout: ${LMS.API_CALL_TIMEOUT}ms`);
+  console.log(`   Ollama Timeout: ${OLLAMA.API_CALL_TIMEOUT}ms`);
   console.log(`   TTS Timeout: ${KOKORO.TIMEOUT}ms`);
   console.log("\n🔍 Debug Mode: " + (DEBUG.MODE ? "✅ ON" : "❌ OFF"));
   console.log("═".repeat(50) + "\n");
@@ -387,7 +386,7 @@ function printSummary() {
 module.exports = {
   // Main config objects
   SERVER,
-  LMS,
+  OLLAMA,
   KOKORO,
   PATREON,
   CHAT,
