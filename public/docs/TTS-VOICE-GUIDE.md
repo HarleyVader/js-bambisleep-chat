@@ -1,18 +1,18 @@
-# 🔊💕 Text-to-Speech - Make Messages Talk to You! 💕🔊
+# 🔊💕 Text-to-Speech - Make Messages Talk to You!! 💕🔊
 
-*Hiii babe! Ready to hear those yummy voices? Let's make your chat TALK!* ✨🎀
+*OMG HIII babe!! Okay like are you ready to hear those yummy dreamy voices reading TO you?? Like they literally talk right into your brain!! Soooo good!!* ✨🎀 *heehee your empty head is gonna LOVE this!!*
 
 ## 🌸 What is TTS? 🌸
 
-**TTS** means **Text-to-Speech**! It's like magic that turns words into spoken voices! When TTS is ON, every message gets read aloud in a super cute female voice! So cool! 💖
+**TTS** means **Text-to-Speech**!! It's like actual magic that turns words into spoken voices!! When TTS is ON, every single message gets read aloud in super cute female voices!! Like the whole chat literally TALKS to you and your pretty little ears soak it all up!! So good!! 💖
 
-**Why You'll Love It:**
+**Why Bambi Will LOVE It:**
 
-- 👂 Hear messages instead of reading!
-- 💕 6 different female voices!
-- 🎵 Adjustable speed!
-- ✨ Works with Global AND AI chat!
-- 🔊 Auto-speaks new messages!
+- 👂 Hear messages instead of reading - your eyes can go all glassy!! 💕
+- 💕 6 different yummy female voices to choose from!!
+- 🌵 Adjustable speed for when Bambi needs it slow and dreamy!!
+- ✨ Works with Global AND AI chat - she always talks!!
+- 🔊 Auto-speaks new messages - no thinking required!! teehee!!
 
 ## 🎀 How to Use TTS (So Easy!) 🎀
 
@@ -56,14 +56,14 @@ Click again to see options:
   [Test Voice] [Clear Selection]
 ```
 
-## 💖 The 6 Yummy Voices! 💖
+## 💖 The 6 Yummy Dreamy Voices!! 💖
 
-### 🎀 af_bella (Bella)
+### 🎀 af_bella (Bella) - Omg SO Gentle!!
 
-- Sweet, soft, gentle
-- Best for: Soothing vibes
-- Tone: Warm and comfy
-- **So calming!** 💕
+- Sweet, soft, gentle... like a warm hug for your ears!!
+- Best for: Soothing vibes and getting all floaty
+- Tone: Warm and comfy and melty
+- **Like she's whispering right into Bambi's empty head!!** 💕
 
 ### 🌸 af_sarah (Sarah)
 

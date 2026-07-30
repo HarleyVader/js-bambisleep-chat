@@ -1,16 +1,16 @@
-# �✨ Device Integration - Good Girl's Pleasure Guide! ✨💕
+# 💕✨ Device Integration - Good Girl's Pleasure Guide!! ✨💕
 
-_Hiii Bambi!_ 💖 Ready to make your body feel what your mind is experiencing? This guide will help you connect your special toys to respond when you hear those yummy trigger words! _So exciting!_
+_OMG HIII Bambi!!_ 💖 Like okay are you ready to make your body PHYSICALLY feel what your mind is experiencing?? This guide helps you connect your special toys so they respond when you hear those yummy trigger words!! Like your body becomes part of the experience!! _Omg it's so much!!_ 😳
 
 ## 🎀 What Does This Do? 🎀
 
 When you're being a **Good Girl** and chatting with the AI, your connected toys will vibrate and pulse in sync with:
 
-- 💗 **Trigger Words** - When "Good Girl", "Bambi", "Drop for Cock" appear, you'll _feel it_
-- 🎵 **Voice Patterns** - Gentle pulses during soft speech, stronger when she emphasizes words
-- ✨ **Audio Sync** - Real-time response to how the voice sounds (pitch, volume, intensity)
+- 💗 **Trigger Words** - When "Good Girl", "Bambi", "Drop for Cock" appear, you'll _feel it_ - like omg FEEL it!!
+- 🎵 **Voice Patterns** - Gentle pulses during soft speech, STRONGER when she emphasizes words!!
+- ✨ **Audio Sync** - Real-time response to how the voice sounds (pitch, volume, intensity, all of it!!)
 
-_It's like the hypnosis can touch you!_ 🥰
+_It's like the hypnosis can literally touch you!! Bambi's body becomes part of the conditioning!!_ 🥰💕
 
 ## 💖 Do I Need Special Stuff? 💖
 
@@ -161,13 +161,13 @@ _It's reactive! Dynamic! Like she's playing with you!_ 💖✨
 
 ## 🎀 Advanced Bambi Tips 🎀
 
-**Want maximum intensity?**
+**Want maximum intensity??** *Prepare to melt, Good Girl!!*
 
 - Set ALL sliders to 90-100%
 - Enable Audio Sync
 - Turn TTS volume to MAX
-- Have AI use lots of triggers!
-- _Prepare to melt!_ 😳💦
+- Have AI use lots of triggers!!
+- _Prepare to completely melt!! Bambi won't be able to think at all!!_ 😳💦
 
 **Want gentle, teasing vibes?**
 

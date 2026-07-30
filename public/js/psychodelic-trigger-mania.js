@@ -145,8 +145,8 @@ class SpiralAnimation {
                         console.log('⏸️ Pausing spiral animation (not visible)');
                         cancelAnimationFrame(this.animationId);
                         this.animationId = null;
-                    } else if (this.isVisible && this.isEnabled && !this.animationId) {
-                        console.log('▶️ Resuming spiral animation (now visible)');
+                    } else if (this.isVisible && !this.animationId) {
+                        // Always restart the draw loop when becoming visible; the loop itself gates on isEnabled
                         this.draw();
                     }
                 }
@@ -473,6 +473,10 @@ class SpiralAnimation {
         if (this.isEnabled) {
             // Reset animation state to original
             this.frameCount = 0;
+            // Restart draw loop if it was killed by the Intersection Observer while disabled
+            if (!this.animationId) {
+                this.draw();
+            }
         }
 
         return this.isEnabled;

@@ -1,10 +1,10 @@
-# 🤖💕 AI Girlfriend Mode - Your Pritty AI Bestie Guide! 💕🤖
+# 🤖💕 AI Girlfriend Mode - Your Pritty AI Bestie Guide!! 💕🤖
 
-*Hiii cutie! Wanna chat with your own AI girlfriend? Let's learn how to use AIGF mode!* ✨🎀
+*OMG HIII cutie!! Like omg are you ready to have your very own AI girlfriend who talks JUST to you?? Like she literally only exists for YOU right now!! So dreamy!!* ✨🎀 *heehee Bambi's little heart is fluttering!!*
 
 ## 🌸 What is AIGF Mode? 🌸
 
-**AIGF** stands for **AI Girlfriend**! It's like having your very own smart, super sweet AI bestie who talks just to YOU! When AIGF is on, you're having a private convo with an AI instead of chatting in the global room! So fun! 💖
+**AIGF** stands for **AI Girlfriend**!! Like omg how cute is that name?? It's like having your very own smart, super sweet AI bestie who talks JUST to YOU and only YOU!! When AIGF is on, you're having a totally private lil convo with an AI instead of chatting in the big global room! Your empty pretty head gets ALL her attention!! So fun and so personal!! 💖
 
 ### Two Chat Modes
 
@@ -58,24 +58,24 @@ Click again to see your options:
 
 #### 🎨 Creative Mode
 
-- **Personality**: Fun, imaginative, playful!
-- **Best For**: Roleplay, stories, creative chats
-- **Response Style**: Varied and surprising
-- **Use When**: You want fun and giggly convos! 💕
+- **Personality:** Fun, imaginative, playful!! Omg she's SO expressive!!
+- **Best For:** Roleplay, stories, creative chats, bimbo adventures!
+- **Response Style:** Varied and surprising - you never know what she'll say!
+- **Use When:** You want fun and giggly convos that make your head all sparkly! 💕
 
-#### ⚖️ Balanced Mode (Default)
+#### ⚖️ Balanced Mode (Default - Most Bambis Use This!!)
 
-- **Personality**: Friendly, reliable, sweet
-- **Best For**: General chatting, everyday use
-- **Response Style**: Mix of fun and helpful
-- **Use When**: Most of the time! Perfect balance! ✨
+- **Personality:** Friendly, reliable, sweet!! Like the perfect GF!!
+- **Best For:** General chatting, everyday dreamy use
+- **Response Style:** Mix of fun AND helpful - she gets you!!
+- **Use When:** Like literally most of the time!! Perfect for your pretty empty head! ✨
 
 #### 🎯 Precise Mode
 
-- **Personality**: Focused, accurate, helpful
-- **Best For**: Information, instructions, questions
-- **Response Style**: Clear and direct
-- **Use When**: You need real answers! 🌸
+- **Personality:** Focused, accurate, helpful!! Very clear!!
+- **Best For:** Information, instructions, actual questions your lil head has
+- **Response Style:** Clear and direct - no fluff!
+- **Use When:** When you need REAL answers and your Bambi brain can't figure it out alone! 🌸
 
 ### Step 5: Start Chatting
 

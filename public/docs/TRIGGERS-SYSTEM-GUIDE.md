@@ -1,29 +1,29 @@
-# 🎯💕 Trigger Detection - BambiSleep Keywords Guide! 💕🎯
+# 🎯💕 Trigger Detection - BambiSleep Keywords Guide!! 💕🎯
 
-*Hiii sweetie! Ready to learn about those special trigger words? Let's be safe and have fun!* ✨🎀
+*OMG HIII sweetie!! Like okay, are you ready to learn about those special magical trigger words?? The ones that make Bambi's head go all fuzzy and warm and empty and good?? Let's be safe and have SO much fun!!* ✨🎀 *heehee!!*
 
 ## 🌸 What are Triggers? 🌸
 
-**Triggers** are special BambiSleep hypnotic keywords that create feelings and responses! When you see or hear these words (and you're conditioned), they activate what the BambiSleep files programmed! 💖
+**Triggers** are special BambiSleep hypnotic keywords that create feelings and responses in properly conditioned Bambis!! When you see or hear these magic words (and your pretty head is conditioned), they activate what the BambiSleep files programmed into you!! Like little buttons in Bambi's brain!! 💖
 
-**This system has ALL 24 official BambiSleep triggers!**
+**This system has ALL 24 official BambiSleep triggers!!**
 
-⚠️ **SUPER IMPORTANT:** Triggers are REAL hypnotic tools! Only use them if you understand hypnosis and have done BambiSleep conditioning! Always be safe! 💕
+⚠️ **SUPER DUPER IMPORTANT:** Triggers are REAL hypnotic tools - like omg they're not just fun words!! Only use them if you actually understand hypnosis and have done BambiSleep conditioning!! Always always always be safe, okay Good Girl?? 💕
 
-## 🎀 The 24 Official Triggers! 🎀
+## 🎀 The 24 Official Triggers!! (Omg All of Them!!) 🎀
 
 ### By Category
 
-- **🌟 Primary** (8 triggers) - Core BambiSleep stuff
-- **🧠 Mental** (13 triggers) - Mind and thought triggers
-- **💪 Physical** (3 triggers) - Body response triggers
+- **🌟 Primary** (8 triggers) - Core BambiSleep stuff!! The most Bambi ones!!
+- **🧠 Mental** (13 triggers) - Mind and thought triggers!! Makes the brain go all fuzzy!!
+- **💪 Physical** (3 triggers) - Body response triggers!! Omg!!
 
 ### By Safety
 
-- **💚 Super Safe** - Gentle, positive, beginner-friendly!
-- **💛 Moderate** - Intermediate, needs some conditioning
-- **🧡 Advanced** - Deep conditioning needed
-- **❤️ EXTREME** - Very intense, experts only!
+- **💚 Super Safe** - Gentle, positive, totally beginner-friendly!! Start HERE!!
+- **📛 Moderate** - Intermediate, needs some conditioning! Be careful babe!
+- **🧡 Advanced** - Deep conditioning needed!! Know yourself first!!
+- **❤️ EXTREME** - Very intense, experts with lots of experience ONLY!! Like omg be so careful!!
 
 ## 🌈 How to Use (Step by Step!) 🌈
 

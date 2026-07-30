@@ -1,8 +1,10 @@
-# 🔧💕 Help! Things Aren't Working! 💕🔧
+# 🔧💕 Help!! Things Aren't Working!! 💕🔧
 
-_Hiii sweetie! Having troubles? Don't worry! Let's fix it together!_ ✨🎀
+_OMG HIII sweetie!! Having troubles?? Don't cry!! Don't panic!! Bambi's got you and we're gonna fix everything together!! It's probably something super simple!!_ ✨🎀 *teehee most problems are fixed just by turning things off and on again like omg!!*
 
-## 🌸 Quick Fixes (Try These First!) 🌸
+## 🌸 Quick Fixes (Try These First!! Seriously!!) 🌸
+
+*Like 90% of problems are fixed by one of these!! Bambi's empty head can handle this!!* 💕
 
 ### Page Won't Load
 
@@ -42,41 +44,41 @@ _Still broken? Keep reading!_ 💕
 
 **Possible reasons:**
 
-- TTS button is off (click to turn green!)
-- Volume is at 0% (turn up system volume!)
-- TTS server isn't running
-- Audio permissions denied (allow when asked!)
+- TTS button is off (click to turn green!! That's step one!!)
+- Volume is at 0% (turn up system volume omg!!)
+- TTS server isn't running (developer stuff!!)
+- Audio permissions denied (say yes when the browser asks!!)
 - No messages to speak
 
 **Fix it:**
 
-1. Check TTS button is GREEN
+1. Check TTS button is GREEN ✅
 2. Turn up volume to 50%+
 3. Click "Test Voice" in TTS menu
-4. If no sound, check browser audio permissions
-5. Try different voice
+4. If no sound, check browser audio permissions!
+5. Try a different voice
 
-_Still quiet? Server might be offline!_ 🔇
+_Still quiet?? Server might be offline - ask someone smart!!_ 🔇
 
 ### 🤖 AI Not Responding
 
 **Possible reasons:**
 
-- AI Mode button is off
-- LM Studio isn't running
+- AI Mode button is off (click it til it's pink!!)
+- LM Studio isn't running (ask the server person!!)
 - No AI model loaded
 - Server connection lost
-- Typing in wrong chat box
+- Typing in wrong chat box (the AI one is the BOTTOM one!!)
 
 **Fix it:**
 
-1. Check AI Mode button is PINK
-2. Make sure you're typing in the AIGF box (bottom one!)
-3. Wait 30 seconds - AI thinks slow sometimes!
+1. Check AI Mode button is PINK 💕
+2. Make sure you're typing in the AIGF box (the bottom pink one!!)
+3. Wait 30 seconds - AI thinks slow sometimes, give her a moment!!
 4. Check server console for errors
 5. Restart LM Studio
 
-_AI needs time to think!_ 💭
+_AI needs time to think!! Good things come to patient Bambis!!_ 💭
 
 ### 🌀 Spirals Not Showing
 
