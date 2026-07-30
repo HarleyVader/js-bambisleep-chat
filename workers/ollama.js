@@ -629,10 +629,10 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         console.log(`Making API call to Ollama: ${apiUrl}`);
         console.log(`Messages count: ${formattedMessages.length}`);
 
-        const response = await axios.post(apiUrl, {
+        const streamResponse = await axios.post(apiUrl, {
             model: currentModelId,
             messages: formattedMessages,
-            stream: false,
+            stream: true,
             think: false, // disable Qwen3 extended thinking to avoid multi-minute latency
             options: {
                 temperature: 0.78,
@@ -641,6 +641,7 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
             }
         }, {
             timeout: OLLAMA_API_CALL_TIMEOUT,
+            responseType: 'stream',
             headers: { 'Content-Type': 'application/json' },
             httpAgent: new http.Agent({
                 keepAlive: true,
@@ -648,29 +649,74 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
             })
         });
 
-        // Ollama provides token counts in the response
+        let fullContent = '';
+        let sentenceBuffer = '';
         let actualTokenUsage = null;
-        if (response.data.prompt_eval_count || response.data.eval_count) {
-            actualTokenUsage = {
-                prompt_tokens: response.data.prompt_eval_count || 0,
-                completion_tokens: response.data.eval_count || 0,
-                total_tokens: (response.data.prompt_eval_count || 0) + (response.data.eval_count || 0)
-            };
-        }
+        let lineBuffer = '';
 
-        const finalContent = extractOllamaContent(response.data);
+        await new Promise((resolve, reject) => {
+            streamResponse.data.on('data', (chunk) => {
+                lineBuffer += chunk.toString();
+                const lines = lineBuffer.split('\n');
+                lineBuffer = lines.pop(); // keep last (potentially incomplete) line
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const json = JSON.parse(line);
+                        if (json.done) {
+                            if (json.prompt_eval_count != null || json.eval_count != null) {
+                                actualTokenUsage = {
+                                    prompt_tokens: json.prompt_eval_count || 0,
+                                    completion_tokens: json.eval_count || 0,
+                                    total_tokens: (json.prompt_eval_count || 0) + (json.eval_count || 0)
+                                };
+                            }
+                            const remaining = sentenceBuffer.trim();
+                            if (remaining) sendPartialResponse(remaining, socketId, username);
+                            sentenceBuffer = '';
+                            resolve();
+                            return;
+                        }
+                        const token = json.message?.content || '';
+                        fullContent += token;
+                        sentenceBuffer += token;
+
+                        const splitAt = findSentenceBoundary(sentenceBuffer);
+                        if (splitAt > 0) {
+                            const sentence = sentenceBuffer.substring(0, splitAt).trim();
+                            sentenceBuffer = sentenceBuffer.substring(splitAt);
+                            if (sentence) sendPartialResponse(sentence, socketId, username);
+                        }
+                    } catch (_) {
+                        // skip malformed JSON line
+                    }
+                }
+            });
+            streamResponse.data.on('error', reject);
+            streamResponse.data.on('end', () => {
+                const remaining = sentenceBuffer.trim();
+                if (remaining) sendPartialResponse(remaining, socketId, username);
+                sentenceBuffer = '';
+                resolve();
+            });
+        });
+
+        if (!fullContent.trim()) {
+            throw new Error('Ollama response missing assistant content');
+        }
 
         sessionHistories[socketId].push({
             role: 'assistant',
-            content: finalContent
+            content: fullContent
         });
 
         if (actualTokenUsage) {
             sessionHistories[socketId].lastTokenUsage = actualTokenUsage;
         }
 
-        const wordCount = countWords(finalContent);
-        sendResponse(finalContent, socketId, username, wordCount, actualTokenUsage);
+        const wordCount = countWords(fullContent);
+        sendResponse(fullContent, socketId, username, wordCount, actualTokenUsage);
 
     } catch (error) {
         console.error(`Error in handleMessage: ${error.message}`);
@@ -701,15 +747,27 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
     }
 }
 
-// Extract assistant content from Ollama /api/chat response
-function extractOllamaContent(responseData) {
-    const content = responseData?.message?.content;
-
-    if (typeof content === 'string' && content.trim().length > 0) {
-        return content;
+// Returns the index after the last sentence-ending punctuation + whitespace in text, -1 if none
+function findSentenceBoundary(text) {
+    const re = /[.!?]+\s+/g;
+    let lastEnd = -1;
+    let match;
+    while ((match = re.exec(text)) !== null) {
+        lastEnd = match.index + match[0].length;
     }
+    return lastEnd;
+}
 
-    throw new Error('Ollama response missing assistant content');
+// Emit a completed sentence to the main thread for immediate TTS delivery
+function sendPartialResponse(sentence, socketId, username) {
+    if (parentPort) {
+        parentPort.postMessage({
+            type: 'partial_response',
+            response: sentence,
+            socketId,
+            username,
+        });
+    }
 }
 
 // Send response back to main thread

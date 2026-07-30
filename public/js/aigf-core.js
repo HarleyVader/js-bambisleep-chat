@@ -492,6 +492,12 @@ class ChatCore {
       }
     });
 
+    this.socket.on("ai-partial", (data) => {
+      if (data?.message && window.ttsSystem?.isEnabled) {
+        window.ttsSystem.speakSentencePairs([{ display: data.message, tts: this.cleanTextForTTS(data.message) }]);
+      }
+    });
+
     this.socket.on("ai-error", (data) => {
       this.errorManager.reportError("ai-chat", "worker_unavailable", {
         message: data.error,

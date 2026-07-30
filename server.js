@@ -722,6 +722,16 @@ function sendToKokoroWorker(message, fallbackCallback = null) {
 // Handle messages from Ollama worker
 function handleLMWorkerMessage(msg) {
   switch (msg.type) {
+    case "partial_response":
+      // Stream a completed sentence to the client for immediate TTS
+      if (msg.socketId) {
+        io.to(msg.socketId).emit("ai-partial", {
+          message: msg.response,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      break;
+
     case "response":
       // Check if this is an API request
       if (
