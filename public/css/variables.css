@@ -30,6 +30,35 @@
         /* Utility */
         --transparent: #124141E6;
         --error: #ff3333E6;
+        --warning: #ffaa00E6;
+        
+        /* ===== Raw RGB Channels ===== */
+        /* Compose with rgb()/rgba() at any alpha, e.g. rgba(var(--button-rgb), 0.4) */
+        --primary-rgb: 12, 42, 42;
+        --primary-alt-rgb: 21, 170, 181;
+        --secondary-rgb: 64, 0, 47;
+        --secondary-alt-rgb: 204, 1, 116;
+        --tertiary-rgb: 114, 2, 65;
+        --tertiary-alt-rgb: 2, 184, 147;
+        --button-rgb: 223, 4, 113;
+        --nav-rgb: 10, 38, 38;
+        --nav-alt-rgb: 23, 219, 216;
+        --magenta-rgb: 255, 0, 255;
+        --cyan-rgb: 0, 255, 255;
+        --white-rgb: 255, 255, 255;
+        --accent-pink-rgb: 255, 105, 180;
+        
+        /* ===== Semantic Surfaces ===== */
+        --surface-translucent: rgba(0, 0, 0, 0.3);
+        --surface-glass: rgba(var(--nav-rgb), 0.75);
+        --surface-panel: rgba(var(--primary-rgb), 0.95);
+        --surface-dropdown: rgba(38, 20, 38, 0.95);
+        --surface-input: rgba(var(--white-rgb), 0.05);
+        --glass-border: rgba(var(--white-rgb), 0.18);
+        --glass-border-strong: rgba(var(--white-rgb), 0.3);
+        --accent-border: rgba(var(--button-rgb), 0.4);
+        --accent-border-strong: rgba(var(--button-rgb), 0.6);
+        --accent-pink-border: rgba(var(--accent-pink-rgb), 0.5);
         
         /* ===== Layout & Spacing ===== */
         --border: 3px ridge;

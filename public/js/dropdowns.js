@@ -11,6 +11,7 @@ import {
   CollarDropdown,
   createBrainwaveDropdown,
   ButtplugDropdown,
+  PromptDropdown,
 } from "./dropdowns/index.js";
 
 import { StorageUtils } from "./storage-utils.js";
@@ -111,6 +112,7 @@ class DropdownManager {
       "toggle-tts": "off",
       "toggle-triggers": "off",
       "toggle-collar": "off",
+      "toggle-prompt": "off",
     };
 
     // Initialize component dropdowns
@@ -162,6 +164,7 @@ class DropdownManager {
       this.components.tts = new TTSDropdown(this);
       this.components.triggers = new TriggersDropdown(this);
       this.components.collar = new CollarDropdown(this);
+      this.components.prompt = new PromptDropdown(this);
 
       // Initialize brainwave dropdown content (button is in HTML like others)
       createBrainwaveDropdown();
@@ -321,6 +324,8 @@ class DropdownManager {
         return this.components.brainwave;
       case "toggle-buttplug":
         return this.components.buttplug;
+      case "toggle-prompt":
+        return this.components.prompt;
       default:
         return null;
     }

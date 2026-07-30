@@ -36,55 +36,44 @@
 
 /* Legacy layer-less imports removed - all styles now in modular components */
 
-/* Make all backgrounds transparent */
-/* REMOVED .dropdown-menu - handled in @layer dropdowns */
+/* Translucent surfaces for themed elements (token-driven) */
+/* Dropdown styling handled in @layer dropdowns */
 body,
 #chat-interface,
-#chat-header,
 #chat-messages,
-#chat-input-container,
 #message-input,
 .message,
-.system-message,
-.modal-content,
 .trigger-card,
 .category-header,
 .trigger-list,
 .control-button,
 .toggle-button,
 .preset-button,
-button,
 input,
 textarea,
 select {
-    background-color: rgba(0, 0, 0, 0.3) !important;
+    background-color: var(--surface-translucent);
 }
 
-/* Specific transparent overrides for themed elements */
-#chat-header {
-    background: linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(255, 130, 255, 0.2)) !important;
-}
-
-/* Dropdown-content styling moved to @layer dropdowns in layers.css */
-
+/* Specific themed surfaces */
 .user-message {
-    background: linear-gradient(135deg, rgba(255, 0, 255, 0.15), rgba(255, 192, 255, 0.15)) !important;
+    background: linear-gradient(135deg, rgba(var(--magenta-rgb), 0.15), rgba(var(--secondary-alt-rgb), 0.15));
 }
 
 .system-message {
-    background: linear-gradient(135deg, rgba(255, 130, 255, 0.1), rgba(255, 200, 255, 0.1)) !important;
+    background: linear-gradient(135deg, rgba(var(--secondary-alt-rgb), 0.1), rgba(var(--tertiary-alt-rgb), 0.1));
 }
 
 .trigger-highlighted {
-    background-color: rgba(255, 0, 128, 0.2) !important;
+    background-color: rgba(var(--button-rgb), 0.2);
 }
 
 .modal-content {
-    background: rgba(30, 15, 30, 0.9) !important;
+    background: var(--surface-panel);
 }
 
 input[type="range"]::-webkit-slider-track {
-    background: linear-gradient(to right, rgba(255, 0, 255, 0.2), rgba(255, 130, 255, 0.4)) !important;
+    background: linear-gradient(to right, rgba(var(--magenta-rgb), 0.2), rgba(var(--secondary-alt-rgb), 0.4));
 }
 
 /* Ensure text remains readable */
@@ -120,10 +109,10 @@ body {
     opacity: 0.6;
     order: 2;
     /* Ensure it comes second */
-    background: rgba(10, 38, 38, 0.3);
+    background: rgba(var(--nav-rgb), 0.3);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(var(--white-rgb), 0.12);
     border-radius: 12px;
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.25);
     box-sizing: border-box;
@@ -259,9 +248,9 @@ body {
     filter: brightness(1.4) saturate(1.6) contrast(1.2);
     /* Enhanced neon brightness */
     box-shadow:
-        0 0 20px rgba(0, 255, 255, 0.3),
-        0 0 40px rgba(255, 0, 255, 0.2),
-        inset 0 0 30px rgba(255, 255, 255, 0.1);
+        0 0 20px rgba(var(--cyan-rgb), 0.3),
+        0 0 40px rgba(var(--magenta-rgb), 0.2),
+        inset 0 0 30px rgba(var(--white-rgb), 0.1);
     /* Neon glow effects */
 }
 
@@ -269,16 +258,16 @@ body {
 #chat-header {
     padding: 14px;
     /* Reduced by 30% from 20px */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: rgba(10, 38, 38, 0.75);
+    background: var(--surface-glass);
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(223, 4, 113, 0.4);
+    border: 1px solid var(--accent-border);
     border-radius: 12px 12px 0 0;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    box-shadow: var(--shadow-md);
     /* Rounded top corners */
 }
 
@@ -551,10 +540,10 @@ body {
     animation: aiHighlightPulse 3s ease-in-out infinite;
     font-size: 1.05em;
     letter-spacing: 0.5px;
-    background: rgba(223, 4, 113, 0.1);
+    background: rgba(var(--button-rgb), 0.1);
     padding: 2px 4px;
     border-radius: 3px;
-    border: 1px solid rgba(223, 4, 113, 0.3);
+    border: 1px solid rgba(var(--button-rgb), 0.3);
 }
 
 @keyframes aiHighlightPulse {
@@ -563,13 +552,13 @@ body {
     100% {
         opacity: 1;
         text-shadow: 0 0 12px var(--button-color);
-        border-color: rgba(223, 4, 113, 0.3);
+        border-color: rgba(var(--button-rgb), 0.3);
     }
 
     50% {
         opacity: 0.9;
         text-shadow: 0 0 18px var(--button-color), 0 0 25px var(--button-color);
-        border-color: rgba(223, 4, 113, 0.6);
+        border-color: rgba(var(--button-rgb), 0.6);
     }
 }
 
@@ -663,13 +652,13 @@ body {
 /* Legacy support */
 #chat-input-container {
     padding: 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    border-top: 1px solid var(--glass-border);
     display: flex;
     gap: 7px;
-    background: rgba(10, 38, 38, 0.75);
+    background: var(--surface-glass);
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(223, 4, 113, 0.4);
+    border: 1px solid var(--accent-border);
     border-radius: 0 0 12px 12px;
     box-shadow: 0 -4px 16px 0 rgba(0, 0, 0, 0.2);
 }
@@ -685,35 +674,35 @@ body {
     outline: none;
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
+    background: var(--surface-input);
+    border: 1px solid var(--glass-border);
+    box-shadow: inset 0 0 20px rgba(var(--white-rgb), 0.05);
     transition: all 0.3s ease;
     font-family: "Audiowide", sans-serif;
 }
 
 /* AIGF chat input styling */
 #aigf-chat-input {
-    background: rgba(64, 0, 47, 0.5);
-    border: 1px solid rgba(223, 4, 113, 0.4);
+    background: rgba(var(--secondary-rgb), 0.5);
+    border: 1px solid var(--accent-border);
 }
 
 /* Legacy support */
 #chat-input {
-    background: rgba(12, 42, 42, 0.5);
-    border: 1px solid rgba(21, 170, 181, 0.4);
+    background: rgba(var(--primary-rgb), 0.5);
+    border: 1px solid rgba(var(--primary-alt-rgb), 0.4);
 }
 
 #chat-input:focus,
 #aigf-chat-input:focus {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    background: rgba(var(--white-rgb), 0.08);
+    border-color: var(--glass-border-strong);
+    box-shadow: 0 0 0 3px rgba(var(--white-rgb), 0.1);
 }
 
 #chat-input::placeholder,
 #aigf-chat-input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(var(--white-rgb), 0.5);
 }
 
 
@@ -1152,7 +1141,7 @@ body {
     border-left: 4px solid var(--tertiary-alt);
     padding-left: 1rem;
     margin: 1rem 0;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(var(--white-rgb), 0.1);
     font-style: italic;
 }
 
@@ -1218,7 +1207,7 @@ body {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: rgba(12, 42, 42, 0.95);
+    background: var(--surface-panel);
     border: 2px solid var(--primary-alt);
     border-radius: var(--border-radius);
     padding: 12px;
@@ -1232,9 +1221,9 @@ body {
 }
 
 .resource-monitor:hover {
-    background: rgba(12, 42, 42, 1);
+    background: rgb(var(--primary-rgb));
     border-color: var(--secondary-alt);
-    box-shadow: 0 6px 16px rgba(223, 4, 113, 0.3);
+    box-shadow: 0 6px 16px rgba(var(--button-rgb), 0.3);
 }
 
 .resource-title {
@@ -1317,6 +1306,74 @@ body {
 }
 
 .stat-value.warning {
-    color: #ffaa00;
-    text-shadow: 0 0 3px #ffaa00;
+    color: var(--warning);
+    text-shadow: 0 0 3px var(--warning);
+}
+
+/* ── Prompt / Persona Dropdown ─────────────────────────────── */
+@layer interface {
+  .prompt-dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    font-weight: bold;
+    color: var(--button-color);
+    border-bottom: 1px solid var(--button-color);
+    margin-bottom: 6px;
+  }
+
+  .prompt-reload-btn {
+    background: none;
+    border: 1px solid var(--button-color);
+    color: var(--button-color);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px 6px;
+    line-height: 1;
+  }
+
+  .prompt-reload-btn:hover { background: var(--button-color); color: #000; }
+
+  .prompt-list { display: flex; flex-direction: column; gap: 6px; padding: 4px 8px 8px; }
+
+  .prompt-item {
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 6px 8px;
+    background: rgba(0,0,0,0.3);
+  }
+
+  .prompt-item.prompt-active { border-color: var(--button-color); background: rgba(223,4,113,0.12); }
+
+  .prompt-select-btn {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: #eee;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    padding: 2px 0;
+  }
+
+  .prompt-item.prompt-active .prompt-select-btn { color: var(--button-color); }
+  .prompt-select-btn:hover { color: #fff; }
+
+  .prompt-description {
+    margin: 3px 0 0;
+    font-size: 0.75rem;
+    color: #aaa;
+    line-height: 1.3;
+  }
+
+  .prompt-loading, .prompt-error {
+    padding: 12px;
+    text-align: center;
+    color: #888;
+    font-size: 0.85rem;
+  }
+  .prompt-error { color: #df6004; }
 }

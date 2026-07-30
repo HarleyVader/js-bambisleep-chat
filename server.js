@@ -2,6 +2,7 @@
 // Express + Socket.io + TTS + Triggers + LM Studio chat server
 const express = require("express");
 const http = require("http");
+const fs = require("fs");
 const { Server } = require("socket.io");
 const { Worker } = require("worker_threads");
 const path = require("path");
@@ -1304,6 +1305,34 @@ app.post("/api/chat/clear/:type", (req, res) => {
   console.log(
     `🗑️ Chat history cleared - Type: ${type}, Messages: ${originalCount}`,
   );
+});
+
+// Prompt template listing endpoint
+app.get("/api/prompts", (req, res) => {
+  const promptsDir = path.join(__dirname, "workers", "prompts");
+  try {
+    if (!fs.existsSync(promptsDir)) {
+      return res.json({ prompts: [] });
+    }
+    const files = fs.readdirSync(promptsDir).filter((f) => f.endsWith(".json"));
+    const prompts = files
+      .map((file) => {
+        try {
+          const data = JSON.parse(
+            fs.readFileSync(path.join(promptsDir, file), "utf8"),
+          );
+          return data.id
+            ? { id: data.id, name: data.name, description: data.description }
+            : null;
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+    res.json({ prompts });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to read prompts directory" });
+  }
 });
 
 // Trigger management with full official data

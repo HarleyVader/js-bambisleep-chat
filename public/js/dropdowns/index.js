@@ -9,3 +9,4 @@ export { TriggersDropdown } from "./triggers-dropdown.js";
 export { CollarDropdown } from "./collar-dropdown.js";
 export { createBrainwaveDropdown } from "./brainwave-dropdown.js";
 export { ButtplugDropdown } from "./buttplug-dropdown.js";
+export { PromptDropdown } from "./prompt-dropdown.js";

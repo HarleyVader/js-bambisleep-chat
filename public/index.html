@@ -100,6 +100,12 @@
           <span class="status-indicator" id="collar-status">●</span>
         </button>
       </div>
+      <div class="dropdown" data-dropdown="prompt">
+        <button id="toggle-prompt" class="dropdown-btn toggle-button" data-state="off">
+          🧠 Persona
+          <span class="status-indicator" id="prompt-status">●</span>
+        </button>
+      </div>
       <div class="dropdown" data-dropdown="brainwave">
         <button id="toggle-brainwave" class="dropdown-btn toggle-button" data-state="off">
           🧠 Brainwaves
@@ -130,6 +136,9 @@
       </div>
       <div class="dropdown-content" data-dropdown="collar">
         <!-- Content will be populated by collar-dropdown.js -->
+      </div>
+      <div class="dropdown-content" data-dropdown="prompt">
+        <!-- Content will be populated by prompt-dropdown.js -->
       </div>
       <div class="dropdown-content" data-dropdown="brainwave">
         <!-- Content will be populated by brainwave-dropdown.js -->
