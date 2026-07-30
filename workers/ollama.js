@@ -633,6 +633,7 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
             model: currentModelId,
             messages: formattedMessages,
             stream: false,
+            think: false, // disable Qwen3 extended thinking to avoid multi-minute latency
             options: {
                 temperature: 0.78,
                 top_p: 0.91,
@@ -643,7 +644,7 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
             headers: { 'Content-Type': 'application/json' },
             httpAgent: new http.Agent({
                 keepAlive: true,
-                timeout: OLLAMA_API_CALL_TIMEOUT
+                keepAliveMsecs: 30000,
             })
         });
 
@@ -681,12 +682,18 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         } else if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
             console.error('Ollama request timed out');
             sendResponse("Sorry, the AI took too long to respond. Please try again.", socketId, username);
+        } else if (error.code === 'ECONNRESET' || error.code === 'EPIPE' || error.code === 'ENOTCONN') {
+            console.error('Ollama connection dropped:', error.code);
+            sendResponse("Sorry, the connection to the AI was interrupted. Please try again.", socketId, username);
         } else if (error.response && error.response.status === 404) {
             console.error('Ollama model not found');
             sendResponse("Sorry, the AI model was not found. Please run: ollama pull " + (currentModelId || MODEL), socketId, username);
         } else if (error.response && error.response.status >= 500) {
             console.error('Ollama upstream service error');
             sendResponse("Sorry, the AI service returned an internal error. Please try again.", socketId, username);
+        } else if (error.message && error.message.includes('missing assistant content')) {
+            console.error('Ollama returned empty content - model may have exceeded token limit');
+            sendResponse("Sorry, the AI returned an empty response. Please try again.", socketId, username);
         } else {
             console.error('Generic error caught, details:', error.message);
             sendResponse("Sorry, I encountered an error. Please try again.", socketId, username);

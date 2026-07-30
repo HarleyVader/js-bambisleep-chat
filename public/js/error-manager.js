@@ -292,7 +292,7 @@ class ErrorManager {
         switch (type) {
             case 'worker_unavailable':
                 this.showError('AI Chat Unavailable',
-                    'The AI service is currently not configured. Please check your LM Studio settings.',
+                    'The AI service is currently not configured. Please check your Ollama settings.',
                     'error', { retryAction });
                 break;
             case 'model_loading_failed':
