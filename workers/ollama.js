@@ -635,8 +635,9 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
             stream: true,
             think: false, // disable Qwen3 extended thinking to avoid multi-minute latency
             options: {
-                temperature: 0.78,
-                top_p: 0.91,
+                temperature: 0.65,
+                top_p: 0.85,
+                repeat_penalty: 1.1,
                 num_predict: MAX_COMPLETION_TOKENS,
             }
         }, {
