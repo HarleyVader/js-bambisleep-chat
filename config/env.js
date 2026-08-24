@@ -219,6 +219,16 @@ const CHAT = {
 };
 
 /**
+ * MCP Agent Server Configuration (mcp-server/) - proxied through the main app
+ */
+const MCP = {
+  PORT: parseInt(process.env.MCP_PORT) || 7000,
+  get URL() {
+    return `http://localhost:${this.PORT}`;
+  },
+};
+
+/**
  * Debug & Logging Configuration
  */
 const DEBUG = {
@@ -390,6 +400,7 @@ module.exports = {
   KOKORO,
   PATREON,
   CHAT,
+  MCP,
   DEBUG,
   TEST,
   SECURITY,

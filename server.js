@@ -1256,6 +1256,24 @@ app.get("/api/services/status", async (req, res) => {
 // Serve docs folder for markdown documentation
 app.use("/docs", express.static(path.join(__dirname, "public", "docs")));
 
+// MCP agent server (mcp-server/) - reverse-proxied so the agent UI/API are
+// reachable through this same public port, without a separate nginx rule.
+const { createProxyMiddleware } = require("http-proxy-middleware");
+app.use(
+  ["/mcp", "/tools", "/agent"],
+  createProxyMiddleware({
+    target: ENV.MCP.URL,
+    changeOrigin: true,
+    // app.use(path, ...) strips the matched prefix from req.url - restore it
+    // so e.g. "/tools" isn't forwarded to the MCP server as just "/".
+    pathRewrite: (_path, req) => req.originalUrl,
+  }),
+);
+app.use(
+  "/agent-ui",
+  express.static(path.join(__dirname, "mcp-server", "public")),
+);
+
 // List all markdown documentation files
 app.get("/api/docs/list", (req, res) => {
   const fs = require("fs");
