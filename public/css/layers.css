@@ -119,39 +119,22 @@
     }
 
     /* Narrow viewports / touch devices: the 7 nav buttons no longer fit in
-       a single nowrap row without overflowing off-screen. Pin both left AND
-       right edges so the block's width is derived purely from the viewport
-       (guaranteed to never overflow it) and let buttons wrap inside; mobile.css
-       reserves matching vertical space below it so it never overlaps the
-       chat header. */
+       a single nowrap row without overflowing off-screen. Pin the LEFT edge
+       to the spiral column's own boundary (30vw - matches #app's grid-
+       template-columns) and the right edge to the viewport edge, so the
+       block's width is derived purely from the spiral column's own bounds -
+       it floats on top of the spiral art (same as desktop) and can never
+       spill into the chat column or off the screen. */
     @media (max-width: 900px), (pointer: coarse) {
 
         #dropdowns-menu,
         .dropdowns-menu {
             top: 1vmin;
             right: 1vmin;
-            left: 1vmin;
+            left: 30vw;
             flex-wrap: wrap;
             gap: 0.6vmin;
             justify-content: center;
-        }
-    }
-
-    /* Touch devices: stop floating over the page entirely - become a real
-       grid row (see #app in style.css/mobile.css) so its own rendered height
-       is what reserves the space above the chat/spiral boxes. This is what
-       actually guarantees the nav can never sit "outside"/on top of them. */
-    @media (pointer: coarse) {
-
-        #dropdowns-menu,
-        .dropdowns-menu {
-            position: static;
-            grid-row: 1;
-            grid-column: 1 / -1;
-            width: 100%;
-            top: auto;
-            right: auto;
-            left: auto;
         }
     }
 

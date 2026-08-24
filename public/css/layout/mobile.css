@@ -2,10 +2,10 @@
  * Mobile Layout
  * @layer interface
  *
- * Mobile devices use the EXACT same layout as desktop (spiral + chat side by
- * side). No separate mobile nav/UI - only non-visual touch affordances are
- * added here. Small/portrait screens are asked to rotate to landscape so the
- * full panoramic desktop layout fits.
+ * Mobile uses the same side-by-side chat + spiral layout as desktop (via a
+ * grid instead of flex), with the nav floating over the spiral column as an
+ * overlay - same visual arrangement as desktop, just confined/wrapped to fit
+ * touch viewports. Small/portrait screens are asked to rotate to landscape.
  */
 
 @layer interface {
@@ -38,14 +38,12 @@
             display: none;
         }
 
-        /* Nav bar becomes a normal (non-floating) grid row spanning both
-           columns, so its real content height is what reserves the space -
-           no guessing, and it can never overlap the chat/spiral boxes. */
+        /* #app is a grid on mobile (see style.css) - place chat in column 1,
+           same full-height column as desktop. The nav floats on top of the
+           spiral column (column 2) as an overlay, same as desktop. */
         #chat-container {
-            grid-row: 2;
             grid-column: 1;
-            margin-top: 0;
-            height: 100%;
+            height: 100vh;
         }
 
         /* Shrink chat chrome so header + messages + input + docs links all
