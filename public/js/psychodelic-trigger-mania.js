@@ -322,8 +322,8 @@ class SpiralAnimation {
         // Eye tracking and calibration system from original
         this.calibrationComplete();
 
-        // Draw center trance point - ORIGINAL: circle(trancePoint[0],trancePoint[1],40);
-        this.drawCircle(this.trancePoint[0], this.trancePoint[1], 40, [255, 255, 255, this.controls.alpha]);
+        // Trance point circle removed - it painted an opaque white disc over
+        // the spiral center, hiding the trigger text/eye that renders there.
 
         this.frameCount++;
         this.animationId = requestAnimationFrame(() => this.draw());
