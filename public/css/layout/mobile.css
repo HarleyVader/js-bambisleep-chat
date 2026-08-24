@@ -53,6 +53,14 @@
             gap: 0.5vmin;
         }
 
+        /* Base h1 uses a fixed 3px letter-spacing and --font-size-xl (1.215rem)
+           against html's already-enlarged mobile root size, so it renders
+           oversized/wraps awkwardly in the narrow 30vw chat column. */
+        #chat-header h1 {
+            font-size: clamp(0.65rem, 3vmin, 0.95rem);
+            letter-spacing: 1px;
+        }
+
         #aigf-chat-messages {
             min-height: 0; /* allow the flex item to shrink and scroll instead of overflowing the column */
             padding: 1vmin;
