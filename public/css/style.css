@@ -1345,7 +1345,10 @@ body {
     }
 
     #chat-header h1 {
-        font-size: clamp(0.55rem, 2.3vw, 0.95rem);
+        /* vmin-based floor (not rem) so this isn't compounded by mobile.css's
+           own html{font-size} shrink - rem here previously computed down to
+           an almost-invisible ~4-5px on narrow phones. */
+        font-size: clamp(2.6vmin, 3.2vw, 0.95rem);
         letter-spacing: 0;
         white-space: nowrap;
         overflow: hidden;
