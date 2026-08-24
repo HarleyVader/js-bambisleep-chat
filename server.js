@@ -433,7 +433,20 @@ app.use((req, res, next) => {
 app.use(express.json());
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    setHeaders: (res, filePath) => {
+      // CSS/JS churn constantly during active development - force browsers
+      // (especially mobile Chrome, which caches aggressively) to revalidate
+      // with the server on every request instead of silently serving a
+      // stale cached copy after a deploy.
+      if (filePath.endsWith(".css") || filePath.endsWith(".js")) {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
+  }),
+);
+
 
 // Unified Chat History Management System
 class ChatHistoryManager {
