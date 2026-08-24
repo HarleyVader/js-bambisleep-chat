@@ -88,6 +88,7 @@ body {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color), var(--tertiary-color));
     color: #fff;
     height: 100vh;
+    height: 100dvh; /* dvh accounts for the mobile browser address bar, unlike vh which assumes it's hidden and can push bottom content off-screen */
     overflow: hidden;
     font-size: 0.75rem;
     /* Reduced by 25% */
@@ -96,6 +97,7 @@ body {
 #app {
     display: flex;
     height: 100vh;
+    height: 100dvh;
     position: relative;
 }
 
@@ -107,6 +109,7 @@ body {
         display: grid;
         grid-template-columns: 30vw 70vw;
         height: 100vh;
+        height: 100dvh;
     }
 }
 
@@ -118,6 +121,7 @@ body {
     width: 70vw;
     /* Take remaining viewport width */
     height: 100vh;
+    height: 100dvh;
     opacity: 0.6;
     order: 2;
     /* Ensure it comes second */
@@ -140,6 +144,7 @@ body {
     #spiral-container {
         grid-column: 2;
         height: 100vh;
+        height: 100dvh;
     }
 }
 

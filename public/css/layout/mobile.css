@@ -46,6 +46,7 @@
         #chat-container {
             grid-column: 1;
             height: 100vh;
+            height: 100dvh;
         }
 
         /* #chat-header, #chat-header h1, #aigf-chat-input-container and
