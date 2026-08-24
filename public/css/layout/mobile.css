@@ -15,6 +15,13 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* Fluid root size so all rem/em text scales with the cramped mobile
+           viewport instead of staying frozen at desktop pixel sizes; caps out
+           at the default 16px so larger tablets/desktops-with-touch are unaffected */
+        html {
+            font-size: clamp(11px, 2vw + 1vh, 16px);
+        }
+
         .control-button,
         .toggle-button,
         button {
@@ -22,7 +29,7 @@
         }
 
         #aigf-chat-input {
-            font-size: 16px; /* Prevent zoom-on-focus on iOS */
+            font-size: 16px; /* Prevent zoom-on-focus on iOS - fixed, not scaled */
         }
     }
 
