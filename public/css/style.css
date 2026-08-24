@@ -121,6 +121,16 @@ body {
         margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Mobile: this rule is unlayered so it would otherwise beat mobile.css's
+   layered override - reserve the same nav-bar space here directly so the
+   spiral column doesn't overflow past the bottom of the viewport. */
+@media (pointer: coarse) {
+    #spiral-container {
+        margin-top: var(--mobile-nav-reserve, 116px);
+        height: calc(100vh - var(--mobile-nav-reserve, 116px));
+    }
+}
+
 /* Spiral Text Center - For TTS Display */
 #eye,
 .spiral-text-center {

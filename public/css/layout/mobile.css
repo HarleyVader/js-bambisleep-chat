@@ -11,6 +11,13 @@
 @layer interface {
     /* ===== Touch affordances only - never alter layout ===== */
     @media (pointer: coarse) {
+        :root {
+            /* Worst-case height of the wrapped nav bar (up to ~3 rows on very
+               narrow landscape widths) - reserved so it can never overlap
+               the chat header/spiral content below it. */
+            --mobile-nav-reserve: 116px;
+        }
+
         * {
             -webkit-tap-highlight-color: transparent;
         }
@@ -36,6 +43,35 @@
            already-tight mobile viewport, so hide it on touch devices. */
         .resource-monitor {
             display: none;
+        }
+
+        /* Push both columns down below the fixed/wrapped nav bar and shrink
+           them to match, so the nav never overlaps the chat header/title and
+           nothing spills past the bottom of the viewport. */
+        #chat-container,
+        #spiral-container {
+            margin-top: var(--mobile-nav-reserve);
+            height: calc(100vh - var(--mobile-nav-reserve));
+        }
+
+        /* Shrink chat chrome so header + messages + input + docs links all
+           fit within the reduced height instead of getting clipped. */
+        #chat-header {
+            padding: 6px 10px;
+            gap: 4px;
+        }
+
+        #aigf-chat-messages {
+            min-height: 0; /* allow the flex item to shrink and scroll instead of overflowing the column */
+            padding: 8px;
+        }
+
+        #aigf-chat-input-container {
+            padding: 6px 10px;
+        }
+
+        .docs-link-container {
+            padding: 4px 10px;
         }
     }
 

@@ -118,21 +118,21 @@
         pointer-events: none;
     }
 
-    /* Narrow viewports (small landscape phones, small windows): the 7
-       nav buttons no longer fit in a single nowrap row without overflowing
-       past the left edge and covering the chat header. Let them wrap, but
-       keep the block confined to the spiral-container's width (right side)
-       so it never spans over the chat column/header on the left. */
-    @media (max-width: 900px) {
+    /* Narrow viewports / touch devices: the 7 nav buttons no longer fit in
+       a single nowrap row without overflowing off-screen. Let them wrap
+       into a centered, full-width block; mobile.css reserves matching
+       vertical space below it so it never overlaps the chat header. */
+    @media (max-width: 900px), (pointer: coarse) {
 
         #dropdowns-menu,
         .dropdowns-menu {
-            top: 8px;
-            right: 8px;
-            left: 30vw;
-            max-width: calc(70vw - 16px);
+            top: 6px;
+            right: 6px;
+            left: 6px;
+            max-width: calc(100vw - 12px);
             flex-wrap: wrap;
             gap: 4px;
+            justify-content: center;
         }
     }
 
