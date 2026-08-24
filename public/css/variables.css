@@ -105,7 +105,15 @@
         --z-modals: 1000;
         --z-overlays: 10000;
     }
-    
+
+    /* Fluid root size so rem/em text scales with both viewport width and
+       height (e.g. resized browser windows, ultrawide/tall monitors)
+       instead of staying frozen at a fixed pixel size. Touch devices get
+       their own tuned range in mobile.css (interface layer wins there). */
+    html {
+        font-size: clamp(1.3vmin, 0.9vmin + 0.15vw + 0.15vh, 1.9vmin);
+    }
+
     /* ===== Mobile Variables ===== */
     @media (pointer: coarse) {
         :root {

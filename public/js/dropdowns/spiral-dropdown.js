@@ -8,22 +8,23 @@ export class SpiralDropdown {
     this.dropdownManager = dropdownManager;
     this.buttonId = "toggle-spiral";
 
-    // Simplified slider set - complexity replaces the old separate
-    // geometryA/geometryB/iterations knobs; animation mode + effects
-    // replace the old subtleVariation/rotationSpeed/range sliders below
+    // Minimal slider set - complexity covers geometry+iterations, mode
+    // covers animation behavior + effects as one combined selection
     this.sliderSettings = {
       speed: { min: 0.01, max: 5.0, default: 1.0, step: 0.01 },
       spiralA_color: { type: "color", default: "#c700c7" }, // Original p5.js purple: [199, 0, 199]
       spiralB_color: { type: "color", default: "#ff82ff" }, // Original p5.js light purple: [255, 130, 255]
       complexity: { min: 0.1, max: 3.0, default: 1.0, step: 0.01 },
       alpha: { min: 0.01, max: 1.0, default: 1.0, step: 0.001 },
-      pulseIntensity: { min: 1, max: 200, default: 30, step: 1 },
     };
 
-    this.animationModes = [
+    // Animation modes and toggleable effects collapsed into one select
+    this.modes = [
       { value: "classic", label: "🔄 Classic" },
       { value: "breathe", label: "🫁 Breathe" },
       { value: "drift", label: "🌊 Drift" },
+      { value: "colorCycle", label: "🌈 Color Cycle" },
+      { value: "strobe", label: "⚡ Strobe Pulse" },
     ];
 
     this.init();
@@ -46,30 +47,30 @@ export class SpiralDropdown {
       this.initializeDefaults();
     }
 
-    this.restoreModeAndEffects();
+    this.restoreMode();
     this.setupEventListeners();
     this.setupToggleHandling();
   }
 
-  restoreModeAndEffects() {
+  restoreMode() {
     setTimeout(() => {
-      const spiralControls = this.getSpiralControls();
-      if (!spiralControls) return;
-
-      const mode = localStorage.getItem("spiralAnimationMode") || "classic";
-      const select = document.getElementById("spiral-animation-mode");
+      const mode = localStorage.getItem("spiralMode") || "classic";
+      const select = document.getElementById("spiral-mode");
       if (select) select.value = mode;
-      spiralControls.setAnimationMode(mode);
-
-      ["colorCycle", "strobe"].forEach((effectName) => {
-        const enabled = localStorage.getItem(`spiralEffect_${effectName}`) === "true";
-        const btn = document.getElementById(`spiral-effect-${effectName.toLowerCase()}`);
-        if (btn) btn.setAttribute("data-state", enabled ? "on" : "off");
-        if (btn) btn.classList.toggle("active", enabled);
-        if (effectName === "colorCycle") spiralControls.setColorCycle(enabled);
-        if (effectName === "strobe") spiralControls.setStrobe(enabled);
-      });
+      this.applyMode(mode);
     }, 100);
+  }
+
+  // A "mode" is either an animation behavior (classic/breathe/drift) or a
+  // toggleable effect (colorCycle/strobe) - mutually exclusive for simplicity
+  applyMode(mode) {
+    const spiralControls = this.getSpiralControls();
+    if (!spiralControls) return;
+
+    const isEffect = mode === "colorCycle" || mode === "strobe";
+    spiralControls.setAnimationMode(isEffect ? "classic" : mode);
+    spiralControls.setColorCycle(mode === "colorCycle");
+    spiralControls.setStrobe(mode === "strobe");
   }
 
   initializeDefaults() {
@@ -301,10 +302,6 @@ export class SpiralDropdown {
       case "alpha":
         spiralControls.setAlpha(value);
         break;
-
-      case "pulseIntensity":
-        spiralControls.setPulseIntensity(value);
-        break;
     }
 
     // Dispatch real-time change event for other components
@@ -315,30 +312,10 @@ export class SpiralDropdown {
   }
 
   handleModeChange(mode) {
-    const spiralControls = this.getSpiralControls();
-    if (!spiralControls) return;
-
-    spiralControls.setAnimationMode(mode);
-    localStorage.setItem("spiralAnimationMode", mode);
-    this.dropdownManager.showActionFeedback("SPIRAL", `${mode.toUpperCase()} MODE`);
-  }
-
-  toggleEffect(effectName, btn) {
-    const spiralControls = this.getSpiralControls();
-    if (!spiralControls) return;
-
-    const enabled = btn.getAttribute("data-state") !== "on";
-    btn.setAttribute("data-state", enabled ? "on" : "off");
-    btn.classList.toggle("active", enabled);
-
-    if (effectName === "colorCycle") spiralControls.setColorCycle(enabled);
-    if (effectName === "strobe") spiralControls.setStrobe(enabled);
-
-    localStorage.setItem(`spiralEffect_${effectName}`, String(enabled));
-    this.dropdownManager.showActionFeedback(
-      "SPIRAL",
-      `${effectName === "colorCycle" ? "COLOR CYCLE" : "STROBE"} ${enabled ? "ON" : "OFF"}`
-    );
+    this.applyMode(mode);
+    localStorage.setItem("spiralMode", mode);
+    const label = this.modes.find((m) => m.value === mode)?.label || mode;
+    this.dropdownManager.showActionFeedback("SPIRAL", label.replace(/^\S+\s/, "").toUpperCase());
   }
 
   handleAction(action, detail) {
@@ -384,9 +361,7 @@ export class SpiralDropdown {
       speed: 1.0,
       complexity: 1.0,
       alpha: 1.0,
-      pulseIntensity: 30,
-      animationMode: "classic",
-      effects: { colorCycle: false, strobe: false },
+      mode: "classic",
     });
   }
 
@@ -396,25 +371,19 @@ export class SpiralDropdown {
         speed: 0.35,
         complexity: 1.6,
         alpha: 0.88,
-        pulseIntensity: 42,
-        animationMode: "breathe",
-        effects: { colorCycle: false, strobe: false },
+        mode: "breathe",
       },
       intense: {
         speed: 2.25,
         complexity: 2.2,
         alpha: 1.0,
-        pulseIntensity: 75,
-        animationMode: "drift",
-        effects: { colorCycle: true, strobe: false },
+        mode: "colorCycle",
       },
       peaceful: {
         speed: 0.55,
         complexity: 0.8,
         alpha: 0.72,
-        pulseIntensity: 18,
-        animationMode: "breathe",
-        effects: { colorCycle: false, strobe: false },
+        mode: "breathe",
       },
     };
 
@@ -425,29 +394,11 @@ export class SpiralDropdown {
 
   applyPresetValues(values) {
     Object.keys(values).forEach((key) => {
-      if (key === "animationMode") {
-        const select = document.getElementById("spiral-animation-mode");
+      if (key === "mode") {
+        const select = document.getElementById("spiral-mode");
         if (select) select.value = values[key];
-        const spiralControls = this.getSpiralControls();
-        if (spiralControls) spiralControls.setAnimationMode(values[key]);
-        localStorage.setItem("spiralAnimationMode", values[key]);
-        return;
-      }
-
-      if (key === "effects") {
-        Object.keys(values.effects).forEach((effectName) => {
-          const btn = document.getElementById(`spiral-effect-${effectName.toLowerCase()}`);
-          if (btn) {
-            btn.setAttribute("data-state", values.effects[effectName] ? "on" : "off");
-            btn.classList.toggle("active", values.effects[effectName]);
-          }
-          const spiralControls = this.getSpiralControls();
-          if (spiralControls) {
-            if (effectName === "colorCycle") spiralControls.setColorCycle(values.effects[effectName]);
-            if (effectName === "strobe") spiralControls.setStrobe(values.effects[effectName]);
-          }
-          localStorage.setItem(`spiralEffect_${effectName}`, String(values.effects[effectName]));
-        });
+        this.applyMode(values[key]);
+        localStorage.setItem("spiralMode", values[key]);
         return;
       }
 
@@ -607,8 +558,6 @@ export class SpiralDropdown {
         return `${value.toFixed(2)}x`;
       case "complexity":
         return `${value.toFixed(2)}x`;
-      case "pulseIntensity":
-        return `${Math.floor(value)}`;
       default:
         return value.toFixed(2);
     }
@@ -642,34 +591,19 @@ export class SpiralDropdown {
                           "🌀"
                         )}
                         ${this.createSlider("alpha", "Transparency", "👻")}
-                        ${this.createSlider(
-                          "pulseIntensity",
-                          "Trigger Pulse",
-                          "💥"
-                        )}
                     </div>
                 </div>
                 <div class="dropdown-divider"></div>
                 <div class="dropdown-section">
-                    <div class="dropdown-section-header">Animation Mode</div>
-                    <select id="spiral-animation-mode" onchange="window.dropdownManager.getComponent('spiral').handleModeChange(this.value)">
-                        ${this.animationModes
+                    <div class="dropdown-section-header">Mode</div>
+                    <select id="spiral-mode" onchange="window.dropdownManager.getComponent('spiral').handleModeChange(this.value)">
+                        ${this.modes
                           .map(
                             (mode) =>
                               `<option value="${mode.value}">${mode.label}</option>`
                           )
                           .join("")}
                     </select>
-                </div>
-                <div class="dropdown-divider"></div>
-                <div class="dropdown-section">
-                    <div class="dropdown-section-header">Effects</div>
-                    <button class="preset-button dropdown-item" id="spiral-effect-colorcycle" data-state="off" onclick="window.dropdownManager.getComponent('spiral').toggleEffect('colorCycle', this)">
-                        🌈 Color Cycle
-                    </button>
-                    <button class="preset-button dropdown-item" id="spiral-effect-strobe" data-state="off" onclick="window.dropdownManager.getComponent('spiral').toggleEffect('strobe', this)">
-                        ⚡ Strobe Pulse
-                    </button>
                 </div>
                 <div class="dropdown-divider"></div>
                 <div class="dropdown-section">
