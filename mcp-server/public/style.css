@@ -1,0 +1,191 @@
+:root {
+  --bg: #0f0f14;
+  --panel: #1a1a22;
+  --border: #33333f;
+  --text: #e8e8ee;
+  --muted: #9a9aab;
+  --accent: #ff4fa3;
+  --accent-dim: #7a2c53;
+  --tool-color: #5fd0ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.3rem;
+  color: var(--accent);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+main {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.4fr);
+  gap: 1rem;
+  padding: 1rem;
+  align-items: start;
+}
+
+section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+section h2 {
+  margin-top: 0;
+  font-size: 1rem;
+  color: var(--tool-color);
+}
+
+.tool-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.tool-card h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.tool-card p {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.tool-card label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.tool-card input,
+.tool-card select {
+  width: 100%;
+  padding: 0.35rem;
+  margin-top: 0.15rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+}
+
+.tool-card button {
+  margin-top: 0.25rem;
+}
+
+button {
+  background: var(--accent);
+  color: #1a1a22;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #ff77b8;
+}
+
+button:disabled {
+  background: var(--accent-dim);
+  cursor: not-allowed;
+}
+
+pre.tool-result {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  max-height: 220px;
+  overflow: auto;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+#chat-log {
+  height: 420px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.msg {
+  margin-bottom: 0.75rem;
+}
+
+.msg .role {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.msg.user .role {
+  color: var(--accent);
+}
+
+.msg.assistant .role {
+  color: var(--tool-color);
+}
+
+.msg .content {
+  white-space: pre-wrap;
+}
+
+.msg .tool-trace {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  border-left: 2px solid var(--border);
+  padding-left: 0.5rem;
+}
+
+#chat-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#chat-input {
+  flex: 1;
+  resize: vertical;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.5rem;
+  font-family: inherit;
+}
+
+@media (max-width: 800px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+}

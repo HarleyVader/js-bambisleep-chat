@@ -26,6 +26,8 @@
   "scripts": {
     "dev:server": "nodemon server.js",
     "start": "node server.js",
+    "start:mcp": "node mcp-server/server.js",
+    "start:all": "concurrently -n APP,MCP -c blue,magenta \"npm:start\" \"npm:start:mcp\"",
     "test": "node tests/master.test.js",
     "clean": "node scripts/clean.js"
   },

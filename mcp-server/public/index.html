@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BambiSleep Chat MCP Agent Interface</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>BambiSleep Chat &mdash; MCP Agent Interface</h1>
+    <p class="subtitle">Manually invoke MCP tools, or chat with an Ollama-backed agent that calls them for you.</p>
+  </header>
+
+  <main>
+    <section id="tools-panel">
+      <h2>Tools</h2>
+      <div id="tools-list">Loading tools&hellip;</div>
+    </section>
+
+    <section id="chat-panel">
+      <h2>Agent Chat</h2>
+      <div id="chat-log" aria-live="polite"></div>
+      <form id="chat-form">
+        <textarea id="chat-input" placeholder="Ask about triggers, chat history, TTS voices, Patreon tiers, or service status..." rows="2"></textarea>
+        <button type="submit">Send</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
