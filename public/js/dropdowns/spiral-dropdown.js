@@ -8,23 +8,23 @@ export class SpiralDropdown {
     this.dropdownManager = dropdownManager;
     this.buttonId = "toggle-spiral";
 
-    // FINE-GRAIN Slider settings with ultra-responsive ranges and micro-steps
+    // Simplified slider set - complexity replaces the old separate
+    // geometryA/geometryB/iterations knobs; animation mode + effects
+    // replace the old subtleVariation/rotationSpeed/range sliders below
     this.sliderSettings = {
       speed: { min: 0.01, max: 5.0, default: 1.0, step: 0.01 },
       spiralA_color: { type: "color", default: "#c700c7" }, // Original p5.js purple: [199, 0, 199]
       spiralB_color: { type: "color", default: "#ff82ff" }, // Original p5.js light purple: [255, 130, 255]
-      geometryA: { min: 0.01, max: 10.0, default: 1.0, step: 0.01 },
-      geometryB: { min: 0.01, max: 5.0, default: 0.3, step: 0.01 },
-      subtleVariation: { min: 0.0, max: 1.0, default: 0.0, step: 0.001 },
+      complexity: { min: 0.1, max: 3.0, default: 1.0, step: 0.01 },
       alpha: { min: 0.01, max: 1.0, default: 1.0, step: 0.001 },
       pulseIntensity: { min: 1, max: 200, default: 30, step: 1 },
-      rotationSpeed: { min: 0.1, max: 50.0, default: 10.0, step: 0.1 },
-      iterations: { min: 50, max: 1000, default: 250, step: 1 },
-      rangeA_min: { min: 0.01, max: 2.0, default: 0.5, step: 0.01 },
-      rangeA_max: { min: 0.5, max: 5.0, default: 1.5, step: 0.01 },
-      rangeB_min: { min: 0.01, max: 2.0, default: 1.0, step: 0.01 },
-      rangeB_max: { min: 0.5, max: 5.0, default: 1.5, step: 0.01 },
     };
+
+    this.animationModes = [
+      { value: "classic", label: "🔄 Classic" },
+      { value: "breathe", label: "🫁 Breathe" },
+      { value: "drift", label: "🌊 Drift" },
+    ];
 
     this.init();
   }
@@ -46,8 +46,30 @@ export class SpiralDropdown {
       this.initializeDefaults();
     }
 
+    this.restoreModeAndEffects();
     this.setupEventListeners();
     this.setupToggleHandling();
+  }
+
+  restoreModeAndEffects() {
+    setTimeout(() => {
+      const spiralControls = this.getSpiralControls();
+      if (!spiralControls) return;
+
+      const mode = localStorage.getItem("spiralAnimationMode") || "classic";
+      const select = document.getElementById("spiral-animation-mode");
+      if (select) select.value = mode;
+      spiralControls.setAnimationMode(mode);
+
+      ["colorCycle", "strobe"].forEach((effectName) => {
+        const enabled = localStorage.getItem(`spiralEffect_${effectName}`) === "true";
+        const btn = document.getElementById(`spiral-effect-${effectName.toLowerCase()}`);
+        if (btn) btn.setAttribute("data-state", enabled ? "on" : "off");
+        if (btn) btn.classList.toggle("active", enabled);
+        if (effectName === "colorCycle") spiralControls.setColorCycle(enabled);
+        if (effectName === "strobe") spiralControls.setStrobe(enabled);
+      });
+    }, 100);
   }
 
   initializeDefaults() {
@@ -217,9 +239,6 @@ export class SpiralDropdown {
             : settings.default;
         valueDisplay.textContent = colorValue.toUpperCase();
         valueDisplay.style.color = colorValue;
-      } else if (key === "subtleVariation") {
-        valueDisplay.textContent =
-          value === 0 ? "OFF" : `${(value * 100).toFixed(0)}%`;
       } else if (key === "alpha") {
         valueDisplay.textContent = `${(value * 100).toFixed(0)}%`;
       } else {
@@ -259,9 +278,6 @@ export class SpiralDropdown {
     const spiralControls = this.getSpiralControls();
     if (!spiralControls) return;
 
-    const animation = window.spiralAnimation;
-    if (!animation) return;
-
     // ULTRA-RESPONSIVE direct control updates
     switch (key) {
       case "speed":
@@ -278,20 +294,8 @@ export class SpiralDropdown {
         spiralControls.setSpiralBColor(rgbB.r, rgbB.g, rgbB.b);
         break;
 
-      case "geometryA":
-        spiralControls.setGeometryA(value);
-        break;
-
-      case "geometryB":
-        spiralControls.setGeometryB(value);
-        break;
-
-      case "subtleVariation":
-        if (value === 0) {
-          spiralControls.disableSubtleVariation();
-        } else {
-          spiralControls.enableSubtleVariation(value);
-        }
+      case "complexity":
+        spiralControls.setComplexity(value);
         break;
 
       case "alpha":
@@ -301,35 +305,6 @@ export class SpiralDropdown {
       case "pulseIntensity":
         spiralControls.setPulseIntensity(value);
         break;
-
-      // Enhanced fine-grain controls using new API
-      case "rotationSpeed":
-        spiralControls.setRotationSpeed(value);
-        break;
-
-      case "iterations":
-        spiralControls.setIterations(Math.floor(value));
-        break;
-
-      case "rangeA_min":
-        const currentRangeA_max = animation.controls.rangeA_max;
-        spiralControls.setRangeA(value, currentRangeA_max);
-        break;
-
-      case "rangeA_max":
-        const currentRangeA_min = animation.controls.rangeA_min;
-        spiralControls.setRangeA(currentRangeA_min, value);
-        break;
-
-      case "rangeB_min":
-        const currentRangeB_max = animation.controls.rangeB_max;
-        spiralControls.setRangeB(value, currentRangeB_max);
-        break;
-
-      case "rangeB_max":
-        const currentRangeB_min = animation.controls.rangeB_min;
-        spiralControls.setRangeB(currentRangeB_min, value);
-        break;
     }
 
     // Dispatch real-time change event for other components
@@ -337,6 +312,33 @@ export class SpiralDropdown {
       detail: { key, value, timestamp: Date.now() },
     });
     document.dispatchEvent(event);
+  }
+
+  handleModeChange(mode) {
+    const spiralControls = this.getSpiralControls();
+    if (!spiralControls) return;
+
+    spiralControls.setAnimationMode(mode);
+    localStorage.setItem("spiralAnimationMode", mode);
+    this.dropdownManager.showActionFeedback("SPIRAL", `${mode.toUpperCase()} MODE`);
+  }
+
+  toggleEffect(effectName, btn) {
+    const spiralControls = this.getSpiralControls();
+    if (!spiralControls) return;
+
+    const enabled = btn.getAttribute("data-state") !== "on";
+    btn.setAttribute("data-state", enabled ? "on" : "off");
+    btn.classList.toggle("active", enabled);
+
+    if (effectName === "colorCycle") spiralControls.setColorCycle(enabled);
+    if (effectName === "strobe") spiralControls.setStrobe(enabled);
+
+    localStorage.setItem(`spiralEffect_${effectName}`, String(enabled));
+    this.dropdownManager.showActionFeedback(
+      "SPIRAL",
+      `${effectName === "colorCycle" ? "COLOR CYCLE" : "STROBE"} ${enabled ? "ON" : "OFF"}`
+    );
   }
 
   handleAction(action, detail) {
@@ -376,72 +378,43 @@ export class SpiralDropdown {
     this.saveSettings();
   }
 
-  // Preset methods with FINE-GRAIN control values
+  // Preset methods using the simplified control set
   resetToOriginal() {
-    const presets = {
+    this.applyPresetValues({
       speed: 1.0,
-      colorIntensity: 1.0,
-      geometryA: 1.0,
-      geometryB: 0.3,
-      subtleVariation: 0.0,
+      complexity: 1.0,
       alpha: 1.0,
       pulseIntensity: 30,
-      rotationSpeed: 10.0,
-      iterations: 250,
-      rangeA_min: 0.5,
-      rangeA_max: 1.5,
-      rangeB_min: 1.0,
-      rangeB_max: 1.5,
-    };
-    this.applyPresetValues(presets);
+      animationMode: "classic",
+      effects: { colorCycle: false, strobe: false },
+    });
   }
 
   applyPreset(presetName) {
     const presets = {
       hypnotic: {
         speed: 0.35,
-        colorIntensity: 0.85,
-        geometryA: 3.25,
-        geometryB: 1.85,
-        subtleVariation: 0.12,
+        complexity: 1.6,
         alpha: 0.88,
         pulseIntensity: 42,
-        rotationSpeed: 6.5,
-        iterations: 350,
-        rangeA_min: 0.25,
-        rangeA_max: 2.15,
-        rangeB_min: 0.75,
-        rangeB_max: 2.25,
+        animationMode: "breathe",
+        effects: { colorCycle: false, strobe: false },
       },
       intense: {
         speed: 2.25,
-        colorIntensity: 1.65,
-        geometryA: 4.85,
-        geometryB: 2.35,
-        subtleVariation: 0.28,
+        complexity: 2.2,
         alpha: 1.0,
         pulseIntensity: 75,
-        rotationSpeed: 3.2,
-        iterations: 600,
-        rangeA_min: 1.25,
-        rangeA_max: 3.85,
-        rangeB_min: 1.85,
-        rangeB_max: 4.25,
+        animationMode: "drift",
+        effects: { colorCycle: true, strobe: false },
       },
       peaceful: {
         speed: 0.55,
-        colorIntensity: 0.65,
-        geometryA: 2.15,
-        geometryB: 0.85,
-        subtleVariation: 0.06,
+        complexity: 0.8,
         alpha: 0.72,
         pulseIntensity: 18,
-        rotationSpeed: 18.5,
-        iterations: 180,
-        rangeA_min: 0.15,
-        rangeA_max: 0.95,
-        rangeB_min: 0.35,
-        rangeB_max: 1.45,
+        animationMode: "breathe",
+        effects: { colorCycle: false, strobe: false },
       },
     };
 
@@ -452,6 +425,32 @@ export class SpiralDropdown {
 
   applyPresetValues(values) {
     Object.keys(values).forEach((key) => {
+      if (key === "animationMode") {
+        const select = document.getElementById("spiral-animation-mode");
+        if (select) select.value = values[key];
+        const spiralControls = this.getSpiralControls();
+        if (spiralControls) spiralControls.setAnimationMode(values[key]);
+        localStorage.setItem("spiralAnimationMode", values[key]);
+        return;
+      }
+
+      if (key === "effects") {
+        Object.keys(values.effects).forEach((effectName) => {
+          const btn = document.getElementById(`spiral-effect-${effectName.toLowerCase()}`);
+          if (btn) {
+            btn.setAttribute("data-state", values.effects[effectName] ? "on" : "off");
+            btn.classList.toggle("active", values.effects[effectName]);
+          }
+          const spiralControls = this.getSpiralControls();
+          if (spiralControls) {
+            if (effectName === "colorCycle") spiralControls.setColorCycle(values.effects[effectName]);
+            if (effectName === "strobe") spiralControls.setStrobe(values.effects[effectName]);
+          }
+          localStorage.setItem(`spiralEffect_${effectName}`, String(values.effects[effectName]));
+        });
+        return;
+      }
+
       const slider = document.getElementById(`spiral-${key}-slider`);
       if (slider) {
         slider.value = values[key];
@@ -601,24 +600,13 @@ export class SpiralDropdown {
 
     // HIGH-PRECISION value formatting for fine-grain feedback
     switch (key) {
-      case "subtleVariation":
-        return value === 0 ? "OFF" : `${(value * 100).toFixed(1)}%`;
       case "alpha":
         return `${(value * 100).toFixed(1)}%`;
       case "speed":
         if (value < 0.1) return `${(value * 1000).toFixed(0)}ms`;
         return `${value.toFixed(2)}x`;
-      case "geometryA":
-      case "geometryB":
-      case "rangeA_min":
-      case "rangeA_max":
-      case "rangeB_min":
-      case "rangeB_max":
-        return value.toFixed(2);
-      case "rotationSpeed":
-        return `${value.toFixed(1)}°/s`;
-      case "iterations":
-        return `${Math.floor(value)} pts`;
+      case "complexity":
+        return `${value.toFixed(2)}x`;
       case "pulseIntensity":
         return `${Math.floor(value)}`;
       default:
@@ -649,19 +637,9 @@ export class SpiralDropdown {
                           "🌈"
                         )}
                         ${this.createSlider(
-                          "geometryA",
-                          "Main Spiral Size",
+                          "complexity",
+                          "Complexity",
                           "🌀"
-                        )}
-                        ${this.createSlider(
-                          "geometryB",
-                          "Inner Spiral Size",
-                          "🌊"
-                        )}
-                        ${this.createSlider(
-                          "subtleVariation",
-                          "Variation",
-                          "✨"
                         )}
                         ${this.createSlider("alpha", "Transparency", "👻")}
                         ${this.createSlider(
@@ -670,6 +648,28 @@ export class SpiralDropdown {
                           "💥"
                         )}
                     </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-section">
+                    <div class="dropdown-section-header">Animation Mode</div>
+                    <select id="spiral-animation-mode" onchange="window.dropdownManager.getComponent('spiral').handleModeChange(this.value)">
+                        ${this.animationModes
+                          .map(
+                            (mode) =>
+                              `<option value="${mode.value}">${mode.label}</option>`
+                          )
+                          .join("")}
+                    </select>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-section">
+                    <div class="dropdown-section-header">Effects</div>
+                    <button class="preset-button dropdown-item" id="spiral-effect-colorcycle" data-state="off" onclick="window.dropdownManager.getComponent('spiral').toggleEffect('colorCycle', this)">
+                        🌈 Color Cycle
+                    </button>
+                    <button class="preset-button dropdown-item" id="spiral-effect-strobe" data-state="off" onclick="window.dropdownManager.getComponent('spiral').toggleEffect('strobe', this)">
+                        ⚡ Strobe Pulse
+                    </button>
                 </div>
                 <div class="dropdown-divider"></div>
                 <div class="dropdown-section">

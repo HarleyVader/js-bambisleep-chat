@@ -78,7 +78,22 @@ class SpiralAnimation {
 
             // Spiral rendering parameters
             spiralWidth: 1.0,
-            spiralWidthDecrement: 1.0 / 350  // dw = spiralwidth/350 from original
+            spiralWidthDecrement: 1.0 / 350,  // dw = spiralwidth/350 from original
+
+            // Single knob driving geometry + iterations together (replaces
+            // separately exposed geometryA/geometryB/iterations sliders)
+            complexity: 1.0,
+
+            // Animation mode - modulates geometry/rotation over time on top of the base spiral
+            animationMode: 'classic', // 'classic' | 'breathe' | 'drift'
+
+            // Toggleable visual effects, independent of animation mode
+            effects: {
+                colorCycle: false,
+                colorCycleSpeed: 0.3,
+                strobe: false,
+                strobeSpeed: 6
+            }
         };
 
         this.init();
@@ -290,7 +305,8 @@ class SpiralAnimation {
         );
 
         // ORIGINAL: translate(width/2,height/2); rotate(frameCount/10);
-        const rotation = (this.frameCount / this.controls.rotationSpeed) * this.controls.rotationSpeedMultiplier;
+        const modeOffset = this.getAnimationModeOffset();
+        const rotation = (this.frameCount / this.controls.rotationSpeed) * this.controls.rotationSpeedMultiplier * modeOffset.rotationMultiplier;
         const cos_r = Math.cos(rotation);
         const sin_r = Math.sin(rotation);
         const tx = this.width / 2;
@@ -310,13 +326,13 @@ class SpiralAnimation {
         // Draw spirals - ORIGINAL: spiral(a,1,[199, 0, 199]); spiral(b,0.3,[255, 130, 255]);
         this.spiral(
             a,
-            this.controls.spiralA_geometry + this.getVariation('geometryVariance'),
-            this.getColorWithVariation(this.controls.spiralA_color)
+            this.controls.spiralA_geometry + this.getVariation('geometryVariance') + modeOffset.geometryOffset,
+            this.getEffectColor(this.getColorWithVariation(this.controls.spiralA_color))
         );
         this.spiral(
             b,
-            this.controls.spiralB_geometry + this.getVariation('geometryVariance'),
-            this.getColorWithVariation(this.controls.spiralB_color)
+            this.controls.spiralB_geometry + this.getVariation('geometryVariance') + modeOffset.geometryOffset,
+            this.getEffectColor(this.getColorWithVariation(this.controls.spiralB_color))
         );
 
         // Eye tracking and calibration system from original
@@ -376,7 +392,7 @@ class SpiralAnimation {
         const r = colorArray[0] / 255;
         const g = colorArray[1] / 255;
         const b = colorArray[2] / 255;
-        const alpha = (colorArray[3] || 1.0) * this.controls.alpha;
+        const alpha = (colorArray[3] || 1.0) * this.controls.alpha * this.getEffectAlphaMultiplier();
         gl.uniform4f(this.locations.color, r, g, b, alpha);
 
         // Draw as triangle strip to match p5.js TRIANGLE_STRIP behavior
@@ -445,6 +461,93 @@ class SpiralAnimation {
             Math.max(0, Math.min(255, baseColor[1] + shift)),
             Math.max(0, Math.min(255, baseColor[2] + shift)),
             baseColor[3]
+        ];
+    }
+
+    // Animation mode - modulates geometry/rotation over time on top of the base spiral shape
+    getAnimationModeOffset() {
+        if (this.controls.animationMode === 'classic') {
+            return { geometryOffset: 0, rotationMultiplier: 1 };
+        }
+
+        const t = this.frameCount * 0.02;
+
+        if (this.controls.animationMode === 'breathe') {
+            // Geometry pulses in and out, rotation unaffected
+            return { geometryOffset: Math.sin(t) * 0.4, rotationMultiplier: 1 };
+        }
+
+        if (this.controls.animationMode === 'drift') {
+            // Rotation direction/speed drifts and periodically reverses
+            return { geometryOffset: 0, rotationMultiplier: Math.sin(t * 0.5) * 2 };
+        }
+
+        return { geometryOffset: 0, rotationMultiplier: 1 };
+    }
+
+    // Color cycle effect - hue-rotates a base color over time, independent of animation mode
+    getEffectColor(baseColor) {
+        if (!this.controls.effects.colorCycle) return baseColor;
+
+        const degrees = (this.frameCount * this.controls.effects.colorCycleSpeed) % 360;
+        const [h, s, l] = this.rgbToHsl(baseColor[0], baseColor[1], baseColor[2]);
+        const [r, g, b] = this.hslToRgb((h + degrees) % 360, s, l);
+        return [r, g, b, baseColor[3]];
+    }
+
+    // Strobe effect - pulses the alpha multiplier between dim and full brightness
+    getEffectAlphaMultiplier() {
+        if (!this.controls.effects.strobe) return 1;
+
+        const t = this.frameCount * this.controls.effects.strobeSpeed * 0.05;
+        return 0.3 + Math.abs(Math.sin(t)) * 0.7;
+    }
+
+    rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h = 0, s = 0;
+        const l = (max + min) / 2;
+
+        if (max !== min) {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h *= 60;
+        }
+
+        return [h, s, l];
+    }
+
+    hslToRgb(h, s, l) {
+        h = ((h % 360) + 360) % 360;
+
+        if (s === 0) {
+            const v = Math.round(l * 255);
+            return [v, v, v];
+        }
+
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        const hk = h / 360;
+
+        return [
+            Math.round(hue2rgb(p, q, hk + 1 / 3) * 255),
+            Math.round(hue2rgb(p, q, hk) * 255),
+            Math.round(hue2rgb(p, q, hk - 1 / 3) * 255)
         ];
     }
 
@@ -553,6 +656,10 @@ class SpiralAnimation {
         this.controls.rotationSpeedMultiplier = 1.0;
         this.controls.spiralWidth = 1.0;
         this.controls.spiralWidthDecrement = 1.0 / 350;
+        this.controls.complexity = 1.0;
+        this.controls.animationMode = 'classic';
+        this.controls.effects.colorCycle = false;
+        this.controls.effects.strobe = false;
         this.disableSubtleVariation();
     }
 
@@ -646,6 +753,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setPulseIntensity: (intensity) => {
             window.spiralAnimation.controls.pulseIntensity = Math.max(1, Math.min(200, intensity));
+        },
+
+        // Single knob driving geometry + iterations together
+        setComplexity: (multiplier) => {
+            const m = Math.max(0.1, Math.min(3, multiplier));
+            window.spiralAnimation.controls.complexity = m;
+            window.spiralAnimation.controls.spiralA_geometry = 1.0 * m;
+            window.spiralAnimation.controls.spiralB_geometry = 0.3 * m;
+            window.spiralAnimation.controls.iterations = Math.max(50, Math.min(1000, Math.round(250 * m)));
+        },
+
+        // Animation mode: 'classic' | 'breathe' | 'drift'
+        setAnimationMode: (mode) => {
+            window.spiralAnimation.controls.animationMode = mode;
+        },
+
+        // Effects - independent of animation mode, can combine with any of them
+        setColorCycle: (enabled, speed) => {
+            window.spiralAnimation.controls.effects.colorCycle = enabled;
+            if (speed !== undefined) {
+                window.spiralAnimation.controls.effects.colorCycleSpeed = speed;
+            }
+        },
+
+        setStrobe: (enabled, speed) => {
+            window.spiralAnimation.controls.effects.strobe = enabled;
+            if (speed !== undefined) {
+                window.spiralAnimation.controls.effects.strobeSpeed = speed;
+            }
         },
 
         // Color setters for dropdown
