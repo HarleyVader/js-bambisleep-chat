@@ -355,7 +355,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: ENV.SECURITY.CORS_ORIGIN,
     methods: ["GET", "POST"],
   },
 });
@@ -945,7 +945,26 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const username = data.username || `User_${socket.id}`;
+    if (typeof data.message !== "string" || data.message.length === 0) {
+      socket.emit("ai-error", {
+        error: "Invalid message input",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (data.message.length > ENV.CHAT.MAX_MESSAGE_LENGTH) {
+      socket.emit("ai-error", {
+        error: `Message exceeds maximum length of ${ENV.CHAT.MAX_MESSAGE_LENGTH} characters`,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const username = String(data.username || `User_${socket.id}`).substring(
+      0,
+      50,
+    );
     const userTriggers = data.triggers || []; // Get user-selected triggers
 
     console.log(`AI chat request from ${username}: ${data.message}`);
@@ -1005,6 +1024,14 @@ io.on("connection", (socket) => {
     if (!text || typeof text !== "string") {
       socket.emit("tts-error", {
         error: "Invalid text input for TTS",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (text.length > ENV.CHAT.MAX_MESSAGE_LENGTH) {
+      socket.emit("tts-error", {
+        error: `Text exceeds maximum length of ${ENV.CHAT.MAX_MESSAGE_LENGTH} characters`,
         timestamp: new Date().toISOString(),
       });
       return;
@@ -1432,6 +1459,12 @@ app.post("/api/chat", (req, res) => {
     return res.status(400).json({ error: "Invalid message input" });
   }
 
+  if (message.length > ENV.CHAT.MAX_MESSAGE_LENGTH) {
+    return res.status(400).json({
+      error: `Message exceeds maximum length of ${ENV.CHAT.MAX_MESSAGE_LENGTH} characters`,
+    });
+  }
+
   if (!lmWorker) {
     return res.status(503).json({ error: "AI worker not available" });
   }
@@ -1447,7 +1480,7 @@ app.post("/api/chat", (req, res) => {
       type: "chat",
       prompt: message,
       socketId: tempSocketId,
-      username: username || "Anonymous",
+      username: (username || "Anonymous").toString().substring(0, 50),
       triggers: triggers || [], // Pass triggers to worker
     },
     () => {
