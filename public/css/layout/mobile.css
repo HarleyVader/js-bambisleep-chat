@@ -15,7 +15,7 @@
             /* Worst-case height of the wrapped nav bar (up to ~3 rows on very
                narrow landscape widths) - reserved so it can never overlap
                the chat header/spiral content below it. */
-            --mobile-nav-reserve: 116px;
+            --mobile-nav-reserve: 30vh;
         }
 
         * {
@@ -32,11 +32,11 @@
         .control-button,
         .toggle-button,
         button {
-            min-height: 44px; /* Touch target size */
+            min-height: max(44px, 9vmin); /* WCAG touch target floor - px is a hardware/finger-size constant, vmin lets it grow on larger screens */
         }
 
         #aigf-chat-input {
-            font-size: 16px; /* Prevent zoom-on-focus on iOS - fixed, not scaled */
+            font-size: max(16px, 4vmin); /* iOS only skips zoom-on-focus at >=16px computed, so that's a hard floor, not a design choice */
         }
 
         /* Dev/debug widget - not useful to end users and just clutters the
@@ -57,21 +57,21 @@
         /* Shrink chat chrome so header + messages + input + docs links all
            fit within the reduced height instead of getting clipped. */
         #chat-header {
-            padding: 6px 10px;
-            gap: 4px;
+            padding: 0.8vmin 1.2vmin;
+            gap: 0.5vmin;
         }
 
         #aigf-chat-messages {
             min-height: 0; /* allow the flex item to shrink and scroll instead of overflowing the column */
-            padding: 8px;
+            padding: 1vmin;
         }
 
         #aigf-chat-input-container {
-            padding: 6px 10px;
+            padding: 0.8vmin 1.2vmin;
         }
 
         .docs-link-container {
-            padding: 4px 10px;
+            padding: 0.5vmin 1.2vmin;
         }
     }
 

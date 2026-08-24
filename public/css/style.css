@@ -126,8 +126,8 @@ body {
    spiral column doesn't overflow past the bottom of the viewport. */
 @media (pointer: coarse) {
     #spiral-container {
-        margin-top: var(--mobile-nav-reserve, 116px);
-        height: calc(100vh - var(--mobile-nav-reserve, 116px));
+        margin-top: var(--mobile-nav-reserve, 30vh);
+        height: calc(100vh - var(--mobile-nav-reserve, 30vh));
     }
 }
 

@@ -103,14 +103,14 @@
     #dropdowns-menu,
     .dropdowns-menu {
         position: fixed;
-        top: 20px;
-        right: 20px;
+        top: 1.5vmin;
+        right: 1.5vmin;
         left: auto;
         transform: none;
         max-width: none;
         z-index: 1000;
         display: flex;
-        gap: 5px;
+        gap: 0.5vmin;
         flex-wrap: nowrap;
         justify-content: flex-end;
         align-items: center;
@@ -119,19 +119,20 @@
     }
 
     /* Narrow viewports / touch devices: the 7 nav buttons no longer fit in
-       a single nowrap row without overflowing off-screen. Let them wrap
-       into a centered, full-width block; mobile.css reserves matching
-       vertical space below it so it never overlaps the chat header. */
+       a single nowrap row without overflowing off-screen. Pin both left AND
+       right edges so the block's width is derived purely from the viewport
+       (guaranteed to never overflow it) and let buttons wrap inside; mobile.css
+       reserves matching vertical space below it so it never overlaps the
+       chat header. */
     @media (max-width: 900px), (pointer: coarse) {
 
         #dropdowns-menu,
         .dropdowns-menu {
-            top: 6px;
-            right: 6px;
-            left: 6px;
-            max-width: calc(100vw - 12px);
+            top: 1vmin;
+            right: 1vmin;
+            left: 1vmin;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 0.6vmin;
             justify-content: center;
         }
     }
@@ -139,14 +140,26 @@
     /* Compact buttons so all six fit in one row */
     #dropdowns-menu .dropdown-btn,
     .dropdowns-menu .dropdown-btn {
-        padding: 4px 8px;
+        padding: 0.5vmin 1vmin;
         font-size: var(--font-size-sm);
         white-space: nowrap;
     }
 
+    /* Narrow viewports / touch devices: let long labels (e.g. "BambiSleep
+       Classic") wrap onto a second line and cap each button's width instead
+       of forcing the whole row past the edge of the screen. */
+    @media (max-width: 900px), (pointer: coarse) {
+        #dropdowns-menu .dropdown-btn,
+        .dropdowns-menu .dropdown-btn {
+            white-space: normal;
+            text-align: center;
+            max-width: 30vw;
+        }
+    }
+
     #dropdowns-menu .status-indicator,
     .dropdowns-menu .status-indicator {
-        margin-left: 4px;
+        margin-left: 0.5vmin;
     }
 
     /* Dropdown buttons need pointer events */
