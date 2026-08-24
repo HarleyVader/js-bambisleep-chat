@@ -146,13 +146,25 @@ class TextEffects {
       "Chat container toggled:",
       this.chatVisible ? "visible" : "hidden"
     );
-  } // Process AI response and highlight ONLY trigger phrases - NOTHING ELSE
+  }
+
+  // Escape HTML special characters before any innerHTML insertion, since AI
+  // responses are untrusted (model output can be prompt-injected to contain
+  // raw HTML/script) - escaping first keeps the only real HTML being our own
+  // trusted <span> wrappers inserted below.
+  escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Process AI response and highlight ONLY trigger phrases - NOTHING ELSE
   processAIResponse(text) {
     if (!this.triggers || this.triggers.length === 0) {
-      return text; // No triggers loaded yet, return original text
+      return this.escapeHtml(text); // No triggers loaded yet, still escape untrusted text
     }
 
-    let processedText = text;
+    let processedText = this.escapeHtml(text);
 
     // Process each trigger phrase individually with category-based styling
     this.triggers.forEach((trigger) => {

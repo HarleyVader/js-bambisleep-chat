@@ -60,28 +60,19 @@ class TriggerSystem {
   }
 
   processMessage(text) {
+    // Always escape untrusted input first - checking for substrings like
+    // "<span" or "ai-generated-highlight" to decide whether to skip escaping
+    // is unsafe, since a user could simply type those substrings in their
+    // own chat message to bypass escaping and inject raw HTML (stored XSS).
+    const escapedText = this.escapeHtml(text);
+
     if (!this.isEnabled) {
-      // If triggers are disabled but text contains HTML, preserve it
-      return text.includes("<span") ? text : this.escapeHtml(text);
+      return escapedText;
     }
 
-    // Check if this is already processed HTML (contains our highlight classes)
-    const isAlreadyProcessed = text.includes("ai-generated-highlight");
-
-    let processedText;
-
-    if (isAlreadyProcessed) {
-      // Already contains HTML highlighting, still process new triggers
-      processedText = text;
-    } else {
-      // Regular text that needs full processing
-      processedText = this.escapeHtml(text);
-    }
-
-    // Process all triggers with overlapping support
-    processedText = this.processAllTriggersWithOverlap(processedText);
-
-    return processedText;
+    // Process all triggers with overlapping support (safe: operates on
+    // already-escaped text, so trigger <span> wrappers are the only HTML).
+    return this.processAllTriggersWithOverlap(escapedText);
   }
 
   processAllTriggersWithOverlap(text) {

@@ -116,9 +116,21 @@ class ChatCore {
     }
   }
 
+  // Escape HTML special characters before any innerHTML insertion of
+  // untrusted text (AI model output can be prompt-injected to contain raw
+  // HTML/script tags).
+  escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
   // Manual processing for **text** highlighting with CAPS detection
   manualProcessHighlights(text) {
-    return text.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
+    // Escape untrusted AI text before wrapping matches in <span> - the model
+    // output is not trusted content and could otherwise inject raw HTML/script.
+    const escaped = this.escapeHtml(text);
+    return escaped.replace(/\*\*([^*]+)\*\*/g, (match, content) => {
       // Check if the content is in ALL CAPS
       const isAllCaps =
         /^[A-Z\s\-!'.,;:?]*$/.test(content) && /[A-Z]/.test(content);

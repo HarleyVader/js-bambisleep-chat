@@ -4,6 +4,7 @@
  */
 
 const axios = require("axios");
+const crypto = require("crypto");
 const ENV = require("../config/env");
 
 class PatreonService {
@@ -401,7 +402,9 @@ class PatreonService {
    * @returns {string} State token
    */
   generateState(socketId) {
-    const state = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    // crypto.randomBytes (not Math.random) since this token doubles as a
+    // CSRF-protection value and a session-lookup key - it must be unguessable.
+    const state = crypto.randomBytes(24).toString("hex");
     this.sessionStore.set(state, {
       socketId,
       createdAt: Date.now(),
