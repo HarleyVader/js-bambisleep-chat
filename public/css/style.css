@@ -1340,8 +1340,8 @@ body {
    override would be silently beaten by the unlayered rules above it. */
 @media (pointer: coarse) {
     #chat-header {
-        padding: 0.8vmin 1.2vmin;
-        gap: 0.5vmin;
+        padding: 0.6vmin 1vmin;
+        gap: 0.3vmin;
     }
 
     #chat-header h1 {
@@ -1353,23 +1353,32 @@ body {
     }
 
     #aigf-chat-input-container {
-        padding: 0.8vmin 1.2vmin;
+        padding: 0.5vmin 0.8vmin;
     }
 
     #aigf-chat-input,
     #chat-input {
-        padding: 0.5vmin 1vmin;
+        padding: 0.4vmin 0.8vmin;
     }
 
     .docs-link-container {
-        padding: 0.5vmin 1.2vmin;
+        padding: 0.3vmin 0.6vmin;
+        gap: 0.4vmin;
     }
 
+    /* .patreon-login-btn is a <button> (unlike the <a> .docs-link-btn
+       links), so it also matches mobile.css's generic "button" min-height
+       floor and patreon.css's thicker 3px ridge border/pill radius - reset
+       those here so it renders as just another same-size button in the row
+       instead of wrapping onto its own line. */
     .docs-link-btn,
     .patreon-login-btn {
-        padding: 0.4vmin 1vmin;
-        font-size: 0.6em;
-        margin: 0.3vmin;
+        padding: 0.3vmin 0.7vmin;
+        font-size: 0.55em;
+        margin: 0.15vmin;
+        min-height: 0;
+        border-width: 1px;
+        border-radius: var(--border-radius);
     }
 }
 
