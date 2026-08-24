@@ -129,7 +129,10 @@
 
         #dropdowns-menu,
         .dropdowns-menu {
-            top: 1vmin;
+            /* env(safe-area-inset-top) accounts for notches/dynamic
+               browser toolbars that can otherwise clip this fixed-
+               position row right at the very top edge of the viewport. */
+            top: calc(1vmin + env(safe-area-inset-top, 0px));
             right: 1vmin;
             left: 30vw;
             flex-wrap: wrap;
