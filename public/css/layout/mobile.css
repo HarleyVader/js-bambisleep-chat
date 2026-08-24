@@ -26,7 +26,8 @@
         .control-button,
         .toggle-button,
         button {
-            min-height: max(44px, 9vmin); /* WCAG touch target floor - px is a hardware/finger-size constant, vmin lets it grow on larger screens */
+            min-height: max(40px, 8vmin); /* WCAG touch target floor - px is a hardware/finger-size constant, vmin lets it grow on larger screens */
+            padding: 0.5vmin 1vmin; /* base rule uses a fixed 8px/12px (var(--spacing-sm/md)) - too roomy once the mobile font scale above shrinks the label text inside */
         }
 
         #aigf-chat-input {
@@ -47,52 +48,14 @@
             height: 100vh;
         }
 
-        /* Shrink chat chrome so header + messages + input + docs links all
-           fit within the reduced height instead of getting clipped. */
-        #chat-header {
-            padding: 0.8vmin 1.2vmin;
-            gap: 0.5vmin;
-        }
-
-        /* Base h1 uses a fixed 3px letter-spacing and --font-size-xl (1.215rem)
-           against html's already-enlarged mobile root size, so it renders
-           oversized/wraps awkwardly in the narrow 30vw chat column.
-           font-size is tied to vw (the column's own unit, 30vw wide) rather
-           than vmin/rem so it scales with the exact space it has to fit into,
-           keeping the title on one line regardless of aspect ratio. */
-        #chat-header h1 {
-            font-size: clamp(0.55rem, 2.3vw, 0.95rem);
-            letter-spacing: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        /* #chat-header, #chat-header h1, #aigf-chat-input-container and
+           .docs-link-btn/.patreon-login-btn are unlayered in style.css, so
+           their mobile padding/font-size shrink lives there (an override
+           here would be silently beaten by the unlayered rules). */
 
         #aigf-chat-messages {
             min-height: 0; /* allow the flex item to shrink and scroll instead of overflowing the column */
             padding: 1vmin;
-        }
-
-        #aigf-chat-input-container {
-            padding: 0.8vmin 1.2vmin;
-        }
-
-        .docs-link-container {
-            padding: 0.5vmin 1.2vmin;
-        }
-
-        /* Docs links + the Patreon button (appended into this container by
-           patreon-client.js) are sized for a full desktop-width chat column;
-           at desktop padding/font-size they wrap into extra rows that push
-           later buttons (often the Patreon one, added last) past the bottom
-           of #chat-container's fixed height, where body's overflow:hidden
-           silently clips them - shrink both so everything is more likely to
-           fit in the rows that actually exist. */
-        .docs-link-btn,
-        .patreon-login-btn {
-            padding: 0.4vmin 1vmin;
-            font-size: 0.65em;
-            margin: 0.3vmin;
         }
 
         /* Safety net: if the column's content still exceeds its 100vh height

@@ -30,6 +30,7 @@
 @import url("components/aigf.css");        /* AI girlfriend mode */
 @import url("components/dropdowns.css");   /* Dropdown menus */
 @import url("components/buttplug.css");    /* Buttplug.io integration */
+@import url("components/patreon.css");     /* Patreon login/tier UI */
 
 /* ===== Layout ===== */
 @import url("layout/mobile.css");          /* Mobile responsive */
@@ -1330,6 +1331,46 @@ body {
 .stat-value.warning {
     color: var(--warning);
     text-shadow: 0 0 3px var(--warning);
+}
+
+/* Mobile: #chat-header, #chat-header h1, #aigf-chat-input-container,
+   #aigf-chat-input/#chat-input and .docs-link-btn are all declared
+   unlayered above, so only another unlayered rule can shrink their
+   padding/font-size for touch devices - a mobile.css (@layer interface)
+   override would be silently beaten by the unlayered rules above it. */
+@media (pointer: coarse) {
+    #chat-header {
+        padding: 0.8vmin 1.2vmin;
+        gap: 0.5vmin;
+    }
+
+    #chat-header h1 {
+        font-size: clamp(0.55rem, 2.3vw, 0.95rem);
+        letter-spacing: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #aigf-chat-input-container {
+        padding: 0.8vmin 1.2vmin;
+    }
+
+    #aigf-chat-input,
+    #chat-input {
+        padding: 0.5vmin 1vmin;
+    }
+
+    .docs-link-container {
+        padding: 0.5vmin 1.2vmin;
+    }
+
+    .docs-link-btn,
+    .patreon-login-btn {
+        padding: 0.4vmin 1vmin;
+        font-size: 0.6em;
+        margin: 0.3vmin;
+    }
 }
 
 /* ── Prompt / Persona Dropdown ─────────────────────────────── */
