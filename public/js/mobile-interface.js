@@ -171,7 +171,7 @@ class MobileInterface {
         this.closeAllPanels();
 
         // Optional: Focus chat input
-        const chatInput = document.getElementById('chat-input');
+        const chatInput = document.getElementById('aigf-chat-input');
         if (chatInput) {
             setTimeout(() => chatInput.focus(), 300);
         }
@@ -382,7 +382,28 @@ class MobileInterface {
     populateMobileContent() {
         this.populateTriggerCategories();
         this.populateVoiceOptions();
+        this.populateSpiralControls();
         this.setupMobileControls();
+    }
+
+    populateSpiralControls() {
+        const container = document.querySelector('.mobile-spiral-controls');
+        if (!container) return;
+
+        const controls = [
+            { action: 'toggle-spiral', icon: '🌀', label: 'Toggle' },
+            { action: 'speed-up', icon: '⏩', label: 'Speed Up' },
+            { action: 'slow-down', icon: '⏪', label: 'Slow Down' },
+            { action: 'reverse', icon: '🔄', label: 'Reverse' },
+            { action: 'brainwash-mode', icon: '🧠', label: 'Brainwash' }
+        ];
+
+        container.innerHTML = controls.map(control => `
+            <button class="mobile-spiral-btn" data-action="${control.action}">
+                <span class="mobile-spiral-btn-icon">${control.icon}</span>
+                ${control.label}
+            </button>
+        `).join('');
     }
 
     populateTriggerCategories() {
