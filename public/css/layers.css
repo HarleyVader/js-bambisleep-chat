@@ -137,6 +137,24 @@
         }
     }
 
+    /* Touch devices: stop floating over the page entirely - become a real
+       grid row (see #app in style.css/mobile.css) so its own rendered height
+       is what reserves the space above the chat/spiral boxes. This is what
+       actually guarantees the nav can never sit "outside"/on top of them. */
+    @media (pointer: coarse) {
+
+        #dropdowns-menu,
+        .dropdowns-menu {
+            position: static;
+            grid-row: 1;
+            grid-column: 1 / -1;
+            width: 100%;
+            top: auto;
+            right: auto;
+            left: auto;
+        }
+    }
+
     /* Compact buttons so all six fit in one row */
     #dropdowns-menu .dropdown-btn,
     .dropdowns-menu .dropdown-btn {

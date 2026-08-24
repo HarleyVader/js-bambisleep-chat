@@ -98,6 +98,18 @@ body {
     position: relative;
 }
 
+/* Mobile: real grid instead of fixed-position-nav + guessed reserve height -
+   row 1 is exactly as tall as the nav bar's own content, row 2 (chat+spiral)
+   fills whatever is left, so the nav can never overlap the boxes below it. */
+@media (pointer: coarse) {
+    #app {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        grid-template-columns: 30vw 70vw;
+        height: 100vh;
+    }
+}
+
 /* Chat Container - Moved to chat.css @layer interface */
 
 /* Spiral Animation Container - Right Side */
@@ -122,12 +134,14 @@ body {
 }
 
 /* Mobile: this rule is unlayered so it would otherwise beat mobile.css's
-   layered override - reserve the same nav-bar space here directly so the
-   spiral column doesn't overflow past the bottom of the viewport. */
+   layered override - place the spiral column in the grid's content row/
+   column and let it fill that cell instead of always being 100vh tall. */
 @media (pointer: coarse) {
     #spiral-container {
-        margin-top: var(--mobile-nav-reserve, 30vh);
-        height: calc(100vh - var(--mobile-nav-reserve, 30vh));
+        grid-row: 2;
+        grid-column: 2;
+        margin-top: 0;
+        height: 100%;
     }
 }
 

@@ -11,13 +11,6 @@
 @layer interface {
     /* ===== Touch affordances only - never alter layout ===== */
     @media (pointer: coarse) {
-        :root {
-            /* Worst-case height of the wrapped nav bar (up to ~3 rows on very
-               narrow landscape widths) - reserved so it can never overlap
-               the chat header/spiral content below it. */
-            --mobile-nav-reserve: 30vh;
-        }
-
         * {
             -webkit-tap-highlight-color: transparent;
         }
@@ -45,13 +38,14 @@
             display: none;
         }
 
-        /* Push both columns down below the fixed/wrapped nav bar and shrink
-           them to match, so the nav never overlaps the chat header/title and
-           nothing spills past the bottom of the viewport. */
-        #chat-container,
-        #spiral-container {
-            margin-top: var(--mobile-nav-reserve);
-            height: calc(100vh - var(--mobile-nav-reserve));
+        /* Nav bar becomes a normal (non-floating) grid row spanning both
+           columns, so its real content height is what reserves the space -
+           no guessing, and it can never overlap the chat/spiral boxes. */
+        #chat-container {
+            grid-row: 2;
+            grid-column: 1;
+            margin-top: 0;
+            height: 100%;
         }
 
         /* Shrink chat chrome so header + messages + input + docs links all
