@@ -79,6 +79,27 @@
         .docs-link-container {
             padding: 0.5vmin 1.2vmin;
         }
+
+        /* Docs links + the Patreon button (appended into this container by
+           patreon-client.js) are sized for a full desktop-width chat column;
+           at desktop padding/font-size they wrap into extra rows that push
+           later buttons (often the Patreon one, added last) past the bottom
+           of #chat-container's fixed height, where body's overflow:hidden
+           silently clips them - shrink both so everything is more likely to
+           fit in the rows that actually exist. */
+        .docs-link-btn,
+        .patreon-login-btn {
+            padding: 0.4vmin 1vmin;
+            font-size: 0.65em;
+            margin: 0.3vmin;
+        }
+
+        /* Safety net: if the column's content still exceeds its 100vh height
+           (e.g. many wrapped docs/patreon buttons), scroll it instead of
+           letting body's overflow:hidden clip it invisibly off-screen. */
+        #chat-container {
+            overflow-y: auto;
+        }
     }
 
     /* ===== Chat Animation States ===== */
