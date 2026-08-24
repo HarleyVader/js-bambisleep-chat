@@ -17,9 +17,10 @@
 
         /* Fluid root size so all rem/em text scales with the cramped mobile
            viewport instead of staying frozen at desktop pixel sizes; caps out
-           around the default 16px-equivalent so larger tablets/desktops-with-touch are unaffected */
+           well under the desktop 16px-equivalent since every rem-based label/
+           button on this cramped layout reads too large at the old ceiling. */
         html {
-            font-size: clamp(2.9vmin, 2vw + 1vh, 4.3vmin);
+            font-size: clamp(2vmin, 1.4vw + 0.7vh, 3vmin);
         }
 
         .control-button,
