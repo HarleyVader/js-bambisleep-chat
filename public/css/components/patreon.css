@@ -94,6 +94,17 @@
     transform: translateY(0);
 }
 
+/* Narrow chat column (small landscape phones): the chat container can be
+   as little as ~200-250px wide, so the full-size button overflows/wraps
+   awkwardly. Shrink it so it fits alongside the docs links. */
+@media (max-width: 900px) {
+    .patreon-login-btn {
+        padding: 6px 12px;
+        font-size: 0.75em;
+        margin: 4px;
+    }
+}
+
 /* Locked Features */
 .locked {
     opacity: 0.5;

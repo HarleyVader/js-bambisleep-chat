@@ -159,8 +159,9 @@
         padding: 10px 14px;
         border-top: 1px solid var(--nav-alt);
         display: flex;
+        flex-wrap: wrap;
         gap: 10px;
-        justify-content: space-between;
+        justify-content: center;
         align-items: center;
         background: var(--nav-color);
         border: var(--border) var(--primary-alt);

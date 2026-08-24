@@ -31,6 +31,12 @@
         #aigf-chat-input {
             font-size: 16px; /* Prevent zoom-on-focus on iOS - fixed, not scaled */
         }
+
+        /* Dev/debug widget - not useful to end users and just clutters the
+           already-tight mobile viewport, so hide it on touch devices. */
+        .resource-monitor {
+            display: none;
+        }
     }
 
     /* ===== Chat Animation States ===== */
