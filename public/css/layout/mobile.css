@@ -55,10 +55,16 @@
 
         /* Base h1 uses a fixed 3px letter-spacing and --font-size-xl (1.215rem)
            against html's already-enlarged mobile root size, so it renders
-           oversized/wraps awkwardly in the narrow 30vw chat column. */
+           oversized/wraps awkwardly in the narrow 30vw chat column.
+           font-size is tied to vw (the column's own unit, 30vw wide) rather
+           than vmin/rem so it scales with the exact space it has to fit into,
+           keeping the title on one line regardless of aspect ratio. */
         #chat-header h1 {
-            font-size: clamp(0.65rem, 3vmin, 0.95rem);
-            letter-spacing: 1px;
+            font-size: clamp(0.55rem, 2.3vw, 0.95rem);
+            letter-spacing: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         #aigf-chat-messages {
