@@ -1256,17 +1256,14 @@ app.get("/api/services/status", async (req, res) => {
 // Serve docs folder for markdown documentation
 app.use("/docs", express.static(path.join(__dirname, "public", "docs")));
 
-// MCP agent server (mcp-server/) - reverse-proxied so the agent UI/API are
-// reachable through this same public port, without a separate nginx rule.
-const { createProxyMiddleware } = require("http-proxy-middleware");
+// MCP agent server (mcp-server/) - mounted in-process (same port, no
+// separate process/proxy needed) so the agent UI/API are reachable directly.
+const { createAgentRouter } = require("./mcp-server/agent-router");
 app.use(
-  ["/mcp", "/tools", "/agent"],
-  createProxyMiddleware({
-    target: ENV.MCP.URL,
-    changeOrigin: true,
-    // app.use(path, ...) strips the matched prefix from req.url - restore it
-    // so e.g. "/tools" isn't forwarded to the MCP server as just "/".
-    pathRewrite: (_path, req) => req.originalUrl,
+  createAgentRouter({
+    apiBaseUrl: `http://localhost:${ENV.SERVER.PORT}`,
+    ollamaBaseUrl: ENV.OLLAMA.URL,
+    ollamaModel: ENV.OLLAMA.MODEL,
   }),
 );
 app.use(

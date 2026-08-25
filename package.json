@@ -26,20 +26,20 @@
   "scripts": {
     "dev:server": "nodemon server.js",
     "start": "node server.js",
-    "start:mcp": "node mcp-server/server.js",
-    "start:all": "concurrently -n APP,MCP -c blue,magenta \"npm:start\" \"npm:start:mcp\"",
+    "start:mcp-standalone": "node mcp-server/server.js",
     "test": "node tests/master.test.js",
     "clean": "node scripts/clean.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
     "axios": "^1.12.2",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "http-proxy-middleware": "^4.2.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.3",
-    "worker-thread": "^1.1.0"
+    "worker-thread": "^1.1.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
