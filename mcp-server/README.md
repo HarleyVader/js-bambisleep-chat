@@ -48,6 +48,12 @@ npm install
 npm start
 ```
 
+Or, from the repo root, once `mcp-server`'s own dependencies are installed:
+
+```bash
+npm run start:mcp-standalone
+```
+
 Environment variables (optional):
 
 - `MCP_PORT` - port this server listens on (default `7000`)
