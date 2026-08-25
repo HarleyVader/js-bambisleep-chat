@@ -16,7 +16,7 @@ const path = require("path");
 const express = require("express");
 const { createAgentRouter } = require("./agent-router");
 
-const PORT = parseInt(process.env.MCP_PORT, 10) || 7000;
+const PORT = parseInt(process.env.MCP_PORT, 10) || parseInt(process.env.PORT, 10) || 6969;
 const API_BASE_URL = process.env.BAMBI_API_BASE_URL || "http://localhost:6969";
 const OLLAMA_BASE_URL =
   process.env.OLLAMA_BASE_URL || "http://204.12.253.35:11434";

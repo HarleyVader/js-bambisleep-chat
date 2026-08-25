@@ -56,18 +56,21 @@ npm run start:mcp-standalone
 
 Environment variables (optional):
 
-- `MCP_PORT` - port this server listens on (default `7000`)
+- `MCP_PORT` - port this server listens on (default: same as `PORT`, or `6969`)
 - `BAMBI_API_BASE_URL` - base URL of the running BambiSleep Chat server (default `http://localhost:6969`)
 - `OLLAMA_BASE_URL` - Ollama endpoint used by the agent chat (default `http://204.12.253.35:11434`, matching the main app's production Ollama host)
 - `OLLAMA_MODEL` - model used by the agent chat (default `qwen3.6-35b-a3b`)
 
 The server uses the Streamable HTTP transport (stateless mode - one request, one
-session) and listens for MCP requests at `POST http://localhost:7000/mcp`.
+session) and listens for MCP requests at `POST http://localhost:6969/mcp` by default
+(same port as the main app, since standalone mode is only for a separate/remote
+instance - override with `MCP_PORT` if you need to run it alongside a local main app).
 
 ## Web UI (agent interface)
 
-Open `http://localhost:6969/agent-ui/` (in-process) or `http://localhost:7000/`
-(standalone) in a browser for:
+Open `http://localhost:6969/agent-ui/` (in-process, main app port) or the
+standalone server's root URL (default `http://localhost:6969/`, or wherever
+`MCP_PORT` points it) in a browser for:
 
 - **Tools panel** - auto-generated forms (from each tool's JSON schema) to manually
   invoke any tool and see its raw JSON result. Calls `GET /tools` and
