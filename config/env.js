@@ -219,6 +219,29 @@ const CHAT = {
 };
 
 /**
+ * Autonomous Agent Configuration
+ * Controls the "BambiSleep" AI persona that proactively posts to all
+ * connected bambis (idle re-engagement + trigger-word reactions), instead
+ * of only replying to a single user's own ai-chat request.
+ */
+const AGENT = {
+  ENABLED: process.env.AGENT_ENABLED !== "false",
+
+  // How often the idle-check scheduler runs (milliseconds)
+  IDLE_CHECK_INTERVAL_MS:
+    parseInt(process.env.AGENT_IDLE_CHECK_INTERVAL_MS) || 60000,
+
+  // How long the room must be quiet (no user ai-chat messages) before the
+  // agent posts an idle re-engagement message
+  IDLE_THRESHOLD_MS:
+    parseInt(process.env.AGENT_IDLE_THRESHOLD_MS) || 5 * 60 * 1000,
+
+  // Minimum time between any two autonomous agent messages (idle or
+  // trigger-reaction), so it can never spam the room
+  COOLDOWN_MS: parseInt(process.env.AGENT_COOLDOWN_MS) || 3 * 60 * 1000,
+};
+
+/**
  * Debug & Logging Configuration
  */
 const DEBUG = {
@@ -390,6 +413,7 @@ module.exports = {
   KOKORO,
   PATREON,
   CHAT,
+  AGENT,
   DEBUG,
   TEST,
   SECURITY,

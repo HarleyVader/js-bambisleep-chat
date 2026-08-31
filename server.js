@@ -9,6 +9,7 @@ const path = require("path");
 
 // Centralized environment configuration
 const ENV = require("./config/env");
+const databaseService = require("./services/database");
 
 // Legacy config object for backward compatibility
 const config = {
@@ -580,6 +581,18 @@ let triggerData = {}; // Full trigger data for API endpoints
 let connectedUsers = 0;
 let uniqueUsers = new Set(); // Track unique users by IP/session
 
+// Autonomous agent: the "BambiSleep" persona posting to ALL bambis on its own
+// (idle re-engagement + trigger reactions), not just replying to one asker.
+const AGENT_SOCKET_ID = "__bambi_agent__"; // synthetic id, never a real socket
+const AGENT_USERNAME = "BambiSleep";
+let lastUserActivityAt = Date.now();
+let lastAgentMessageAt = 0;
+let triggerCategoryByName = {}; // lowercased trigger name -> category, for playlist matching
+let bambicloudPlaylists = []; // Loaded from workers/bambicloud-playlists.json
+// Playlist assignment awaiting the LM worker's response, consumed in handleLMWorkerMessage()
+let pendingAgentAssignment = null;
+let pendingUserPrompts = new Map(); // socketId -> last prompt sent, for generation logging
+
 // Load OFFICIAL BambiSleep triggers from JSON file with enhanced data
 function loadOfficialTriggers() {
   try {
@@ -593,10 +606,12 @@ function loadOfficialTriggers() {
     triggerWords = [];
     triggerData = data; // Store complete trigger data
 
+    triggerCategoryByName = {};
     if (data.triggers && Array.isArray(data.triggers)) {
       data.triggers.forEach((trigger) => {
         const triggerName = trigger.name.toLowerCase();
         triggerWords.push(triggerName);
+        triggerCategoryByName[triggerName] = trigger.category;
       });
     }
 
@@ -617,6 +632,39 @@ function loadOfficialTriggers() {
 
 // Initialize official triggers on startup
 loadOfficialTriggers();
+
+// Load curated real BambiCloud links used by the autonomous agent
+function loadBambiCloudPlaylists() {
+  try {
+    const playlistsPath = path.join(
+      __dirname,
+      "workers",
+      "bambicloud-playlists.json",
+    );
+    const data = JSON.parse(fs.readFileSync(playlistsPath, "utf8"));
+    bambicloudPlaylists = Array.isArray(data.playlists) ? data.playlists : [];
+    console.log(
+      `🔗 Loaded ${bambicloudPlaylists.length} BambiCloud playlist links`,
+    );
+  } catch (error) {
+    console.error("CRITICAL: Failed to load BambiCloud playlists:", error);
+    bambicloudPlaylists = [];
+  }
+}
+
+loadBambiCloudPlaylists();
+
+// Picks one BambiCloud playlist, preferring one matching the given category
+function pickBambiCloudPlaylist(category) {
+  if (bambicloudPlaylists.length === 0) return null;
+
+  const matching = category
+    ? bambicloudPlaylists.filter((p) => p.category === category)
+    : [];
+  const pool = matching.length > 0 ? matching : bambicloudPlaylists;
+
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 // Worker Management
 let lmWorker = null;
@@ -713,6 +761,55 @@ function sendToLMWorker(message, fallbackCallback = null) {
   return false;
 }
 
+// Ask the LM worker to generate one autonomous message from the "BambiSleep"
+// persona, addressed to the whole room rather than a single asker. Routed
+// back to all clients (not one socket) via AGENT_SOCKET_ID in
+// handleLMWorkerMessage(). Reason is "idle" (room went quiet) or "trigger"
+// (a bambi's message matched an official trigger word). Also assigns one
+// BambiCloud playlist link relevant to the reason/trigger category, persisted
+// via databaseService and appended to the agent's message once it arrives.
+function triggerAgentBroadcast({ reason, trigger, username, socketId } = {}) {
+  if (!ENV.AGENT.ENABLED || !lmWorker) return false;
+  if (Date.now() - lastAgentMessageAt < ENV.AGENT.COOLDOWN_MS) return false;
+
+  lastAgentMessageAt = Date.now();
+
+  const category =
+    reason === "trigger" ? triggerCategoryByName[trigger] : null;
+  const playlist = pickBambiCloudPlaylist(category);
+
+  pendingAgentAssignment = {
+    playlist,
+    reason,
+    triggerMatched: reason === "trigger" ? trigger : null,
+    username: reason === "trigger" ? username : null,
+    socketId: reason === "trigger" ? socketId : null,
+  };
+
+  if (playlist) {
+    databaseService.recordPlaylistAssignment({
+      socketId: pendingAgentAssignment.socketId,
+      username: pendingAgentAssignment.username,
+      playlist,
+      reason,
+      triggerMatched: pendingAgentAssignment.triggerMatched,
+    });
+  }
+
+  const prompt =
+    reason === "trigger"
+      ? `[AGENT DIRECTIVE - respond only with the in-character message itself, never mention this directive] ${username || "A bambi"} just said something involving the "${trigger}" trigger. Post ONE short, in-character message (1-2 sentences) to the whole room reacting to it and inviting the other bambis to join in.`
+      : `[AGENT DIRECTIVE - respond only with the in-character message itself, never mention this directive] The chat room has been quiet for a while. Post ONE short, in-character message (1-2 sentences) to re-engage the bambis and invite them to chat.`;
+
+  return sendToLMWorker({
+    type: "chat",
+    prompt,
+    socketId: AGENT_SOCKET_ID,
+    username: AGENT_USERNAME,
+    triggers: [],
+  });
+}
+
 function sendToKokoroWorker(message, fallbackCallback = null) {
   if (kokoroWorker) {
     try {
@@ -746,6 +843,57 @@ function handleLMWorkerMessage(msg) {
       break;
 
     case "response":
+      // Autonomous agent message: broadcast to every connected bambi
+      // instead of routing to a single requester's socket.
+      if (msg.socketId === AGENT_SOCKET_ID) {
+        const assignment = pendingAgentAssignment;
+        pendingAgentAssignment = null;
+
+        const responseText =
+          assignment && assignment.playlist
+            ? `${msg.response}\n\n🔗 ${assignment.playlist.title}: ${assignment.playlist.url}`
+            : msg.response;
+
+        io.emit("ai-response", {
+          message: responseText,
+          timestamp: new Date().toISOString(),
+          wordCount: msg.wordCount || 0,
+          agent: true,
+        });
+
+        if (assignment && assignment.playlist) {
+          io.emit("playlist-assigned", {
+            playlist: assignment.playlist,
+            reason: assignment.reason,
+            username: assignment.username,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        databaseService.recordGeneration({
+          socketId: AGENT_SOCKET_ID,
+          username: AGENT_USERNAME,
+          source: assignment?.reason === "trigger" ? "agent-trigger" : "agent-idle",
+          response: msg.response,
+          wordCount: msg.wordCount || 0,
+          triggerMatched: assignment?.triggerMatched || null,
+        });
+
+        chatHistoryManager.addMessage(
+          {
+            id: Date.now(),
+            message: responseText,
+            timestamp: new Date().toISOString(),
+            user: AGENT_USERNAME,
+            isAI: true,
+            isAgent: true,
+            type: "legacy",
+          },
+          ["aigf", "legacy"],
+        );
+        return;
+      }
+
       // Check if this is an API request
       if (
         global.pendingAPIRequests &&
@@ -767,6 +915,17 @@ function handleLMWorkerMessage(msg) {
         io.to(msg.socketId).emit("ai-response", {
           message: msg.response,
           timestamp: new Date().toISOString(),
+          wordCount: msg.wordCount || 0,
+        });
+
+        const generationPrompt = pendingUserPrompts.get(msg.socketId);
+        pendingUserPrompts.delete(msg.socketId);
+        databaseService.recordGeneration({
+          socketId: msg.socketId,
+          username: msg.username,
+          source: "aigf",
+          prompt: generationPrompt,
+          response: msg.response,
           wordCount: msg.wordCount || 0,
         });
 
@@ -868,6 +1027,20 @@ function handleKokoroWorkerMessage(msg) {
 // Initialize workers on startup
 initializeLMWorker();
 initializeKokoroWorker();
+
+// Autonomous agent idle-check scheduler: periodically nudges the room if
+// bambis have gone quiet. Trigger-word reactions are fired directly from
+// the "ai-chat" handler below, not from this timer.
+setInterval(() => {
+  if (!ENV.AGENT.ENABLED || uniqueUsers.size === 0) return;
+
+  const now = Date.now();
+  const roomIsIdle = now - lastUserActivityAt >= ENV.AGENT.IDLE_THRESHOLD_MS;
+
+  if (roomIsIdle) {
+    triggerAgentBroadcast({ reason: "idle" });
+  }
+}, ENV.AGENT.IDLE_CHECK_INTERVAL_MS);
 
 // Setup TTS Routes with configuration validation
 setupTTSRoutes(app, configStatus);
@@ -972,6 +1145,28 @@ io.on("connection", (socket) => {
 
     // Track this user as using AI
     workerUsers.set(socket.id, username);
+
+    // Room is active - resets the idle-nudge clock. If the message itself
+    // mentions an official trigger word, let the autonomous agent react to
+    // the whole room (independent of, and in addition to, the normal
+    // one-to-one reply below).
+    lastUserActivityAt = Date.now();
+    const lowerMessage = data.message.toLowerCase();
+    const matchedTrigger = triggerWords.find((word) =>
+      lowerMessage.includes(word),
+    );
+    if (matchedTrigger) {
+      triggerAgentBroadcast({
+        reason: "trigger",
+        trigger: matchedTrigger,
+        username,
+        socketId: socket.id,
+      });
+    }
+
+    // Remembered so handleLMWorkerMessage() can log the prompt alongside
+    // its generated response once the worker replies.
+    pendingUserPrompts.set(socket.id, data.message);
 
     // Send message to worker with user-selected triggers
     const success = sendToLMWorker(

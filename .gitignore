@@ -24,6 +24,12 @@ yarn-debug.log*
 yarn-error.log*
 logs/
 
+# SQLite data (generations + BambiCloud playlist assignment history)
+data/*.sqlite
+data/*.sqlite-journal
+data/*.sqlite-wal
+data/*.sqlite-shm
+
 # OS files
 .DS_Store
 .DS_Store?

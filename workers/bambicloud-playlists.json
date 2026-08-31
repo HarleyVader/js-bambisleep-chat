@@ -1,0 +1,49 @@
+{
+  "source": "https://bambicloud.com",
+  "version": "1.0.0",
+  "note": "Curated links to real BambiCloud pages (no scraped per-session deep links - those require a logged-in session). Used by the autonomous agent to assign a relevant BambiCloud link alongside its messages.",
+  "playlists": [
+    {
+      "id": "generate-playlist",
+      "title": "Generate My Playlist",
+      "url": "https://bambicloud.com/playlist/generate",
+      "category": "Mental",
+      "level": "Personalized"
+    },
+    {
+      "id": "starter-playlists",
+      "title": "Starter Playlists",
+      "url": "https://bambicloud.com/playlists",
+      "category": "Primary",
+      "level": "Beginner"
+    },
+    {
+      "id": "training-plans",
+      "title": "Training Plans",
+      "url": "https://bambicloud.com/plans",
+      "category": "Behavioral",
+      "level": "Structured"
+    },
+    {
+      "id": "triggers-reference",
+      "title": "Trigger Reference",
+      "url": "https://bambicloud.com/triggers",
+      "category": "Mental",
+      "level": "Reference"
+    },
+    {
+      "id": "files-library",
+      "title": "Files Library",
+      "url": "https://bambicloud.com/files",
+      "category": "Physical",
+      "level": "Reference"
+    },
+    {
+      "id": "leaderboard",
+      "title": "Leaderboard",
+      "url": "https://bambicloud.com/leaderboard",
+      "category": "Behavioral",
+      "level": "Gamified"
+    }
+  ]
+}
