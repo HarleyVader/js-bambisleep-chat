@@ -7,12 +7,25 @@
 const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
+const ENV = require("../config/env");
 
 class DatabaseService {
   constructor() {
-    const dataDir = path.join(__dirname, "..", "data");
+    const dataDir = ENV.SERVER.DATA_DIR;
     if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+      try {
+        fs.mkdirSync(dataDir, { recursive: true });
+      } catch (err) {
+        if (err.code === "EACCES") {
+          throw new Error(
+            `Cannot create data directory at "${dataDir}": permission denied. ` +
+              `Either grant the service user write access to this path, or set the ` +
+              `DATA_DIR environment variable to a directory the service user owns.`,
+            { cause: err },
+          );
+        }
+        throw err;
+      }
     }
 
     this.db = new Database(path.join(dataDir, "bambisleep.sqlite"));

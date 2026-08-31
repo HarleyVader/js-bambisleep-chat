@@ -29,6 +29,10 @@ const SERVER = {
   isDevelopment,
   isTest,
 
+  // Where SQLite data lives; override with DATA_DIR when the service user
+  // can't write inside the project directory (e.g. shared hosting)
+  DATA_DIR: process.env.DATA_DIR || path.join(__dirname, "..", "data"),
+
   // Computed URLs
   get URL() {
     return `http://${this.HOST}:${this.PORT}`;
