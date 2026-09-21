@@ -11,26 +11,37 @@ const ENV = require("../config/env");
 
 class DatabaseService {
   constructor() {
-    const dataDir = ENV.SERVER.DATA_DIR;
-    if (!fs.existsSync(dataDir)) {
-      try {
-        fs.mkdirSync(dataDir, { recursive: true });
-      } catch (err) {
-        if (err.code === "EACCES") {
-          throw new Error(
-            `Cannot create data directory at "${dataDir}": permission denied. ` +
-              `Either grant the service user write access to this path, or set the ` +
-              `DATA_DIR environment variable to a directory the service user owns.`,
-            { cause: err },
-          );
-        }
-        throw err;
-      }
-    }
+    // SQLite persistence is best-effort logging/caching (generations,
+    // playlist assignments, Patreon tier cache) - never worth taking down
+    // the whole chat/TTS server over, so any setup failure here (permission
+    // issues, read-only filesystem, etc.) disables persistence instead of
+    // throwing/crashing the process.
+    this.enabled = false;
+    this.db = null;
 
-    this.db = new Database(path.join(dataDir, "bambisleep.sqlite"));
-    this.db.pragma("journal_mode = WAL");
-    this.migrate();
+    const dataDir = ENV.SERVER.DATA_DIR;
+    try {
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+
+      this.db = new Database(path.join(dataDir, "bambisleep.sqlite"));
+      this.db.pragma("journal_mode = WAL");
+      this.migrate();
+      this.enabled = true;
+    } catch (err) {
+      console.error(
+        `❌ Database persistence disabled - could not open/migrate "${dataDir}/bambisleep.sqlite": ${err.message}`,
+      );
+      console.error(
+        "   💡 This is usually a file/directory ownership or permission mismatch " +
+          "between the user that deployed the code and the user running the service. " +
+          `Check with: ls -la "${dataDir}" and chown/chmod as needed, or delete the ` +
+          "sqlite file(s) to let the service recreate them under the correct owner.",
+      );
+      this.db = null;
+      this.enabled = false;
+    }
   }
 
   migrate() {
@@ -111,6 +122,7 @@ class DatabaseService {
    * @param {string} [data.triggerMatched]
    */
   recordGeneration(data) {
+    if (!this.enabled) return;
     this._insertGeneration.run({
       socketId: data.socketId ?? null,
       username: data.username ?? null,
@@ -132,6 +144,7 @@ class DatabaseService {
    * @param {string} [data.triggerMatched]
    */
   recordPlaylistAssignment(data) {
+    if (!this.enabled) return;
     this._insertPlaylistAssignment.run({
       socketId: data.socketId ?? null,
       username: data.username ?? null,
@@ -145,12 +158,14 @@ class DatabaseService {
   }
 
   getRecentGenerations(limit = 50) {
+    if (!this.enabled) return [];
     return this.db
       .prepare("SELECT * FROM generations ORDER BY id DESC LIMIT ?")
       .all(limit);
   }
 
   getRecentPlaylistAssignments(limit = 50) {
+    if (!this.enabled) return [];
     return this.db
       .prepare("SELECT * FROM playlist_assignments ORDER BY id DESC LIMIT ?")
       .all(limit);
@@ -162,6 +177,7 @@ class DatabaseService {
    * @param {object} tierData - { tier, features, email, fullName, avatarUrl, thumbUrl }
    */
   savePatreonTier(patreonUserId, tierData) {
+    if (!this.enabled) return;
     this._upsertPatreonTier.run({
       patreonUserId,
       tier: tierData.tier,
@@ -179,6 +195,7 @@ class DatabaseService {
    * @returns {Map<string, object>}
    */
   getAllPatreonTiers() {
+    if (!this.enabled) return new Map();
     const rows = this.db.prepare("SELECT * FROM patreon_tiers").all();
     const tiersByUserId = new Map();
     for (const row of rows) {
@@ -197,7 +214,7 @@ class DatabaseService {
   }
 
   close() {
-    this.db.close();
+    if (this.db) this.db.close();
   }
 }
 
