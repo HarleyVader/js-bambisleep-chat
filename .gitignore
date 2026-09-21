@@ -24,7 +24,7 @@ yarn-debug.log*
 yarn-error.log*
 logs/
 
-# SQLite data (generations + BambiCloud playlist assignment history)
+# SQLite data (AI generation history + Patreon tier cache)
 data/*.sqlite
 data/*.sqlite-journal
 data/*.sqlite-wal

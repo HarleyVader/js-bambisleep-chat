@@ -382,7 +382,6 @@ app.use((req, res, next) => {
     "img-src 'self' data: blob:",
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
-    "frame-src https://bambicloud.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
   ];
@@ -588,10 +587,6 @@ const AGENT_SOCKET_ID = "__bambi_agent__"; // synthetic id, never a real socket
 const AGENT_USERNAME = "BambiSleep";
 let lastUserActivityAt = Date.now();
 let lastAgentMessageAt = 0;
-let triggerCategoryByName = {}; // lowercased trigger name -> category, for playlist matching
-let bambicloudPlaylists = []; // Loaded from workers/bambicloud-playlists.json
-// Playlist assignment awaiting the LM worker's response, consumed in handleLMWorkerMessage()
-let pendingAgentAssignment = null;
 let pendingUserPrompts = new Map(); // socketId -> last prompt sent, for generation logging
 
 // Load OFFICIAL BambiSleep triggers from JSON file with enhanced data
@@ -607,12 +602,9 @@ function loadOfficialTriggers() {
     triggerWords = [];
     triggerData = data; // Store complete trigger data
 
-    triggerCategoryByName = {};
     if (data.triggers && Array.isArray(data.triggers)) {
       data.triggers.forEach((trigger) => {
-        const triggerName = trigger.name.toLowerCase();
-        triggerWords.push(triggerName);
-        triggerCategoryByName[triggerName] = trigger.category;
+        triggerWords.push(trigger.name.toLowerCase());
       });
     }
 
@@ -633,65 +625,6 @@ function loadOfficialTriggers() {
 
 // Initialize official triggers on startup
 loadOfficialTriggers();
-
-// Load curated real BambiCloud links used by the autonomous agent
-function loadBambiCloudPlaylists() {
-  try {
-    const playlistsPath = path.join(
-      __dirname,
-      "workers",
-      "bambicloud-playlists.json",
-    );
-    const data = JSON.parse(fs.readFileSync(playlistsPath, "utf8"));
-    bambicloudPlaylists = Array.isArray(data.playlists) ? data.playlists : [];
-    console.log(
-      `🔗 Loaded ${bambicloudPlaylists.length} BambiCloud playlist links`,
-    );
-  } catch (error) {
-    console.error("CRITICAL: Failed to load BambiCloud playlists:", error);
-    bambicloudPlaylists = [];
-  }
-}
-
-loadBambiCloudPlaylists();
-
-// Load BambiCloud community-contributed triggers (separate from the official curated set)
-let bambicloudCommunityTriggers = {};
-function loadBambiCloudCommunityTriggers() {
-  try {
-    const communityPath = path.join(
-      __dirname,
-      "workers",
-      "bambicloud-community-triggers.json",
-    );
-    bambicloudCommunityTriggers = JSON.parse(
-      fs.readFileSync(communityPath, "utf8"),
-    );
-    console.log(
-      `🔗 Loaded ${bambicloudCommunityTriggers.triggers?.length || 0} BambiCloud community triggers`,
-    );
-  } catch (error) {
-    console.error(
-      "CRITICAL: Failed to load BambiCloud community triggers:",
-      error,
-    );
-    bambicloudCommunityTriggers = { triggers: [] };
-  }
-}
-
-loadBambiCloudCommunityTriggers();
-
-// Picks one BambiCloud playlist, preferring one matching the given category
-function pickBambiCloudPlaylist(category) {
-  if (bambicloudPlaylists.length === 0) return null;
-
-  const matching = category
-    ? bambicloudPlaylists.filter((p) => p.category === category)
-    : [];
-  const pool = matching.length > 0 ? matching : bambicloudPlaylists;
-
-  return pool[Math.floor(Math.random() * pool.length)];
-}
 
 // Worker Management
 let lmWorker = null;
@@ -792,36 +725,12 @@ function sendToLMWorker(message, fallbackCallback = null) {
 // persona, addressed to the whole room rather than a single asker. Routed
 // back to all clients (not one socket) via AGENT_SOCKET_ID in
 // handleLMWorkerMessage(). Reason is "idle" (room went quiet) or "trigger"
-// (a bambi's message matched an official trigger word). Also assigns one
-// BambiCloud playlist link relevant to the reason/trigger category, persisted
-// via databaseService and appended to the agent's message once it arrives.
+// (a bambi's message matched an official trigger word).
 function triggerAgentBroadcast({ reason, trigger, username, socketId } = {}) {
   if (!ENV.AGENT.ENABLED || !lmWorker) return false;
   if (Date.now() - lastAgentMessageAt < ENV.AGENT.COOLDOWN_MS) return false;
 
   lastAgentMessageAt = Date.now();
-
-  const category =
-    reason === "trigger" ? triggerCategoryByName[trigger] : null;
-  const playlist = pickBambiCloudPlaylist(category);
-
-  pendingAgentAssignment = {
-    playlist,
-    reason,
-    triggerMatched: reason === "trigger" ? trigger : null,
-    username: reason === "trigger" ? username : null,
-    socketId: reason === "trigger" ? socketId : null,
-  };
-
-  if (playlist) {
-    databaseService.recordPlaylistAssignment({
-      socketId: pendingAgentAssignment.socketId,
-      username: pendingAgentAssignment.username,
-      playlist,
-      reason,
-      triggerMatched: pendingAgentAssignment.triggerMatched,
-    });
-  }
 
   const prompt =
     reason === "trigger"
@@ -1636,20 +1545,6 @@ app.get("/api/triggers", (req, res) => {
 // Serve the raw triggers.json file
 app.get("/api/triggers/json", (req, res) => {
   res.json(triggerData);
-});
-
-// Serve BambiCloud community-contributed triggers (loaded from the local
-// curated mirror of bambicloud.com/triggers's Community Triggers section)
-app.get("/api/triggers/community/json", (req, res) => {
-  res.json(bambicloudCommunityTriggers);
-});
-
-// Serve curated BambiCloud playlist/page links
-app.get("/api/playlists/json", (req, res) => {
-  res.json({
-    source: "https://bambicloud.com",
-    playlists: bambicloudPlaylists,
-  });
 });
 
 // Get triggers by category

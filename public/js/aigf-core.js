@@ -125,91 +125,6 @@ class ChatCore {
     return div.innerHTML;
   }
 
-  // Turns any bambicloud.com/playlist/<uuid> link inside already-escaped
-  // message HTML into a "▶ Load playlist" button, like bambisleep.church.
-  linkifyBambiCloudPlaylists(safeHtml) {
-    const playlistUrlPattern =
-      /https:\/\/bambicloud\.com\/playlist\/[0-9a-fA-F-]{36}/g;
-    return safeHtml.replace(playlistUrlPattern, (url) => {
-      return `${url} <button class="bambicloud-load-playlist-btn dropdown-item" data-playlist-url="${url}">▶ Load playlist</button>`;
-    });
-  }
-
-  // Opens (or reuses) a modal overlay embedding BambiCloud's own player for
-  // the given playlist URL, and pushes a generic description into the
-  // Collar as AI context, mirroring bambisleep.church's chat behavior.
-  openBambiCloudPlaylistPlayer(url) {
-    let overlay = document.getElementById("bambicloud-player-overlay");
-    if (!overlay) {
-      overlay = document.createElement("div");
-      overlay.id = "bambicloud-player-overlay";
-      overlay.className = "modal-overlay";
-
-      const content = document.createElement("div");
-      content.className = "modal-content";
-      content.style.width = "min(900px, 90vw)";
-      content.style.height = "min(700px, 85vh)";
-      content.style.display = "flex";
-      content.style.flexDirection = "column";
-
-      const header = document.createElement("div");
-      header.style.display = "flex";
-      header.style.justifyContent = "space-between";
-      header.style.alignItems = "center";
-      header.style.marginBottom = "0.5rem";
-
-      const title = document.createElement("span");
-      title.textContent = "🎶 BambiCloud Playlist";
-
-      const closeBtn = document.createElement("button");
-      closeBtn.className = "dropdown-item";
-      closeBtn.textContent = "✕ Close";
-      closeBtn.addEventListener("click", () =>
-        this.closeBambiCloudPlaylistPlayer()
-      );
-
-      header.appendChild(title);
-      header.appendChild(closeBtn);
-
-      const iframe = document.createElement("iframe");
-      iframe.id = "bambicloud-player-iframe";
-      iframe.style.flex = "1";
-      iframe.style.border = "none";
-      iframe.style.borderRadius = "8px";
-      iframe.allow = "autoplay";
-
-      content.appendChild(header);
-      content.appendChild(iframe);
-      overlay.appendChild(content);
-
-      overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) this.closeBambiCloudPlaylistPlayer();
-      });
-
-      document.body.appendChild(overlay);
-    }
-
-    const iframe = document.getElementById("bambicloud-player-iframe");
-    iframe.src = url;
-    overlay.style.display = "flex";
-
-    const collar = window.dropdownManager?.getComponent?.("collar");
-    if (collar?.loadDescriptionFromCloud) {
-      collar.loadDescriptionFromCloud(
-        "BambiCloud Playlist",
-        "A BambiCloud playlist shared in chat, now loaded in the player.",
-        url
-      );
-    }
-  }
-
-  closeBambiCloudPlaylistPlayer() {
-    const overlay = document.getElementById("bambicloud-player-overlay");
-    const iframe = document.getElementById("bambicloud-player-iframe");
-    if (iframe) iframe.src = "about:blank";
-    if (overlay) overlay.style.display = "none";
-  }
-
   // Manual processing for **text** highlighting with CAPS detection
   manualProcessHighlights(text) {
     // Escape untrusted AI text before wrapping matches in <span> - the model
@@ -865,15 +780,6 @@ class ChatCore {
       );
     });
 
-    // BambiCloud "Load playlist" buttons injected into chat messages
-    document.addEventListener("click", (event) => {
-      const playlistBtn = event.target.closest(".bambicloud-load-playlist-btn");
-      if (playlistBtn) {
-        event.preventDefault();
-        this.openBambiCloudPlaylistPlayer(playlistBtn.dataset.playlistUrl);
-      }
-    });
-
     // Model loading control
     const loadModelButton = document.getElementById("load-model");
     if (loadModelButton) {
@@ -975,7 +881,7 @@ class ChatCore {
 
       // Process AI response with simple CAPS detection only
       const processedAIResponse = this.processAIResponse(text);
-      textDiv.innerHTML = this.linkifyBambiCloudPlaylists(processedAIResponse);
+      textDiv.innerHTML = processedAIResponse;
 
       messageDiv.appendChild(headerDiv);
       messageDiv.appendChild(textDiv);
@@ -994,13 +900,9 @@ class ChatCore {
 
       // Regular user messages - process triggers if enabled
       if (window.triggerSystem && window.triggerSystem.isEnabled) {
-        textDiv.innerHTML = this.linkifyBambiCloudPlaylists(
-          window.triggerSystem.processMessage(text)
-        );
+        textDiv.innerHTML = window.triggerSystem.processMessage(text);
       } else {
-        textDiv.innerHTML = this.linkifyBambiCloudPlaylists(
-          this.escapeHtml(text)
-        );
+        textDiv.textContent = text;
       }
 
       messageDiv.appendChild(timeDiv);

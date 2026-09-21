@@ -1,7 +1,6 @@
 /**
  * Database Service - SQLite persistence
- * Stores every AI generation (agent + 1:1 replies) and every BambiCloud
- * playlist link assigned by the autonomous agent.
+ * Stores every AI generation (agent + 1:1 replies) and the Patreon tier cache.
  */
 
 const fs = require("fs");
@@ -12,10 +11,10 @@ const ENV = require("../config/env");
 class DatabaseService {
   constructor() {
     // SQLite persistence is best-effort logging/caching (generations,
-    // playlist assignments, Patreon tier cache) - never worth taking down
-    // the whole chat/TTS server over, so any setup failure here (permission
-    // issues, read-only filesystem, etc.) disables persistence instead of
-    // throwing/crashing the process.
+    // Patreon tier cache) - never worth taking down the whole chat/TTS
+    // server over, so any setup failure here (permission issues, read-only
+    // filesystem, etc.) disables persistence instead of throwing/crashing
+    // the process.
     this.enabled = false;
     this.db = null;
 
@@ -58,19 +57,6 @@ class DatabaseService {
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
-      CREATE TABLE IF NOT EXISTS playlist_assignments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        socket_id TEXT,
-        username TEXT,
-        playlist_id TEXT NOT NULL,
-        playlist_title TEXT NOT NULL,
-        playlist_url TEXT NOT NULL,
-        category TEXT,
-        reason TEXT NOT NULL,
-        trigger_matched TEXT,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-
       CREATE TABLE IF NOT EXISTS patreon_tiers (
         patreon_user_id TEXT PRIMARY KEY,
         tier TEXT NOT NULL,
@@ -83,17 +69,11 @@ class DatabaseService {
       );
 
       CREATE INDEX IF NOT EXISTS idx_generations_created_at ON generations(created_at);
-      CREATE INDEX IF NOT EXISTS idx_playlist_assignments_created_at ON playlist_assignments(created_at);
     `);
 
     this._insertGeneration = this.db.prepare(`
       INSERT INTO generations (socket_id, username, source, prompt, response, word_count, trigger_matched)
       VALUES (@socketId, @username, @source, @prompt, @response, @wordCount, @triggerMatched)
-    `);
-
-    this._insertPlaylistAssignment = this.db.prepare(`
-      INSERT INTO playlist_assignments (socket_id, username, playlist_id, playlist_title, playlist_url, category, reason, trigger_matched)
-      VALUES (@socketId, @username, @playlistId, @playlistTitle, @playlistUrl, @category, @reason, @triggerMatched)
     `);
 
     this._upsertPatreonTier = this.db.prepare(`
@@ -134,40 +114,10 @@ class DatabaseService {
     });
   }
 
-  /**
-   * Records one BambiCloud playlist link assigned by the agent.
-   * @param {object} data
-   * @param {string} [data.socketId]
-   * @param {string} [data.username]
-   * @param {object} data.playlist - entry from workers/bambicloud-playlists.json
-   * @param {string} data.reason - 'idle' | 'trigger'
-   * @param {string} [data.triggerMatched]
-   */
-  recordPlaylistAssignment(data) {
-    if (!this.enabled) return;
-    this._insertPlaylistAssignment.run({
-      socketId: data.socketId ?? null,
-      username: data.username ?? null,
-      playlistId: data.playlist.id,
-      playlistTitle: data.playlist.title,
-      playlistUrl: data.playlist.url,
-      category: data.playlist.category ?? null,
-      reason: data.reason,
-      triggerMatched: data.triggerMatched ?? null,
-    });
-  }
-
   getRecentGenerations(limit = 50) {
     if (!this.enabled) return [];
     return this.db
       .prepare("SELECT * FROM generations ORDER BY id DESC LIMIT ?")
-      .all(limit);
-  }
-
-  getRecentPlaylistAssignments(limit = 50) {
-    if (!this.enabled) return [];
-    return this.db
-      .prepare("SELECT * FROM playlist_assignments ORDER BY id DESC LIMIT ?")
       .all(limit);
   }
 

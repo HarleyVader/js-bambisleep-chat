@@ -116,64 +116,8 @@ export class TriggersDropdown {
         this.loadTriggerCategories();
         this.dropdownManager.showActionFeedback("TRIGGERS", "RELOADING...");
         break;
-      case "triggers-sync-cloud":
-        this.syncFromCloud();
-        break;
       default:
         console.warn(`Unknown triggers action: ${action}`);
-    }
-  }
-
-  // Fetches BambiCloud's community-contributed triggers and merges any not
-  // already present (by name) into the currently displayed trigger list.
-  async syncFromCloud() {
-    this.dropdownManager.showActionFeedback("TRIGGERS", "SYNCING FROM CLOUD...");
-    try {
-      const response = await fetch("/api/triggers/community/json");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const cloudData = await response.json();
-      const cloudTriggers = Array.isArray(cloudData.triggers)
-        ? cloudData.triggers
-        : [];
-
-      if (!this.triggersData) {
-        this.triggersData = { triggers: [] };
-      }
-
-      const existingNames = new Set(
-        this.triggersData.triggers.map((t) => t.name.toLowerCase())
-      );
-      const newTriggers = cloudTriggers.filter(
-        (t) => !existingNames.has(t.name.toLowerCase())
-      );
-
-      this.triggersData.triggers.push(...newTriggers);
-
-      const currentDropdown = document
-        .querySelector("#toggle-triggers")
-        .closest(".dropdown");
-      if (currentDropdown && currentDropdown.classList.contains("active")) {
-        const contentContainer = document.querySelector(
-          '#dropdown-modals .dropdown-content[data-dropdown="triggers"]'
-        );
-        if (contentContainer) {
-          contentContainer.innerHTML = this.getDropdownContent();
-          this.dropdownManager.attachContentEventListeners(contentContainer);
-        }
-      }
-
-      this.dropdownManager.showActionFeedback(
-        "TRIGGERS",
-        `+${newTriggers.length} FROM CLOUD`
-      );
-      console.log(
-        `☁️ Synced ${newTriggers.length} new triggers from BambiCloud (${cloudTriggers.length} available)`
-      );
-    } catch (error) {
-      console.error("❌ Failed to sync triggers from cloud:", error);
-      this.dropdownManager.showActionFeedback("TRIGGERS", "SYNC FAILED");
     }
   }
 
@@ -418,7 +362,6 @@ export class TriggersDropdown {
                     <button class="dropdown-item" data-action="triggers-enable-all">✅ Enable All</button>
                     <button class="dropdown-item" data-action="triggers-disable-all">❌ Disable All</button>
                     <button class="dropdown-item" data-action="triggers-reload">🔄 Reload Triggers</button>
-                    <button class="dropdown-item" data-action="triggers-sync-cloud">☁️ Sync from Cloud</button>
                 </div>
             </div>
         `;
@@ -428,31 +371,12 @@ export class TriggersDropdown {
 
   handleTriggerClick(button, triggerName) {
     button.classList.toggle("active");
-    const isActive = button.classList.contains("active");
-
-    // When a trigger is activated, push its description into the collar as
-    // live AI context (all trigger data here originates from BambiCloud).
-    if (isActive && this.triggersData?.triggers) {
-      const trigger = this.triggersData.triggers.find(
-        (t) => t.name.toLowerCase() === triggerName.toLowerCase()
-      );
-      const collar = this.dropdownManager.getComponent
-        ? this.dropdownManager.getComponent("collar")
-        : this.dropdownManager.components?.collar;
-      if (trigger && trigger.description && collar?.loadDescriptionFromCloud) {
-        collar.loadDescriptionFromCloud(
-          trigger.name,
-          trigger.description,
-          "https://bambicloud.com/triggers"
-        );
-      }
-    }
 
     // Dispatch trigger selection event
     const event = new CustomEvent("triggerSelection", {
       detail: {
         trigger: triggerName,
-        active: isActive,
+        active: button.classList.contains("active"),
         category: button.getAttribute("data-category"),
         safety: button.getAttribute("data-safety"),
       },
