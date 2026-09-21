@@ -382,6 +382,7 @@ app.use((req, res, next) => {
     "img-src 'self' data: blob:",
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
+    "frame-src https://bambicloud.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
   ];
