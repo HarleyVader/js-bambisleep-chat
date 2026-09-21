@@ -6,13 +6,21 @@
 const axios = require("axios");
 const crypto = require("crypto");
 const ENV = require("../config/env");
+const databaseService = require("./database");
 
 class PatreonService {
   constructor() {
     this.config = ENV.PATREON;
     this.userTiers = new Map(); // socketId → tier info
-    this.usersByPatreonId = new Map(); // patreonUserId → tier info (persistent)
+    // patreonUserId → tier info, hydrated from SQLite so tiers survive restarts
+    this.usersByPatreonId = databaseService.getAllPatreonTiers();
     this.sessionStore = new Map(); // state → session data
+
+    if (this.usersByPatreonId.size > 0) {
+      console.log(
+        `💾 Rehydrated ${this.usersByPatreonId.size} persisted Patreon tier(s) from database`,
+      );
+    }
   }
 
   /**
@@ -329,8 +337,10 @@ class PatreonService {
     this.userTiers.set(socketId, tierData);
 
     // Also store by Patreon user ID for persistence across reconnections
+    // AND restarts (written through to SQLite, not just the in-memory Map).
     if (tierInfo.userId) {
       this.usersByPatreonId.set(tierInfo.userId, tierData);
+      databaseService.savePatreonTier(tierInfo.userId, tierData);
       console.log(`💾 Tier persisted for Patreon user ID: ${tierInfo.userId}`);
     }
 
