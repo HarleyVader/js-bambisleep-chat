@@ -292,6 +292,36 @@ export class CollarDropdown {
     return null;
   }
 
+  // Appends a BambiCloud-sourced description (from a synced trigger or
+  // playlist) into the collar textarea and pushes it to the LM worker as
+  // live AI context via the existing activate-collar socket event.
+  loadDescriptionFromCloud(title, description, sourceUrl) {
+    const textarea = document.getElementById("collar-text");
+    if (!textarea) {
+      console.warn("⚠️ Collar textarea not available");
+      return;
+    }
+
+    const entry = `[BambiCloud] ${title}: ${description}${
+      sourceUrl ? ` (${sourceUrl})` : ""
+    }`;
+    const existing = textarea.value.trim();
+    const updated = existing ? `${existing}\n${entry}` : entry;
+
+    textarea.value = updated;
+    this.collarSettings = updated;
+    StorageUtils.setItem("bambi-collar-settings", updated);
+
+    const socket = this.getSocket();
+    if (socket) {
+      socket.emit("activate-collar", { text: updated });
+    }
+
+    this.updateCollarButton(true);
+    this.showFeedback("COLLAR UPDATED FROM CLOUD");
+    console.log(`☁️ Collar description loaded from cloud: ${title}`);
+  }
+
   toggleState(btn) {
     const currentState = btn.getAttribute("data-state");
     const newState = currentState === "off" ? "on" : "off";

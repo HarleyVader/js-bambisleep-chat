@@ -100,6 +100,12 @@
           <span class="status-indicator" id="collar-status">●</span>
         </button>
       </div>
+      <div class="dropdown" data-dropdown="playlist">
+        <button id="toggle-playlist" class="dropdown-btn toggle-button" data-state="off">
+          🎶 Playlists
+          <span class="status-indicator" id="playlist-status">●</span>
+        </button>
+      </div>
       <div class="dropdown" data-dropdown="prompt">
         <button id="toggle-prompt" class="dropdown-btn toggle-button" data-state="off">
           🧠 Persona
@@ -136,6 +142,9 @@
       </div>
       <div class="dropdown-content" data-dropdown="collar">
         <!-- Content will be populated by collar-dropdown.js -->
+      </div>
+      <div class="dropdown-content" data-dropdown="playlist">
+        <!-- Content will be populated by playlist-dropdown.js -->
       </div>
       <div class="dropdown-content" data-dropdown="prompt">
         <!-- Content will be populated by prompt-dropdown.js -->

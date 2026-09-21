@@ -9,6 +9,7 @@ import {
   TTSDropdown,
   TriggersDropdown,
   CollarDropdown,
+  PlaylistDropdown,
   createBrainwaveDropdown,
   ButtplugDropdown,
   PromptDropdown,
@@ -112,6 +113,7 @@ class DropdownManager {
       "toggle-tts": "off",
       "toggle-triggers": "off",
       "toggle-collar": "off",
+      "toggle-playlist": "off",
       "toggle-prompt": "off",
     };
 
@@ -164,6 +166,7 @@ class DropdownManager {
       this.components.tts = new TTSDropdown(this);
       this.components.triggers = new TriggersDropdown(this);
       this.components.collar = new CollarDropdown(this);
+      this.components.playlist = new PlaylistDropdown(this);
       this.components.prompt = new PromptDropdown(this);
 
       // Initialize brainwave dropdown content (button is in HTML like others)
@@ -320,6 +323,8 @@ class DropdownManager {
         return this.components.triggers;
       case "toggle-collar":
         return this.components.collar;
+      case "toggle-playlist":
+        return this.components.playlist;
       case "toggle-brainwave":
         return this.components.brainwave;
       case "toggle-buttplug":

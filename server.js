@@ -654,6 +654,32 @@ function loadBambiCloudPlaylists() {
 
 loadBambiCloudPlaylists();
 
+// Load BambiCloud community-contributed triggers (separate from the official curated set)
+let bambicloudCommunityTriggers = {};
+function loadBambiCloudCommunityTriggers() {
+  try {
+    const communityPath = path.join(
+      __dirname,
+      "workers",
+      "bambicloud-community-triggers.json",
+    );
+    bambicloudCommunityTriggers = JSON.parse(
+      fs.readFileSync(communityPath, "utf8"),
+    );
+    console.log(
+      `🔗 Loaded ${bambicloudCommunityTriggers.triggers?.length || 0} BambiCloud community triggers`,
+    );
+  } catch (error) {
+    console.error(
+      "CRITICAL: Failed to load BambiCloud community triggers:",
+      error,
+    );
+    bambicloudCommunityTriggers = { triggers: [] };
+  }
+}
+
+loadBambiCloudCommunityTriggers();
+
 // Picks one BambiCloud playlist, preferring one matching the given category
 function pickBambiCloudPlaylist(category) {
   if (bambicloudPlaylists.length === 0) return null;
@@ -1609,6 +1635,20 @@ app.get("/api/triggers", (req, res) => {
 // Serve the raw triggers.json file
 app.get("/api/triggers/json", (req, res) => {
   res.json(triggerData);
+});
+
+// Serve BambiCloud community-contributed triggers (loaded from the local
+// curated mirror of bambicloud.com/triggers's Community Triggers section)
+app.get("/api/triggers/community/json", (req, res) => {
+  res.json(bambicloudCommunityTriggers);
+});
+
+// Serve curated BambiCloud playlist/page links
+app.get("/api/playlists/json", (req, res) => {
+  res.json({
+    source: "https://bambicloud.com",
+    playlists: bambicloudPlaylists,
+  });
 });
 
 // Get triggers by category
