@@ -2571,7 +2571,13 @@ class GitPullDetector {
       }).trim();
       return commitHash;
     } catch (error) {
-      console.error("❌ Failed to get current git commit:", error.message);
+      if (error.message.includes("dubious ownership")) {
+        console.error(
+          `❌ Git pull detection disabled: repository owner mismatch. Run this once on the server: git config --global --add safe.directory ${__dirname}`,
+        );
+      } else {
+        console.error("❌ Failed to get current git commit:", error.message);
+      }
       return null;
     }
   }

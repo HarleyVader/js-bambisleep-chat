@@ -1,4 +1,11 @@
 {
+  "source": "https://bambisleep.info/Triggers",
+  "version": "1.0.0",
+  "categories": {
+    "Primary": "Core BambiSleep triggers - the foundational conditioning set",
+    "Mental": "Triggers affecting thought, focus, and mental state",
+    "Physical": "Triggers affecting body posture, sensation, and physical response"
+  },
   "triggers": [
     {
       "id": "bambi",
