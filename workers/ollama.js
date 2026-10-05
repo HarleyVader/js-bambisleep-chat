@@ -629,11 +629,13 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
         console.log(`Making API call to Ollama: ${apiUrl}`);
         console.log(`Messages count: ${formattedMessages.length}`);
 
+        const filterThink = createThinkFilter();
+
         const streamResponse = await axios.post(apiUrl, {
             model: currentModelId,
             messages: formattedMessages,
             stream: true,
-            think: false, // disable Qwen3 extended thinking to avoid multi-minute latency
+            think: true, // pay the latency tax for Qwen3 extended thinking; <think> blocks are stripped from the stream below
             options: {
                 temperature: 0.65,
                 top_p: 0.85,
@@ -679,7 +681,9 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
                             resolve();
                             return;
                         }
-                        const token = json.message?.content || '';
+                        const rawToken = json.message?.content || '';
+                        const token = filterThink(rawToken);
+                        if (!token) continue;
                         fullContent += token;
                         sentenceBuffer += token;
 
@@ -757,6 +761,52 @@ function findSentenceBoundary(text) {
         lastEnd = match.index + match[0].length;
     }
     return lastEnd;
+}
+
+// Returns the length of the longest suffix of str that is a prefix of tag (handles tags split across chunks)
+function partialTagSuffixLength(str, tag) {
+    const max = Math.min(str.length, tag.length - 1);
+    for (let len = max; len > 0; len--) {
+        if (str.endsWith(tag.slice(0, len))) return len;
+    }
+    return 0;
+}
+
+// Creates a stateful per-request filter that strips <think>...</think> reasoning blocks from a token stream
+function createThinkFilter() {
+    let insideThink = false;
+    let buffer = '';
+
+    return function filterToken(token) {
+        buffer += token;
+        let output = '';
+
+        while (true) {
+            if (!insideThink) {
+                const openIdx = buffer.indexOf('<think>');
+                if (openIdx === -1) {
+                    const keep = partialTagSuffixLength(buffer, '<think>');
+                    output += buffer.slice(0, buffer.length - keep);
+                    buffer = buffer.slice(buffer.length - keep);
+                    break;
+                }
+                output += buffer.slice(0, openIdx);
+                buffer = buffer.slice(openIdx + '<think>'.length);
+                insideThink = true;
+            } else {
+                const closeIdx = buffer.indexOf('</think>');
+                if (closeIdx === -1) {
+                    const keep = partialTagSuffixLength(buffer, '</think>');
+                    buffer = buffer.slice(buffer.length - keep);
+                    break;
+                }
+                buffer = buffer.slice(closeIdx + '</think>'.length);
+                insideThink = false;
+            }
+        }
+
+        return output;
+    };
 }
 
 // Emit a completed sentence to the main thread for immediate TTS delivery
