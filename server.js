@@ -588,6 +588,7 @@ const AGENT_USERNAME = "BambiSleep";
 let lastUserActivityAt = Date.now();
 let lastAgentMessageAt = 0;
 let pendingUserPrompts = new Map(); // socketId -> last prompt sent, for generation logging
+let pendingAgentReason = null; // { reason, trigger } for the in-flight agent request, consumed in handleLMWorkerMessage
 
 // Load OFFICIAL BambiSleep triggers from JSON file with enhanced data
 function loadOfficialTriggers() {
@@ -731,6 +732,7 @@ function triggerAgentBroadcast({ reason, trigger, username, socketId } = {}) {
   if (Date.now() - lastAgentMessageAt < ENV.AGENT.COOLDOWN_MS) return false;
 
   lastAgentMessageAt = Date.now();
+  pendingAgentReason = { reason, trigger: trigger || null };
 
   const prompt =
     reason === "trigger"
@@ -782,43 +784,29 @@ function handleLMWorkerMessage(msg) {
       // Autonomous agent message: broadcast to every connected bambi
       // instead of routing to a single requester's socket.
       if (msg.socketId === AGENT_SOCKET_ID) {
-        const assignment = pendingAgentAssignment;
-        pendingAgentAssignment = null;
-
-        const responseText =
-          assignment && assignment.playlist
-            ? `${msg.response}\n\n🔗 ${assignment.playlist.title}: ${assignment.playlist.url}`
-            : msg.response;
+        const agentReason = pendingAgentReason;
+        pendingAgentReason = null;
 
         io.emit("ai-response", {
-          message: responseText,
+          message: msg.response,
           timestamp: new Date().toISOString(),
           wordCount: msg.wordCount || 0,
           agent: true,
         });
 
-        if (assignment && assignment.playlist) {
-          io.emit("playlist-assigned", {
-            playlist: assignment.playlist,
-            reason: assignment.reason,
-            username: assignment.username,
-            timestamp: new Date().toISOString(),
-          });
-        }
-
         databaseService.recordGeneration({
           socketId: AGENT_SOCKET_ID,
           username: AGENT_USERNAME,
-          source: assignment?.reason === "trigger" ? "agent-trigger" : "agent-idle",
+          source: agentReason?.reason === "trigger" ? "agent-trigger" : "agent-idle",
           response: msg.response,
           wordCount: msg.wordCount || 0,
-          triggerMatched: assignment?.triggerMatched || null,
+          triggerMatched: agentReason?.trigger || null,
         });
 
         chatHistoryManager.addMessage(
           {
             id: Date.now(),
-            message: responseText,
+            message: msg.response,
             timestamp: new Date().toISOString(),
             user: AGENT_USERNAME,
             isAI: true,

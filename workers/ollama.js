@@ -635,7 +635,7 @@ async function handleMessage(userPrompt, socketId, username, userSelectedTrigger
             model: currentModelId,
             messages: formattedMessages,
             stream: true,
-            think: true, // pay the latency tax for Qwen3 extended thinking; <think> blocks are stripped from the stream below
+            think: false, // the configured model (e.g. qwen3.6-35b-a3b-heretic-apex-i-compact) returns a hard 400 "does not support thinking" if this is true
             options: {
                 temperature: 0.65,
                 top_p: 0.85,
