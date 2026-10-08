@@ -26,12 +26,10 @@
   "scripts": {
     "dev:server": "nodemon server.js",
     "start": "node server.js",
-    "start:mcp-standalone": "node mcp-server/server.js",
     "test": "node tests/master.test.js",
     "clean": "node scripts/clean.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0",
     "axios": "^1.12.2",
     "better-sqlite3": "^13.0.3",
     "cookie-parser": "^1.4.7",
@@ -39,8 +37,7 @@
     "express": "^5.1.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.3",
-    "worker-thread": "^1.1.0",
-    "zod": "^3.23.8"
+    "worker-thread": "^1.1.0"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

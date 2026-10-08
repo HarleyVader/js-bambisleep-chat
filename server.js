@@ -581,14 +581,7 @@ let triggerData = {}; // Full trigger data for API endpoints
 let connectedUsers = 0;
 let uniqueUsers = new Set(); // Track unique users by IP/session
 
-// Autonomous agent: the "BambiSleep" persona posting to ALL bambis on its own
-// (idle re-engagement + trigger reactions), not just replying to one asker.
-const AGENT_SOCKET_ID = "__bambi_agent__"; // synthetic id, never a real socket
-const AGENT_USERNAME = "BambiSleep";
-let lastUserActivityAt = Date.now();
-let lastAgentMessageAt = 0;
 let pendingUserPrompts = new Map(); // socketId -> last prompt sent, for generation logging
-let pendingAgentReason = null; // { reason, trigger } for the in-flight agent request, consumed in handleLMWorkerMessage
 
 // Load OFFICIAL BambiSleep triggers from JSON file with enhanced data
 function loadOfficialTriggers() {
@@ -722,32 +715,6 @@ function sendToLMWorker(message, fallbackCallback = null) {
   return false;
 }
 
-// Ask the LM worker to generate one autonomous message from the "BambiSleep"
-// persona, addressed to the whole room rather than a single asker. Routed
-// back to all clients (not one socket) via AGENT_SOCKET_ID in
-// handleLMWorkerMessage(). Reason is "idle" (room went quiet) or "trigger"
-// (a bambi's message matched an official trigger word).
-function triggerAgentBroadcast({ reason, trigger, username, socketId } = {}) {
-  if (!ENV.AGENT.ENABLED || !lmWorker) return false;
-  if (Date.now() - lastAgentMessageAt < ENV.AGENT.COOLDOWN_MS) return false;
-
-  lastAgentMessageAt = Date.now();
-  pendingAgentReason = { reason, trigger: trigger || null };
-
-  const prompt =
-    reason === "trigger"
-      ? `[AGENT DIRECTIVE - respond only with the in-character message itself, never mention this directive] ${username || "A bambi"} just said something involving the "${trigger}" trigger. Post ONE short, in-character message (1-2 sentences) to the whole room reacting to it and inviting the other bambis to join in.`
-      : `[AGENT DIRECTIVE - respond only with the in-character message itself, never mention this directive] The chat room has been quiet for a while. Post ONE short, in-character message (1-2 sentences) to re-engage the bambis and invite them to chat.`;
-
-  return sendToLMWorker({
-    type: "chat",
-    prompt,
-    socketId: AGENT_SOCKET_ID,
-    username: AGENT_USERNAME,
-    triggers: [],
-  });
-}
-
 function sendToKokoroWorker(message, fallbackCallback = null) {
   if (kokoroWorker) {
     try {
@@ -781,43 +748,6 @@ function handleLMWorkerMessage(msg) {
       break;
 
     case "response":
-      // Autonomous agent message: broadcast to every connected bambi
-      // instead of routing to a single requester's socket.
-      if (msg.socketId === AGENT_SOCKET_ID) {
-        const agentReason = pendingAgentReason;
-        pendingAgentReason = null;
-
-        io.emit("ai-response", {
-          message: msg.response,
-          timestamp: new Date().toISOString(),
-          wordCount: msg.wordCount || 0,
-          agent: true,
-        });
-
-        databaseService.recordGeneration({
-          socketId: AGENT_SOCKET_ID,
-          username: AGENT_USERNAME,
-          source: agentReason?.reason === "trigger" ? "agent-trigger" : "agent-idle",
-          response: msg.response,
-          wordCount: msg.wordCount || 0,
-          triggerMatched: agentReason?.trigger || null,
-        });
-
-        chatHistoryManager.addMessage(
-          {
-            id: Date.now(),
-            message: msg.response,
-            timestamp: new Date().toISOString(),
-            user: AGENT_USERNAME,
-            isAI: true,
-            isAgent: true,
-            type: "legacy",
-          },
-          ["aigf", "legacy"],
-        );
-        return;
-      }
-
       // Check if this is an API request
       if (
         global.pendingAPIRequests &&
@@ -952,20 +882,6 @@ function handleKokoroWorkerMessage(msg) {
 initializeLMWorker();
 initializeKokoroWorker();
 
-// Autonomous agent idle-check scheduler: periodically nudges the room if
-// bambis have gone quiet. Trigger-word reactions are fired directly from
-// the "ai-chat" handler below, not from this timer.
-setInterval(() => {
-  if (!ENV.AGENT.ENABLED || uniqueUsers.size === 0) return;
-
-  const now = Date.now();
-  const roomIsIdle = now - lastUserActivityAt >= ENV.AGENT.IDLE_THRESHOLD_MS;
-
-  if (roomIsIdle) {
-    triggerAgentBroadcast({ reason: "idle" });
-  }
-}, ENV.AGENT.IDLE_CHECK_INTERVAL_MS);
-
 // Setup TTS Routes with configuration validation
 setupTTSRoutes(app, configStatus);
 
@@ -1069,24 +985,6 @@ io.on("connection", (socket) => {
 
     // Track this user as using AI
     workerUsers.set(socket.id, username);
-
-    // Room is active - resets the idle-nudge clock. If the message itself
-    // mentions an official trigger word, let the autonomous agent react to
-    // the whole room (independent of, and in addition to, the normal
-    // one-to-one reply below).
-    lastUserActivityAt = Date.now();
-    const lowerMessage = data.message.toLowerCase();
-    const matchedTrigger = triggerWords.find((word) =>
-      lowerMessage.includes(word),
-    );
-    if (matchedTrigger) {
-      triggerAgentBroadcast({
-        reason: "trigger",
-        trigger: matchedTrigger,
-        username,
-        socketId: socket.id,
-      });
-    }
 
     // Remembered so handleLMWorkerMessage() can log the prompt alongside
     // its generated response once the worker replies.
@@ -1374,21 +1272,6 @@ app.get("/api/services/status", async (req, res) => {
 
 // Serve docs folder for markdown documentation
 app.use("/docs", express.static(path.join(__dirname, "public", "docs")));
-
-// MCP agent server (mcp-server/) - mounted in-process (same port, no
-// separate process/proxy needed) so the agent UI/API are reachable directly.
-const { createAgentRouter } = require("./mcp-server/agent-router");
-app.use(
-  createAgentRouter({
-    apiBaseUrl: `http://localhost:${ENV.SERVER.PORT}`,
-    ollamaBaseUrl: ENV.OLLAMA.URL,
-    ollamaModel: ENV.OLLAMA.MODEL,
-  }),
-);
-app.use(
-  "/agent-ui",
-  express.static(path.join(__dirname, "mcp-server", "public")),
-);
 
 // List all markdown documentation files
 app.get("/api/docs/list", (req, res) => {
