@@ -1,6 +1,6 @@
 /**
  * Database Service - SQLite persistence
- * Stores every AI generation (agent + 1:1 replies) and the Patreon tier cache.
+ * Stores every AI generation (1:1 replies) and the Patreon tier cache.
  */
 
 const fs = require("fs");
@@ -91,11 +91,11 @@ class DatabaseService {
   }
 
   /**
-   * Records one AI-generated message (agent broadcast or 1:1 reply).
+   * Records one AI-generated chat reply.
    * @param {object} data
    * @param {string} [data.socketId]
    * @param {string} [data.username]
-   * @param {string} data.source - 'aigf' | 'agent-idle' | 'agent-trigger'
+   * @param {string} data.source - 'aigf'
    * @param {string} [data.prompt]
    * @param {string} data.response
    * @param {number} [data.wordCount]
