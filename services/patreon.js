@@ -380,6 +380,27 @@ class PatreonService {
   }
 
   /**
+   * Check whether a socket has completed Patreon login (any tier, including FREE).
+   * Unlike getUserTier(), this never silently falls back to a "Guest" default -
+   * it's the source of truth for "is this socket a logged-in Patreon account".
+   * @param {string} socketId - User's socket ID
+   * @returns {boolean}
+   */
+  isAuthenticated(socketId) {
+    return this.userTiers.has(socketId);
+  }
+
+  /**
+   * Check whether a given Patreon user ID has ever completed login (used for
+   * the cookie-based HTTP page/route gate, before any socket exists).
+   * @param {string} patreonUserId - Patreon user ID from the `patreon_user_id` cookie
+   * @returns {boolean}
+   */
+  hasPatreonAccount(patreonUserId) {
+    return !!patreonUserId && this.usersByPatreonId.has(patreonUserId);
+  }
+
+  /**
    * Link a socket to an existing Patreon user (for reconnections)
    * @param {string} socketId - New socket ID
    * @param {string} patreonUserId - Patreon user ID from cookie

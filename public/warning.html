@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>BambiSleep.Chat — Content Warning &amp; Login Required</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <style>
+    :root {
+      --bg: #10060f;
+      --panel: #1d0f1c;
+      --primary: #ff4fd8;
+      --accent: #ff69b4;
+      --text: #f5e9f3;
+      --muted: #c9a8c4;
+      --danger: #ff5c5c;
+      --patreon: #ff424d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #2a0e28 0%, var(--bg) 70%);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      width: min(640px, 92vw);
+      margin: 4vh auto;
+      background: var(--panel);
+      border: 1px solid rgba(255, 79, 216, 0.35);
+      border-radius: 18px;
+      padding: clamp(20px, 4vw, 40px);
+      box-shadow: 0 0 60px rgba(255, 79, 216, 0.15);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      color: var(--primary);
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin: 0 0 24px;
+      font-size: 0.95rem;
+    }
+
+    .banner {
+      background: rgba(255, 92, 92, 0.12);
+      border: 1px solid var(--danger);
+      color: #ffd4d4;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      margin-bottom: 18px;
+      display: none;
+    }
+
+    .banner.visible {
+      display: block;
+    }
+
+    section {
+      margin-bottom: 20px;
+    }
+
+    section h2 {
+      font-size: 1rem;
+      color: var(--accent);
+      margin: 0 0 8px;
+    }
+
+    section p,
+    section li {
+      font-size: 0.92rem;
+      line-height: 1.5;
+      color: var(--text);
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .consent-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    label.checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 0.92rem;
+      cursor: pointer;
+    }
+
+    label.checkbox-row:last-child {
+      margin-bottom: 0;
+    }
+
+    input[type="checkbox"] {
+      margin-top: 3px;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .actions {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .patreon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--patreon);
+      color: #fff;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      transition: filter 0.15s ease, opacity 0.15s ease;
+    }
+
+    .patreon-btn[disabled],
+    .patreon-btn.disabled {
+      opacity: 0.45;
+      pointer-events: none;
+      cursor: not-allowed;
+    }
+
+    .patreon-btn:hover:not([disabled]) {
+      filter: brightness(1.08);
+    }
+
+    .exit-link {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-decoration: underline;
+    }
+
+    .not-configured {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 8px;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="card">
+    <h1>⚠️ BambiSleep.Chat</h1>
+    <p class="subtitle">Adult content warning &amp; Patreon login required</p>
+
+    <div id="auth-error-banner" class="banner"></div>
+
+    <section>
+      <h2>What is this site?</h2>
+      <p>
+        BambiSleep.Chat is an 18+ community platform built around an AI chat companion for
+        <strong>BambiSleep-style erotic hypnosis and conditioning roleplay</strong>. It combines:
+      </p>
+      <ul>
+        <li>A real-time AI chatbot that generates hypnosis/conditioning-themed responses</li>
+        <li>Synchronized text-to-speech voice playback</li>
+        <li>Psychedelic spiral visuals and trigger-word highlighting</li>
+        <li>Optional audio-synced haptic/toy integration</li>
+      </ul>
+      <p>
+        All AI-generated content is produced live and may depict explicit sexual themes,
+        hypnosis, feminization, submission, and psychological trigger conditioning. It is
+        intended strictly for <strong>consenting adults (18+)</strong> who are already familiar
+        with and comfortable with this genre of content.
+      </p>
+    </section>
+
+    <section>
+      <h2>Patreon account required</h2>
+      <p>
+        To keep this community accountable, every visitor must sign in with a
+        <strong>Patreon account</strong> before using the AI chat. A completely
+        <strong>free Patreon account is sufficient</strong> - you do not need an active paid
+        membership, you just need to connect your Patreon identity.
+      </p>
+    </section>
+
+    <section class="consent-box">
+      <label class="checkbox-row">
+        <input type="checkbox" id="confirm-age">
+        <span>I confirm that I am <strong>18 years of age or older</strong> (or the age of
+          majority in my jurisdiction).</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="confirm-consent">
+        <span>I understand the nature of this content and <strong>consent</strong> to viewing
+          AI-generated adult hypnosis/conditioning-themed material.</span>
+      </label>
+    </section>
+
+    <div class="actions">
+      <button id="patreon-login" class="patreon-btn" disabled>
+        🔐 Continue with Patreon
+      </button>
+      <p id="not-configured" class="not-configured">
+        Patreon login is not currently configured on this server.
+      </p>
+      <a class="exit-link" href="https://www.google.com">I am under 18 or do not consent — leave this site</a>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const authError = params.get("auth_error");
+      const banner = document.getElementById("auth-error-banner");
+      if (authError) {
+        banner.textContent = "Patreon login failed: " + authError;
+        banner.classList.add("visible");
+      }
+
+      const ageBox = document.getElementById("confirm-age");
+      const consentBox = document.getElementById("confirm-consent");
+      const loginBtn = document.getElementById("patreon-login");
+
+      function updateButtonState() {
+        loginBtn.disabled = !(ageBox.checked && consentBox.checked);
+      }
+
+      ageBox.addEventListener("change", updateButtonState);
+      consentBox.addEventListener("change", updateButtonState);
+
+      loginBtn.addEventListener("click", function () {
+        if (loginBtn.disabled) return;
+        window.location.href = "/auth/patreon";
+      });
+
+      // Best-effort check so the button doesn't look clickable when Patreon
+      // OAuth isn't set up on this server at all (local/dev deployments).
+      fetch("/api/patreon/configured")
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.configured) {
+            document.getElementById("not-configured").style.display = "block";
+          }
+        })
+        .catch(() => { });
+    })();
+  </script>
+</body>
+
+</html>

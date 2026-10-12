@@ -35,6 +35,14 @@ export class PatreonClient {
         console.log(`🖼️ Avatar loaded`);
       }
 
+      // Defense in depth: the server also gates page access behind
+      // /warning.html, but if a tab's session cookie expires/was revoked
+      // while the page stayed open, send the user back through Patreon login.
+      if (data.patreonConfigured && data.authenticated === false) {
+        window.location.href = "/warning.html";
+        return;
+      }
+
       this.updateUI();
     });
 

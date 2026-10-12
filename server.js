@@ -10,6 +10,7 @@ const path = require("path");
 // Centralized environment configuration
 const ENV = require("./config/env");
 const databaseService = require("./services/database");
+const patreonService = require("./services/patreon");
 
 // Legacy config object for backward compatibility
 const config = {
@@ -434,6 +435,36 @@ app.use((req, res, next) => {
 app.use(express.json());
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
+
+/**
+ * Returns true if the request carries a `patreon_user_id` cookie that
+ * corresponds to a completed Patreon login (any tier, including FREE).
+ * When Patreon isn't configured at all (e.g. local dev without OAuth
+ * credentials), access is never blocked - matches how the rest of the
+ * feature-gating code in this file degrades gracefully.
+ */
+function requestHasPatreonAccount(req) {
+  if (!patreonService.isConfigured()) {
+    return true;
+  }
+  const patreonUserId = req.cookies?.patreon_user_id;
+  return patreonService.hasPatreonAccount(patreonUserId);
+}
+
+// Gate the main app page behind the Patreon content-warning/login page.
+// Runs BEFORE express.static so neither "/" (directory index) nor a direct
+// "/index.html" request can slip past it.
+app.use((req, res, next) => {
+  if (
+    req.method === "GET" &&
+    (req.path === "/" || req.path === "/index.html") &&
+    !requestHasPatreonAccount(req)
+  ) {
+    return res.redirect("/warning.html");
+  }
+  next();
+});
+
 app.use(
   express.static(path.join(__dirname, "public"), {
     setHeaders: (res, filePath) => {
@@ -943,6 +974,7 @@ io.on("connection", (socket) => {
     avatarUrl: tierInfo.avatarUrl,
     thumbUrl: tierInfo.thumbUrl,
     patreonConfigured: patreonService.isConfigured(),
+    authenticated: patreonService.isAuthenticated(socket.id),
   });
 
   // Broadcast connection count (use unique users for display)
@@ -950,6 +982,19 @@ io.on("connection", (socket) => {
 
   // Handle AI chat requests
   socket.on("ai-chat", (data) => {
+    if (
+      patreonService.isConfigured() &&
+      !patreonService.isAuthenticated(socket.id)
+    ) {
+      socket.emit("ai-error", {
+        error:
+          "A Patreon account (free tier is fine) is required to use the AI chat.",
+        code: "PATREON_LOGIN_REQUIRED",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     if (!lmWorker) {
       socket.emit("ai-error", {
         error: "AI worker not available",
@@ -1470,6 +1515,15 @@ app.post("/api/triggers", (req, res) => {
 
 // AI Chat endpoint
 app.post("/api/chat", (req, res) => {
+  if (!requestHasPatreonAccount(req)) {
+    return res.status(401).json({
+      error: "Patreon login required",
+      code: "PATREON_LOGIN_REQUIRED",
+      message:
+        "A Patreon account (free tier is fine) is required to use the AI chat. Log in at /warning.html",
+    });
+  }
+
   const { message, username, triggers, collar } = req.body;
 
   if (!message || typeof message !== "string") {
@@ -1568,7 +1622,6 @@ app.get("/api/collar", (req, res) => {
 // ============================================================================
 // PATREON OAUTH ROUTES
 // ============================================================================
-const patreonService = require("./services/patreon");
 
 const ALLOWED_PATREON_IMAGE_HOSTS = new Set([
   "c10.patreonusercontent.com",
@@ -1629,6 +1682,12 @@ app.get("/auth/patreon", (req, res) => {
   }
 });
 
+// Lightweight, unauthenticated check used by the warning/login page to know
+// whether a "Continue with Patreon" button is even functional on this server.
+app.get("/api/patreon/configured", (req, res) => {
+  res.json({ configured: patreonService.isConfigured() });
+});
+
 // Get Patreon login URL (for client-side redirect)
 app.get("/api/patreon/login-url", (req, res) => {
   try {
@@ -1657,7 +1716,7 @@ app.get("/auth/patreon/callback", async (req, res) => {
   const { code, state, error } = req.query;
 
   if (error) {
-    return res.redirect(`/?auth_error=${encodeURIComponent(error)}`);
+    return res.redirect(`/warning.html?auth_error=${encodeURIComponent(error)}`);
   }
 
   try {
@@ -1730,7 +1789,7 @@ app.get("/auth/patreon/callback", async (req, res) => {
     res.redirect(`/?auth_success=true&tier=${tier}`);
   } catch (error) {
     console.error("❌ Patreon callback error:", error);
-    res.redirect(`/?auth_error=${encodeURIComponent(error.message)}`);
+    res.redirect(`/warning.html?auth_error=${encodeURIComponent(error.message)}`);
   }
 });
 

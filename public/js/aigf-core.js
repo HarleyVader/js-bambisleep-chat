@@ -511,6 +511,14 @@ class ChatCore {
     });
 
     this.socket.on("ai-error", (data) => {
+      if (data.code === "PATREON_LOGIN_REQUIRED") {
+        this.addSystemMessage(
+          "🔐 A Patreon account (free tier is fine) is required to use the AI chat. Redirecting to login…",
+        );
+        window.location.href = "/warning.html";
+        return;
+      }
+
       this.errorManager.reportError("ai-chat", "worker_unavailable", {
         message: data.error,
         retryCallback: () => {
