@@ -94,25 +94,11 @@
     transform: translateY(0);
 }
 
-/* Logout is a secondary/de-emphasized action next to the primary login/
-   upgrade button - same shape, muted grey gradient instead of Patreon red. */
-.patreon-logout-btn {
-    background: linear-gradient(135deg, #555, #777);
-    border-color: #777;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-.patreon-logout-btn:hover {
-    background: linear-gradient(135deg, #666, #888);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-}
-
 /* Narrow chat column (small landscape phones): the chat container can be
    as little as ~200-250px wide, so the full-size button overflows/wraps
    awkwardly. Shrink it so it fits alongside the docs links. */
 @media (max-width: 900px) {
-    .patreon-login-btn,
-    .patreon-logout-btn {
+    .patreon-login-btn {
         padding: 0.8vmin 1.5vmin;
         font-size: 0.75em;
         margin: 0.5vmin;
@@ -369,6 +355,34 @@
     padding: 4px 10px;
 }
 
+/* Small icon-only logout button, sitting inside .patreon-user-info next to
+   the avatar/username/tier badge rather than as a separate full-size CTA. */
+.patreon-user-info .patreon-logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    min-height: 0;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    font-size: 0.7em;
+    line-height: 1;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.patreon-user-info .patreon-logout-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
 /* Tier-specific avatar glows */
 .patreon-tier-container:has(.tier-good-girl) .patreon-avatar,
 .patreon-tier-container:has(.tier-good-girl) .patreon-avatar-placeholder {
@@ -428,5 +442,11 @@
     .patreon-user-info .tier-badge {
         font-size: 0.7em;
         padding: 3px 8px;
+    }
+
+    .patreon-user-info .patreon-logout-btn {
+        width: 16px;
+        height: 16px;
+        font-size: 0.6em;
     }
 }
