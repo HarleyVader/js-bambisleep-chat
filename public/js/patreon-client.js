@@ -12,6 +12,7 @@ export class PatreonClient {
     this.avatarUrl = null;
     this.thumbUrl = null;
     this.patreonConfigured = false;
+    this.authenticated = false;
 
     this.setupSocketListeners();
   }
@@ -28,6 +29,7 @@ export class PatreonClient {
       this.avatarUrl = data.avatarUrl;
       this.thumbUrl = data.thumbUrl;
       this.patreonConfigured = data.patreonConfigured;
+      this.authenticated = !!data.authenticated;
 
       console.log(`💎 Membership tier: ${this.tier}`);
       console.log(`✨ Available features:`, this.features);
@@ -53,6 +55,7 @@ export class PatreonClient {
       this.fullName = data.fullName;
       this.avatarUrl = data.avatarUrl;
       this.thumbUrl = data.thumbUrl;
+      this.authenticated = true;
 
       console.log(`✅ ${data.message}`);
       this.showTierNotification(data.message);
@@ -96,6 +99,13 @@ export class PatreonClient {
   }
 
   /**
+   * Log out of the current Patreon session and return to the warning/login page
+   */
+  logoutFromPatreon() {
+    window.location.href = `/auth/patreon/logout?socketId=${this.socket.id}`;
+  }
+
+  /**
    * Update UI based on membership tier
    */
   updateUI() {
@@ -107,6 +117,9 @@ export class PatreonClient {
 
     // Show/hide Patreon login button
     this.updatePatreonLoginButton();
+
+    // Show/hide Patreon logout button
+    this.updatePatreonLogoutButton();
   }
 
   /**
@@ -283,6 +296,33 @@ export class PatreonClient {
         this.tier === "FREE" && this.patreonConfigured
           ? "inline-block"
           : "none";
+    }
+  }
+
+  /**
+   * Update Patreon logout button visibility
+   */
+  updatePatreonLogoutButton() {
+    let logoutBtn = document.getElementById("patreon-logout-btn");
+
+    // Create button if it doesn't exist and the user is logged in
+    if (!logoutBtn && this.patreonConfigured && this.authenticated) {
+      logoutBtn = document.createElement("button");
+      logoutBtn.id = "patreon-logout-btn";
+      logoutBtn.className = "patreon-login-btn patreon-logout-btn";
+      logoutBtn.innerHTML = "🚪 Logout";
+      logoutBtn.addEventListener("click", () => this.logoutFromPatreon());
+
+      const docsContainer = document.querySelector(".docs-link-container");
+      if (docsContainer) {
+        docsContainer.appendChild(logoutBtn);
+      }
+    }
+
+    // Update button visibility
+    if (logoutBtn) {
+      logoutBtn.style.display =
+        this.authenticated && this.patreonConfigured ? "inline-block" : "none";
     }
   }
 

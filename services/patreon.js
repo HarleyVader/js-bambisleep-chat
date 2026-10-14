@@ -15,6 +15,9 @@ class PatreonService {
     // patreonUserId → tier info, hydrated from SQLite so tiers survive restarts
     this.usersByPatreonId = databaseService.getAllPatreonTiers();
     this.sessionStore = new Map(); // state → session data
+    // patreonUserId → Set<socketId>, so a periodic membership recheck (or a
+    // logout) can find every live socket tied to that Patreon account.
+    this.socketsByPatreonId = new Map();
 
     if (this.usersByPatreonId.size > 0) {
       console.log(
@@ -330,6 +333,12 @@ class PatreonService {
       fullName: tierInfo.fullName,
       avatarUrl: tierInfo.avatarUrl || null,
       thumbUrl: tierInfo.thumbUrl || null,
+      // Kept in-memory ONLY (never written to SQLite) so re-verifying
+      // membership doesn't require storing OAuth secrets at rest on disk -
+      // they're lost on restart, which just means the periodic recheck has
+      // to wait for the user's next login instead of running immediately.
+      accessToken: tierInfo.accessToken || null,
+      refreshToken: tierInfo.refreshToken || null,
       updatedAt: new Date().toISOString(),
     };
 
@@ -341,6 +350,7 @@ class PatreonService {
     if (tierInfo.userId) {
       this.usersByPatreonId.set(tierInfo.userId, tierData);
       databaseService.savePatreonTier(tierInfo.userId, tierData);
+      this._trackSocket(tierInfo.userId, socketId);
       console.log(`💾 Tier persisted for Patreon user ID: ${tierInfo.userId}`);
     }
 
@@ -348,6 +358,22 @@ class PatreonService {
     if (tierInfo.avatarUrl) {
       console.log(`🖼️ Avatar URL stored for ${socketId}`);
     }
+  }
+
+  /**
+   * Records that a socket belongs to a given Patreon user, so later a
+   * periodic recheck/logout/revoke can reach every live socket for that
+   * account without scanning the whole userTiers map.
+   * @param {string} patreonUserId
+   * @param {string} socketId
+   */
+  _trackSocket(patreonUserId, socketId) {
+    let sockets = this.socketsByPatreonId.get(patreonUserId);
+    if (!sockets) {
+      sockets = new Set();
+      this.socketsByPatreonId.set(patreonUserId, sockets);
+    }
+    sockets.add(socketId);
   }
 
   /**
@@ -410,6 +436,7 @@ class PatreonService {
     const tierData = this.usersByPatreonId.get(patreonUserId);
     if (tierData) {
       this.userTiers.set(socketId, tierData);
+      this._trackSocket(patreonUserId, socketId);
       console.log(
         `🔗 Socket ${socketId} linked to Patreon user ${patreonUserId} (${tierData.tier})`,
       );
@@ -419,12 +446,140 @@ class PatreonService {
   }
 
   /**
-   * Remove user tier information (on disconnect)
+   * Remove user tier information (on disconnect, or an explicit logout)
    * @param {string} socketId - User's socket ID
    */
   removeUserTier(socketId) {
+    const tierData = this.userTiers.get(socketId);
+    if (tierData?.userId) {
+      this.socketsByPatreonId.get(tierData.userId)?.delete(socketId);
+    }
     this.userTiers.delete(socketId);
     console.log(`🗑️ User tier removed: ${socketId}`);
+  }
+
+  /**
+   * Log a socket out of its Patreon session. The persisted
+   * usersByPatreonId/SQLite record is intentionally left intact (logging
+   * out isn't deleting the account) - only this socket's live
+   * authenticated state is cleared, forcing it back through the
+   * warning/login page gate.
+   * @param {string} socketId
+   */
+  logout(socketId) {
+    this.removeUserTier(socketId);
+  }
+
+  /**
+   * Re-verify one Patreon user's membership against the live Patreon API and
+   * refresh the cached tier. Called periodically (see
+   * ENV.PATREON.MEMBERSHIP_RECHECK_INTERVAL_MS) so pledge changes (upgrades,
+   * downgrades, cancellations) and revoked OAuth grants are reflected
+   * without requiring the user to log in again.
+   * @param {string} patreonUserId
+   * @returns {Promise<object>} { skipped } | { revoked, reason, socketIds } | { changed, tier, socketIds }
+   */
+  async checkMembership(patreonUserId) {
+    const tierData = this.usersByPatreonId.get(patreonUserId);
+    if (!tierData || !tierData.accessToken) {
+      // Nothing we can re-verify with (e.g. rehydrated from SQLite after a
+      // restart, which never stores tokens) - leave the cached tier as-is.
+      return { skipped: true };
+    }
+
+    let accessToken = tierData.accessToken;
+    let refreshToken = tierData.refreshToken;
+    let identity;
+
+    try {
+      identity = await this.getUserIdentity(accessToken);
+    } catch (error) {
+      if (!refreshToken) {
+        return this.revokeUser(
+          patreonUserId,
+          "access token invalid and no refresh token stored",
+        );
+      }
+      try {
+        const refreshed = await this.refreshAccessToken(refreshToken);
+        accessToken = refreshed.access_token;
+        refreshToken = refreshed.refresh_token || refreshToken;
+        identity = await this.getUserIdentity(accessToken);
+      } catch (refreshError) {
+        return this.revokeUser(
+          patreonUserId,
+          "refresh token invalid/revoked on Patreon's end",
+        );
+      }
+    }
+
+    const newTier = this.determineMembershipTier(identity);
+    const changed = newTier !== tierData.tier;
+
+    const updatedTierData = {
+      ...tierData,
+      tier: newTier,
+      features: this.getFeaturesForTier(newTier),
+      accessToken,
+      refreshToken,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.usersByPatreonId.set(patreonUserId, updatedTierData);
+    databaseService.savePatreonTier(patreonUserId, updatedTierData);
+
+    const socketIds = [...(this.socketsByPatreonId.get(patreonUserId) || [])];
+    for (const socketId of socketIds) {
+      this.userTiers.set(socketId, updatedTierData);
+    }
+
+    if (changed) {
+      console.log(
+        `🔄 Patreon tier re-check: ${patreonUserId} ${tierData.tier} → ${newTier}`,
+      );
+    }
+
+    return { revoked: false, changed, tier: newTier, socketIds };
+  }
+
+  /**
+   * Fully revokes a Patreon user's cached session (used when a membership
+   * recheck discovers the OAuth grant was revoked on Patreon's side) -
+   * clears every live socket's auth state AND deletes the persisted
+   * SQLite/in-memory record, unlike logout() which only clears one socket.
+   * @param {string} patreonUserId
+   * @param {string} reason - logged for operator visibility
+   */
+  revokeUser(patreonUserId, reason) {
+    console.log(`🔒 Revoking Patreon session for ${patreonUserId}: ${reason}`);
+    const socketIds = [...(this.socketsByPatreonId.get(patreonUserId) || [])];
+    for (const socketId of socketIds) {
+      this.userTiers.delete(socketId);
+    }
+    this.socketsByPatreonId.delete(patreonUserId);
+    this.usersByPatreonId.delete(patreonUserId);
+    databaseService.deletePatreonTier(patreonUserId);
+    return { revoked: true, reason, socketIds };
+  }
+
+  /**
+   * Re-verifies every known Patreon user's membership (see
+   * checkMembership()). Intended to be run on a timer from server.js.
+   * @returns {Promise<Array<object>>} one result per known Patreon user ID
+   */
+  async recheckAllMemberships() {
+    const results = [];
+    for (const patreonUserId of [...this.usersByPatreonId.keys()]) {
+      try {
+        const result = await this.checkMembership(patreonUserId);
+        results.push({ patreonUserId, ...result });
+      } catch (error) {
+        console.error(
+          `⚠️ Membership recheck failed for ${patreonUserId}: ${error.message}`,
+        );
+      }
+    }
+    return results;
   }
 
   /**

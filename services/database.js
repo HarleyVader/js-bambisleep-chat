@@ -163,6 +163,18 @@ class DatabaseService {
     return tiersByUserId;
   }
 
+  /**
+   * Removes a persisted Patreon tier (e.g. once the periodic membership
+   * recheck finds the user's OAuth grant has been revoked on Patreon's end).
+   * @param {string} patreonUserId
+   */
+  deletePatreonTier(patreonUserId) {
+    if (!this.enabled) return;
+    this.db
+      .prepare("DELETE FROM patreon_tiers WHERE patreon_user_id = ?")
+      .run(patreonUserId);
+  }
+
   close() {
     if (this.db) this.db.close();
   }

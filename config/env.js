@@ -141,6 +141,13 @@ const PATREON = {
   MIN_TIER_CENTS: parseInt(process.env.PATREON_MIN_TIER_CENTS) || 100,
   TIER_NAME: process.env.PATREON_TIER_NAME || "Good Girl",
 
+  // How often to re-verify each logged-in user's Patreon membership against
+  // the Patreon API and refresh their cached tier (default: every 6 hours).
+  // Set to 0 to disable the periodic recheck entirely.
+  MEMBERSHIP_RECHECK_INTERVAL_MS:
+    parseInt(process.env.PATREON_MEMBERSHIP_RECHECK_INTERVAL_MS) ||
+    6 * 60 * 60 * 1000,
+
   // Patreon API URLs
   API_URL: "https://www.patreon.com/api/oauth2/v2",
   AUTH_URL: "https://www.patreon.com/oauth2/authorize",

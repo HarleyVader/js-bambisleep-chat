@@ -913,6 +913,47 @@ function handleKokoroWorkerMessage(msg) {
 initializeLMWorker();
 initializeKokoroWorker();
 
+// Periodically re-verify every logged-in user's Patreon membership so pledge
+// changes (upgrades/downgrades/cancellations) and revoked OAuth grants are
+// reflected without requiring a fresh login. Pushes an updated
+// "membership-tier" event to any currently-connected socket affected.
+if (patreonService.isConfigured() && ENV.PATREON.MEMBERSHIP_RECHECK_INTERVAL_MS > 0) {
+  setInterval(async () => {
+    const results = await patreonService.recheckAllMemberships();
+    for (const result of results) {
+      if (result.skipped || (!result.changed && !result.revoked)) continue;
+
+      for (const socketId of result.socketIds || []) {
+        const socket = io.sockets.sockets.get(socketId);
+        if (!socket) continue;
+
+        if (result.revoked) {
+          socket.emit("membership-tier", {
+            tier: "FREE",
+            features: ENV.PATREON.FEATURES.FREE,
+            fullName: "Guest",
+            avatarUrl: null,
+            thumbUrl: null,
+            patreonConfigured: true,
+            authenticated: false,
+          });
+        } else {
+          const tierInfo = patreonService.getUserTier(socketId);
+          socket.emit("membership-tier", {
+            tier: tierInfo.tier,
+            features: tierInfo.features,
+            fullName: tierInfo.fullName,
+            avatarUrl: tierInfo.avatarUrl,
+            thumbUrl: tierInfo.thumbUrl,
+            patreonConfigured: true,
+            authenticated: true,
+          });
+        }
+      }
+    }
+  }, ENV.PATREON.MEMBERSHIP_RECHECK_INTERVAL_MS);
+}
+
 // Setup TTS Routes with configuration validation
 setupTTSRoutes(app, configStatus);
 
@@ -1223,6 +1264,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     connectedUsers--;
     workerUsers.delete(socket.id);
+    patreonService.removeUserTier(socket.id);
 
     // Clean up unique user tracking on disconnect
     const clientIP =
@@ -1688,6 +1730,42 @@ app.get("/api/patreon/configured", (req, res) => {
   res.json({ configured: patreonService.isConfigured() });
 });
 
+// Patreon logout - clears the live socket's authenticated state and the
+// session cookie, sending the user back through the warning/login gate.
+// The persisted tier record (usersByPatreonId/SQLite) is left intact so a
+// future re-login restores it immediately instead of re-fetching from Patreon.
+app.get("/auth/patreon/logout", (req, res) => {
+  const socketId = req.query.socketId || req.query.socket_id;
+
+  if (socketId) {
+    patreonService.logout(socketId);
+    const socket = io.sockets.sockets.get(socketId);
+    if (socket) {
+      socket.emit("membership-tier", {
+        tier: "FREE",
+        features: ENV.PATREON.FEATURES.FREE,
+        fullName: "Guest",
+        avatarUrl: null,
+        thumbUrl: null,
+        patreonConfigured: patreonService.isConfigured(),
+        authenticated: false,
+      });
+    }
+  }
+
+  res.clearCookie("patreon_user_id", {
+    httpOnly: true,
+    secure: ENV.SERVER.isProduction,
+    sameSite: "lax",
+  });
+  console.log(`🚪 Patreon logout${socketId ? ` (socket ${socketId})` : ""}`);
+
+  if (req.query.redirect === "false") {
+    return res.json({ success: true });
+  }
+  res.redirect("/warning.html");
+});
+
 // Get Patreon login URL (for client-side redirect)
 app.get("/api/patreon/login-url", (req, res) => {
   try {
@@ -1780,7 +1858,7 @@ app.get("/auth/patreon/callback", async (req, res) => {
     res.cookie("patreon_user_id", patreonUserId, {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       httpOnly: true,
-      secure: ENV.SERVER.IS_PRODUCTION,
+      secure: ENV.SERVER.isProduction,
       sameSite: "lax",
     });
     console.log(`🍪 Set patreon_user_id cookie: ${patreonUserId}`);
