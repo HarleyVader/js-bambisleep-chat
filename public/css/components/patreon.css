@@ -355,24 +355,28 @@
     padding: 4px 10px;
 }
 
-/* Small icon-only logout button, sitting inside .patreon-user-info next to
-   the avatar/username/tier badge rather than as a separate full-size CTA. */
+/* Small but legible pill logout button, sitting inside .patreon-user-info
+   next to the avatar/username/tier badge rather than as a separate
+   full-size CTA. Sized like .tier-badge (its visual sibling), not an
+   icon-only circle, so the "Logout" label stays readable. */
 .patreon-user-info .patreon-logout-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: auto;
+    height: auto;
     min-height: 0;
     min-width: 0;
-    padding: 0;
+    padding: 4px 10px;
     margin: 0;
-    font-size: 0.7em;
-    line-height: 1;
-    background: rgba(0, 0, 0, 0.35);
+    font-size: 0.75em;
+    font-weight: bold;
+    line-height: 1.4;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.45);
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 14px;
     cursor: pointer;
     flex-shrink: 0;
     transition: background 0.2s ease, transform 0.2s ease;
@@ -380,7 +384,7 @@
 
 .patreon-user-info .patreon-logout-btn:hover {
     background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
 /* Tier-specific avatar glows */
@@ -445,8 +449,7 @@
     }
 
     .patreon-user-info .patreon-logout-btn {
-        width: 16px;
-        height: 16px;
-        font-size: 0.6em;
+        font-size: 0.65em;
+        padding: 3px 8px;
     }
 }

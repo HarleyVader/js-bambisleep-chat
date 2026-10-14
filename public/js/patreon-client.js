@@ -164,7 +164,7 @@ export class PatreonClient {
         const logoutBtn = document.createElement("button");
         logoutBtn.id = "patreon-logout-btn";
         logoutBtn.className = "patreon-logout-btn";
-        logoutBtn.innerHTML = "🚪";
+        logoutBtn.innerHTML = "🚪 Logout";
         logoutBtn.title = "Logout from Patreon";
         logoutBtn.setAttribute("aria-label", "Logout from Patreon");
         logoutBtn.addEventListener("click", () => this.logoutFromPatreon());
