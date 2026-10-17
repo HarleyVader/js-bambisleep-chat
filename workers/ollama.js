@@ -236,14 +236,17 @@ if (parentPort) {
                     await autoLoadBestModel();
                     break;
 
-                case 'health':
+                case 'health': {
+                    const loadedModels = await getLoadedModels();
                     parentPort.postMessage({
                         type: 'health_response',
                         healthy: config.isConfigured,
                         sessionCount: Object.keys(sessionHistories).length,
-                        configStatus: config.getStatus()
+                        configStatus: config.getStatus(),
+                        loadedModels: loadedModels.map(m => m.name || m.model)
                     });
                     break;
+                }
 
                 default:
                     console.warn(`Unknown message type: ${msg.type}`);
@@ -263,6 +266,23 @@ if (parentPort) {
 async function autoLoadBestModel() {
     try {
         console.log(`🔍 Searching for model matching "${MODEL}"...`);
+
+        const loadedModels = await getLoadedModels();
+        const loadedMatch = findLoadedModelMatch(loadedModels);
+        if (loadedMatch) {
+            const modelName = loadedMatch.name || loadedMatch.model;
+            console.log(`✅ Model already loaded in memory, skipping verification: ${modelName}`);
+            currentModelId = modelName;
+
+            if (parentPort) {
+                parentPort.postMessage({
+                    type: 'model_loaded',
+                    modelId: modelName,
+                    modelSize: formatFileSize(loadedMatch.size)
+                });
+            }
+            return true;
+        }
 
         const availableModels = await getAvailableModels();
         if (!availableModels.length) {
@@ -317,6 +337,34 @@ async function getAvailableModels() {
         console.error('❌ Error fetching models from Ollama:', error.message);
         return [];
     }
+}
+
+// Get currently loaded (in-memory/warm) models from Ollama using /api/ps
+async function getLoadedModels() {
+    try {
+        const apiUrl = `http://${OLLAMA_HOST}:${OLLAMA_PORT}/api/ps`;
+
+        const response = await axios.get(apiUrl, {
+            timeout: OLLAMA_REST_API_TIMEOUT,
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        return response.data?.models || [];
+    } catch (error) {
+        console.error('❌ Error fetching loaded models from Ollama:', error.message);
+        return [];
+    }
+}
+
+// Find the target model (by configured MODEL name) among currently loaded/warm models
+function findLoadedModelMatch(loadedModels) {
+    const targetLower = MODEL.toLowerCase();
+
+    return loadedModels.find(m => {
+        const nameLower = (m.name || m.model || '').toLowerCase();
+        const baseName = nameLower.split(':')[0];
+        return baseName === targetLower.split(':')[0] || nameLower === targetLower;
+    });
 }
 
 // Find all variants of the target model by name
@@ -374,6 +422,23 @@ function formatFileSize(bytes) {
 // Auto-detect and verify model on startup
 async function initializeModelSystem() {
     try {
+        const loadedModels = await getLoadedModels();
+        const loadedMatch = findLoadedModelMatch(loadedModels);
+
+        if (loadedMatch) {
+            const modelName = loadedMatch.name || loadedMatch.model;
+            console.log(`✅ Target model already loaded in memory: ${modelName}`);
+            currentModelId = modelName;
+            if (parentPort) {
+                parentPort.postMessage({
+                    type: 'model_loaded',
+                    modelId: modelName,
+                    modelSize: formatFileSize(loadedMatch.size)
+                });
+            }
+            return;
+        }
+
         const availableModels = await getAvailableModels();
         const exactMatch = availableModels.find(m => {
             const base = (m.name || '').split(':')[0].toLowerCase();
