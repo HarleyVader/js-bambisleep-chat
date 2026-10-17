@@ -43,6 +43,7 @@ class TranscriptionWorker {
 
     this.transcriptionUrl = ENV.TRANSCRIPTION.URL;
     this.apiUrl = ENV.TRANSCRIPTION.API_URL;
+    this.healthUrl = ENV.TRANSCRIPTION.HEALTH_URL;
     this.timeout = ENV.TRANSCRIPTION.TIMEOUT;
     this.isHealthy = true;
 
@@ -75,16 +76,7 @@ class TranscriptionWorker {
           break;
 
         case "health":
-          this.sendResponse(
-            "health_response",
-            {
-              healthy: this.isHealthy,
-              fallbackMode: this.fallbackMode,
-              url: this.transcriptionUrl || "not-configured",
-              lastCheck: new Date().toISOString(),
-            },
-            msg.socketId
-          );
+          await this.checkHealth(msg.socketId);
           break;
 
         default:
@@ -156,6 +148,57 @@ class TranscriptionWorker {
     } catch (error) {
       console.error("Transcription failed:", error);
       this.sendError(`Transcription failed: ${error.message}`, socketId);
+    }
+  }
+
+  // Live health check against the service's /health/transcription endpoint
+  async checkHealth(socketId = null) {
+    if (this.fallbackMode || !this.healthUrl) {
+      this.sendResponse(
+        "health_response",
+        {
+          healthy: false,
+          fallbackMode: this.fallbackMode,
+          url: this.transcriptionUrl || "not-configured",
+          lastCheck: new Date().toISOString(),
+        },
+        socketId
+      );
+      return;
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(this.healthUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      this.isHealthy = response.ok;
+      this.sendResponse(
+        "health_response",
+        {
+          healthy: this.isHealthy,
+          fallbackMode: this.fallbackMode,
+          url: this.transcriptionUrl,
+          status: response.status,
+          lastCheck: new Date().toISOString(),
+        },
+        socketId
+      );
+    } catch (error) {
+      this.isHealthy = false;
+      this.sendResponse(
+        "health_response",
+        {
+          healthy: false,
+          fallbackMode: this.fallbackMode,
+          url: this.transcriptionUrl,
+          error: error.message,
+          lastCheck: new Date().toISOString(),
+        },
+        socketId
+      );
     }
   }
 

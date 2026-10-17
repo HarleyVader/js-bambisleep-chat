@@ -85,7 +85,7 @@ const KOKORO = {
   HOST: isProduction
     ? process.env.KOKORO_HOST_PRODUCTION
     : process.env.KOKORO_HOST_DEVELOPMENT,
-  PORT: parseInt(process.env.KOKORO_PORT) || 8081,
+  PORT: parseInt(process.env.KOKORO_PORT) || 8080,
 
   API_KEY: process.env.KOKORO_API_KEY || "",
   DEFAULT_VOICE: process.env.KOKORO_DEFAULT_VOICE || "af_sky+af_bella",
@@ -116,7 +116,7 @@ const KOKORO = {
     return this.URL ? `${this.URL}/v1/audio/speech` : null;
   },
 
-  // Voice cloning endpoint (same service, port 8081 per external service table)
+  // Voice cloning endpoint (same consolidated speech service as TTS/transcription)
   get CLONE_URL() {
     return this.URL ? `${this.URL}/v1/audio/clone` : null;
   },
@@ -144,6 +144,11 @@ const TRANSCRIPTION = {
 
   get API_URL() {
     return this.URL ? `${this.URL}/v1/audio/transcriptions` : null;
+  },
+
+  // Live health-check endpoint for the transcription service
+  get HEALTH_URL() {
+    return this.URL ? `${this.URL}/health/transcription` : null;
   },
 
   get isConfigured() {

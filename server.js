@@ -52,7 +52,7 @@ class EnvironmentValidator {
       kokoro: [
         { name: "KOKORO_HOST_PRODUCTION", required: false, type: "host" },
         { name: "KOKORO_HOST_DEVELOPMENT", required: false, type: "host" },
-        { name: "KOKORO_PORT", default: 8880, type: "port" },
+        { name: "KOKORO_PORT", default: 8080, type: "port" },
         {
           name: "KOKORO_DEFAULT_VOICE",
           default: "af_sky+af_bella",
@@ -372,7 +372,7 @@ const configStatus = validateConfiguration();
 app.use((req, res, next) => {
   // Dynamically include external service hosts
   const kokoroHost = ENV.KOKORO.HOST || "localhost";
-  const kokoroPort = ENV.KOKORO.PORT || 8880;
+  const kokoroPort = ENV.KOKORO.PORT || 8080;
   const ollamaHost = ENV.OLLAMA.HOST || "localhost";
   const ollamaPort = ENV.OLLAMA.PORT || 11434;
 
@@ -2423,7 +2423,7 @@ app.get("/api/tts/health", async (req, res) => {
       process.env.KOKORO_HOST_PRODUCTION ||
       "localhost";
   }
-  const kokoroPort = process.env.KOKORO_PORT || 8880;
+  const kokoroPort = process.env.KOKORO_PORT || 8080;
 
   res.json({
     healthy: kokoroWorker ? true : false,
@@ -2435,6 +2435,58 @@ app.get("/api/tts/health", async (req, res) => {
     workerAvailable: kokoroWorker ? true : false,
     timestamp: new Date().toISOString(),
   });
+});
+
+// Transcription health check - proxies the service's real GET /health/transcription endpoint
+app.get("/api/transcription/health", async (req, res) => {
+  if (!transcriptionWorker) {
+    return res.json({
+      healthy: false,
+      service: "Transcription",
+      workerAvailable: false,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  const tempSocketId = `api_transcription_health_${Date.now()}_${Math.random()
+    .toString(36)
+    .substr(2, 9)}`;
+
+  const originalHandler = handleTranscriptionWorkerMessage;
+  let settled = false;
+
+  const timeout = setTimeout(() => {
+    if (settled) return;
+    settled = true;
+    handleTranscriptionWorkerMessage = originalHandler;
+    res.json({
+      healthy: false,
+      service: "Transcription",
+      workerAvailable: true,
+      error: "Health check timed out",
+      timestamp: new Date().toISOString(),
+    });
+  }, 7000);
+
+  handleTranscriptionWorkerMessage = (msg) => {
+    if (msg.socketId === tempSocketId && msg.type === "health_response") {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      handleTranscriptionWorkerMessage = originalHandler;
+      res.json({
+        healthy: msg.healthy,
+        service: "Transcription",
+        url: msg.url,
+        workerAvailable: true,
+        timestamp: msg.lastCheck,
+      });
+    } else {
+      originalHandler(msg);
+    }
+  };
+
+  sendToTranscriptionWorker({ type: "health", socketId: tempSocketId });
 });
 
 // TTS Voice management endpoint (enhanced)

@@ -182,7 +182,7 @@ class EnvironmentTester {
         const ports = [
             { port: 5173, name: 'Vite Dev Server' },
             { port: 6969, name: 'Backend Server' },
-            { port: 8880, name: 'Kokoro TTS (default)' },
+            { port: 8080, name: 'Kokoro TTS / Transcription (default)' },
             { port: 11434, name: 'Ollama (default)' }
         ];
 
