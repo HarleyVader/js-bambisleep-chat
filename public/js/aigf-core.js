@@ -570,6 +570,16 @@ class ChatCore {
       this.addSystemMessage(`Error: ${error}`);
       console.error("Socket error:", error);
     });
+
+    // Transcription events (mic recording -> text in the chat input)
+    this.socket.on("transcribe-response", (data) => {
+      this.handleTranscriptionResult(data);
+    });
+
+    this.socket.on("transcribe-error", (data) => {
+      this.addSystemMessage(`🎙️ Transcription error: ${data.error}`);
+      this.setMicButtonState(false);
+    });
   }
 
   initUI() {
@@ -577,6 +587,7 @@ class ChatCore {
     this.aigfChatMessages = document.getElementById("aigf-chat-messages");
     this.aigfChatInput = document.getElementById("aigf-chat-input");
     this.aigfSendButton = document.getElementById("aigf-send-button");
+    this.aigfMicButton = document.getElementById("aigf-mic-button");
     this.aigfInputContainer = document.getElementById(
       "aigf-chat-input-container",
     );
@@ -764,6 +775,12 @@ class ChatCore {
       });
     }
 
+    if (this.aigfMicButton) {
+      this.aigfMicButton.addEventListener("click", () =>
+        this.toggleVoiceRecording(),
+      );
+    }
+
     // Toggle controls - now handled by dropdown.js
     // this.toggleSpiral.addEventListener('click', () => this.toggleSpiralAnimation());
     // this.toggleTTS.addEventListener('click', () => this.toggleTextToSpeech());
@@ -856,6 +873,83 @@ class ChatCore {
         ", ",
       )}`,
     );
+  }
+
+  // Toggle mic recording for speech-to-text transcription into the chat input
+  async toggleVoiceRecording() {
+    if (this.isRecordingVoice) {
+      this.voiceMediaRecorder?.stop();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.voiceRecordedChunks = [];
+      this.voiceMediaRecorder = new MediaRecorder(stream);
+
+      this.voiceMediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this.voiceRecordedChunks.push(e.data);
+      };
+
+      this.voiceMediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        this.isRecordingVoice = false;
+        this.setMicButtonState(false);
+
+        const blob = new Blob(this.voiceRecordedChunks, { type: "audio/webm" });
+        if (blob.size === 0) return;
+
+        try {
+          const base64 = await this.blobToBase64(blob);
+          this.addSystemMessage("🎙️ Transcribing voice message...");
+          this.socket.emit("transcribe-request", {
+            audioData: base64,
+            mimeType: "audio/webm",
+            fileName: "voice-message.webm",
+          });
+        } catch (error) {
+          console.error("❌ Failed to encode voice recording:", error);
+          this.addSystemMessage("🎙️ Failed to process voice recording");
+        }
+      };
+
+      this.voiceMediaRecorder.start();
+      this.isRecordingVoice = true;
+      this.setMicButtonState(true);
+    } catch (error) {
+      console.error("❌ Microphone access failed:", error);
+      this.addSystemMessage("🎙️ Microphone access denied");
+    }
+  }
+
+  setMicButtonState(recording) {
+    if (!this.aigfMicButton) return;
+    this.aigfMicButton.textContent = recording ? "⏹️" : "🎤";
+    this.aigfMicButton.classList.toggle("recording", recording);
+  }
+
+  blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1] || "");
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // Insert transcribed speech into the chat input for the user to review/send
+  handleTranscriptionResult(data) {
+    const text = data?.text?.trim();
+    if (!text) {
+      this.addSystemMessage("🎙️ No speech detected");
+      return;
+    }
+
+    if (this.aigfChatInput) {
+      this.aigfChatInput.value = text;
+      this.aigfChatInput.focus();
+    }
+    this.addSystemMessage(`🎙️ Transcribed: "${text}"`);
   }
 
   addMessage(

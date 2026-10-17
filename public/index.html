@@ -106,6 +106,12 @@
           <span class="status-indicator" id="prompt-status">●</span>
         </button>
       </div>
+      <div class="dropdown" data-dropdown="voiceclone">
+        <button id="toggle-voiceclone" class="dropdown-btn toggle-button" data-state="off">
+          🧬 Clone
+          <span class="status-indicator" id="voiceclone-status">●</span>
+        </button>
+      </div>
       <div class="dropdown" data-dropdown="brainwave">
         <button id="toggle-brainwave" class="dropdown-btn toggle-button" data-state="off">
           🧠 Brainwaves
@@ -140,6 +146,9 @@
       <div class="dropdown-content" data-dropdown="prompt">
         <!-- Content will be populated by prompt-dropdown.js -->
       </div>
+      <div class="dropdown-content" data-dropdown="voiceclone">
+        <!-- Content will be populated by voice-clone-dropdown.js -->
+      </div>
       <div class="dropdown-content" data-dropdown="brainwave">
         <!-- Content will be populated by brainwave-dropdown.js -->
       </div>
@@ -159,6 +168,7 @@
       <!-- AIGF Chat Input Container -->
       <div id="aigf-chat-input-container">
         <input type="text" id="aigf-chat-input" placeholder="Type AIGF message..." maxlength="500">
+        <button id="aigf-mic-button" type="button" title="Record voice message">🎤</button>
         <button id="aigf-send-button">Send AIGF</button>
       </div>
 

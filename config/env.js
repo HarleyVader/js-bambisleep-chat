@@ -85,7 +85,7 @@ const KOKORO = {
   HOST: isProduction
     ? process.env.KOKORO_HOST_PRODUCTION
     : process.env.KOKORO_HOST_DEVELOPMENT,
-  PORT: parseInt(process.env.KOKORO_PORT) || 8880,
+  PORT: parseInt(process.env.KOKORO_PORT) || 8081,
 
   API_KEY: process.env.KOKORO_API_KEY || "",
   DEFAULT_VOICE: process.env.KOKORO_DEFAULT_VOICE || "af_sky+af_bella",
@@ -114,6 +114,36 @@ const KOKORO = {
 
   get API_URL() {
     return this.URL ? `${this.URL}/v1/audio/speech` : null;
+  },
+
+  // Voice cloning endpoint (same service, port 8081 per external service table)
+  get CLONE_URL() {
+    return this.URL ? `${this.URL}/v1/audio/clone` : null;
+  },
+
+  get isConfigured() {
+    return !!(this.HOST && this.PORT);
+  },
+};
+
+/**
+ * Transcription (Speech-to-Text) Configuration
+ * Separate external service from Kokoro TTS - automatically selects host based on environment
+ */
+const TRANSCRIPTION = {
+  HOST: isProduction
+    ? process.env.TRANSCRIPTION_HOST_PRODUCTION
+    : process.env.TRANSCRIPTION_HOST_DEVELOPMENT,
+  PORT: parseInt(process.env.TRANSCRIPTION_PORT) || 8080,
+  TIMEOUT: parseInt(process.env.TRANSCRIPTION_TIMEOUT) || 60000,
+
+  // Derived values
+  get URL() {
+    return this.HOST ? `http://${this.HOST}:${this.PORT}` : null;
+  },
+
+  get API_URL() {
+    return this.URL ? `${this.URL}/v1/audio/transcriptions` : null;
   },
 
   get isConfigured() {
@@ -319,11 +349,27 @@ const validation = {
     };
   },
 
+  validateTranscription() {
+    const missing = [];
+    if (!TRANSCRIPTION.HOST)
+      missing.push(
+        "TRANSCRIPTION_HOST_" + (isProduction ? "PRODUCTION" : "DEVELOPMENT"),
+      );
+    if (!TRANSCRIPTION.PORT) missing.push("TRANSCRIPTION_PORT");
+
+    return {
+      valid: missing.length === 0,
+      missing,
+      configured: TRANSCRIPTION.isConfigured,
+    };
+  },
+
   validateAll() {
     return {
       ollama: this.validateOllama(),
       kokoro: this.validateKokoro(),
       patreon: this.validatePatreon(),
+      transcription: this.validateTranscription(),
       server: {
         valid: true,
         configured: true,
@@ -352,6 +398,10 @@ function getSummary() {
         configured: KOKORO.isConfigured,
         url: KOKORO.URL || "not-configured",
         defaultVoice: KOKORO.DEFAULT_VOICE,
+      },
+      transcription: {
+        configured: TRANSCRIPTION.isConfigured,
+        url: TRANSCRIPTION.URL || "not-configured",
       },
       patreon: {
         configured: PATREON.isConfigured,
@@ -382,6 +432,9 @@ function printSummary() {
   );
   console.log(`   Default Voice: ${KOKORO.DEFAULT_VOICE}`);
   console.log(
+    `   Transcription: ${TRANSCRIPTION.isConfigured ? "✅ " + TRANSCRIPTION.URL : "❌ Not Configured"}`,
+  );
+  console.log(
     `   Patreon OAuth: ${PATREON.isConfigured ? "✅ Configured" : "❌ Not Configured"}`,
   );
   console.log("\n📊 Limits:");
@@ -399,6 +452,7 @@ module.exports = {
   SERVER,
   OLLAMA,
   KOKORO,
+  TRANSCRIPTION,
   PATREON,
   CHAT,
   DEBUG,

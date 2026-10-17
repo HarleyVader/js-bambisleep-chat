@@ -329,4 +329,37 @@
         border-color: var(--button-color);
         background: rgba(255, 105, 180, 0.2);
     }
+
+    /* Voice Clone - file upload label + cloned voice list */
+    .voiceclone-upload-label {
+        display: block;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .voiceclone-file-input {
+        display: none;
+    }
+
+    .cloned-voice-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .cloned-voice-item span {
+        flex: 1;
+        color: var(--nav-alt);
+        font-size: var(--font-size-sm);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .cloned-voice-item .dropdown-item {
+        width: auto;
+        flex: 0 0 auto;
+    }
 }

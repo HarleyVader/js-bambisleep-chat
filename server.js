@@ -360,6 +360,9 @@ const io = new Server(server, {
     origin: ENV.SECURITY.CORS_ORIGIN,
     methods: ["GET", "POST"],
   },
+  // Raised from the 1MB default so recorded voice-clone/transcription audio
+  // clips (base64-encoded over the socket) aren't rejected mid-upload.
+  maxHttpBufferSize: 10 * 1024 * 1024,
 });
 
 // Validate configuration on startup
@@ -425,7 +428,8 @@ app.use((req, res, next) => {
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader(
     "Permissions-Policy",
-    "microphone=(), camera=(), geolocation=(), payment=()",
+    // microphone is needed for the Voice Clone / Transcription (mic recording) features
+    "microphone=(self), camera=(), geolocation=(), payment=()",
   );
 
   next();
@@ -654,6 +658,7 @@ loadOfficialTriggers();
 // Worker Management
 let lmWorker = null;
 let kokoroWorker = null;
+let transcriptionWorker = null;
 let workerUsers = new Map(); // Track which users are using AI
 let collarActive = false;
 let collarText = "";
@@ -726,6 +731,37 @@ function initializeKokoroWorker() {
   }
 }
 
+function initializeTranscriptionWorker() {
+  try {
+    transcriptionWorker = new Worker(
+      path.join(__dirname, "workers", "transcription.js"),
+    );
+
+    transcriptionWorker.on("message", (msg) => {
+      handleTranscriptionWorkerMessage(msg);
+    });
+
+    transcriptionWorker.on("error", (error) => {
+      console.error("❌ Transcription worker error:", error);
+      transcriptionWorker = null; // Mark as unavailable
+    });
+
+    transcriptionWorker.on("exit", (code) => {
+      console.log(`❌ Transcription worker exited with code ${code}`);
+      transcriptionWorker = null; // Mark as unavailable
+      if (code !== 0) {
+        console.log("🔄 Restarting Transcription worker in 5 seconds...");
+        setTimeout(initializeTranscriptionWorker, 5000);
+      }
+    });
+
+    console.log("✅ Transcription worker initialized");
+  } catch (error) {
+    console.error("❌ Failed to initialize Transcription worker:", error);
+    transcriptionWorker = null; // Ensure it's marked as unavailable
+  }
+}
+
 // Helper functions to safely interact with workers
 function sendToLMWorker(message, fallbackCallback = null) {
   if (lmWorker) {
@@ -759,6 +795,25 @@ function sendToKokoroWorker(message, fallbackCallback = null) {
 
   // Worker unavailable - handle gracefully
   console.warn("⚠️ Kokoro TTS worker unavailable, using fallback");
+  if (fallbackCallback) {
+    fallbackCallback();
+  }
+  return false;
+}
+
+function sendToTranscriptionWorker(message, fallbackCallback = null) {
+  if (transcriptionWorker) {
+    try {
+      transcriptionWorker.postMessage(message);
+      return true;
+    } catch (error) {
+      console.error("❌ Failed to send message to Transcription worker:", error);
+      transcriptionWorker = null;
+    }
+  }
+
+  // Worker unavailable - handle gracefully
+  console.warn("⚠️ Transcription worker unavailable, using fallback");
   if (fallbackCallback) {
     fallbackCallback();
   }
@@ -906,12 +961,63 @@ function handleKokoroWorkerMessage(msg) {
     case "voice_updated":
       console.log(`🎤 Voice updated to: ${msg.voice}`);
       break;
+
+    case "voice_clone_success":
+      if (msg.socketId) {
+        io.to(msg.socketId).emit("voice-clone-response", {
+          voice: msg.voice,
+          requestedName: msg.requestedName,
+          timestamp: msg.timestamp,
+        });
+      }
+      console.log(`✅ Voice cloned for ${msg.socketId}: ${msg.voice}`);
+      break;
+
+    case "voice_clone_error":
+      console.error("Voice cloning error:", msg.error);
+      if (msg.socketId) {
+        io.to(msg.socketId).emit("voice-clone-error", {
+          error: msg.error,
+          timestamp: msg.timestamp,
+        });
+      }
+      break;
+  }
+}
+
+// Handle messages from the Transcription worker
+function handleTranscriptionWorkerMessage(msg) {
+  switch (msg.type) {
+    case "transcription_success":
+      if (msg.socketId) {
+        io.to(msg.socketId).emit("transcribe-response", {
+          text: msg.text,
+          timestamp: msg.timestamp,
+        });
+      }
+      console.log(`✅ Transcription delivered to ${msg.socketId}`);
+      break;
+
+    case "transcription_error":
+      console.error("Transcription error:", msg.error);
+      if (msg.socketId) {
+        io.to(msg.socketId).emit("transcribe-error", {
+          error: msg.error,
+          timestamp: msg.timestamp,
+        });
+      }
+      break;
+
+    case "health_response":
+      console.log(`🎙️ Transcription health: ${msg.healthy}, URL: ${msg.url}`);
+      break;
   }
 }
 
 // Initialize workers on startup
 initializeLMWorker();
 initializeKokoroWorker();
+initializeTranscriptionWorker();
 
 // Periodically re-verify every logged-in user's Patreon membership so pledge
 // changes (upgrades/downgrades/cancellations) and revoked OAuth grants are
@@ -1196,6 +1302,115 @@ io.on("connection", (socket) => {
       voice: voice,
       socketId: socket.id,
     });
+  });
+
+  // Handle voice cloning requests (upload/record an audio sample to create a new voice)
+  socket.on("voice-clone-request", (data) => {
+    if (!kokoroWorker) {
+      socket.emit("voice-clone-error", {
+        error: "Kokoro TTS worker not available",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const { audioData, mimeType, fileName, voiceName, referenceText } = data || {};
+
+    if (!audioData || typeof audioData !== "string") {
+      socket.emit("voice-clone-error", {
+        error: "Invalid audio sample for voice cloning",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    // Base64 is ~33% larger than raw bytes; this bounds the decoded sample to ~15MB
+    if (audioData.length > 20 * 1024 * 1024) {
+      socket.emit("voice-clone-error", {
+        error: "Audio sample too large (maximum ~15MB)",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (!voiceName || typeof voiceName !== "string" || !voiceName.trim()) {
+      socket.emit("voice-clone-error", {
+        error: "A voice name is required for voice cloning",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    console.log(
+      `🧬 Voice clone request from ${socket.id}: "${voiceName.trim().substring(0, 50)}"`,
+    );
+
+    sendToKokoroWorker(
+      {
+        type: "voice_clone",
+        audioData,
+        mimeType: typeof mimeType === "string" ? mimeType : undefined,
+        fileName: typeof fileName === "string" ? fileName.substring(0, 100) : undefined,
+        voiceName: voiceName.trim().substring(0, 50),
+        referenceText:
+          typeof referenceText === "string" ? referenceText.substring(0, 1000) : undefined,
+        socketId: socket.id,
+      },
+      () => {
+        socket.emit("voice-clone-error", {
+          error: "Kokoro voice cloning service unavailable.",
+          timestamp: new Date().toISOString(),
+        });
+      },
+    );
+  });
+
+  // Handle transcription requests (recorded mic audio -> text)
+  socket.on("transcribe-request", (data) => {
+    if (!transcriptionWorker) {
+      socket.emit("transcribe-error", {
+        error: "Transcription worker not available",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const { audioData, mimeType, fileName, language } = data || {};
+
+    if (!audioData || typeof audioData !== "string") {
+      socket.emit("transcribe-error", {
+        error: "Invalid audio data for transcription",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (audioData.length > 20 * 1024 * 1024) {
+      socket.emit("transcribe-error", {
+        error: "Audio sample too large (maximum ~15MB)",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    console.log(`🎙️ Transcription request from ${socket.id}`);
+
+    sendToTranscriptionWorker(
+      {
+        type: "transcribe",
+        audioData,
+        mimeType: typeof mimeType === "string" ? mimeType : undefined,
+        fileName: typeof fileName === "string" ? fileName.substring(0, 100) : undefined,
+        language: typeof language === "string" ? language.substring(0, 20) : undefined,
+        socketId: socket.id,
+      },
+      () => {
+        socket.emit("transcribe-error", {
+          error: "Transcription service unavailable.",
+          timestamp: new Date().toISOString(),
+        });
+      },
+    );
   });
 
   // Handle collar activation
@@ -2564,6 +2779,9 @@ class GitPullDetector {
     }
     if (kokoroWorker) {
       kokoroWorker.terminate();
+    }
+    if (transcriptionWorker) {
+      transcriptionWorker.terminate();
     }
 
     // Cleanup memory manager

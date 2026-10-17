@@ -145,6 +145,17 @@
         color: rgba(255, 255, 255, 0.5);
     }
 
+    /* Mic button recording state (voice-to-text) */
+    #aigf-mic-button.recording {
+        color: #ff3b3b;
+        animation: micPulse 1s ease-in-out infinite;
+    }
+
+    @keyframes micPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
     /* ===== Visibility Control ===== */
     #aigf-chat-messages.hidden,
     #aigf-chat-input-container.hidden {

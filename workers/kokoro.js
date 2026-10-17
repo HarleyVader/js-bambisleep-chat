@@ -77,11 +77,18 @@ class KokoroTTSWorker {
 
   async handleMessage(msg) {
     try {
-      if (this.fallbackMode && msg.type === "tts") {
-        this.sendError(
-          "Kokoro TTS not available - using Web Speech API fallback",
-          msg.socketId
-        );
+      if (this.fallbackMode && (msg.type === "tts" || msg.type === "voice_clone")) {
+        if (msg.type === "voice_clone") {
+          this.sendCloneError(
+            "Voice cloning not available - Kokoro TTS is not configured",
+            msg.socketId
+          );
+        } else {
+          this.sendError(
+            "Kokoro TTS not available - using Web Speech API fallback",
+            msg.socketId
+          );
+        }
         return;
       }
 
@@ -93,6 +100,10 @@ class KokoroTTSWorker {
         case "tts_batch":
           // OPTIMIZATION: Process multiple texts in parallel
           await this.generateSpeechBatch(msg);
+          break;
+
+        case "voice_clone":
+          await this.cloneVoice(msg);
           break;
 
         case "cache_stats":
@@ -391,12 +402,90 @@ class KokoroTTSWorker {
     };
   }
 
+  // Clone a voice from an uploaded audio sample via the /v1/audio/clone endpoint
+  async cloneVoice(msg) {
+    const { audioData, mimeType, fileName, voiceName, referenceText, socketId } = msg;
+
+    if (!audioData || typeof audioData !== "string") {
+      this.sendCloneError("Invalid audio sample for voice cloning", socketId);
+      return;
+    }
+
+    const trimmedName = typeof voiceName === "string" ? voiceName.trim() : "";
+    if (!trimmedName) {
+      this.sendCloneError("A voice name is required for voice cloning", socketId);
+      return;
+    }
+
+    console.log(`🧬 Cloning voice "${trimmedName}" from uploaded sample...`);
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+      const audioBuffer = Buffer.from(audioData, "base64");
+      const audioBlob = new Blob([audioBuffer], {
+        type: mimeType || "audio/wav",
+      });
+
+      const form = new FormData();
+      form.append("file", audioBlob, fileName || "sample.wav");
+      form.append("name", trimmedName);
+      if (referenceText && typeof referenceText === "string") {
+        form.append("text", referenceText);
+      }
+
+      const response = await fetch(`${this.kokoroUrl}/v1/audio/clone`, {
+        method: "POST",
+        body: form,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Voice clone API error (${response.status}): ${errorText}`);
+      }
+
+      // API may return JSON metadata about the new voice, or nothing at all
+      const result = await response.json().catch(() => ({}));
+      const clonedVoice = result.voice || result.voice_id || result.name || trimmedName;
+
+      console.log(`✅ Voice cloned successfully: ${clonedVoice}`);
+
+      this.sendResponse(
+        "voice_clone_success",
+        {
+          voice: clonedVoice,
+          requestedName: trimmedName,
+          timestamp: new Date().toISOString(),
+        },
+        socketId
+      );
+    } catch (error) {
+      console.error("Kokoro voice cloning failed:", error);
+      this.sendCloneError(`Voice cloning failed: ${error.message}`, socketId);
+    }
+  }
+
   sendResponse(type, data, socketId = null) {
     if (parentPort) {
       parentPort.postMessage({
         type,
         socketId,
         ...data,
+      });
+    }
+  }
+
+  sendCloneError(error, socketId = null) {
+    if (parentPort) {
+      parentPort.postMessage({
+        type: "voice_clone_error",
+        error,
+        socketId,
+        timestamp: new Date().toISOString(),
       });
     }
   }
