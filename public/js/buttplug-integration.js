@@ -239,6 +239,11 @@ class ButtplugIntegration {
       }
 
       this.isConnected = true;
+      // Connecting a device should enable vibration/trigger sync by default -
+      // isEnabled previously only flipped via the separate "Devices" nav toggle,
+      // so a connected-but-not-separately-toggled-on device never vibrated.
+      this.isEnabled = true;
+      this.syncToggleButtonUI();
       this.saveSettings();
       return true;
     } catch (error) {
@@ -258,10 +263,23 @@ class ButtplugIntegration {
         await this.client.disconnect();
       }
       this.isConnected = false;
+      this.isEnabled = false;
       this.devices = [];
+      this.syncToggleButtonUI();
       console.log("⚫ Disconnected from Buttplug server");
     } catch (error) {
       console.error("❌ Error disconnecting:", error);
+    }
+  }
+
+  // Keep the nav "Devices" toggle button's visual state consistent with isEnabled
+  syncToggleButtonUI() {
+    const btn = document.getElementById("toggle-buttplug");
+    const statusIndicator = document.getElementById("buttplug-status");
+    if (btn) btn.setAttribute("data-state", this.isEnabled ? "on" : "off");
+    if (statusIndicator) {
+      statusIndicator.style.color = this.isEnabled ? "#00ff00" : "#666";
+      statusIndicator.textContent = "●";
     }
   }
 
