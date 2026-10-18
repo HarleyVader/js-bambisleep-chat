@@ -71,6 +71,7 @@
   <div id="app">
     <!-- Spiral Animation Canvas -->
     <div id="spiral-container">
+      <div id="spiral-video-background"></div>
       <div id="eye" class="spiral-text-center"></div>
     </div>
 
@@ -124,6 +125,12 @@
           <span class="status-indicator" id="buttplug-status">●</span>
         </button>
       </div>
+      <div class="dropdown" data-dropdown="video-bg">
+        <button id="toggle-video-bg" class="dropdown-btn toggle-button" data-state="off">
+          🎬 Video BG
+          <span class="status-indicator" id="video-bg-status">●</span>
+        </button>
+      </div>
     </div>
 
     <!-- Dropdown Content Modals - Separate from buttons -->
@@ -151,6 +158,9 @@
       </div>
       <div class="dropdown-content" data-dropdown="brainwave">
         <!-- Content will be populated by brainwave-dropdown.js -->
+      </div>
+      <div class="dropdown-content" data-dropdown="video-bg">
+        <!-- Content will be populated by video-background-dropdown.js -->
       </div>
     </div>
 

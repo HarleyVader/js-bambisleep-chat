@@ -101,6 +101,9 @@ class PromptManager {
         if (!prompt) return null;
         let result = this._sub(prompt.main || '', vars);
         if (vars.collar && prompt.collar_addon) result += this._sub(prompt.collar_addon, vars);
+        if (vars.collar && vars.collarOverride) {
+            result += `\n\nACTIVE COLLAR OVERRIDE (mandatory additional directives - follow these exactly while remaining BambiSleep, never breaking character):\n${vars.collarOverride}`;
+        }
         if (prompt.strategy) result += this._sub(prompt.strategy, vars);
         return result;
     }
@@ -228,8 +231,16 @@ if (parentPort) {
 
                 case 'collar':
                     collar = true;
-                    collarText = msg.data;
+                    collarText = msg.data || '';
                     console.log(`Worker collar activated: "${collarText.substring(0, 30)}..."`);
+                    if (msg.socketId) await applyCollarToSession(msg.socketId);
+                    break;
+
+                case 'collar_deactivate':
+                    collar = false;
+                    collarText = '';
+                    console.log('Worker collar deactivated');
+                    if (msg.socketId) await applyCollarToSession(msg.socketId);
                     break;
 
                 case 'auto_load_model':
@@ -535,6 +546,7 @@ async function checkRole(collar, username, userSelectedTriggers, promptId = null
             selectedTriggerNames,
             triggerDescriptionPairs,
             collarName: collarText || 'COLLAR',
+            collarOverride: collarText,
             collar
         };
         const built = promptManager.build(effectiveId, vars);
@@ -614,6 +626,23 @@ async function handlePromptCommand(command, socketId, username, currentTriggers 
                 '  /prompt reload \u2014 reload prompt files from disk',
                 socketId, username
             );
+    }
+}
+
+// Rebuild an existing session's system message in place so a collar
+// activation/deactivation takes effect immediately, without waiting for a
+// fresh session or /prompt use reset.
+async function applyCollarToSession(socketId) {
+    const session = sessionHistories[socketId];
+    if (!session || !session.metadata) return;
+
+    const { promptId, username, lastTriggers } = session.metadata;
+    const systemPrompt = await checkRole(collar, username, lastTriggers || [], promptId);
+    const sysIndex = session.findIndex((msg) => msg.role === 'system');
+    if (sysIndex !== -1) {
+        session[sysIndex].content = systemPrompt;
+    } else {
+        session.unshift({ role: 'system', content: systemPrompt });
     }
 }
 

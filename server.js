@@ -1442,11 +1442,58 @@ io.on("connection", (socket) => {
     collarActive = false;
     collarText = "";
 
+    sendToLMWorker({
+      type: "collar_deactivate",
+      socketId: socket.id,
+    });
+
     console.log(`Collar deactivated for ${socket.id}`);
 
     // Notify client
     socket.emit("collar-activated", {
       active: false,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // Handle collar settings from the Collar dropdown UI - overrides the
+  // system prompt (via worker's checkRole/collar_addon) while keeping the
+  // BambiSleep persona intact.
+  socket.on("collar-settings", (data) => {
+    const settings = (data?.settings || "").toString().trim();
+
+    if (!settings) {
+      socket.emit("collar-error", {
+        error: "Collar settings cannot be empty",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (settings.length > ENV.CHAT.MAX_MESSAGE_LENGTH) {
+      socket.emit("collar-error", {
+        error: `Collar settings exceed maximum length of ${ENV.CHAT.MAX_MESSAGE_LENGTH} characters`,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    collarActive = true;
+    collarText = settings;
+
+    sendToLMWorker({
+      type: "collar",
+      data: collarText,
+      socketId: socket.id,
+    });
+
+    console.log(
+      `Collar settings applied for ${socket.id}: "${collarText.substring(0, 30)}..."`,
+    );
+
+    socket.emit("collar-activated", {
+      active: true,
+      text: collarText,
       timestamp: new Date().toISOString(),
     });
   });

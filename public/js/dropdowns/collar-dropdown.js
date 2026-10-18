@@ -156,12 +156,18 @@ export class CollarDropdown {
     const textarea = document.getElementById("collar-text");
     if (textarea) {
       textarea.value = "";
-      this.collarSettings = "";
-      StorageUtils.removeItem("bambi-collar-settings");
-      this.showFeedback("SETTINGS CLEARED");
-      this.updateCollarButton(false);
-      console.log("🗑️ Collar settings cleared");
     }
+    this.collarSettings = "";
+    StorageUtils.removeItem("bambi-collar-settings");
+
+    const socket = this.getSocket();
+    if (socket) {
+      socket.emit("deactivate-collar");
+    }
+
+    this.showFeedback("SETTINGS CLEARED");
+    this.updateCollarButton(false);
+    console.log("🗑️ Collar settings cleared");
   }
 
   exportSettings() {
@@ -209,17 +215,15 @@ export class CollarDropdown {
     if (savedSettings) {
       this.collarSettings = savedSettings;
       console.log("📋 Loading saved collar settings");
-
-      // Set textarea value when available
-      setTimeout(() => {
-        const textarea = document.getElementById("collar-text");
-        if (textarea) {
-          textarea.value = savedSettings;
-        }
-      }, 100);
-
       this.updateCollarButton(true);
     }
+  }
+
+  escapeHtml(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
   updateCollarButton(isActive) {
@@ -344,7 +348,7 @@ export class CollarDropdown {
             </div>
             <div class="dropdown-body">
                 <div class="dropdown-section">
-                    <textarea id="collar-text" class="collar-textarea" placeholder="Enter collar settings..."></textarea>
+                    <textarea id="collar-text" class="collar-textarea" placeholder="Enter collar settings...">${this.escapeHtml(this.collarSettings)}</textarea>
                 </div>
                 <div class="dropdown-divider"></div>
                 <div class="dropdown-section">

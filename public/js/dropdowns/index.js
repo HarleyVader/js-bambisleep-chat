@@ -11,3 +11,4 @@ export { createBrainwaveDropdown } from "./brainwave-dropdown.js";
 export { ButtplugDropdown } from "./buttplug-dropdown.js";
 export { PromptDropdown } from "./prompt-dropdown.js";
 export { VoiceCloneDropdown } from "./voice-clone-dropdown.js";
+export { VideoBackgroundDropdown } from "./video-background-dropdown.js";
