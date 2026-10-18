@@ -1480,13 +1480,6 @@ class TextToSpeechSystem {
     this.saveVoiceState();
   }
 
-  // Register a newly cloned voice name so it passes the availableVoices allow-list
-  registerClonedVoice(voiceName) {
-    if (voiceName && typeof voiceName === "string" && !this.availableVoices.includes(voiceName)) {
-      this.availableVoices.push(voiceName);
-    }
-  }
-
   // ENHANCED: Validate and clean voice selection
   validateAndCleanVoiceSelection() {
     // Remove any invalid voices
@@ -2173,7 +2166,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ENHANCED: Voice selection methods
     setVoice: (voice) => window.ttsSystem.setVoice(voice),
-    registerClonedVoice: (voice) => window.ttsSystem.registerClonedVoice(voice),
     addVoice: (voice) => window.ttsSystem.addVoice(voice),
     removeVoice: (voice) => window.ttsSystem.removeVoice(voice),
     clearVoiceSelection: () => window.ttsSystem.clearVoiceSelection(),

@@ -1,25 +1,23 @@
 /**
  * Voice Clone Dropdown Component for BambiSleep Chat
- * Lets a user record or upload a short audio sample and clone it into a
- * new TTS voice via the external voice-cloning service (/v1/audio/clone)
+ * Lets a user record or upload a short (3-30s) reference audio sample and
+ * synthesize given text in that voice via the external cloning service
+ * (/v1/audio/clone) - this is a one-shot operation, not a reusable voice.
  */
-
-import { StorageUtils } from "../storage-utils.js";
 
 export class VoiceCloneDropdown {
   constructor(dropdownManager) {
     this.dropdownManager = dropdownManager;
     this.buttonId = "toggle-voiceclone";
-    this.clonedVoices = [];
     this.isRecording = false;
     this.mediaRecorder = null;
     this.recordedChunks = [];
     this.selectedSample = null; // { base64, mimeType, fileName }
+    this.lastResultAudioUrl = null;
     this.init();
   }
 
   init() {
-    this.loadClonedVoices();
     this.attachSocketListeners();
   }
 
@@ -39,22 +37,6 @@ export class VoiceCloneDropdown {
 
     socket.on("voice-clone-response", (data) => this.handleCloneSuccess(data));
     socket.on("voice-clone-error", (data) => this.handleCloneError(data));
-  }
-
-  loadClonedVoices() {
-    const saved = StorageUtils.getItem("bambi-cloned-voices");
-    this.clonedVoices = Array.isArray(saved) ? saved : [];
-
-    // Re-register previously cloned voices so they pass TTS voice validation after a refresh
-    this.clonedVoices.forEach((v) => {
-      if (window.ttsControls?.registerClonedVoice) {
-        window.ttsControls.registerClonedVoice(v.voice);
-      }
-    });
-  }
-
-  saveClonedVoices() {
-    StorageUtils.setItem("bambi-cloned-voices", this.clonedVoices);
   }
 
   async handleFileSelected(event) {
@@ -101,9 +83,9 @@ export class VoiceCloneDropdown {
           this.selectedSample = {
             base64,
             mimeType: "audio/webm",
-            fileName: "recording.webm",
+            fileName: "reference.webm",
           };
-          this.updateSampleStatus("Recorded sample ready");
+          this.updateSampleStatus("Recorded sample ready (use 3-30s of clean speech)");
         } catch (error) {
           console.error("❌ Failed to encode recording:", error);
           this.showFeedback("RECORDING ENCODE FAILED");
@@ -132,7 +114,7 @@ export class VoiceCloneDropdown {
   updateRecordButton(recording) {
     const btn = document.getElementById("voiceclone-record-btn");
     if (btn) {
-      btn.textContent = recording ? "⏹️ Stop Recording" : "🎙️ Record Sample";
+      btn.textContent = recording ? "⏹️ Stop Recording" : "🎙️ Record Reference (3-30s)";
     }
   }
 
@@ -142,16 +124,16 @@ export class VoiceCloneDropdown {
   }
 
   submitClone() {
-    const nameInput = document.getElementById("voiceclone-name-input");
-    const name = nameInput?.value?.trim();
+    const textInput = document.getElementById("voiceclone-text-input");
+    const text = textInput?.value?.trim();
 
-    if (!name) {
-      this.showFeedback("ENTER A VOICE NAME");
+    if (!text) {
+      this.showFeedback("ENTER TEXT TO SPEAK");
       return;
     }
 
     if (!this.selectedSample) {
-      this.showFeedback("RECORD OR UPLOAD A SAMPLE FIRST");
+      this.showFeedback("RECORD OR UPLOAD A REFERENCE SAMPLE FIRST");
       return;
     }
 
@@ -166,28 +148,14 @@ export class VoiceCloneDropdown {
       audioData: this.selectedSample.base64,
       mimeType: this.selectedSample.mimeType,
       fileName: this.selectedSample.fileName,
-      voiceName: name,
+      text,
     });
   }
 
   handleCloneSuccess(data) {
-    const voiceEntry = {
-      name: data.requestedName || data.voice,
-      voice: data.voice,
-    };
-
-    // Replace any existing entry for the same cloned voice id
-    this.clonedVoices = this.clonedVoices.filter((v) => v.voice !== voiceEntry.voice);
-    this.clonedVoices.push(voiceEntry);
-    this.saveClonedVoices();
-
-    if (window.ttsControls?.registerClonedVoice) {
-      window.ttsControls.registerClonedVoice(data.voice);
-    }
-
-    this.updateSampleStatus(`✅ Voice "${voiceEntry.name}" cloned!`);
+    this.updateSampleStatus("✅ Clone generated - playing...");
     this.showFeedback("VOICE CLONED");
-    this.renderClonedVoicesList();
+    this.playResult(data.audioData, data.format);
   }
 
   handleCloneError(data) {
@@ -195,49 +163,23 @@ export class VoiceCloneDropdown {
     this.showFeedback("CLONE FAILED");
   }
 
-  useVoice(voiceId) {
-    if (window.ttsControls?.setVoice) {
-      window.ttsControls.setVoice(voiceId);
-      this.showFeedback(`VOICE: ${voiceId.toUpperCase()}`);
-    }
-  }
+  playResult(audioBase64, format = "wav") {
+    if (!audioBase64) return;
 
-  deleteClonedVoice(voiceId) {
-    this.clonedVoices = this.clonedVoices.filter((v) => v.voice !== voiceId);
-    this.saveClonedVoices();
-    this.renderClonedVoicesList();
-  }
-
-  renderClonedVoicesList() {
-    const container = document.getElementById("voiceclone-list");
-    if (container) container.innerHTML = this.getClonedVoicesListHtml();
-  }
-
-  getClonedVoicesListHtml() {
-    if (this.clonedVoices.length === 0) {
-      return '<p class="empty-text">No cloned voices yet</p>';
+    if (this.lastResultAudioUrl) {
+      URL.revokeObjectURL(this.lastResultAudioUrl);
     }
 
-    return this.clonedVoices
-      .map(
-        (v) => `
-          <div class="cloned-voice-item">
-            <span>${this.escapeHtml(v.name)}</span>
-            <button class="dropdown-item" onclick="window.dropdownManager.getComponent('voiceclone').useVoice('${this.escapeAttr(v.voice)}')">Use</button>
-            <button class="dropdown-item" onclick="window.dropdownManager.getComponent('voiceclone').deleteClonedVoice('${this.escapeAttr(v.voice)}')">🗑️</button>
-          </div>`,
-      )
-      .join("");
-  }
+    const bytes = Uint8Array.from(atob(audioBase64), (c) => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: `audio/${format}` });
+    this.lastResultAudioUrl = URL.createObjectURL(blob);
 
-  escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text ?? "";
-    return div.innerHTML;
-  }
-
-  escapeAttr(text) {
-    return String(text ?? "").replace(/'/g, "\\'");
+    const player = document.getElementById("voiceclone-result-player");
+    if (player) {
+      player.src = this.lastResultAudioUrl;
+      player.style.display = "block";
+      player.play().catch(() => {});
+    }
   }
 
   showFeedback(message) {
@@ -252,16 +194,16 @@ export class VoiceCloneDropdown {
     return `
       <div class="dropdown-header">
         <h3>🧬 Voice Cloning</h3>
-        <p>Record or upload a short sample to clone a new voice</p>
+        <p>Record or upload a 3-30s reference sample, then enter text to hear it spoken in that voice</p>
       </div>
       <div class="dropdown-body">
         <div class="dropdown-section">
-          <input type="text" id="voiceclone-name-input" placeholder="New voice name..." maxlength="50">
+          <textarea id="voiceclone-text-input" rows="3" placeholder="Text to speak in the cloned voice..." maxlength="2000"></textarea>
         </div>
         <div class="dropdown-section">
-          <button id="voiceclone-record-btn" class="dropdown-item" onclick="window.dropdownManager.getComponent('voiceclone').toggleRecording()">🎙️ Record Sample</button>
+          <button id="voiceclone-record-btn" class="dropdown-item" onclick="window.dropdownManager.getComponent('voiceclone').toggleRecording()">🎙️ Record Reference (3-30s)</button>
           <label class="dropdown-item voiceclone-upload-label">
-            📁 Upload Sample
+            📁 Upload Reference Sample
             <input type="file" accept="audio/*" class="voiceclone-file-input" onchange="window.dropdownManager.getComponent('voiceclone').handleFileSelected(event)">
           </label>
           <p id="voiceclone-sample-status" class="empty-text">No sample selected</p>
@@ -269,13 +211,10 @@ export class VoiceCloneDropdown {
         <div class="dropdown-divider"></div>
         <div class="dropdown-section">
           <button class="dropdown-item" onclick="window.dropdownManager.getComponent('voiceclone').submitClone()">🧬 Clone Voice</button>
-        </div>
-        <div class="dropdown-divider"></div>
-        <div class="dropdown-section">
-          <div class="dropdown-section-header">Cloned Voices</div>
-          <div id="voiceclone-list">${this.getClonedVoicesListHtml()}</div>
+          <audio id="voiceclone-result-player" controls style="display:none; width:100%; margin-top:8px;"></audio>
         </div>
       </div>
     `;
   }
 }
+

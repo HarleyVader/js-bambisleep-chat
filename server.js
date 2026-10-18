@@ -39,7 +39,7 @@ class EnvironmentValidator {
       ollama: [
         { name: "OLLAMA_HOST_PRODUCTION", required: false, type: "host" },
         { name: "OLLAMA_HOST_DEVELOPMENT", required: false, type: "host" },
-        { name: "OLLAMA_PORT", default: 11434, type: "port" },
+        { name: "OLLAMA_PORT", default: 8080, type: "port" },
         { name: "OLLAMA_MODEL", required: false, type: "string" },
         { name: "OLLAMA_MAX_SEARCH_ATTEMPTS", default: 3, type: "number" },
         { name: "OLLAMA_MODEL_LOAD_TIMEOUT", default: 120000, type: "number" },
@@ -374,7 +374,7 @@ app.use((req, res, next) => {
   const kokoroHost = ENV.KOKORO.HOST || "localhost";
   const kokoroPort = ENV.KOKORO.PORT || 8080;
   const ollamaHost = ENV.OLLAMA.HOST || "localhost";
-  const ollamaPort = ENV.OLLAMA.PORT || 11434;
+  const ollamaPort = ENV.OLLAMA.PORT || 8080;
 
   // Content Security Policy for enhanced security (environment-aware)
   const isDevelopment = process.env.NODE_ENV !== "production";
@@ -965,12 +965,13 @@ function handleKokoroWorkerMessage(msg) {
     case "voice_clone_success":
       if (msg.socketId) {
         io.to(msg.socketId).emit("voice-clone-response", {
-          voice: msg.voice,
-          requestedName: msg.requestedName,
+          audioData: msg.audioData,
+          format: msg.format,
+          text: msg.text,
           timestamp: msg.timestamp,
         });
       }
-      console.log(`✅ Voice cloned for ${msg.socketId}: ${msg.voice}`);
+      console.log(`✅ Voice clone audio delivered to ${msg.socketId}`);
       break;
 
     case "voice_clone_error":
@@ -1304,7 +1305,7 @@ io.on("connection", (socket) => {
     });
   });
 
-  // Handle voice cloning requests (upload/record an audio sample to create a new voice)
+  // Handle voice cloning requests (speak given text using an uploaded/recorded reference sample)
   socket.on("voice-clone-request", (data) => {
     if (!kokoroWorker) {
       socket.emit("voice-clone-error", {
@@ -1314,11 +1315,11 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const { audioData, mimeType, fileName, voiceName, referenceText } = data || {};
+    const { audioData, mimeType, fileName, text, speed } = data || {};
 
     if (!audioData || typeof audioData !== "string") {
       socket.emit("voice-clone-error", {
-        error: "Invalid audio sample for voice cloning",
+        error: "Invalid reference audio sample for voice cloning",
         timestamp: new Date().toISOString(),
       });
       return;
@@ -1333,16 +1334,16 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (!voiceName || typeof voiceName !== "string" || !voiceName.trim()) {
+    if (!text || typeof text !== "string" || !text.trim()) {
       socket.emit("voice-clone-error", {
-        error: "A voice name is required for voice cloning",
+        error: "Text to speak is required for voice cloning",
         timestamp: new Date().toISOString(),
       });
       return;
     }
 
     console.log(
-      `🧬 Voice clone request from ${socket.id}: "${voiceName.trim().substring(0, 50)}"`,
+      `🧬 Voice clone request from ${socket.id}: "${text.trim().substring(0, 50)}"`,
     );
 
     sendToKokoroWorker(
@@ -1351,9 +1352,8 @@ io.on("connection", (socket) => {
         audioData,
         mimeType: typeof mimeType === "string" ? mimeType : undefined,
         fileName: typeof fileName === "string" ? fileName.substring(0, 100) : undefined,
-        voiceName: voiceName.trim().substring(0, 50),
-        referenceText:
-          typeof referenceText === "string" ? referenceText.substring(0, 1000) : undefined,
+        text: text.trim().substring(0, 2000),
+        speed: typeof speed === "number" ? speed : undefined,
         socketId: socket.id,
       },
       () => {

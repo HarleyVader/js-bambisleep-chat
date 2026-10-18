@@ -51,7 +51,7 @@ const OLLAMA = {
   HOST: isProduction
     ? process.env.OLLAMA_HOST_PRODUCTION
     : process.env.OLLAMA_HOST_DEVELOPMENT,
-  PORT: parseInt(process.env.OLLAMA_PORT) || 11434,
+  PORT: parseInt(process.env.OLLAMA_PORT) || 8080,
 
   // Model Configuration
   MODEL: process.env.OLLAMA_MODEL || "qwen3.6-35b-a3b",

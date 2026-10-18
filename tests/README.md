@@ -22,7 +22,7 @@ Tests generate detailed reports in `tests/reports/`.
 - Node.js version (>=18)
 - System resources (memory, CPU)
 - File permissions
-- Port availability (5173, 6969, 8080, 11434)
+- Port availability (5173, 6969, 8080)
 - Dependencies installation
 
 **Duration:** ~2 seconds

@@ -384,19 +384,12 @@ export class TTSDropdown {
     return (
       '<div class="dropdown-header">' +
       "<h3>🎤 Text-to-Speech</h3>" +
-      "<p>Select voices and configure TTS settings</p>" +
+      "<p>Configure TTS settings</p>" +
       "</div>" +
       '<div class="dropdown-body">' +
       '<div class="dropdown-section">' +
-      '<div class="dropdown-section-header">Voice Selection (Max 2)</div>' +
-      '<div class="voice-buttons">' +
-      this.generateVoiceButtons() +
-      "</div>" +
-      '<div class="selected-voices-display">' +
-      '<p>🔊 Selected: <span id="current-voice-display">' +
-      this.getCurrentVoiceDisplay() +
-      "</span></p>" +
-      "</div>" +
+      '<div class="dropdown-section-header">Voice</div>' +
+      '<p class="empty-text">Single built-in voice (Bambi) - not configurable</p>' +
       "</div>" +
       '<div class="dropdown-divider"></div>' +
       '<div class="dropdown-section">' +
@@ -410,7 +403,6 @@ export class TTSDropdown {
       '<div class="dropdown-section-header">Tools</div>' +
       '<button class="dropdown-item" data-action="tts-test-voice">🎵 Test Voice</button>' +
       '<button class="dropdown-item" data-action="tts-clear-cache">🗑️ Clear Cache</button>' +
-      '<button class="dropdown-item" data-action="tts-clear-selection">❌ Clear Selection</button>' +
       "</div>" +
       "</div>"
     );

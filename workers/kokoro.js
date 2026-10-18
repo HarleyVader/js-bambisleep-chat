@@ -167,13 +167,14 @@ class KokoroTTSWorker {
     }
   }
 
-  // OPTIMIZATION: Generate cache key for audio caching
-  getCacheKey(text, voice, format) {
-    return `${voice}:${format}:${text.substring(0, 200)}`; // Limit key length
+  // OPTIMIZATION: Generate cache key for audio caching (voice/format aren't
+  // configurable on this backend - only text and speed affect the output)
+  getCacheKey(text, speed, _unused) {
+    return `${speed}:${text.substring(0, 200)}`; // Limit key length
   }
 
   // OPTIMIZATION: Add to cache with LRU eviction
-  addToCache(key, audioBase64) {
+  addToCache(key, audioBase64, format) {
     // Evict oldest entries if cache is full
     if (this.audioCache.size >= this.maxCacheSize) {
       const firstKey = this.audioCache.keys().next().value;
@@ -181,8 +182,18 @@ class KokoroTTSWorker {
     }
     this.audioCache.set(key, {
       data: audioBase64,
+      format,
       timestamp: Date.now(),
     });
+  }
+
+  // Map a response Content-Type header to a short format label for the client
+  formatFromContentType(contentType) {
+    if (!contentType) return this.outputFormat;
+    if (contentType.includes("wav")) return "wav";
+    if (contentType.includes("mpeg") || contentType.includes("mp3")) return "mp3";
+    if (contentType.includes("ogg")) return "ogg";
+    return this.outputFormat;
   }
 
   async generateSpeech(msg) {
@@ -201,7 +212,9 @@ class KokoroTTSWorker {
 
     const selectedVoice = voice || this.defaultVoice;
     const selectedFormat = format || this.outputFormat;
-    const cacheKey = this.getCacheKey(text, selectedVoice, selectedFormat);
+    // Voice/format aren't configurable on this backend (single baked-in voice,
+    // always returns audio/wav) - cache only by the inputs that actually affect output.
+    const cacheKey = this.getCacheKey(text, speed, "");
 
     // OPTIMIZATION: Check cache first
     const cached = this.audioCache.get(cacheKey);
@@ -216,7 +229,7 @@ class KokoroTTSWorker {
         "tts_success",
         {
           audioData: cached.data,
-          format: selectedFormat,
+          format: cached.format,
           voice: selectedVoice,
           text: text,
           size: cached.data.length * 0.75, // Approximate size from base64
@@ -233,7 +246,7 @@ class KokoroTTSWorker {
       `🎤 Generating speech: "${text.substring(
         0,
         50
-      )}..." with voice: ${selectedVoice}`
+      )}..."`
     );
 
     try {
@@ -252,10 +265,7 @@ class KokoroTTSWorker {
           Connection: "keep-alive",
         },
         body: JSON.stringify({
-          model: "kokoro",
-          voice: selectedVoice,
           input: text,
-          response_format: selectedFormat,
           speed: speed,
         }),
         signal: controller.signal,
@@ -269,12 +279,14 @@ class KokoroTTSWorker {
         throw new Error(`Kokoro API error (${response.status}): ${errorText}`);
       }
 
+      const realFormat = this.formatFromContentType(response.headers.get("content-type"));
+
       // Get audio buffer
       const audioBuffer = await response.arrayBuffer();
       const audioBase64 = Buffer.from(audioBuffer).toString("base64");
 
       // OPTIMIZATION: Cache the result
-      this.addToCache(cacheKey, audioBase64);
+      this.addToCache(cacheKey, audioBase64, realFormat);
 
       console.log(
         `✅ Speech generated successfully (${audioBuffer.byteLength} bytes)`
@@ -284,7 +296,7 @@ class KokoroTTSWorker {
         "tts_success",
         {
           audioData: audioBase64,
-          format: selectedFormat,
+          format: realFormat,
           voice: selectedVoice,
           text: text,
           size: audioBuffer.byteLength,
@@ -351,8 +363,7 @@ class KokoroTTSWorker {
   // Internal speech generation without socket response (for batch processing)
   async generateSpeechInternal(text, voice, format) {
     const selectedVoice = voice || this.defaultVoice;
-    const selectedFormat = format || this.outputFormat;
-    const cacheKey = this.getCacheKey(text, selectedVoice, selectedFormat);
+    const cacheKey = this.getCacheKey(text, 1.0, "");
 
     // Check cache
     const cached = this.audioCache.get(cacheKey);
@@ -360,7 +371,7 @@ class KokoroTTSWorker {
       this.cacheHits++;
       return {
         audioData: cached.data,
-        format: selectedFormat,
+        format: cached.format,
         voice: selectedVoice,
         text,
         cached: true,
@@ -375,10 +386,7 @@ class KokoroTTSWorker {
       method: "POST",
       headers: { "Content-Type": "application/json", Connection: "keep-alive" },
       body: JSON.stringify({
-        model: "kokoro",
-        voice: selectedVoice,
         input: text,
-        response_format: selectedFormat,
         speed: 1.0,
       }),
       signal: controller.signal,
@@ -388,13 +396,15 @@ class KokoroTTSWorker {
 
     if (!response.ok) throw new Error(`Kokoro API error: ${response.status}`);
 
+    const realFormat = this.formatFromContentType(response.headers.get("content-type"));
+
     const audioBuffer = await response.arrayBuffer();
     const audioBase64 = Buffer.from(audioBuffer).toString("base64");
-    this.addToCache(cacheKey, audioBase64);
+    this.addToCache(cacheKey, audioBase64, realFormat);
 
     return {
       audioData: audioBase64,
-      format: selectedFormat,
+      format: realFormat,
       voice: selectedVoice,
       text,
       cached: false,
@@ -402,22 +412,24 @@ class KokoroTTSWorker {
     };
   }
 
-  // Clone a voice from an uploaded audio sample via the /v1/audio/clone endpoint
+  // Clone a voice from an uploaded audio sample via the /v1/audio/clone endpoint.
+  // Real API contract: speaks `text` using `reference` (3-30s of clean sample audio)
+  // as a one-shot voice clone - returns synthesized audio directly, same as TTS.
   async cloneVoice(msg) {
-    const { audioData, mimeType, fileName, voiceName, referenceText, socketId } = msg;
+    const { audioData, mimeType, fileName, text, speed = 1.0, socketId } = msg;
 
     if (!audioData || typeof audioData !== "string") {
-      this.sendCloneError("Invalid audio sample for voice cloning", socketId);
+      this.sendCloneError("Invalid reference audio sample for voice cloning", socketId);
       return;
     }
 
-    const trimmedName = typeof voiceName === "string" ? voiceName.trim() : "";
-    if (!trimmedName) {
-      this.sendCloneError("A voice name is required for voice cloning", socketId);
+    const trimmedText = typeof text === "string" ? text.trim() : "";
+    if (!trimmedText) {
+      this.sendCloneError("Text to speak is required for voice cloning", socketId);
       return;
     }
 
-    console.log(`🧬 Cloning voice "${trimmedName}" from uploaded sample...`);
+    console.log(`🧬 Cloning voice for text: "${trimmedText.substring(0, 50)}..."`);
 
     try {
       const controller = new AbortController();
@@ -429,11 +441,9 @@ class KokoroTTSWorker {
       });
 
       const form = new FormData();
-      form.append("file", audioBlob, fileName || "sample.wav");
-      form.append("name", trimmedName);
-      if (referenceText && typeof referenceText === "string") {
-        form.append("text", referenceText);
-      }
+      form.append("text", trimmedText);
+      form.append("reference", audioBlob, fileName || "reference.wav");
+      form.append("speed", String(speed));
 
       const response = await fetch(`${this.kokoroUrl}/v1/audio/clone`, {
         method: "POST",
@@ -448,17 +458,18 @@ class KokoroTTSWorker {
         throw new Error(`Voice clone API error (${response.status}): ${errorText}`);
       }
 
-      // API may return JSON metadata about the new voice, or nothing at all
-      const result = await response.json().catch(() => ({}));
-      const clonedVoice = result.voice || result.voice_id || result.name || trimmedName;
+      const realFormat = this.formatFromContentType(response.headers.get("content-type"));
+      const resultBuffer = await response.arrayBuffer();
+      const resultBase64 = Buffer.from(resultBuffer).toString("base64");
 
-      console.log(`✅ Voice cloned successfully: ${clonedVoice}`);
+      console.log(`✅ Voice clone audio generated (${resultBuffer.byteLength} bytes)`);
 
       this.sendResponse(
         "voice_clone_success",
         {
-          voice: clonedVoice,
-          requestedName: trimmedName,
+          audioData: resultBase64,
+          format: realFormat,
+          text: trimmedText,
           timestamp: new Date().toISOString(),
         },
         socketId
