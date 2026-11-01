@@ -222,8 +222,8 @@ body {
     }
 }
 
-/* Enhanced Kokoro Speaking Flash Animation */
-@keyframes kokoroFlash {
+/* Enhanced TTS Speaking Flash Animation */
+@keyframes ttsFlash {
     0% {
         opacity: 0.3;
         transform: translate(-50%, -50%) scale(0.8);

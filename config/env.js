@@ -78,34 +78,27 @@ const OLLAMA = {
 };
 
 /**
- * Kokoro TTS Configuration
- * Automatically selects host based on environment
+ * OpenVoice V1 TTS Configuration
+ * Automatically selects host based on environment. Every TTS request is
+ * voice-cloned from REFERENCE_PATH (the default "bambi" voice).
  */
-const KOKORO = {
+const OPENVOICE = {
   HOST: isProduction
-    ? process.env.KOKORO_HOST_PRODUCTION
-    : process.env.KOKORO_HOST_DEVELOPMENT,
-  PORT: parseInt(process.env.KOKORO_PORT) || 8080,
+    ? process.env.OPENVOICE_HOST_PRODUCTION
+    : process.env.OPENVOICE_HOST_DEVELOPMENT,
+  PORT: parseInt(process.env.OPENVOICE_PORT) || 8081,
 
-  API_KEY: process.env.KOKORO_API_KEY || "",
-  DEFAULT_VOICE: process.env.KOKORO_DEFAULT_VOICE || "af_sky+af_bella",
+  API_KEY: process.env.OPENVOICE_API_KEY || "",
+  HEALTH_PATH: process.env.OPENVOICE_HEALTH_PATH || "/health",
   TIMEOUT: parseInt(process.env.TTS_TIMEOUT) || 300000,
 
-  // All available female voices (Kokoro-FastAPI official)
-  AVAILABLE_VOICES: [
-    "af_alloy",
-    "af_aoede",
-    "af_bella",
-    "af_heart",
-    "af_jadzia",
-    "af_jessica",
-    "af_kore",
-    "af_nicole",
-    "af_nova",
-    "af_river",
-    "af_sarah",
-    "af_sky",
-  ],
+  // Default voice: the reference sample cloned for every TTS request
+  DEFAULT_VOICE: "bambi",
+  REFERENCE_PATH: path.resolve(
+    __dirname,
+    "..",
+    process.env.OPENVOICE_REFERENCE_PATH || "public/bambi-reference.wav",
+  ),
 
   // Derived values
   get URL() {
@@ -116,7 +109,7 @@ const KOKORO = {
     return this.URL ? `${this.URL}/v1/audio/speech` : null;
   },
 
-  // Voice cloning endpoint (same consolidated speech service as TTS/transcription)
+  // Voice cloning endpoint: multipart `text` + `reference` (+ `speed`)
   get CLONE_URL() {
     return this.URL ? `${this.URL}/v1/audio/clone` : null;
   },
@@ -128,7 +121,7 @@ const KOKORO = {
 
 /**
  * Transcription (Speech-to-Text) Configuration
- * Separate external service from Kokoro TTS - automatically selects host based on environment
+ * Separate external service from OpenVoice TTS - automatically selects host based on environment
  */
 const TRANSCRIPTION = {
   HOST: isProduction
@@ -302,7 +295,7 @@ const SECURITY = {
 const EXTERNAL = {
   BAMBISLEEP_WIKI: "https://bambisleep.info",
   BAMBISLEEP_TRIGGERS: "https://bambisleep.info/Triggers",
-  KOKORO_DOCS: "https://github.com/remsky/Kokoro-FastAPI",
+  OPENVOICE_DOCS: "https://github.com/myshell-ai/OpenVoice",
   SOCKETIO_CDN: "https://cdn.socket.io/4.7.5/socket.io.min.js",
   MARKDOWN_CDN:
     "https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js",
@@ -326,18 +319,18 @@ const validation = {
     };
   },
 
-  validateKokoro() {
+  validateOpenVoice() {
     const missing = [];
-    if (!KOKORO.HOST)
+    if (!OPENVOICE.HOST)
       missing.push(
-        "KOKORO_HOST_" + (isProduction ? "PRODUCTION" : "DEVELOPMENT"),
+        "OPENVOICE_HOST_" + (isProduction ? "PRODUCTION" : "DEVELOPMENT"),
       );
-    if (!KOKORO.PORT) missing.push("KOKORO_PORT");
+    if (!OPENVOICE.PORT) missing.push("OPENVOICE_PORT");
 
     return {
       valid: missing.length === 0,
       missing,
-      configured: KOKORO.isConfigured,
+      configured: OPENVOICE.isConfigured,
     };
   },
 
@@ -372,7 +365,7 @@ const validation = {
   validateAll() {
     return {
       ollama: this.validateOllama(),
-      kokoro: this.validateKokoro(),
+      openvoice: this.validateOpenVoice(),
       patreon: this.validatePatreon(),
       transcription: this.validateTranscription(),
       server: {
@@ -399,10 +392,10 @@ function getSummary() {
         configured: OLLAMA.isConfigured,
         url: OLLAMA.URL || "not-configured",
       },
-      kokoro: {
-        configured: KOKORO.isConfigured,
-        url: KOKORO.URL || "not-configured",
-        defaultVoice: KOKORO.DEFAULT_VOICE,
+      openvoice: {
+        configured: OPENVOICE.isConfigured,
+        url: OPENVOICE.URL || "not-configured",
+        defaultVoice: OPENVOICE.DEFAULT_VOICE,
       },
       transcription: {
         configured: TRANSCRIPTION.isConfigured,
@@ -433,9 +426,9 @@ function printSummary() {
     `   Ollama: ${OLLAMA.isConfigured ? "✅ " + OLLAMA.URL : "❌ Not Configured"}`,
   );
   console.log(
-    `   Kokoro TTS: ${KOKORO.isConfigured ? "✅ " + KOKORO.URL : "❌ Not Configured"}`,
+    `   OpenVoice TTS: ${OPENVOICE.isConfigured ? "✅ " + OPENVOICE.URL : "❌ Not Configured"}`,
   );
-  console.log(`   Default Voice: ${KOKORO.DEFAULT_VOICE}`);
+  console.log(`   Default Voice: ${OPENVOICE.DEFAULT_VOICE} (${path.basename(OPENVOICE.REFERENCE_PATH)})`);
   console.log(
     `   Transcription: ${TRANSCRIPTION.isConfigured ? "✅ " + TRANSCRIPTION.URL : "❌ Not Configured"}`,
   );
@@ -446,7 +439,7 @@ function printSummary() {
   console.log(`   Max Message Length: ${CHAT.MAX_MESSAGE_LENGTH}`);
   console.log(`   Chat History: ${CHAT.HISTORY_LIMIT}`);
   console.log(`   Ollama Timeout: ${OLLAMA.API_CALL_TIMEOUT}ms`);
-  console.log(`   TTS Timeout: ${KOKORO.TIMEOUT}ms`);
+  console.log(`   TTS Timeout: ${OPENVOICE.TIMEOUT}ms`);
   console.log("\n🔍 Debug Mode: " + (DEBUG.MODE ? "✅ ON" : "❌ OFF"));
   console.log("═".repeat(50) + "\n");
 }
@@ -456,7 +449,7 @@ module.exports = {
   // Main config objects
   SERVER,
   OLLAMA,
-  KOKORO,
+  OPENVOICE,
   TRANSCRIPTION,
   PATREON,
   CHAT,
@@ -487,17 +480,17 @@ module.exports = {
     return SERVER.HOST;
   },
 
-  // Kokoro legacy
-  get KOKORO_API_URL() {
-    return KOKORO.URL;
+  // OpenVoice legacy
+  get OPENVOICE_API_URL() {
+    return OPENVOICE.URL;
   },
-  get KOKORO_API_KEY() {
-    return KOKORO.API_KEY;
+  get OPENVOICE_API_KEY() {
+    return OPENVOICE.API_KEY;
   },
-  get KOKORO_DEFAULT_VOICE() {
-    return KOKORO.DEFAULT_VOICE;
+  get OPENVOICE_DEFAULT_VOICE() {
+    return OPENVOICE.DEFAULT_VOICE;
   },
   get TTS_TIMEOUT() {
-    return KOKORO.TIMEOUT;
+    return OPENVOICE.TIMEOUT;
   },
 };

@@ -1,4 +1,4 @@
-// text2speech.js - Enhanced Text-to-speech with Kokoro integration and spiral synchronization
+// text2speech.js - Enhanced Text-to-speech with OpenVoice integration and spiral synchronization
 // OPTIMIZED: Added prefetching, parallel processing, and improved memory management
 class TextToSpeechSystem {
   constructor() {
@@ -26,32 +26,18 @@ class TextToSpeechSystem {
     this.volume ??= 0.7;
     this.speed ??= 0.85; // Slower speed for clearer comprehension (0.85 = 85% speed)
     this.socket ??= null;
-    this.useKokoro ??= true; // Prefer Kokoro over Web Speech API
-    this.currentVoice ??= "af_bella"; // Default FEMALE Kokoro voice - BambiSleep is a GIRL!
+    this.useOpenVoice ??= true; // Prefer OpenVoice over Web Speech API
+    this.currentVoice ??= "bambi"; // Default voice, cloned from bambi-reference.wav on the server
 
     // SEQUENTIAL MODE: Disable prefetching to ensure ONE request at a time
     this.enablePrefetching = false; // Set to true only if you want parallel processing
     this.maxPrefetch = 0; // Disable prefetch queue
 
     // ENHANCED VOICE SELECTION - Integrated from TTS Dropdown
-    this.selectedVoices = []; // Track multiple selected voices (max 2)
-    this.maxVoices = 2; // Maximum number of voices that can be selected per Kokoro-FastAPI
-    // All female voices from Kokoro-FastAPI official docs
-    // Reference: https://github.com/remsky/Kokoro-FastAPI
-    this.availableVoices = [
-      "af_alloy",
-      "af_aoede",
-      "af_bella",
-      "af_heart",
-      "af_jadzia",
-      "af_jessica",
-      "af_kore",
-      "af_nicole",
-      "af_nova",
-      "af_river",
-      "af_sarah",
-      "af_sky",
-    ];
+    this.selectedVoices = []; // Track selected voices
+    this.maxVoices = 1; // OpenVoice serves a single default voice
+    // The only voice: cloned server-side from bambi-reference.wav
+    this.availableVoices = ["bambi"];
 
     // MEMORY MANAGEMENT - Enhanced cleanup system
     this.blobUrls = new Set(); // Track all created blob URLs
@@ -76,7 +62,7 @@ class TextToSpeechSystem {
     // Initialize Web Audio API
     this.initAudioContext();
 
-    // Set up socket connection for Kokoro TTS
+    // Set up socket connection for OpenVoice TTS
     this.initSocket();
 
     // Create audio element for playback
@@ -164,17 +150,17 @@ class TextToSpeechSystem {
       return;
     }
 
-    // Listen for TTS responses from Kokoro
+    // Listen for TTS responses from OpenVoice
     this.socket.on("tts-response", (data) => {
-      this.kokoroDown = false; // service is alive
-      this.handleKokoroResponse(data);
+      this.ttsDown = false; // service is alive
+      this.handleTTSResponse(data);
     });
 
     this.socket.on("tts-error", (data) => {
       // Only log/report the first error per outage
-      if (!this.kokoroDown) {
-        this.kokoroDown = true;
-        console.error("🎤 Kokoro TTS unavailable:", data.error);
+      if (!this.ttsDown) {
+        this.ttsDown = true;
+        console.error("🎤 OpenVoice TTS unavailable:", data.error);
 
         if (window.chatCore && window.chatCore.errorManager) {
           window.chatCore.errorManager.reportError("tts", "service_unavailable", {
@@ -184,7 +170,7 @@ class TextToSpeechSystem {
         }
 
         // Retry availability after 30s
-        setTimeout(() => { this.kokoroDown = false; }, 30000);
+        setTimeout(() => { this.ttsDown = false; }, 30000);
       }
 
       // Drain entire queue immediately — no point sending more requests
@@ -774,8 +760,8 @@ class TextToSpeechSystem {
         this.currentTTSText = textItem.tts;
       }
 
-      // Skip immediately if Kokoro is known to be down
-      if (this.kokoroDown) {
+      // Skip immediately if OpenVoice is known to be down
+      if (this.ttsDown) {
         this.textArray = [];
         this.isPlaying = false;
         this.state = true;
@@ -796,7 +782,7 @@ class TextToSpeechSystem {
           format: "mp3",
           prefetch: false, // This is the CURRENT item, not prefetch
         });
-        // Response will come via 'tts-response' socket event → handleKokoroResponse()
+        // Response will come via 'tts-response' socket event → handleTTSResponse()
       } else {
         console.error("🎤 Socket not connected - cannot generate TTS");
         this.handleAudioError(new Error("Socket disconnected"));
@@ -938,17 +924,17 @@ class TextToSpeechSystem {
     }
   }
 
-  // Request TTS from Kokoro
+  // Request TTS from OpenVoice
   requestTTS(text) {
     console.log("🎤 Requesting TTS for:", text.substring(0, 50) + "...");
 
     if (!this.socket || !this.socket.connected) {
-      console.error("🎤 Kokoro TTS socket not connected");
+      console.error("🎤 OpenVoice TTS socket not connected");
       return;
     }
 
-    console.log("🎤 Using Kokoro TTS via socket");
-    // Use Kokoro TTS via socket
+    console.log("🎤 Using OpenVoice TTS via socket");
+    // Use OpenVoice TTS via socket
     this.socket.emit("tts-request", {
       text: text,
       voice: this.currentVoice,
@@ -956,17 +942,19 @@ class TextToSpeechSystem {
     });
   }
 
-  handleKokoroResponse(data) {
+  handleTTSResponse(data) {
     console.log(
-      "🎤 Kokoro response received:",
+      "🎤 OpenVoice response received:",
       data.size,
       "bytes",
       data.cached ? "(cached)" : "",
     );
 
     try {
-      // Convert base64 audio data to blob URL
-      const audioBlob = this.base64ToBlob(data.audioData, "audio/mpeg");
+      // Convert base64 audio data to blob URL (OpenVoice returns the real format, usually wav)
+      const mimeType =
+        data.format === "mp3" ? "audio/mpeg" : `audio/${data.format || "wav"}`;
+      const audioBlob = this.base64ToBlob(data.audioData, mimeType);
       const audioUrl = URL.createObjectURL(audioBlob);
 
       // Track blob URL for cleanup
@@ -996,7 +984,7 @@ class TextToSpeechSystem {
         };
       }
     } catch (error) {
-      console.error("🎤 Error processing Kokoro response:", error);
+      console.error("🎤 Error processing OpenVoice response:", error);
       // Try next item in queue
       this.processTextQueue();
     }
@@ -1134,7 +1122,7 @@ class TextToSpeechSystem {
       width: auto !important;
       word-wrap: break-word !important;
       white-space: normal !important;
-      animation: kokoroFlash 0.6s ease-in-out infinite !important;
+      animation: ttsFlash 0.6s ease-in-out infinite !important;
       overflow-wrap: break-word !important;
       hyphens: auto !important;
       line-height: 1.3 !important;
@@ -1459,7 +1447,7 @@ class TextToSpeechSystem {
   // ENHANCED: Clear all voice selection
   clearVoiceSelection() {
     this.selectedVoices = [];
-    this.currentVoice = "af_bella"; // Reset to default
+    this.currentVoice = "bambi"; // Reset to default
     window.currentVoice = this.currentVoice;
     this.saveVoiceState();
     console.log("🗑️ Voice selection cleared, reset to default");
@@ -1468,7 +1456,7 @@ class TextToSpeechSystem {
   // ENHANCED: Update currentVoice from selectedVoices array
   updateCurrentVoiceFromSelection() {
     if (this.selectedVoices.length === 0) {
-      this.currentVoice = "af_bella"; // Default fallback
+      this.currentVoice = "bambi"; // Default fallback
     } else if (this.selectedVoices.length === 1) {
       this.currentVoice = this.selectedVoices[0];
     } else {
@@ -1555,62 +1543,28 @@ class TextToSpeechSystem {
       console.warn("Failed to load TTS voice state:", e);
       // Fallback to defaults
       this.selectedVoices = [];
-      this.currentVoice = "af_bella";
+      this.currentVoice = "bambi";
     }
   }
 
-  // Get only verified female voices with combination support (Kokoro only)
+  // Get the available voices (OpenVoice serves a single default voice)
   getFemaleVoices() {
-    // Base female voices
-    const baseVoices = ["af_sky", "af_bella", "af_sarah", "af_nicole"];
-    const combinedVoices = [];
-
-    // Generate all valid combinations of 2 voices
-    for (let i = 0; i < baseVoices.length; i++) {
-      for (let j = i + 1; j < baseVoices.length; j++) {
-        combinedVoices.push(`${baseVoices[i]}+${baseVoices[j]}`);
-      }
-    }
-
-    return [...baseVoices, ...combinedVoices];
+    return [...this.availableVoices];
   }
 
-  // Validate voice combination (max 2 voices, female only)
+  // Validate voice (only the default OpenVoice voice exists)
   validateVoiceCombination(voiceString) {
     if (!voiceString) return false;
 
-    const voices = voiceString.split("+");
-
-    // Check max 2 voices
-    if (voices.length > 2) {
-      console.warn("Voice combination limited to maximum 2 voices");
+    if (!this.availableVoices.includes(voiceString.trim())) {
+      console.warn(`Voice ${voiceString} is not available`);
       return false;
-    }
-
-    // Check all voices are female
-    const femaleVoices = [
-      "af_sky",
-      "af_bella",
-      "af_sarah",
-      "af_nicole",
-      "af_jadzia",
-      "af_jessica",
-      "af_nicole",
-      "af_nova",
-      "af_kore",
-      "af_hearth",
-    ];
-    for (const voice of voices) {
-      if (!femaleVoices.includes(voice.trim())) {
-        console.warn(`Voice ${voice} is not a valid female voice`);
-        return false;
-      }
     }
 
     return true;
   }
 
-  // Get available voice combinations for dropdown (Kokoro only)
+  // Get available voice combinations for dropdown (OpenVoice: default voice only)
   getVoiceCombinations() {
     return this.getFemaleVoices();
   }
@@ -1647,7 +1601,7 @@ class TextToSpeechSystem {
       const data = await response.json();
 
       if (data.success && data.audioData) {
-        // Handle base64 audio data from Kokoro
+        // Handle base64 audio data from OpenVoice
         const audioBlob = this.base64ToBlob(data.audioData, "audio/mpeg");
         await this.playAudioBlob(audioBlob);
       } else {
@@ -2063,11 +2017,11 @@ class TextToSpeechSystem {
       console.log("⚡ Applied speed to current audio:", this.speed);
     }
 
-    // Note: Speed is applied via playbackRate for both Kokoro and Web Speech
-    if (!this.useKokoro) {
+    // Note: Speed is applied via playbackRate for both OpenVoice and Web Speech
+    if (!this.useOpenVoice) {
       console.log("🎤 Web Speech API speed updated");
     } else {
-      console.log("🎤 Kokoro TTS speed updates require server configuration");
+      console.log("🎤 OpenVoice TTS speed updates require server configuration");
     }
   }
 
@@ -2088,9 +2042,9 @@ class TextToSpeechSystem {
     return this.currentVoice;
   }
 
-  setUseKokoro(useKokoro) {
-    this.useKokoro = useKokoro;
-    console.log("🎤 Kokoro TTS:", useKokoro ? "ENABLED" : "DISABLED");
+  setUseOpenVoice(useOpenVoice) {
+    this.useOpenVoice = useOpenVoice;
+    console.log("🎤 OpenVoice TTS:", useOpenVoice ? "ENABLED" : "DISABLED");
   }
 
   getAvailableVoices() {
@@ -2174,7 +2128,7 @@ document.addEventListener("DOMContentLoaded", () => {
     getSelectedVoices: () => window.ttsSystem.selectedVoices,
 
     // Voice management and validation
-    setUseKokoro: (use) => window.ttsSystem.setUseKokoro(use),
+    setUseOpenVoice: (use) => window.ttsSystem.setUseOpenVoice(use),
     getAvailableVoices: () => window.ttsSystem.getAvailableVoices(), // Returns FEMALE voices only
     getFemaleVoices: () => window.ttsSystem.getFemaleVoices(), // Explicit female voice getter
     validateVoiceCombination: (voiceString) =>
@@ -2197,7 +2151,7 @@ document.addEventListener("DOMContentLoaded", () => {
         isPlaying: window.ttsSystem.isPlaying,
         currentVoice: window.ttsSystem.currentVoice,
         selectedVoices: window.ttsSystem.selectedVoices,
-        useKokoro: window.ttsSystem.useKokoro,
+        useOpenVoice: window.ttsSystem.useOpenVoice,
         socketConnected: window.ttsSystem.socket?.connected,
       });
       console.log("Queue Status:", {

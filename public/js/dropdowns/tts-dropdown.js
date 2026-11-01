@@ -9,7 +9,7 @@ export class TTSDropdown {
   constructor(dropdownManager) {
     this.dropdownManager = dropdownManager;
     this.buttonId = "toggle-tts";
-    this.currentVoice = "af_bella"; // Default voice
+    this.currentVoice = "bambi"; // Default voice
     this.currentSpeed = 1.0; // Default speed
     this.selectedVoices = []; // Track multiple selected voices
     this.init();
@@ -190,7 +190,7 @@ export class TTSDropdown {
 
     // Clear local selection
     this.selectedVoices = [];
-    this.currentVoice = "af_bella"; // Reset to default
+    this.currentVoice = "bambi"; // Reset to default
 
     // Remove active class from all voice buttons
     const voiceButtons = document.querySelectorAll(".voice-button");
@@ -409,20 +409,7 @@ export class TTSDropdown {
   }
 
   generateVoiceOptionsHTML() {
-    const voices = [
-      "af_alloy",
-      "af_aoede",
-      "af_bella",
-      "af_heart",
-      "af_jadzia",
-      "af_jessica",
-      "af_kore",
-      "af_nicole",
-      "af_nova",
-      "af_river",
-      "af_sarah",
-      "af_sky",
-    ];
+    const voices = ["bambi"];
 
     return voices
       .map((voice) => {
@@ -445,20 +432,7 @@ export class TTSDropdown {
   }
 
   generateVoiceButtons() {
-    const voices = [
-      "af_alloy",
-      "af_aoede",
-      "af_bella",
-      "af_heart",
-      "af_jadzia",
-      "af_jessica",
-      "af_kore",
-      "af_nicole",
-      "af_nova",
-      "af_river",
-      "af_sarah",
-      "af_sky",
-    ];
+    const voices = ["bambi"];
 
     return voices
       .map((voice) => {
@@ -528,7 +502,7 @@ export class TTSDropdown {
       this.currentVoice = this.selectedVoices.join("+");
       // TTS system will be updated automatically through addVoice/removeVoice
     } else {
-      this.currentVoice = "af_bella"; // Default
+      this.currentVoice = "bambi"; // Default
       if (ttsSystem && ttsSystem.setVoice) {
         ttsSystem.setVoice(this.currentVoice);
       }
@@ -564,7 +538,7 @@ export class TTSDropdown {
       "System Exists": !!ttsSystem,
       isEnabled: ttsSystem?.isEnabled,
       currentVoice: ttsSystem?.currentVoice,
-      useKokoro: ttsSystem?.useKokoro,
+      useOpenVoice: ttsSystem?.useOpenVoice,
       "socket connected": ttsSystem?.socket?.connected,
     });
 

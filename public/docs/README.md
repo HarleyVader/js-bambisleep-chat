@@ -61,7 +61,7 @@ BambiSleep Chat is like, this totally amazing real-time chat app made just for t
 
 ### 🔊 Audio Goodies
 
-- **6 Female AI Voices** - Choose from different voices (Kokoro TTS)
+- **Bambi Voice** - One default voice, cloned from a reference sample (OpenVoice V1)
 - **Multi-Voice Mode** - Rotate between multiple voices automatically!
 - **Speed Control** - Slow (0.8x), Normal (1.0x), Fast (1.2x)
 - **Binaural Beats** - Brain wave sounds for different moods

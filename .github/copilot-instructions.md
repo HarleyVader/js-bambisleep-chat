@@ -13,12 +13,12 @@
          │                    ┌──────────────┼──────────────┐
          │ Realtime Analysis  ▼              ▼              ▼
          ▼              ┌──────────┐   ┌──────────┐   ┌──────────┐
-    ┌─────────────┐    │ kokoro.js│   │lmstudio.js│   │triggers  │
+    ┌─────────────┐    │openvoice.js│ │lmstudio.js│   │triggers  │
     │  Analyser   │    │   (TTS)  │   │   (AI)   │   │  .json   │
     │  FFT → 🎵  │    └────┬─────┘   └────┬─────┘   └──────────┘
     │  Vibration  │         │              │
     └─────────────┘         ▼              ▼
-                       Kokoro-FastAPI  LM Studio (local)
+                       OpenVoice V1    LM Studio (local)
 ```
 
 **Stack**: Express + Socket.io + Worker threads | Vanilla ES6 modules (NO frameworks)  
@@ -43,7 +43,7 @@ npm run clean        # Clean generated files/caches
 | [public/js/patreon-client.js](public/js/patreon-client.js) | Patreon OAuth & tier management (avatars, features) |
 | [public/js/text2speech.js](public/js/text2speech.js)     | TTS with Web Audio API analysis & vibration sync   |
 | [workers/triggers.json](workers/triggers.json)           | **Authoritative** trigger definitions              |
-| [workers/kokoro.js](workers/kokoro.js)                   | TTS worker (HTTP keep-alive, caching, batching)    |
+| [workers/openvoice.js](workers/openvoice.js)             | TTS worker (OpenVoice V1, clones bambi-reference.wav) |
 | [workers/lmstudio.js](workers/lmstudio.js)               | AI chat worker (@lmstudio/sdk)                     |
 | [public/js/dropdowns/](public/js/dropdowns/)             | Modular UI components (ES6 class/function exports) |
 | [public/js/error-manager.js](public/js/error-manager.js) | Client-side error handling with retry logic        |
@@ -60,15 +60,15 @@ All environment variables go through `config/env.js` - it provides validation, c
 ```javascript
 // ✅ Always use centralized config
 const ENV = require("./config/env");
-const url = ENV.KOKORO.URL; // Auto-switches dev/prod
+const url = ENV.OPENVOICE.URL; // Auto-switches dev/prod
 const ready = ENV.LMS.isConfigured; // Computed property
 const port = ENV.SERVER.PORT; // Default: 6969
 
 // ❌ Never access process.env directly outside config/env.js
-process.env.KOKORO_HOST_DEVELOPMENT; // Bypasses validation & computed logic
+process.env.OPENVOICE_HOST_DEVELOPMENT; // Bypasses validation & computed logic
 ```
 
-**ENV sections**: `SERVER`, `LMS`, `KOKORO`, `APPLICATION` (see [config/env.js](config/env.js:1-284))
+**ENV sections**: `SERVER`, `LMS`, `OPENVOICE`, `APPLICATION` (see [config/env.js](config/env.js:1-284))
 
 ### 2. Trigger System (Single Source of Truth)
 
@@ -235,14 +235,14 @@ try {
 **Worker Performance Patterns**:
 
 ```javascript
-// HTTP keep-alive agents for connection reuse (kokoro.js, lmstudio.js)
+// HTTP keep-alive agents for connection reuse (lmstudio.js)
 const httpAgent = new http.Agent({
   keepAlive: true, // Reuse connections
   maxSockets: 10,
   timeout: 15000,
 });
 
-// LRU-style audio cache (kokoro.js)
+// LRU-style audio cache (openvoice.js)
 this.audioCache = new Map(); // text → blob URL
 this.maxCacheSize = 50;
 // Check cache before making TTS request to avoid duplicate API calls
@@ -284,7 +284,7 @@ npm test  # Runs all suites, generates HTML/JSON reports
 
 **Add environment variable**:
 
-1. Define in `config/env.js` with appropriate section (SERVER/LMS/KOKORO/APPLICATION)
+1. Define in `config/env.js` with appropriate section (SERVER/LMS/OPENVOICE/APPLICATION)
 2. Add validation logic if needed (with defaults/computed properties)
 3. Access via `ENV.SECTION.VARIABLE`
 
@@ -304,7 +304,7 @@ npm test  # Runs all suites, generates HTML/JSON reports
 
 - **Vanilla JS only** — no React/Vue. Use DOM APIs directly.
 - **Module systems**: CommonJS for server/workers (`require`/`module.exports`), ES6 modules for client (`import`/`export`)
-- **Workers for external APIs** — Kokoro TTS and LM Studio calls stay in workers
+- **Workers for external APIs** — OpenVoice TTS and LM Studio calls stay in workers
 - **ChatHistoryManager** (server.js) handles all message storage with `aigf`, `legacy` types - tracks per-type limits and provides filtered retrieval
 - **ErrorManager** (client) uses modern Error cause chaining with `.cause` property for debugging - see `ErrorManager.createError()`
 - **No hardcoded values** — Always use `ENV` for config, `workers/triggers.json` for triggers, CSS variables for styling
@@ -313,5 +313,5 @@ npm test  # Runs all suites, generates HTML/JSON reports
 
 | Service            | Purpose                                 | Config Section |
 | ------------------ | --------------------------------------- | -------------- |
-| **Kokoro-FastAPI** | TTS (12 female voices, supports mixing) | `ENV.KOKORO`   |
+| **OpenVoice V1**   | TTS (default voice cloned from bambi-reference.wav) | `ENV.OPENVOICE` |
 | **LM Studio**      | Local AI chat (@lmstudio/sdk)           | `ENV.LMS`      |

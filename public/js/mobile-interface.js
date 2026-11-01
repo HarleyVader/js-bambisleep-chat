@@ -486,15 +486,11 @@ class MobileInterface {
         const container = document.querySelector('.mobile-voice-selector');
         if (!container) return;
 
-        const voices = [
-            'af_alloy', 'af_aoede', 'af_bella', 'af_heart',
-            'af_jadzia', 'af_jessica', 'af_kore', 'af_nicole',
-            'af_nova', 'af_river', 'af_sarah', 'af_sky'
-        ];
+        const voices = ['bambi'];
 
         container.innerHTML = voices.map(voice => `
             <button class="mobile-voice-btn" data-voice="${voice}">
-                ${voice.replace('af_', '').charAt(0).toUpperCase() + voice.replace('af_', '').slice(1)}
+                ${voice.charAt(0).toUpperCase() + voice.slice(1)}
             </button>
         `).join('');
 

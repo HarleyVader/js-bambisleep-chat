@@ -14,10 +14,10 @@ const patreonService = require("./services/patreon");
 
 // Legacy config object for backward compatibility
 const config = {
-  KOKORO_API_URL: ENV.KOKORO.URL,
-  KOKORO_API_KEY: ENV.KOKORO.API_KEY,
-  KOKORO_DEFAULT_VOICE: ENV.KOKORO.DEFAULT_VOICE,
-  TTS_TIMEOUT: ENV.KOKORO.TIMEOUT,
+  OPENVOICE_API_URL: ENV.OPENVOICE.URL,
+  OPENVOICE_API_KEY: ENV.OPENVOICE.API_KEY,
+  OPENVOICE_DEFAULT_VOICE: ENV.OPENVOICE.DEFAULT_VOICE,
+  TTS_TIMEOUT: ENV.OPENVOICE.TIMEOUT,
 };
 
 // Comprehensive Environment Variable Validation System
@@ -48,14 +48,14 @@ class EnvironmentValidator {
         { name: "SESSION_TIMEOUT_MINUTES", default: 30, type: "number" },
       ],
 
-      // TTS (Kokoro) configurations
-      kokoro: [
-        { name: "KOKORO_HOST_PRODUCTION", required: false, type: "host" },
-        { name: "KOKORO_HOST_DEVELOPMENT", required: false, type: "host" },
-        { name: "KOKORO_PORT", default: 8080, type: "port" },
+      // TTS (OpenVoice) configurations
+      openvoice: [
+        { name: "OPENVOICE_HOST_PRODUCTION", required: false, type: "host" },
+        { name: "OPENVOICE_HOST_DEVELOPMENT", required: false, type: "host" },
+        { name: "OPENVOICE_PORT", default: 8081, type: "port" },
         {
-          name: "KOKORO_DEFAULT_VOICE",
-          default: "af_sky+af_bella",
+          name: "OPENVOICE_REFERENCE_PATH",
+          default: "public/bambi-reference.wav",
           type: "string",
         },
         { name: "TTS_TIMEOUT", default: 300000, type: "number" },
@@ -79,7 +79,7 @@ class EnvironmentValidator {
     // Validate each category
     this.validateCategory("optional", "Basic Configuration");
     this.validateCategory("ollama", "Ollama AI Configuration");
-    this.validateCategory("kokoro", "Kokoro TTS Configuration");
+    this.validateCategory("openvoice", "OpenVoice TTS Configuration");
     this.validateCategory("application", "Application Configuration");
 
     // Service-specific validation
@@ -172,8 +172,8 @@ class EnvironmentValidator {
     // Ollama service validation
     this.validateOllamaConfig();
 
-    // Kokoro TTS service validation
-    this.validateKokoroConfig();
+    // OpenVoice TTS service validation
+    this.validateOpenVoiceConfig();
   }
 
   validateOllamaConfig() {
@@ -202,39 +202,32 @@ class EnvironmentValidator {
     }
   }
 
-  validateKokoroConfig() {
+  validateOpenVoiceConfig() {
     const isProduction = process.env.NODE_ENV === "production";
     const hostVar = isProduction
-      ? "KOKORO_HOST_PRODUCTION"
-      : "KOKORO_HOST_DEVELOPMENT";
+      ? "OPENVOICE_HOST_PRODUCTION"
+      : "OPENVOICE_HOST_DEVELOPMENT";
     const host = process.env[hostVar];
 
     if (!host) {
       this.warnings.push({
-        category: "kokoro",
+        category: "openvoice",
         variable: hostVar,
-        message: `Kokoro TTS host not configured for ${process.env.NODE_ENV} environment`,
+        message: `OpenVoice TTS host not configured for ${process.env.NODE_ENV} environment`,
         suggestion: `Set ${hostVar} in .env file to enable advanced TTS features`,
       });
     }
 
-    // Validate voice configuration
-    const voice = process.env.KOKORO_DEFAULT_VOICE;
-    if (voice && !this.isValidKokoroVoice(voice)) {
+    // The default voice is cloned from this reference sample
+    if (!fs.existsSync(ENV.OPENVOICE.REFERENCE_PATH)) {
       this.warnings.push({
-        category: "kokoro",
-        variable: "KOKORO_DEFAULT_VOICE",
-        message: `Unrecognized voice format: ${voice}`,
+        category: "openvoice",
+        variable: "OPENVOICE_REFERENCE_PATH",
+        message: `Default voice reference sample not found: ${ENV.OPENVOICE.REFERENCE_PATH}`,
         suggestion:
-          'Use format like "af_bella" or "af_sky+af_bella" for voice mixing',
+          "Place bambi-reference.wav in public/ or set OPENVOICE_REFERENCE_PATH",
       });
     }
-  }
-
-  isValidKokoroVoice(voice) {
-    // Basic voice validation for Kokoro format
-    const validVoicePattern = /^[a-z]{2}_[a-z]+(\+[a-z]{2}_[a-z]+)*$/;
-    return validVoicePattern.test(voice);
   }
 
   reportResults() {
@@ -274,7 +267,7 @@ class EnvironmentValidator {
       warnings: this.warnings,
       servicesAvailable: {
         ollama: this.isServiceConfigured("ollama"),
-        kokoro: this.isServiceConfigured("kokoro"),
+        openvoice: this.isServiceConfigured("openvoice"),
       },
     };
 
@@ -302,11 +295,11 @@ class EnvironmentValidator {
           : process.env.OLLAMA_HOST_DEVELOPMENT;
         return !!(ollamaHost && process.env.OLLAMA_PORT);
 
-      case "kokoro":
-        const kokoroHost = isProduction
-          ? process.env.KOKORO_HOST_PRODUCTION
-          : process.env.KOKORO_HOST_DEVELOPMENT;
-        return !!(kokoroHost && process.env.KOKORO_PORT);
+      case "openvoice":
+        const openVoiceHost = isProduction
+          ? process.env.OPENVOICE_HOST_PRODUCTION
+          : process.env.OPENVOICE_HOST_DEVELOPMENT;
+        return !!(openVoiceHost && process.env.OPENVOICE_PORT);
 
       default:
         return false;
@@ -323,11 +316,11 @@ function validateConfiguration() {
   ENV.printSummary();
 
   const result = {
-    ttsAvailable: validationResults.kokoro.configured,
+    ttsAvailable: validationResults.openvoice.configured,
     ollamaConfigured: validationResults.ollama.configured,
     servicesAvailable: {
       ollama: validationResults.ollama.configured,
-      kokoro: validationResults.kokoro.configured,
+      openvoice: validationResults.openvoice.configured,
     },
     warnings: [],
     errors: [],
@@ -343,9 +336,9 @@ function validateConfiguration() {
     result.warningCount++;
   }
 
-  if (!validationResults.kokoro.configured) {
+  if (!validationResults.openvoice.configured) {
     result.warnings.push(
-      "Kokoro TTS not configured - voice features will be unavailable",
+      "OpenVoice TTS not configured - voice features will be unavailable",
     );
     result.warningCount++;
   }
@@ -371,8 +364,8 @@ const configStatus = validateConfiguration();
 // Security Middleware - Content Security Policy
 app.use((req, res, next) => {
   // Dynamically include external service hosts
-  const kokoroHost = ENV.KOKORO.HOST || "localhost";
-  const kokoroPort = ENV.KOKORO.PORT || 8080;
+  const openVoiceHost = ENV.OPENVOICE.HOST || "localhost";
+  const openVoicePort = ENV.OPENVOICE.PORT || 8081;
   const ollamaHost = ENV.OLLAMA.HOST || "localhost";
   const ollamaPort = ENV.OLLAMA.PORT || 8080;
 
@@ -407,7 +400,7 @@ app.use((req, res, next) => {
     "ws:",
     "wss:",
     "https://cdn.socket.io",
-    `http://${kokoroHost}:${kokoroPort}`,
+    `http://${openVoiceHost}:${openVoicePort}`,
     `http://${ollamaHost}:${ollamaPort}`,
   ];
 
@@ -657,7 +650,7 @@ loadOfficialTriggers();
 
 // Worker Management
 let lmWorker = null;
-let kokoroWorker = null;
+let openVoiceWorker = null;
 let transcriptionWorker = null;
 let workerUsers = new Map(); // Track which users are using AI
 let collarActive = false;
@@ -702,32 +695,32 @@ function initializeLMWorker() {
   }
 }
 
-function initializeKokoroWorker() {
+function initializeOpenVoiceWorker() {
   try {
-    kokoroWorker = new Worker(path.join(__dirname, "workers", "kokoro.js"));
+    openVoiceWorker = new Worker(path.join(__dirname, "workers", "openvoice.js"));
 
-    kokoroWorker.on("message", (msg) => {
-      handleKokoroWorkerMessage(msg);
+    openVoiceWorker.on("message", (msg) => {
+      handleOpenVoiceWorkerMessage(msg);
     });
 
-    kokoroWorker.on("error", (error) => {
-      console.error("❌ Kokoro TTS worker error:", error);
-      kokoroWorker = null; // Mark as unavailable
+    openVoiceWorker.on("error", (error) => {
+      console.error("❌ OpenVoice TTS worker error:", error);
+      openVoiceWorker = null; // Mark as unavailable
     });
 
-    kokoroWorker.on("exit", (code) => {
-      console.log(`❌ Kokoro TTS worker exited with code ${code}`);
-      kokoroWorker = null; // Mark as unavailable
+    openVoiceWorker.on("exit", (code) => {
+      console.log(`❌ OpenVoice TTS worker exited with code ${code}`);
+      openVoiceWorker = null; // Mark as unavailable
       if (code !== 0) {
-        console.log("🔄 Restarting Kokoro TTS worker in 5 seconds...");
-        setTimeout(initializeKokoroWorker, 5000);
+        console.log("🔄 Restarting OpenVoice TTS worker in 5 seconds...");
+        setTimeout(initializeOpenVoiceWorker, 5000);
       }
     });
 
-    console.log("✅ Kokoro TTS worker initialized");
+    console.log("✅ OpenVoice TTS worker initialized");
   } catch (error) {
-    console.error("❌ Failed to initialize Kokoro TTS worker:", error);
-    kokoroWorker = null; // Ensure it's marked as unavailable
+    console.error("❌ Failed to initialize OpenVoice TTS worker:", error);
+    openVoiceWorker = null; // Ensure it's marked as unavailable
   }
 }
 
@@ -782,19 +775,19 @@ function sendToLMWorker(message, fallbackCallback = null) {
   return false;
 }
 
-function sendToKokoroWorker(message, fallbackCallback = null) {
-  if (kokoroWorker) {
+function sendToOpenVoiceWorker(message, fallbackCallback = null) {
+  if (openVoiceWorker) {
     try {
-      kokoroWorker.postMessage(message);
+      openVoiceWorker.postMessage(message);
       return true;
     } catch (error) {
-      console.error("❌ Failed to send message to Kokoro worker:", error);
-      kokoroWorker = null;
+      console.error("❌ Failed to send message to OpenVoice worker:", error);
+      openVoiceWorker = null;
     }
   }
 
   // Worker unavailable - handle gracefully
-  console.warn("⚠️ Kokoro TTS worker unavailable, using fallback");
+  console.warn("⚠️ OpenVoice TTS worker unavailable, using fallback");
   if (fallbackCallback) {
     fallbackCallback();
   }
@@ -926,8 +919,8 @@ function handleLMWorkerMessage(msg) {
   }
 }
 
-// Handle messages from Kokoro TTS worker
-function handleKokoroWorkerMessage(msg) {
+// Handle messages from OpenVoice TTS worker
+function handleOpenVoiceWorkerMessage(msg) {
   switch (msg.type) {
     case "tts_success":
       // Send TTS audio to specific socket
@@ -945,7 +938,7 @@ function handleKokoroWorkerMessage(msg) {
       break;
 
     case "error":
-      console.error("Kokoro TTS error:", msg.error);
+      console.error("OpenVoice TTS error:", msg.error);
       if (msg.socketId) {
         io.to(msg.socketId).emit("tts-error", {
           error: msg.error,
@@ -955,11 +948,7 @@ function handleKokoroWorkerMessage(msg) {
       break;
 
     case "health_response":
-      console.log(`🎤 Kokoro TTS health: ${msg.healthy}, URL: ${msg.url}`);
-      break;
-
-    case "voice_updated":
-      console.log(`🎤 Voice updated to: ${msg.voice}`);
+      console.log(`🎤 OpenVoice TTS health: ${msg.healthy}, URL: ${msg.url}`);
       break;
 
     case "voice_clone_success":
@@ -1017,7 +1006,7 @@ function handleTranscriptionWorkerMessage(msg) {
 
 // Initialize workers on startup
 initializeLMWorker();
-initializeKokoroWorker();
+initializeOpenVoiceWorker();
 initializeTranscriptionWorker();
 
 // Periodically re-verify every logged-in user's Patreon membership so pledge
@@ -1221,15 +1210,15 @@ io.on("connection", (socket) => {
 
   // Handle TTS requests
   socket.on("tts-request", (data) => {
-    if (!kokoroWorker) {
+    if (!openVoiceWorker) {
       socket.emit("tts-error", {
-        error: "Kokoro TTS worker not available",
+        error: "OpenVoice TTS worker not available",
         timestamp: new Date().toISOString(),
       });
       return;
     }
 
-    const { text, voice, format } = data;
+    const { text, format } = data;
 
     if (!text || typeof text !== "string") {
       socket.emit("tts-error", {
@@ -1257,59 +1246,29 @@ io.on("connection", (socket) => {
       )}..." -> cleaned: "${cleanedText.substring(0, 50)}..."`,
     );
 
-    // Send to Kokoro worker
-    sendToKokoroWorker(
+    // Send to OpenVoice worker (always spoken in the default bambi voice)
+    sendToOpenVoiceWorker(
       {
         type: "tts",
         text: cleanedText, // Send cleaned lowercase text
-        voice: voice,
         format: format,
         socketId: socket.id,
       },
       () => {
         socket.emit("tts-error", {
           error:
-            "Kokoro TTS service unavailable. Please check your configuration.",
+            "OpenVoice TTS service unavailable. Please check your configuration.",
           timestamp: new Date().toISOString(),
         });
       },
     );
   });
 
-  // Handle voice setting updates
-  socket.on("set-voice", (data) => {
-    if (!kokoroWorker) {
-      socket.emit("tts-error", {
-        error: "Kokoro TTS worker not available",
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
-
-    const { voice } = data;
-
-    if (!voice || typeof voice !== "string") {
-      socket.emit("tts-error", {
-        error: "Invalid voice parameter",
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
-
-    console.log(`🎤 Voice update from ${socket.id}: ${voice}`);
-
-    sendToKokoroWorker({
-      type: "set_voice",
-      voice: voice,
-      socketId: socket.id,
-    });
-  });
-
   // Handle voice cloning requests (speak given text using an uploaded/recorded reference sample)
   socket.on("voice-clone-request", (data) => {
-    if (!kokoroWorker) {
+    if (!openVoiceWorker) {
       socket.emit("voice-clone-error", {
-        error: "Kokoro TTS worker not available",
+        error: "OpenVoice TTS worker not available",
         timestamp: new Date().toISOString(),
       });
       return;
@@ -1346,7 +1305,7 @@ io.on("connection", (socket) => {
       `🧬 Voice clone request from ${socket.id}: "${text.trim().substring(0, 50)}"`,
     );
 
-    sendToKokoroWorker(
+    sendToOpenVoiceWorker(
       {
         type: "voice_clone",
         audioData,
@@ -1358,7 +1317,7 @@ io.on("connection", (socket) => {
       },
       () => {
         socket.emit("voice-clone-error", {
-          error: "Kokoro voice cloning service unavailable.",
+          error: "OpenVoice voice cloning service unavailable.",
           timestamp: new Date().toISOString(),
         });
       },
@@ -1577,7 +1536,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Live reachability probe for Ollama and Kokoro TTS
+// Live reachability probe for Ollama and OpenVoice TTS
 app.get("/api/services/status", async (req, res) => {
   function probe(hostname, port, path, timeoutMs) {
     return new Promise((resolve) => {
@@ -1593,12 +1552,12 @@ app.get("/api/services/status", async (req, res) => {
     });
   }
 
-  const [ollama, kokoro] = await Promise.all([
+  const [ollama, openvoice] = await Promise.all([
     ENV.OLLAMA.isConfigured
       ? probe(ENV.OLLAMA.HOST, ENV.OLLAMA.PORT, "/api/tags", 5000)
       : Promise.resolve({ reachable: false, error: "not configured" }),
-    ENV.KOKORO.isConfigured
-      ? probe(ENV.KOKORO.HOST, ENV.KOKORO.PORT, "/health", 5000)
+    ENV.OPENVOICE.isConfigured
+      ? probe(ENV.OPENVOICE.HOST, ENV.OPENVOICE.PORT, ENV.OPENVOICE.HEALTH_PATH, 5000)
       : Promise.resolve({ reachable: false, error: "not configured" }),
   ]);
 
@@ -1610,11 +1569,11 @@ app.get("/api/services/status", async (req, res) => {
       model: ENV.OLLAMA.MODEL,
       ...ollama,
     },
-    kokoro: {
-      configured: ENV.KOKORO.isConfigured,
-      endpoint: ENV.KOKORO.URL,
-      voice: ENV.KOKORO.DEFAULT_VOICE,
-      ...kokoro,
+    openvoice: {
+      configured: ENV.OPENVOICE.isConfigured,
+      endpoint: ENV.OPENVOICE.URL,
+      voice: ENV.OPENVOICE.DEFAULT_VOICE,
+      ...openvoice,
     },
   });
 });
@@ -2179,17 +2138,17 @@ app.get("/api/patreon/stats", (req, res) => {
 
 // Setup TTS Routes with configuration validation
 function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
-  // Check if Kokoro API is configured
-  if (!config.KOKORO_API_URL || !kokoroWorker || !configStatus.ttsAvailable) {
+  // Check if OpenVoice API is configured
+  if (!config.OPENVOICE_API_URL || !openVoiceWorker || !configStatus.ttsAvailable) {
     console.warn(
-      "🎤 Kokoro API or worker not configured, TTS routes will return 503",
+      "🎤 OpenVoice API or worker not configured, TTS routes will return 503",
     );
 
     // Return service unavailable for all TTS endpoints
     app.get("/api/tts/voices", (req, res) => {
       res.status(503).json({
         error: "TTS service not configured",
-        message: "Kokoro TTS worker is not available or properly configured.",
+        message: "OpenVoice TTS worker is not available or properly configured.",
         fallback: "Web Speech API may be available in browser",
       });
     });
@@ -2197,99 +2156,49 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
     app.get("/api/tts", (req, res) => {
       res.status(503).json({
         error: "TTS service not configured",
-        message: "Kokoro TTS worker is not available or properly configured.",
-        fallback: "Please use Web Speech API or configure Kokoro TTS",
+        message: "OpenVoice TTS worker is not available or properly configured.",
+        fallback: "Please use Web Speech API or configure OpenVoice TTS",
       });
     });
 
     app.post("/api/tts", (req, res) => {
       res.status(503).json({
         error: "TTS service not configured",
-        message: "Kokoro TTS worker is not available or properly configured.",
-        fallback: "Please use Web Speech API or configure Kokoro TTS",
+        message: "OpenVoice TTS worker is not available or properly configured.",
+        fallback: "Please use Web Speech API or configure OpenVoice TTS",
       });
     });
 
     return;
   }
 
-  // Get voice list
+  // Get voice list - a single default voice cloned from bambi-reference.wav
   app.get("/api/tts/voices", async (req, res) => {
-    try {
-      // All female voices from Kokoro-FastAPI
-      // Reference: https://github.com/remsky/Kokoro-FastAPI
-      const femaleVoices = [
-        "af_alloy",
-        "af_aoede",
-        "af_bella",
-        "af_heart",
-        "af_jadzia",
-        "af_jessica",
-        "af_kore",
-        "af_nicole",
-        "af_nova",
-        "af_river",
-        "af_sarah",
-        "af_sky",
-      ];
+    const defaultVoice = config.OPENVOICE_DEFAULT_VOICE;
 
-      // Generate all possible combinations (maximum 2 voices per Kokoro docs)
-      const voiceCombinations = [];
-
-      // Add individual voices
-      femaleVoices.forEach((voice) => {
-        voiceCombinations.push({
-          value: voice,
-          name: voice.replace("af_", "").replace(/^\w/, (c) => c.toUpperCase()),
+    res.json({
+      voices: [
+        {
+          value: defaultVoice,
+          name: "Bambi",
           type: "single",
-          voices: [voice],
-        });
-      });
-
-      // Add dual combinations
-      for (let i = 0; i < femaleVoices.length; i++) {
-        for (let j = i + 1; j < femaleVoices.length; j++) {
-          const combination = `${femaleVoices[i]}+${femaleVoices[j]}`;
-          const name1 = femaleVoices[i]
-            .replace("af_", "")
-            .replace(/^\w/, (c) => c.toUpperCase());
-          const name2 = femaleVoices[j]
-            .replace("af_", "")
-            .replace(/^\w/, (c) => c.toUpperCase());
-
-          voiceCombinations.push({
-            value: combination,
-            name: `${name1} + ${name2}`,
-            type: "combination",
-            voices: [femaleVoices[i], femaleVoices[j]],
-          });
-        }
-      }
-
-      res.json({
-        voices: voiceCombinations,
-        femaleOnly: femaleVoices,
-        defaultVoice: config.KOKORO_DEFAULT_VOICE,
-        description:
-          "Available Kokoro-FastAPI female voices. BambiSleep enforces female-only voices. Use + to combine up to 2 voices.",
-        maxCombination: 2,
-        language: "en",
-        kokoro_server: config.KOKORO_API_URL,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error(`🎤 Voice listing error: ${error.message}`);
-      res.status(500).json({
-        error: "Error fetching voice list",
-        details: process.env.NODE_ENV === "production" ? null : error.message,
-      });
-    }
+          voices: [defaultVoice],
+        },
+      ],
+      femaleOnly: [defaultVoice],
+      defaultVoice,
+      description:
+        "OpenVoice V1 default voice, cloned from bambi-reference.wav for every request.",
+      maxCombination: 1,
+      language: "en",
+      openvoice_server: config.OPENVOICE_API_URL,
+      timestamp: new Date().toISOString(),
+    });
   });
 
   // Generate speech (GET method for compatibility)
   app.get("/api/tts", async (req, res) => {
     const text = req.query.text;
-    const voice = req.query.voice || config.KOKORO_DEFAULT_VOICE;
 
     if (typeof text !== "string" || text.trim() === "") {
       return res
@@ -2298,7 +2207,7 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
     }
 
     try {
-      await generateTTSAudio(text, voice, res);
+      await generateTTSAudio(text, res);
     } catch (error) {
       handleTTSError(error, res);
     }
@@ -2306,21 +2215,20 @@ function setupTTSRoutes(app, configStatus = { ttsAvailable: true }) {
 
   // Generate speech (POST method)
   app.post("/api/tts", async (req, res) => {
-    const { text, voice, format } = req.body;
-    const selectedVoice = voice || config.KOKORO_DEFAULT_VOICE;
+    const { text, format } = req.body;
 
     if (!text || typeof text !== "string") {
       return res.status(400).json({ error: "Invalid text input" });
     }
 
     try {
-      await generateTTSAudio(text, selectedVoice, res, format);
+      await generateTTSAudio(text, res, format);
     } catch (error) {
       handleTTSError(error, res);
     }
   });
 
-  console.log("🎤 TTS routes configured with Kokoro integration");
+  console.log("🎤 TTS routes configured with OpenVoice integration");
 }
 
 // Clean text for TTS processing - mirrors client-side cleanTextForTTS
@@ -2360,8 +2268,8 @@ function cleanTextForTTS(text) {
   return text.toLowerCase();
 }
 
-// Generate TTS audio using Kokoro worker
-async function generateTTSAudio(text, voice, res, format = "mp3") {
+// Generate TTS audio using OpenVoice worker (always the default bambi voice)
+async function generateTTSAudio(text, res, format = "wav") {
   return new Promise((resolve, reject) => {
     // Generate a temporary socket ID for API requests
     const tempSocketId = `api_tts_${Date.now()}_${Math.random()
@@ -2375,25 +2283,21 @@ async function generateTTSAudio(text, voice, res, format = "mp3") {
       `🎤 API TTS request: "${text.substring(
         0,
         50,
-      )}..." -> cleaned: "${cleanedText.substring(
-        0,
-        50,
-      )}..." with voice: ${voice}`,
+      )}..." -> cleaned: "${cleanedText.substring(0, 50)}..."`,
     );
 
-    // Send to Kokoro worker
-    const success = sendToKokoroWorker(
+    // Send to OpenVoice worker
+    const success = sendToOpenVoiceWorker(
       {
         type: "tts",
         text: cleanedText, // Send cleaned lowercase text
-        voice: voice,
         format: format,
         socketId: tempSocketId,
       },
       () => {
         reject(
           new Error(
-            "Kokoro TTS worker unavailable. Please check your configuration.",
+            "OpenVoice TTS worker unavailable. Please check your configuration.",
           ),
         );
       },
@@ -2409,8 +2313,8 @@ async function generateTTSAudio(text, voice, res, format = "mp3") {
     }, config.TTS_TIMEOUT);
 
     // Listen for worker response
-    const originalHandler = handleKokoroWorkerMessage;
-    handleKokoroWorkerMessage = (msg) => {
+    const originalHandler = handleOpenVoiceWorkerMessage;
+    handleOpenVoiceWorkerMessage = (msg) => {
       if (msg.socketId === tempSocketId) {
         clearTimeout(timeout);
 
@@ -2418,7 +2322,10 @@ async function generateTTSAudio(text, voice, res, format = "mp3") {
           // Convert base64 to buffer and send as audio
           const audioBuffer = Buffer.from(msg.audioData, "base64");
 
-          res.setHeader("Content-Type", "audio/mpeg");
+          res.setHeader(
+            "Content-Type",
+            msg.format === "mp3" ? "audio/mpeg" : `audio/${msg.format || "wav"}`,
+          );
           res.setHeader("Cache-Control", "no-cache");
           res.setHeader("Content-Length", audioBuffer.length);
 
@@ -2428,7 +2335,7 @@ async function generateTTSAudio(text, voice, res, format = "mp3") {
           reject(new Error(msg.error));
         }
 
-        handleKokoroWorkerMessage = originalHandler;
+        handleOpenVoiceWorkerMessage = originalHandler;
       } else {
         originalHandler(msg);
       }
@@ -2457,29 +2364,14 @@ function handleTTSError(error, res) {
 
 // TTS Health check endpoint (enhanced) - No actual health check, just service info
 app.get("/api/tts/health", async (req, res) => {
-  // Determine correct Kokoro host based on NODE_ENV
-  let kokoroHost;
-  if (process.env.NODE_ENV === "production") {
-    kokoroHost =
-      process.env.KOKORO_HOST_PRODUCTION ||
-      process.env.KOKORO_HOST_DEVELOPMENT ||
-      "localhost";
-  } else {
-    kokoroHost =
-      process.env.KOKORO_HOST_DEVELOPMENT ||
-      process.env.KOKORO_HOST_PRODUCTION ||
-      "localhost";
-  }
-  const kokoroPort = process.env.KOKORO_PORT || 8080;
-
   res.json({
-    healthy: kokoroWorker ? true : false,
-    service: "Kokoro TTS",
-    url: `http://${kokoroHost}:${kokoroPort}`,
-    config: config.KOKORO_API_URL,
-    defaultVoice: config.KOKORO_DEFAULT_VOICE,
+    healthy: openVoiceWorker ? true : false,
+    service: "OpenVoice TTS",
+    url: ENV.OPENVOICE.URL,
+    config: config.OPENVOICE_API_URL,
+    defaultVoice: config.OPENVOICE_DEFAULT_VOICE,
     timeout: config.TTS_TIMEOUT,
-    workerAvailable: kokoroWorker ? true : false,
+    workerAvailable: openVoiceWorker ? true : false,
     timestamp: new Date().toISOString(),
   });
 });
@@ -2536,7 +2428,7 @@ app.get("/api/transcription/health", async (req, res) => {
   sendToTranscriptionWorker({ type: "health", socketId: tempSocketId });
 });
 
-// TTS Voice management endpoint (enhanced)
+// TTS Voice management endpoint - only the default OpenVoice voice is available
 app.post("/api/tts/voice", (req, res) => {
   const { voice } = req.body;
 
@@ -2544,52 +2436,11 @@ app.post("/api/tts/voice", (req, res) => {
     return res.status(400).json({ error: "Invalid voice parameter" });
   }
 
-  // Validate that the voice is female only
-  const femaleVoices = [
-    "af_alloy",
-    "af_aoede",
-    "af_bella",
-    "af_heart",
-    "af_jadzia",
-    "af_jessica",
-    "af_kore",
-    "af_nicole",
-    "af_nova",
-    "af_river",
-    "af_sarah",
-    "af_sky",
-  ];
-  const voiceParts = voice.split("+");
-
-  for (const voicePart of voiceParts) {
-    if (!femaleVoices.includes(voicePart.trim())) {
-      return res.status(400).json({
-        error: "Invalid voice selection - only female voices are allowed",
-        allowedVoices: femaleVoices,
-      });
-    }
-  }
-
-  if (voiceParts.length > 2) {
+  if (voice !== config.OPENVOICE_DEFAULT_VOICE) {
     return res.status(400).json({
-      error: "Voice combination limited to maximum 2 voices",
+      error: "Invalid voice selection - only the default voice is available",
+      allowedVoices: [config.OPENVOICE_DEFAULT_VOICE],
     });
-  }
-
-  const success = sendToKokoroWorker(
-    {
-      type: "set_voice",
-      voice: voice,
-    },
-    () => {
-      return res.status(503).json({
-        error: "Kokoro TTS worker not available",
-      });
-    },
-  );
-
-  if (!success) {
-    return; // Fallback already handled the response
   }
 
   res.json({
@@ -2876,8 +2727,8 @@ class GitPullDetector {
     if (lmWorker) {
       lmWorker.terminate();
     }
-    if (kokoroWorker) {
-      kokoroWorker.terminate();
+    if (openVoiceWorker) {
+      openVoiceWorker.terminate();
     }
     if (transcriptionWorker) {
       transcriptionWorker.terminate();
@@ -2922,8 +2773,8 @@ process.on("SIGINT", () => {
 const PORT = ENV.SERVER.PORT;
 
 // Allow long-running AI/TTS requests to complete without HTTP socket timing out.
-// Must be >= ENV.OLLAMA.API_CALL_TIMEOUT and ENV.KOKORO.TIMEOUT.
-const HTTP_LONG_TIMEOUT = Math.max(ENV.OLLAMA.API_CALL_TIMEOUT, ENV.KOKORO.TIMEOUT) + 30000;
+// Must be >= ENV.OLLAMA.API_CALL_TIMEOUT and ENV.OPENVOICE.TIMEOUT.
+const HTTP_LONG_TIMEOUT = Math.max(ENV.OLLAMA.API_CALL_TIMEOUT, ENV.OPENVOICE.TIMEOUT) + 30000;
 server.timeout = HTTP_LONG_TIMEOUT;
 server.requestTimeout = HTTP_LONG_TIMEOUT;
 server.keepAliveTimeout = HTTP_LONG_TIMEOUT;

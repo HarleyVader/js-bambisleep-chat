@@ -28,12 +28,12 @@ const lmsUrl = ENV.LMS.URL;                // http://localhost:7777
 const lmsConfigured = ENV.LMS.isConfigured; // true/false
 const maxTokens = ENV.LMS.MAX_CONTEXT_TOKENS; // 6144
 
-// Kokoro TTS
-const kokoroUrl = ENV.KOKORO.URL;          // http://192.168.0.170:8880
-const kokoroApi = ENV.KOKORO.API_URL;      // /v1/audio/speech endpoint
-const kokoroConfigured = ENV.KOKORO.isConfigured; // true/false
-const defaultVoice = ENV.KOKORO.DEFAULT_VOICE; // af_sky+af_bella
-const availableVoices = ENV.KOKORO.AVAILABLE_VOICES; // Array of 12 voices
+// OpenVoice V1 TTS
+const openVoiceUrl = ENV.OPENVOICE.URL;          // http://204.12.253.35:8081
+const openVoiceClone = ENV.OPENVOICE.CLONE_URL;  // /v1/audio/clone endpoint
+const openVoiceConfigured = ENV.OPENVOICE.isConfigured; // true/false
+const defaultVoice = ENV.OPENVOICE.DEFAULT_VOICE; // "bambi"
+const referenceSample = ENV.OPENVOICE.REFERENCE_PATH; // public/bambi-reference.wav
 
 // Chat settings
 const maxMessageLength = ENV.CHAT.MAX_MESSAGE_LENGTH; // 500
@@ -68,16 +68,18 @@ const logLevel = ENV.DEBUG.LOG_LEVEL;      // 'info'
 - `MAX_CONTEXT_TOKENS` - Context window size (default: 6144)
 - `MAX_COMPLETION_TOKENS` - Max completion tokens (default: 2048)
 
-### KOKORO (TTS)
-- `HOST` - Auto-selects based on NODE_ENV
-- `PORT` - Kokoro server port (default: 8880)
+### OPENVOICE (TTS)
+- `HOST` - Auto-selects based on NODE_ENV (`OPENVOICE_HOST_PRODUCTION` / `OPENVOICE_HOST_DEVELOPMENT`)
+- `PORT` - OpenVoice V1 server port (default: 8081)
 - `URL` - Full URL (computed)
-- `API_URL` - Full API endpoint URL (computed)
+- `API_URL` - `/v1/audio/speech` endpoint URL (computed)
+- `CLONE_URL` - `/v1/audio/clone` endpoint URL (computed); every TTS request is sent here
 - `isConfigured` - Boolean indicating if properly configured
-- `API_KEY` - Optional API key
-- `DEFAULT_VOICE` - Default voice or combination (default: 'af_sky+af_bella')
+- `API_KEY` - Optional API key (`OPENVOICE_API_KEY`), sent as a Bearer token
+- `HEALTH_PATH` - Health probe path used by `/api/services/status` (default: '/health')
+- `DEFAULT_VOICE` - Name of the single default voice: 'bambi'
+- `REFERENCE_PATH` - Reference sample cloned for the default voice (`OPENVOICE_REFERENCE_PATH`, default: `public/bambi-reference.wav`)
 - `TIMEOUT` - Request timeout in ms (default: 300000)
-- `AVAILABLE_VOICES` - Array of all 12 female voices
 
 ### CHAT
 - `MAX_MESSAGE_LENGTH` - Maximum message length (default: 500)
@@ -107,9 +109,9 @@ const lmsValidation = ENV.validation.validateLMS();
 console.log(lmsValidation.configured); // true/false
 console.log(lmsValidation.missing);    // Array of missing vars
 
-const kokoroValidation = ENV.validation.validateKokoro();
-console.log(kokoroValidation.configured); // true/false
-console.log(kokoroValidation.missing);    // Array of missing vars
+const openVoiceValidation = ENV.validation.validateOpenVoice();
+console.log(openVoiceValidation.configured); // true/false
+console.log(openVoiceValidation.missing);    // Array of missing vars
 
 // Validate all services
 const allValidation = ENV.validation.validateAll();
@@ -145,11 +147,11 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const port = process.env.PORT || 6969;
-const kokoroHost = process.env.NODE_ENV === 'production'
-    ? process.env.KOKORO_HOST_PRODUCTION
-    : process.env.KOKORO_HOST_DEVELOPMENT;
-const kokoroPort = process.env.KOKORO_PORT || 8880;
-const kokoroUrl = `http://${kokoroHost}:${kokoroPort}`;
+const openVoiceHost = process.env.NODE_ENV === 'production'
+    ? process.env.OPENVOICE_HOST_PRODUCTION
+    : process.env.OPENVOICE_HOST_DEVELOPMENT;
+const openVoicePort = process.env.OPENVOICE_PORT || 8081;
+const openVoiceUrl = `http://${openVoiceHost}:${openVoicePort}`;
 ```
 
 ### New way:
@@ -157,7 +159,7 @@ const kokoroUrl = `http://${kokoroHost}:${kokoroPort}`;
 const ENV = require('./config/env');
 
 const port = ENV.SERVER.PORT;
-const kokoroUrl = ENV.KOKORO.URL;
+const openVoiceUrl = ENV.OPENVOICE.URL;
 ```
 
 ## Benefits
@@ -173,18 +175,18 @@ const kokoroUrl = ENV.KOKORO.URL;
 ## Example: Worker Thread
 
 ```javascript
-// workers/kokoro.js
+// workers/openvoice.js
 const ENV = require('../config/env');
 
-class KokoroTTSWorker {
+class OpenVoiceTTSWorker {
     constructor() {
-        if (!ENV.KOKORO.isConfigured) {
-            throw new Error('Kokoro not configured');
+        if (!ENV.OPENVOICE.isConfigured) {
+            throw new Error('OpenVoice not configured');
         }
 
-        this.kokoroUrl = ENV.KOKORO.URL;
-        this.defaultVoice = ENV.KOKORO.DEFAULT_VOICE;
-        console.log('✅ Kokoro configured:', this.kokoroUrl);
+        this.openVoiceUrl = ENV.OPENVOICE.URL;
+        this.defaultVoice = ENV.OPENVOICE.DEFAULT_VOICE;
+        console.log('✅ OpenVoice configured:', this.openVoiceUrl);
     }
 }
 ```

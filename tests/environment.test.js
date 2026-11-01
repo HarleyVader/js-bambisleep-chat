@@ -93,7 +93,8 @@ class EnvironmentTester {
         const criticalPaths = [
             'public/js/aigf-core.js',
             'server.js',
-            'workers/kokoro.js',
+            'workers/openvoice.js',
+            'public/bambi-reference.wav',
             'workers/ollama.js',
             'workers/triggers.json',
             'public/css/layers.css'
@@ -133,10 +134,10 @@ class EnvironmentTester {
         ];
 
         const optionalEnvVars = [
-            'KOKORO_HOST_DEVELOPMENT',
-            'KOKORO_HOST_PRODUCTION',
-            'KOKORO_PORT',
-            'KOKORO_DEFAULT_VOICE',
+            'OPENVOICE_HOST_DEVELOPMENT',
+            'OPENVOICE_HOST_PRODUCTION',
+            'OPENVOICE_PORT',
+            'OPENVOICE_REFERENCE_PATH',
             'OLLAMA_HOST_DEVELOPMENT',
             'OLLAMA_HOST_PRODUCTION',
             'OLLAMA_PORT',
@@ -182,7 +183,8 @@ class EnvironmentTester {
         const ports = [
             { port: 5173, name: 'Vite Dev Server' },
             { port: 6969, name: 'Backend Server' },
-            { port: 8080, name: 'Kokoro TTS / Transcription / Ollama (default, consolidated)' }
+            { port: 8080, name: 'Transcription / Ollama (default, consolidated)' },
+            { port: 8081, name: 'OpenVoice V1 TTS' }
         ];
 
         const net = require('net');

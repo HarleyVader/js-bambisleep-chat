@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **BREAKING**: TTS backend replaced: Kokoro → OpenVoice V1 (port 8081)
+  - New `workers/openvoice.js` (replaces `workers/kokoro.js`); `ENV.KOKORO` → `ENV.OPENVOICE` in `config/env.js`
+  - Every TTS request is voice-cloned from `public/bambi-reference.wav` (`OPENVOICE_REFERENCE_PATH`) via `POST /v1/audio/clone`
+  - Single default voice `bambi`; Kokoro voice list/mixing, `set-voice` socket event and per-request `voice` removed
+  - New env vars: `OPENVOICE_HOST_PRODUCTION`, `OPENVOICE_HOST_DEVELOPMENT`, `OPENVOICE_PORT`, `OPENVOICE_REFERENCE_PATH`, `OPENVOICE_API_KEY`, `OPENVOICE_HEALTH_PATH`; `KOKORO_*` vars removed
+  - `/api/services/status` now reports `openvoice` instead of `kokoro`
+
+### Removed
+- Video Background dropdown (iframe playlist behind the spiral)
+
 ## [0.3.0] - 2025-10-25
 
 ### Added

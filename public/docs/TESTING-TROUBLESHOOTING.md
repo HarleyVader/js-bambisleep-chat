@@ -210,10 +210,10 @@ npm start
 
 ### External Services
 
-**Kokoro TTS:**
+**OpenVoice TTS:**
 
-- Check server is running on configured port
-- Verify host/port in .env
+- Check server is running on configured port (default 8081)
+- Verify OPENVOICE_HOST_* / OPENVOICE_PORT in .env
 - Test with curl/Postman
 
 **LM Studio:**
@@ -499,11 +499,11 @@ timeout-minutes: 15 # Increase if needed
 
 ## External Service Issues
 
-### 🔇 Kokoro TTS not available
+### 🔇 OpenVoice TTS not available
 
-**Error:** `🎤 Kokoro API or worker not configured, TTS routes will return 503`
+**Error:** `🎤 OpenVoice API or worker not configured, TTS routes will return 503`
 
-**This is normal if you don't have Kokoro TTS running.**
+**This is normal if you don't have the OpenVoice V1 server running.**
 
 **Solutions:**
 
@@ -512,13 +512,14 @@ timeout-minutes: 15 # Increase if needed
 - TTS features will be disabled
 - Chat and other features work normally
 
-2. **Install Kokoro TTS locally:**
+2. **Point the app at your OpenVoice V1 server:**
 
 ```bash
-# Follow Kokoro installation guide
 # Set in .env:
-KOKORO_HOST_DEVELOPMENT=http://localhost
-KOKORO_PORT=8880
+OPENVOICE_HOST_DEVELOPMENT=localhost
+OPENVOICE_PORT=8081
+# Default voice reference sample (cloned for every TTS request):
+OPENVOICE_REFERENCE_PATH=public/bambi-reference.wav
 ```
 
 3. **Run tests in CI mode:**
