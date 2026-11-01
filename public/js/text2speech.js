@@ -890,13 +890,23 @@ class TextToSpeechSystem {
   }
 
   handleAudioError(e) {
-    console.error("🎤 Audio error:", e);
+    // Clearing src (cleanup) fires a spurious error event - not a playback failure
+    const mediaError = e?.target?.error;
+    if (e?.target && !e.target.getAttribute?.("src")) {
+      return;
+    }
+
+    console.error(
+      "🎤 Audio error:",
+      e,
+      mediaError ? `code=${mediaError.code} message=${mediaError.message}` : "",
+    );
 
     // Report error through error management system if available
     if (window.chatCore && window.chatCore.errorManager) {
       window.chatCore.errorManager.reportError("tts", "audio_playback_failed", {
         message: "Failed to play generated audio",
-        error: e.message,
+        error: e.message || mediaError?.message,
         retryCallback: () => this.retryCurrentText(),
       });
     }
@@ -952,8 +962,8 @@ class TextToSpeechSystem {
 
     try {
       // Convert base64 audio data to blob URL (OpenVoice returns the real format, usually wav)
-      const mimeType =
-        data.format === "mp3" ? "audio/mpeg" : `audio/${data.format || "wav"}`;
+      const mimeTypes = { mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg", flac: "audio/flac" };
+      const mimeType = mimeTypes[data.format] || "audio/wav";
       const audioBlob = this.base64ToBlob(data.audioData, mimeType);
       const audioUrl = URL.createObjectURL(audioBlob);
 

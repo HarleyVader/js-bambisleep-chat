@@ -173,6 +173,16 @@ class OpenVoiceTTSWorker {
     return this.outputFormat;
   }
 
+  // Identify the real audio format from magic bytes (servers sometimes mislabel it)
+  sniffFormat(buffer) {
+    if (buffer.length >= 12 && buffer.toString("latin1", 0, 4) === "RIFF" && buffer.toString("latin1", 8, 12) === "WAVE") return "wav";
+    if (buffer.length >= 4 && buffer.toString("latin1", 0, 4) === "OggS") return "ogg";
+    if (buffer.length >= 4 && buffer.toString("latin1", 0, 4) === "fLaC") return "flac";
+    if (buffer.length >= 3 && buffer.toString("latin1", 0, 3) === "ID3") return "mp3";
+    if (buffer.length >= 2 && buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) return "mp3";
+    return null;
+  }
+
   // Clone `reference` and speak `text` with it. Defaults to the bambi reference sample.
   async synthesize(text, { speed = 1.0, reference, mimeType, fileName } = {}) {
     const controller = new AbortController();
@@ -207,10 +217,18 @@ class OpenVoiceTTSWorker {
         throw new Error(`OpenVoice API error (${response.status}): ${errorText}`);
       }
 
-      const format = this.formatFromContentType(
-        response.headers.get("content-type")
-      );
+      const contentType = response.headers.get("content-type") || "";
       const buffer = Buffer.from(await response.arrayBuffer());
+
+      // A 200 that isn't audio (e.g. a JSON error body) would otherwise surface as a playback error
+      if (/json|text|html/i.test(contentType) || buffer.length === 0) {
+        throw new Error(
+          `OpenVoice returned non-audio response (${contentType || "no content-type"}, ${buffer.length} bytes): ${buffer.toString("utf8", 0, 200)}`
+        );
+      }
+
+      const format =
+        this.sniffFormat(buffer) || this.formatFromContentType(contentType);
       return { buffer, base64: buffer.toString("base64"), format };
     } finally {
       clearTimeout(timeoutId);
