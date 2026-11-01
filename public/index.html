@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="A real-time chat application with text-to-speech, psychedelic visual effects, and trigger word detection.">
   <meta property="og:description" content="A real-time chat application with text-to-speech, psychedelic visual effects, and trigger word detection.">
   <title>BambiSleepChat</title>
+  <meta name="description" content="A real-time chat application with text-to-speech, psychedelic visual effects, and trigger word detection.">
 
   <!-- Favicon and Icon Links for All Devices -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -73,7 +73,6 @@
   <div id="app">
     <!-- Spiral Animation Canvas -->
     <div id="spiral-container">
-      <div id="spiral-video-background"></div>
       <div id="eye" class="spiral-text-center"></div>
     </div>
 
@@ -127,12 +126,6 @@
           <span class="status-indicator" id="buttplug-status">●</span>
         </button>
       </div>
-      <div class="dropdown" data-dropdown="video-bg">
-        <button id="toggle-video-bg" class="dropdown-btn toggle-button" data-state="off">
-          🎬 Video BG
-          <span class="status-indicator" id="video-bg-status">●</span>
-        </button>
-      </div>
     </div>
 
     <!-- Dropdown Content Modals - Separate from buttons -->
@@ -160,9 +153,6 @@
       </div>
       <div class="dropdown-content" data-dropdown="brainwave">
         <!-- Content will be populated by brainwave-dropdown.js -->
-      </div>
-      <div class="dropdown-content" data-dropdown="video-bg">
-        <!-- Content will be populated by video-background-dropdown.js -->
       </div>
     </div>
 

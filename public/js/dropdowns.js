@@ -13,7 +13,6 @@ import {
   ButtplugDropdown,
   PromptDropdown,
   VoiceCloneDropdown,
-  VideoBackgroundDropdown,
 } from "./dropdowns/index.js";
 
 import { StorageUtils } from "./storage-utils.js";
@@ -116,7 +115,6 @@ class DropdownManager {
       "toggle-collar": "off",
       "toggle-prompt": "off",
       "toggle-voiceclone": "off",
-      "toggle-video-bg": "off",
     };
 
     // Initialize component dropdowns
@@ -170,7 +168,6 @@ class DropdownManager {
       this.components.collar = new CollarDropdown(this);
       this.components.prompt = new PromptDropdown(this);
       this.components.voiceclone = new VoiceCloneDropdown(this);
-      this.components.videobg = new VideoBackgroundDropdown(this);
 
       // Initialize brainwave dropdown content (button is in HTML like others)
       createBrainwaveDropdown();
@@ -334,8 +331,6 @@ class DropdownManager {
         return this.components.prompt;
       case "toggle-voiceclone":
         return this.components.voiceclone;
-      case "toggle-video-bg":
-        return this.components.videobg;
       default:
         return null;
     }
