@@ -207,9 +207,7 @@ class EnvironmentValidator {
     const hostVar = isProduction
       ? "OPENVOICE_HOST_PRODUCTION"
       : "OPENVOICE_HOST_DEVELOPMENT";
-    const host = process.env[hostVar];
-
-    if (!host) {
+    if (!ENV.OPENVOICE.HOST) {
       this.warnings.push({
         category: "openvoice",
         variable: hostVar,
@@ -296,10 +294,7 @@ class EnvironmentValidator {
         return !!(ollamaHost && process.env.OLLAMA_PORT);
 
       case "openvoice":
-        const openVoiceHost = isProduction
-          ? process.env.OPENVOICE_HOST_PRODUCTION
-          : process.env.OPENVOICE_HOST_DEVELOPMENT;
-        return !!(openVoiceHost && process.env.OPENVOICE_PORT);
+        return ENV.OPENVOICE.isConfigured;
 
       default:
         return false;

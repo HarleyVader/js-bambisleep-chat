@@ -32,6 +32,7 @@ class OpenVoiceTTSWorker {
         "🔄 Running in fallback mode - TTS will use Web Speech API only"
       );
       this.fallbackMode = true;
+      this.fallbackReason = error.message;
       this.isHealthy = false;
     }
 
@@ -73,12 +74,12 @@ class OpenVoiceTTSWorker {
       if (this.fallbackMode && (msg.type === "tts" || msg.type === "voice_clone")) {
         if (msg.type === "voice_clone") {
           this.sendCloneError(
-            "Voice cloning not available - OpenVoice TTS is not configured",
+            `Voice cloning not available - OpenVoice TTS is not configured (${this.fallbackReason})`,
             msg.socketId
           );
         } else {
           this.sendError(
-            "OpenVoice TTS not available - using Web Speech API fallback",
+            `OpenVoice TTS not available (${this.fallbackReason}) - using Web Speech API fallback`,
             msg.socketId
           );
         }

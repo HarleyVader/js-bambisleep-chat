@@ -83,9 +83,11 @@ const OLLAMA = {
  * voice-cloned from REFERENCE_PATH (the default "bambi" voice).
  */
 const OPENVOICE = {
+  // Host falls back to the legacy KOKORO_HOST_* values: OpenVoice runs on the same machine
   HOST: isProduction
-    ? process.env.OPENVOICE_HOST_PRODUCTION
-    : process.env.OPENVOICE_HOST_DEVELOPMENT,
+    ? process.env.OPENVOICE_HOST_PRODUCTION || process.env.KOKORO_HOST_PRODUCTION
+    : process.env.OPENVOICE_HOST_DEVELOPMENT ||
+      process.env.KOKORO_HOST_DEVELOPMENT,
   PORT: parseInt(process.env.OPENVOICE_PORT) || 8081,
 
   API_KEY: process.env.OPENVOICE_API_KEY || "",
