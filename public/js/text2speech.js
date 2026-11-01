@@ -1,5 +1,34 @@
 // text2speech.js - Enhanced Text-to-speech with OpenVoice integration and spiral synchronization
 // OPTIMIZED: Added prefetching, parallel processing, and improved memory management
+
+// Shared text helpers (also used by aigf-core.js via window.TTSTextUtils)
+window.TTSTextUtils = {
+  // Cut on punctuation that ends a phrase. Punctuation inside a token (3.5, e.g., don't) is kept
+  // because a boundary mark must be followed by whitespace or the end of the text.
+  splitIntoSegments(text) {
+    return String(text ?? "")
+      .replace(/https?:\/\/[^\s]+/g, "link")
+      .split(
+        /[.,;:!?…。！？，；：]+(?=\s|$)|[\r\n]+|[*_~`#|]+|[()[\]{}<>"“”«»]+|\s[-–—]+\s|[–—]+/,
+      )
+      .map((s) => s.replace(/\s+/g, " ").trim())
+      .filter((s) => /[\p{L}\p{N}]/u.test(s));
+  },
+
+  // Text shown on screen: no punctuation, apostrophes inside words are kept
+  cleanForDisplay(text) {
+    return String(text ?? "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/(?<=\p{L})['’](?=\p{L})/gu, "\u0000")
+      .replace(/(?<=\p{N})[.,](?=\p{N})/gu, "\u0001")
+      .replace(/[^\p{L}\p{N}\u0000\u0001\s]/gu, " ")
+      .replace(/\u0000/g, "'")
+      .replace(/\u0001/g, ".")
+      .replace(/\s+/g, " ")
+      .trim();
+  },
+};
+
 class TextToSpeechSystem {
   constructor() {
     this.isEnabled ??= false;
@@ -616,21 +645,15 @@ class TextToSpeechSystem {
 
     console.log("🎤 TTS request:", text.substring(0, 50) + "...");
 
-    // Clean text for TTS
-    const cleanText = this.cleanTextForTTS(text);
+    // Split once on the original text, then clean each segment so display and TTS stay aligned
+    const sentences = this.splitTextIntoSentences(text);
 
-    // Split text by punctuation for better synchronization
-    const sentences = this.splitTextIntoSentences(text); // Use original text for splitting
-    const cleanSentences = this.splitTextIntoSentences(cleanText); // Clean text for TTS
-
-    // Add sentences to text array for synchronized display (original) and TTS (cleaned)
-    sentences.forEach((sentence, index) => {
-      if (sentence.trim().length > 0) {
+    sentences.forEach((sentence) => {
+      const tts = this.cleanTextForTTS(sentence);
+      if (tts.length > 0) {
         this.textArray.push({
-          display: sentence.trim(), // Original text for display
-          tts: cleanSentences[index]
-            ? cleanSentences[index].trim()
-            : sentence.trim(), // Cleaned text for TTS
+          display: sentence.trim(), // Original segment (used to highlight it in the chat message)
+          tts,
         });
       }
     });
@@ -731,12 +754,7 @@ class TextToSpeechSystem {
   }
 
   splitTextIntoSentences(text) {
-    // Split on EVERY punctuation mark for natural TTS pauses
-    // Simple regex: split on any punctuation followed by optional space
-    return text
-      .split(/[,.!?;:\*]+\s*/g)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    return window.TTSTextUtils.splitIntoSegments(text);
   }
 
   async processTextQueue() {
@@ -1143,13 +1161,8 @@ class TextToSpeechSystem {
       visibility: visible !important;
     `;
 
-    // Display the text with each sentence/phrase on a new line
-    // Split on punctuation marks (commas, periods, semicolons, etc.) to show triggers separately
-    let html = String(text)
-      .split(/([,.!?;:]+\s*)/) // Split on punctuation while keeping the punctuation
-      .filter((part) => part.trim().length > 0) // Remove empty parts
-      .join("<br>"); // Join with line breaks
-    textDisplay.innerHTML = html;
+    // Show the segment without punctuation (segments are already cut on punctuation)
+    textDisplay.textContent = window.TTSTextUtils.cleanForDisplay(text);
 
     console.log("🎤 Text display updated, visible for", duration, "ms");
 
@@ -1664,30 +1677,20 @@ class TextToSpeechSystem {
     // Remove URLs
     text = text.replace(/https?:\/\/[^\s]+/g, "link");
 
-    // Remove apostrophes from contractions and possessives (you'll -> youll, bambi's -> bambis)
-    text = text.replace(/'/g, "");
-
-    // Remove ALL punctuation marks that should not be spoken
-    text = text.replace(/[.,;:!?"""''`~@#$%^&*()_+=\[\]{}|\\<>/\-]/g, " ");
-
-    // Remove excessive punctuation
-    text = text.replace(/[!]{2,}/g, "");
-    text = text.replace(/[?]{2,}/g, "");
-    text = text.replace(/[.]{3,}/g, "");
-
-    // Replace common emoticons with words
-    text = text.replace(/:\)/g, "smile");
-    text = text.replace(/:\(/g, "sad");
-    text = text.replace(/:D/g, "laugh");
-    text = text.replace(/<3/g, "heart");
-
     // Remove HTML tags but preserve the text content
-    text = text.replace(/<[^>]*>/g, "");
+    text = text.replace(/<[^>]*>/g, " ");
 
-    // Remove markdown formatting
-    text = text.replace(/\*\*(.*?)\*\*/g, "$1"); // Remove **bold**
-    text = text.replace(/\*(.*?)\*/g, "$1"); // Remove *italic*
-    text = text.replace(/__(.*?)__/g, "$1"); // Remove __underline__
+    // Replace common emoticons with words (before punctuation is stripped)
+    text = text.replace(/:\)/g, " smile ");
+    text = text.replace(/:\(/g, " sad ");
+    text = text.replace(/:D/g, " laugh ");
+    text = text.replace(/<3/g, " heart ");
+
+    // Remove apostrophes from contractions and possessives (you'll -> youll, bambi's -> bambis)
+    text = text.replace(/['’]/g, "");
+
+    // Replace all remaining punctuation and symbols with spaces so words never merge
+    text = text.replace(/[^\p{L}\p{N}\s]/gu, " ");
 
     // Remove excessive whitespace and normalize
     text = text.replace(/\s+/g, " ").trim();

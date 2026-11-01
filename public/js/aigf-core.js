@@ -173,18 +173,13 @@ class ChatCore {
 
     // Create pairs by cleaning each sentence individually
     const sentencePairs = [];
-    originalSentences.forEach((originalSentence, index) => {
-      if (originalSentence.trim().length > 0) {
-        const cleanSentence = this.cleanTextForTTS(originalSentence.trim());
+    originalSentences.forEach((originalSentence) => {
+      const cleanSentence = this.cleanTextForTTS(originalSentence);
+      if (cleanSentence.length > 0) {
         sentencePairs.push({
           display: originalSentence.trim(),
           tts: cleanSentence,
         });
-        console.log(
-          `🎤 Sentence ${index + 1} - Display:`,
-          originalSentence.trim().substring(0, 30) + "... TTS:",
-          cleanSentence.substring(0, 30) + "...",
-        );
       }
     });
 
@@ -206,30 +201,20 @@ class ChatCore {
     // Remove URLs
     text = text.replace(/https?:\/\/[^\s]+/g, "link");
 
-    // Remove apostrophes from contractions and possessives (you'll -> youll, bambi's -> bambis)
-    text = text.replace(/'/g, "");
-
-    // Remove ALL punctuation marks that should not be spoken
-    text = text.replace(/[.,;:!?"""''`~@#$%^&*()_+=\[\]{}|\\<>/\-]/g, " ");
-
-    // Remove excessive punctuation
-    text = text.replace(/[!]{2,}/g, "");
-    text = text.replace(/[?]{2,}/g, "");
-    text = text.replace(/[.]{3,}/g, "");
-
-    // Replace common emoticons with words
-    text = text.replace(/:\)/g, "smile");
-    text = text.replace(/:\(/g, "sad");
-    text = text.replace(/:D/g, "laugh");
-    text = text.replace(/<3/g, "heart");
-
     // Remove HTML tags but preserve the text content
-    text = text.replace(/<[^>]*>/g, "");
+    text = text.replace(/<[^>]*>/g, " ");
 
-    // Remove markdown formatting
-    text = text.replace(/\*\*(.*?)\*\*/g, "$1"); // Remove **bold**
-    text = text.replace(/\*(.*?)\*/g, "$1"); // Remove *italic*
-    text = text.replace(/__(.*?)__/g, "$1"); // Remove __underline__
+    // Replace common emoticons with words (before punctuation is stripped)
+    text = text.replace(/:\)/g, " smile ");
+    text = text.replace(/:\(/g, " sad ");
+    text = text.replace(/:D/g, " laugh ");
+    text = text.replace(/<3/g, " heart ");
+
+    // Remove apostrophes from contractions and possessives (you'll -> youll, bambi's -> bambis)
+    text = text.replace(/['’]/g, "");
+
+    // Replace all remaining punctuation and symbols with spaces so words never merge
+    text = text.replace(/[^\p{L}\p{N}\s]/gu, " ");
 
     // Remove excessive whitespace and normalize
     text = text.replace(/\s+/g, " ").trim();
@@ -238,86 +223,9 @@ class ChatCore {
     return text.toLowerCase();
   }
 
-  // Enhanced sentence splitting for better TTS pacing
+  // Cut text on punctuation into phrases (shared logic lives in text2speech.js)
   splitIntoTTSSentences(text) {
-    // Split on multiple types of sentence boundaries
-    // Preserve important trigger phrases as complete units
-
-    // First, protect trigger phrases by replacing spaces with placeholders
-    const triggerPatterns = [
-      "bambi sleep",
-      "good girl",
-      "bambi reset",
-      "bambi wake and obey",
-      "bambi freeze",
-      "bambi does as she's told",
-      "bimbo doll",
-      "blonde moment",
-      "snap and forget",
-      "bambi cum and collapse",
-      "drop for cock",
-      "bambi limp",
-      "airhead barbie",
-      "braindead bobblehead",
-      "cockblank lovedoll",
-      "cock zombie now",
-      "giggletime",
-      "primped and pampered",
-      "safe and secure",
-      "zap cock drain obey",
-    ];
-
-    let protectedText = text;
-    const protectedPhrases = [];
-
-    triggerPatterns.forEach((trigger, index) => {
-      const placeholder = `PROTECTED_PHRASE_${index}`;
-      const regex = new RegExp(trigger.replace(/'/g, "'?"), "gi");
-      protectedText = protectedText.replace(regex, (match) => {
-        protectedPhrases[index] = match;
-        return placeholder;
-      });
-    });
-
-    // Split on EVERY punctuation mark for natural TTS pauses
-    // Simple regex: split on any punctuation followed by optional space
-    const sentences = protectedText
-      .split(/[,.!?;:\*]+\s*/g)
-      .map((sentence) => sentence.trim())
-      .filter((sentence) => sentence.length > 0);
-
-    // Restore protected phrases
-    const restoredSentences = sentences.map((sentence) => {
-      let restored = sentence;
-      protectedPhrases.forEach((phrase, index) => {
-        if (phrase) {
-          const placeholder = `PROTECTED_PHRASE_${index}`;
-          // Use global replace to restore all instances
-          restored = restored.replace(new RegExp(placeholder, "g"), phrase);
-        }
-      });
-      return restored;
-    });
-
-    // If splitting resulted in too many tiny fragments, recombine some
-    const finalSentences = [];
-    for (let i = 0; i < restoredSentences.length; i++) {
-      const sentence = restoredSentences[i];
-
-      // If sentence is very short and there's a next sentence, combine them
-      if (
-        sentence.length < 20 &&
-        i < restoredSentences.length - 1 &&
-        restoredSentences[i + 1].length < 50
-      ) {
-        finalSentences.push(sentence + " " + restoredSentences[i + 1]);
-        i++; // Skip the next sentence since we combined it
-      } else {
-        finalSentences.push(sentence);
-      }
-    }
-
-    return finalSentences.length > 0 ? finalSentences : [text];
+    return window.TTSTextUtils.splitIntoSegments(text);
   }
 
   init() {
@@ -496,7 +404,10 @@ class ChatCore {
       this.addSystemMessage(`AI generated ${data.wordCount} words`);
 
       // Process TTS for AI response using synchronized method
-      if (window.ttsSystem && window.ttsSystem.isEnabled) {
+      // Streamed partials were already spoken sentence by sentence
+      const alreadySpoken = this.streamedTTS;
+      this.streamedTTS = false;
+      if (!alreadySpoken && window.ttsSystem && window.ttsSystem.isEnabled) {
         console.log(
           "🎤 Processing AI response for TTS with sentence synchronization",
         );
@@ -506,7 +417,8 @@ class ChatCore {
 
     this.socket.on("ai-partial", (data) => {
       if (data?.message && window.ttsSystem?.isEnabled) {
-        window.ttsSystem.speakSentencePairs([{ display: data.message, tts: this.cleanTextForTTS(data.message) }]);
+        this.streamedTTS = true;
+        this.processAIResponseForTTS(data.message);
       }
     });
 
