@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **BREAKING**: TTS backend replaced: Kokoro → OpenVoice V1 (port 8081)
+- **BREAKING**: TTS backend replaced: Kokoro → OpenVoice V1 (port 8080)
   - New `workers/openvoice.js` (replaces `workers/kokoro.js`); `ENV.KOKORO` → `ENV.OPENVOICE` in `config/env.js`
   - Every TTS request is voice-cloned from `public/bambi-reference.wav` (`OPENVOICE_REFERENCE_PATH`) via `POST /v1/audio/clone`
   - Single default voice `bambi`; Kokoro voice list/mixing, `set-voice` socket event and per-request `voice` removed

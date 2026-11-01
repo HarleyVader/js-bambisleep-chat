@@ -212,7 +212,7 @@ npm start
 
 **OpenVoice TTS:**
 
-- Check server is running on configured port (default 8081)
+- Check server is running on configured port (default 8080)
 - Verify OPENVOICE_HOST_* / OPENVOICE_PORT in .env
 - Test with curl/Postman
 
@@ -517,7 +517,7 @@ timeout-minutes: 15 # Increase if needed
 ```bash
 # Set in .env:
 OPENVOICE_HOST_DEVELOPMENT=localhost
-OPENVOICE_PORT=8081
+OPENVOICE_PORT=8080
 # Default voice reference sample (cloned for every TTS request):
 OPENVOICE_REFERENCE_PATH=public/bambi-reference.wav
 ```

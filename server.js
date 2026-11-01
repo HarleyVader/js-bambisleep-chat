@@ -52,7 +52,7 @@ class EnvironmentValidator {
       openvoice: [
         { name: "OPENVOICE_HOST_PRODUCTION", required: false, type: "host" },
         { name: "OPENVOICE_HOST_DEVELOPMENT", required: false, type: "host" },
-        { name: "OPENVOICE_PORT", default: 8081, type: "port" },
+        { name: "OPENVOICE_PORT", default: 8080, type: "port" },
         {
           name: "OPENVOICE_REFERENCE_PATH",
           default: "public/bambi-reference.wav",
@@ -360,7 +360,7 @@ const configStatus = validateConfiguration();
 app.use((req, res, next) => {
   // Dynamically include external service hosts
   const openVoiceHost = ENV.OPENVOICE.HOST || "localhost";
-  const openVoicePort = ENV.OPENVOICE.PORT || 8081;
+  const openVoicePort = ENV.OPENVOICE.PORT || 8080;
   const ollamaHost = ENV.OLLAMA.HOST || "localhost";
   const ollamaPort = ENV.OLLAMA.PORT || 8080;
 

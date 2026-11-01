@@ -149,6 +149,12 @@ class OpenVoiceTTSWorker {
     return run;
   }
 
+  // Node's fetch only says "fetch failed"; surface the network cause and target URL
+  describeError(error) {
+    const code = error.cause && (error.cause.code || error.cause.message);
+    return code ? `${error.message} (${code} at ${this.cloneUrl})` : error.message;
+  }
+
   getCacheKey(text, speed) {
     return `${speed}:${text.substring(0, 200)}`;
   }
@@ -290,7 +296,7 @@ class OpenVoiceTTSWorker {
       );
     } catch (error) {
       console.error("OpenVoice TTS generation failed:", error);
-      this.sendError(`TTS generation failed: ${error.message}`, socketId);
+      this.sendError(`TTS generation failed: ${this.describeError(error)}`, socketId);
     }
   }
 
@@ -379,7 +385,7 @@ class OpenVoiceTTSWorker {
       );
     } catch (error) {
       console.error("OpenVoice voice cloning failed:", error);
-      this.sendCloneError(`Voice cloning failed: ${error.message}`, socketId);
+      this.sendCloneError(`Voice cloning failed: ${this.describeError(error)}`, socketId);
     }
   }
 

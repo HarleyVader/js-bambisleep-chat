@@ -88,10 +88,10 @@ const OPENVOICE = {
     ? process.env.OPENVOICE_HOST_PRODUCTION || process.env.KOKORO_HOST_PRODUCTION
     : process.env.OPENVOICE_HOST_DEVELOPMENT ||
       process.env.KOKORO_HOST_DEVELOPMENT,
-  PORT: parseInt(process.env.OPENVOICE_PORT) || 8081,
+  PORT: parseInt(process.env.OPENVOICE_PORT) || 8080,
 
   API_KEY: process.env.OPENVOICE_API_KEY || "",
-  HEALTH_PATH: process.env.OPENVOICE_HEALTH_PATH || "/health",
+  HEALTH_PATH: process.env.OPENVOICE_HEALTH_PATH || "/health/voice",
   TIMEOUT: parseInt(process.env.TTS_TIMEOUT) || 300000,
 
   // Default voice: the reference sample cloned for every TTS request

@@ -183,8 +183,7 @@ class EnvironmentTester {
         const ports = [
             { port: 5173, name: 'Vite Dev Server' },
             { port: 6969, name: 'Backend Server' },
-            { port: 8080, name: 'Transcription / Ollama (default, consolidated)' },
-            { port: 8081, name: 'OpenVoice V1 TTS' }
+            { port: 8080, name: 'OpenVoice V1 TTS / Transcription / Ollama (default, consolidated)' }
         ];
 
         const net = require('net');

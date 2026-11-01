@@ -29,7 +29,7 @@ const lmsConfigured = ENV.LMS.isConfigured; // true/false
 const maxTokens = ENV.LMS.MAX_CONTEXT_TOKENS; // 6144
 
 // OpenVoice V1 TTS
-const openVoiceUrl = ENV.OPENVOICE.URL;          // http://204.12.253.35:8081
+const openVoiceUrl = ENV.OPENVOICE.URL;          // http://204.12.253.35:8080
 const openVoiceClone = ENV.OPENVOICE.CLONE_URL;  // /v1/audio/clone endpoint
 const openVoiceConfigured = ENV.OPENVOICE.isConfigured; // true/false
 const defaultVoice = ENV.OPENVOICE.DEFAULT_VOICE; // "bambi"
@@ -70,13 +70,13 @@ const logLevel = ENV.DEBUG.LOG_LEVEL;      // 'info'
 
 ### OPENVOICE (TTS)
 - `HOST` - Auto-selects based on NODE_ENV (`OPENVOICE_HOST_PRODUCTION` / `OPENVOICE_HOST_DEVELOPMENT`)
-- `PORT` - OpenVoice V1 server port (default: 8081)
+- `PORT` - OpenVoice V1 server port (default: 8080)
 - `URL` - Full URL (computed)
 - `API_URL` - `/v1/audio/speech` endpoint URL (computed)
 - `CLONE_URL` - `/v1/audio/clone` endpoint URL (computed); every TTS request is sent here
 - `isConfigured` - Boolean indicating if properly configured
 - `API_KEY` - Optional API key (`OPENVOICE_API_KEY`), sent as a Bearer token
-- `HEALTH_PATH` - Health probe path used by `/api/services/status` (default: '/health')
+- `HEALTH_PATH` - Health probe path used by `/api/services/status` (default: '/health/voice')
 - `DEFAULT_VOICE` - Name of the single default voice: 'bambi'
 - `REFERENCE_PATH` - Reference sample cloned for the default voice (`OPENVOICE_REFERENCE_PATH`, default: `public/bambi-reference.wav`)
 - `TIMEOUT` - Request timeout in ms (default: 300000)
@@ -150,7 +150,7 @@ const port = process.env.PORT || 6969;
 const openVoiceHost = process.env.NODE_ENV === 'production'
     ? process.env.OPENVOICE_HOST_PRODUCTION
     : process.env.OPENVOICE_HOST_DEVELOPMENT;
-const openVoicePort = process.env.OPENVOICE_PORT || 8081;
+const openVoicePort = process.env.OPENVOICE_PORT || 8080;
 const openVoiceUrl = `http://${openVoiceHost}:${openVoicePort}`;
 ```
 
